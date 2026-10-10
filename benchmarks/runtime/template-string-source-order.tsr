@@ -1,38 +1,38 @@
 type Trace = {
-    code: int;
+  code: int;
 };
 
 function text(trace: Trace): string {
-    trace.code = trace.code * 10 + 1;
-    return "é";
+  trace.code = trace.code * 10 + 1;
+  return "é";
 }
 
 function count(trace: Trace): int {
-    trace.code = trace.code * 10 + 2;
-    return 3;
+  trace.code = trace.code * 10 + 2;
+  return 3;
 }
 
 function ratio(trace: Trace): number {
-    trace.code = trace.code * 10 + 3;
-    return 1.25;
+  trace.code = trace.code * 10 + 3;
+  return 1.25;
 }
 
 function flag(trace: Trace): boolean {
-    trace.code = trace.code * 10 + 4;
-    return false;
+  trace.code = trace.code * 10 + 4;
+  return false;
 }
 
 function main() {
-    const trace: Trace = {
-        code: 0
-    };
-    const value: string = `${text(trace)}|${count(trace)}|${ratio(trace)}|${flag(trace)}`;
-    console.log(value);
-    console.log(trace.code);
-    trace.code = 0;
-    const nested: string = `outer:${text(trace)}:${`inner:${count(trace)}`}:${flag(trace)}`;
-    console.log(nested);
-    console.log(trace.code);
-    const empty: string = `${""}${""}`;
-    console.log(empty);
+  const trace: Trace = {
+    code: 0
+  };
+  const value: string = `${text(trace)}|${count(trace)}|${ratio(trace)}|${flag(trace)}`;
+  console.log(value);
+  console.log(trace.code);
+  trace.code = 0;
+  const nested: string = `outer:${text(trace)}:${`inner:${count(trace)}`}:${flag(trace)}`;
+  console.log(nested);
+  console.log(trace.code);
+  const empty: string = `${""}${""}`;
+  console.log(empty);
 }

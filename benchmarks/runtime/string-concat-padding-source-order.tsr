@@ -1,55 +1,55 @@
 type Trace = {
-    tag: int;
+  tag: int;
 };
 
 function receiver(trace: Trace): string {
-    trace.tag = trace.tag * 10 + 1;
-    return "é";
+  trace.tag = trace.tag * 10 + 1;
+  return "é";
 }
 
 function argument(trace: Trace, tag: int): string {
-    trace.tag = trace.tag * 10 + tag;
-    return "😀";
+  trace.tag = trace.tag * 10 + tag;
+  return "😀";
 }
 
 function target(trace: Trace): int {
-    trace.tag = trace.tag * 10 + 2;
-    return 8;
+  trace.tag = trace.tag * 10 + 2;
+  return 8;
 }
 
 function filler(trace: Trace): string {
-    trace.tag = trace.tag * 10 + 3;
-    return "😀é";
+  trace.tag = trace.tag * 10 + 3;
+  return "😀é";
 }
 
 function main() {
-    const first: Trace = {
-        tag: 0
-    };
-    const joined = receiver(first).concat(argument(first, 2), argument(first, 3));
-    console.log(joined);
-    console.log(first.tag);
-    const second: Trace = {
-        tag: 0
-    };
-    const padded = receiver(second).padStart(target(second), filler(second));
-    console.log(padded);
-    console.log(second.tag);
-    console.log("".concat());
-    console.log("x".concat("", "", "", ""));
-    console.log("a".concat("b", "c", "d", "e"));
-    console.log("x".padStart(-1));
-    console.log("x".padEnd(0));
-    console.log("x".padStart(4));
-    console.log("x".padEnd(4));
-    console.log("x".padStart(4, ""));
-    console.log("x".padEnd(4, ""));
-    console.log("é".padStart(6, "😀é"));
-    console.log("é".padEnd(6, "😀é"));
-    console.log("é".padStart(8, "😀é"));
-    console.log("é".padEnd(8, "😀é"));
-    console.log("é".padStart(1, "😀"));
-    console.log("é".padEnd(-1, "😀"));
-    console.log("".padStart(2, "é😀"));
-    console.log("".padEnd(2, "é😀"));
+  const first: Trace = {
+    tag: 0
+  };
+  const joined = receiver(first).concat(argument(first, 2), argument(first, 3));
+  console.log(joined);
+  console.log(first.tag);
+  const second: Trace = {
+    tag: 0
+  };
+  const padded = receiver(second).padStart(target(second), filler(second));
+  console.log(padded);
+  console.log(second.tag);
+  console.log("".concat());
+  console.log("x".concat("", "", "", ""));
+  console.log("a".concat("b", "c", "d", "e"));
+  console.log("x".padStart(-1));
+  console.log("x".padEnd(0));
+  console.log("x".padStart(4));
+  console.log("x".padEnd(4));
+  console.log("x".padStart(4, ""));
+  console.log("x".padEnd(4, ""));
+  console.log("é".padStart(6, "😀é"));
+  console.log("é".padEnd(6, "😀é"));
+  console.log("é".padStart(8, "😀é"));
+  console.log("é".padEnd(8, "😀é"));
+  console.log("é".padStart(1, "😀"));
+  console.log("é".padEnd(-1, "😀"));
+  console.log("".padStart(2, "é😀"));
+  console.log("".padEnd(2, "é😀"));
 }

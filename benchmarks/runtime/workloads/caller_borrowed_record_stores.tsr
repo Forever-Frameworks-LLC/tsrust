@@ -1,739 +1,739 @@
 type OwnedNullableHolder = {
-    run: Function<int> | undefined;
+  run: Function<int> | undefined;
 };
 
 type ReadNullableHolder = {
-    run: ReadOnly<Function<int>> | undefined;
+  run: ReadOnly<Function<int>> | undefined;
 };
 
 type NullableHolder = {
-    run: Mutable<Function<int>> | undefined;
+  run: Mutable<Function<int>> | undefined;
 };
 
 type OnceHolder = {
-    run: Once<Function<int>>;
+  run: Once<Function<int>>;
 };
 
 type Holder = {
-    run: ReadOnly<Function<int>>;
+  run: ReadOnly<Function<int>>;
 };
 
 type MutableHolder = {
-    run: Mutable<Function<int>>;
+  run: Mutable<Function<int>>;
 };
 
 type Box = {
-    handler: Holder;
+  handler: Holder;
 };
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 5 + seed % 5 + 1;
-        const base = [value];
-        const other = [value + 2];
-        let first = 0;
-        let replaced = 0;
-        let nested = 0;
-        let callback = 0;
-        let callbackReplaced = 0;
-        let pairReplaced = 0;
-        let paired = 0;
-        let changedFirst = 0;
-        let changedSecond = 0;
-        let callbackFirst = 0;
-        let callbackSecond = 0;
-        let callbackAfter = 0;
-        let mutableReplaced = 0;
-        {
-            const holder: Holder = {
-                run: (): int => 0
-            };
-            installArray(holder, base);
-            first = holder.run();
-            replaceBoth(holder, base, other);
-            replaced = holder.run();
-            const box: Box = {
-                handler: {
-                    run: (): int => 0
-                }
-            };
-            installNested(box, base, other);
-            nested = box.handler.run();
-            const action = (): int => base[0];
-            const constant = (): int => 9;
-            const callbackHolder: Holder = {
-                run: (): int => 0
-            };
-            installCallback(callbackHolder, action);
-            callback = callbackHolder.run();
-            installDirect(callbackHolder, constant);
-            const readCallback = (): int => callbackHolder.run();
-            callbackReplaced = readCallback();
-            const pairHolder: Holder = {
-                run: (): int => 0
-            };
-            installPair(pairHolder, action, constant);
-            paired = pairHolder.run();
-            installPair(pairHolder, constant, action);
-            pairReplaced = pairHolder.run();
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 5 + seed % 5 + 1;
+    const base = [value];
+    const other = [value + 2];
+    let first = 0;
+    let replaced = 0;
+    let nested = 0;
+    let callback = 0;
+    let callbackReplaced = 0;
+    let pairReplaced = 0;
+    let paired = 0;
+    let changedFirst = 0;
+    let changedSecond = 0;
+    let callbackFirst = 0;
+    let callbackSecond = 0;
+    let callbackAfter = 0;
+    let mutableReplaced = 0;
+    {
+      const holder: Holder = {
+        run: (): int => 0
+      };
+      installArray(holder, base);
+      first = holder.run();
+      replaceBoth(holder, base, other);
+      replaced = holder.run();
+      const box: Box = {
+        handler: {
+          run: (): int => 0
         }
-
-        base[0] += 1;
-        {
-            const holder: MutableHolder = {
-                run: (): int => 0
-            };
-            installMutable(holder, base);
-            changedFirst = holder.run();
-            changedSecond = holder.run();
-        }
-
-        {
-            const action = (): int => {
-                base[0] += 1;
-                return base[0];
-            };
-            const secondAction = (): int => {
-                other[0] += 10;
-                return other[0];
-            };
-            {
-                const holder: MutableHolder = {
-                    run: (): int => 0
-                };
-                installMutableCallback(holder, action);
-                callbackFirst = holder.run();
-                callbackSecond = holder.run();
-                installMutableCallback(holder, secondAction);
-                const invoke = (): int => holder.run();
-                mutableReplaced = invoke();
-            }
-
-            callbackAfter = action();
-        }
-
-        let consumed = 0;
-        let afterFailure = 0;
-        let beforeFailure = 0;
-        {
-            const owned = [value];
-            const once = (): int => {
-                const moved = owned;
-                return moved[0];
-            };
-            const holder: OnceHolder = {
-                run: (): int => 0
-            };
-            installOnce(holder, once);
-            consumed = holder.run();
-        }
-
-        {
-            const action = (): int => base[0];
-            const holder: Holder = {
-                run: (): int => value + 9
-            };
-            let caught = false;
-            try {
-                installAndFail(holder, action);
-            } catch (error) {
-                caught = error === "installed";
-            }
-
-            afterFailure = holder.run() + (caught ? 0 : 100);
-        }
-
-        {
-            const action = (): int => base[0];
-            const holder: Holder = {
-                run: (): int => value + 9
-            };
-            let caught = false;
-            try {
-                failBeforeInstall(holder, action, true);
-            } catch (error) {
-                caught = error === "before";
-            }
-
-            beforeFailure = holder.run() + (caught ? 0 : 100);
-        }
-
-        let callbackFailure = 0;
-        {
-            const payload = [value + 17];
-            const action = (): int => {
-                throw payload[0];
-            };
-            const holder: Holder = {
-                run: (): int => 0
-            };
-            installDirect(holder, action);
-            const guarded = (): int => {
-                try {
-                    return holder.run();
-                } catch (error) {
-                    return typeof error === "number" ? error : 0;
-                }
-            };
-            callbackFailure = guarded();
-        }
-
-        let nullableBefore = 0;
-        let nullableAfter = 0;
-        let nullableEmpty = 0;
-        {
-            const data = [value];
-            const action = (): int => {
-                data[0] += 1;
-                return data[0];
-            };
-            const holder: NullableHolder = {
-                run: undefined
-            };
-            installNullable(holder, action);
-            nullableBefore = holder.run!();
-            relayClearNullable(holder, i % 2 === 0);
-            nullableAfter = action();
-            nullableEmpty = holder.run === undefined ? 1 : 0;
-        }
-
-        let nullableReleased = 0;
-        let nullableReplacement = 0;
-        let nullableReplacementAfter = 0;
-        {
-            const originalData = [value];
-            const replacementData = [value + 4];
-            const originalAction = (): int => {
-                originalData[0] += 1;
-                return originalData[0];
-            };
-            const replacementAction = (): int => {
-                replacementData[0] += 3;
-                return replacementData[0];
-            };
-            const holder: NullableHolder = {
-                run: undefined
-            };
-            installNullable(holder, originalAction);
-            installNullable(holder, replacementAction);
-            nullableReleased = originalAction();
-            nullableReplacement = holder.run!();
-            clearNullable(holder);
-            nullableReplacementAfter = replacementAction() + (holder.run === undefined ? 0 : 100);
-        }
-
-        let factoryEffects = 0;
-        let factoryBefore = 0;
-        let factoryReleased = 0;
-        let factoryReplacement = 0;
-        let factoryAfter = 0;
-        {
-            const original = counter(value);
-            const replacement = counter(value + 4);
-            const holder: NullableHolder = {
-                run: undefined
-            };
-            const effects = [0];
-            installWithEffects(holder, original, effects);
-            factoryBefore = holder.run!();
-            installWithEffects(holder, replacement, effects);
-            factoryEffects = effects[0];
-            factoryReleased = original();
-            factoryReplacement = holder.run!();
-            clearNullable(holder);
-            factoryAfter = replacement() + (holder.run === undefined ? 0 : 100);
-        }
-
-        let dataEffects = 0;
-        let dataReleased = 0;
-        let dataReplacement = 0;
-        let dataAfter = 0;
-        {
-            const original = [value];
-            const replacement = [value + 4];
-            const holder: NullableHolder = {
-                run: undefined
-            };
-            const dataCalls = [0];
-            installNullableData(holder, original, dataCalls);
-            holder.run!();
-            installNullableData(holder, replacement, dataCalls);
-            dataEffects = dataCalls[0];
-            original[0] += 1;
-            dataReleased = original[0];
-            dataReplacement = holder.run!();
-            clearNullable(holder);
-            replacement[0] += 1;
-            dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);
-        }
-
-        let conditionalFirst = 0;
-        let conditionalReleased = 0;
-        let conditionalReplacement = 0;
-        let conditionalEffects = 0;
-        {
-            const original = [value];
-            const replacement = [value + 4];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            installConditional(holder, original, i % 2 === 0, calls);
-            conditionalFirst = holder.run!();
-            installConditional(holder, replacement, i % 2 !== 0, calls);
-            original[0] += 1;
-            conditionalReleased = original[0];
-            conditionalReplacement = holder.run!();
-            conditionalEffects = calls[0];
-        }
-
-        let forwardedFirst = 0;
-        let forwardedReleased = 0;
-        let forwardedReplacement = 0;
-        let forwardedEffects = 0;
-        {
-            const original = [value];
-            const replacement = [value + 4];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            const perform = installConditional;
-            perform(holder, original, true, calls);
-            forwardedFirst = holder.run!();
-            perform(holder, replacement, false, calls);
-            original[0] += 1;
-            forwardedReleased = original[0];
-            forwardedReplacement = holder.run!();
-            forwardedEffects = calls[0];
-        }
-
-        let closureFirst = 0;
-        let closureReleased = 0;
-        let closureReplacement = 0;
-        let closureEffects = 0;
-        {
-            const original = [value + 2];
-            const replacement = [value + 6];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            const performBody = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>, plus: boolean, effects: Mutable<int[]>): void => {
-                installConditional(target, source, plus, effects);
-            };
-            performBody(holder, original, true, calls);
-            closureFirst = holder.run!();
-            performBody(holder, replacement, false, calls);
-            original[0] += 1;
-            closureReleased = original[0];
-            closureReplacement = holder.run!();
-            closureEffects = calls[0];
-        }
-
-        let capturedFirst = 0;
-        let capturedReleased = 0;
-        let capturedReplacement = 0;
-        let capturedEffects = 0;
-        {
-            const original = [value + 3];
-            const replacement = [value + 7];
-            const calls = [0];
-            const offset = 2;
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const performCaptured = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>): void => {
-                    installConditional(target, source, true, calls);
-                    calls[0] += offset;
-                };
-                performCaptured(holder, original);
-                capturedFirst = holder.run!();
-                performCaptured(holder, replacement);
-                original[0] += 1;
-                capturedReleased = original[0];
-                capturedReplacement = holder.run!();
-            }
-
-            capturedEffects = calls[0];
-        }
-
-        let retainedCapture = 0;
-        let clearedCapture = 0;
-        {
-            const captured = [value + 8];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const retainCaptured = (target: Mutable<ReadNullableHolder>): void => {
-                    installCapturedSource(target, captured);
-                };
-                retainCaptured(holder);
-            }
-
-            retainedCapture = holder.run!();
-            clearCapturedSource(holder);
-            captured[0] += 1;
-            clearedCapture = captured[0];
-        }
-
-        let independentFirst = 0;
-        let independentReleased = 0;
-        let independentReplacement = 0;
-        {
-            const original = [value + 9];
-            const replacement = [value + 13];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const keepFirst = (target: Mutable<ReadNullableHolder>): void => {
-                    installCapturedSource(target, original);
-                };
-                keepFirst(holder);
-            }
-
-            independentFirst = holder.run!();
-            {
-                const keepSecond = (target: Mutable<ReadNullableHolder>): void => {
-                    installCapturedSource(target, replacement);
-                };
-                keepSecond(holder);
-            }
-
-            original[0] += 1;
-            independentReleased = original[0];
-            independentReplacement = holder.run!();
-        }
-
-        const inspectLocalOwners = (): int[] => {
-            const original = [value + 14];
-            const replacement = [value + 18];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const installLocalFirst = (target: Mutable<ReadNullableHolder>): void => {
-                    installConditional(target, original, true, calls);
-                };
-                installLocalFirst(holder);
-            }
-
-            const localFirst = holder.run!();
-            {
-                const installLocalSecond = (target: Mutable<ReadNullableHolder>): void => {
-                    installConditional(target, replacement, true, calls);
-                };
-                installLocalSecond(holder);
-            }
-
-            original[0] += 1;
-            return [localFirst, original[0], holder.run!(), calls[0]];
-        };
-        const localOwnerValues = inspectLocalOwners();
-
-        let scopedFirst = 0;
-        let scopedSecond = 0;
-        let scopedReleased = 0;
-        let scopedEffects = 0;
-        {
-            const source = [value + 20];
-            const calls = [0];
-            const holder: NullableHolder = {
-                run: undefined
-            };
-            {
-                const lendMutable = (target: Mutable<NullableHolder>): void => {
-                    calls[0] += 1;
-                    installScopedMutation(target, source);
-                };
-                lendMutable(holder);
-                scopedFirst = holder.run!();
-                clearNullable(holder);
-                lendMutable(holder);
-                scopedSecond = holder.run!();
-                clearNullable(holder);
-            }
-
-            source[0] += 1;
-            scopedReleased = source[0];
-            scopedEffects = calls[0];
-        }
-
-        let ownedFirst = 0;
-        let ownedSecond = 0;
-        {
-            const source = [value + 30];
-            const holder: OwnedNullableHolder = {
-                run: undefined
-            };
-            {
-                const transferOnce: Once<Function<void, [target: Mutable<OwnedNullableHolder>]>> = (target: Mutable<OwnedNullableHolder>): void => {
-                    installOwnedMutation(target, source);
-                };
-                transferOnce(holder);
-            }
-
-            ownedFirst = holder.run!();
-            ownedSecond = holder.run!();
-            holder.run = undefined;
-        }
-
-        let nestedFirst = 0;
-        let nestedReleased = 0;
-        let nestedReplacement = 0;
-        let nestedEffects = 0;
-        {
-            const original = [value + 40];
-            const replacement = [value + 45];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const outerFirst = (target: Mutable<ReadNullableHolder>): void => {
-                    const middleFirst = (next: Mutable<ReadNullableHolder>): void => {
-                        const innerFirst = (destination: Mutable<ReadNullableHolder>): void => {
-                            calls[0] += 1;
-                            installCapturedSource(destination, original);
-                        };
-                        innerFirst(next);
-                    };
-                    middleFirst(target);
-                };
-                outerFirst(holder);
-            }
-
-            nestedFirst = holder.run!();
-            {
-                const outerSecond = (target: Mutable<ReadNullableHolder>): void => {
-                    const middleSecond = (next: Mutable<ReadNullableHolder>): void => {
-                        const innerSecond = (destination: Mutable<ReadNullableHolder>): void => {
-                            calls[0] += 1;
-                            installCapturedSource(destination, replacement);
-                        };
-                        innerSecond(next);
-                    };
-                    middleSecond(target);
-                };
-                outerSecond(holder);
-            }
-
-            original[0] += 1;
-            nestedReleased = original[0];
-            nestedReplacement = holder.run!();
-            nestedEffects = calls[0];
-        }
-
-        let heldFirst = 0;
-        let heldReleased = 0;
-        let heldReplacement = 0;
-        let heldEffects = 0;
-        {
-            const original = [value + 50];
-            const replacement = [value + 60];
-            const calls = [0];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            {
-                const heldInstallerFirst = (destination: Mutable<ReadNullableHolder>): void => {
-                    calls[0] += 1;
-                    installCapturedSource(destination, original);
-                };
-                const heldCallerFirst = (target: Mutable<ReadNullableHolder>): void => {
-                    heldInstallerFirst(target);
-                };
-                heldCallerFirst(holder);
-            }
-
-            heldFirst = holder.run!();
-            {
-                const heldInstallerSecond = (destination: Mutable<ReadNullableHolder>): void => {
-                    calls[0] += 1;
-                    installCapturedSource(destination, replacement);
-                };
-                const heldCallerSecond = (target: Mutable<ReadNullableHolder>): void => {
-                    heldInstallerSecond(target);
-                };
-                heldCallerSecond(holder);
-            }
-
-            original[0] += 1;
-            heldReleased = original[0];
-            heldReplacement = holder.run!();
-            heldEffects = calls[0];
-        }
-
-        let regionFirst = 0;
-        let regionSecond = 0;
-        {
-            const original = [value + 70];
-            const replacement = [value + 80];
-            const holder: ReadNullableHolder = {
-                run: undefined
-            };
-            installThroughFinally(holder, original, replacement);
-            regionFirst = holder.run!();
-            installThroughCatch(holder, original, replacement, value % 2 === 0);
-            regionSecond = holder.run!();
-        }
-
-        output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects, heldFirst, heldReleased, heldReplacement, heldEffects, regionFirst, regionSecond]);
-        i += 1;
+      };
+      installNested(box, base, other);
+      nested = box.handler.run();
+      const action = (): int => base[0];
+      const constant = (): int => 9;
+      const callbackHolder: Holder = {
+        run: (): int => 0
+      };
+      installCallback(callbackHolder, action);
+      callback = callbackHolder.run();
+      installDirect(callbackHolder, constant);
+      const readCallback = (): int => callbackHolder.run();
+      callbackReplaced = readCallback();
+      const pairHolder: Holder = {
+        run: (): int => 0
+      };
+      installPair(pairHolder, action, constant);
+      paired = pairHolder.run();
+      installPair(pairHolder, constant, action);
+      pairReplaced = pairHolder.run();
     }
 
-    return output;
+    base[0] += 1;
+    {
+      const holder: MutableHolder = {
+        run: (): int => 0
+      };
+      installMutable(holder, base);
+      changedFirst = holder.run();
+      changedSecond = holder.run();
+    }
+
+    {
+      const action = (): int => {
+        base[0] += 1;
+        return base[0];
+      };
+      const secondAction = (): int => {
+        other[0] += 10;
+        return other[0];
+      };
+      {
+        const holder: MutableHolder = {
+          run: (): int => 0
+        };
+        installMutableCallback(holder, action);
+        callbackFirst = holder.run();
+        callbackSecond = holder.run();
+        installMutableCallback(holder, secondAction);
+        const invoke = (): int => holder.run();
+        mutableReplaced = invoke();
+      }
+
+      callbackAfter = action();
+    }
+
+    let consumed = 0;
+    let afterFailure = 0;
+    let beforeFailure = 0;
+    {
+      const owned = [value];
+      const once = (): int => {
+        const moved = owned;
+        return moved[0];
+      };
+      const holder: OnceHolder = {
+        run: (): int => 0
+      };
+      installOnce(holder, once);
+      consumed = holder.run();
+    }
+
+    {
+      const action = (): int => base[0];
+      const holder: Holder = {
+        run: (): int => value + 9
+      };
+      let caught = false;
+      try {
+        installAndFail(holder, action);
+      } catch (error) {
+        caught = error === "installed";
+      }
+
+      afterFailure = holder.run() + (caught ? 0 : 100);
+    }
+
+    {
+      const action = (): int => base[0];
+      const holder: Holder = {
+        run: (): int => value + 9
+      };
+      let caught = false;
+      try {
+        failBeforeInstall(holder, action, true);
+      } catch (error) {
+        caught = error === "before";
+      }
+
+      beforeFailure = holder.run() + (caught ? 0 : 100);
+    }
+
+    let callbackFailure = 0;
+    {
+      const payload = [value + 17];
+      const action = (): int => {
+        throw payload[0];
+      };
+      const holder: Holder = {
+        run: (): int => 0
+      };
+      installDirect(holder, action);
+      const guarded = (): int => {
+        try {
+          return holder.run();
+        } catch (error) {
+          return typeof error === "number" ? error : 0;
+        }
+      };
+      callbackFailure = guarded();
+    }
+
+    let nullableBefore = 0;
+    let nullableAfter = 0;
+    let nullableEmpty = 0;
+    {
+      const data = [value];
+      const action = (): int => {
+        data[0] += 1;
+        return data[0];
+      };
+      const holder: NullableHolder = {
+        run: undefined
+      };
+      installNullable(holder, action);
+      nullableBefore = holder.run!();
+      relayClearNullable(holder, i % 2 === 0);
+      nullableAfter = action();
+      nullableEmpty = holder.run === undefined ? 1 : 0;
+    }
+
+    let nullableReleased = 0;
+    let nullableReplacement = 0;
+    let nullableReplacementAfter = 0;
+    {
+      const originalData = [value];
+      const replacementData = [value + 4];
+      const originalAction = (): int => {
+        originalData[0] += 1;
+        return originalData[0];
+      };
+      const replacementAction = (): int => {
+        replacementData[0] += 3;
+        return replacementData[0];
+      };
+      const holder: NullableHolder = {
+        run: undefined
+      };
+      installNullable(holder, originalAction);
+      installNullable(holder, replacementAction);
+      nullableReleased = originalAction();
+      nullableReplacement = holder.run!();
+      clearNullable(holder);
+      nullableReplacementAfter = replacementAction() + (holder.run === undefined ? 0 : 100);
+    }
+
+    let factoryEffects = 0;
+    let factoryBefore = 0;
+    let factoryReleased = 0;
+    let factoryReplacement = 0;
+    let factoryAfter = 0;
+    {
+      const original = counter(value);
+      const replacement = counter(value + 4);
+      const holder: NullableHolder = {
+        run: undefined
+      };
+      const effects = [0];
+      installWithEffects(holder, original, effects);
+      factoryBefore = holder.run!();
+      installWithEffects(holder, replacement, effects);
+      factoryEffects = effects[0];
+      factoryReleased = original();
+      factoryReplacement = holder.run!();
+      clearNullable(holder);
+      factoryAfter = replacement() + (holder.run === undefined ? 0 : 100);
+    }
+
+    let dataEffects = 0;
+    let dataReleased = 0;
+    let dataReplacement = 0;
+    let dataAfter = 0;
+    {
+      const original = [value];
+      const replacement = [value + 4];
+      const holder: NullableHolder = {
+        run: undefined
+      };
+      const dataCalls = [0];
+      installNullableData(holder, original, dataCalls);
+      holder.run!();
+      installNullableData(holder, replacement, dataCalls);
+      dataEffects = dataCalls[0];
+      original[0] += 1;
+      dataReleased = original[0];
+      dataReplacement = holder.run!();
+      clearNullable(holder);
+      replacement[0] += 1;
+      dataAfter = replacement[0] + (holder.run === undefined ? 0 : 100);
+    }
+
+    let conditionalFirst = 0;
+    let conditionalReleased = 0;
+    let conditionalReplacement = 0;
+    let conditionalEffects = 0;
+    {
+      const original = [value];
+      const replacement = [value + 4];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      installConditional(holder, original, i % 2 === 0, calls);
+      conditionalFirst = holder.run!();
+      installConditional(holder, replacement, i % 2 !== 0, calls);
+      original[0] += 1;
+      conditionalReleased = original[0];
+      conditionalReplacement = holder.run!();
+      conditionalEffects = calls[0];
+    }
+
+    let forwardedFirst = 0;
+    let forwardedReleased = 0;
+    let forwardedReplacement = 0;
+    let forwardedEffects = 0;
+    {
+      const original = [value];
+      const replacement = [value + 4];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      const perform = installConditional;
+      perform(holder, original, true, calls);
+      forwardedFirst = holder.run!();
+      perform(holder, replacement, false, calls);
+      original[0] += 1;
+      forwardedReleased = original[0];
+      forwardedReplacement = holder.run!();
+      forwardedEffects = calls[0];
+    }
+
+    let closureFirst = 0;
+    let closureReleased = 0;
+    let closureReplacement = 0;
+    let closureEffects = 0;
+    {
+      const original = [value + 2];
+      const replacement = [value + 6];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      const performBody = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>, plus: boolean, effects: Mutable<int[]>): void => {
+        installConditional(target, source, plus, effects);
+      };
+      performBody(holder, original, true, calls);
+      closureFirst = holder.run!();
+      performBody(holder, replacement, false, calls);
+      original[0] += 1;
+      closureReleased = original[0];
+      closureReplacement = holder.run!();
+      closureEffects = calls[0];
+    }
+
+    let capturedFirst = 0;
+    let capturedReleased = 0;
+    let capturedReplacement = 0;
+    let capturedEffects = 0;
+    {
+      const original = [value + 3];
+      const replacement = [value + 7];
+      const calls = [0];
+      const offset = 2;
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const performCaptured = (target: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>): void => {
+          installConditional(target, source, true, calls);
+          calls[0] += offset;
+        };
+        performCaptured(holder, original);
+        capturedFirst = holder.run!();
+        performCaptured(holder, replacement);
+        original[0] += 1;
+        capturedReleased = original[0];
+        capturedReplacement = holder.run!();
+      }
+
+      capturedEffects = calls[0];
+    }
+
+    let retainedCapture = 0;
+    let clearedCapture = 0;
+    {
+      const captured = [value + 8];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const retainCaptured = (target: Mutable<ReadNullableHolder>): void => {
+          installCapturedSource(target, captured);
+        };
+        retainCaptured(holder);
+      }
+
+      retainedCapture = holder.run!();
+      clearCapturedSource(holder);
+      captured[0] += 1;
+      clearedCapture = captured[0];
+    }
+
+    let independentFirst = 0;
+    let independentReleased = 0;
+    let independentReplacement = 0;
+    {
+      const original = [value + 9];
+      const replacement = [value + 13];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const keepFirst = (target: Mutable<ReadNullableHolder>): void => {
+          installCapturedSource(target, original);
+        };
+        keepFirst(holder);
+      }
+
+      independentFirst = holder.run!();
+      {
+        const keepSecond = (target: Mutable<ReadNullableHolder>): void => {
+          installCapturedSource(target, replacement);
+        };
+        keepSecond(holder);
+      }
+
+      original[0] += 1;
+      independentReleased = original[0];
+      independentReplacement = holder.run!();
+    }
+
+    const inspectLocalOwners = (): int[] => {
+      const original = [value + 14];
+      const replacement = [value + 18];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const installLocalFirst = (target: Mutable<ReadNullableHolder>): void => {
+          installConditional(target, original, true, calls);
+        };
+        installLocalFirst(holder);
+      }
+
+      const localFirst = holder.run!();
+      {
+        const installLocalSecond = (target: Mutable<ReadNullableHolder>): void => {
+          installConditional(target, replacement, true, calls);
+        };
+        installLocalSecond(holder);
+      }
+
+      original[0] += 1;
+      return [localFirst, original[0], holder.run!(), calls[0]];
+    };
+    const localOwnerValues = inspectLocalOwners();
+
+    let scopedFirst = 0;
+    let scopedSecond = 0;
+    let scopedReleased = 0;
+    let scopedEffects = 0;
+    {
+      const source = [value + 20];
+      const calls = [0];
+      const holder: NullableHolder = {
+        run: undefined
+      };
+      {
+        const lendMutable = (target: Mutable<NullableHolder>): void => {
+          calls[0] += 1;
+          installScopedMutation(target, source);
+        };
+        lendMutable(holder);
+        scopedFirst = holder.run!();
+        clearNullable(holder);
+        lendMutable(holder);
+        scopedSecond = holder.run!();
+        clearNullable(holder);
+      }
+
+      source[0] += 1;
+      scopedReleased = source[0];
+      scopedEffects = calls[0];
+    }
+
+    let ownedFirst = 0;
+    let ownedSecond = 0;
+    {
+      const source = [value + 30];
+      const holder: OwnedNullableHolder = {
+        run: undefined
+      };
+      {
+        const transferOnce: Once<Function<void, [target: Mutable<OwnedNullableHolder>]>> = (target: Mutable<OwnedNullableHolder>): void => {
+          installOwnedMutation(target, source);
+        };
+        transferOnce(holder);
+      }
+
+      ownedFirst = holder.run!();
+      ownedSecond = holder.run!();
+      holder.run = undefined;
+    }
+
+    let nestedFirst = 0;
+    let nestedReleased = 0;
+    let nestedReplacement = 0;
+    let nestedEffects = 0;
+    {
+      const original = [value + 40];
+      const replacement = [value + 45];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const outerFirst = (target: Mutable<ReadNullableHolder>): void => {
+          const middleFirst = (next: Mutable<ReadNullableHolder>): void => {
+            const innerFirst = (destination: Mutable<ReadNullableHolder>): void => {
+              calls[0] += 1;
+              installCapturedSource(destination, original);
+            };
+            innerFirst(next);
+          };
+          middleFirst(target);
+        };
+        outerFirst(holder);
+      }
+
+      nestedFirst = holder.run!();
+      {
+        const outerSecond = (target: Mutable<ReadNullableHolder>): void => {
+          const middleSecond = (next: Mutable<ReadNullableHolder>): void => {
+            const innerSecond = (destination: Mutable<ReadNullableHolder>): void => {
+              calls[0] += 1;
+              installCapturedSource(destination, replacement);
+            };
+            innerSecond(next);
+          };
+          middleSecond(target);
+        };
+        outerSecond(holder);
+      }
+
+      original[0] += 1;
+      nestedReleased = original[0];
+      nestedReplacement = holder.run!();
+      nestedEffects = calls[0];
+    }
+
+    let heldFirst = 0;
+    let heldReleased = 0;
+    let heldReplacement = 0;
+    let heldEffects = 0;
+    {
+      const original = [value + 50];
+      const replacement = [value + 60];
+      const calls = [0];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      {
+        const heldInstallerFirst = (destination: Mutable<ReadNullableHolder>): void => {
+          calls[0] += 1;
+          installCapturedSource(destination, original);
+        };
+        const heldCallerFirst = (target: Mutable<ReadNullableHolder>): void => {
+          heldInstallerFirst(target);
+        };
+        heldCallerFirst(holder);
+      }
+
+      heldFirst = holder.run!();
+      {
+        const heldInstallerSecond = (destination: Mutable<ReadNullableHolder>): void => {
+          calls[0] += 1;
+          installCapturedSource(destination, replacement);
+        };
+        const heldCallerSecond = (target: Mutable<ReadNullableHolder>): void => {
+          heldInstallerSecond(target);
+        };
+        heldCallerSecond(holder);
+      }
+
+      original[0] += 1;
+      heldReleased = original[0];
+      heldReplacement = holder.run!();
+      heldEffects = calls[0];
+    }
+
+    let regionFirst = 0;
+    let regionSecond = 0;
+    {
+      const original = [value + 70];
+      const replacement = [value + 80];
+      const holder: ReadNullableHolder = {
+        run: undefined
+      };
+      installThroughFinally(holder, original, replacement);
+      regionFirst = holder.run!();
+      installThroughCatch(holder, original, replacement, value % 2 === 0);
+      regionSecond = holder.run!();
+    }
+
+    output.push([first, replaced, nested, callback, paired, changedFirst, changedSecond, callbackFirst, callbackSecond, callbackAfter, base[0], callbackReplaced, pairReplaced, mutableReplaced, consumed, afterFailure, beforeFailure, callbackFailure, nullableBefore, nullableAfter, nullableEmpty, nullableReleased, nullableReplacement, nullableReplacementAfter, factoryBefore, factoryReleased, factoryReplacement, factoryAfter, dataReleased, dataReplacement, dataAfter, factoryEffects, dataEffects, conditionalFirst, conditionalReleased, conditionalReplacement, conditionalEffects, forwardedFirst, forwardedReleased, forwardedReplacement, forwardedEffects, closureFirst, closureReleased, closureReplacement, closureEffects, capturedFirst, capturedReleased, capturedReplacement, capturedEffects, retainedCapture, clearedCapture, independentFirst, independentReleased, independentReplacement, localOwnerValues[0], localOwnerValues[1], localOwnerValues[2], localOwnerValues[3], scopedFirst, scopedSecond, scopedReleased, scopedEffects, ownedFirst, ownedSecond, nestedFirst, nestedReleased, nestedReplacement, nestedEffects, heldFirst, heldReleased, heldReplacement, heldEffects, regionFirst, regionSecond]);
+    i += 1;
+  }
+
+  return output;
 }
 
 function installArray(holder: Mutable<Holder>, source: ReadOnly<int[]>): void {
-    const alias = source;
-    holder.run = (): int => alias[0];
+  const alias = source;
+  holder.run = (): int => alias[0];
 }
 
 function replaceBoth(holder: Mutable<Holder>, left: ReadOnly<int[]>, right: ReadOnly<int[]>): void {
-    installArray(holder, left);
-    installArray(holder, right);
+  installArray(holder, left);
+  installArray(holder, right);
 }
 
 function installNested(box: Mutable<Box>, left: ReadOnly<int[]>, right: ReadOnly<int[]>): void {
-    box.handler.run = (): int => left[0] + right[0];
+  box.handler.run = (): int => left[0] + right[0];
 }
 
 function installCallback(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
-    const alias = action;
-    holder.run = (): int => alias();
+  const alias = action;
+  holder.run = (): int => alias();
 }
 
 function installPair(holder: Mutable<Holder>, left: ReadOnly<Function<int>>, right: ReadOnly<Function<int>>): void {
-    holder.run = (): int => left() + right();
+  holder.run = (): int => left() + right();
 }
 
 function installMutable(holder: Mutable<MutableHolder>, source: Mutable<int[]>): void {
-    holder.run = (): int => {
-        source[0] += 1;
-        return source[0];
-    };
+  holder.run = (): int => {
+    source[0] += 1;
+    return source[0];
+  };
 }
 
 function installMutableCallback(holder: Mutable<MutableHolder>, action: Mutable<Function<int>>): void {
-    holder.run = (): int => action();
+  holder.run = (): int => action();
 }
 
 function installDirect(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
-    holder.run = action;
+  holder.run = action;
 }
 
 function installOnce(holder: Mutable<OnceHolder>, action: Once<Function<int>>): void {
-    holder.run = action;
+  holder.run = action;
 }
 
 function installAndFail(holder: Mutable<Holder>, action: ReadOnly<Function<int>>): void {
-    holder.run = action;
-    throw "installed";
+  holder.run = action;
+  throw "installed";
 }
 
 function failBeforeInstall(holder: Mutable<Holder>, action: ReadOnly<Function<int>>, fail: boolean): void {
-    if (fail) {
-        throw "before";
-    }
+  if (fail) {
+    throw "before";
+  }
 
-    holder.run = action;
+  holder.run = action;
 }
 
 function main() {
 }
 
 function installNullable(holder: Mutable<NullableHolder>, action: Mutable<Function<int>>): void {
-    holder.run = action;
+  holder.run = action;
 }
 
 function clearNullable(holder: Mutable<NullableHolder>): void {
-    holder.run = undefined;
+  holder.run = undefined;
 }
 
 function relayClearNullable(holder: Mutable<NullableHolder>, early: boolean): void {
-    if (early) {
-        clearNullable(holder);
-        return;
-    }
-
+  if (early) {
     clearNullable(holder);
+    return;
+  }
+
+  clearNullable(holder);
 }
 
 function counter(start: int): () => int {
-    let value = start;
-    return (): int => {
-        value += 1;
-        return value;
-    };
+  let value = start;
+  return (): int => {
+    value += 1;
+    return value;
+  };
 }
 
 function installNullableData(holder: Mutable<NullableHolder>, source: Mutable<int[]>, calls: Mutable<int[]>): void {
-    calls[0] += 1;
-    holder.run = (): int => {
-        source[0] += 1;
-        return source[0];
-    };
+  calls[0] += 1;
+  holder.run = (): int => {
+    source[0] += 1;
+    return source[0];
+  };
 }
 
 function installWithEffects(holder: Mutable<NullableHolder>, action: Mutable<Function<int>>, calls: Mutable<int[]>): void {
-    calls[0] += 1;
-    installNullable(holder, action);
+  calls[0] += 1;
+  installNullable(holder, action);
 }
 
 function installConditional(holder: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>, plus: boolean, calls: Mutable<int[]>): void {
-    calls[0] += 1;
-    const selected = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
-    calls[0] += selected();
-    holder.run = selected;
+  calls[0] += 1;
+  const selected = chooseCallbackBranch(plus, calls) ? (calls[0] += 100, (): int => source[0] + 1) : (calls[0] += 200, (): int => source[0] + 2);
+  calls[0] += selected();
+  holder.run = selected;
 }
 
 function chooseCallbackBranch(plus: boolean, calls: Mutable<int[]>): boolean {
-    calls[0] += 10;
-    return plus;
+  calls[0] += 10;
+  return plus;
 }
 
 function installCapturedSource(holder: Mutable<ReadNullableHolder>, source: ReadOnly<int[]>): void {
-    holder.run = (): int => source[0];
+  holder.run = (): int => source[0];
 }
 
 function clearCapturedSource(holder: Mutable<ReadNullableHolder>): void {
-    holder.run = undefined;
+  holder.run = undefined;
 }
 
 function installScopedMutation(holder: Mutable<NullableHolder>, source: Mutable<int[]>): void {
-    holder.run = (): int => {
-        source[0] += 1;
-        return source[0];
-    };
+  holder.run = (): int => {
+    source[0] += 1;
+    return source[0];
+  };
 }
 
 function installOwnedMutation(holder: Mutable<OwnedNullableHolder>, source: Owned<int[]>): void {
-    holder.run = (): int => {
-        source[0] += 1;
-        return source[0];
-    };
+  holder.run = (): int => {
+    source[0] += 1;
+    return source[0];
+  };
 }
 
 function installThroughFinally(holder: Mutable<ReadNullableHolder>, first: ReadOnly<int[]>, last: ReadOnly<int[]>): void {
-    try {
-        installCapturedSource(holder, first);
-    } finally {
-        installCapturedSource(holder, last);
-    }
+  try {
+    installCapturedSource(holder, first);
+  } finally {
+    installCapturedSource(holder, last);
+  }
 }
 
 function installThroughCatch(holder: Mutable<ReadNullableHolder>, first: ReadOnly<int[]>, last: ReadOnly<int[]>, fail: boolean): void {
-    try {
-        if (fail) throw "region";
-        installCapturedSource(holder, first);
-    } catch (error) {
-        installCapturedSource(holder, last);
-    }
+  try {
+    if (fail) throw "region";
+    installCapturedSource(holder, first);
+  } catch (error) {
+    installCapturedSource(holder, last);
+  }
 }

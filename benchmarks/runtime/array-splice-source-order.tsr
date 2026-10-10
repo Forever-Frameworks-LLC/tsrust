@@ -1,27 +1,27 @@
 function insertion(values: int[], trace: int[], tag: int): int {
-    values.push(7);
-    trace.push(tag);
-    return tag;
+  values.push(7);
+  trace.push(tag);
+  return tag;
 }
 
 function receiver(trace: int[]): int[] {
-    trace.push(1);
-    return [1, 2];
+  trace.push(1);
+  return [1, 2];
 }
 
 function main() {
-    const values: int[] = [1, 2];
-    const trace: int[] = [];
-    const removed = values.splice(-1, 1, insertion(values, trace, 8), insertion(values, trace, 9));
-    console.log(removed.join(","));
-    console.log(values.join(","));
-    console.log(trace.join(","));
-    console.log(removed.length);
-    console.log(values.length);
-    const noOp = values.splice();
-    console.log(noOp.length);
-    console.log(values.join(","));
-    const tail = receiver(trace).splice(1);
-    console.log(tail.join(","));
-    console.log(trace.join(","));
+  const values: int[] = [1, 2];
+  const trace: int[] = [];
+  const removed = values.splice(-1, 1, insertion(values, trace, 8), insertion(values, trace, 9));
+  console.log(removed.join(","));
+  console.log(values.join(","));
+  console.log(trace.join(","));
+  console.log(removed.length);
+  console.log(values.length);
+  const noOp = values.splice();
+  console.log(noOp.length);
+  console.log(values.join(","));
+  const tail = receiver(trace).splice(1);
+  console.log(tail.join(","));
+  console.log(trace.join(","));
 }

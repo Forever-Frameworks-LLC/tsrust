@@ -1,27 +1,27 @@
 import { strictEqual } from "std:testing";
 
 function one<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function two<T>(value: T, other: T): T {
-    return other;
+  return other;
 }
 
 function factory<A>(action: A) {
-    function select() {
-        return action;
-    }
+  function select() {
+    return action;
+  }
 
-    return select;
+  return select;
 }
 
 function main() {
-    const first = factory(one);
-    const second = factory(two);
-    const saved = first();
-    const other = second();
-    strictEqual(saved<int>(7), 7);
-    strictEqual(saved<string>("Pat"), "Pat");
-    strictEqual(other<int>(7, 9), 9);
+  const first = factory(one);
+  const second = factory(two);
+  const saved = first();
+  const other = second();
+  strictEqual(saved<int>(7), 7);
+  strictEqual(saved<string>("Pat"), "Pat");
+  strictEqual(other<int>(7, 9), 9);
 }

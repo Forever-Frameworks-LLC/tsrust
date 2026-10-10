@@ -1,27 +1,27 @@
 import { strictEqual } from 'std:testing';
 
 function make() {
-    let calls = 0;
-    function identity<T>(value: T): T {
-        calls += 1;
-        console.log(calls);
-        return value;
-    }
+  let calls = 0;
+  function identity<T>(value: T): T {
+    calls += 1;
+    console.log(calls);
+    return value;
+  }
 
-    return identity;
+  return identity;
 }
 
 function main() {
-    const source = make();
-    {
-        const view: Mutable<Function<Function<int, [value: int]>, [value: Function<int, [value: int]>]>> = source;
-        const action = view((value: int): int => value + 1);
-        strictEqual(action(7), 8);
-    }
+  const source = make();
+  {
+    const view: Mutable<Function<Function<int, [value: int]>, [value: Function<int, [value: int]>]>> = source;
+    const action = view((value: int): int => value + 1);
+    strictEqual(action(7), 8);
+  }
 
-    {
-        const view: Mutable<Function<Function<string, [value: Owned<string>]>, [value: Function<string, [value: Owned<string>]>]>> = source;
-        const action = view((value: Owned<string>): string => value + "!");
-        strictEqual(action("owner"), "owner!");
-    }
+  {
+    const view: Mutable<Function<Function<string, [value: Owned<string>]>, [value: Function<string, [value: Owned<string>]>]>> = source;
+    const action = view((value: Owned<string>): string => value + "!");
+    strictEqual(action("owner"), "owner!");
+  }
 }

@@ -1,23 +1,23 @@
 function workload(n: int, seed: int): number {
-    const table0: number[] = [-1.75, -1.25, -0.75, -0.25, 0.25, 0.75, 1.25, 1.75];
-    let sum: number = Number(seed);
-    let i = 0;
-    while (i < n) {
-        const position = (i * 13 + seed) % 8;
-        const jitter = (i * 17 + seed) % 5;
-        const argument0: number = table0[position] + Number(jitter) * 0.03125;
-        sum = sum + operation(argument0);
-        i = i + 1;
-    }
+  const table0: number[] = [-1.75, -1.25, -0.75, -0.25, 0.25, 0.75, 1.25, 1.75];
+  let sum: number = Number(seed);
+  let i = 0;
+  while (i < n) {
+    const position = (i * 13 + seed) % 8;
+    const jitter = (i * 17 + seed) % 5;
+    const argument0: number = table0[position] + Number(jitter) * 0.03125;
+    sum = sum + operation(argument0);
+    i = i + 1;
+  }
 
-    return sum;
+  return sum;
 }
 
 function operation(argument0: number): number {
-    return Math.exp(argument0);
+  return Math.exp(argument0);
 }
 
 function main() {
-    const result = workload(2, 7);
-    console.log(result);
+  const result = workload(2, 7);
+  console.log(result);
 }

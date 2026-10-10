@@ -1,74 +1,74 @@
 type Trace = {
-    tag: int;
+  tag: int;
 };
 
 type Cell = {
-    flag: boolean;
+  flag: boolean;
 };
 
 function index(trace: Trace): int {
-    trace.tag = trace.tag * 10 + 1;
-    return 0;
+  trace.tag = trace.tag * 10 + 1;
+  return 0;
 }
 
 function rhs(values: int[], trace: Trace): int {
-    trace.tag = trace.tag * 10 + 2;
-    values[0] = 99;
-    values.push(17);
-    return 7;
+  trace.tag = trace.tag * 10 + 2;
+  values[0] = 99;
+  values.push(17);
+  return 7;
 }
 
 function next(trace: Trace): int {
-    trace.tag = trace.tag * 10 + 3;
-    return 11;
+  trace.tag = trace.tag * 10 + 3;
+  return 11;
 }
 
 function booleanRhs(cell: Cell, trace: Trace): boolean {
-    trace.tag = trace.tag * 10 + 4;
-    cell.flag = true;
-    return false;
+  trace.tag = trace.tag * 10 + 4;
+  cell.flag = true;
+  return false;
 }
 
 function bit(value: boolean): int {
-    if (value) {
-        return 1;
-    }
+  if (value) {
+    return 1;
+  }
 
-    return 0;
+  return 0;
 }
 
 function main() {
-    const trace: Trace = {
-        tag: 0
-    };
-    const values = [6, 2, 3, 4];
-    const observed = (values[index(trace)] = rhs(values, trace));
-    console.log(observed);
-    console.log(values[0]);
-    console.log(values[1]);
-    console.log(values[2]);
-    console.log(values[3]);
-    console.log(values[4]);
-    console.log(values.length);
-    console.log(trace.tag);
-    let first: int = 1;
-    let second: int = 2;
-    const chained = (first = (second = next(trace)));
-    console.log(chained);
-    console.log(first);
-    console.log(second);
-    console.log(trace.tag);
-    const cell: Cell = {
-        flag: true
-    };
-    const boolResult = (cell.flag = booleanRhs(cell, trace));
-    console.log(bit(boolResult));
-    console.log(bit(cell.flag));
-    console.log(trace.tag);
-    let leftNumber: number = 8.0;
-    let rightNumber: number = 9.0;
-    const negativeZero = (leftNumber = (rightNumber = -0.0));
-    console.log(bit(1.0 / negativeZero < 0.0));
-    console.log(bit(1.0 / leftNumber < 0.0));
-    console.log(bit(1.0 / rightNumber < 0.0));
+  const trace: Trace = {
+    tag: 0
+  };
+  const values = [6, 2, 3, 4];
+  const observed = (values[index(trace)] = rhs(values, trace));
+  console.log(observed);
+  console.log(values[0]);
+  console.log(values[1]);
+  console.log(values[2]);
+  console.log(values[3]);
+  console.log(values[4]);
+  console.log(values.length);
+  console.log(trace.tag);
+  let first: int = 1;
+  let second: int = 2;
+  const chained = (first = (second = next(trace)));
+  console.log(chained);
+  console.log(first);
+  console.log(second);
+  console.log(trace.tag);
+  const cell: Cell = {
+    flag: true
+  };
+  const boolResult = (cell.flag = booleanRhs(cell, trace));
+  console.log(bit(boolResult));
+  console.log(bit(cell.flag));
+  console.log(trace.tag);
+  let leftNumber: number = 8.0;
+  let rightNumber: number = 9.0;
+  const negativeZero = (leftNumber = (rightNumber = -0.0));
+  console.log(bit(1.0 / negativeZero < 0.0));
+  console.log(bit(1.0 / leftNumber < 0.0));
+  console.log(bit(1.0 / rightNumber < 0.0));
 }

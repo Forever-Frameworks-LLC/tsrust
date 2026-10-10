@@ -1,17 +1,17 @@
 function make(text: string): () => string {
-    return (): string => {
-        return text;
-    };
+  return (): string => {
+    return text;
+  };
 }
 
 function main() {
-    let action = make("Pat");
-    let count = 0;
-    while (count < 3) {
-        console.log(action());
-        action = make("Sam");
-        count = count + 1;
-    }
-
+  let action = make("Pat");
+  let count = 0;
+  while (count < 3) {
     console.log(action());
+    action = make("Sam");
+    count = count + 1;
+  }
+
+  console.log(action());
 }

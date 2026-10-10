@@ -1,21 +1,21 @@
 function label(codes: int[]): string {
-    return String.fromCodePoint(...codes);
+  return String.fromCodePoint(...codes);
 }
 
 function next(log: int[], code: int): int {
-    log.push(code);
-    return code;
+  log.push(code);
+  return code;
 }
 
 function main() {
-    console.log(String.fromCodePoint(65, 233, 128512), String.fromCharCode(72, 105), "[" + String.fromCodePoint() + String.fromCharCode() + "]");
-    const codes = [116, 115, 114];
-    console.log(String.fromCodePoint(...codes), String.fromCharCode(...codes), label([20013, 25991]), codes.join(","));
-    console.log(String.fromCodePoint(62, ...codes, 60, ...[9731]), String.fromCharCode(62, ...codes, 60));
-    console.log(String.fromCharCode(55357, 56832), String.fromCodePoint(55357, 56832), String.fromCharCode(65601, 65536 + 233));
-    console.log(String.fromCharCode(55357), String.fromCodePoint(56832, 65), String.fromCharCode(-65471) === "A", String.fromCodePoint(0) === "\0");
-    const log: int[] = [];
-    console.log(String.fromCodePoint(next(log, 97), next(log, 98), next(log, 99)), log.join(","));
-    const text = String.fromCodePoint(1114111);
-    console.log(text === String.fromCodePoint(1114111), String.fromCodePoint(104, 105).toUpperCase(), codes.map((code) => String.fromCharCode(code + 1)).join(""));
+  console.log(String.fromCodePoint(65, 233, 128512), String.fromCharCode(72, 105), "[" + String.fromCodePoint() + String.fromCharCode() + "]");
+  const codes = [116, 115, 114];
+  console.log(String.fromCodePoint(...codes), String.fromCharCode(...codes), label([20013, 25991]), codes.join(","));
+  console.log(String.fromCodePoint(62, ...codes, 60, ...[9731]), String.fromCharCode(62, ...codes, 60));
+  console.log(String.fromCharCode(55357, 56832), String.fromCodePoint(55357, 56832), String.fromCharCode(65601, 65536 + 233));
+  console.log(String.fromCharCode(55357), String.fromCodePoint(56832, 65), String.fromCharCode(-65471) === "A", String.fromCodePoint(0) === "\0");
+  const log: int[] = [];
+  console.log(String.fromCodePoint(next(log, 97), next(log, 98), next(log, 99)), log.join(","));
+  const text = String.fromCodePoint(1114111);
+  console.log(text === String.fromCodePoint(1114111), String.fromCodePoint(104, 105).toUpperCase(), codes.map((code) => String.fromCharCode(code + 1)).join(""));
 }

@@ -1,33 +1,33 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const source: string[][] = [];
-        let j = 0;
-        while (j < count) {
-            const part: string[] = [];
-            const width = (j + seed) % 3;
-            let k = 0;
-            while (k < width) {
-                const ordinal = j * 3 + k;
-                part.push(input.concat(":", String(ordinal)));
-                k = k + 1;
-            }
+  const output: string[][] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const source: string[][] = [];
+    let j = 0;
+    while (j < count) {
+      const part: string[] = [];
+      const width = (j + seed) % 3;
+      let k = 0;
+      while (k < width) {
+        const ordinal = j * 3 + k;
+        part.push(input.concat(":", String(ordinal)));
+        k = k + 1;
+      }
 
-            source.push(part);
-            j = j + 1;
-        }
-
-        const flattened = source.flat();
-        output.push(flattened);
-        i = i + 1;
+      source.push(part);
+      j = j + 1;
     }
 
-    return output;
+    const flattened = source.flat();
+    output.push(flattened);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

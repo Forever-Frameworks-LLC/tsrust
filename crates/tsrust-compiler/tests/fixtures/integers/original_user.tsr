@@ -1,16 +1,16 @@
 type User = {
-    id: int;
-    name: string;
+  id: int;
+  name: string;
 };
 
 function normalize(user: User): string {
-    return user.name.trim().toLowerCase();
+  return user.name.trim().toLowerCase();
 }
 
 function main() {
-    const user: User = {
-        id: 1, name: " Pat ",
-    };
+  const user: User = {
+    id: 1, name: " Pat ",
+  };
 
-    console.log(normalize(user));
+  console.log(normalize(user));
 }

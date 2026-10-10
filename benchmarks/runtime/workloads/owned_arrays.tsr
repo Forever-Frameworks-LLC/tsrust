@@ -1,37 +1,37 @@
 type Entry = {
-    name: string;
-    score: int;
+  name: string;
+  score: int;
 };
 
 function workload(n: int, seed: int): int {
-    let sum = seed;
-    let i = 0;
-    while (i < n) {
-        const entries: Entry[] = [{
-            name: " Pat ", score: i
-        }, {
-            name: "Sam", score: seed
-        }];
-        entries.push({
-            name: " Jo ", score: i + seed
-        });
-        entries[1].score = i + 1;
-        for (const entry of entries) {
-            sum = sum + entry.score;
-            sum = sum + 1;
-        }
-
-        const saved = clone(entries[1]);
-        sum = sum + saved.score;
-        const names: string[] = [" A "];
-        names.push(" B ");
-        sum = sum + names.length;
-        i = i + 1;
+  let sum = seed;
+  let i = 0;
+  while (i < n) {
+    const entries: Entry[] = [{
+      name: " Pat ", score: i
+    }, {
+      name: "Sam", score: seed
+    }];
+    entries.push({
+      name: " Jo ", score: i + seed
+    });
+    entries[1].score = i + 1;
+    for (const entry of entries) {
+      sum = sum + entry.score;
+      sum = sum + 1;
     }
 
-    return sum;
+    const saved = clone(entries[1]);
+    sum = sum + saved.score;
+    const names: string[] = [" A "];
+    names.push(" B ");
+    sum = sum + names.length;
+    i = i + 1;
+  }
+
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

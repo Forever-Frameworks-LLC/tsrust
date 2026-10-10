@@ -6,7 +6,7 @@ fn exception_handlers_stay_with_their_closing_block() {
     let result=format(source).unwrap();
     assert!(result.contains("} finally {"),"{result}");
     assert!(result.contains("} catch (error) {"),"{result}");
-    assert!(!result.contains("\n\n    finally"),"{result}");
+    assert!(!result.contains("\n\n  finally"),"{result}");
     assert_eq!(format(&result).unwrap(),result);
     // Exception handling is enabled in source; the formatted program checks.
     assert!(check(&result).is_ok());
@@ -70,8 +70,8 @@ fn blank_lines_and_block_separation_are_preserved_idempotently() {
     let formatted = format(source).unwrap();
     assert!(formatted.contains("};\n\n\nfunction take"));
     assert!(formatted.contains("}\n\nfunction main"));
-    assert!(formatted.contains(";\n\n    console.log(user.name)"));
-    assert!(formatted.contains("}\n\n    console.log(2)"));
+    assert!(formatted.contains(";\n\n  console.log(user.name)"));
+    assert!(formatted.contains("}\n\n  console.log(2)"));
     assert_eq!(format(&formatted).unwrap(), formatted);
     assert!(check(&formatted).is_ok());
 }
@@ -100,8 +100,8 @@ fn module_import_braces_are_bindings_not_statement_blocks() {
             "import { left } from \"./left.tsr\";\nimport { right } from './right.tsr';\n\nfunction main() {\n}\n",
         ),
         (
-            "import {\n    value as sharedValue\n}\n\nfrom \"./shared.tsr\";\n\nexport function left():int{return sharedValue;}",
-            "import {\n    value as sharedValue\n} from \"./shared.tsr\";\n\nexport function left(): int {\n    return sharedValue;\n}\n",
+            "import {\n  value as sharedValue\n}\n\nfrom \"./shared.tsr\";\n\nexport function left():int{return sharedValue;}",
+            "import {\n  value as sharedValue\n} from \"./shared.tsr\";\n\nexport function left(): int {\n  return sharedValue;\n}\n",
         ),
     ] {
         let formatted = format(source).unwrap();
@@ -157,7 +157,7 @@ fn formatting_keeps_declaration_lists_patterns_and_grouping_readable() {
     for (source, expected) in [
         (
             "type P={x:int;y:int;};function main(){const o:P={x:1,y:2};const a=4,[b,c]=[5,6],{x,y:z}=o;let t=0;for(let i=0,j=3;i<j;i++,j--){t+=a+b+c+x+z;}}",
-            "    const a = 4, [b, c] = [5, 6], { x, y: z } = o;\n",
+            "  const a = 4, [b, c] = [5, 6], { x, y: z } = o;\n",
         ),
         (
             "type P={x:int;y:int;};function f({x,y}:P,n:int):int{return x+y+n;}function main(){}",
@@ -165,19 +165,19 @@ fn formatting_keeps_declaration_lists_patterns_and_grouping_readable() {
         ),
         (
             "type R={id:int;};function main(){const rows:R[]=[{id:1}];const ids=rows.map(({id})=>id);const g=(z:int):int=>{return z;};console.log(ids.length,g(1));}",
-            "    const ids = rows.map(({ id }) => id);\n",
+            "  const ids = rows.map(({ id }) => id);\n",
         ),
         (
             "function main(){const a=2;const k=a-(1+a)*(a-3);const u=-(a);console.log(k,u,a*-(a));}",
-            "    const k = a - (1 + a) * (a - 3);\n    const u = -(a);\n    console.log(k, u, a * -(a));\n",
+            "  const k = a - (1 + a) * (a - 3);\n  const u = -(a);\n  console.log(k, u, a * -(a));\n",
         ),
         (
             "function main(){let t=0;for(let i=0,j=3;i<j;i++,j--){t+=1;}console.log(t);}",
-            "    for (let i = 0, j = 3; i < j; i++, j--) {\n",
+            "  for (let i = 0, j = 3; i < j; i++, j--) {\n",
         ),
         (
             "function main(){const g=(z:int):int=>{return z;};console.log(g(1));}",
-            "    const g = (z: int): int => {\n",
+            "  const g = (z: int): int => {\n",
         ),
     ] {
         let result = format(source).unwrap();
@@ -194,7 +194,7 @@ fn formatting_keeps_declaration_lists_patterns_and_grouping_readable() {
 fn formatting_lays_out_switch_clauses_and_conditional_colons() {
     let source = "function name(code:int,flag:boolean):string{switch(code){case 1:return \"one\";case 2:case 3:return flag?\"few\":\"some\";default:switch(code%2){case 0:return \"even\";default:return \"odd\";}}}function main(){console.log(name(1,true));}";
     let result = format(source).unwrap();
-    let expected = "function name(code: int, flag: boolean): string {\n    switch (code) {\n        case 1:\n            return \"one\";\n        case 2:\n        case 3:\n            return flag ? \"few\" : \"some\";\n        default:\n            switch (code % 2) {\n                case 0:\n                    return \"even\";\n                default:\n                    return \"odd\";\n            }\n    }\n}\n";
+    let expected = "function name(code: int, flag: boolean): string {\n  switch (code) {\n    case 1:\n      return \"one\";\n    case 2:\n    case 3:\n      return flag ? \"few\" : \"some\";\n    default:\n      switch (code % 2) {\n        case 0:\n          return \"even\";\n        default:\n          return \"odd\";\n      }\n  }\n}\n";
     assert!(result.starts_with(expected), "{result}");
     assert_eq!(format(&result).unwrap(), result);
     assert!(check(&result).is_ok(), "{result}");
@@ -210,7 +210,7 @@ fn formatting_lays_out_switch_clauses_and_conditional_colons() {
 fn formatting_keeps_declarations_without_initializers() {
     let source = "function main(){let a:int;let b:string,c:int=2;if(c>1){a=1;b=\"x\";}else{a=2;b=\"y\";}console.log(a,b);}";
     let result = format(source).unwrap();
-    let expected = "function main() {\n    let a: int;\n    let b: string, c: int = 2;\n    if (c > 1) {\n        a = 1;\n        b = \"x\";\n    } else {\n        a = 2;\n        b = \"y\";\n    }\n\n    console.log(a, b);\n}\n";
+    let expected = "function main() {\n  let a: int;\n  let b: string, c: int = 2;\n  if (c > 1) {\n    a = 1;\n    b = \"x\";\n  } else {\n    a = 2;\n    b = \"y\";\n  }\n\n  console.log(a, b);\n}\n";
     assert_eq!(result, expected);
     assert_eq!(format(&result).unwrap(), result);
     assert_eq!(check(source).unwrap().contracts(), check(&result).unwrap().contracts());
@@ -236,8 +236,8 @@ fn labeled_control_formatting_keeps_targets_and_updates() {
 fn formatting_nested_declarations_keeps_blocks_and_blank_lines() {
     let source="function main(){\nconsole.log(twice(3));\n\nfunction twice(value:int):int{return value+value;}\n\n{function triple(value:int):int{return value*3;}console.log(triple(2));}\n}";
     let formatted = format(source).unwrap();
-    assert!(formatted.contains("    function twice(value: int): int {"),"{formatted}");
-    assert!(formatted.contains("    }\n\n    {"),"{formatted}");
+    assert!(formatted.contains("  function twice(value: int): int {"),"{formatted}");
+    assert!(formatted.contains("  }\n\n  {"),"{formatted}");
     assert_eq!(format(&formatted).unwrap(),formatted);
     check(&formatted).unwrap();
 }
@@ -248,7 +248,7 @@ fn interfaces_keep_generic_brackets_and_separate_comma_fields() {
     let result = format(source).unwrap();
     assert!(result.contains("interface Box<T>"), "{result}");
     assert!(result.contains("new Map<string, int>()"), "{result}");
-    assert!(result.contains("    score: int,\n    tags: string[]\n"), "{result}");
+    assert!(result.contains("  score: int,\n  tags: string[]\n"), "{result}");
     assert!(result.contains("extends Named, Positioned"), "{result}");
     assert_eq!(format(&result).unwrap(), result);
     assert!(check(&result).is_ok(), "{result}");

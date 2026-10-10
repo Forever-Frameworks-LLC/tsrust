@@ -1,358 +1,358 @@
 type Item = {
-    id: int;
-    label: string;
+  id: int;
+  label: string;
 };
 
 function showInts1(values: int[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalInts1(values?: int[]): string {
-    if (values !== undefined) {
-        return showInts1(values);
-    }
+  if (values !== undefined) {
+    return showInts1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultInts1(values: int[] = [1, 2]): string {
-    return showInts1(values);
+  return showInts1(values);
 }
 
 function showInts2(values: int[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalInts2(values?: int[][]): string {
-    if (values !== undefined) {
-        return showInts2(values);
-    }
+  if (values !== undefined) {
+    return showInts2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultInts2(values: int[][] = [[1, 2], []]): string {
-    return showInts2(values);
+  return showInts2(values);
 }
 
 function showNumbers1(values: number[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalNumbers1(values?: number[]): string {
-    if (values !== undefined) {
-        return showNumbers1(values);
-    }
+  if (values !== undefined) {
+    return showNumbers1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultNumbers1(values: number[] = [1.5, 0.0]): string {
-    return showNumbers1(values);
+  return showNumbers1(values);
 }
 
 function showNumbers2(values: number[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalNumbers2(values?: number[][]): string {
-    if (values !== undefined) {
-        return showNumbers2(values);
-    }
+  if (values !== undefined) {
+    return showNumbers2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultNumbers2(values: number[][] = [[1.5, 0.0], []]): string {
-    return showNumbers2(values);
+  return showNumbers2(values);
 }
 
 function showBooleans1(values: boolean[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalBooleans1(values?: boolean[]): string {
-    if (values !== undefined) {
-        return showBooleans1(values);
-    }
+  if (values !== undefined) {
+    return showBooleans1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultBooleans1(values: boolean[] = [true, false]): string {
-    return showBooleans1(values);
+  return showBooleans1(values);
 }
 
 function showBooleans2(values: boolean[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalBooleans2(values?: boolean[][]): string {
-    if (values !== undefined) {
-        return showBooleans2(values);
-    }
+  if (values !== undefined) {
+    return showBooleans2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultBooleans2(values: boolean[][] = [[true, false], []]): string {
-    return showBooleans2(values);
+  return showBooleans2(values);
 }
 
 function showStrings1(values: string[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalStrings1(values?: string[]): string {
-    if (values !== undefined) {
-        return showStrings1(values);
-    }
+  if (values !== undefined) {
+    return showStrings1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultStrings1(values: string[] = ["é", ""]): string {
-    return showStrings1(values);
+  return showStrings1(values);
 }
 
 function showStrings2(values: string[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalStrings2(values?: string[][]): string {
-    if (values !== undefined) {
-        return showStrings2(values);
-    }
+  if (values !== undefined) {
+    return showStrings2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultStrings2(values: string[][] = [["é", ""], []]): string {
-    return showStrings2(values);
+  return showStrings2(values);
 }
 
 function showRecords1(values: Item[]): string {
-    let result = "";
-    for (const item of values) {
-        result = result.concat(String(item.id), ":", item.label, ";");
-    }
+  let result = "";
+  for (const item of values) {
+    result = result.concat(String(item.id), ":", item.label, ";");
+  }
 
-    return result;
+  return result;
 }
 
 function optionalRecords1(values?: Item[]): string {
-    if (values !== undefined) {
-        return showRecords1(values);
-    }
+  if (values !== undefined) {
+    return showRecords1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultRecords1(values: Item[] = [{
-    id: 1, label: "é"
+  id: 1, label: "é"
 }, {
-    id: 2, label: ""
+  id: 2, label: ""
 }]): string {
-    return showRecords1(values);
+  return showRecords1(values);
 }
 
 function showRecords2(values: Item[][]): string {
-    let result = "";
-    for (const group of values) {
-        for (const item of group) {
-            result = result.concat(String(item.id), ":", item.label, ";");
-        }
-
-        result = result.concat("|");
+  let result = "";
+  for (const group of values) {
+    for (const item of group) {
+      result = result.concat(String(item.id), ":", item.label, ";");
     }
 
-    return result;
+    result = result.concat("|");
+  }
+
+  return result;
 }
 
 function optionalRecords2(values?: Item[][]): string {
-    if (values !== undefined) {
-        return showRecords2(values);
-    }
+  if (values !== undefined) {
+    return showRecords2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultRecords2(values: Item[][] = [[{
-    id: 1, label: "é"
+  id: 1, label: "é"
 }, {
-    id: 2, label: ""
+  id: 2, label: ""
 }], []]): string {
-    return showRecords2(values);
+  return showRecords2(values);
 }
 
 function showNulls1(values: null[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalNulls1(values?: null[]): string {
-    if (values !== undefined) {
-        return showNulls1(values);
-    }
+  if (values !== undefined) {
+    return showNulls1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultNulls1(values: null[] = [null, null]): string {
-    return showNulls1(values);
+  return showNulls1(values);
 }
 
 function showNulls2(values: null[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalNulls2(values?: null[][]): string {
-    if (values !== undefined) {
-        return showNulls2(values);
-    }
+  if (values !== undefined) {
+    return showNulls2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultNulls2(values: null[][] = [[null, null], []]): string {
-    return showNulls2(values);
+  return showNulls2(values);
 }
 
 function showUndefineds1(values: undefined[]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalUndefineds1(values?: undefined[]): string {
-    if (values !== undefined) {
-        return showUndefineds1(values);
-    }
+  if (values !== undefined) {
+    return showUndefineds1(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultUndefineds1(values: undefined[] = [undefined, undefined]): string {
-    return showUndefineds1(values);
+  return showUndefineds1(values);
 }
 
 function showUndefineds2(values: undefined[][]): string {
-    return String(values);
+  return String(values);
 }
 
 function optionalUndefineds2(values?: undefined[][]): string {
-    if (values !== undefined) {
-        return showUndefineds2(values);
-    }
+  if (values !== undefined) {
+    return showUndefineds2(values);
+  }
 
-    return "undefined";
+  return "undefined";
 }
 
 function defaultUndefineds2(values: undefined[][] = [[undefined, undefined], []]): string {
-    return showUndefineds2(values);
+  return showUndefineds2(values);
 }
 
 function defaultRecord(value: Item | null = {
-    id: 7, label: "é"
+  id: 7, label: "é"
 }): string {
-    if (value !== null) {
-        return String(value.id).concat(":", value.label);
-    }
+  if (value !== null) {
+    return String(value.id).concat(":", value.label);
+  }
 
-    return "null";
+  return "null";
 }
 
 function optionalRecord(value?: Item | null): string {
-    if (value === undefined) {
-        return "undefined";
-    }
+  if (value === undefined) {
+    return "undefined";
+  }
 
-    if (value === null) {
-        return "null";
-    }
+  if (value === null) {
+    return "null";
+  }
 
-    return String(value.id).concat(":", value.label);
+  return String(value.id).concat(":", value.label);
 }
 
 function main() {
-    console.log(optionalInts1());
-    console.log(optionalInts1(undefined));
-    console.log(defaultInts1());
-    console.log(defaultInts1(undefined));
-    console.log(optionalInts1([1, 2]));
-    console.log(optionalInts2());
-    console.log(optionalInts2(undefined));
-    console.log(defaultInts2());
-    console.log(defaultInts2(undefined));
-    console.log(optionalInts2([[1, 2], []]));
-    console.log(optionalNumbers1());
-    console.log(optionalNumbers1(undefined));
-    console.log(defaultNumbers1());
-    console.log(defaultNumbers1(undefined));
-    console.log(optionalNumbers1([1.5, 0.0]));
-    console.log(optionalNumbers2());
-    console.log(optionalNumbers2(undefined));
-    console.log(defaultNumbers2());
-    console.log(defaultNumbers2(undefined));
-    console.log(optionalNumbers2([[1.5, 0.0], []]));
-    console.log(optionalBooleans1());
-    console.log(optionalBooleans1(undefined));
-    console.log(defaultBooleans1());
-    console.log(defaultBooleans1(undefined));
-    console.log(optionalBooleans1([true, false]));
-    console.log(optionalBooleans2());
-    console.log(optionalBooleans2(undefined));
-    console.log(defaultBooleans2());
-    console.log(defaultBooleans2(undefined));
-    console.log(optionalBooleans2([[true, false], []]));
-    console.log(optionalStrings1());
-    console.log(optionalStrings1(undefined));
-    console.log(defaultStrings1());
-    console.log(defaultStrings1(undefined));
-    console.log(optionalStrings1(["é", ""]));
-    console.log(optionalStrings2());
-    console.log(optionalStrings2(undefined));
-    console.log(defaultStrings2());
-    console.log(defaultStrings2(undefined));
-    console.log(optionalStrings2([["é", ""], []]));
-    console.log(optionalRecords1());
-    console.log(optionalRecords1(undefined));
-    console.log(defaultRecords1());
-    console.log(defaultRecords1(undefined));
-    console.log(optionalRecords1([{
-        id: 1, label: "é"
-    }, {
-        id: 2, label: ""
-    }]));
-    console.log(optionalRecords2());
-    console.log(optionalRecords2(undefined));
-    console.log(defaultRecords2());
-    console.log(defaultRecords2(undefined));
-    console.log(optionalRecords2([[{
-        id: 1, label: "é"
-    }, {
-        id: 2, label: ""
-    }], []]));
-    console.log(optionalNulls1());
-    console.log(optionalNulls1(undefined));
-    console.log(defaultNulls1());
-    console.log(defaultNulls1(undefined));
-    console.log(optionalNulls1([null, null]));
-    console.log(optionalNulls2());
-    console.log(optionalNulls2(undefined));
-    console.log(defaultNulls2());
-    console.log(defaultNulls2(undefined));
-    console.log(optionalNulls2([[null, null], []]));
-    console.log(optionalUndefineds1());
-    console.log(optionalUndefineds1(undefined));
-    console.log(defaultUndefineds1());
-    console.log(defaultUndefineds1(undefined));
-    console.log(optionalUndefineds1([undefined, undefined]));
-    console.log(optionalUndefineds2());
-    console.log(optionalUndefineds2(undefined));
-    console.log(defaultUndefineds2());
-    console.log(defaultUndefineds2(undefined));
-    console.log(optionalUndefineds2([[undefined, undefined], []]));
-    console.log(defaultRecord());
-    console.log(defaultRecord(undefined));
-    console.log(defaultRecord(null));
-    console.log(optionalRecord());
-    console.log(optionalRecord(null));
+  console.log(optionalInts1());
+  console.log(optionalInts1(undefined));
+  console.log(defaultInts1());
+  console.log(defaultInts1(undefined));
+  console.log(optionalInts1([1, 2]));
+  console.log(optionalInts2());
+  console.log(optionalInts2(undefined));
+  console.log(defaultInts2());
+  console.log(defaultInts2(undefined));
+  console.log(optionalInts2([[1, 2], []]));
+  console.log(optionalNumbers1());
+  console.log(optionalNumbers1(undefined));
+  console.log(defaultNumbers1());
+  console.log(defaultNumbers1(undefined));
+  console.log(optionalNumbers1([1.5, 0.0]));
+  console.log(optionalNumbers2());
+  console.log(optionalNumbers2(undefined));
+  console.log(defaultNumbers2());
+  console.log(defaultNumbers2(undefined));
+  console.log(optionalNumbers2([[1.5, 0.0], []]));
+  console.log(optionalBooleans1());
+  console.log(optionalBooleans1(undefined));
+  console.log(defaultBooleans1());
+  console.log(defaultBooleans1(undefined));
+  console.log(optionalBooleans1([true, false]));
+  console.log(optionalBooleans2());
+  console.log(optionalBooleans2(undefined));
+  console.log(defaultBooleans2());
+  console.log(defaultBooleans2(undefined));
+  console.log(optionalBooleans2([[true, false], []]));
+  console.log(optionalStrings1());
+  console.log(optionalStrings1(undefined));
+  console.log(defaultStrings1());
+  console.log(defaultStrings1(undefined));
+  console.log(optionalStrings1(["é", ""]));
+  console.log(optionalStrings2());
+  console.log(optionalStrings2(undefined));
+  console.log(defaultStrings2());
+  console.log(defaultStrings2(undefined));
+  console.log(optionalStrings2([["é", ""], []]));
+  console.log(optionalRecords1());
+  console.log(optionalRecords1(undefined));
+  console.log(defaultRecords1());
+  console.log(defaultRecords1(undefined));
+  console.log(optionalRecords1([{
+    id: 1, label: "é"
+  }, {
+    id: 2, label: ""
+  }]));
+  console.log(optionalRecords2());
+  console.log(optionalRecords2(undefined));
+  console.log(defaultRecords2());
+  console.log(defaultRecords2(undefined));
+  console.log(optionalRecords2([[{
+    id: 1, label: "é"
+  }, {
+    id: 2, label: ""
+  }], []]));
+  console.log(optionalNulls1());
+  console.log(optionalNulls1(undefined));
+  console.log(defaultNulls1());
+  console.log(defaultNulls1(undefined));
+  console.log(optionalNulls1([null, null]));
+  console.log(optionalNulls2());
+  console.log(optionalNulls2(undefined));
+  console.log(defaultNulls2());
+  console.log(defaultNulls2(undefined));
+  console.log(optionalNulls2([[null, null], []]));
+  console.log(optionalUndefineds1());
+  console.log(optionalUndefineds1(undefined));
+  console.log(defaultUndefineds1());
+  console.log(defaultUndefineds1(undefined));
+  console.log(optionalUndefineds1([undefined, undefined]));
+  console.log(optionalUndefineds2());
+  console.log(optionalUndefineds2(undefined));
+  console.log(defaultUndefineds2());
+  console.log(defaultUndefineds2(undefined));
+  console.log(optionalUndefineds2([[undefined, undefined], []]));
+  console.log(defaultRecord());
+  console.log(defaultRecord(undefined));
+  console.log(defaultRecord(null));
+  console.log(optionalRecord());
+  console.log(optionalRecord(null));
 }

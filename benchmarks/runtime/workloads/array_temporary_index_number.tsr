@@ -1,24 +1,24 @@
 function workload(n: int, seed: int): number {
-    let sum: number = Number(seed);
-    let i = 0;
-    while (i < n) {
-        const value = make_number(seed, i)[index_for(i, seed)];
-        sum = sum + value;
-        i = i + 1;
-    }
+  let sum: number = Number(seed);
+  let i = 0;
+  while (i < n) {
+    const value = make_number(seed, i)[index_for(i, seed)];
+    sum = sum + value;
+    i = i + 1;
+  }
 
-    return sum;
+  return sum;
 }
 
 function main() {
-    const result = workload(2, 7);
-    console.log(result);
+  const result = workload(2, 7);
+  console.log(result);
 }
 
 function make_number(seed: int, i: int): number[] {
-    return [Number(seed) + Number(i) * 0.25, -Number(i) * 0.5, -0.0, -2.5];
+  return [Number(seed) + Number(i) * 0.25, -Number(i) * 0.5, -0.0, -2.5];
 }
 
 function index_for(i: int, seed: int): int {
-    return (i * 3 + seed) % 4;
+  return (i * 3 + seed) % 4;
 }

@@ -1,244 +1,244 @@
 function first<T>(value: T, base: int): int {
-    return base;
+  return base;
 }
 
 function second<T>(value: T, base: int): int {
-    return base + 7;
+  return base + 7;
 }
 
 function failing<T>(value: T, base: int): int {
-    throw "selected failure";
+  throw "selected failure";
 }
 
 function attempt(flag: boolean, base: int): int {
-    let action = first;
-    if (flag) {
-        action = failing;
+  let action = first;
+  if (flag) {
+    action = failing;
+  }
+
+  try {
+    return action<int>(base, base);
+  } catch (error) {
+    if (error === "selected failure") {
+      return 11;
     }
 
-    try {
-        return action<int>(base, base);
-    } catch (error) {
-        if (error === "selected failure") {
-            return 11;
-        }
-
-        return 0;
-    }
+    return 0;
+  }
 }
 
 function firstDefault<T>(value: T, offset: int = 3): int {
-    return offset;
+  return offset;
 }
 
 function secondDefault<T>(value: T, offset: int = 7): int {
-    return offset;
+  return offset;
 }
 
 function defaulted(flag: boolean): int {
-    let action = firstDefault;
-    if (flag) {
-        action = secondDefault;
-    }
+  let action = firstDefault;
+  if (flag) {
+    action = secondDefault;
+  }
 
-    return action<int>(1);
+  return action<int>(1);
 }
 
 function ownedHead<T>(value: T, ...tail: T[]): T {
-    return value;
+  return value;
 }
 
 function ownedTail<T>(value: T, ...tail: T[]): T {
-    return tail.shift()!;
+  return tail.shift()!;
 }
 
 function selectedText(flag: boolean): string {
-    let action = ownedHead;
-    if (flag) {
-        action = ownedTail;
-    }
+  let action = ownedHead;
+  if (flag) {
+    action = ownedTail;
+  }
 
-    return action<string>("head", "next-value");
+  return action<string>("head", "next-value");
 }
 
 function nullableRead<T>(value: T): string | undefined {
-    return "read";
+  return "read";
 }
 
 function nullableTake<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function nullableLength(flag: boolean, value: Owned<string | undefined>): int {
-    let action = nullableRead;
-    if (flag) {
-        action = nullableTake;
-    }
+  let action = nullableRead;
+  if (flag) {
+    action = nullableTake;
+  }
 
-    const selected = action<string | undefined>(value);
-    return selected?.length ?? 0;
+  const selected = action<string | undefined>(value);
+  return selected?.length ?? 0;
 }
 
 function callbackFirst<T>(value: T, callback: ReadOnly<Function<int>>): int {
-    return callback();
+  return callback();
 }
 
 function callbackSecond<T>(value: T, callback: ReadOnly<Function<int>>): int {
-    return callback() + 7;
+  return callback() + 7;
 }
 
 function callbackResult(flag: boolean, fail: boolean, base: int): int {
-    let action = callbackFirst;
-    if (flag) {
-        action = callbackSecond;
+  let action = callbackFirst;
+  if (flag) {
+    action = callbackSecond;
+  }
+
+  const callback = (): int => {
+    if (fail) {
+      throw "callback failed";
     }
 
-    const callback = (): int => {
-        if (fail) {
-            throw "callback failed";
-        }
-
-        return base;
-    };
-    try {
-        return action<int>(base, callback);
-    } catch (error) {
-        if (error === "callback failed") {
-            return 11;
-        }
-
-        return 0;
+    return base;
+  };
+  try {
+    return action<int>(base, callback);
+  } catch (error) {
+    if (error === "callback failed") {
+      return 11;
     }
+
+    return 0;
+  }
 }
 
 function capturedResult(flag: boolean, fail: boolean, base: int): int {
-    const left = base;
-    const right = base + 7;
-    function capturedFirst<T>(value: T): int {
-        return left;
+  const left = base;
+  const right = base + 7;
+  function capturedFirst<T>(value: T): int {
+    return left;
+  }
+
+  function capturedSecond<T>(value: T): int {
+    if (fail) {
+      throw right;
     }
 
-    function capturedSecond<T>(value: T): int {
-        if (fail) {
-            throw right;
-        }
+    return right;
+  }
 
-        return right;
-    }
+  let action = capturedFirst;
+  const saved = action;
+  action = capturedFirst;
+  if (flag) {
+    action = capturedSecond;
+  }
 
-    let action = capturedFirst;
-    const saved = action;
-    action = capturedFirst;
-    if (flag) {
-        action = capturedSecond;
-    }
-
-    try {
-        return saved<int>(0) + action<int>(0);
-    } catch (error) {
-        return 11;
-    }
+  try {
+    return saved<int>(0) + action<int>(0);
+  } catch (error) {
+    return 11;
+  }
 }
 
 function stateFirst<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function stateSecond<T>(value: T, other: T): T {
-    return other;
+  return other;
 }
 
 function stateFactory<A>(initial: A) {
-    let action = initial;
-    return (restore: boolean) => {
-        const previous = action;
-        if (restore) {
-            action = stateFirst;
-        } else {
-            action = stateSecond;
-        }
+  let action = initial;
+  return (restore: boolean) => {
+    const previous = action;
+    if (restore) {
+      action = stateFirst;
+    } else {
+      action = stateSecond;
+    }
 
-        return previous;
-    };
+    return previous;
+  };
 }
 
 function stateResult(base: int): int[] {
-    const first = stateFactory(stateFirst);
-    const second = stateFactory(stateSecond);
-    const original = first(false);
-    const changed = first(true);
-    const restored = first(false);
-    const independent = second(true);
-    return [original<int>(base), changed<int>(base, base + 7), restored<int>(base), independent<int>(base, base + 9)];
+  const first = stateFactory(stateFirst);
+  const second = stateFactory(stateSecond);
+  const original = first(false);
+  const changed = first(true);
+  const restored = first(false);
+  const independent = second(true);
+  return [original<int>(base), changed<int>(base, base + 7), restored<int>(base), independent<int>(base, base + 9)];
 }
 
 function poolResult(base: int): int[] {
-    const instances = [stateFactory(stateFirst)];
-    for (let index = 0; index < 2; index += 1) {
-        instances.push(stateFactory(stateFirst));
-    }
+  const instances = [stateFactory(stateFirst)];
+  for (let index = 0; index < 2; index += 1) {
+    instances.push(stateFactory(stateFirst));
+  }
 
-    const seed = instances.shift()!;
-    const first = instances.shift()!;
-    const second = instances.shift()!;
-    const original = first(false);
-    const independent = second(true);
-    const changed = first(true);
-    return [original<int>(base), independent<int>(base), changed<int>(base, base + 9)];
+  const seed = instances.shift()!;
+  const first = instances.shift()!;
+  const second = instances.shift()!;
+  const original = first(false);
+  const independent = second(true);
+  const changed = first(true);
+  return [original<int>(base), independent<int>(base), changed<int>(base, base + 9)];
 }
 
 function nestedFactory<A>(initial: A) {
-    let action = stateFactory(initial);
-    return (restore: boolean) => {
-        return action(restore);
-    };
+  let action = stateFactory(initial);
+  return (restore: boolean) => {
+    return action(restore);
+  };
 }
 
 function nestedPoolResult(base: int): int[] {
-    const nestedInstances = [nestedFactory(stateFirst)];
-    for (let index = 0; index < 2; index += 1) {
-        nestedInstances.push(nestedFactory(stateFirst));
-    }
+  const nestedInstances = [nestedFactory(stateFirst)];
+  for (let index = 0; index < 2; index += 1) {
+    nestedInstances.push(nestedFactory(stateFirst));
+  }
 
-    const nestedSeed = nestedInstances.shift()!;
-    const nestedFirst = nestedInstances.shift()!;
-    const nestedSecond = nestedInstances.shift()!;
-    const nestedOriginal = nestedFirst(false);
-    const nestedIndependent = nestedSecond(true);
-    const nestedChanged = nestedFirst(true);
-    return [nestedOriginal<int>(base), nestedIndependent<int>(base), nestedChanged<int>(base, base + 9)];
+  const nestedSeed = nestedInstances.shift()!;
+  const nestedFirst = nestedInstances.shift()!;
+  const nestedSecond = nestedInstances.shift()!;
+  const nestedOriginal = nestedFirst(false);
+  const nestedIndependent = nestedSecond(true);
+  const nestedChanged = nestedFirst(true);
+  return [nestedOriginal<int>(base), nestedIndependent<int>(base), nestedChanged<int>(base, base + 9)];
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    for (let i = 0; i < n; i += 1) {
-        const base = i % 5 + seed % 5 + 1;
-        const flag = (i + seed) % 2 === 1;
-        let action = first;
-        const saved = action;
-        action = first;
-        if (flag) {
-            action = second;
-        }
-
-        const original = saved<int>(base, base);
-        const selected = action<int>(base, base);
-        const completed = attempt(flag, base);
-        const omitted = defaulted(flag);
-        const text = selectedText(flag);
-        const present = nullableLength(flag, "nullable");
-        const absent = nullableLength(flag, undefined);
-        const callback = callbackResult(flag, i % 3 === 0, base);
-        const captured = capturedResult(flag, i % 3 === 0, base);
-        const state = stateResult(base);
-        const pool = poolResult(base);
-        const nested = nestedPoolResult(base);
-        output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3], pool[0], pool[1], pool[2], nested[0], nested[1], nested[2]]);
+  const output: int[][] = [];
+  for (let i = 0; i < n; i += 1) {
+    const base = i % 5 + seed % 5 + 1;
+    const flag = (i + seed) % 2 === 1;
+    let action = first;
+    const saved = action;
+    action = first;
+    if (flag) {
+      action = second;
     }
 
-    return output;
+    const original = saved<int>(base, base);
+    const selected = action<int>(base, base);
+    const completed = attempt(flag, base);
+    const omitted = defaulted(flag);
+    const text = selectedText(flag);
+    const present = nullableLength(flag, "nullable");
+    const absent = nullableLength(flag, undefined);
+    const callback = callbackResult(flag, i % 3 === 0, base);
+    const captured = capturedResult(flag, i % 3 === 0, base);
+    const state = stateResult(base);
+    const pool = poolResult(base);
+    const nested = nestedPoolResult(base);
+    output.push([original, selected, completed, omitted, text.length, present, absent, callback, captured, state[0], state[1], state[2], state[3], pool[0], pool[1], pool[2], nested[0], nested[1], nested[2]]);
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "replacement");
+  const result = workload(3, 0, "replacement");
 }

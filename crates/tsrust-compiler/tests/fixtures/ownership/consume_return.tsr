@@ -1,15 +1,15 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function take(user: User): User {
-    return user;
+  return user;
 }
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const saved = take(user);
-    console.log(saved.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const saved = take(user);
+  console.log(saved.name);
 }

@@ -1,27 +1,27 @@
 function workload(n: int, seed: int, input: string): number[][] {
-    const output: number[][] = [];
-    let i = 0;
-    while (i < n) {
-        const mode = (i + seed) % 3;
-        const base = (i * 13 + seed) % 97;
-        const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
-        const pool: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];
-        const values: number[] = [];
-        let at = 0;
-        while (at < count) {
-            values.push(pool[(base + at) % 8]);
-            at = at + 1;
-        }
-
-        const selected = Math.max(...values);
-        output.push([selected]);
-        output.push(values);
-        i = i + 1;
+  const output: number[][] = [];
+  let i = 0;
+  while (i < n) {
+    const mode = (i + seed) % 3;
+    const base = (i * 13 + seed) % 97;
+    const count = mode === 0 ? 0 : mode === 1 ? 1 : 5;
+    const pool: number[] = [0.0, -0.0, 5e-324, -2.5, 0.5, 1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0];
+    const values: number[] = [];
+    let at = 0;
+    while (at < count) {
+      values.push(pool[(base + at) % 8]);
+      at = at + 1;
     }
 
-    return output;
+    const selected = Math.max(...values);
+    output.push([selected]);
+    output.push(values);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

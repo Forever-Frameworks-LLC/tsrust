@@ -1,21 +1,21 @@
 function workload(n: int, seed: int, input: string): string[] {
-    const values: string[] = [clone(input), "", "A", "a\u0000b", "XY", " x ", input.repeat(2), "Z"];
-    const extras: int[] = [-10000, -1, 0, 1, 2, 5, 8, 17];
-    const fillers: string[] = ["", " ", "ab", "a\u0000b"];
-    const output: string[] = [];
-    let i = 0;
-    while (i < n) {
-        const at = (i * 13 + seed) % 8;
-        const target: int = values[at].length + extras[(i * 7 + seed) % 8];
-        const fillAt = (i + seed) % 4;
-        const selected: string = values[at].padStart(target, fillers[fillAt]);
-        output.push(selected);
-        i = i + 1;
-    }
+  const values: string[] = [clone(input), "", "A", "a\u0000b", "XY", " x ", input.repeat(2), "Z"];
+  const extras: int[] = [-10000, -1, 0, 1, 2, 5, 8, 17];
+  const fillers: string[] = ["", " ", "ab", "a\u0000b"];
+  const output: string[] = [];
+  let i = 0;
+  while (i < n) {
+    const at = (i * 13 + seed) % 8;
+    const target: int = values[at].length + extras[(i * 7 + seed) % 8];
+    const fillAt = (i + seed) % 4;
+    const selected: string = values[at].padStart(target, fillers[fillAt]);
+    output.push(selected);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7, " A alpha Z ");
+  const result = workload(2, 7, " A alpha Z ");
 }

@@ -1,22 +1,22 @@
 function workload(n: int, seed: int): int {
-    let sum = seed;
-    let i = 0;
-    while (i < n) {
-        let state = i;
-        const outer = (): int => {
-            const inner = (): int => {
-                state = state + 2;
-                return state;
-            };
-            return inner() + seed;
-        };
-        sum = sum + outer();
-        i = i + 1;
-    }
+  let sum = seed;
+  let i = 0;
+  while (i < n) {
+    let state = i;
+    const outer = (): int => {
+      const inner = (): int => {
+        state = state + 2;
+        return state;
+      };
+      return inner() + seed;
+    };
+    sum = sum + outer();
+    i = i + 1;
+  }
 
-    return sum;
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

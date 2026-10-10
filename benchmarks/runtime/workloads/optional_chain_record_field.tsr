@@ -1,65 +1,65 @@
 type Trace = {
-    bases: int;
-    indices: int;
-    args: int;
+  bases: int;
+  indices: int;
+  args: int;
 };
 
 type Leaf = {
-    id: int;
-    label: string;
+  id: int;
+  label: string;
 };
 
 type Carrier = {
-    item: Leaf;
+  item: Leaf;
 };
 
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    const trace: Trace = {
-        bases: 0, indices: 0, args: 0
-    };
-    let i = 0;
-    while (i < n) {
-        const value = i + seed;
-        const bb = trace.bases;
-        const bi = trace.indices;
-        const ba = trace.args;
-        const carrier: Carrier | null | undefined = makeCarrier(trace, value, input);
-        const selected = carrier?.item;
-        const db = trace.bases - bb;
-        const di = trace.indices - bi;
-        const da = trace.args - ba;
-        if (selected === undefined) {
-            output.push([]);
-        } else {
-            output.push([String(selected.id), clone(selected.label)]);
-        }
-
-        output.push([String(db), String(di), String(da)]);
-        i = i + 1;
+  const output: string[][] = [];
+  const trace: Trace = {
+    bases: 0, indices: 0, args: 0
+  };
+  let i = 0;
+  while (i < n) {
+    const value = i + seed;
+    const bb = trace.bases;
+    const bi = trace.indices;
+    const ba = trace.args;
+    const carrier: Carrier | null | undefined = makeCarrier(trace, value, input);
+    const selected = carrier?.item;
+    const db = trace.bases - bb;
+    const di = trace.indices - bi;
+    const da = trace.args - ba;
+    if (selected === undefined) {
+      output.push([]);
+    } else {
+      output.push([String(selected.id), clone(selected.label)]);
     }
 
-    return output;
+    output.push([String(db), String(di), String(da)]);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function makeCarrier(trace: Trace, value: int, input: string): Carrier | null | undefined {
-    trace.bases = trace.bases + 1;
-    const tag = value % 5;
-    if (tag === 0) {
-        return null;
-    }
+  trace.bases = trace.bases + 1;
+  const tag = value % 5;
+  if (tag === 0) {
+    return null;
+  }
 
-    if (tag === 1) {
-        return undefined;
-    }
+  if (tag === 1) {
+    return undefined;
+  }
 
-    return {
-        item: {
-            id: value % 4, label: value % 3 === 0 ? "" : input.concat(":", String(value))
-        }
-    };
+  return {
+    item: {
+      id: value % 4, label: value % 3 === 0 ? "" : input.concat(":", String(value))
+    }
+  };
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

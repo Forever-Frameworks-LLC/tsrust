@@ -1,16 +1,16 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    let i = 0;
-    while (i < n) {
-        const base = (i * 13 + seed) % 97;
-        const codes = [65 + base % 26, 233 + base, 19968 + base, 128512 + base % 64];
-        output.push([String.fromCodePoint(...codes), String.fromCharCode(72 + base % 20, 105, 8364), String.fromCodePoint(codes[3], 97 + base % 26)]);
-        i = i + 1;
-    }
+  const output: string[][] = [];
+  let i = 0;
+  while (i < n) {
+    const base = (i * 13 + seed) % 97;
+    const codes = [65 + base % 26, 233 + base, 19968 + base, 128512 + base % 64];
+    output.push([String.fromCodePoint(...codes), String.fromCharCode(72 + base % 20, 105, 8364), String.fromCodePoint(codes[3], 97 + base % 26)]);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

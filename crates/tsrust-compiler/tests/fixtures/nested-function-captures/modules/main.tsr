@@ -2,11 +2,11 @@ import { strictEqual } from "std:testing";
 import { shiftAll } from "./helper.tsr";
 
 function main() {
-    const offsets = [1];
-    function local(value: int): int {
-        return value * 2 + offsets[0];
-    }
+  const offsets = [1];
+  function local(value: int): int {
+    return value * 2 + offsets[0];
+  }
 
-    const twice = [1, 2].map(local);
-    strictEqual(shiftAll(twice, 10).join(","), "13,15,3");
+  const twice = [1, 2].map(local);
+  strictEqual(shiftAll(twice, 10).join(","), "13,15,3");
 }

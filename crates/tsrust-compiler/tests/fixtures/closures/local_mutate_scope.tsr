@@ -1,18 +1,18 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function main() {
-    const user: User = {
-        name: "Pat"
+  const user: User = {
+    name: "Pat"
+  };
+  if (true) {
+    const change = (): void => {
+      user.name = "Sam";
     };
-    if (true) {
-        const change = (): void => {
-            user.name = "Sam";
-        };
-        change();
-        change();
-    }
+    change();
+    change();
+  }
 
-    console.log(user.name);
+  console.log(user.name);
 }

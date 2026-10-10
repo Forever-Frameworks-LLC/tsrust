@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
-const SOURCE: &str = "interface Named {\n    name: string;\n}\ninterface Player extends Named {\n    score: int,\n    nickname?: string\n}\nfunction main() {\n    const player: Player = { name: \"Pat\", score: 3 };\n    console.log(player.name.length, player.score, player.nickname ?? \"none\");\n}\n";
+const SOURCE: &str = "interface Named {\n  name: string;\n}\ninterface Player extends Named {\n  score: int,\n  nickname?: string\n}\nfunction main() {\n  const player: Player = { name: \"Pat\", score: 3 };\n  console.log(player.name.length, player.score, player.nickname ?? \"none\");\n}\n";
 
 fn position(source: &str, offset: usize) -> Value {
     let prefix = &source[..offset];
@@ -26,14 +26,14 @@ fn interfaces_have_symbols_fields_and_inherited_members() {
     assert!(hover("score, player").contains("score: int"), "{}", hover("score, player"));
     assert!(hover("name.length").contains("name: string"), "inherited field: {}", hover("name.length"));
     assert!(hover("nickname ?? ").contains("nickname?: string"), "{}", hover("nickname ?? "));
-    let definition = ask("textDocument/definition", "Named {\n    score");
+    let definition = ask("textDocument/definition", "Named {\n  score");
     assert_eq!(definition["range"]["start"], position(SOURCE, SOURCE.find("Named {").unwrap()), "{definition}");
     let symbols = ask("textDocument/documentSymbol", "interface");
     let names = symbols.as_array().unwrap().iter().map(|symbol| symbol["name"].as_str().unwrap_or("").to_owned()).collect::<Vec<_>>();
     for name in ["Named", "Player", "main"] {
         assert!(names.iter().any(|found| found == name), "{name}: {names:?}");
     }
-    let typed = "interface Named { name: string; }\ninterface Player extends Named { score: int; }\nfunction main() {\n    const player: Player = { name: \"Pat\", score: 3 };\n    player.";
+    let typed = "interface Named { name: string; }\ninterface Player extends Named { score: int; }\nfunction main() {\n  const player: Player = { name: \"Pat\", score: 3 };\n  player.";
     let items = SourceIndex::new(typed)
         .request("textDocument/completion", &json!({"position": position(typed, typed.len())}), "file:///interfaces.tsr")
         .unwrap();

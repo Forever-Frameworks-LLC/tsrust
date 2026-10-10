@@ -246,7 +246,7 @@ fn formatting_interfaces_returns_tight_generics_and_separate_fields() {
     let edits = response.result.unwrap();
     let formatted = edits[0]["newText"].as_str().unwrap();
     assert!(formatted.contains("interface Box<T>"), "{formatted}");
-    assert!(formatted.contains("value: T,\n    label?: string"), "{formatted}");
+    assert!(formatted.contains("value: T,\n  label?: string"), "{formatted}");
     assert!(formatted.contains("new Map<string, int>()"), "{formatted}");
     assert!(tsrust_compiler::check(formatted).is_ok());
     server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));

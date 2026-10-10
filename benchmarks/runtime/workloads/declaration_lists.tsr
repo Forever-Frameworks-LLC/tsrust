@@ -1,27 +1,27 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    let i = 0;
-    while (i < n) {
-        const base = (i * 13 + seed) % 97, low = base % 5, high = low + 6, words = [input.repeat(1), String(base)], [first, second] = words;
-        let sum = 0, steps = 0, text = "";
-        for (let a = low, b = high; a < b; a++, b--) {
-            sum += b - a;
-            steps++;
-        }
-
-        for (let k = 0, limit = 2; k < limit; k++, text += first.slice()) {
-            if (k === 0) {
-                continue;
-            }
-        }
-
-        output.push([String(sum), String(steps), text, second.slice(), String(low + high)]);
-        i = i + 1;
+  const output: string[][] = [];
+  let i = 0;
+  while (i < n) {
+    const base = (i * 13 + seed) % 97, low = base % 5, high = low + 6, words = [input.repeat(1), String(base)], [first, second] = words;
+    let sum = 0, steps = 0, text = "";
+    for (let a = low, b = high; a < b; a++, b--) {
+      sum += b - a;
+      steps++;
     }
 
-    return output;
+    for (let k = 0, limit = 2; k < limit; k++, text += first.slice()) {
+      if (k === 0) {
+        continue;
+      }
+    }
+
+    output.push([String(sum), String(steps), text, second.slice(), String(low + high)]);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

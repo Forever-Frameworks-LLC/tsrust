@@ -1,12 +1,12 @@
 function workload(n: int, seed: int): int[] {
-    const values: int[] = [];
-    let i = 0;
-    while (i < n) {
-        values.push(seed + i);
-        i = i + 1;
-    }
+  const values: int[] = [];
+  let i = 0;
+  while (i < n) {
+    values.push(seed + i);
+    i = i + 1;
+  }
 
-    return values;
+  return values;
 }
 
 function main() {

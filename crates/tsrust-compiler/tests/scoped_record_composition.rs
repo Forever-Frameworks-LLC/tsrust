@@ -103,10 +103,10 @@ fn nullable_record_fields_release_independent_capture_owners() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};type Pair={left:Holder|undefined;right:Holder|undefined;};function main():void{const first=[3];const second=[5];const third=[7];const pair:Pair={left:undefined,right:undefined};pair.left={run:():int=>first[0]};pair.right={run:():int=>second[0]};if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run());pair.left={run:():int=>third[0]};first[0]=9;if(pair.left!==undefined && pair.right!==undefined)console.log(pair.left.run(),pair.right.run(),first[0]);pair.left=undefined;third[0]=11;pair.right=undefined;second[0]=13;console.log(first[0],second[0],third[0]);}");
     support::execute(&source,"3 5\n7 5 9\n9 13 11\n",None);
     verify_disposal(&source,3,"3 5\ndrop 0\n7 5 9\ndrop 2\ndrop 1\n9 13 11\n");
-    let block=source.replace("pair.left = {\n        run: (): int => third[0]\n    };", "{pair.left={run:():int=>third[0]};}");
+    let block=source.replace("pair.left = {\n    run: (): int => third[0]\n  };", "{pair.left={run:():int=>third[0]};}");
     assert_ne!(block,source);
     support::execute(&support::format_round_trip(&block),"3 5\n7 5 9\n9 13 11\n",None);
-    let moved=source.replace("pair.left = {\n        run: (): int => third[0]\n    };", "const moved=pair;moved.left={run:():int=>third[0]};");
+    let moved=source.replace("pair.left = {\n    run: (): int => third[0]\n  };", "const moved=pair;moved.left={run:():int=>third[0]};");
     let split=moved.find("const moved=pair").unwrap();
     let moved=format!("{}{}",&moved[..split],moved[split..].replace("pair.","moved."));
     support::execute(&support::format_round_trip(&moved),"3 5\n7 5 9\n9 13 11\n",None);
@@ -533,7 +533,7 @@ fn map_catch_return_cleanup_overrides_owned_results_and_disposes_survivors() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(mode:int):string[]{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{throw 7;}catch(error){handlers.delete('first');first[0]+=1;return ['saved'];}finally{first[0]+=10;console.log('cleanup',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}if(mode===1)return ['override'];if(mode===2)throw 8;}}function main():void{console.log(scenario(0)[0]);console.log(scenario(1)[0]);try{console.log(scenario(2)[0]);}catch(error){console.log('caught');}}");
  support::execute(&source,"cleanup 14\nsecond 5\nsaved\ncleanup 14\nsecond 5\noverride\ncleanup 14\nsecond 5\ncaught\n",None);
  verify_disposal(&source,2,"drop 0\ncleanup 14\nsecond 5\ndrop 1\nsaved\ndrop 0\ncleanup 14\nsecond 5\ndrop 1\noverride\ndrop 0\ncleanup 14\nsecond 5\ndrop 1\ncaught\n");
- let both=source.replace("try {\n        throw 7;", "try {if(mode===0){handlers.delete('first');first[0]+=1;return ['saved'];}throw 7;");assert_ne!(both,source);
+ let both=source.replace("try {\n    throw 7;", "try {if(mode===0){handlers.delete('first');first[0]+=1;return ['saved'];}throw 7;");assert_ne!(both,source);
  support::execute(&support::format_round_trip(&both),"cleanup 14\nsecond 5\nsaved\ncleanup 14\nsecond 5\noverride\ncleanup 14\nsecond 5\ncaught\n",None);
  let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&both).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,both);
  support::execute(&support::format_round_trip(&field),"cleanup 14\nsecond 5\nsaved\ncleanup 14\nsecond 5\noverride\ncleanup 14\nsecond 5\ncaught\n",None);
@@ -557,7 +557,7 @@ fn map_return_cleanup_mutates_released_capture_and_preserves_return_value() {
  support::execute(&support::format_round_trip(&field),"cleanup 14\nsecond 5\nresult 4\n",None);
  verify_disposal(&support::format_round_trip(&field),2,"drop 0\ncleanup 14\nsecond 5\ndrop 1\nresult 4\n");
 
- let nested=source.replace("try {\n        handlers.delete('first');","try {try {\n        handlers.delete('first');").replace("} finally {","}catch(error){throw error;}finally{console.log('inner');}} finally {");assert_ne!(nested,source);
+ let nested=source.replace("try {\n    handlers.delete('first');","try {try {\n    handlers.delete('first');").replace("} finally {","}catch(error){throw error;}finally{console.log('inner');}} finally {");assert_ne!(nested,source);
  support::execute(&support::format_round_trip(&nested),"inner\ncleanup 14\nsecond 5\nresult 4\n",None);
  verify_disposal(&support::format_round_trip(&nested),2,"drop 0\ninner\ncleanup 14\nsecond 5\ndrop 1\nresult 4\n");
 }
@@ -609,7 +609,7 @@ fn map_finally_error_entry_preserves_survivors_and_disposal() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}first[0]+=1;console.log('normal',first[0]);}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}");
  support::execute(&source,"second 5\nnormal 4\nsecond 5\ncaught\n",None);
  verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\nnormal 4\ndrop 0\nsecond 5\ndrop 1\ncaught\n");
- let mutated=source.replace("} finally {\n        for", "} finally {\n        first[0]+=1;console.log('released',first[0]);\n        for");assert_ne!(mutated,source);
+ let mutated=source.replace("} finally {\n    for", "} finally {\n    first[0]+=1;console.log('released',first[0]);\n    for");assert_ne!(mutated,source);
  support::execute(&support::format_round_trip(&mutated),"released 4\nsecond 5\nnormal 5\nreleased 4\nsecond 5\ncaught\n",None);
  verify_disposal(&support::format_round_trip(&mutated),2,"drop 0\nreleased 4\nsecond 5\ndrop 1\nnormal 5\ndrop 0\nreleased 4\nsecond 5\ndrop 1\ncaught\n");
  let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&mutated).replace("const handlers = new Map<string, Holder>();","const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");assert_ne!(field,mutated);
@@ -633,7 +633,7 @@ fn map_error_phase_releases_deleted_capture_at_handler_entry() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log('caught',key,entry.run());}}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"done 3\ncaught second 5\ndone 4\n",None);
  verify_disposal(&source,2,"drop 0\ndrop 1\ndone 3\ndrop 0\ncaught second 5\ndrop 1\ndone 4\n");
- let finally=source.replace("    handlers.clear();\n", "    finally{console.log('cleanup',handlers.size); }\n    handlers.clear();\n");assert_ne!(finally,source);
+ let finally=source.replace("  handlers.clear();\n", "  finally{console.log('cleanup',handlers.size); }\n  handlers.clear();\n");assert_ne!(finally,source);
  support::execute(&support::format_round_trip(&finally),"cleanup 1\ndone 3\ncaught second 5\ncleanup 1\ndone 4\n",None);
  verify_disposal(&support::format_round_trip(&finally),2,"drop 0\ncleanup 1\ndrop 1\ndone 3\ndrop 0\ncaught second 5\ncleanup 1\ndrop 1\ndone 4\n");
  let direct=source.replace("failIf(flag);","if(flag)throw 7;");assert_ne!(direct,source);
@@ -650,7 +650,7 @@ fn map_finally_normal_result_releases_deleted_capture_after_cleanup() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);}catch(error){console.log('caught');}finally{handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"second 5\ndone 4\ncaught\nsecond 5\ndone 4\n",None);
  verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\ndone 4\ncaught\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
- let no_catch=source.replace("} catch (error) {\n        console.log('caught');\n    } finally {","}finally{").replace("failIf(flag);","failIf(false);");assert_ne!(no_catch,source);
+ let no_catch=source.replace("} catch (error) {\n    console.log('caught');\n  } finally {","}finally{").replace("failIf(flag);","failIf(false);");assert_ne!(no_catch,source);
  support::execute(&support::format_round_trip(&no_catch),"second 5\ndone 4\nsecond 5\ndone 4\n",None);
  verify_disposal(&support::format_round_trip(&no_catch),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
  let returned=source.replace("handlers.delete('first');","handlers.delete('first');if(flag)return;");assert_ne!(returned,source);
@@ -670,13 +670,13 @@ fn map_phase_join_releases_capture_after_body_and_handler_deletion() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{failIf(flag);handlers.delete('first');}catch(error){handlers.delete('first');}first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(false);scenario(true);}");
  support::execute(&source,"second 5\ndone 4\nsecond 5\ndone 4\n",None);
  verify_disposal(&source,2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\nsecond 5\ndrop 1\ndone 4\n");
- let handled=source.replace("} catch (error) {\n        handlers.delete('first');", "}catch(error){handlers.delete('first');first[0]+=2;");
+ let handled=source.replace("} catch (error) {\n    handlers.delete('first');", "}catch(error){handlers.delete('first');first[0]+=2;");
  assert_ne!(handled,source);
  support::execute(&support::format_round_trip(&handled),"second 5\ndone 4\nsecond 5\ndone 6\n",None);
  let field=("type Owner={handlers:Map<string,Holder>;};".to_owned()+&source).replace("const handlers = new Map<string, Holder>();", "const owner:Owner={handlers:new Map<string,Holder>()};").replace("handlers.","owner.handlers.").replace("of handlers)","of owner.handlers)");
  assert_ne!(field,source);
  support::execute(&support::format_round_trip(&field),"second 5\ndone 4\nsecond 5\ndone 4\n",None);
- let throwing=source.replace("} catch (error) {\n        handlers.delete('first');", "}catch(error){throw error;").replace("scenario(true);", "try{scenario(true);}catch(error){console.log('caught');}");assert_ne!(throwing,source);
+ let throwing=source.replace("} catch (error) {\n    handlers.delete('first');", "}catch(error){throw error;").replace("scenario(true);", "try{scenario(true);}catch(error){console.log('caught');}");assert_ne!(throwing,source);
  support::execute(&support::format_round_trip(&throwing),"second 5\ndone 4\ncaught\n",None);
  verify_disposal(&support::format_round_trip(&throwing),2,"drop 0\nsecond 5\ndrop 1\ndone 4\ndrop 0\ndrop 1\ncaught\n");
 }
@@ -953,7 +953,7 @@ fn map_iteration_release_survives_continue_and_break() {
     let counted = "function advance(value:int):int{console.log('update',value);return value+1;}".to_owned()
         + &source.replace("while (turn < 3)", "for(let step=0;step<3;step=advance(step))");
     support::execute(&support::format_round_trip(&counted), "update 0\nupdate 1\ntail 3\nupdate 2\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
-    let post = source.replace("while (turn < 3)", "do").replace("console.log('tail', turn);\n    }", "console.log('tail',turn);}while(turn<3);");
+    let post = source.replace("while (turn < 3)", "do").replace("console.log('tail', turn);\n  }", "console.log('tail',turn);}while(turn<3);");
     assert_ne!(post,source);
     support::execute(&support::format_round_trip(&post), "tail 3\nsecond 5\ndone 6\nsecond 5\ndone 4\n", None);
     let for_of = source.replace("while (turn < 3)", "for(const step of [0,1,2])");
@@ -980,7 +980,7 @@ fn map_entry_release_inside_iteration_preserves_refill_and_survivor() {
  let field="type Box={handlers:Map<string,Holder>;marker:int;};".to_owned()+&source.replace("const handlers = new Map<string, Holder>();","const box:Box={handlers:new Map<string,Holder>(),marker:17};").replace("handlers.","box.handlers.").replace("of handlers)","of box.handlers)").replace("console.log('done', first[0]);","console.log('done',first[0],box.marker);");
  assert_ne!(field,source);
  support::execute(&support::format_round_trip(&field),"second 5\ndone 3 17\nturn 0 4\nturn 1 5\nsecond 5\ndone 5 17\n",None);
- let start=source.find("    handlers.set('second'").unwrap();let end=source.find("    let turn").unwrap();
+ let start=source.find("  handlers.set('second'").unwrap();let end=source.find("  let turn").unwrap();
  let empty=format!("{}{}",&source[..start],&source[end..]);
  support::execute(&support::format_round_trip(&empty),"done 3\nturn 0 4\nturn 1 5\ndone 5\n",None);
  verify_disposal(&source,2,"second 5\ndrop 0\ndone 3\ndrop 1\nturn 0 4\ndrop 1\nturn 1 5\nsecond 5\ndrop 0\ndone 5\n");
@@ -989,12 +989,12 @@ fn map_entry_release_inside_iteration_preserves_refill_and_survivor() {
 #[test]
 fn post_test_map_iteration_release_keeps_first_entry_state_distinct() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('second',{run:():int=>second[0]});let turn=0;while(turn<limit){handlers.set('first',{run:():int=>first[0]});handlers.delete('first');first[0]+=1;console.log('turn',turn,first[0]);turn++;}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();console.log('done',first[0]);}function main():void{scenario(0);scenario(2);}");
- let post=source.replace("handlers.set('second',", "handlers.set('first',{run:():int=>first[0]});handlers.set('second',").replace("while (turn < limit)","do").replace("turn++;\n    }","turn++;}while(turn<limit);");
+ let post=source.replace("handlers.set('second',", "handlers.set('first',{run:():int=>first[0]});handlers.set('second',").replace("while (turn < limit)","do").replace("turn++;\n  }","turn++;}while(turn<limit);");
  assert_ne!(post,source);
  support::execute(&support::format_round_trip(&post),"turn 0 4\nsecond 5\ndone 4\nturn 0 4\nturn 1 5\nsecond 5\ndone 5\n",None);
  verify_disposal(&support::format_round_trip(&post),3,"drop 0\ndrop 2\nturn 0 4\nsecond 5\ndrop 1\ndone 4\ndrop 0\ndrop 2\nturn 0 4\ndrop 2\nturn 1 5\nsecond 5\ndrop 1\ndone 5\n");
  let formatted=support::format_round_trip(&post);
- let start=formatted.find("    handlers.set('second'").unwrap();let end=formatted.find("    let turn").unwrap();
+ let start=formatted.find("  handlers.set('second'").unwrap();let end=formatted.find("  let turn").unwrap();
  let empty=format!("{}{}",&formatted[..start],&formatted[end..]);
  support::execute(&support::format_round_trip(&empty),"turn 0 4\ndone 4\nturn 0 4\nturn 1 5\ndone 5\n",None);
  let guarded="function repeat(turn:int,limit:int):boolean{console.log('check',turn);return turn<limit;}".to_owned()+&post.replace("while(turn<limit);","while(repeat(turn,limit));");
@@ -1008,7 +1008,7 @@ fn narrowed_map_branch_refill_preserves_new_origins_at_join() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;if(branch){handlers.set('third',{run:():int=>third[0]});}for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();third[0]=11;console.log('released',first[0],third[0]);}function main():void{scenario(true);scenario(false);}");
  support::execute(&source,"second 5\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);
  verify_disposal(&source,3,"drop 0\nsecond 5\nthird 7\ndrop 1\ndrop 2\nreleased 9 11\ndrop 0\nsecond 5\ndrop 1\nreleased 9 11\n");
- let split=source.find("    if (branch)").unwrap();
+ let split=source.find("  if (branch)").unwrap();
  let moved=format!("{}const moved=handlers;{}",&source[..split],source[split..].replace("handlers","moved"));
  support::execute(&support::format_round_trip(&moved),"second 5\nthird 7\nreleased 9 11\nsecond 5\nreleased 9 11\n",None);
  let multiple=source.replace("const third = [7];","const third=[7];const fourth=[8];").replace("handlers.set('third',", "handlers.set('fourth',{run:():int=>fourth[0]});handlers.set('third',");
@@ -1030,7 +1030,7 @@ fn deleting_last_map_entry_releases_its_capture() {
 fn deleting_from_a_moved_map_releases_only_its_capture() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];let original=new Map<string,Holder>();original.set('first',{run:():int=>first[0]});original.set('second',{run:():int=>second[0]});const moved=original;console.log('deleted',moved.delete('first'));first[0]=9;{const saved=moved.get('second');if(saved!==undefined)console.log('saved',saved.run());}console.log('after',moved.size,first[0]);moved.clear();second[0]=11;console.log('cleared',second[0]);}");
  verify_disposal(&source,2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
- let narrowed=source.replace("const moved = original;\n    console.log('deleted', moved.delete('first'));", "console.log('deleted',original.delete('first'));const moved=original;");
+ let narrowed=source.replace("const moved = original;\n  console.log('deleted', moved.delete('first'));", "console.log('deleted',original.delete('first'));const moved=original;");
  assert_ne!(narrowed,source);
  verify_disposal(&support::format_round_trip(&narrowed),2,"drop 0\ndeleted true\nsaved 5\nafter 1 9\ndrop 1\ncleared 11\n");
 }
@@ -1128,7 +1128,7 @@ fn deleting_the_same_entry_on_both_branches_releases_its_capture() {
 fn conditional_deletion_releases_shared_capture_from_two_maps() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const left=new Map<string,Holder>();const right=new Map<string,Holder>();left.set('first',{run:():int=>first[0]});left.set('second',{run:():int=>second[0]});right.set('first',{run:():int=>first[0]});right.set('third',{run:():int=>third[0]});if(branch){left.delete('first');right.delete('first');}else{right.delete('first');left.delete('first');}first[0]=9;for(const [key,entry] of left){console.log(key,entry.run());}for(const [key,entry] of right){console.log(key,entry.run());}console.log('released',first[0]);left.clear();right.clear();}function main():void{scenario(true);scenario(false);}");
  verify_disposal(&source,4,"drop 0\ndrop 2\nsecond 5\nthird 7\nreleased 9\ndrop 1\ndrop 3\ndrop 2\ndrop 0\nsecond 5\nthird 7\nreleased 9\ndrop 1\ndrop 3\n");
- let fields=source.replace("function scenario", "type Pair={left:Map<string,Holder>;right:Map<string,Holder>;marker:int;};function scenario").replace("const left = new Map<string, Holder>();\n    const right = new Map<string, Holder>();", "const box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>(),marker:23};").replace("left.","box.left.").replace("right.","box.right.").replace("of left)","of box.left)").replace("of right)","of box.right)").replace("console.log('released', first[0]);", "console.log('released',first[0],box.marker);");
+ let fields=source.replace("function scenario", "type Pair={left:Map<string,Holder>;right:Map<string,Holder>;marker:int;};function scenario").replace("const left = new Map<string, Holder>();\n  const right = new Map<string, Holder>();", "const box:Pair={left:new Map<string,Holder>(),right:new Map<string,Holder>(),marker:23};").replace("left.","box.left.").replace("right.","box.right.").replace("of left)","of box.left)").replace("of right)","of box.right)").replace("console.log('released', first[0]);", "console.log('released',first[0],box.marker);");
  assert_ne!(fields,source);
  verify_disposal(&support::format_round_trip(&fields),4,"drop 0\ndrop 2\nsecond 5\nthird 7\nreleased 9 23\ndrop 1\ndrop 3\ndrop 2\ndrop 0\nsecond 5\nthird 7\nreleased 9 23\ndrop 1\ndrop 3\n");
 
@@ -1156,7 +1156,7 @@ fn branch_local_insertion_and_deletion_release_at_the_join() {
 fn post_test_map_deletion_releases_capture_after_every_exit() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;do{handlers.delete('first');turn+=1;}while(turn<limit);first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}console.log('released',first[0],turn);handlers.clear();}function main():void{scenario(0);scenario(2);}");
  verify_disposal(&source,2,"drop 0\nsecond 5\nreleased 9 1\ndrop 1\ndrop 0\nsecond 5\nreleased 9 2\ndrop 1\n");
- let infinite=source.replace("do {\n        handlers.delete('first');\n        turn += 1;\n    }\n\n    while (turn < limit);", "for(;;){handlers.delete('first');turn+=1;break;}");
+ let infinite=source.replace("do {\n    handlers.delete('first');\n    turn += 1;\n  }\n\n  while (turn < limit);", "for(;;){handlers.delete('first');turn+=1;break;}");
  assert_ne!(infinite,source);
  verify_disposal(&support::format_round_trip(&infinite),2,"drop 0\nsecond 5\nreleased 9 1\ndrop 1\ndrop 0\nsecond 5\nreleased 9 1\ndrop 1\n");
 }
@@ -1187,7 +1187,7 @@ fn map_entry_release_inside_branch_precedes_capture_mutation() {
 fn map_entry_release_inside_falling_branch_transports_remaining_storage() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.delete('first');first[0]=9;console.log('released',first[0]);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}console.log('retained',handlers.size);handlers.clear();}function main():void{scenario(true);scenario(false);}");
  verify_disposal(&source,2,"drop 0\nreleased 9\nsecond 5\ndrop 1\nretained 0\nretained 2\ndrop 0\ndrop 1\n");
- let retained=source.replace("        handlers.clear();", "");
+ let retained=source.replace("    handlers.clear();", "");
  assert_ne!(retained,source);
  verify_disposal(&support::format_round_trip(&retained),2,"drop 0\nreleased 9\nsecond 5\nretained 1\ndrop 1\nretained 2\ndrop 0\ndrop 1\n");
 
@@ -1204,7 +1204,7 @@ fn narrowed_map_refill_in_loop_keeps_survivors_and_new_origins() {
  let for_of=source.replace("let turn = 0;", "let turn=0;const steps:int[]=[];for(let step=0;step<limit;step++){steps.push(step);}").replace("while (turn < limit)","for(const step of steps)");
  assert_ne!(for_of,source);
  support::execute(&support::format_round_trip(&for_of),"second 5\nreleased 9 0\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
- let post=source.replace("while (turn < limit)","do").replace("turn++;\n    }", "turn++;}while(turn<limit);");
+ let post=source.replace("while (turn < limit)","do").replace("turn++;\n  }", "turn++;}while(turn<limit);");
  assert_ne!(post,source);
  support::execute(&support::format_round_trip(&post),"second 5\nthird 7\nreleased 9 1\ncleared 11\nsecond 5\nthird 7\nreleased 9 2\ncleared 11\n",None);
  let multiple=source.replace("const third = [7];","const third=[7];const fourth=[8];").replace("turn++;","handlers.set('fourth',{run:():int=>fourth[0]});turn++;");
@@ -1386,7 +1386,7 @@ fn nested_handler_loop_exits_preserve_cleanup_and_capture_release() {
  let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;while(turn<3){let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});turn+=1;try{try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('inner',turn,handlers.size);handlers.clear();}}finally{handlers.clear();old[0]=9;next[0]=11;console.log('outer',turn,handlers.size);}console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',old[0],next[0]);}");
  verify_disposal(&source,3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\ndrop 0\nnormal 2\ninner 2 1\ndrop 1\nouter 2 0\nfallthrough 2\ndrop 0\ninner 3 1\ndrop 2\nouter 3 0\nafter 13 17\n"); let overridden=source.replace("console.log('outer', turn, handlers.size);", "console.log('outer',turn,handlers.size);if(turn===1)break;");
  verify_disposal(&support::format_round_trip(&overridden),3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\nafter 13 17\n");
- let outer_owner=source.replace("while (turn < 3) {\n        let handlers = new Map<string, Holder>();", "let handlers=new Map<string,Holder>();while(turn<3){");
+ let outer_owner=source.replace("while (turn < 3) {\n    let handlers = new Map<string, Holder>();", "let handlers=new Map<string,Holder>();while(turn<3){");
  assert_ne!(outer_owner,source,"outer owner witness must move initialization out of loop");
  verify_disposal(&support::format_round_trip(&outer_owner),3,"drop 0\ninner 1 1\ndrop 2\nouter 1 0\ndrop 0\nnormal 2\ninner 2 1\ndrop 1\nouter 2 0\nfallthrough 2\ndrop 0\ninner 3 1\ndrop 2\nouter 3 0\nafter 13 17\n");
 
@@ -1495,9 +1495,9 @@ fn loop_exits_through_finally_release_renewed_map_captures() {
     let fallthrough = source.replace("turn < 2", "turn < 3")
         .replace("console.log('before', turn);", "console.log('before', turn); turn += 1;")
         .replace("if (turn === 0) {", "if (turn === 1) {")
-        .replace("turn += 1;\n                continue;", "continue;")
-        .replace("            break;", "            if(turn === 3) break;")
-        .replace("console.log('cleared');\n        }", "console.log('cleared');\n        } old[0]=9; next[0]=11; console.log('inside',old[0],next[0]);");
+        .replace("turn += 1;\n        continue;", "continue;")
+        .replace("      break;", "      if(turn === 3) break;")
+        .replace("console.log('cleared');\n    }", "console.log('cleared');\n    } old[0]=9; next[0]=11; console.log('inside',old[0],next[0]);");
     verify_disposal(&support::format_round_trip(&fallthrough), 2, "before 0\ndrop 0\ncleanup 1\ndrop 1\ncleared\nbefore 1\ndrop 0\ncleanup 1\ndrop 1\ncleared\ninside 9 11\nbefore 2\ndrop 0\ncleanup 1\ndrop 1\ncleared\nafter 9 11\n");
 
     let overriding = source.replace("console.log('cleared');", "console.log('cleared'); break;");
@@ -1516,7 +1516,7 @@ fn loop_exits_through_finally_release_renewed_map_captures() {
 fn returning_through_finally_preserves_renewed_map_until_cleanup() {
     let source = support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(early:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});console.log('before');try{failIf(false);if(early)return 23;handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('return');return 29;}finally{console.log('cleanup',handlers.size);handlers.clear();console.log('cleared');}}function main():void{console.log('result',scenario(true));console.log('result',scenario(false));}");
     verify_disposal(&source, 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
-    let fallthrough = source.replace("return 29;", "").replace("\n}\n\nfunction main", "\n    old[0] = 9; next[0] = 11; return 29;\n}\n\nfunction main");
+    let fallthrough = source.replace("return 29;", "").replace("\n}\n\nfunction main", "\n  old[0] = 9; next[0] = 11; return 29;\n}\n\nfunction main");
     assert_ne!(fallthrough, source);
     verify_disposal(&support::format_round_trip(&fallthrough), 2, "before\ncleanup 1\ndrop 0\ncleared\nresult 23\nbefore\ndrop 0\nreturn\ncleanup 1\ndrop 1\ncleared\nresult 29\n");
     let overriding = source.replace("console.log('cleared');", "console.log('cleared'); return 31;");
@@ -1582,11 +1582,11 @@ fn conditional_transfer_error_preserves_survivor_until_restoration() {
     assert_ne!(nested, source);
     verify_disposal(&support::format_round_trip(&nested), 1, expected);
     let mut field = source.replace("function scenario", "type Box = { handlers: Map<string, Holder>; marker: int; }; function scenario")
-        .replace("    console.log('before');", "    const box: Box = { handlers: handlers, marker: 23 }; console.log('before');")
+        .replace("  console.log('before');", "  const box: Box = { handlers: handlers, marker: 23 }; console.log('before');")
         .replace("handlers.clear()", "box.handlers.clear()")
         .replace("const moved = handlers;", "const moved = box.handlers;")
         .replace("handlers.size", "box.handlers.size")
-        .replace("    old[0] = 9;", "    if (box.marker !== 23) throw 99; old[0] = 9;");
+        .replace("  old[0] = 9;", "  if (box.marker !== 23) throw 99; old[0] = 9;");
     let restore = field.rfind("handlers = new Map<string, Holder>();").expect("catch restoration");
     field.replace_range(restore..restore+"handlers".len(), "box.handlers");
     verify_disposal(&support::format_round_trip(&field), 1, expected);
@@ -1831,8 +1831,8 @@ fn finally_map_storage_runs_after_handler_failure_and_preserves_disposal() {
     verify_disposal(&source, 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\nescaped\n");
     let nested = support::format_round_trip(&source.replace("const path = failIf(fail);", "if (fail) { throw 5; } else { const marker = 1; }"));
     verify_disposal(&nested, 3, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\ndrop 0\nfinally 1\ndrop 2\ncleared\nescaped\n");
-    let start = source.find("    } catch (error) {").unwrap();
-    let end = start + source[start..].find("    } finally {").unwrap();
+    let start = source.find("  } catch (error) {").unwrap();
+    let end = start + source[start..].find("  } finally {").unwrap();
     let before_clear = support::format_round_trip(&format!("{}    }} catch (error) {{ console.log(\"caught\"); throw 9;\n{}", &source[..start], &source[end..]));
     verify_disposal(&before_clear, 2, "before\nnormal\ndrop 0\nfinally 1\ndrop 1\ncleared\nafter\nbefore\ncaught\nfinally 1\ndrop 0\ncleared\nescaped\n");
     let overridden = source.replace("console.log(\"cleared\");", "console.log(\"cleared\"); throw 11;")

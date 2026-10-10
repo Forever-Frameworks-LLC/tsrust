@@ -1,70 +1,70 @@
 function tier(code: int): string {
-    switch (code % 7) {
-        case 0:
-            return "zero";
-        case 1:
-        case 2:
-            return "low";
-        case 5:
-            return "five";
-        default:
-            return "other";
-    }
+  switch (code % 7) {
+    case 0:
+      return "zero";
+    case 1:
+    case 2:
+      return "low";
+    case 5:
+      return "five";
+    default:
+      return "other";
+  }
 }
 
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    let i = 0;
-    while (i < n) {
-        const base = (i * 13 + seed) % 97;
-        let steps = 0, text = "";
-        for (let k = 0; k < 6; k++) {
-            switch ((base + k) % 3) {
-                case 0:
-                    continue;
-                case 1:
-                    steps += 10;
-                    break;
-                default:
-                    steps += 1;
-            }
+  const output: string[][] = [];
+  let i = 0;
+  while (i < n) {
+    const base = (i * 13 + seed) % 97;
+    let steps = 0, text = "";
+    for (let k = 0; k < 6; k++) {
+      switch ((base + k) % 3) {
+        case 0:
+          continue;
+        case 1:
+          steps += 10;
+          break;
+        default:
+          steps += 1;
+      }
 
-            steps += 100;
-        }
-
-        const word = base % 2 === 0 ? input.repeat(1) : String(base);
-        switch (word) {
-            default:
-                text = "number";
-                break;
-            case "abc":
-                text = "short";
-                break;
-            case "dynamic é🙂 text":
-                text = "long";
-                break;
-        }
-
-        const mixed: int | string = base % 3 === 0 ? "three" : base;
-        let seen = "";
-        switch (mixed) {
-            case "three":
-                seen = mixed.toUpperCase();
-                break;
-            case 13:
-                seen = "thirteen";
-                break;
-            default:
-                seen = "none";
-        }
-
-        output.push([tier(base), String(steps), text, seen]);
-        i = i + 1;
+      steps += 100;
     }
 
-    return output;
+    const word = base % 2 === 0 ? input.repeat(1) : String(base);
+    switch (word) {
+      default:
+        text = "number";
+        break;
+      case "abc":
+        text = "short";
+        break;
+      case "dynamic é🙂 text":
+        text = "long";
+        break;
+    }
+
+    const mixed: int | string = base % 3 === 0 ? "three" : base;
+    let seen = "";
+    switch (mixed) {
+      case "three":
+        seen = mixed.toUpperCase();
+        break;
+      case 13:
+        seen = "thirteen";
+        break;
+      default:
+        seen = "none";
+    }
+
+    output.push([tier(base), String(steps), text, seen]);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

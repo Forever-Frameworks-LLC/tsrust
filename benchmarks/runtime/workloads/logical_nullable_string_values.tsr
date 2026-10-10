@@ -1,28 +1,28 @@
 function fallback(trace: int[], value: string): string {
-    trace[0] = trace[0] + 1;
-    return value;
+  trace[0] = trace[0] + 1;
+  return value;
 }
 
 function workload(n: int, seed: int): string[] {
-    const output: string[] = [];
-    const trace: int[] = [0];
-    let i = 0;
-    while (i < n) {
-        const mode = (i + seed) % 4;
-        const left: string | undefined = mode === 0 ? undefined : (mode === 1 ? '' : (mode === 2 ? 'é' : '😀'));
-        const disjunction = left || fallback(trace, 'Guest');
-        output.push(disjunction);
-        output.push(String(trace[0]));
-        const next: string | undefined = mode === 0 ? undefined : (mode === 1 ? '' : (mode === 2 ? 'é' : '😀'));
-        const conjunction = next && fallback(trace, 'YES');
-        output.push(String(conjunction));
-        output.push(String(trace[0]));
-        i = i + 1;
-    }
+  const output: string[] = [];
+  const trace: int[] = [0];
+  let i = 0;
+  while (i < n) {
+    const mode = (i + seed) % 4;
+    const left: string | undefined = mode === 0 ? undefined : (mode === 1 ? '' : (mode === 2 ? 'é' : '😀'));
+    const disjunction = left || fallback(trace, 'Guest');
+    output.push(disjunction);
+    output.push(String(trace[0]));
+    const next: string | undefined = mode === 0 ? undefined : (mode === 1 ? '' : (mode === 2 ? 'é' : '😀'));
+    const conjunction = next && fallback(trace, 'YES');
+    output.push(String(conjunction));
+    output.push(String(trace[0]));
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

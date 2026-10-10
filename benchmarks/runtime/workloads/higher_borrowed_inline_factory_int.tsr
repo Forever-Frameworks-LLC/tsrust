@@ -1,41 +1,41 @@
 function workload(n: int, seed: int): int {
-    const keeper = (f: Function<int, [x: int]>): (x: int) => int => {
-        return f;
-    };
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const left = plus(seed % 11);
-        const right = times(seed % 7 + 1);
-        const first = relay(keeper, left);
-        const second = relay(keeper, right);
-        const a = first(i);
-        const b = second(i);
-        const c = first(i + 1);
-        const value = a * 7 + b + c;
-        trace = (trace * 131 + value) % 1000000007;
-        i = i + 1;
-    }
+  const keeper = (f: Function<int, [x: int]>): (x: int) => int => {
+    return f;
+  };
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const left = plus(seed % 11);
+    const right = times(seed % 7 + 1);
+    const first = relay(keeper, left);
+    const second = relay(keeper, right);
+    const a = first(i);
+    const b = second(i);
+    const c = first(i + 1);
+    const value = a * 7 + b + c;
+    trace = (trace * 131 + value) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function relay(c: Mutable<Function<(x: int) => int, [f: Function<int, [x: int]>]>>, f: Function<int, [x: int]>): (x: int) => int {
-    return c(f);
+  return c(f);
 }
 
 function plus(offset: int): (x: int) => int {
-    return (x: int): int => {
-        return x + offset;
-    };
+  return (x: int): int => {
+    return x + offset;
+  };
 }
 
 function times(scale: int): (x: int) => int {
-    return (x: int): int => {
-        return x * scale;
-    };
+  return (x: int): int => {
+    return x * scale;
+  };
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

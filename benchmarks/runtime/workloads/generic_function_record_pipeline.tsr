@@ -1,33 +1,33 @@
 type Box<T> = {
-    value: T;
+  value: T;
 };
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }
 
 function workload(n: int, seed: int): int {
-    let checksum = seed;
-    let i = 0;
-    while (i < n) {
-        const box = wrap(identity((i + seed) % 1009));
-        checksum = checksum + unwrap(box);
-        i = i + 1;
-    }
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const box = wrap(identity((i + seed) % 1009));
+    checksum = checksum + unwrap(box);
+    i = i + 1;
+  }
 
-    return checksum;
+  return checksum;
 }
 
 function identity<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function wrap<T>(value: T): Box<T> {
-    return {
-        value: value
-    };
+  return {
+    value: value
+  };
 }
 
 function unwrap<T>(box: Box<T>): T {
-    return box.value;
+  return box.value;
 }

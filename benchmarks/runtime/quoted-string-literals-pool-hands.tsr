@@ -1,36 +1,36 @@
 function main() {
-    console.log('plain single' === "plain single");
-    console.log("plain double" === "plain double");
-    console.log('\x41\x00Z' === "A\u0000Z");
-    console.log("\u0042\u0000Y" === "B\u0000Y");
-    console.log('\u{43}\u{0}X' === "C\u0000X");
-    console.log('quote\' slash\\' === "quote' slash\\");
-    console.log("quote\" slash\\" === "quote\" slash\\");
-    console.log('\q\$\_' === "q$_");
-    console.log("\b\f\n\r\t\v\0" === "\b\f\n\r\t\u000b\u0000");
-    console.log('join\
+  console.log('plain single' === "plain single");
+  console.log("plain double" === "plain double");
+  console.log('\x41\x00Z' === "A\u0000Z");
+  console.log("\u0042\u0000Y" === "B\u0000Y");
+  console.log('\u{43}\u{0}X' === "C\u0000X");
+  console.log('quote\' slash\\' === "quote' slash\\");
+  console.log("quote\" slash\\" === "quote\" slash\\");
+  console.log('\q\$\_' === "q$_");
+  console.log("\b\f\n\r\t\v\0" === "\b\f\n\r\t\u000b\u0000");
+  console.log('join\
 ed' === "joined");
-    console.log("join\ed" === "joined");
-    console.log('join\
+  console.log("join\ed" === "joined");
+  console.log('join\
 ed' === "joined");
-    console.log("join\ ed" === "joined");
-    console.log('join\ ed' === "joined");
-    console.log('' === "");
-    console.log('é😀' === "é😀");
-    console.log("BOM\uFEFF中" === "BOM﻿中");
-    console.log('\xE9' === "é");
-    console.log("\u00E9\u4E2D" === "é中");
-    console.log('\u{1F600}\u{10FFFF}' === "😀􏿿");
-    console.log("\uD83D\uDE00" === "😀");
-    console.log('\u0065\u0301' === "é");
-    console.log('\qé\$\_' === "qé$_");
-    console.log("\0é😀" === "\u0000é😀");
-    console.log('é\
+  console.log("join\ ed" === "joined");
+  console.log('join\ ed' === "joined");
+  console.log('' === "");
+  console.log('é😀' === "é😀");
+  console.log("BOM\uFEFF中" === "BOM﻿中");
+  console.log('\xE9' === "é");
+  console.log("\u00E9\u4E2D" === "é中");
+  console.log('\u{1F600}\u{10FFFF}' === "😀􏿿");
+  console.log("\uD83D\uDE00" === "😀");
+  console.log('\u0065\u0301' === "é");
+  console.log('\qé\$\_' === "qé$_");
+  console.log("\0é😀" === "\u0000é😀");
+  console.log('é\
 😀' === "é😀");
-    console.log("é\😀" === "é😀");
-    console.log('é\
+  console.log("é\😀" === "é😀");
+  console.log('é\
 😀' === "é😀");
-    console.log("é\ 😀" === "é😀");
-    console.log('é\ 😀' === "é😀");
-    console.log("" === "");
+  console.log("é\ 😀" === "é😀");
+  console.log('é\ 😀' === "é😀");
+  console.log("" === "");
 }

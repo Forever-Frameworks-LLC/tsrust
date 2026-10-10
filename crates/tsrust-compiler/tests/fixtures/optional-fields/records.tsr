@@ -1,106 +1,106 @@
 import { strictEqual } from "std:testing";
 
 type Point = {
-    x: int;
-    y?: int;
+  x: int;
+  y?: int;
 };
 
 type User = {
-    name: string;
-    nickname?: string;
-    tags?: string[];
-    home?: Point;
+  name: string;
+  nickname?: string;
+  tags?: string[];
+  home?: Point;
 };
 
 type Wrapper<T> = {
-    value: T;
-    label?: string;
+  value: T;
+  label?: string;
 };
 
 function width(point: Point): int {
-    return point.x + (point.y ?? 0);
+  return point.x + (point.y ?? 0);
 }
 
 function display(user: User): string {
-    if (user.nickname !== undefined) {
-        return user.nickname.slice(0);
-    }
+  if (user.nickname !== undefined) {
+    return user.nickname.slice(0);
+  }
 
-    return user.name.slice(0);
+  return user.name.slice(0);
 }
 
 function make(name: string, nickname?: string): User {
-    return {
-        name, nickname
-    };
+  return {
+    name, nickname
+  };
 }
 
 function main() {
-    const flat: Point = {
-        x: 1
-    };
-    strictEqual(flat.y === undefined, true);
-    strictEqual(width(flat), 1);
-    const full: Point = {
-        x: 1, y: 2
-    };
-    strictEqual(width(full), 3);
-    const explicit: Point = {
-        x: 4, y: undefined
-    };
-    strictEqual(width(explicit), 4);
-    const plain: User = {
-        name: "Pat"
-    };
-    strictEqual(display(plain), "Pat");
-    const known: User = {
-        name: "Pat", nickname: "P", tags: ["a", "b"]
-    };
-    strictEqual(display(known), "P");
-    strictEqual(known.tags?.length === 2, true);
-    strictEqual(plain.tags?.length === undefined, true);
-    strictEqual(plain.home?.x === undefined, true);
-    const placed: User = {
-        name: "Sam", home: {
-            x: 3
-        }
-    };
-    strictEqual(placed.home?.x === 3, true);
-    strictEqual(placed.home?.y === undefined, true);
-    strictEqual(display(make("Lee")), "Lee");
-    strictEqual(display(make("Lee", "L")), "L");
-    let moving: Point = {
-        x: 0
-    };
-    moving.y = 5;
-    strictEqual(width(moving), 5);
-    moving.y = undefined;
-    strictEqual(width(moving), 0);
-    const { x, y } = full;
-    strictEqual(x + (y ?? 0), 3);
-    const { y: missing = 9 } = flat;
-    strictEqual(missing, 9);
-    const wrapped: Wrapper<int> = {
-        value: 7
-    };
-    strictEqual(wrapped.label ?? "none", "none");
-    const labeled: Wrapper<string> = {
-        value: "v", label: "l"
-    };
-    strictEqual(labeled.value + (labeled.label ?? ""), "vl");
-    const points: Point[] = [{
-        x: 1
-    }, {
-        x: 2, y: 3
-    }];
-    let total = 0;
-    for (const point of points) {
-        total += width(point);
+  const flat: Point = {
+    x: 1
+  };
+  strictEqual(flat.y === undefined, true);
+  strictEqual(width(flat), 1);
+  const full: Point = {
+    x: 1, y: 2
+  };
+  strictEqual(width(full), 3);
+  const explicit: Point = {
+    x: 4, y: undefined
+  };
+  strictEqual(width(explicit), 4);
+  const plain: User = {
+    name: "Pat"
+  };
+  strictEqual(display(plain), "Pat");
+  const known: User = {
+    name: "Pat", nickname: "P", tags: ["a", "b"]
+  };
+  strictEqual(display(known), "P");
+  strictEqual(known.tags?.length === 2, true);
+  strictEqual(plain.tags?.length === undefined, true);
+  strictEqual(plain.home?.x === undefined, true);
+  const placed: User = {
+    name: "Sam", home: {
+      x: 3
     }
+  };
+  strictEqual(placed.home?.x === 3, true);
+  strictEqual(placed.home?.y === undefined, true);
+  strictEqual(display(make("Lee")), "Lee");
+  strictEqual(display(make("Lee", "L")), "L");
+  let moving: Point = {
+    x: 0
+  };
+  moving.y = 5;
+  strictEqual(width(moving), 5);
+  moving.y = undefined;
+  strictEqual(width(moving), 0);
+  const { x, y } = full;
+  strictEqual(x + (y ?? 0), 3);
+  const { y: missing = 9 } = flat;
+  strictEqual(missing, 9);
+  const wrapped: Wrapper<int> = {
+    value: 7
+  };
+  strictEqual(wrapped.label ?? "none", "none");
+  const labeled: Wrapper<string> = {
+    value: "v", label: "l"
+  };
+  strictEqual(labeled.value + (labeled.label ?? ""), "vl");
+  const points: Point[] = [{
+    x: 1
+  }, {
+    x: 2, y: 3
+  }];
+  let total = 0;
+  for (const point of points) {
+    total += width(point);
+  }
 
-    strictEqual(total, 6);
-    const copy: Point = {
-        ...flat, y: 8
-    };
-    strictEqual(width(copy), 9);
+  strictEqual(total, 6);
+  const copy: Point = {
+    ...flat, y: 8
+  };
+  strictEqual(width(copy), 9);
 }

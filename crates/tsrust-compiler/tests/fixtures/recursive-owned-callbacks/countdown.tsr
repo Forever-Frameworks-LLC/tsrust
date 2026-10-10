@@ -1,22 +1,22 @@
 function counter(start: int): () => int {
-    let value = start;
-    return (): int => {
-        value = value + 1;
-        return value;
-    };
+  let value = start;
+  return (): int => {
+    value = value + 1;
+    return value;
+  };
 }
 
 function countdown(action: () => int, remaining: int): int {
-    if (remaining === 0) {
-        return action();
-    }
+  if (remaining === 0) {
+    return action();
+  }
 
-    const value = action();
-    const next = action;
-    return value + countdown(next, remaining - 1);
+  const value = action();
+  const next = action;
+  return value + countdown(next, remaining - 1);
 }
 
 function main() {
-    console.log(countdown(counter(0), 3));
-    console.log(countdown(counter(10), 1));
+  console.log(countdown(counter(0), 3));
+  console.log(countdown(counter(10), 1));
 }

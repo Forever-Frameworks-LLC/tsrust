@@ -1,24 +1,24 @@
 import { strictEqual } from 'std:testing';
 
 function make(start: int) {
-    let calls = start;
-    function select<T>(value: T): T {
-        calls += 1;
-        console.log(calls);
-        return value;
-    }
+  let calls = start;
+  function select<T>(value: T): T {
+    calls += 1;
+    console.log(calls);
+    return value;
+  }
 
-    return select;
+  return select;
 }
 
 function main() {
-    const action = make(10);
-    {
-        const integer: Mutable<Function<int, [value: int]>> = action;
-        strictEqual(integer(7), 7);
-    }
+  const action = make(10);
+  {
+    const integer: Mutable<Function<int, [value: int]>> = action;
+    strictEqual(integer(7), 7);
+  }
 
-    strictEqual(action('generic'), 'generic');
-    const text: Function<string, [value: Owned<string>]> = action;
-    strictEqual(text('owned'), 'owned');
+  strictEqual(action('generic'), 'generic');
+  const text: Function<string, [value: Owned<string>]> = action;
+  strictEqual(text('owned'), 'owned');
 }

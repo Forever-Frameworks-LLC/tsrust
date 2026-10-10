@@ -1,44 +1,44 @@
 function workload(n: int, seed: int): int {
-    const maker = factoryFactory;
-    const factory = maker();
-    const consumer = factory();
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const a = pass(consumer, plus, seed + i);
-        const b = pass(consumer, times, seed + i);
-        const value = a * 7 + b;
-        trace = (trace * 131 + value) % 1000000007;
-        i = i + 1;
-    }
+  const maker = factoryFactory;
+  const factory = maker();
+  const consumer = factory();
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const a = pass(consumer, plus, seed + i);
+    const b = pass(consumer, times, seed + i);
+    const value = a * 7 + b;
+    trace = (trace * 131 + value) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function plus(x: int): int {
-    return x + 3;
+  return x + 3;
 }
 
 function times(x: int): int {
-    return x * 2;
+  return x * 2;
 }
 
 function apply(f: Mutable<Function<int, [x: int]>>, x: int): int {
-    return f(x);
+  return f(x);
 }
 
 function pass(c: Mutable<Function<int, [f: Mutable<Function<int, [x: int]>>, x: int]>>, f: Mutable<Function<int, [x: int]>>, x: int): int {
-    return c(f, x);
+  return c(f, x);
 }
 
 function factory(): (f: Mutable<Function<int, [x: int]>>, x: int) => int {
-    return apply;
+  return apply;
 }
 
 function factoryFactory(): () => (f: Mutable<Function<int, [x: int]>>, x: int) => int {
-    return factory;
+  return factory;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

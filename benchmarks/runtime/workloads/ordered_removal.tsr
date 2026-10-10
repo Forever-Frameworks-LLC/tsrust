@@ -1,43 +1,43 @@
 type Entry = {
-    value: int;
+  value: int;
 };
 
 function workload(n: int, seed: int): int {
-    let sum = 0;
-    let i = 0;
-    while (i < n) {
-        const values: int[] = [];
-        let j = 0;
-        while (j < 32) {
-            values.push(seed + i + j);
-            j = j + 1;
-        }
-
-        sum = sum + values.remove(3);
-        sum = sum + values.remove(values.length - 1);
-        sum = sum + values.remove(0);
-        let position = 1;
-        for (const value of values) {
-            sum = sum + value * position;
-            position = position + 1;
-        }
-
-        const entries: Entry[] = [{
-            value: i
-        }, {
-            value: seed
-        }];
-        const entry = entries.remove(0);
-        sum = sum + entry.value;
-        const rows = [[i, seed], [seed]];
-        const row = rows.remove(0);
-        sum = sum + row[0] + row[1];
-        i = i + 1;
+  let sum = 0;
+  let i = 0;
+  while (i < n) {
+    const values: int[] = [];
+    let j = 0;
+    while (j < 32) {
+      values.push(seed + i + j);
+      j = j + 1;
     }
 
-    return sum;
+    sum = sum + values.remove(3);
+    sum = sum + values.remove(values.length - 1);
+    sum = sum + values.remove(0);
+    let position = 1;
+    for (const value of values) {
+      sum = sum + value * position;
+      position = position + 1;
+    }
+
+    const entries: Entry[] = [{
+      value: i
+    }, {
+      value: seed
+    }];
+    const entry = entries.remove(0);
+    sum = sum + entry.value;
+    const rows = [[i, seed], [seed]];
+    const row = rows.remove(0);
+    sum = sum + row[0] + row[1];
+    i = i + 1;
+  }
+
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

@@ -1,95 +1,95 @@
 type Point = {
-    x: int;
-    label: string;
-    ok: boolean;
+  x: int;
+  label: string;
+  ok: boolean;
 };
 
 type Size = {
-    w: int;
-    h: int;
+  w: int;
+  h: int;
 };
 
 type Mixed = {
-    id: int;
-    name: string;
-    tags: string[];
-    inner: Size;
-    score: number;
-    note: string | null;
+  id: int;
+  name: string;
+  tags: string[];
+  inner: Size;
+  score: number;
+  note: string | null;
 };
 
 function make(log: int[]): Size {
-    log.push(1);
-    return {
-        h: 2, w: 3
-    };
+  log.push(1);
+  return {
+    h: 2, w: 3
+  };
 }
 
 function total(size: ReadOnly<Size>): int {
-    let sum = 0;
-    for (const value of Object.values(size)) {
-        sum += value;
-    }
+  let sum = 0;
+  for (const value of Object.values(size)) {
+    sum += value;
+  }
 
-    return sum;
+  return sum;
 }
 
 function main() {
-    const p: Point = {
-        label: "a", x: 1, ok: true
-    };
-    const values = Object.values(p);
-    console.log(values, values.length, Object.keys(p).join(","));
-    for (const value of values) {
-        console.log(typeof value, String(value));
+  const p: Point = {
+    label: "a", x: 1, ok: true
+  };
+  const values = Object.values(p);
+  console.log(values, values.length, Object.keys(p).join(","));
+  for (const value of values) {
+    console.log(typeof value, String(value));
+  }
+
+  const entries = Object.entries(p);
+  for (const entry of entries) {
+    console.log(entry[0], typeof entry[1], String(entry[1]));
+  }
+
+  console.log(entries.length, entries);
+  values.push("extra");
+  entries.pop();
+  console.log(values.length, entries.length, p.label, p.x, p.ok, Object.values(p).length);
+  const size: Size = {
+    w: 4, h: 5
+  };
+  const sides = Object.values(size);
+  console.log(sides, sides[0] + sides[1], total(size), Object.entries(size));
+  const log: int[] = [];
+  console.log(Object.values(make(log)), Object.entries(make(log)).length, log.length);
+  const m: Mixed = {
+    name: "n".repeat(2), id: 7, note: null, tags: ["t", "u"], score: 1.5, inner: {
+      w: 2, h: 1
+    }
+  };
+  const all = Object.values(m);
+  console.log(all.length, all);
+  let texts = 0;
+  let objects = 0;
+  for (const value of all) {
+    if (typeof value === "string") {
+      texts += 1;
     }
 
-    const entries = Object.entries(p);
-    for (const entry of entries) {
-        console.log(entry[0], typeof entry[1], String(entry[1]));
+    if (typeof value === "object") {
+      objects += 1;
     }
+  }
 
-    console.log(entries.length, entries);
-    values.push("extra");
-    entries.pop();
-    console.log(values.length, entries.length, p.label, p.x, p.ok, Object.values(p).length);
-    const size: Size = {
-        w: 4, h: 5
-    };
-    const sides = Object.values(size);
-    console.log(sides, sides[0] + sides[1], total(size), Object.entries(size));
-    const log: int[] = [];
-    console.log(Object.values(make(log)), Object.entries(make(log)).length, log.length);
-    const m: Mixed = {
-        name: "n".repeat(2), id: 7, note: null, tags: ["t", "u"], score: 1.5, inner: {
-            w: 2, h: 1
-        }
-    };
-    const all = Object.values(m);
-    console.log(all.length, all);
-    let texts = 0;
-    let objects = 0;
-    for (const value of all) {
-        if (typeof value === "string") {
-            texts += 1;
-        }
+  console.log(texts, objects);
+  for (const entry of Object.entries(m)) {
+    console.log(entry[0], typeof entry[1]);
+  }
 
-        if (typeof value === "object") {
-            objects += 1;
-        }
-    }
-
-    console.log(texts, objects);
-    for (const entry of Object.entries(m)) {
-        console.log(entry[0], typeof entry[1]);
-    }
-
-    m.tags.push("v");
-    console.log(m.tags.length, all.length, Object.entries(clone(m)).length);
-    const pair: [int, string] = [9, "z"];
-    console.log(Object.values(pair), Object.entries(pair), Object.values([1, 2, 3]), Object.values(["a", "b"]).length);
-    const words = ["x", "y"];
-    const copy = Object.values(words);
-    copy.push("w");
-    console.log(words.length, copy.length);
+  m.tags.push("v");
+  console.log(m.tags.length, all.length, Object.entries(clone(m)).length);
+  const pair: [int, string] = [9, "z"];
+  console.log(Object.values(pair), Object.entries(pair), Object.values([1, 2, 3]), Object.values(["a", "b"]).length);
+  const words = ["x", "y"];
+  const copy = Object.values(words);
+  copy.push("w");
+  console.log(words.length, copy.length);
 }

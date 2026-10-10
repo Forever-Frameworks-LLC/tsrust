@@ -308,7 +308,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 output.push_str(&"\n".repeat(count));
                 // Inside a switch body, everything except a label sits one level deeper.
                 let clauses = switch_depths.iter().filter(|body| depth >= **body).count();
-                output.push_str(&"    ".repeat(depth + clauses.saturating_sub(usize::from(label_start[i]))));
+                output.push_str(&"  ".repeat(depth + clauses.saturating_sub(usize::from(label_start[i]))));
             } else {
                 let postfix_assertion = symbol && current == "!" && ends_operand(i - 1);
                 // Signs after postfix operators are binary; signs after prefixes

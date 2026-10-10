@@ -1,54 +1,54 @@
 function workload(n: int, seed: int, input: string): int {
-    const base: string[] = [clone(input), "é", "😀", "a\u0000b", "e\u0301"];
-    let trace: int = seed;
-    let visits = 0;
-    let i = 0;
-    while (i < n) {
-        const mode = (i + seed) % 5;
-        let count = 5;
-        if (mode === 0) {
-            count = 0;
-        } else if (mode === 1) {
-            count = 1;
-        } else if (mode === 2) {
-            count = 4;
-        }
-
-        const selected = base.slice(0, count);
-        selected.forEach((value: string, index: int, source: string[]): void => {
-            trace = (trace * 131 + stringWeight(value, input) + index + source.length + i) % 1000000007; visits = visits + 1;
-        });
-        i = i + 1;
+  const base: string[] = [clone(input), "é", "😀", "a\u0000b", "e\u0301"];
+  let trace: int = seed;
+  let visits = 0;
+  let i = 0;
+  while (i < n) {
+    const mode = (i + seed) % 5;
+    let count = 5;
+    if (mode === 0) {
+      count = 0;
+    } else if (mode === 1) {
+      count = 1;
+    } else if (mode === 2) {
+      count = 4;
     }
 
-    return (trace + visits) % 1000000007;
+    const selected = base.slice(0, count);
+    selected.forEach((value: string, index: int, source: string[]): void => {
+      trace = (trace * 131 + stringWeight(value, input) + index + source.length + i) % 1000000007; visits = visits + 1;
+    });
+    i = i + 1;
+  }
+
+  return (trace + visits) % 1000000007;
 }
 
 function stringWeight(value: string, input: string): int {
-    let w = 1;
-    if (value === input) {
-        w = w + 3;
-    }
+  let w = 1;
+  if (value === input) {
+    w = w + 3;
+  }
 
-    if (value.includes("\u0000")) {
-        w = w + 5;
-    }
+  if (value.includes("\u0000")) {
+    w = w + 5;
+  }
 
-    if (value === "e\u0301") {
-        w = w + 7;
-    }
+  if (value === "e\u0301") {
+    w = w + 7;
+  }
 
-    if (value === "é") {
-        w = w + 11;
-    }
+  if (value === "é") {
+    w = w + 11;
+  }
 
-    if (value === "😀") {
-        w = w + 13;
-    }
+  if (value === "😀") {
+    w = w + 13;
+  }
 
-    return w;
+  return w;
 }
 
 function main() {
-    const result = workload(2, 7, "é 😀 e\u0301");
+  const result = workload(2, 7, "é 😀 e\u0301");
 }

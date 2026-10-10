@@ -1,15 +1,15 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const get = (): User => {
-        return user;
-    };
-    console.log(user.name);
-    const saved = get();
-    console.log(saved.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const get = (): User => {
+    return user;
+  };
+  console.log(user.name);
+  const saved = get();
+  console.log(saved.name);
 }

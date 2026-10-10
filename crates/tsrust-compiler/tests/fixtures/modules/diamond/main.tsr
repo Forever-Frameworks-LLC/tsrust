@@ -2,5 +2,5 @@ import { left } from "./left.tsr";
 import { right } from "./right.tsr";
 
 function main() {
-    console.log(left() + right());
+  console.log(left() + right());
 }

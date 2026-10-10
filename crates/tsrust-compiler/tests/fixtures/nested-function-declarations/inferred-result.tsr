@@ -1,9 +1,9 @@
 import { strictEqual } from "std:testing";
 
 function main() {
-    function twice(value: int) {
-        return value + value;
-    }
+  function twice(value: int) {
+    return value + value;
+  }
 
-    strictEqual(twice(3), 6);
+  strictEqual(twice(3), 6);
 }

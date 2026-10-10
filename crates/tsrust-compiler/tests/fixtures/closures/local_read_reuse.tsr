@@ -1,15 +1,15 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const show = (): void => {
-        console.log(user.name);
-    };
-    show();
+  const user: User = {
+    name: "Pat"
+  };
+  const show = (): void => {
     console.log(user.name);
-    show();
+  };
+  show();
+  console.log(user.name);
+  show();
 }

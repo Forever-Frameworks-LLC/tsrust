@@ -1,25 +1,25 @@
 type Trace = {
-    code: int;
+  code: int;
 };
 
 function first(trace: Trace): string {
-    trace.code = trace.code * 10 + 1;
-    return 'A\x00Z';
+  trace.code = trace.code * 10 + 1;
+  return 'A\x00Z';
 }
 
 function second(trace: Trace): string {
-    trace.code = trace.code * 10 + 2;
-    return "\uD83D\uDE00\u{10FFFF}";
+  trace.code = trace.code * 10 + 2;
+  return "\uD83D\uDE00\u{10FFFF}";
 }
 
 function main() {
-    const trace: Trace = {
-        code: 0
-    };
-    const values: string[] = [first(trace), second(trace), '\q\$\_'];
-    console.log(trace.code);
-    console.log(values[0] === "A\u0000Z");
-    console.log(values[1] === "😀􏿿");
-    console.log(values[2] === 'q$_');
-    console.log(trace.code);
+  const trace: Trace = {
+    code: 0
+  };
+  const values: string[] = [first(trace), second(trace), '\q\$\_'];
+  console.log(trace.code);
+  console.log(values[0] === "A\u0000Z");
+  console.log(values[1] === "😀􏿿");
+  console.log(values[2] === 'q$_');
+  console.log(trace.code);
 }

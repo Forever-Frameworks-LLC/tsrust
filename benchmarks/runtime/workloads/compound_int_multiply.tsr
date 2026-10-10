@@ -1,18 +1,18 @@
 function workload(n: int, seed: int): int[] {
-    const output: int[] = [];
-    let i = 0;
-    while (i < n) {
-        const base: int = (i * 13 + seed) % 64;
-        const rhs: int = (i * 7 + seed) % 4 + 1;
-        let value: int = base;
-        value *= rhs;
-        output.push(value);
-        i = i + 1;
-    }
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    const base: int = (i * 13 + seed) % 64;
+    const rhs: int = (i * 7 + seed) % 4 + 1;
+    let value: int = base;
+    value *= rhs;
+    output.push(value);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

@@ -8932,7 +8932,7 @@ fn recursive_inferred_results_appear_in_hover_and_call_values() {
     }
     let members = ask(&source, "textDocument/completion", "length);", 0);
     assert!(members.as_array().unwrap().iter().any(|item| item["label"] == "length"));
-    let unresolved = "function spin(value: int) {\n    return spin(value);\n}\n\nfunction main() {\n    spin(1);\n}\n";
+    let unresolved = "function spin(value: int) {\n  return spin(value);\n}\n\nfunction main() {\n  spin(1);\n}\n";
     let diagnostics = serde_json::to_value(tsrust_lsp::diagnostics(unresolved, "file:///test.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item| item["code"] == "result-inference"), "{diagnostics}");
 }
@@ -9084,7 +9084,7 @@ fn transferred_error_storage_requires_explicit_restoration() {
     assert!(tsrust_lsp::diagnostics(&spare_pair,"file:///spare-paired-map-loop.tsr").unwrap().is_empty());
     let caught_loop=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function main():void{const old=[3];const next=[5];let turn=0;let handlers=new Map<string,Holder>();while(turn<3){handlers.set('old',{run:():int=>old[0]});turn+=1;try{failIf(turn!==2);handlers.clear();handlers.set('next',{run:():int=>next[0]});console.log('normal',turn);}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});if(turn===1)continue;break;}finally{console.log('cleanup',turn,handlers.size);handlers.clear();}old[0]=9;next[0]=11;console.log('fallthrough',turn);}old[0]=13;next[0]=17;console.log('after',handlers.size,old[0],next[0]);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&caught_loop,"file:///caught-loop.tsr").unwrap().is_empty());
-    let cleanup_mutation=caught_loop.replace("handlers.clear();\n        }\n\n        old[0] = 9;\n        next[0] = 11;", "handlers.clear();old[0]=9;next[0]=11;}");
+    let cleanup_mutation=caught_loop.replace("handlers.clear();\n    }\n\n    old[0] = 9;\n    next[0] = 11;", "handlers.clear();old[0]=9;next[0]=11;}");
     assert_ne!(cleanup_mutation,caught_loop,"mutation must move inside finally");
     assert!(tsrust_lsp::diagnostics(&cleanup_mutation,"file:///cleanup-mutation.tsr").unwrap().is_empty());
     let nested_return = tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(fail:boolean):void{if(fail)throw 7;}function scenario(fail:boolean):int{const old=[3];const next=[5];let handlers=new Map<string,Holder>();handlers.set('old',{run:():int=>old[0]});try{try{failIf(fail);handlers.clear();handlers.set('next',{run:():int=>next[0]});return 23;}catch(error){handlers.clear();handlers.set('next',{run:():int=>next[0]});return 29;}finally{handlers.clear();}}finally{handlers.clear();old[0]=9;next[0]=11;}}function main():void{console.log(scenario(false),scenario(true));}").unwrap();
@@ -9157,7 +9157,7 @@ fn record_map_entry_release_and_refill_preserve_editor_diagnostics() {
 fn branch_map_entry_release_requires_every_reaching_path() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});if(branch){handlers.delete('first');}else{handlers.delete('first');}first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}function main():void{scenario(true);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///branch-map-release.tsr").unwrap().is_empty());
-    let conflict=source.replace("} else {\n        handlers.delete('first');", "} else {");
+    let conflict=source.replace("} else {\n    handlers.delete('first');", "} else {");
     assert_ne!(conflict,source);
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-map-release.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
@@ -9167,7 +9167,7 @@ fn branch_map_entry_release_requires_every_reaching_path() {
 fn loop_map_entry_release_retains_zero_iteration_capture_diagnostics() {
     let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});let turn=0;do{handlers.delete('first');turn+=1;}while(turn<limit);first[0]=9;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}function main():void{scenario(0);}").unwrap();
     assert!(tsrust_lsp::diagnostics(&source,"file:///loop-map-release.tsr").unwrap().is_empty());
-    let start=source.find("    do {").unwrap();let end=source[start..].find("    first[0] = 9;").unwrap()+start;
+    let start=source.find("  do {").unwrap();let end=source[start..].find("  first[0] = 9;").unwrap()+start;
     let conflict=format!("{}while(turn<limit){{handlers.delete('first');turn+=1;}}{}",&source[..start],&source[end..]);
     let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-release.tsr").unwrap()).unwrap();
     assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
@@ -9177,7 +9177,7 @@ fn loop_map_entry_release_retains_zero_iteration_capture_diagnostics() {
 fn loop_map_refill_keeps_new_capture_protected_until_clear() {
  let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(limit:int):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;let turn=0;while(turn<limit){handlers.set('third',{run:():int=>third[0]});turn++;}handlers.clear();third[0]=11;}function main():void{scenario(2);}").unwrap();
  assert!(tsrust_lsp::diagnostics(&source,"file:///loop-map-refill.tsr").unwrap().is_empty());
- let conflict=source.replace("handlers.clear();\n    third[0] = 11;","third[0]=11;handlers.clear();");
+ let conflict=source.replace("handlers.clear();\n  third[0] = 11;","third[0]=11;handlers.clear();");
  assert_ne!(conflict,source);
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///loop-map-refill.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
@@ -9197,7 +9197,7 @@ fn map_entry_release_inside_branch_retains_other_capture_diagnostics() {
 fn narrowed_map_branch_refill_keeps_new_capture_until_clear() {
  let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function scenario(branch:boolean):void{const first=[3];const second=[5];const third=[7];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});handlers.delete('first');first[0]=9;if(branch){handlers.set('third',{run:():int=>third[0]});}handlers.clear();third[0]=11;}function main():void{scenario(true);}").unwrap();
  assert!(tsrust_lsp::diagnostics(&source,"file:///branch-refill.tsr").unwrap().is_empty());
- let conflict=source.replace("handlers.clear();\n    third[0] = 11;","third[0]=11;handlers.clear();");
+ let conflict=source.replace("handlers.clear();\n  third[0] = 11;","third[0]=11;handlers.clear();");
  assert_ne!(conflict,source);
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///branch-refill.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
@@ -9326,10 +9326,10 @@ fn finally_result_map_entry_release_preserves_survivor_diagnostics() {
 #[test]
 fn error_phase_map_entry_release_preserves_survivor_diagnostics() {
  let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}catch(error){first[0]+=1;for(const [key,entry] of handlers){console.log(entry.run());}}handlers.clear();}function main():void{scenario(false);scenario(true);}").unwrap();
- let with_finally=source.replace("    handlers.clear();\n", "    finally{console.log(handlers.size); }\n    handlers.clear();\n");assert_ne!(with_finally,source);
+ let with_finally=source.replace("  handlers.clear();\n", "  finally{console.log(handlers.size); }\n  handlers.clear();\n");assert_ne!(with_finally,source);
  for source in [source,tsrust_compiler::format(&with_finally).unwrap()] {
  assert!(tsrust_lsp::diagnostics(&source,"file:///error-phase-map.tsr").unwrap().is_empty());
- for conflict in [source.replace("first[0] += 1;","second[0]+=1;"),source.replace("handlers.delete('first');\n        failIf(flag);","failIf(flag);handlers.delete('first');")] {
+ for conflict in [source.replace("first[0] += 1;","second[0]+=1;"),source.replace("handlers.delete('first');\n    failIf(flag);","failIf(flag);handlers.delete('first');")] {
   assert_ne!(conflict,source);let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///error-phase-map.tsr").unwrap()).unwrap();
   assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
  }
@@ -9340,7 +9340,7 @@ fn error_phase_map_entry_release_preserves_survivor_diagnostics() {
 fn pending_error_finally_map_entry_release_preserves_survivor_diagnostics() {
  let source=tsrust_compiler::format("type Holder={run:ReadOnly<Function<int>>;};function failIf(flag:boolean):void{if(flag)throw 7;}function scenario(flag:boolean):void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.delete('first');failIf(flag);}finally{first[0]+=1;for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}}function main():void{try{scenario(false);scenario(true);}catch(error){console.log('caught');}}").unwrap();
  assert!(tsrust_lsp::diagnostics(&source,"file:///pending-error-cleanup.tsr").unwrap().is_empty());
- for conflict in [source.replace("first[0] += 1;","second[0]+=1;"),source.replace("handlers.delete('first');\n        failIf(flag);","failIf(flag);handlers.delete('first');")] {
+ for conflict in [source.replace("first[0] += 1;","second[0]+=1;"),source.replace("handlers.delete('first');\n    failIf(flag);","failIf(flag);handlers.delete('first');")] {
   assert_ne!(conflict,source);let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&conflict,"file:///pending-error-cleanup.tsr").unwrap()).unwrap();
   assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
  }

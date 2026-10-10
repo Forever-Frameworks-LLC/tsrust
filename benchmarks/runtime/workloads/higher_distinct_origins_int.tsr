@@ -1,32 +1,32 @@
 function workload(n: int, seed: int): int {
-    const consumer = apply;
-    const left = plus;
-    const right = times;
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const a = consumer(left, seed + i);
-        const b = consumer(right, seed + i);
-        const value = a * 7 + b;
-        trace = (trace * 131 + value) % 1000000007;
-        i = i + 1;
-    }
+  const consumer = apply;
+  const left = plus;
+  const right = times;
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const a = consumer(left, seed + i);
+    const b = consumer(right, seed + i);
+    const value = a * 7 + b;
+    trace = (trace * 131 + value) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function apply(f: Mutable<Function<int, [x: int]>>, x: int): int {
-    return f(x);
+  return f(x);
 }
 
 function plus(x: int): int {
-    return x + 3;
+  return x + 3;
 }
 
 function times(x: int): int {
-    return x * 2;
+  return x * 2;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

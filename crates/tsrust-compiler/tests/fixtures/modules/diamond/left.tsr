@@ -1,7 +1,7 @@
 import {
-    value as sharedValue
+  value as sharedValue
 } from "./shared.tsr";
 
 export function left(): int {
-    return sharedValue();
+  return sharedValue();
 }

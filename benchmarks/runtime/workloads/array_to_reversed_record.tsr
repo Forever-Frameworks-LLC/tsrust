@@ -1,31 +1,31 @@
 type Row = {
-    code: int;
-    text: string;
-    items: int[];
+  code: int;
+  text: string;
+  items: int[];
 };
 
 function workload(n: int, seed: int, input: string): Row[] {
-    const output: Row[] = [];
-    let i = 0;
-    while (i < n) {
-        const values: Row[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
-        const result = values.toReversed();
-        for (const value of result) {
-            output.push(clone(value));
-        }
-
-        i = i + 1;
+  const output: Row[] = [];
+  let i = 0;
+  while (i < n) {
+    const values: Row[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
+    const result = values.toReversed();
+    for (const value of result) {
+      output.push(clone(value));
     }
 
-    return output;
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function item(base: int, input: string): Row {
-    return {
-        code: base % 1009, text: clone(input), items: [base % 17, 0, (base + 1) % 17]
-    };
+  return {
+    code: base % 1009, text: clone(input), items: [base % 17, 0, (base + 1) % 17]
+  };
 }
 
 function main() {
-    const result = workload(2, 7, " xé😀e\u0301 ");
+  const result = workload(2, 7, " xé😀e\u0301 ");
 }

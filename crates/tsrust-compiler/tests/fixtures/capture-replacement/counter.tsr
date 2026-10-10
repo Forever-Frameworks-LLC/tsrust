@@ -1,15 +1,15 @@
 function makeCounter(): (step: int) => int {
-    let count = 0;
-    return (step: int): int => {
-        count = count + step;
-        return count;
-    };
+  let count = 0;
+  return (step: int): int => {
+    count = count + step;
+    return count;
+  };
 }
 
 function main() {
-    const first = makeCounter();
-    const second = makeCounter();
-    console.log(first(2));
-    console.log(first(3));
-    console.log(second(1));
+  const first = makeCounter();
+  const second = makeCounter();
+  console.log(first(2));
+  console.log(first(3));
+  console.log(second(1));
 }

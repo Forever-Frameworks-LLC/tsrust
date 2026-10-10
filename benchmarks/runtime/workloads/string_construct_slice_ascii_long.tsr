@@ -1,18 +1,18 @@
 function workload(n: int, seed: int, input: string): string[] {
-    const width = input.length;
-    const results: string[] = [];
-    let i = 0;
-    while (i < n) {
-        const start = (i + seed) % 8;
-        const end = width - 1 - (i * 7 + seed) % 8;
-        results.push(input.slice(start, end));
-        i = i + 1;
-    }
+  const width = input.length;
+  const results: string[] = [];
+  let i = 0;
+  while (i < n) {
+    const start = (i + seed) % 8;
+    const end = width - 1 - (i * 7 + seed) % 8;
+    results.push(input.slice(start, end));
+    i = i + 1;
+  }
 
-    return results;
+  return results;
 }
 
 function main() {
-    const results = workload(2, 7, "ABCDEFGHAz09!?abcdefgh");
-    console.log(results.length);
+  const results = workload(2, 7, "ABCDEFGHAz09!?abcdefgh");
+  console.log(results.length);
 }

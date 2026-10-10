@@ -1,32 +1,32 @@
 type Probe = {
-    state: int;
+  state: int;
 };
 
 function workload(n: int, seed: int): int {
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const probe: Probe = {
-            state: (seed + i) % 1000003
-        };
-        const action = produce(probe);
-        const value = action(seed + i);
-        trace = (trace * 131 + value + probe.state) % 1000000007;
-        i = i + 1;
-    }
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const probe: Probe = {
+      state: (seed + i) % 1000003
+    };
+    const action = produce(probe);
+    const value = action(seed + i);
+    trace = (trace * 131 + value + probe.state) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function step(value: int): int {
-    return (value * 3 + 1) % 1000000007;
+  return (value * 3 + 1) % 1000000007;
 }
 
 function produce(probe: Probe): (value: int) => int {
-    probe.state = (probe.state * 10 + 7) % 1000003;
-    return step;
+  probe.state = (probe.state * 10 + 7) % 1000003;
+  return step;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

@@ -1,98 +1,98 @@
 type Node = {
-    code: int;
-    text: string;
-    children: Node[];
+  code: int;
+  text: string;
+  children: Node[];
 };
 
 function workload(n: int, seed: int, input: string): Node[][] {
-    const output: Node[][] = [];
-    let i = 0;
-    while (i < n) {
-        const values: Node[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
-        const mode = (i + seed) % 10;
-        if (mode === 0) {
-            const result = values.toSpliced();
-            output.push(result);
-        } else if (mode === 1) {
-            const result = values.toSpliced(start(i, seed));
-            output.push(result);
-        } else if (mode === 2) {
-            const result = values.toSpliced(start(i, seed), 0);
-            output.push(result);
-        } else if (mode === 3) {
-            const result = values.toSpliced(start(i, seed), -3);
-            output.push(result);
-        } else if (mode === 4) {
-            const result = values.toSpliced(start(i, seed), 2);
-            output.push(result);
-        } else if (mode === 5) {
-            const result = values.toSpliced(start(i, seed), 99);
-            output.push(result);
-        } else if (mode === 6) {
-            const result = values.toSpliced(start(i, seed), 1, item(seed + i + 11, input));
-            output.push(result);
-        } else if (mode === 7) {
-            const result = values.toSpliced(start(i, seed), 0, item(seed + i + 11, input), item(seed + i + 13, input));
-            output.push(result);
-        } else if (mode === 8) {
-            const result = values.toSpliced(start(i, seed), 3, item(seed + i + 11, input), item(seed + i + 13, input), item(seed + i + 17, input));
-            output.push(result);
-        } else {
-            const result = values.toSpliced(start(i, seed), 99, item(seed + i + 11, input), item(seed + i + 13, input));
-            output.push(result);
-        }
-
-        i = i + 1;
+  const output: Node[][] = [];
+  let i = 0;
+  while (i < n) {
+    const values: Node[] = [item(seed + i + 0, input), item(seed + i + 1, input), item(seed + i + 2, input), item(seed + i + 3, input), item(seed + i + 4, input), item(seed + i + 5, input)];
+    const mode = (i + seed) % 10;
+    if (mode === 0) {
+      const result = values.toSpliced();
+      output.push(result);
+    } else if (mode === 1) {
+      const result = values.toSpliced(start(i, seed));
+      output.push(result);
+    } else if (mode === 2) {
+      const result = values.toSpliced(start(i, seed), 0);
+      output.push(result);
+    } else if (mode === 3) {
+      const result = values.toSpliced(start(i, seed), -3);
+      output.push(result);
+    } else if (mode === 4) {
+      const result = values.toSpliced(start(i, seed), 2);
+      output.push(result);
+    } else if (mode === 5) {
+      const result = values.toSpliced(start(i, seed), 99);
+      output.push(result);
+    } else if (mode === 6) {
+      const result = values.toSpliced(start(i, seed), 1, item(seed + i + 11, input));
+      output.push(result);
+    } else if (mode === 7) {
+      const result = values.toSpliced(start(i, seed), 0, item(seed + i + 11, input), item(seed + i + 13, input));
+      output.push(result);
+    } else if (mode === 8) {
+      const result = values.toSpliced(start(i, seed), 3, item(seed + i + 11, input), item(seed + i + 13, input), item(seed + i + 17, input));
+      output.push(result);
+    } else {
+      const result = values.toSpliced(start(i, seed), 99, item(seed + i + 11, input), item(seed + i + 13, input));
+      output.push(result);
     }
 
-    return output;
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function item(base: int, input: string): Node {
-    return {
-        code: base % 1009, text: clone(input), children: [{
-            code: base % 17, text: "a\u0000b", children: []
-        }, {
-            code: (base + 1) % 17, text: "😀", children: [{
-                code: 0, text: "leafé", children: []
-            }]
-        }]
-    };
+  return {
+    code: base % 1009, text: clone(input), children: [{
+      code: base % 17, text: "a\u0000b", children: []
+    }, {
+      code: (base + 1) % 17, text: "😀", children: [{
+        code: 0, text: "leafé", children: []
+      }]
+    }]
+  };
 }
 
 function start(i: int, seed: int): int {
-    const c = (i * 3 + seed) % 8;
-    if (c === 0) {
-        return -9;
-    }
+  const c = (i * 3 + seed) % 8;
+  if (c === 0) {
+    return -9;
+  }
 
-    if (c === 1) {
-        return -6;
-    }
+  if (c === 1) {
+    return -6;
+  }
 
-    if (c === 2) {
-        return -1;
-    }
+  if (c === 2) {
+    return -1;
+  }
 
-    if (c === 3) {
-        return 0;
-    }
+  if (c === 3) {
+    return 0;
+  }
 
-    if (c === 4) {
-        return 2;
-    }
+  if (c === 4) {
+    return 2;
+  }
 
-    if (c === 5) {
-        return 5;
-    }
+  if (c === 5) {
+    return 5;
+  }
 
-    if (c === 6) {
-        return 6;
-    }
+  if (c === 6) {
+    return 6;
+  }
 
-    return 99;
+  return 99;
 }
 
 function main() {
-    const result = workload(2, 7, " xé😀e\u0301 ");
+  const result = workload(2, 7, " xé😀e\u0301 ");
 }

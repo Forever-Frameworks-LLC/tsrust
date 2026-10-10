@@ -1,137 +1,137 @@
 type User = {
-    value: int;
+  value: int;
 };
 
 function make(value: int): Result<User, int> {
-    if (value % 3 === 0) {
-        return Err(value + 5);
-    }
+  if (value % 3 === 0) {
+    return Err(value + 5);
+  }
 
-    return Ok({
-        value: value
-    });
+  return Ok({
+    value: value
+  });
 }
 
 function inspect(result: ReadOnly<Result<User, int>>): int {
-    match (result) {
-        Ok(user) => {
-            return user.value * 2;
-        },
-        Err(error) => {
-            return error * 3;
-        },
-    }
+  match (result) {
+    Ok(user) => {
+      return user.value * 2;
+    },
+    Err(error) => {
+      return error * 3;
+    },
+  }
 }
 
 function update(result: Mutable<Result<User, int[]>>): void {
-    match (result) {
-        Ok(user) => {
-            user.value += 2;
-        },
-        Err(values) => {
-            values.push(7);
-        }
+  match (result) {
+    Ok(user) => {
+      user.value += 2;
+    },
+    Err(values) => {
+      values.push(7);
     }
+  }
 }
 
 function counter(start: int): Result<Function<int>, int> {
-    if (start % 4 === 0) {
-        return Err(start);
-    }
+  if (start % 4 === 0) {
+    return Err(start);
+  }
 
-    let value = start;
-    return Ok((): int => {
-        value += 1; return value;
-    });
+  let value = start;
+  return Ok((): int => {
+    value += 1; return value;
+  });
 }
 
 function failureScenario(value: int): int {
-    let held: Result<Function<int>, int> = Err(value);
-    if (value % 5 !== 0) {
-        const text = "x".repeat(value % 4 + 1);
-        held = Ok((): int => {
-            throw clone(text);
-        });
-    }
+  let held: Result<Function<int>, int> = Err(value);
+  if (value % 5 !== 0) {
+    const text = "x".repeat(value % 4 + 1);
+    held = Ok((): int => {
+      throw clone(text);
+    });
+  }
 
-    let observed = 0;
-    try {
-        match (held) {
-            Ok(action) => {
-                action();
-            },
-            Err(error) => {
-                observed = error;
-            }
-        }
-    } catch (error) {
-        if (typeof error === "string") {
-            observed = error.length;
-        } else {
-            observed = -1000000;
-        }
-    } finally {
-        observed += 1;
+  let observed = 0;
+  try {
+    match (held) {
+      Ok(action) => {
+        action();
+      },
+      Err(error) => {
+        observed = error;
+      }
     }
+  } catch (error) {
+    if (typeof error === "string") {
+      observed = error.length;
+    } else {
+      observed = -1000000;
+    }
+  } finally {
+    observed += 1;
+  }
 
-    return observed;
+  return observed;
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 17 + seed % 19 + 1;
-        const result = make(value);
-        const first = inspect(result);
-        const second = inspect(result);
-        let owned = 0;
-        match (result) {
-            Ok(user) => {
-                owned = user.value + 7;
-            },
-            Err(error) => {
-                owned = error + 11;
-            },
-        }
-
-        const editable: Result<User, int[]> = value % 2 === 0 ? Ok({
-            value: value
-        }) : Err([value]);
-        update(editable);
-        update(editable);
-        let mutated = 0;
-        match (editable) {
-            Ok(user) => {
-                mutated = user.value;
-            },
-            Err(values) => {
-                mutated = values.length + values[2];
-            }
-        }
-
-        const callback = counter(value);
-        let callA = 0;
-        let callB = 0;
-        match (callback) {
-            Ok(action) => {
-                callA = action();
-                callB = action();
-            },
-            Err(error) => {
-                callA = error;
-                callB = error + 1;
-            },
-        }
-
-        const failed = failureScenario(value);
-        output.push([first, second, owned, callA, callB, mutated, failed]);
-        i += 1;
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 17 + seed % 19 + 1;
+    const result = make(value);
+    const first = inspect(result);
+    const second = inspect(result);
+    let owned = 0;
+    match (result) {
+      Ok(user) => {
+        owned = user.value + 7;
+      },
+      Err(error) => {
+        owned = error + 11;
+      },
     }
 
-    return output;
+    const editable: Result<User, int[]> = value % 2 === 0 ? Ok({
+      value: value
+    }) : Err([value]);
+    update(editable);
+    update(editable);
+    let mutated = 0;
+    match (editable) {
+      Ok(user) => {
+        mutated = user.value;
+      },
+      Err(values) => {
+        mutated = values.length + values[2];
+      }
+    }
+
+    const callback = counter(value);
+    let callA = 0;
+    let callB = 0;
+    match (callback) {
+      Ok(action) => {
+        callA = action();
+        callB = action();
+      },
+      Err(error) => {
+        callA = error;
+        callB = error + 1;
+      },
+    }
+
+    const failed = failureScenario(value);
+    output.push([first, second, owned, callA, callB, mutated, failed]);
+    i += 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "results");
+  const result = workload(3, 0, "results");
 }

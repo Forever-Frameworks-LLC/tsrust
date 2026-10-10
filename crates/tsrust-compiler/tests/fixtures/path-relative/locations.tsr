@@ -2,15 +2,15 @@ import { relative as between } from "std:path";
 import { strictEqual } from "std:testing";
 
 function main() {
-    const from = "reports".repeat(1);
-    const to = "reports/é😊".repeat(1);
-    const saved = between;
-    strictEqual(between(from, to), "é😊");
-    strictEqual(saved(from, to), "é😊");
-    strictEqual(from, "reports");
-    strictEqual(to, "reports/é😊");
-    strictEqual(between("", ""), "");
-    const owned = between(from, to);
-    strictEqual(owned + "!", "é😊!");
-    console.log("relative fixture accepted");
+  const from = "reports".repeat(1);
+  const to = "reports/é😊".repeat(1);
+  const saved = between;
+  strictEqual(between(from, to), "é😊");
+  strictEqual(saved(from, to), "é😊");
+  strictEqual(from, "reports");
+  strictEqual(to, "reports/é😊");
+  strictEqual(between("", ""), "");
+  const owned = between(from, to);
+  strictEqual(owned + "!", "é😊!");
+  console.log("relative fixture accepted");
 }

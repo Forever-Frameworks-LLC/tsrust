@@ -1,45 +1,45 @@
 function workload(n: int, seed: int, input: string): int[] {
-    const values: string[] = [];
-    let j = 0;
-    while (j < 129) {
-        const c = (j * 37 + seed) % 4;
-        if (c === 0) {
-            values.push(clone(input));
-        } else if (c === 1) {
-            values.push("a\u0000bé😀e\u0301");
-        } else if (c === 2) {
-            values.push("Å😀");
-        } else {
-            values.push("");
-        }
-
-        j = j + 1;
+  const values: string[] = [];
+  let j = 0;
+  while (j < 129) {
+    const c = (j * 37 + seed) % 4;
+    if (c === 0) {
+      values.push(clone(input));
+    } else if (c === 1) {
+      values.push("a\u0000bé😀e\u0301");
+    } else if (c === 2) {
+      values.push("Å😀");
+    } else {
+      values.push("");
     }
 
-    const output: int[] = [];
-    let i = 0;
-    while (i < n) {
-        const choice = (i * 17 + seed) % 5;
-        let at = -1;
-        if (choice === 0) {
-            at = values.lastIndexOf(input);
-        } else if (choice === 1) {
-            at = values.lastIndexOf("a\u0000bé😀e\u0301");
-        } else if (choice === 2) {
-            at = values.lastIndexOf("Å😀");
-        } else if (choice === 3) {
-            at = values.lastIndexOf("");
-        } else {
-            at = values.lastIndexOf("missing ö");
-        }
+    j = j + 1;
+  }
 
-        output.push(at + 1);
-        i = i + 1;
+  const output: int[] = [];
+  let i = 0;
+  while (i < n) {
+    const choice = (i * 17 + seed) % 5;
+    let at = -1;
+    if (choice === 0) {
+      at = values.lastIndexOf(input);
+    } else if (choice === 1) {
+      at = values.lastIndexOf("a\u0000bé😀e\u0301");
+    } else if (choice === 2) {
+      at = values.lastIndexOf("Å😀");
+    } else if (choice === 3) {
+      at = values.lastIndexOf("");
+    } else {
+      at = values.lastIndexOf("missing ö");
     }
 
-    return output;
+    output.push(at + 1);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7, " xé😀e\u0301 ");
+  const result = workload(2, 7, " xé😀e\u0301 ");
 }

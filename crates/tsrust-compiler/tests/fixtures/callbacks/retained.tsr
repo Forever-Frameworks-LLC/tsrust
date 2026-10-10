@@ -1,29 +1,29 @@
 type State = {
-    on: boolean;
+  on: boolean;
 };
 
 function retain(action: Function<boolean>): () => boolean {
-    return (): boolean => {
-        return action();
-    };
+  return (): boolean => {
+    return action();
+  };
 }
 
 function make(state: State): () => boolean {
-    return retain((): boolean => {
-        if (state.on) {
-            state.on = false;
-        } else {
-            state.on = true;
-        }
+  return retain((): boolean => {
+    if (state.on) {
+      state.on = false;
+    } else {
+      state.on = true;
+    }
 
-        return state.on;
-    });
+    return state.on;
+  });
 }
 
 function main() {
-    const toggle = make({
-        on: false
-    });
-    console.log(toggle());
-    console.log(toggle());
+  const toggle = make({
+    on: false
+  });
+  console.log(toggle());
+  console.log(toggle());
 }

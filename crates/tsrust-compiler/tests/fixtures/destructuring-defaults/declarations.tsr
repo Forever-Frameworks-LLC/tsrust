@@ -1,38 +1,38 @@
 import { strictEqual } from "std:testing";
 
 type Row = {
-    label: string | undefined;
-    count: int | undefined;
-    keep: string | null;
+  label: string | undefined;
+  count: int | undefined;
+  keep: string | null;
 };
 
 function make(trace: int[], value: int): int {
-    trace.push(value);
-    return value;
+  trace.push(value);
+  return value;
 }
 
 function main() {
-    const trace: int[] = [];
-    const values: (int | null | undefined)[] = [undefined, null, 0];
-    const [first = make(trace, 7), second = make(trace, 8), third = make(trace, 9), fourth = make(trace, 10)] = values;
-    strictEqual(String(first), "7");
-    strictEqual(String(second), "null");
-    strictEqual(String(third), "0");
-    strictEqual(String(fourth), "10");
-    strictEqual(trace.join(","), "7,10");
-    const row: Row = {
-        label: undefined, count: undefined, keep: null
-    };
-    const { label: text = "none", count = make(trace, 11), keep = "changed" } = row;
-    strictEqual(text, "none");
-    strictEqual(String(count), "11");
-    strictEqual(String(keep), "null");
-    strictEqual(trace.join(","), "7,10,11");
-    const empty: int[][] = [];
-    const [[nested] = [12]] = empty;
-    strictEqual(nested, 12);
-    const absent: (int | undefined)[] = [];
-    const [earlier = 2, later = earlier + 3] = absent;
-    strictEqual(earlier, 2);
-    strictEqual(later, 5);
+  const trace: int[] = [];
+  const values: (int | null | undefined)[] = [undefined, null, 0];
+  const [first = make(trace, 7), second = make(trace, 8), third = make(trace, 9), fourth = make(trace, 10)] = values;
+  strictEqual(String(first), "7");
+  strictEqual(String(second), "null");
+  strictEqual(String(third), "0");
+  strictEqual(String(fourth), "10");
+  strictEqual(trace.join(","), "7,10");
+  const row: Row = {
+    label: undefined, count: undefined, keep: null
+  };
+  const { label: text = "none", count = make(trace, 11), keep = "changed" } = row;
+  strictEqual(text, "none");
+  strictEqual(String(count), "11");
+  strictEqual(String(keep), "null");
+  strictEqual(trace.join(","), "7,10,11");
+  const empty: int[][] = [];
+  const [[nested] = [12]] = empty;
+  strictEqual(nested, 12);
+  const absent: (int | undefined)[] = [];
+  const [earlier = 2, later = earlier + 3] = absent;
+  strictEqual(earlier, 2);
+  strictEqual(later, 5);
 }

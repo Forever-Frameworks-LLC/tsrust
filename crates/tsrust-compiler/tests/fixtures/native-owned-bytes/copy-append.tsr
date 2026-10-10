@@ -2,140 +2,140 @@ import { Bytes, fromArray, append, copy, at, set, length } from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function read(bytes: ReadOnly<Bytes>, index: int): int {
-    match (at(bytes, index)) {
-        Ok(value) => {
-            return value;
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (at(bytes, index)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }
 
 function main() {
-    match (fromArray([0, 65, 255])) {
-        Ok(bytes) => {
-            const add = append;
-            match (add(bytes, [7, 8])) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            strictEqual(length(bytes), 5);
-            strictEqual(read(bytes, 3), 7);
-            strictEqual(read(bytes, 4), 8);
-            match (append(bytes, [9, 256, -1])) {
-                Ok(_) => {
-                    throw "invalid append accepted";
-                },
-                Err(error) => {
-                    strictEqual(error.code, "byte-range");
-                    strictEqual(error.offset, 1);
-                },
-            }
-
-            strictEqual(length(bytes), 5);
-            strictEqual(read(bytes, 4), 8);
-            match (append(bytes, [])) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            const duplicate = copy;
-            match (duplicate(bytes, 1, 4)) {
-                Ok(part) => {
-                    strictEqual(length(part), 3);
-                    strictEqual(read(part, 0), 65);
-                    strictEqual(read(part, 2), 7);
-                    match (set(bytes, 1, 90)) {
-                        Ok(_) => {
-                        },
-                        Err(error) => {
-                            throw error.message;
-                        },
-                    }
-
-                    strictEqual(read(part, 0), 65);
-                    match (set(part, 1, 2)) {
-                        Ok(_) => {
-                        },
-                        Err(error) => {
-                            throw error.message;
-                        },
-                    }
-
-                    strictEqual(read(bytes, 2), 255);
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            match (copy(bytes, 5, 5)) {
-                Ok(empty) => {
-                    strictEqual(length(empty), 0);
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            match (copy(bytes, -1, 99)) {
-                Ok(_) => {
-                    throw "invalid start";
-                },
-                Err(error) => {
-                    strictEqual(error.code, "range");
-                    strictEqual(error.offset, -1);
-                },
-            }
-
-            match (copy(bytes, 0, 6)) {
-                Ok(_) => {
-                    throw "invalid end";
-                },
-                Err(error) => {
-                    strictEqual(error.code, "range");
-                    strictEqual(error.offset, 6);
-                },
-            }
-
-            match (copy(bytes, 3, 2)) {
-                Ok(_) => {
-                    throw "reversed range";
-                },
-                Err(error) => {
-                    strictEqual(error.code, "range");
-                    strictEqual(error.offset, 2);
-                },
-            }
-
-            strictEqual(length(bytes), 5);
+  match (fromArray([0, 65, 255])) {
+    Ok(bytes) => {
+      const add = append;
+      match (add(bytes, [7, 8])) {
+        Ok(_) => {
         },
         Err(error) => {
-            throw error.message;
+          throw error.message;
         },
-    }
+      }
 
-    match (fromArray([])) {
+      strictEqual(length(bytes), 5);
+      strictEqual(read(bytes, 3), 7);
+      strictEqual(read(bytes, 4), 8);
+      match (append(bytes, [9, 256, -1])) {
+        Ok(_) => {
+          throw "invalid append accepted";
+        },
+        Err(error) => {
+          strictEqual(error.code, "byte-range");
+          strictEqual(error.offset, 1);
+        },
+      }
+
+      strictEqual(length(bytes), 5);
+      strictEqual(read(bytes, 4), 8);
+      match (append(bytes, [])) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+
+      const duplicate = copy;
+      match (duplicate(bytes, 1, 4)) {
+        Ok(part) => {
+          strictEqual(length(part), 3);
+          strictEqual(read(part, 0), 65);
+          strictEqual(read(part, 2), 7);
+          match (set(bytes, 1, 90)) {
+            Ok(_) => {
+            },
+            Err(error) => {
+              throw error.message;
+            },
+          }
+
+          strictEqual(read(part, 0), 65);
+          match (set(part, 1, 2)) {
+            Ok(_) => {
+            },
+            Err(error) => {
+              throw error.message;
+            },
+          }
+
+          strictEqual(read(bytes, 2), 255);
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+
+      match (copy(bytes, 5, 5)) {
         Ok(empty) => {
-            match (copy(empty, 0, 0)) {
-                Ok(other) => {
-                    strictEqual(length(other), 0);
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
+          strictEqual(length(empty), 0);
         },
         Err(error) => {
-            throw error.message;
+          throw error.message;
         },
-    }
+      }
+
+      match (copy(bytes, -1, 99)) {
+        Ok(_) => {
+          throw "invalid start";
+        },
+        Err(error) => {
+          strictEqual(error.code, "range");
+          strictEqual(error.offset, -1);
+        },
+      }
+
+      match (copy(bytes, 0, 6)) {
+        Ok(_) => {
+          throw "invalid end";
+        },
+        Err(error) => {
+          strictEqual(error.code, "range");
+          strictEqual(error.offset, 6);
+        },
+      }
+
+      match (copy(bytes, 3, 2)) {
+        Ok(_) => {
+          throw "reversed range";
+        },
+        Err(error) => {
+          strictEqual(error.code, "range");
+          strictEqual(error.offset, 2);
+        },
+      }
+
+      strictEqual(length(bytes), 5);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  match (fromArray([])) {
+    Ok(empty) => {
+      match (copy(empty, 0, 0)) {
+        Ok(other) => {
+          strictEqual(length(other), 0);
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }

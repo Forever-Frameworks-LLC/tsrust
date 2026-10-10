@@ -1,22 +1,22 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    let i = 0;
-    while (i < n) {
-        const base = (i * 13 + seed) % 97;
-        const whole = parseInt(String(base) + "px");
-        const hex = parseInt(String(base), 16);
-        const part = parseFloat(String(base) + ".25x");
-        const missing = parseInt(input);
-        let lowest = Infinity;
-        if (part < lowest) lowest = part;
-        const picked = isNaN(missing) ? NaN : missing + 1.0;
-        output.push([String(whole + hex), String(part), String(isNaN(missing)), String(isFinite(lowest) && !isFinite(-Infinity)), String(picked)]);
-        i = i + 1;
-    }
+  const output: string[][] = [];
+  let i = 0;
+  while (i < n) {
+    const base = (i * 13 + seed) % 97;
+    const whole = parseInt(String(base) + "px");
+    const hex = parseInt(String(base), 16);
+    const part = parseFloat(String(base) + ".25x");
+    const missing = parseInt(input);
+    let lowest = Infinity;
+    if (part < lowest) lowest = part;
+    const picked = isNaN(missing) ? NaN : missing + 1.0;
+    output.push([String(whole + hex), String(part), String(isNaN(missing)), String(isFinite(lowest) && !isFinite(-Infinity)), String(picked)]);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

@@ -1,12 +1,12 @@
 {
-  "Documented function": {"prefix":"function", "body":["/**", " * ${1:Description.}", " * @param ${3:value} - ${4:Description.}", " * @returns ${5:Result.}", " */", "function ${2:name}(${3:value}: ${6:int}): ${7:int} {", "    ${0:return value;}", "}"], "description":"Function with documentation and typed parameter"},
-  "Record type": {"prefix":"type", "body":["type ${1:Name} = {", "    ${2:field}: ${3:string};", "};"], "description":"Named record type"},
-  "For of": {"prefix":"forof", "body":["for (const ${1:value} of ${2:values}) {", "    $0", "}"], "description":"Borrowed array iteration"},
-  "If": {"prefix":"if", "body":["if (${1:condition}) {", "    $0", "}"], "description":"Braced conditional"},
-  "Classic for": {"prefix":"for", "body":["for (let ${1:index}: int = 0; ${1:index} < ${2:count}; ${1:index}++) {", "    $0", "}"], "description":"Checked integer loop"},
+  "Documented function": {"prefix":"function", "body":["/**", " * ${1:Description.}", " * @param ${3:value} - ${4:Description.}", " * @returns ${5:Result.}", " */", "function ${2:name}(${3:value}: ${6:int}): ${7:int} {", "  ${0:return value;}", "}"], "description":"Function with documentation and typed parameter"},
+  "Record type": {"prefix":"type", "body":["type ${1:Name} = {", "  ${2:field}: ${3:string};", "};"], "description":"Named record type"},
+  "For of": {"prefix":"forof", "body":["for (const ${1:value} of ${2:values}) {", "  $0", "}"], "description":"Borrowed array iteration"},
+  "If": {"prefix":"if", "body":["if (${1:condition}) {", "  $0", "}"], "description":"Braced conditional"},
+  "Classic for": {"prefix":"for", "body":["for (let ${1:index}: int = 0; ${1:index} < ${2:count}; ${1:index}++) {", "  $0", "}"], "description":"Checked integer loop"},
   "Function type": {"prefix":"Function", "body":["Function<${1:int}, [${2:value}: ${3:int}]>"], "description":"Function value type: result first, then the argument list"},
   "Borrowed callback parameter": {"prefix":"callback", "body":["${1:action}: Mutable<Function<${2:int}, [${3:value}: ${4:int}]>>"], "description":"Callback lent for the call; it may change what it captured"},
   "Read-only callback parameter": {"prefix":"readcallback", "body":["${1:action}: ReadOnly<Function<${2:int}, [${3:value}: ${4:int}]>>"], "description":"Callback lent for the call; it only reads what it captured"},
   "Single-use callback parameter": {"prefix":"oncecallback", "body":["${1:action}: Once<Function<${2:int}>>"], "description":"Callback that is given away and called exactly once"},
-  "Main": {"prefix":"main", "body":["function main() {", "    $0", "}"], "description":"Program entry point"}
+  "Main": {"prefix":"main", "body":["function main() {", "  $0", "}"], "description":"Program entry point"}
 }

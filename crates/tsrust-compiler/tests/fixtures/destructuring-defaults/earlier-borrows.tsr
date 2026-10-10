@@ -1,25 +1,25 @@
 import { strictEqual } from "std:testing";
 
 type Row = {
-    text: string | undefined;
+  text: string | undefined;
 };
 
 function read({ text = "none" }: Row, last: ReadOnly<string> = text): int {
-    return last.length;
+  return last.length;
 }
 
 function main() {
-    strictEqual(read({
-        text: undefined
-    }), 4);
-    strictEqual(read({
-        text: "hello"
-    }), 5);
-    const arrow = ({ text = "none" }: Row, last: ReadOnly<string> = text): int => last.length;
-    strictEqual(arrow({
-        text: undefined
-    }), 4);
-    strictEqual(arrow({
-        text: "hello"
-    }), 5);
+  strictEqual(read({
+    text: undefined
+  }), 4);
+  strictEqual(read({
+    text: "hello"
+  }), 5);
+  const arrow = ({ text = "none" }: Row, last: ReadOnly<string> = text): int => last.length;
+  strictEqual(arrow({
+    text: undefined
+  }), 4);
+  strictEqual(arrow({
+    text: "hello"
+  }), 5);
 }

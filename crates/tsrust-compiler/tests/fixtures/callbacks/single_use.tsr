@@ -1,21 +1,21 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function take(action: Once<Function<User>>): User {
-    return action();
+  return action();
 }
 
 function forward(action: Once<Function<User>>): User {
-    return take(action);
+  return take(action);
 }
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const saved = forward((): User => {
-        return user;
-    });
-    console.log(saved.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const saved = forward((): User => {
+    return user;
+  });
+  console.log(saved.name);
 }

@@ -1,22 +1,22 @@
 import { strictEqual } from 'std:testing';
 
 function make(start: int) {
-    console.log(start);
-    let calls = start;
-    function select<T>(value: T) {
-        calls += 1;
-        console.log(calls);
-        return value;
-    }
+  console.log(start);
+  let calls = start;
+  function select<T>(value: T) {
+    calls += 1;
+    console.log(calls);
+    return value;
+  }
 
-    return select;
+  return select;
 }
 
 function main() {
-    const fixed: Function<int, [value: int]> = make(10);
-    strictEqual(fixed(7), 7);
-    strictEqual(fixed(8), 8);
-    const mapped = [3, 4].map(make(20));
-    strictEqual(mapped[0], 3);
-    strictEqual(mapped[1], 4);
+  const fixed: Function<int, [value: int]> = make(10);
+  strictEqual(fixed(7), 7);
+  strictEqual(fixed(8), 8);
+  const mapped = [3, 4].map(make(20));
+  strictEqual(mapped[0], 3);
+  strictEqual(mapped[1], 4);
 }

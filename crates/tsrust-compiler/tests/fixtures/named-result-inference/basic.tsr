@@ -1,26 +1,26 @@
 import { strictEqual } from "std:testing";
 
 function twice(value: int) {
-    return value + value;
+  return value + value;
 }
 
 function identity<T>(value: T) {
-    return value;
+  return value;
 }
 
 function main() {
-    const prefix = "saved";
-    function length() {
-        return prefix.length;
-    }
+  const prefix = "saved";
+  function length() {
+    return prefix.length;
+  }
 
-    function make() {
-        return [1, 2];
-    }
+  function make() {
+    return [1, 2];
+  }
 
-    strictEqual(twice(3), 6);
-    strictEqual(identity(9), 9);
-    strictEqual(length(), 5);
-    const values = make();
-    strictEqual(values[1], 2);
+  strictEqual(twice(3), 6);
+  strictEqual(identity(9), 9);
+  strictEqual(length(), 5);
+  const values = make();
+  strictEqual(values[1], 2);
 }

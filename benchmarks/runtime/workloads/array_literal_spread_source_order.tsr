@@ -1,23 +1,23 @@
 function grow(values: Mutable<int[]>): int {
-    values.push(9);
-    return values.length;
+  values.push(9);
+  return values.length;
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const base = (i + seed) % 97;
-        const values = [base, base + 1];
-        const packed = [...values, grow(values), ...values];
-        output.push(packed);
-        output.push(values);
-        i = i + 1;
-    }
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const base = (i + seed) % 97;
+    const values = [base, base + 1];
+    const packed = [...values, grow(values), ...values];
+    output.push(packed);
+    output.push(values);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

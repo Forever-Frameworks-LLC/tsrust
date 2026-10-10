@@ -2,71 +2,71 @@ import { Bytes, ByteError, fromArray, length } from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {
-    payload: Bytes;
+  payload: Bytes;
 };
 
 type Packet = {
-    result: Result<Bytes, ByteError>;
+  result: Result<Bytes, ByteError>;
 };
 
 function identity<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function make(factory: (values: ReadOnly<int[]>) => Result<Bytes, ByteError>): Result<Bytes, ByteError> {
-    return factory([7, 8]);
+  return factory([7, 8]);
 }
 
 function main() {
-    const build = fromArray;
-    const observe = length;
-    const packet: Packet = {
-        result: identity(build([1, 2, 3]))
-    };
-    match (packet.result) {
-        Ok(bytes) => {
-            strictEqual(observe(bytes), 3);
-            strictEqual(observe(bytes), 3);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  const build = fromArray;
+  const observe = length;
+  const packet: Packet = {
+    result: identity(build([1, 2, 3]))
+  };
+  match (packet.result) {
+    Ok(bytes) => {
+      strictEqual(observe(bytes), 3);
+      strictEqual(observe(bytes), 3);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 
-    const results: Result<Bytes, ByteError>[] = [fromArray([4]), fromArray([256])];
-    const first = results.remove(0);
-    match (first) {
-        Ok(bytes) => {
-            strictEqual(length(bytes), 1);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  const results: Result<Bytes, ByteError>[] = [fromArray([4]), fromArray([256])];
+  const first = results.remove(0);
+  match (first) {
+    Ok(bytes) => {
+      strictEqual(length(bytes), 1);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 
-    const second = results.remove(0);
-    match (second) {
-        Ok(bytes) => {
-            throw "invalid input accepted";
-        },
-        Err(error) => {
-            strictEqual(error.code, "byte-range");
-            strictEqual(error.offset, 0);
-        },
-    }
+  const second = results.remove(0);
+  match (second) {
+    Ok(bytes) => {
+      throw "invalid input accepted";
+    },
+    Err(error) => {
+      strictEqual(error.code, "byte-range");
+      strictEqual(error.offset, 0);
+    },
+  }
 
-    match (make(fromArray)) {
-        Ok(bytes) => {
-            const owners: Bytes[] = [identity(bytes)];
-            const owner = owners.remove(0);
-            const record: Holder = {
-                payload: owner
-            };
-            strictEqual(length(record.payload), 2);
-            strictEqual(length(record.payload), 2);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (make(fromArray)) {
+    Ok(bytes) => {
+      const owners: Bytes[] = [identity(bytes)];
+      const owner = owners.remove(0);
+      const record: Holder = {
+        payload: owner
+      };
+      strictEqual(length(record.payload), 2);
+      strictEqual(length(record.payload), 2);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }

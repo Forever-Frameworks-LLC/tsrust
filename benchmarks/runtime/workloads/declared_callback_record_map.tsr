@@ -1,49 +1,49 @@
 type Row = {
-    code: int;
-    text: string;
-    items: int[];
+  code: int;
+  text: string;
+  items: int[];
 };
 
 function workload(n: int, seed: int, input: string): Row[][] {
-    const base: Row[] = [{
-        code: seed, text: clone(input), items: [seed, 1]
-    }, {
-        code: 2, text: "x😀", items: []
-    }, {
-        code: 3, text: "a\u0000b", items: [2, 3]
-    }, {
-        code: 4, text: "e\u0301", items: [4]
-    }, {
-        code: 5, text: "xxé", items: [5, 6]
-    }];
-    const output: Row[][] = [];
-    let i = 0;
-    while (i < n) {
-        const mode = (seed + i) % 4;
-        let count = 5;
-        if (mode === 0) {
-            count = 0;
-        } else if (mode === 1) {
-            count = 1;
-        } else if (mode === 2) {
-            count = 4;
-        }
-
-        const values = base.slice(0, count);
-        const result = values.map(change);
-        output.push(result);
-        i = i + 1;
+  const base: Row[] = [{
+    code: seed, text: clone(input), items: [seed, 1]
+  }, {
+    code: 2, text: "x😀", items: []
+  }, {
+    code: 3, text: "a\u0000b", items: [2, 3]
+  }, {
+    code: 4, text: "e\u0301", items: [4]
+  }, {
+    code: 5, text: "xxé", items: [5, 6]
+  }];
+  const output: Row[][] = [];
+  let i = 0;
+  while (i < n) {
+    const mode = (seed + i) % 4;
+    let count = 5;
+    if (mode === 0) {
+      count = 0;
+    } else if (mode === 1) {
+      count = 1;
+    } else if (mode === 2) {
+      count = 4;
     }
 
-    return output;
+    const values = base.slice(0, count);
+    const result = values.map(change);
+    output.push(result);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function change(row: Row, index: int): Row {
-    return {
-        code: row.code + index + 1, text: clone(row.text), items: clone(row.items)
-    };
+  return {
+    code: row.code + index + 1, text: clone(row.text), items: clone(row.items)
+  };
 }
 
 function main() {
-    const result = workload(2, 7, " xé😀e\u0301 ");
+  const result = workload(2, 7, " xé😀e\u0301 ");
 }

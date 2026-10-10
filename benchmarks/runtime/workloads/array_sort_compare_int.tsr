@@ -1,29 +1,29 @@
 function workload(n: int, seed: int): int[][] {
-    const output: int[][] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    const ints: int[] = [seed % 100 + 11, 2, 10, seed % 100 + 1];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const values: int[] = [];
-        let j = 0;
-        while (j < count) {
-            values.push(ints[j % 4]);
-            j = j + 1;
-        }
-
-        values.sort(compare);
-        output.push(values);
-        i = i + 1;
+  const output: int[][] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  const ints: int[] = [seed % 100 + 11, 2, 10, seed % 100 + 1];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const values: int[] = [];
+    let j = 0;
+    while (j < count) {
+      values.push(ints[j % 4]);
+      j = j + 1;
     }
 
-    return output;
+    values.sort(compare);
+    output.push(values);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function compare(left: int, right: int): int {
-    return left - right;
+  return left - right;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

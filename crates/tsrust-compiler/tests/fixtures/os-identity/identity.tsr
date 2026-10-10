@@ -2,10 +2,10 @@ import { platform as target, arch } from "std:os";
 import { strictEqual } from "std:testing";
 
 function main() {
-    const operation = target;
-    const system: string = operation();
-    const cpu: string = arch();
-    strictEqual(system, target());
-    strictEqual(cpu, arch());
-    console.log(system, cpu);
+  const operation = target;
+  const system: string = operation();
+  const cpu: string = arch();
+  strictEqual(system, target());
+  strictEqual(cpu, arch());
+  console.log(system, cpu);
 }

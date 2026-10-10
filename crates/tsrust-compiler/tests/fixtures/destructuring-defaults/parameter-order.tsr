@@ -1,23 +1,23 @@
 import { strictEqual } from "std:testing";
 
 function step(trace: int[], value: int): int {
-    trace.push(value);
-    return value;
+  trace.push(value);
+  return value;
 }
 
 function ordered(trace: int[], [first = step(trace, 1)]: int[], last: int = step(trace, 2)): int {
-    return first + last;
+  return first + last;
 }
 
 function dependent([first = 3]: int[], last: int = first + 1): int {
-    return first + last;
+  return first + last;
 }
 
 function main() {
-    const trace: int[] = [];
-    strictEqual(ordered(trace, []), 3, "ordered result");
-    strictEqual(trace.join(","), "1,2", "parameter initialization order");
-    strictEqual(dependent([]), 7, "earlier parameter reference");
-    const arrow = ([first = 5]: int[], last: int = first + 1): int => first + last;
-    strictEqual(arrow([]), 11, "arrow parameter reference");
+  const trace: int[] = [];
+  strictEqual(ordered(trace, []), 3, "ordered result");
+  strictEqual(trace.join(","), "1,2", "parameter initialization order");
+  strictEqual(dependent([]), 7, "earlier parameter reference");
+  const arrow = ([first = 5]: int[], last: int = first + 1): int => first + last;
+  strictEqual(arrow([]), 11, "arrow parameter reference");
 }

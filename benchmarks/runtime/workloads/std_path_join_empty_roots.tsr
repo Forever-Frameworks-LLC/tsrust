@@ -1,24 +1,24 @@
 import { join } from "std:path";
 
 function workload(n: int, seed: int): string[] {
-    const values: string[] = [];
-    let i = 0;
-    while (i < n) {
-        let first = "";
-        if ((i + seed) % 2 === 0) {
-            first = "/";
-        }
-
-        values.push(join(first, "", "child", "..", ""));
-        i = i + 1;
+  const values: string[] = [];
+  let i = 0;
+  while (i < n) {
+    let first = "";
+    if ((i + seed) % 2 === 0) {
+      first = "/";
     }
 
-    return values;
+    values.push(join(first, "", "child", "..", ""));
+    i = i + 1;
+  }
+
+  return values;
 }
 
 function main() {
-    const values = workload(2, 7);
-    for (const value of values) {
-        console.log(value);
-    }
+  const values = workload(2, 7);
+  for (const value of values) {
+    console.log(value);
+  }
 }

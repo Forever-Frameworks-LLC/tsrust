@@ -5,7 +5,7 @@ fn formatted_match_syntax_remains_parseable_and_idempotent() {
     let source = "match(make()){Ok(value)=>{useValue(value);},Err(_)=>{},_=>{}}";
     let formatted = tsrust_compiler::format(source).unwrap();
     assert!(formatted.starts_with("match (make()) {"), "{formatted}");
-    assert!(formatted.contains("\n    Err(_) =>"), "{formatted}");
+    assert!(formatted.contains("\n  Err(_) =>"), "{formatted}");
     assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
     let parsed = parse(&formatted).unwrap();
     assert_eq!(parsed.arms.len(), 3);

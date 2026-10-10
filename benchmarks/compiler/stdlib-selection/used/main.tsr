@@ -1,5 +1,5 @@
 import { report as name } from "./helper.tsr";
 
 function main() {
-    console.log(name());
+  console.log(name());
 }

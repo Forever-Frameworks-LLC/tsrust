@@ -1,43 +1,43 @@
 type Box = {
-    name: string;
-    tags: string[];
+  name: string;
+  tags: string[];
 };
 
 function size(value: ReadOnly<string>): int {
-    return value.length;
+  return value.length;
 }
 
 function main() {
-    const words = ["alpha", "be"];
-    {
-        const first = words[0];
-        console.log(first, first.length, size(first), words.length);
-    }
+  const words = ["alpha", "be"];
+  {
+    const first = words[0];
+    console.log(first, first.length, size(first), words.length);
+  }
 
-    const boxes: Box[] = [{
-        name: "Pat", tags: ["t"]
-    }];
-    const name = boxes[0].name;
-    const tags = boxes[0].tags;
-    const box = boxes[0];
-    console.log(name, tags.length, box.name, box.tags.join(","));
-    let total = 0;
-    for (let i = 0; i < words.length; i += 1) {
-        const word = words[i];
-        total += word.length;
-    }
+  const boxes: Box[] = [{
+    name: "Pat", tags: ["t"]
+  }];
+  const name = boxes[0].name;
+  const tags = boxes[0].tags;
+  const box = boxes[0];
+  console.log(name, tags.length, box.name, box.tags.join(","));
+  let total = 0;
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i];
+    total += word.length;
+  }
 
-    console.log(total);
-    const mixed: (int | string)[] = [1, "two"];
-    const second = mixed[1];
-    if (typeof second === "string") {
-        console.log(second.toUpperCase());
-    }
+  console.log(total);
+  const mixed: (int | string)[] = [1, "two"];
+  const second = mixed[1];
+  if (typeof second === "string") {
+    console.log(second.toUpperCase());
+  }
 
-    const grid = [["a"], ["b", "c"]];
-    const row = grid[1];
-    const cell = grid[1][0];
-    console.log(row.length, cell);
-    words.push("gamma");
-    console.log(words.length);
+  const grid = [["a"], ["b", "c"]];
+  const row = grid[1];
+  const cell = grid[1][0];
+  console.log(row.length, cell);
+  words.push("gamma");
+  console.log(words.length);
 }

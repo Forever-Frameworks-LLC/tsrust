@@ -1,57 +1,57 @@
 import { strictEqual } from "std:testing";
 
 function describe(pair: [string, int]): string {
-    return pair[0] + String(pair[1]);
+  return pair[0] + String(pair[1]);
 }
 
 type ActionRow = {
-    label: string;
-    action: Once<Function<int>>;
+  label: string;
+  action: Once<Function<int>>;
 };
 
 function main() {
-    const values = new Map<string, int>([["a", 1], ["b", 2], ["a", 3]]);
-    let trace = "";
-    for (const entry of values) {
-        trace = trace + describe(entry) + "|";
-    }
+  const values = new Map<string, int>([["a", 1], ["b", 2], ["a", 3]]);
+  let trace = "";
+  for (const entry of values) {
+    trace = trace + describe(entry) + "|";
+  }
 
-    strictEqual(trace, "a3|b2|");
-    let sum = 0;
-    for (const [key, value] of values) {
-        sum += key.length + value;
-    }
+  strictEqual(trace, "a3|b2|");
+  let sum = 0;
+  for (const [key, value] of values) {
+    sum += key.length + value;
+  }
 
-    strictEqual(sum, 7);
-    const rows = new Map<int, ActionRow>();
-    rows.set(1, {
-        label: "owned", action: (): int => {
-            return 7;
-        }
-    });
-    let label = "";
-    for (const entry of rows) {
-        label = label + entry[1].label;
+  strictEqual(sum, 7);
+  const rows = new Map<int, ActionRow>();
+  rows.set(1, {
+    label: "owned", action: (): int => {
+      return 7;
     }
+  });
+  let label = "";
+  for (const entry of rows) {
+    label = label + entry[1].label;
+  }
 
-    strictEqual(label, "owned");
-    for (const [key, row] of rows) {
-        strictEqual(key, 1);
-        strictEqual(row.label, "owned");
-    }
+  strictEqual(label, "owned");
+  for (const [key, row] of rows) {
+    strictEqual(key, 1);
+    strictEqual(row.label, "owned");
+  }
 
-    for (const entry of new Map<string, int>()) {
-        throw "empty loop";
-    }
+  for (const entry of new Map<string, int>()) {
+    throw "empty loop";
+  }
 
-    strictEqual(String(values), "[object Map]");
-    let cloned = "";
-    for (const entry of values) {
-        const copy = clone(entry);
-        cloned = cloned + copy[0];
-    }
+  strictEqual(String(values), "[object Map]");
+  let cloned = "";
+  for (const entry of values) {
+    const copy = clone(entry);
+    cloned = cloned + copy[0];
+  }
 
-    strictEqual(cloned, "ab");
-    values.set("c", 4);
-    strictEqual(values.size, 3);
+  strictEqual(cloned, "ab");
+  values.set("c", 4);
+  strictEqual(values.size, 3);
 }

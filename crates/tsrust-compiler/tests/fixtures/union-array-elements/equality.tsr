@@ -1,42 +1,42 @@
 type Item = {
-    label: string;
+  label: string;
 };
 
 function same(left: ReadOnly<int | string>, right: ReadOnly<int | string>): boolean {
-    return left === right;
+  return left === right;
 }
 
 function isB(value: ReadOnly<int | string>): boolean {
-    return value === "b";
+  return value === "b";
 }
 
 function main() {
-    const v: (int | string)[] = [3, "b", 1, "b"];
-    console.log(v.findIndex((x) => x === "b"), v.findLastIndex((x) => x === "b"), v.filter((x) => x === 3).length, v.some((x) => x !== 3 && x !== "b"));
-    const a: int | string = v.length > 2 ? "b" : 1;
-    const text = "b".repeat(1);
-    console.log(a === "b", a === text, a !== "b", a === 1, "b" === a, 2 === a, isB(a), isB(3));
-    console.log(same(1, 1), same("x", "x"), same(1, "1"), same("1", 1), same(a, "b"));
-    const n: number | boolean | null = 1.5;
-    const m: int | boolean = 2;
-    const zero = 0.0;
-    const nan: number | string = zero / zero;
-    console.log(n === 1.5, n === true, n !== 2.5, m === 2, m === true, m === 2.0, nan === nan, nan === "x");
-    const u: int | string | undefined = undefined;
-    const w: int | string | null = 4;
-    console.log(u === w, w === 4, u === 4, w !== u);
-    const items: (Item | string)[] = [{
-        label: "L"
-    }, "s"];
-    console.log(items[1] === "s", items[0] === "s", items.findIndex((item) => item === "s"));
-    let count = 0;
-    for (const x of v) {
-        if (x === "b") {
-            count += 1;
-        } else if (x === 1) {
-            count += 10;
-        }
+  const v: (int | string)[] = [3, "b", 1, "b"];
+  console.log(v.findIndex((x) => x === "b"), v.findLastIndex((x) => x === "b"), v.filter((x) => x === 3).length, v.some((x) => x !== 3 && x !== "b"));
+  const a: int | string = v.length > 2 ? "b" : 1;
+  const text = "b".repeat(1);
+  console.log(a === "b", a === text, a !== "b", a === 1, "b" === a, 2 === a, isB(a), isB(3));
+  console.log(same(1, 1), same("x", "x"), same(1, "1"), same("1", 1), same(a, "b"));
+  const n: number | boolean | null = 1.5;
+  const m: int | boolean = 2;
+  const zero = 0.0;
+  const nan: number | string = zero / zero;
+  console.log(n === 1.5, n === true, n !== 2.5, m === 2, m === true, m === 2.0, nan === nan, nan === "x");
+  const u: int | string | undefined = undefined;
+  const w: int | string | null = 4;
+  console.log(u === w, w === 4, u === 4, w !== u);
+  const items: (Item | string)[] = [{
+    label: "L"
+  }, "s"];
+  console.log(items[1] === "s", items[0] === "s", items.findIndex((item) => item === "s"));
+  let count = 0;
+  for (const x of v) {
+    if (x === "b") {
+      count += 1;
+    } else if (x === 1) {
+      count += 10;
     }
+  }
 
-    console.log(count);
+  console.log(count);
 }

@@ -118,6 +118,12 @@
         }
       }
     },
+    "configurationDefaults": {
+      "[tsrust]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+      }
+    },
     "snippets": [
       {
         "language": "tsrust",

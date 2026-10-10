@@ -1,28 +1,28 @@
 import { strictEqual } from "std:testing";
 
 function main() {
-    const base = [3];
-    function even(n: int): int {
-        if (n === 0) {
-            return base[0];
-        }
-
-        return odd(n - 1);
+  const base = [3];
+  function even(n: int): int {
+    if (n === 0) {
+      return base[0];
     }
 
-    function odd(n: int): int {
-        if (n === 0) {
-            return base[0] + 1;
-        }
+    return odd(n - 1);
+  }
 
-        return even(n - 1);
+  function odd(n: int): int {
+    if (n === 0) {
+      return base[0] + 1;
     }
 
-    function forward(n: int): int {
-        return even(n);
-    }
+    return even(n - 1);
+  }
 
-    strictEqual(forward(4), 3);
-    strictEqual(forward(3), 4);
-    strictEqual(base[0], 3);
+  function forward(n: int): int {
+    return even(n);
+  }
+
+  strictEqual(forward(4), 3);
+  strictEqual(forward(3), 4);
+  strictEqual(base[0], 3);
 }

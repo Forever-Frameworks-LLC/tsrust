@@ -1,24 +1,24 @@
 function workload(n: int, seed: int): int {
-    let sum = seed;
-    let i = 0;
-    while (i < n) {
-        const rows = [[i, seed], [seed, i + 1]];
-        rows[1].push(i + 2);
-        rows[0][0] = i + 3;
-        const saved = clone(rows);
-        rows[0][0] = 0;
-        for (const row of saved) {
-            for (const value of row) {
-                sum = sum + value;
-            }
-        }
-
-        i = i + 1;
+  let sum = seed;
+  let i = 0;
+  while (i < n) {
+    const rows = [[i, seed], [seed, i + 1]];
+    rows[1].push(i + 2);
+    rows[0][0] = i + 3;
+    const saved = clone(rows);
+    rows[0][0] = 0;
+    for (const row of saved) {
+      for (const value of row) {
+        sum = sum + value;
+      }
     }
 
-    return sum;
+    i = i + 1;
+  }
+
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

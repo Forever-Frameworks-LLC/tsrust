@@ -1,44 +1,44 @@
 function counter(start: int) {
-    let calls = start;
-    function visit<T>(value: T): int {
-        calls += 1;
-        return calls;
-    }
+  let calls = start;
+  function visit<T>(value: T): int {
+    calls += 1;
+    return calls;
+  }
 
-    return visit;
+  return visit;
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    for (let i = 0; i < n; i += 1) {
-        const base = i % 5 + seed % 5 + 1;
-        const first = counter(base);
-        const second = counter(base + 10);
-        const firstCount = first(base);
-        const secondCount = second("value");
-        const sharedCount = first([base, base + 1]);
-        let local = 0;
-        let numberResult = 0;
-        let stringLength = 0;
-        let arrayFirst = 0;
-        function select<T>(value: T): T {
-            local += 1;
-            return value;
-        }
-
-        {
-            const action = select;
-            numberResult = action(base);
-            stringLength = action("value").length;
-            const result = action([base + 3, base + 4]);
-            arrayFirst = result[0];
-        }
-
-        const finalCount = second(base);
-        output.push([firstCount, secondCount, sharedCount, numberResult, stringLength, arrayFirst, local, finalCount, input.length]);
+  const output: int[][] = [];
+  for (let i = 0; i < n; i += 1) {
+    const base = i % 5 + seed % 5 + 1;
+    const first = counter(base);
+    const second = counter(base + 10);
+    const firstCount = first(base);
+    const secondCount = second("value");
+    const sharedCount = first([base, base + 1]);
+    let local = 0;
+    let numberResult = 0;
+    let stringLength = 0;
+    let arrayFirst = 0;
+    function select<T>(value: T): T {
+      local += 1;
+      return value;
     }
 
-    return output;
+    {
+      const action = select;
+      numberResult = action(base);
+      stringLength = action("value").length;
+      const result = action([base + 3, base + 4]);
+      arrayFirst = result[0];
+    }
+
+    const finalCount = second(base);
+    output.push([firstCount, secondCount, sharedCount, numberResult, stringLength, arrayFirst, local, finalCount, input.length]);
+  }
+
+  return output;
 }
 
 function main() {

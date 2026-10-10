@@ -1,74 +1,74 @@
 import { strictEqual } from "std:testing";
 
 type Counter = {
-    value: int;
+  value: int;
 };
 
 type Row = {
-    label: string;
-    action: Once<Function<int>>;
+  label: string;
+  action: Once<Function<int>>;
 };
 
 function text(counter: Mutable<Counter>): string {
-    counter.value += 1;
-    return "é🙂";
+  counter.value += 1;
+  return "é🙂";
 }
 
 function mark(counter: Mutable<Counter>): string {
-    counter.value += 1;
-    return String(counter.value);
+  counter.value += 1;
+  return String(counter.value);
 }
 
 function change(values: Mutable<Set<int>>): int {
-    values.add(7);
-    return 8;
+  values.add(7);
+  return 8;
 }
 
 function copy(values: Set<int>): int[] {
-    return [...values];
+  return [...values];
 }
 
 function copyReadonly(values: ReadOnly<Set<int>>): int[] {
-    return [...values];
+  return [...values];
 }
 
 function main() {
-    let source = String("Aé🙂");
-    const characters = [...source];
-    source = "changed";
-    strictEqual(characters.join("|"), "A|é|🙂");
-    const counter: Counter = {
-        value: 0
-    };
-    strictEqual([mark(counter), ...text(counter), mark(counter)].join("|"), "1|é|🙂|3");
-    strictEqual(counter.value, 3);
-    const keys = new Set<int>([3, 1, 3]);
-    strictEqual(copy(keys).join(","), "3,1");
-    strictEqual([...keys, change(keys)].join(","), "3,1,8");
-    strictEqual(keys.size, 3);
-    strictEqual(copyReadonly(keys).join(","), "3,1,7");
-    const names = new Set<string>([String("a"), "b"]);
-    strictEqual([...names, "c"].join("|"), "a|b|c");
-    const values = new Map<string, int>([["b", 2], ["a", 1], ["b", 3]]);
-    const entries = [...values];
-    strictEqual(entries[0][0], "b");
-    strictEqual(entries[0][1], 3);
-    strictEqual(entries[1][0], "a");
-    const rows = new Map<int, Row>();
-    rows.set(1, {
-        label: "owned", action: (): int => {
-            return 7;
-        }
-    });
-    const moved = [...rows];
-    strictEqual(moved[0][1].label, "owned");
-    const empty: int[] = [...new Set()];
-    strictEqual(empty.length, 0);
-    const emptyMap: [string, int][] = [...new Map()];
-    strictEqual(emptyMap.length, 0);
-    strictEqual([...""].length, 0);
-    strictEqual([..."é"].length, 2);
-    const alternatives: (int | string)[] = [4, ..."ab"];
-    strictEqual(alternatives.length, 3);
-    strictEqual(Array.of (...new Set<int>([2, 1, 2])).join(","), "2,1");
+  let source = String("Aé🙂");
+  const characters = [...source];
+  source = "changed";
+  strictEqual(characters.join("|"), "A|é|🙂");
+  const counter: Counter = {
+    value: 0
+  };
+  strictEqual([mark(counter), ...text(counter), mark(counter)].join("|"), "1|é|🙂|3");
+  strictEqual(counter.value, 3);
+  const keys = new Set<int>([3, 1, 3]);
+  strictEqual(copy(keys).join(","), "3,1");
+  strictEqual([...keys, change(keys)].join(","), "3,1,8");
+  strictEqual(keys.size, 3);
+  strictEqual(copyReadonly(keys).join(","), "3,1,7");
+  const names = new Set<string>([String("a"), "b"]);
+  strictEqual([...names, "c"].join("|"), "a|b|c");
+  const values = new Map<string, int>([["b", 2], ["a", 1], ["b", 3]]);
+  const entries = [...values];
+  strictEqual(entries[0][0], "b");
+  strictEqual(entries[0][1], 3);
+  strictEqual(entries[1][0], "a");
+  const rows = new Map<int, Row>();
+  rows.set(1, {
+    label: "owned", action: (): int => {
+      return 7;
+    }
+  });
+  const moved = [...rows];
+  strictEqual(moved[0][1].label, "owned");
+  const empty: int[] = [...new Set()];
+  strictEqual(empty.length, 0);
+  const emptyMap: [string, int][] = [...new Map()];
+  strictEqual(emptyMap.length, 0);
+  strictEqual([...""].length, 0);
+  strictEqual([..."é"].length, 2);
+  const alternatives: (int | string)[] = [4, ..."ab"];
+  strictEqual(alternatives.length, 3);
+  strictEqual(Array.of (...new Set<int>([2, 1, 2])).join(","), "2,1");
 }

@@ -2,57 +2,57 @@ import { strictEqual } from "std:testing";
 import { Bytes, fromArray, length } from "std:bytes";
 
 function size(bytes: ReadOnly<Bytes>): int {
-    return length(bytes);
+  return length(bytes);
 }
 
 function main() {
-    match (fromArray([0, 65, 255])) {
-        Ok(bytes) => {
-            strictEqual(size(bytes), 3);
-            strictEqual(size(bytes), 3);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (fromArray([0, 65, 255])) {
+    Ok(bytes) => {
+      strictEqual(size(bytes), 3);
+      strictEqual(size(bytes), 3);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 
-    const input = [0, 255];
-    match (fromArray(input)) {
-        Ok(bytes) => {
-            strictEqual(length(bytes), 2);
-            strictEqual(input[1], 255);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  const input = [0, 255];
+  match (fromArray(input)) {
+    Ok(bytes) => {
+      strictEqual(length(bytes), 2);
+      strictEqual(input[1], 255);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 
-    match (fromArray([])) {
-        Ok(bytes) => {
-            strictEqual(length(bytes), 0);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (fromArray([])) {
+    Ok(bytes) => {
+      strictEqual(length(bytes), 0);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 
-    match (fromArray([10, -1, 256])) {
-        Ok(bytes) => {
-            throw "invalid input accepted";
-        },
-        Err(error) => {
-            strictEqual(error.code, "byte-range");
-            strictEqual(error.message, "Byte value must be between 0 and 255.");
-            strictEqual(error.offset, 1);
-        },
-    }
+  match (fromArray([10, -1, 256])) {
+    Ok(bytes) => {
+      throw "invalid input accepted";
+    },
+    Err(error) => {
+      strictEqual(error.code, "byte-range");
+      strictEqual(error.message, "Byte value must be between 0 and 255.");
+      strictEqual(error.offset, 1);
+    },
+  }
 
-    match (fromArray([256])) {
-        Ok(bytes) => {
-            throw "invalid input accepted";
-        },
-        Err(error) => {
-            strictEqual(error.offset, 0);
-        },
-    }
+  match (fromArray([256])) {
+    Ok(bytes) => {
+      throw "invalid input accepted";
+    },
+    Err(error) => {
+      strictEqual(error.offset, 0);
+    },
+  }
 }

@@ -2,129 +2,129 @@ import { Bytes, alloc, length } from "std:bytes";
 import { strictEqual } from "std:testing";
 
 type Holder = {
-    bytes: Bytes;
+  bytes: Bytes;
 };
 
 function make(): Bytes {
-    match (alloc(8, 65)) {
-        Ok(bytes) => {
-            return bytes;
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (alloc(8, 65)) {
+    Ok(bytes) => {
+      return bytes;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }
 
 function normal(): int {
-    const bytes = make();
-    return length(bytes);
+  const bytes = make();
+  return length(bytes);
 }
 
 function early(): int {
-    const bytes = make();
-    if (length(bytes) === 8) {
-        return 1;
-    }
+  const bytes = make();
+  if (length(bytes) === 8) {
+    return 1;
+  }
 
-    return 0;
+  return 0;
 }
 
 function replace(): int {
-    let bytes = make();
-    bytes = make();
-    return length(bytes);
+  let bytes = make();
+  bytes = make();
+  return length(bytes);
 }
 
 function resultFailure(): Result<int, int> {
-    const bytes = make();
-    return Err(length(bytes));
+  const bytes = make();
+  return Err(length(bytes));
 }
 
 function throwing(): void {
-    const bytes = make();
-    if (length(bytes) === 8) {
-        throw "expected";
-    }
+  const bytes = make();
+  if (length(bytes) === 8) {
+    throw "expected";
+  }
 }
 
 function finalized(): int {
-    const bytes = make();
-    try {
-        return length(bytes);
-    } finally {
-        const spare = clone(bytes);
-        strictEqual(length(spare), 8);
-    }
+  const bytes = make();
+  try {
+    return length(bytes);
+  } finally {
+    const spare = clone(bytes);
+    strictEqual(length(spare), 8);
+  }
 }
 
 function unused(): void {
-    const bytes = make();
-    const action = (): int => {
-        return length(bytes);
-    };
+  const bytes = make();
+  const action = (): int => {
+    return length(bytes);
+  };
 }
 
 function callbackFailure(): void {
-    const bytes = make();
-    const action = (): int => {
-        throw String(length(bytes));
-    };
-    try {
-        action();
-    } catch (error) {
-        strictEqual(error, "8");
-    }
+  const bytes = make();
+  const action = (): int => {
+    throw String(length(bytes));
+  };
+  try {
+    action();
+  } catch (error) {
+    strictEqual(error, "8");
+  }
 }
 
 function onceFailure(): void {
-    const bytes = make();
-    const action: Once<Function<Bytes>> = (): Bytes => {
-        const spare = clone(bytes);
-        strictEqual(length(spare), 8);
-        throw "expected";
-    };
-    try {
-        action();
-    } catch (error) {
-        strictEqual(error, "expected");
-    }
+  const bytes = make();
+  const action: Once<Function<Bytes>> = (): Bytes => {
+    const spare = clone(bytes);
+    strictEqual(length(spare), 8);
+    throw "expected";
+  };
+  try {
+    action();
+  } catch (error) {
+    strictEqual(error, "expected");
+  }
 }
 
 function aggregates(): void {
-    const array: Bytes[] = [make(), make()];
-    const row: Holder = {
-        bytes: make()
-    };
-    const map = new Map<int, Bytes>();
-    map.set(1, make());
-    strictEqual(length(array[0]), 8);
-    strictEqual(length(row.bytes), 8);
-    strictEqual(map.size, 1);
+  const array: Bytes[] = [make(), make()];
+  const row: Holder = {
+    bytes: make()
+  };
+  const map = new Map<int, Bytes>();
+  map.set(1, make());
+  strictEqual(length(array[0]), 8);
+  strictEqual(length(row.bytes), 8);
+  strictEqual(map.size, 1);
 }
 
 function main() {
-    strictEqual(normal(), 8);
-    strictEqual(early(), 1);
-    strictEqual(replace(), 8);
-    match (resultFailure()) {
-        Ok(_) => {
-            throw "unexpected success";
-        },
-        Err(value) => {
-            strictEqual(value, 8);
-        },
-    }
+  strictEqual(normal(), 8);
+  strictEqual(early(), 1);
+  strictEqual(replace(), 8);
+  match (resultFailure()) {
+    Ok(_) => {
+      throw "unexpected success";
+    },
+    Err(value) => {
+      strictEqual(value, 8);
+    },
+  }
 
-    try {
-        throwing();
-    } catch (error) {
-        strictEqual(error, "expected");
-    }
+  try {
+    throwing();
+  } catch (error) {
+    strictEqual(error, "expected");
+  }
 
-    strictEqual(finalized(), 8);
-    unused();
-    callbackFailure();
-    onceFailure();
-    aggregates();
+  strictEqual(finalized(), 8);
+  unused();
+  callbackFailure();
+  onceFailure();
+  aggregates();
 }

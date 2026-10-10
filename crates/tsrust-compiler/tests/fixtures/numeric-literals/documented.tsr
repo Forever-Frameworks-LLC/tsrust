@@ -1,10 +1,10 @@
 function main() {
-    const mask = 0b1010_0011;
-    const permissions = 0o7_7;
-    const code = 0xDE_AD;
-    const amount: number = 1_234.5_6e+0_1;
-    console.log(mask, permissions, code, amount);
-    const integer = -0x8000_0000_0000_0000;
-    const rounded: number = 0xffff_ffff_ffff_ffff;
-    console.log(integer, rounded);
+  const mask = 0b1010_0011;
+  const permissions = 0o7_7;
+  const code = 0xDE_AD;
+  const amount: number = 1_234.5_6e+0_1;
+  console.log(mask, permissions, code, amount);
+  const integer = -0x8000_0000_0000_0000;
+  const rounded: number = 0xffff_ffff_ffff_ffff;
+  console.log(integer, rounded);
 }

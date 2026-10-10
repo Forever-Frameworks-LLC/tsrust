@@ -1,16 +1,16 @@
 function make() {
-    let calls = 0;
-    function first<T>(left: T, right: T): T {
-        calls += 1;
-        console.log(calls);
-        return left;
-    }
+  let calls = 0;
+  function first<T>(left: T, right: T): T {
+    calls += 1;
+    console.log(calls);
+    return left;
+  }
 
-    return first;
+  return first;
 }
 
 function main() {
-    const action = make();
-    console.log([1, 2, 3].reduce(action, 9));
-    console.log(action('after', 'unused'));
+  const action = make();
+  console.log([1, 2, 3].reduce(action, 9));
+  console.log(action('after', 'unused'));
 }

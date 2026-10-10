@@ -1,58 +1,58 @@
 type Trace = {
-    bases: int;
-    indices: int;
-    args: int;
+  bases: int;
+  indices: int;
+  args: int;
 };
 
 type Carrier = {
-    value: int;
+  value: int;
 };
 
 function workload(n: int, seed: int): int[][] {
-    const output: int[][] = [];
-    const trace: Trace = {
-        bases: 0, indices: 0, args: 0
-    };
-    let i = 0;
-    while (i < n) {
-        const value = i + seed;
-        const bb = trace.bases;
-        const bi = trace.indices;
-        const ba = trace.args;
-        const carrier: Carrier | null | undefined = makeCarrier(trace, value);
-        const selected = carrier?.value;
-        const db = trace.bases - bb;
-        const di = trace.indices - bi;
-        const da = trace.args - ba;
-        if (selected === undefined) {
-            output.push([]);
-        } else {
-            output.push([selected]);
-        }
-
-        output.push([db, di, da]);
-        i = i + 1;
+  const output: int[][] = [];
+  const trace: Trace = {
+    bases: 0, indices: 0, args: 0
+  };
+  let i = 0;
+  while (i < n) {
+    const value = i + seed;
+    const bb = trace.bases;
+    const bi = trace.indices;
+    const ba = trace.args;
+    const carrier: Carrier | null | undefined = makeCarrier(trace, value);
+    const selected = carrier?.value;
+    const db = trace.bases - bb;
+    const di = trace.indices - bi;
+    const da = trace.args - ba;
+    if (selected === undefined) {
+      output.push([]);
+    } else {
+      output.push([selected]);
     }
 
-    return output;
+    output.push([db, di, da]);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function makeCarrier(trace: Trace, value: int): Carrier | null | undefined {
-    trace.bases = trace.bases + 1;
-    const tag = value % 5;
-    if (tag === 0) {
-        return null;
-    }
+  trace.bases = trace.bases + 1;
+  const tag = value % 5;
+  if (tag === 0) {
+    return null;
+  }
 
-    if (tag === 1) {
-        return undefined;
-    }
+  if (tag === 1) {
+    return undefined;
+  }
 
-    return {
-        value: value % 4
-    };
+  return {
+    value: value % 4
+  };
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

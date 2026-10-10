@@ -1,21 +1,21 @@
 function workload(n: int, seed: int): int {
-    const action = step;
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const first = action(seed + i);
-        const second = action(first);
-        trace = (trace * 131 + first + second) % 1000000007;
-        i = i + 1;
-    }
+  const action = step;
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const first = action(seed + i);
+    const second = action(first);
+    trace = (trace * 131 + first + second) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function step(value: int): int {
-    return (value * 3 + 1) % 1000000007;
+  return (value * 3 + 1) % 1000000007;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

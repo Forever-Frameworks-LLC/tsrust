@@ -78,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.onWillSaveTextDocument(event => {
       if (event.document.languageId !== 'tsrust' || !client || !vscode.workspace.isTrusted || !vscode.workspace.getConfiguration('tsrust', event.document.uri).get<boolean>('formatOnSave', false)) return;
       const document=event.document; const version=document.version;
-      event.waitUntil(client.sendRequest<Array<{range:{start:{line:number;character:number};end:{line:number;character:number}};newText:string}>>('textDocument/formatting', {textDocument:{uri:document.uri.toString()},options:{tabSize:4,insertSpaces:true}}).then(edits => {
+      event.waitUntil(client.sendRequest<Array<{range:{start:{line:number;character:number};end:{line:number;character:number}};newText:string}>>('textDocument/formatting', {textDocument:{uri:document.uri.toString()},options:{tabSize:2,insertSpaces:true}}).then(edits => {
         if (document.version !== version) return [];
         return edits.map(edit => vscode.TextEdit.replace(new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character),edit.newText));
       }).catch(error => {output.appendLine(`Formatting: ${String(error)}`);return [];}));

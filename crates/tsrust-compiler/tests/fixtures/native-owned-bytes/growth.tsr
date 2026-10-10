@@ -2,143 +2,143 @@ import { Bytes, alloc, resize, at, set, length } from "std:bytes";
 import { strictEqual } from "std:testing";
 
 function value(bytes: ReadOnly<Bytes>, index: int): int {
-    match (at(bytes, index)) {
-        Ok(found) => {
-            return found;
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (at(bytes, index)) {
+    Ok(found) => {
+      return found;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }
 
 function main() {
-    match (alloc(3)) {
-        Ok(bytes) => {
-            strictEqual(length(bytes), 3);
-            strictEqual(value(bytes, 0), 0);
-            strictEqual(value(bytes, 2), 0);
-            match (set(bytes, 0, 7)) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            match (resize(bytes, 5, 255)) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            strictEqual(length(bytes), 5);
-            strictEqual(value(bytes, 0), 7);
-            strictEqual(value(bytes, 2), 0);
-            strictEqual(value(bytes, 3), 255);
-            strictEqual(value(bytes, 4), 255);
-            for (const invalid of [-1, 256]) {
-                match (resize(bytes, 0, invalid)) {
-                    Ok(_) => {
-                        throw "invalid fill accepted";
-                    },
-                    Err(error) => {
-                        strictEqual(error.code, "byte-range");
-                        strictEqual(error.offset, undefined);
-                    },
-                }
-
-                strictEqual(length(bytes), 5);
-                strictEqual(value(bytes, 0), 7);
-                strictEqual(value(bytes, 4), 255);
-            }
-
-            match (resize(bytes, -1, 256)) {
-                Ok(_) => {
-                    throw "invalid length accepted";
-                },
-                Err(error) => {
-                    strictEqual(error.code, "length-range");
-                    strictEqual(error.offset, undefined);
-                },
-            }
-
-            strictEqual(length(bytes), 5);
-            const change = resize;
-            match (change(bytes, 1)) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            strictEqual(length(bytes), 1);
-            strictEqual(value(bytes, 0), 7);
-            match (change(bytes, 3)) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            strictEqual(value(bytes, 1), 0);
-            strictEqual(value(bytes, 2), 0);
-            match (resize(bytes, 0)) {
-                Ok(_) => {
-                },
-                Err(error) => {
-                    throw error.message;
-                },
-            }
-
-            strictEqual(length(bytes), 0);
+  match (alloc(3)) {
+    Ok(bytes) => {
+      strictEqual(length(bytes), 3);
+      strictEqual(value(bytes, 0), 0);
+      strictEqual(value(bytes, 2), 0);
+      match (set(bytes, 0, 7)) {
+        Ok(_) => {
         },
         Err(error) => {
-            throw error.message;
+          throw error.message;
         },
-    }
+      }
 
-    const create = alloc;
-    match (create(2, 255)) {
-        Ok(bytes) => {
-            strictEqual(value(bytes, 0), 255);
-            strictEqual(value(bytes, 1), 255);
+      match (resize(bytes, 5, 255)) {
+        Ok(_) => {
         },
         Err(error) => {
-            throw error.message;
+          throw error.message;
         },
-    }
+      }
 
-    match (create(0)) {
-        Ok(bytes) => {
-            strictEqual(length(bytes), 0);
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
-
-    match (alloc(-1, 256)) {
-        Ok(bytes) => {
-            throw "invalid length accepted";
-        },
-        Err(error) => {
-            strictEqual(error.code, "length-range");
-            strictEqual(error.offset, undefined);
-        },
-    }
-
-    match (alloc(0, 256)) {
-        Ok(bytes) => {
+      strictEqual(length(bytes), 5);
+      strictEqual(value(bytes, 0), 7);
+      strictEqual(value(bytes, 2), 0);
+      strictEqual(value(bytes, 3), 255);
+      strictEqual(value(bytes, 4), 255);
+      for (const invalid of [-1, 256]) {
+        match (resize(bytes, 0, invalid)) {
+          Ok(_) => {
             throw "invalid fill accepted";
-        },
-        Err(error) => {
+          },
+          Err(error) => {
             strictEqual(error.code, "byte-range");
             strictEqual(error.offset, undefined);
+          },
+        }
+
+        strictEqual(length(bytes), 5);
+        strictEqual(value(bytes, 0), 7);
+        strictEqual(value(bytes, 4), 255);
+      }
+
+      match (resize(bytes, -1, 256)) {
+        Ok(_) => {
+          throw "invalid length accepted";
         },
-    }
+        Err(error) => {
+          strictEqual(error.code, "length-range");
+          strictEqual(error.offset, undefined);
+        },
+      }
+
+      strictEqual(length(bytes), 5);
+      const change = resize;
+      match (change(bytes, 1)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+
+      strictEqual(length(bytes), 1);
+      strictEqual(value(bytes, 0), 7);
+      match (change(bytes, 3)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+
+      strictEqual(value(bytes, 1), 0);
+      strictEqual(value(bytes, 2), 0);
+      match (resize(bytes, 0)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        },
+      }
+
+      strictEqual(length(bytes), 0);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  const create = alloc;
+  match (create(2, 255)) {
+    Ok(bytes) => {
+      strictEqual(value(bytes, 0), 255);
+      strictEqual(value(bytes, 1), 255);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  match (create(0)) {
+    Ok(bytes) => {
+      strictEqual(length(bytes), 0);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  match (alloc(-1, 256)) {
+    Ok(bytes) => {
+      throw "invalid length accepted";
+    },
+    Err(error) => {
+      strictEqual(error.code, "length-range");
+      strictEqual(error.offset, undefined);
+    },
+  }
+
+  match (alloc(0, 256)) {
+    Ok(bytes) => {
+      throw "invalid fill accepted";
+    },
+    Err(error) => {
+      strictEqual(error.code, "byte-range");
+      strictEqual(error.offset, undefined);
+    },
+  }
 }

@@ -1,15 +1,15 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function logBoth(first: User, second: User) {
-    console.log(first.name);
-    console.log(second.name);
+  console.log(first.name);
+  console.log(second.name);
 }
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    logBoth(user, user);
+  const user: User = {
+    name: "Pat"
+  };
+  logBoth(user, user);
 }

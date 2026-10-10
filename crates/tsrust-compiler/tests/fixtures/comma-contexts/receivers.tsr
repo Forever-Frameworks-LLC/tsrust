@@ -1,23 +1,23 @@
 import { strictEqual } from "std:testing";
 
 function mark(trace: int[], value: int): int {
-    trace.push(value);
-    return value;
+  trace.push(value);
+  return value;
 }
 
 function main() {
-    const trace: int[] = [];
-    const values = [1, 2];
-    (mark(trace, 1), values).push(3);
-    strictEqual((mark(trace, 2), values).join(","), "1,2,3");
-    const copy = (mark(trace, 3), values).slice(1);
-    strictEqual(copy.join(","), "2,3");
-    const mapped = (mark(trace, 4), values).map((value: int): int => {
-        return value + 1;
-    });
-    strictEqual(mapped.join(","), "2,3,4");
-    (mark(trace, 5), values).fill(8, 1, 2);
-    (mark(trace, 6), values).reverse();
-    strictEqual(values.join(","), "3,8,1");
-    strictEqual(trace.join(","), "1,2,3,4,5,6");
+  const trace: int[] = [];
+  const values = [1, 2];
+  (mark(trace, 1), values).push(3);
+  strictEqual((mark(trace, 2), values).join(","), "1,2,3");
+  const copy = (mark(trace, 3), values).slice(1);
+  strictEqual(copy.join(","), "2,3");
+  const mapped = (mark(trace, 4), values).map((value: int): int => {
+    return value + 1;
+  });
+  strictEqual(mapped.join(","), "2,3,4");
+  (mark(trace, 5), values).fill(8, 1, 2);
+  (mark(trace, 6), values).reverse();
+  strictEqual(values.join(","), "3,8,1");
+  strictEqual(trace.join(","), "1,2,3,4,5,6");
 }

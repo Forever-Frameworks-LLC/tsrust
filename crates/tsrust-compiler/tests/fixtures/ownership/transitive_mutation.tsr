@@ -1,22 +1,22 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 /**
 renames the user
 **/
 function rename(user: User) {
-    user.name = "Sam";
+  user.name = "Sam";
 }
 
 function normalize(user: User) {
-    rename(user);
+  rename(user);
 }
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    normalize(user);
-    console.log(user.name);
+  const user: User = {
+    name: "Pat"
+  };
+  normalize(user);
+  console.log(user.name);
 }

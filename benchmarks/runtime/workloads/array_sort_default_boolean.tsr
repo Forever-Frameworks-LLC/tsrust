@@ -1,24 +1,24 @@
 function workload(n: int, seed: int): boolean[][] {
-    const output: boolean[][] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const values: boolean[] = [];
-        let j = 0;
-        while (j < count) {
-            values.push(j % 3 !== 0);
-            j = j + 1;
-        }
-
-        values.sort();
-        output.push(values);
-        i = i + 1;
+  const output: boolean[][] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const values: boolean[] = [];
+    let j = 0;
+    while (j < count) {
+      values.push(j % 3 !== 0);
+      j = j + 1;
     }
 
-    return output;
+    values.sort();
+    output.push(values);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

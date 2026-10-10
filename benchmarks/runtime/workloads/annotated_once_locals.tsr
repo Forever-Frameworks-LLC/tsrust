@@ -1,18 +1,18 @@
 function workload(n: int, seed: int): int {
-    let checksum = seed;
-    let i = 0;
-    while (i < n) {
-        const base = i + seed;
-        const action: Once<Function<int, [value: int]>> = (value: int): int => {
-            return base + value;
-        };
-        checksum = checksum + action(i);
-        i = i + 1;
-    }
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const base = i + seed;
+    const action: Once<Function<int, [value: int]>> = (value: int): int => {
+      return base + value;
+    };
+    checksum = checksum + action(i);
+    i = i + 1;
+  }
 
-    return checksum;
+  return checksum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

@@ -1,20 +1,20 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function make(user: User): () => string {
-    const saved = clone(user);
-    return (): string => {
-        return saved.name.trim();
-    };
+  const saved = clone(user);
+  return (): string => {
+    return saved.name.trim();
+  };
 }
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const show = make(user);
-    user.name = "Sam";
-    console.log(show());
-    console.log(user.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const show = make(user);
+  user.name = "Sam";
+  console.log(show());
+  console.log(user.name);
 }

@@ -1,41 +1,41 @@
 interface Named {
-    name: string;
+  name: string;
 }
 
 interface Positioned {
-    x: int;
-    y?: int
+  x: int;
+  y?: int
 }
 
 interface Player extends Named, Positioned {
-    score: int,
+  score: int,
 }
 
 function describe(player: Player): string {
-    return player.name + ":" + String(player.x + (player.y ?? 0)) + ":" + String(player.score);
+  return player.name + ":" + String(player.x + (player.y ?? 0)) + ":" + String(player.score);
 }
 
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    let i = 0;
-    while (i < n) {
-        const k = i + seed;
-        const plain: Player = {
-            name: String(input), x: k, score: k % 5
-        };
-        const placed: Player = {
-            name: "p", x: k, y: k % 3, score: 1
-        };
-        const named: Named = {
-            name: String(k)
-        };
-        output.push([describe(plain), describe(placed), String(named.name), String(plain.score + placed.score), String(placed.y ?? -1)]);
-        i += 1;
-    }
+  const output: string[][] = [];
+  let i = 0;
+  while (i < n) {
+    const k = i + seed;
+    const plain: Player = {
+      name: String(input), x: k, score: k % 5
+    };
+    const placed: Player = {
+      name: "p", x: k, y: k % 3, score: 1
+    };
+    const named: Named = {
+      name: String(k)
+    };
+    output.push([describe(plain), describe(placed), String(named.name), String(plain.score + placed.score), String(placed.y ?? -1)]);
+    i += 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "abc");
+  const result = workload(3, 0, "abc");
 }

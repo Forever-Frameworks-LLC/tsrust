@@ -1,29 +1,29 @@
 import { join } from "std:path";
 
 function workload(n: int, seed: int): string[] {
-    const paths: string[] = [];
-    paths.push("é😊");
-    let j = 0;
-    while (j < 64) {
-        paths.push("文");
-        j = j + 1;
-    }
+  const paths: string[] = [];
+  paths.push("é😊");
+  let j = 0;
+  while (j < 64) {
+    paths.push("文");
+    j = j + 1;
+  }
 
-    paths.push("..");
-    paths.push("résumé/");
-    const values: string[] = [];
-    let i = 0;
-    while (i < n) {
-        values.push(join(...paths));
-        i = i + 1;
-    }
+  paths.push("..");
+  paths.push("résumé/");
+  const values: string[] = [];
+  let i = 0;
+  while (i < n) {
+    values.push(join(...paths));
+    i = i + 1;
+  }
 
-    return values;
+  return values;
 }
 
 function main() {
-    const values = workload(2, 7);
-    for (const value of values) {
-        console.log(value);
-    }
+  const values = workload(2, 7);
+  for (const value of values) {
+    console.log(value);
+  }
 }

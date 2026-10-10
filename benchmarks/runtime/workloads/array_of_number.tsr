@@ -1,34 +1,34 @@
 function workload(n: int, seed: int): number[][] {
-    const output: number[][] = [];
-    let i = 0;
-    while (i < n) {
-        const values = makeItems(i + seed);
-        output.push(values);
-        i = i + 1;
-    }
+  const output: number[][] = [];
+  let i = 0;
+  while (i < n) {
+    const values = makeItems(i + seed);
+    output.push(values);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function makeItems(seed: int): number[] {
-    const choice = seed % 3;
-    if (choice === 0) {
-        const empty: number[] = Array.of ();
-        return empty;
-    }
+  const choice = seed % 3;
+  if (choice === 0) {
+    const empty: number[] = Array.of ();
+    return empty;
+  }
 
-    if (choice === 1) {
-        return Array.of (item(seed, 0));
-    }
+  if (choice === 1) {
+    return Array.of (item(seed, 0));
+  }
 
-    return Array.of (item(seed, 0), item(seed, 1), item(seed, 2), item(seed, 3), item(seed, 4));
+  return Array.of (item(seed, 0), item(seed, 1), item(seed, 2), item(seed, 3), item(seed, 4));
 }
 
 function item(seed: int, ordinal: int): number {
-    const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
-    return numbers[(seed + ordinal * 3) % 7];
+  const numbers: number[] = [-0.0, 0.0, 0.0 / 0.0, 1.0 / 0.0, -1.0 / 0.0, Number(seed) / 4.0, -2.5];
+  return numbers[(seed + ordinal * 3) % 7];
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

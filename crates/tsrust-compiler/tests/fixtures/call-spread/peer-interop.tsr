@@ -1,7 +1,7 @@
 function main() {
-    const values: int[] | undefined = [1, 2];
-    values!.reverse(...[]);
-    console.log(values!.join(","));
-    const add = (left: int, right: int) => left + right;
-    console.log(add(...[2, 3]));
+  const values: int[] | undefined = [1, 2];
+  values!.reverse(...[]);
+  console.log(values!.join(","));
+  const add = (left: int, right: int) => left + right;
+  console.log(add(...[2, 3]));
 }

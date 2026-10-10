@@ -1,40 +1,40 @@
 type Trace = {
-    calls: int;
+  calls: int;
 };
 
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    const trace: Trace = {
-        calls: 0
-    };
-    let i = 0;
-    while (i < n) {
-        const value = i + seed;
-        const left: null | undefined = makeLeft(value, input);
-        const before = trace.calls;
-        const selected = left ?? fallback(trace, value, input);
-        const delta = trace.calls - before;
-        output.push([selected, String(delta)]);
-        i = i + 1;
-    }
+  const output: string[][] = [];
+  const trace: Trace = {
+    calls: 0
+  };
+  let i = 0;
+  while (i < n) {
+    const value = i + seed;
+    const left: null | undefined = makeLeft(value, input);
+    const before = trace.calls;
+    const selected = left ?? fallback(trace, value, input);
+    const delta = trace.calls - before;
+    output.push([selected, String(delta)]);
+    i = i + 1;
+  }
 
-    output.push([String(trace.calls)]);
-    return output;
+  output.push([String(trace.calls)]);
+  return output;
 }
 
 function makeLeft(value: int, input: string): null | undefined {
-    if (value % 2 === 0) {
-        return null;
-    }
+  if (value % 2 === 0) {
+    return null;
+  }
 
-    return undefined;
+  return undefined;
 }
 
 function fallback(trace: Trace, value: int, input: string): string {
-    trace.calls = trace.calls + 1;
-    return input.concat("|fallback:", String(value));
+  trace.calls = trace.calls + 1;
+  return input.concat("|fallback:", String(value));
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

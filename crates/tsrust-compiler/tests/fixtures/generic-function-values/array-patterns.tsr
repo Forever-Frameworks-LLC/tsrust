@@ -1,21 +1,21 @@
 import { strictEqual } from "std:testing";
 
 function main() {
-    let calls = 0;
-    function first<T>(values: T[]): T {
-        calls += 1;
-        return values.remove(0);
-    }
+  let calls = 0;
+  function first<T>(values: T[]): T {
+    calls += 1;
+    return values.remove(0);
+  }
 
-    {
-        const action = first;
-        const numbers = [7, 8];
-        strictEqual(action(numbers), 7);
-        strictEqual(numbers.length, 1);
-        const strings = ["a", "b"];
-        strictEqual(action(strings), "a");
-        strictEqual(strings.length, 1);
-    }
+  {
+    const action = first;
+    const numbers = [7, 8];
+    strictEqual(action(numbers), 7);
+    strictEqual(numbers.length, 1);
+    const strings = ["a", "b"];
+    strictEqual(action(strings), "a");
+    strictEqual(strings.length, 1);
+  }
 
-    strictEqual(calls, 2);
+  strictEqual(calls, 2);
 }

@@ -1,45 +1,45 @@
 function workload(n: int, seed: int, input: string, coordinates: int): int {
-    const width = coordinates;
-    const values: string[] = [];
-    let j = 0;
-    while (j < 129) {
-        values.push(input.charAt((j * 37 + seed) % width));
-        j = j + 1;
-    }
+  const width = coordinates;
+  const values: string[] = [];
+  let j = 0;
+  while (j < 129) {
+    values.push(input.charAt((j * 37 + seed) % width));
+    j = j + 1;
+  }
 
-    let sum = seed;
-    let i = 0;
-    while (i < n) {
-        const from = (i * 13 + seed) % 387 - 193;
-        const choice = (i + seed) % 4;
-        if (choice === 0) {
-            if (values.includes("A", from)) {
-                sum = sum + 1;
-            }
-        } else {
-            if (choice === 1) {
-                if (values.includes("😀", from)) {
-                    sum = sum + 1;
-                }
-            } else {
-                if (choice === 2) {
-                    if (values.includes(input.charAt((i * 17 + seed) % (width + 2)), from)) {
-                        sum = sum + 1;
-                    }
-                } else {
-                    if (values.includes("missing", from)) {
-                        sum = sum + 1;
-                    }
-                }
-            }
+  let sum = seed;
+  let i = 0;
+  while (i < n) {
+    const from = (i * 13 + seed) % 387 - 193;
+    const choice = (i + seed) % 4;
+    if (choice === 0) {
+      if (values.includes("A", from)) {
+        sum = sum + 1;
+      }
+    } else {
+      if (choice === 1) {
+        if (values.includes("😀", from)) {
+          sum = sum + 1;
         }
-
-        i = i + 1;
+      } else {
+        if (choice === 2) {
+          if (values.includes(input.charAt((i * 17 + seed) % (width + 2)), from)) {
+            sum = sum + 1;
+          }
+        } else {
+          if (values.includes("missing", from)) {
+            sum = sum + 1;
+          }
+        }
+      }
     }
 
-    return sum;
+    i = i + 1;
+  }
+
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7, "A😀e\u0301Z", 5));
+  console.log(workload(2, 7, "A😀e\u0301Z", 5));
 }

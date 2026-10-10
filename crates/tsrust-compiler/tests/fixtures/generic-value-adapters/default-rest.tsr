@@ -1,48 +1,48 @@
 import { strictEqual } from 'std:testing';
 
 function defaults() {
-    let calls = 0;
-    function next(): int {
-        calls += 1;
-        console.log(calls);
-        return calls;
-    }
+  let calls = 0;
+  function next(): int {
+    calls += 1;
+    console.log(calls);
+    return calls;
+  }
 
-    function select<T>(value: T, offset: int = next()): T {
-        console.log(offset);
-        return value;
-    }
+  function select<T>(value: T, offset: int = next()): T {
+    console.log(offset);
+    return value;
+  }
 
-    return select;
+  return select;
 }
 
 function rest() {
-    let calls = 0;
-    function select<T>(fallback: T, ...values: T[]): T {
-        calls += 1;
-        console.log(calls, values.length);
-        return fallback;
-    }
+  let calls = 0;
+  function select<T>(fallback: T, ...values: T[]): T {
+    calls += 1;
+    console.log(calls, values.length);
+    return fallback;
+  }
 
-    return select;
+  return select;
 }
 
 function main() {
-    const action = defaults();
-    {
-        const view: Mutable<Function<int, [value: int, offset?: int]>> = action;
-        strictEqual(view(7), 7);
-        strictEqual(view(8, 9), 8);
-        strictEqual(view(10, undefined), 10);
-    }
+  const action = defaults();
+  {
+    const view: Mutable<Function<int, [value: int, offset?: int]>> = action;
+    strictEqual(view(7), 7);
+    strictEqual(view(8, 9), 8);
+    strictEqual(view(10, undefined), 10);
+  }
 
-    strictEqual(action('after'), 'after');
-    const packed = rest();
-    {
-        const view: Mutable<Function<int, [fallback: int, ...values: int[]]>> = packed;
-        strictEqual(view(1), 1);
-        strictEqual(view(2, 3, 4), 2);
-    }
+  strictEqual(action('after'), 'after');
+  const packed = rest();
+  {
+    const view: Mutable<Function<int, [fallback: int, ...values: int[]]>> = packed;
+    strictEqual(view(1), 1);
+    strictEqual(view(2, 3, 4), 2);
+  }
 
-    strictEqual(packed('after', 'one'), 'after');
+  strictEqual(packed('after', 'one'), 'after');
 }

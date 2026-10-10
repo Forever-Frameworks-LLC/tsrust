@@ -1,15 +1,15 @@
 function make(text: string): () => string {
-    const first = (): string => {
-        return text.trim();
-    };
-    const second = first;
-    const last = second;
-    return last;
+  const first = (): string => {
+    return text.trim();
+  };
+  const second = first;
+  const last = second;
+  return last;
 }
 
 function main() {
-    const original = make(" Pat ");
-    const action = original;
-    console.log(action());
-    console.log(action());
+  const original = make(" Pat ");
+  const action = original;
+  console.log(action());
+  console.log(action());
 }

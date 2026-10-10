@@ -1,37 +1,37 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const values: string[] = [];
-        let j = 0;
-        while (j < count) {
-            if (j % 4 === 0) {
-                values.push(input.repeat(1));
-            } else if (j % 4 === 1) {
-                values.push("é");
-            } else if (j % 4 === 2) {
-                values.push("😀");
-            } else {
-                values.push("a");
-            }
+  const output: string[][] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const values: string[] = [];
+    let j = 0;
+    while (j < count) {
+      if (j % 4 === 0) {
+        values.push(input.repeat(1));
+      } else if (j % 4 === 1) {
+        values.push("é");
+      } else if (j % 4 === 2) {
+        values.push("😀");
+      } else {
+        values.push("a");
+      }
 
-            j = j + 1;
-        }
-
-        values.sort(compare);
-        output.push(values);
-        i = i + 1;
+      j = j + 1;
     }
 
-    return output;
+    values.sort(compare);
+    output.push(values);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function compare(left: string, right: string): int {
-    return left < right ? -1 : left > right ? 1 : 0;
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

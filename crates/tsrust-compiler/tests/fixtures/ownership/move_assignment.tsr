@@ -1,11 +1,11 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const backup = user;
-    console.log(backup.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const backup = user;
+  console.log(backup.name);
 }

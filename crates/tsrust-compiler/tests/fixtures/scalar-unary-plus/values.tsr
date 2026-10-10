@@ -1,53 +1,53 @@
 import { strictEqual } from "std:testing";
 enum Numeric {
-    Fraction = 1.5
+  Fraction = 1.5
 }
 
 enum Label {
-    Decimal = "2.5"
+  Decimal = "2.5"
 }
 
 function enumNumber(value: Numeric | null): number {
-    return Number(value);
+  return Number(value);
 }
 
 function enumText(value: Label | undefined): number {
-    return +value;
+  return +value;
 }
 
 function once(count: int[]): string {
-    count[0] += 1;
-    return " 12.5 ";
+  count[0] += 1;
+  return " 12.5 ";
 }
 
 function convert(value: string | int | number | boolean | null | undefined): number {
-    return +value;
+  return +value;
 }
 
 function main() {
-    strictEqual(+" 12.5 ", 12.5);
-    strictEqual(+"", 0.0);
-    strictEqual(+true, 1.0);
-    strictEqual(+false, 0.0);
-    strictEqual(+null, 0.0);
-    strictEqual(Number.isNaN(+undefined), true);
-    strictEqual(Number.isNaN(+"nope"), true);
-    strictEqual(Object.is(+"-0", -0.0), true);
-    const text = "7";
-    strictEqual(+text, 7.0);
-    strictEqual(text, "7");
-    const count = [0];
-    strictEqual(+once(count), 12.5);
-    strictEqual(count[0], 1);
-    strictEqual(convert("4"), 4.0);
-    strictEqual(convert(3), 3.0);
-    strictEqual(convert(1.5), 1.5);
-    strictEqual(convert(false), 0.0);
-    strictEqual(convert(null), 0.0);
-    strictEqual(Number.isNaN(convert(undefined)), true);
-    strictEqual(Number("2"), 2.0);
-    strictEqual(enumNumber(Numeric.Fraction), 1.5);
-    strictEqual(enumNumber(null), 0.0);
-    strictEqual(enumText(Label.Decimal), 2.5);
-    strictEqual(Number.isNaN(enumText(undefined)), true);
+  strictEqual(+" 12.5 ", 12.5);
+  strictEqual(+"", 0.0);
+  strictEqual(+true, 1.0);
+  strictEqual(+false, 0.0);
+  strictEqual(+null, 0.0);
+  strictEqual(Number.isNaN(+undefined), true);
+  strictEqual(Number.isNaN(+"nope"), true);
+  strictEqual(Object.is(+"-0", -0.0), true);
+  const text = "7";
+  strictEqual(+text, 7.0);
+  strictEqual(text, "7");
+  const count = [0];
+  strictEqual(+once(count), 12.5);
+  strictEqual(count[0], 1);
+  strictEqual(convert("4"), 4.0);
+  strictEqual(convert(3), 3.0);
+  strictEqual(convert(1.5), 1.5);
+  strictEqual(convert(false), 0.0);
+  strictEqual(convert(null), 0.0);
+  strictEqual(Number.isNaN(convert(undefined)), true);
+  strictEqual(Number("2"), 2.0);
+  strictEqual(enumNumber(Numeric.Fraction), 1.5);
+  strictEqual(enumNumber(null), 0.0);
+  strictEqual(enumText(Label.Decimal), 2.5);
+  strictEqual(Number.isNaN(enumText(undefined)), true);
 }

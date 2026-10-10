@@ -1,26 +1,26 @@
 type Counter = {
-    value: int;
+  value: int;
 };
 
 function retain(action: Function<int, [step: int]>): (step: int) => int {
-    return (step: int): int => {
-        return action(step);
-    };
+  return (step: int): int => {
+    return action(step);
+  };
 }
 
 function makeCounter(counter: Counter): (step: int) => int {
-    return retain((step: int): int => {
-        counter.value = counter.value + step; return counter.value;
-    });
+  return retain((step: int): int => {
+    counter.value = counter.value + step; return counter.value;
+  });
 }
 
 function main() {
-    const next = makeCounter({
-        value: 0
-    });
-    console.log(next(2 * 3));
-    console.log(next(-1));
-    if (next(1) >= 6 && !false) {
-        console.log("ready");
-    }
+  const next = makeCounter({
+    value: 0
+  });
+  console.log(next(2 * 3));
+  console.log(next(-1));
+  if (next(1) >= 6 && !false) {
+    console.log("ready");
+  }
 }

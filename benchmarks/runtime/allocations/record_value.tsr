@@ -1,12 +1,12 @@
 type Value = {
-    value: int;
-    active: boolean;
+  value: int;
+  active: boolean;
 };
 
 function workload(n: int, seed: int): Value {
-    return {
-        value: n + seed, active: n > seed
-    };
+  return {
+    value: n + seed, active: n > seed
+  };
 }
 
 function main() {

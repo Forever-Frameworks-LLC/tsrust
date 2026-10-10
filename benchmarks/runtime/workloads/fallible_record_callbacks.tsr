@@ -1,62 +1,62 @@
 type Holder = {
-    run: ReadOnly<Function<int>>;
+  run: ReadOnly<Function<int>>;
 };
 
 function call(holder: ReadOnly<Holder>): int {
-    return holder.run();
+  return holder.run();
 }
 
 function guarded(holder: ReadOnly<Holder>): int {
-    try {
-        return holder.run();
-    } catch (error) {
-        return typeof error === "string" ? error.length : typeof error === "number" ? error + 1000 : 0;
-    }
+  try {
+    return holder.run();
+  } catch (error) {
+    return typeof error === "string" ? error.length : typeof error === "number" ? error + 1000 : 0;
+  }
 }
 
 function checked(holder: ReadOnly<Holder>, limit: int): int {
-    const value = holder.run();
-    if (value > limit) {
-        throw "big";
-    }
+  const value = holder.run();
+  if (value > limit) {
+    throw "big";
+  }
 
-    return value;
+  return value;
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 5 + seed % 5 + 1;
-        const base = [value];
-        const plain: Holder = {
-            run: (): int => base[0]
-        };
-        const text: Holder = {
-            run: (): int => {
-                throw "x".repeat(value);
-            }
-        };
-        const coded: Holder = {
-            run: (): int => {
-                throw value;
-            }
-        };
-        let outer = 0;
-        try {
-            checked(plain, 2);
-            outer = 1;
-        } catch (error) {
-            outer = typeof error === "string" ? error.length : 0;
-        }
-
-        output.push([call(plain), guarded(plain), guarded(text), guarded(coded), outer]);
-        i += 1;
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 5 + seed % 5 + 1;
+    const base = [value];
+    const plain: Holder = {
+      run: (): int => base[0]
+    };
+    const text: Holder = {
+      run: (): int => {
+        throw "x".repeat(value);
+      }
+    };
+    const coded: Holder = {
+      run: (): int => {
+        throw value;
+      }
+    };
+    let outer = 0;
+    try {
+      checked(plain, 2);
+      outer = 1;
+    } catch (error) {
+      outer = typeof error === "string" ? error.length : 0;
     }
 
-    return output;
+    output.push([call(plain), guarded(plain), guarded(text), guarded(coded), outer]);
+    i += 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "fallible");
+  const result = workload(3, 0, "fallible");
 }

@@ -1,72 +1,72 @@
 type Holder = {
-    run: ReadOnly<Function<int>>;
+  run: ReadOnly<Function<int>>;
 };
 
 type Step = {
-    next: Mutable<Function<int>>;
+  next: Mutable<Function<int>>;
 };
 
 type Pair = {
-    left: Holder;
-    right: Holder;
+  left: Holder;
+  right: Holder;
 };
 
 function call(holder: ReadOnly<Holder>): int {
-    return holder.run();
+  return holder.run();
 }
 
 function replace(holder: Mutable<Holder>, amount: int): void {
-    holder.run = (): int => amount;
+  holder.run = (): int => amount;
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 5 + seed % 5 + 1;
-        const base = [value, value + 1];
-        let count = 0;
-        let first = 0;
-        let stepped = 0;
-        let both = 0;
-        let replaced = 0;
-        let moved = 0;
-        {
-            let holder: Holder = {
-                run: (): int => base[0]
-            };
-            first = call(holder);
-            const step: Step = {
-                next: (): int => {
-                    count += value;
-                    return count;
-                }
-            };
-            step.next();
-            stepped = step.next();
-            const pair: Pair = {
-                left: {
-                    run: (): int => base[0]
-                }, right: {
-                    run: (): int => base[1]
-                }
-            };
-            both = pair.left.run() + call(pair.right);
-            replace(holder, value + 7);
-            replaced = holder.run();
-            holder.run = (): int => base[1] * 2;
-            const run = holder.run;
-            moved = run();
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 5 + seed % 5 + 1;
+    const base = [value, value + 1];
+    let count = 0;
+    let first = 0;
+    let stepped = 0;
+    let both = 0;
+    let replaced = 0;
+    let moved = 0;
+    {
+      let holder: Holder = {
+        run: (): int => base[0]
+      };
+      first = call(holder);
+      const step: Step = {
+        next: (): int => {
+          count += value;
+          return count;
         }
-
-        base[0] = 0;
-        output.push([first, stepped, both, replaced, moved, count, base[0] + base[1]]);
-        i += 1;
+      };
+      step.next();
+      stepped = step.next();
+      const pair: Pair = {
+        left: {
+          run: (): int => base[0]
+        }, right: {
+          run: (): int => base[1]
+        }
+      };
+      both = pair.left.run() + call(pair.right);
+      replace(holder, value + 7);
+      replaced = holder.run();
+      holder.run = (): int => base[1] * 2;
+      const run = holder.run;
+      moved = run();
     }
 
-    return output;
+    base[0] = 0;
+    output.push([first, stepped, both, replaced, moved, count, base[0] + base[1]]);
+    i += 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(3, 0, "records");
+  const result = workload(3, 0, "records");
 }

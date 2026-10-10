@@ -1,38 +1,38 @@
 type User = {
-    name: string;
-    tags: string[];
+  name: string;
+  tags: string[];
 };
 
 type Catalog = {
-    users: User[];
-    rows: int[][];
-    flags: boolean[];
+  users: User[];
+  rows: int[][];
+  flags: boolean[];
 };
 
 function append(catalog: Catalog) {
-    catalog.users.push({
-        name: "Sam", tags: ["new"]
-    });
-    catalog.rows[0].push(7);
+  catalog.users.push({
+    name: "Sam", tags: ["new"]
+  });
+  catalog.rows[0].push(7);
 }
 
 function main() {
-    const catalog: Catalog = {
-        users: [{
-            name: "Pat", tags: []
-        }], rows: [[1]], flags: [true]
-    };
-    catalog.users[0].tags.push("admin");
-    append(catalog);
-    for (const user of catalog.users) {
-        console.log(user.name);
-        for (const tag of user.tags) {
-            console.log(tag);
-        }
+  const catalog: Catalog = {
+    users: [{
+      name: "Pat", tags: []
+    }], rows: [[1]], flags: [true]
+  };
+  catalog.users[0].tags.push("admin");
+  append(catalog);
+  for (const user of catalog.users) {
+    console.log(user.name);
+    for (const tag of user.tags) {
+      console.log(tag);
     }
+  }
 
-    console.log(catalog.rows[0][1]);
-    const saved = clone(catalog);
-    catalog.users[0].tags[0] = "changed";
-    console.log(saved.users[0].tags[0]);
+  console.log(catalog.rows[0][1]);
+  const saved = clone(catalog);
+  catalog.users[0].tags[0] = "changed";
+  console.log(saved.users[0].tags[0]);
 }

@@ -1,57 +1,57 @@
 import { Bytes, alloc, at, set, length } from "std:bytes";
 
 type Holder = {
-    bytes: Bytes;
+  bytes: Bytes;
 };
 
 function read(bytes: ReadOnly<Bytes>, index: int): int {
-    match (at(bytes, index)) {
-        Ok(value) => {
-            return value;
-        },
-        Err(error) => {
-            return -1;
-        },
-    }
+  match (at(bytes, index)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      return -1;
+    },
+  }
 }
 
 function write(bytes: Mutable<Bytes>, index: int, value: int): void {
-    match (set(bytes, index, value)) {
-        Ok(_) => {
-        },
-        Err(error) => {
-            throw error.message;
-        },
-    }
+  match (set(bytes, index, value)) {
+    Ok(_) => {
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
 }
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const byte = (i + seed) % 256;
-        match (alloc(3, byte)) {
-            Ok(bytes) => {
-                const duplicate = clone(bytes);
-                const rows: Holder[] = [{
-                    bytes: bytes
-                }];
-                const saved = clone(rows);
-                write(rows[0].bytes, 0, (byte + 1) % 256);
-                write(duplicate, 1, 7);
-                output.push([read(duplicate, 0), read(duplicate, 1), read(saved[0].bytes, 0), read(saved[0].bytes, 1), read(rows[0].bytes, 0), length(duplicate), length(saved[0].bytes)]);
-            },
-            Err(error) => {
-                output.push([-1000000]);
-            },
-        }
-
-        i += 1;
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    match (alloc(3, byte)) {
+      Ok(bytes) => {
+        const duplicate = clone(bytes);
+        const rows: Holder[] = [{
+          bytes: bytes
+        }];
+        const saved = clone(rows);
+        write(rows[0].bytes, 0, (byte + 1) % 256);
+        write(duplicate, 1, 7);
+        output.push([read(duplicate, 0), read(duplicate, 1), read(saved[0].bytes, 0), read(saved[0].bytes, 1), read(rows[0].bytes, 0), length(duplicate), length(saved[0].bytes)]);
+      },
+      Err(error) => {
+        output.push([-1000000]);
+      },
     }
 
-    return output;
+    i += 1;
+  }
+
+  return output;
 }
 
 function main() {
-    workload(1, 0, "bytes");
+  workload(1, 0, "bytes");
 }

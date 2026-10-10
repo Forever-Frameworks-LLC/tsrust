@@ -1,36 +1,36 @@
 import { strictEqual } from "std:testing";
 
 function identity<T>(value: T): T {
-    return value;
+  return value;
 }
 
 function forward<T>(flag: boolean, value: T): T {
-    let action = identity;
-    outer: for (let index = 0; index < 3; index++) {
-        while (flag) {
-            action = action;
-            continue outer;
-        }
-
-        action = action;
+  let action = identity;
+  outer: for (let index = 0; index < 3; index++) {
+    while (flag) {
+      action = action;
+      continue outer;
     }
 
-    do {
-        action = action;
-    }
+    action = action;
+  }
 
-    while (false);
-    for (const item of [1, 2]) {
-        action = action;
-    }
+  do {
+    action = action;
+  }
 
-    const saved = action;
-    return saved<T>(value);
+  while (false);
+  for (const item of [1, 2]) {
+    action = action;
+  }
+
+  const saved = action;
+  return saved<T>(value);
 }
 
 function main() {
-    strictEqual(forward(true, 7), 7);
-    strictEqual(forward(false, 9), 9);
-    strictEqual(forward(true, "left"), "left");
-    strictEqual(forward(false, "right"), "right");
+  strictEqual(forward(true, 7), 7);
+  strictEqual(forward(false, 9), 9);
+  strictEqual(forward(true, "left"), "left");
+  strictEqual(forward(false, "right"), "right");
 }

@@ -1,17 +1,17 @@
 function workload(n: int, seed: int, input: string): number[] {
-    const values: string[] = [clone(input), "\n\r\f\u000b123.5", "\u00a0-1.5", "\u1680+2.5", "\u2000.5", "\u200a-2", "\u2028+3", "\u2029-3", "\u202f4", "\u205f-4", "\u30005", "\ufeff6", "\u008512", "\u180e12", "\u200b12", " \t Infinity"];
-    const output: number[] = [];
-    let i = 0;
-    while (i < n) {
-        const at = (i * 13 + seed) % 16;
-        const selected: number = Number.parseFloat(values[at]);
-        output.push(selected);
-        i = i + 1;
-    }
+  const values: string[] = [clone(input), "\n\r\f\u000b123.5", "\u00a0-1.5", "\u1680+2.5", "\u2000.5", "\u200a-2", "\u2028+3", "\u2029-3", "\u202f4", "\u205f-4", "\u30005", "\ufeff6", "\u008512", "\u180e12", "\u200b12", " \t Infinity"];
+  const output: number[] = [];
+  let i = 0;
+  while (i < n) {
+    const at = (i * 13 + seed) % 16;
+    const selected: number = Number.parseFloat(values[at]);
+    output.push(selected);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7, "\ufeff\t  -0.0");
+  const result = workload(2, 7, "\ufeff\t  -0.0");
 }

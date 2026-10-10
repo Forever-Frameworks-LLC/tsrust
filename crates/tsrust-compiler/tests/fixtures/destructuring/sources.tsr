@@ -1,36 +1,36 @@
 type Point = {
-    x: int;
-    y: int;
-    label: string;
+  x: int;
+  y: int;
+  label: string;
 };
 
 function describe(point: ReadOnly<Point>): string {
-    const { x, y, label } = point;
-    return label + String(x + y);
+  const { x, y, label } = point;
+  return label + String(x + y);
 }
 
 function first(values: ReadOnly<int[]>): int {
-    const [head] = values;
-    return head;
+  const [head] = values;
+  return head;
 }
 
 function names(pair: ReadOnly<[string, string]>): int {
-    const [left, right] = pair;
-    return left.length + right.length;
+  const [left, right] = pair;
+  return left.length + right.length;
 }
 
 function main() {
-    const numbers = [10, 20, 30];
-    const [a, b] = numbers;
-    console.log(a + b, numbers.length, first(numbers));
-    const point: Point = {
-        x: 1, y: 2, label: "p"
-    };
-    console.log(describe(point), point.label);
-    const { x, label } = point;
-    console.log(x, label, point.y);
-    const pair: [string, string] = ["ab", "cde"];
-    console.log(names(pair), pair[0]);
-    const [left] = pair;
-    console.log(left, pair[1]);
+  const numbers = [10, 20, 30];
+  const [a, b] = numbers;
+  console.log(a + b, numbers.length, first(numbers));
+  const point: Point = {
+    x: 1, y: 2, label: "p"
+  };
+  console.log(describe(point), point.label);
+  const { x, label } = point;
+  console.log(x, label, point.y);
+  const pair: [string, string] = ["ab", "cde"];
+  console.log(names(pair), pair[0]);
+  const [left] = pair;
+  console.log(left, pair[1]);
 }

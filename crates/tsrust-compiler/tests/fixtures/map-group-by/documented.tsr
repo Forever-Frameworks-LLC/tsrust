@@ -1,10 +1,10 @@
 function main() {
-    const groups = Map.groupBy([4, 1, 6, 3], (value: int): int => {
-        return value % 2;
-    });
-    console.log(groups.size);
-    const even = groups.get(0);
-    if (even !== undefined) {
-        console.log(even.join(","));
-    }
+  const groups = Map.groupBy([4, 1, 6, 3], (value: int): int => {
+    return value % 2;
+  });
+  console.log(groups.size);
+  const even = groups.get(0);
+  if (even !== undefined) {
+    console.log(even.join(","));
+  }
 }

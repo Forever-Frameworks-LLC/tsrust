@@ -1,19 +1,19 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function maybe(user: User, flag: boolean) {
-    if (flag) {
-        const get = (): User => {
-            return user;
-        };
-    }
+  if (flag) {
+    const get = (): User => {
+      return user;
+    };
+  }
 
-    console.log(user.name);
+  console.log(user.name);
 }
 
 function main() {
-    maybe({
-        name: "Pat"
-    }, false);
+  maybe({
+    name: "Pat"
+  }, false);
 }

@@ -1,34 +1,34 @@
 function workload(n: int, seed: int): int {
-    let checksum = seed;
-    let i = 0;
-    while (i < n) {
-        const base = i + seed;
-        const actions: (Once<Function<int>>)[] = [(): int => {
-            return base;
-        }];
-        actions.push((): int => {
-            return base + 1;
-        });
-        actions.unshift((): int => {
-            return base + 2;
-        });
-        actions[1] = (): int => {
-            return base + 3;
-        };
-        const first = actions.remove(0);
-        const removed = actions.splice(0, 1, (): int => {
-            return base + 4;
-        });
-        const second = removed.remove(0);
-        const third = actions.remove(0);
-        const fourth = actions.remove(0);
-        checksum = checksum + first() + second() + third() + fourth() + actions.length;
-        i = i + 1;
-    }
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const base = i + seed;
+    const actions: (Once<Function<int>>)[] = [(): int => {
+      return base;
+    }];
+    actions.push((): int => {
+      return base + 1;
+    });
+    actions.unshift((): int => {
+      return base + 2;
+    });
+    actions[1] = (): int => {
+      return base + 3;
+    };
+    const first = actions.remove(0);
+    const removed = actions.splice(0, 1, (): int => {
+      return base + 4;
+    });
+    const second = removed.remove(0);
+    const third = actions.remove(0);
+    const fourth = actions.remove(0);
+    checksum = checksum + first() + second() + third() + fourth() + actions.length;
+    i = i + 1;
+  }
 
-    return checksum;
+  return checksum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

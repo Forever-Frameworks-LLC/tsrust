@@ -1,44 +1,44 @@
 function workload(n: int, seed: int, input: string): string[] {
-    const output: string[] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const arity = (i * 7 + seed) % 3;
-        const values: string[] = [];
-        let j = 0;
-        while (j < count) {
-            values.push(input.concat(":", String(j)));
-            j = j + 1;
-        }
-
-        let newLength = 0;
-        if (arity === 0) {
-            newLength = values.unshift();
-        } else if (arity === 1) {
-            newLength = values.unshift(input.concat(":A"));
-        } else {
-            newLength = values.unshift(input.concat(":A"), input.concat(":B"), "é😀e\u0301\u0000:C");
-        }
-
-        output.push(String(newLength));
-        output.push(String(values.length));
-        let at = 0;
-        while (at < values.length) {
-            output.push(describe(values[at]));
-            at = at + 1;
-        }
-
-        i = i + 1;
+  const output: string[] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const arity = (i * 7 + seed) % 3;
+    const values: string[] = [];
+    let j = 0;
+    while (j < count) {
+      values.push(input.concat(":", String(j)));
+      j = j + 1;
     }
 
-    return output;
+    let newLength = 0;
+    if (arity === 0) {
+      newLength = values.unshift();
+    } else if (arity === 1) {
+      newLength = values.unshift(input.concat(":A"));
+    } else {
+      newLength = values.unshift(input.concat(":A"), input.concat(":B"), "é😀e\u0301\u0000:C");
+    }
+
+    output.push(String(newLength));
+    output.push(String(values.length));
+    let at = 0;
+    while (at < values.length) {
+      output.push(describe(values[at]));
+      at = at + 1;
+    }
+
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function describe(value: string): string {
-    return String(value);
+  return String(value);
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

@@ -1,19 +1,19 @@
 function workload(n: int, seed: int): string[] {
-    const values: int[] = [seed, seed + 1, 0, 17, 9001];
-    const output: string[] = [];
-    let i = 0;
-    while (i < n) {
-        const count = (i + seed) % 6;
-        let joined: string = "";
-        const receiver = values.slice(0, count);
-        joined = receiver.toString();
-        output.push(joined);
-        i = i + 1;
-    }
+  const values: int[] = [seed, seed + 1, 0, 17, 9001];
+  const output: string[] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 6;
+    let joined: string = "";
+    const receiver = values.slice(0, count);
+    joined = receiver.toString();
+    output.push(joined);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

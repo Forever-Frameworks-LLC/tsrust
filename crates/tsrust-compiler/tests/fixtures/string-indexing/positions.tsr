@@ -1,102 +1,102 @@
 import { strictEqual } from "std:testing";
 
 type Token = {
-    text: string;
+  text: string;
 };
 
 function initial(word: string): string {
-    return word[0];
+  return word[0];
 }
 
 function make(): string {
-    return "xyz";
+  return "xyz";
 }
 
 function next(counter: int[]): int {
-    counter[0] += 1;
-    return counter[0];
+  counter[0] += 1;
+  return counter[0];
 }
 
 type Box = {
-    label: string | undefined;
+  label: string | undefined;
 };
 
 function show(text: string | undefined): string {
-    const first = text?.[0];
-    return first ?? "none";
+  const first = text?.[0];
+  return first ?? "none";
 }
 
 function second(text: string | null): string | undefined {
-    return text?.[1];
+  return text?.[1];
 }
 
 function main() {
-    strictEqual(show("ab"), "a");
-    strictEqual(show(undefined), "none");
-    strictEqual(second("xy") === "y", true);
-    strictEqual(second(null) === undefined, true);
-    const maybe: string | undefined = "ok";
-    strictEqual(maybe?.[1] === "k", true);
-    const absent: string | undefined = undefined;
-    strictEqual(absent?.[0] === undefined, true);
-    const box: Box = {
-        label: "tag"
-    };
-    strictEqual(box.label?.[2] === "g", true);
-    strictEqual((box.label?.[0] ?? "") + "!", "t!");
-    const upper = maybe?.[0]?.toUpperCase();
-    strictEqual(upper === "O", true);
-    const text = "abc";
-    strictEqual(text[0], "a");
-    strictEqual(text[2], "c");
-    let position = 1;
-    strictEqual(text[position], "b");
-    strictEqual(text[position + 1], "c");
-    const first = text[0];
-    strictEqual(first + first, "aa");
-    strictEqual(text, "abc");
-    strictEqual(initial("word"), "w");
-    strictEqual(make()[1], "y");
-    strictEqual("literal" [3], "e");
-    const token: Token = {
-        text: "field"
-    };
-    strictEqual(token.text[4], "d");
-    const words = ["one", "two"];
-    strictEqual(words[1][0], "t");
-    strictEqual(text[0].toUpperCase(), "A");
-    strictEqual(text[1] === "b", true);
-    strictEqual(typeof text[0], "string");
-    const counter = [0];
-    strictEqual(text[next(counter)], "b");
-    strictEqual(counter[0], 1);
-    let spelled = "";
-    for (let index = 2; index >= 0; index--) {
-        spelled += text[index];
-    }
+  strictEqual(show("ab"), "a");
+  strictEqual(show(undefined), "none");
+  strictEqual(second("xy") === "y", true);
+  strictEqual(second(null) === undefined, true);
+  const maybe: string | undefined = "ok";
+  strictEqual(maybe?.[1] === "k", true);
+  const absent: string | undefined = undefined;
+  strictEqual(absent?.[0] === undefined, true);
+  const box: Box = {
+    label: "tag"
+  };
+  strictEqual(box.label?.[2] === "g", true);
+  strictEqual((box.label?.[0] ?? "") + "!", "t!");
+  const upper = maybe?.[0]?.toUpperCase();
+  strictEqual(upper === "O", true);
+  const text = "abc";
+  strictEqual(text[0], "a");
+  strictEqual(text[2], "c");
+  let position = 1;
+  strictEqual(text[position], "b");
+  strictEqual(text[position + 1], "c");
+  const first = text[0];
+  strictEqual(first + first, "aa");
+  strictEqual(text, "abc");
+  strictEqual(initial("word"), "w");
+  strictEqual(make()[1], "y");
+  strictEqual("literal" [3], "e");
+  const token: Token = {
+    text: "field"
+  };
+  strictEqual(token.text[4], "d");
+  const words = ["one", "two"];
+  strictEqual(words[1][0], "t");
+  strictEqual(text[0].toUpperCase(), "A");
+  strictEqual(text[1] === "b", true);
+  strictEqual(typeof text[0], "string");
+  const counter = [0];
+  strictEqual(text[next(counter)], "b");
+  strictEqual(counter[0], 1);
+  let spelled = "";
+  for (let index = 2; index >= 0; index--) {
+    spelled += text[index];
+  }
 
-    strictEqual(spelled, "cba");
-    let caught = "";
-    try {
-        strictEqual(text[3], "never");
-    } catch (error) {
-        if (typeof error !== "string" && typeof error !== "number" && typeof error !== "boolean") {
-            caught = "range";
-        }
+  strictEqual(spelled, "cba");
+  let caught = "";
+  try {
+    strictEqual(text[3], "never");
+  } catch (error) {
+    if (typeof error !== "string" && typeof error !== "number" && typeof error !== "boolean") {
+      caught = "range";
     }
+  }
 
-    strictEqual(caught, "range");
-    let negative = "";
-    try {
-        position = -1;
-        strictEqual(text[position], "never");
-    } catch (error) {
-        negative = "range";
-    }
+  strictEqual(caught, "range");
+  let negative = "";
+  try {
+    position = -1;
+    strictEqual(text[position], "never");
+  } catch (error) {
+    negative = "range";
+  }
 
-    strictEqual(negative, "range");
-    const present: string | undefined = "ok";
-    if (present !== undefined) {
-        strictEqual(present[1], "k");
-    }
+  strictEqual(negative, "range");
+  const present: string | undefined = "ok";
+  if (present !== undefined) {
+    strictEqual(present[1], "k");
+  }
 }

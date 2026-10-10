@@ -1,95 +1,95 @@
 function workload(n: int, seed: int, input: string): int[][] {
-    function independent(): int {
-        function unused(): int {
-            return later.length;
-        }
-
-        return 7;
+  function independent(): int {
+    function unused(): int {
+      return later.length;
     }
 
-    const independentResult = independent();
-    const later = [1, 2];
-    if (independentResult !== 7) {
-        throw 99;
+    return 7;
+  }
+
+  const independentResult = independent();
+  const later = [1, 2];
+  if (independentResult !== 7) {
+    throw 99;
+  }
+
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 5 + seed % 5 + 1;
+    const actions = [make(value), make(value + 10)];
+    const first = actions[0]();
+    const second = actions[1]();
+    const again = actions[0]();
+    const recurse = recursive([value]);
+    const take = owner(value + 20);
+    const item = take();
+    const fail = failure(value);
+    let caught = 0;
+    try {
+      fail();
+    } catch {
+      caught = 1;
     }
 
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 5 + seed % 5 + 1;
-        const actions = [make(value), make(value + 10)];
-        const first = actions[0]();
-        const second = actions[1]();
-        const again = actions[0]();
-        const recurse = recursive([value]);
-        const take = owner(value + 20);
-        const item = take();
-        const fail = failure(value);
-        let caught = 0;
-        try {
-            fail();
-        } catch {
-            caught = 1;
-        }
+    output.push([first, second, again, recurse(4), recurse(3), item.value, caught, input.length]);
+    i += 1;
+  }
 
-        output.push([first, second, again, recurse(4), recurse(3), item.value, caught, input.length]);
-        i += 1;
-    }
-
-    return output;
+  return output;
 }
 
 type Item = {
-    value: int;
+  value: int;
 };
 
 function make(start: int): () => int {
-    let value = start;
-    function next(): int {
-        value += 1;
-        return value;
-    }
+  let value = start;
+  function next(): int {
+    value += 1;
+    return value;
+  }
 
-    return next;
+  return next;
 }
 
 function recursive(base: int[]): (n: int) => int {
-    function even(n: int): int {
-        if (n === 0) {
-            return base[0];
-        }
-
-        return odd(n - 1);
+  function even(n: int): int {
+    if (n === 0) {
+      return base[0];
     }
 
-    function odd(n: int): int {
-        if (n === 0) {
-            return base[0] + 1;
-        }
+    return odd(n - 1);
+  }
 
-        return even(n - 1);
+  function odd(n: int): int {
+    if (n === 0) {
+      return base[0] + 1;
     }
 
-    return even;
+    return even(n - 1);
+  }
+
+  return even;
 }
 
 function owner(value: int): () => Item {
-    const item: Item = {
-        value: value
-    };
-    function take(): Item {
-        return item;
-    }
+  const item: Item = {
+    value: value
+  };
+  function take(): Item {
+    return item;
+  }
 
-    return take;
+  return take;
 }
 
 function failure(value: int): () => int {
-    function fail(): int {
-        throw value;
-    }
+  function fail(): int {
+    throw value;
+  }
 
-    return fail;
+  return fail;
 }
 
 function main(): void {

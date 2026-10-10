@@ -1,17 +1,17 @@
 function workload(n: int, seed: int): int[] {
-    const values: int[] = [];
-    let i = 0;
-    while (i < n) {
-        values.push((i * 17 + seed) % 1009);
-        i = i + 1;
-    }
+  const values: int[] = [];
+  let i = 0;
+  while (i < n) {
+    values.push((i * 17 + seed) % 1009);
+    i = i + 1;
+  }
 
-    return values;
+  return values;
 }
 
 function main() {
-    const values = workload(2, 7);
-    for (const value of values) {
-        console.log(value);
-    }
+  const values = workload(2, 7);
+  for (const value of values) {
+    console.log(value);
+  }
 }

@@ -1,2985 +1,2985 @@
 type Holder = {
-    run: ReadOnly<Function<int>>;
+  run: ReadOnly<Function<int>>;
 };
 
 type Box = {
-    handlers: Map<string, Holder>;
+  handlers: Map<string, Holder>;
 };
 
 type RefillBox = {
-    handlers: Map<string, Holder>;
-    marker: int;
+  handlers: Map<string, Holder>;
+  marker: int;
 };
 
 function workload(n: int, seed: int, input: string): int[][] {
-    const output: int[][] = [];
-    let i = 0;
-    while (i < n) {
-        const value = i % 5 + seed % 5 + 1;
-        const base = [value, value + 1];
-        let removedValue = 0;
-        let arrayValue = 0;
-        let mapFirst = 0;
-        let mapSecond = 0;
-        let replaced = 0;
-        let iterated = 0;
-        let peerValue = 0;
-        let populated = 0;
-        let cleared = 0;
-        {
-            const items: Holder[] = [{
-                run: (): int => base[0]
-            }];
-            const removed = items.pop();
-            items.push({
-                run: (): int => base[1]
-            });
-            if (removed !== undefined) removedValue = removed.run();
-            arrayValue = items[0].run();
-            const handlers = new Map<string, Holder>();
-            handlers.set("first", {
-                run: (): int => base[0]
-            });
-            const peerMap = new Map<string, Holder>();
-            peerMap.set("peer", {
-                run: (): int => base[1] + 2
-            });
-            const boxes: Box[] = [{
-                handlers: handlers
-            }, {
-                handlers: peerMap
-            }];
-            boxes[0].handlers.set("second", {
-                run: (): int => base[1]
-            });
-            {
-                const first = boxes[0].handlers.get("first");
-                const second = boxes[0].handlers.get("second");
-                if (first !== undefined) mapFirst = first.run();
-                if (second !== undefined) mapSecond = second.run();
-            }
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const value = i % 5 + seed % 5 + 1;
+    const base = [value, value + 1];
+    let removedValue = 0;
+    let arrayValue = 0;
+    let mapFirst = 0;
+    let mapSecond = 0;
+    let replaced = 0;
+    let iterated = 0;
+    let peerValue = 0;
+    let populated = 0;
+    let cleared = 0;
+    {
+      const items: Holder[] = [{
+        run: (): int => base[0]
+      }];
+      const removed = items.pop();
+      items.push({
+        run: (): int => base[1]
+      });
+      if (removed !== undefined) removedValue = removed.run();
+      arrayValue = items[0].run();
+      const handlers = new Map<string, Holder>();
+      handlers.set("first", {
+        run: (): int => base[0]
+      });
+      const peerMap = new Map<string, Holder>();
+      peerMap.set("peer", {
+        run: (): int => base[1] + 2
+      });
+      const boxes: Box[] = [{
+        handlers: handlers
+      }, {
+        handlers: peerMap
+      }];
+      boxes[0].handlers.set("second", {
+        run: (): int => base[1]
+      });
+      {
+        const first = boxes[0].handlers.get("first");
+        const second = boxes[0].handlers.get("second");
+        if (first !== undefined) mapFirst = first.run();
+        if (second !== undefined) mapSecond = second.run();
+      }
 
-            {
-                const peer = boxes[1].handlers.get("peer");
-                if (peer !== undefined) peerValue = peer.run();
-            }
+      {
+        const peer = boxes[1].handlers.get("peer");
+        if (peer !== undefined) peerValue = peer.run();
+      }
 
-            populated = boxes[0].handlers.size;
-            boxes[0].handlers.forEach((holder: ReadOnly<Holder>): void => {
-                iterated += holder.run();
-            });
-            const replacementMap = new Map<string, Holder>();
-            replacementMap.set("replacement", {
-                run: (): int => base[1] + 1
-            });
-            boxes[0].handlers = replacementMap;
-            {
-                const replacement = boxes[0].handlers.get("replacement");
-                if (replacement !== undefined) replaced = replacement.run();
-            }
+      populated = boxes[0].handlers.size;
+      boxes[0].handlers.forEach((holder: ReadOnly<Holder>): void => {
+        iterated += holder.run();
+      });
+      const replacementMap = new Map<string, Holder>();
+      replacementMap.set("replacement", {
+        run: (): int => base[1] + 1
+      });
+      boxes[0].handlers = replacementMap;
+      {
+        const replacement = boxes[0].handlers.get("replacement");
+        if (replacement !== undefined) replaced = replacement.run();
+      }
 
-            boxes[0].handlers.clear();
-            cleared = boxes[0].handlers.size;
-        }
-
-        const oldCapture = [value];
-        const newCapture = [value + 4];
-        const refillMap = new Map<string, Holder>();
-        const refillBox: RefillBox = {
-            handlers: refillMap, marker: 1
-        };
-        refillBox.handlers.set("old", {
-            run: (): int => oldCapture[0]
-        });
-        if (value % 2 === 0) {
-            refillBox.handlers.clear();
-        } else {
-            refillBox.handlers.clear();
-        }
-
-        refillBox.handlers.set("new", {
-            run: (): int => newCapture[0]
-        });
-        oldCapture[0] = value + 5;
-        let refilled = 0;
-        {
-            const current = refillBox.handlers.get("new");
-            if (current !== undefined) refilled = current.run();
-        }
-
-        let movedSize = 0;
-        if (value % 2 === 0) {
-            refillBox.handlers.clear();
-            const moved = refillBox.handlers;
-            movedSize = moved.size;
-        } else {
-            refillBox.handlers.clear();
-            movedSize = refillBox.handlers.size;
-        }
-
-        newCapture[0] = value + 6;
-        refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
-
-        const beforeThrow = [value];
-        const afterThrow = [value + 8];
-        const caughtMap = new Map<string, Holder>();
-        caughtMap.set("old", {
-            run: (): int => beforeThrow[0]
-        });
-        let caughtValue = 0;
-        try {
-            caughtMap.clear();
-            caughtMap.set("new", {
-                run: (): int => afterThrow[0]
-            });
-            throw value;
-        } catch (error) {
-            caughtValue = caughtMap.size;
-        }
-
-        beforeThrow[0] = value + 9;
-        {
-            const current = caughtMap.get("new");
-            if (current !== undefined) caughtValue += current.run();
-        }
-
-        caughtMap.clear();
-        afterThrow[0] = value + 10;
-        caughtValue += beforeThrow[0] + afterThrow[0];
-
-        let branchTrace = 0;
-        let normalCleanup = 0;
-        let caughtCleanup = 0;
-        let normalRenewed = 0;
-        let caughtRenewed = 0;
-        {
-            const prefixOld = [value];
-            const prefixNew = [value + 12];
-            const prefixMap = new Map<string, Holder>();
-            prefixMap.set("old", {
-                run: (): int => prefixOld[0]
-            });
-            let prefixValue = 0;
-            try {
-                if (value % 2 === 0) {
-                    branchTrace += 1;
-                    prefixValue = prefixResult(false);
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                } else {
-                    branchTrace += 2;
-                    prefixValue = prefixResult(false);
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                }
-            } catch (error) {
-                {
-                    prefixValue = 2;
-                    prefixValue += prefixMap.size;
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                }
-            } finally {
-                normalCleanup = prefixMap.size;
-            }
-
-            prefixOld[0] = value + 13;
-            {
-                const entry = prefixMap.get("new");
-                if (entry !== undefined) prefixValue += entry.run();
-            }
-
-            prefixMap.clear();
-            prefixNew[0] = value + 14;
-            normalRenewed = prefixValue + prefixOld[0] + prefixNew[0];
-        }
-
-        {
-            const prefixOld = [value];
-            const prefixNew = [value + 12];
-            const prefixMap = new Map<string, Holder>();
-            prefixMap.set("old", {
-                run: (): int => prefixOld[0]
-            });
-            let prefixValue = 0;
-            try {
-                if (value % 2 === 0) {
-                    branchTrace += 1;
-                    prefixValue = prefixResult(true);
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                } else {
-                    branchTrace += 2;
-                    prefixValue = prefixResult(true);
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                }
-            } catch (error) {
-                {
-                    prefixValue = 2;
-                    prefixValue += prefixMap.size;
-                    prefixMap.clear();
-                    prefixMap.set("new", {
-                        run: (): int => prefixNew[0]
-                    });
-                }
-            } finally {
-                caughtCleanup = prefixMap.size;
-            }
-
-            prefixOld[0] = value + 13;
-            {
-                const entry = prefixMap.get("new");
-                if (entry !== undefined) prefixValue += entry.run();
-            }
-
-            prefixMap.clear();
-            prefixNew[0] = value + 14;
-            caughtRenewed = prefixValue + prefixOld[0] + prefixNew[0];
-        }
-
-        let normalConsumed = 0;
-        let caughtConsumed = 0;
-        {
-            const consumedOld = [value];
-            const consumedMap = new Map<string, Holder>();
-            consumedMap.set("old", {
-                run: (): int => consumedOld[0]
-            });
-            let consumedPath = 0;
-            let consumedSize = -1;
-            try {
-                consumedPath = prefixResult(false);
-                consumedMap.clear();
-                const moved = consumedMap;
-                consumedSize = moved.size;
-            } catch (error) {
-                consumedPath = 2;
-                consumedMap.clear();
-                const moved = consumedMap;
-                consumedSize = moved.size;
-            }
-
-            consumedOld[0] = value + 20;
-            normalConsumed = consumedSize + consumedPath + consumedOld[0];
-        }
-
-        {
-            const consumedOld = [value];
-            const consumedMap = new Map<string, Holder>();
-            consumedMap.set("old", {
-                run: (): int => consumedOld[0]
-            });
-            let consumedPath = 0;
-            let consumedSize = -1;
-            try {
-                consumedPath = prefixResult(true);
-                consumedMap.clear();
-                const moved = consumedMap;
-                consumedSize = moved.size;
-            } catch (error) {
-                consumedPath = 2;
-                consumedMap.clear();
-                const moved = consumedMap;
-                consumedSize = moved.size;
-            }
-
-            consumedOld[0] = value + 20;
-            caughtConsumed = consumedSize + consumedPath + consumedOld[0];
-        }
-
-        let earlyRestored = 0;
-        let lateRestored = 0;
-        {
-            const restoredOld = [value];
-            let restoredMap = new Map<string, Holder>();
-            restoredMap.set("old", {
-                run: (): int => restoredOld[0]
-            });
-            let restoredSize = -1;
-            try {
-                const beforeTransfer = prefixResult(true);
-                restoredMap.clear();
-                const transferred = restoredMap;
-                restoredSize = transferred.size;
-                throw 7;
-            } catch (error) {
-                restoredMap = new Map<string, Holder>();
-            }
-
-            restoredOld[0] = value + 30;
-            earlyRestored = restoredSize + restoredMap.size + restoredOld[0];
-        }
-
-        {
-            const restoredOld = [value];
-            let restoredMap = new Map<string, Holder>();
-            restoredMap.set("old", {
-                run: (): int => restoredOld[0]
-            });
-            let restoredSize = -1;
-            try {
-                const beforeTransfer = prefixResult(false);
-                restoredMap.clear();
-                const transferred = restoredMap;
-                restoredSize = transferred.size;
-                throw 7;
-            } catch (error) {
-                restoredMap = new Map<string, Holder>();
-            }
-
-            restoredOld[0] = value + 30;
-            lateRestored = restoredSize + restoredMap.size + restoredOld[0];
-        }
-
-        let earlyExpression = 0;
-        let lateExpression = 0;
-        {
-            const expressionOld = [value];
-            let expressionMap = new Map<string, Holder>();
-            expressionMap.set("old", {
-                run: (): int => expressionOld[0]
-            });
-            let expressionSaved = new Map<string, Holder>();
-            let expressionResult = -1;
-            try {
-                expressionMap.clear();
-                expressionResult = (prefixResult(true), expressionSaved = expressionMap, 1);
-                throw 8;
-            } catch (error) {
-                expressionMap = new Map<string, Holder>();
-            }
-
-            expressionOld[0] = value + 40;
-            earlyExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
-        }
-
-        {
-            const expressionOld = [value];
-            let expressionMap = new Map<string, Holder>();
-            expressionMap.set("old", {
-                run: (): int => expressionOld[0]
-            });
-            let expressionSaved = new Map<string, Holder>();
-            let expressionResult = -1;
-            try {
-                expressionMap.clear();
-                expressionResult = (expressionSaved = expressionMap, prefixResult(true));
-                throw 8;
-            } catch (error) {
-                expressionMap = new Map<string, Holder>();
-            }
-
-            expressionOld[0] = value + 41;
-            lateExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
-        }
-
-        let conditionalRenewed = 0;
-        {
-            const conditionalOld = [value];
-            const conditionalMap = new Map<string, Holder>();
-            conditionalMap.set("old", {
-                run: (): int => conditionalOld[0]
-            });
-            const conditionalBox: Box = {
-                handlers: conditionalMap
-            };
-            let conditionalSize = -1;
-            try {
-                if (value % 2 === 0) {
-                    conditionalBox.handlers.clear();
-                    const conditionalMoved = conditionalBox.handlers;
-                    conditionalSize = conditionalMoved.size;
-                } else {
-                    conditionalSize = conditionalBox.handlers.size;
-                }
-
-                throw 9;
-            } catch (error) {
-                conditionalBox.handlers = new Map<string, Holder>();
-            }
-
-            conditionalOld[0] = value + 50;
-            conditionalRenewed = conditionalSize + conditionalBox.handlers.size + conditionalOld[0];
-        }
-
-        let normalSurvivor = 0;
-        const survivorOld = [value];
-        {
-            let survivorMap = new Map<string, Holder>();
-            survivorMap.set("old", {
-                run: (): int => survivorOld[0]
-            });
-            let survivorSize = -1;
-            try {
-                const survivorPrefix = prefixResult(false);
-                if (value % 2 === 0) {
-                    survivorMap.clear();
-                    const survivorMoved = survivorMap;
-                    survivorSize = survivorMoved.size;
-                } else {
-                    survivorSize = survivorMap.size;
-                }
-            } catch (error) {
-                survivorMap = new Map<string, Holder>();
-            }
-
-            normalSurvivor = survivorSize + survivorOld[0];
-        }
-
-        survivorOld[0] = value + 51;
-        normalSurvivor += survivorOld[0];
-
-        let outsideRestored = 0;
-        {
-            const outsideOld = [value];
-            let outsideMap = new Map<string, Holder>();
-            outsideMap.set("old", {
-                run: (): int => outsideOld[0]
-            });
-            let outsideSize = -1;
-            if (value % 2 === 0) {
-                outsideMap.clear();
-                const outsideMoved = outsideMap;
-                outsideSize = outsideMoved.size;
-            } else {
-                outsideSize = outsideMap.size;
-            }
-
-            outsideMap = new Map<string, Holder>();
-            outsideOld[0] = value + 60;
-            outsideRestored = outsideSize + outsideMap.size + outsideOld[0];
-        }
-
-        const cleanupTrace = [0, -1];
-        let finallyRenewed = 0;
-        try {
-            finallyRenewed = noCatchRenewal(value % 2 === 0, value, cleanupTrace);
-        } catch (error) {
-            finallyRenewed = 7;
-        }
-
-        finallyRenewed += cleanupTrace[0] * 100 + cleanupTrace[1];
-
-        const returnTrace = [0, -1];
-        const finallyReturned = noCatchReturn(value % 2 === 0, value, returnTrace) + returnTrace[0] * 100 + returnTrace[1];
-        const loopTrace = [0, 0];
-        const finallyLooped = noCatchLoop(value, loopTrace) + loopTrace[0] * 100 + loopTrace[1];
-        const outerTrace = [0, 0];
-        const finallyOuterLooped = noCatchOuterLoop(value, outerTrace) + outerTrace[0] * 100 + outerTrace[1];
-        const initializedRecordMap = nestedMapInitializer(value);
-        const recordLoopTrace = [0, 0];
-        const loopedRecordMap = recordMapLoop(value, recordLoopTrace) + recordLoopTrace[0] * 100 + recordLoopTrace[1];
-        const nestedTrace = [0, 0, 0, 0];
-        let nestedCleaned = 0;
-        try {
-            nestedCleaned = nestedMapCleanup(value % 2 === 0, value, nestedTrace);
-        } catch (error) {
-            nestedCleaned = 7;
-        }
-
-        nestedCleaned += nestedTrace[0] * 100 + nestedTrace[1] * 10 + nestedTrace[2] * 1000 + nestedTrace[3];
-        base[0] = 0;
-        const caughtNestedTrace = [0, 0, 0, 0];
-        const nestedCaught = nestedCaughtMapCleanup(value % 2 === 0, value, caughtNestedTrace) + caughtNestedTrace[0] * 100 + caughtNestedTrace[1] * 10 + caughtNestedTrace[2] * 1000 + caughtNestedTrace[3];
-        const abruptTrace = [0, 0, 0, 0];
-        let nestedAbrupt = 0;
-        try {
-            nestedAbrupt = nestedAbruptCleanup(value % 2 === 0, value, abruptTrace);
-        } catch (error) {
-            nestedAbrupt = 11;
-        }
-
-        nestedAbrupt += abruptTrace[0] * 100 + abruptTrace[1] * 10 + abruptTrace[2] * 1000 + abruptTrace[3];
-        const returnedTrace = [0, 0, 0];
-        const nestedReturned = nestedReturnedCleanup(value % 2 === 0, value, returnedTrace) + returnedTrace[0] * 100 + returnedTrace[1] * 10 + returnedTrace[2] * 1000;
-        const caughtLoopTrace = [0, 0];
-        const caughtLooped = caughtMapLoop(value, caughtLoopTrace) + caughtLoopTrace[0] * 100 + caughtLoopTrace[1];
-        const pairedLoopTrace = [0, 0];
-        const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
-        const nestedPairTrace = [0, 0];
-        const nestedPairLooped = nestedPairedMapLoop(value, nestedPairTrace) + nestedPairTrace[0] * 100 + nestedPairTrace[1];
-        const forOfMapObserved = forOfMapLoop();
-        const countedMapObserved = countedMapLoop();
-        const postMapObserved = postMapLoop();
-        const emptyMapObserved = emptyScopedMap();
-        output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2), cleanupOverrideEntry(value, 0), cleanupOverrideEntry(value, 1), cleanupOverrideEntry(value, 2), cleanupOverrideEntry(value, 3), handlerCleanupOverrideEntry(value, 0), handlerCleanupOverrideEntry(value, 1), handlerCleanupOverrideEntry(value, 2), handlerCleanupOverrideEntry(value, 3), indexedReplacementEntry(value), indexedFieldReplacementEntry(value), indexedMovedReplacementEntry(value), indexedPopEntry(value), indexedShiftEntry(value), indexedEmptyEntry(value), indexedRetainedEntry(value), indexedIndependentResult(value), indexedMutableResult(value), indexedReplacedResult(value), indexedCommaRemoval(value), indexedNestedCommaRemoval(value), indexedRetainedCommaResult(value), indexedCommaReassignment(value), nullableRecordReplacement(value), nullableRecordNullResult(value), nullableFieldReplacement(value), nullableFieldArray(value), nullableControlStores(value), nullableValueJoins(value), nullableParameterRead(value), nullableOwnedJoin(value), nullableElementSlots(value), containerBoundaries(value), borrowedNullableViews(value), nullableParameterStores(value), independentNullableParameters(value)]);
-        i += 1;
+      boxes[0].handlers.clear();
+      cleared = boxes[0].handlers.size;
     }
 
-    return output;
+    const oldCapture = [value];
+    const newCapture = [value + 4];
+    const refillMap = new Map<string, Holder>();
+    const refillBox: RefillBox = {
+      handlers: refillMap, marker: 1
+    };
+    refillBox.handlers.set("old", {
+      run: (): int => oldCapture[0]
+    });
+    if (value % 2 === 0) {
+      refillBox.handlers.clear();
+    } else {
+      refillBox.handlers.clear();
+    }
+
+    refillBox.handlers.set("new", {
+      run: (): int => newCapture[0]
+    });
+    oldCapture[0] = value + 5;
+    let refilled = 0;
+    {
+      const current = refillBox.handlers.get("new");
+      if (current !== undefined) refilled = current.run();
+    }
+
+    let movedSize = 0;
+    if (value % 2 === 0) {
+      refillBox.handlers.clear();
+      const moved = refillBox.handlers;
+      movedSize = moved.size;
+    } else {
+      refillBox.handlers.clear();
+      movedSize = refillBox.handlers.size;
+    }
+
+    newCapture[0] = value + 6;
+    refilled += oldCapture[0] + newCapture[0] + refillBox.marker;
+
+    const beforeThrow = [value];
+    const afterThrow = [value + 8];
+    const caughtMap = new Map<string, Holder>();
+    caughtMap.set("old", {
+      run: (): int => beforeThrow[0]
+    });
+    let caughtValue = 0;
+    try {
+      caughtMap.clear();
+      caughtMap.set("new", {
+        run: (): int => afterThrow[0]
+      });
+      throw value;
+    } catch (error) {
+      caughtValue = caughtMap.size;
+    }
+
+    beforeThrow[0] = value + 9;
+    {
+      const current = caughtMap.get("new");
+      if (current !== undefined) caughtValue += current.run();
+    }
+
+    caughtMap.clear();
+    afterThrow[0] = value + 10;
+    caughtValue += beforeThrow[0] + afterThrow[0];
+
+    let branchTrace = 0;
+    let normalCleanup = 0;
+    let caughtCleanup = 0;
+    let normalRenewed = 0;
+    let caughtRenewed = 0;
+    {
+      const prefixOld = [value];
+      const prefixNew = [value + 12];
+      const prefixMap = new Map<string, Holder>();
+      prefixMap.set("old", {
+        run: (): int => prefixOld[0]
+      });
+      let prefixValue = 0;
+      try {
+        if (value % 2 === 0) {
+          branchTrace += 1;
+          prefixValue = prefixResult(false);
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        } else {
+          branchTrace += 2;
+          prefixValue = prefixResult(false);
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        }
+      } catch (error) {
+        {
+          prefixValue = 2;
+          prefixValue += prefixMap.size;
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        }
+      } finally {
+        normalCleanup = prefixMap.size;
+      }
+
+      prefixOld[0] = value + 13;
+      {
+        const entry = prefixMap.get("new");
+        if (entry !== undefined) prefixValue += entry.run();
+      }
+
+      prefixMap.clear();
+      prefixNew[0] = value + 14;
+      normalRenewed = prefixValue + prefixOld[0] + prefixNew[0];
+    }
+
+    {
+      const prefixOld = [value];
+      const prefixNew = [value + 12];
+      const prefixMap = new Map<string, Holder>();
+      prefixMap.set("old", {
+        run: (): int => prefixOld[0]
+      });
+      let prefixValue = 0;
+      try {
+        if (value % 2 === 0) {
+          branchTrace += 1;
+          prefixValue = prefixResult(true);
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        } else {
+          branchTrace += 2;
+          prefixValue = prefixResult(true);
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        }
+      } catch (error) {
+        {
+          prefixValue = 2;
+          prefixValue += prefixMap.size;
+          prefixMap.clear();
+          prefixMap.set("new", {
+            run: (): int => prefixNew[0]
+          });
+        }
+      } finally {
+        caughtCleanup = prefixMap.size;
+      }
+
+      prefixOld[0] = value + 13;
+      {
+        const entry = prefixMap.get("new");
+        if (entry !== undefined) prefixValue += entry.run();
+      }
+
+      prefixMap.clear();
+      prefixNew[0] = value + 14;
+      caughtRenewed = prefixValue + prefixOld[0] + prefixNew[0];
+    }
+
+    let normalConsumed = 0;
+    let caughtConsumed = 0;
+    {
+      const consumedOld = [value];
+      const consumedMap = new Map<string, Holder>();
+      consumedMap.set("old", {
+        run: (): int => consumedOld[0]
+      });
+      let consumedPath = 0;
+      let consumedSize = -1;
+      try {
+        consumedPath = prefixResult(false);
+        consumedMap.clear();
+        const moved = consumedMap;
+        consumedSize = moved.size;
+      } catch (error) {
+        consumedPath = 2;
+        consumedMap.clear();
+        const moved = consumedMap;
+        consumedSize = moved.size;
+      }
+
+      consumedOld[0] = value + 20;
+      normalConsumed = consumedSize + consumedPath + consumedOld[0];
+    }
+
+    {
+      const consumedOld = [value];
+      const consumedMap = new Map<string, Holder>();
+      consumedMap.set("old", {
+        run: (): int => consumedOld[0]
+      });
+      let consumedPath = 0;
+      let consumedSize = -1;
+      try {
+        consumedPath = prefixResult(true);
+        consumedMap.clear();
+        const moved = consumedMap;
+        consumedSize = moved.size;
+      } catch (error) {
+        consumedPath = 2;
+        consumedMap.clear();
+        const moved = consumedMap;
+        consumedSize = moved.size;
+      }
+
+      consumedOld[0] = value + 20;
+      caughtConsumed = consumedSize + consumedPath + consumedOld[0];
+    }
+
+    let earlyRestored = 0;
+    let lateRestored = 0;
+    {
+      const restoredOld = [value];
+      let restoredMap = new Map<string, Holder>();
+      restoredMap.set("old", {
+        run: (): int => restoredOld[0]
+      });
+      let restoredSize = -1;
+      try {
+        const beforeTransfer = prefixResult(true);
+        restoredMap.clear();
+        const transferred = restoredMap;
+        restoredSize = transferred.size;
+        throw 7;
+      } catch (error) {
+        restoredMap = new Map<string, Holder>();
+      }
+
+      restoredOld[0] = value + 30;
+      earlyRestored = restoredSize + restoredMap.size + restoredOld[0];
+    }
+
+    {
+      const restoredOld = [value];
+      let restoredMap = new Map<string, Holder>();
+      restoredMap.set("old", {
+        run: (): int => restoredOld[0]
+      });
+      let restoredSize = -1;
+      try {
+        const beforeTransfer = prefixResult(false);
+        restoredMap.clear();
+        const transferred = restoredMap;
+        restoredSize = transferred.size;
+        throw 7;
+      } catch (error) {
+        restoredMap = new Map<string, Holder>();
+      }
+
+      restoredOld[0] = value + 30;
+      lateRestored = restoredSize + restoredMap.size + restoredOld[0];
+    }
+
+    let earlyExpression = 0;
+    let lateExpression = 0;
+    {
+      const expressionOld = [value];
+      let expressionMap = new Map<string, Holder>();
+      expressionMap.set("old", {
+        run: (): int => expressionOld[0]
+      });
+      let expressionSaved = new Map<string, Holder>();
+      let expressionResult = -1;
+      try {
+        expressionMap.clear();
+        expressionResult = (prefixResult(true), expressionSaved = expressionMap, 1);
+        throw 8;
+      } catch (error) {
+        expressionMap = new Map<string, Holder>();
+      }
+
+      expressionOld[0] = value + 40;
+      earlyExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
+    }
+
+    {
+      const expressionOld = [value];
+      let expressionMap = new Map<string, Holder>();
+      expressionMap.set("old", {
+        run: (): int => expressionOld[0]
+      });
+      let expressionSaved = new Map<string, Holder>();
+      let expressionResult = -1;
+      try {
+        expressionMap.clear();
+        expressionResult = (expressionSaved = expressionMap, prefixResult(true));
+        throw 8;
+      } catch (error) {
+        expressionMap = new Map<string, Holder>();
+      }
+
+      expressionOld[0] = value + 41;
+      lateExpression = expressionResult + expressionSaved.size + expressionMap.size + expressionOld[0];
+    }
+
+    let conditionalRenewed = 0;
+    {
+      const conditionalOld = [value];
+      const conditionalMap = new Map<string, Holder>();
+      conditionalMap.set("old", {
+        run: (): int => conditionalOld[0]
+      });
+      const conditionalBox: Box = {
+        handlers: conditionalMap
+      };
+      let conditionalSize = -1;
+      try {
+        if (value % 2 === 0) {
+          conditionalBox.handlers.clear();
+          const conditionalMoved = conditionalBox.handlers;
+          conditionalSize = conditionalMoved.size;
+        } else {
+          conditionalSize = conditionalBox.handlers.size;
+        }
+
+        throw 9;
+      } catch (error) {
+        conditionalBox.handlers = new Map<string, Holder>();
+      }
+
+      conditionalOld[0] = value + 50;
+      conditionalRenewed = conditionalSize + conditionalBox.handlers.size + conditionalOld[0];
+    }
+
+    let normalSurvivor = 0;
+    const survivorOld = [value];
+    {
+      let survivorMap = new Map<string, Holder>();
+      survivorMap.set("old", {
+        run: (): int => survivorOld[0]
+      });
+      let survivorSize = -1;
+      try {
+        const survivorPrefix = prefixResult(false);
+        if (value % 2 === 0) {
+          survivorMap.clear();
+          const survivorMoved = survivorMap;
+          survivorSize = survivorMoved.size;
+        } else {
+          survivorSize = survivorMap.size;
+        }
+      } catch (error) {
+        survivorMap = new Map<string, Holder>();
+      }
+
+      normalSurvivor = survivorSize + survivorOld[0];
+    }
+
+    survivorOld[0] = value + 51;
+    normalSurvivor += survivorOld[0];
+
+    let outsideRestored = 0;
+    {
+      const outsideOld = [value];
+      let outsideMap = new Map<string, Holder>();
+      outsideMap.set("old", {
+        run: (): int => outsideOld[0]
+      });
+      let outsideSize = -1;
+      if (value % 2 === 0) {
+        outsideMap.clear();
+        const outsideMoved = outsideMap;
+        outsideSize = outsideMoved.size;
+      } else {
+        outsideSize = outsideMap.size;
+      }
+
+      outsideMap = new Map<string, Holder>();
+      outsideOld[0] = value + 60;
+      outsideRestored = outsideSize + outsideMap.size + outsideOld[0];
+    }
+
+    const cleanupTrace = [0, -1];
+    let finallyRenewed = 0;
+    try {
+      finallyRenewed = noCatchRenewal(value % 2 === 0, value, cleanupTrace);
+    } catch (error) {
+      finallyRenewed = 7;
+    }
+
+    finallyRenewed += cleanupTrace[0] * 100 + cleanupTrace[1];
+
+    const returnTrace = [0, -1];
+    const finallyReturned = noCatchReturn(value % 2 === 0, value, returnTrace) + returnTrace[0] * 100 + returnTrace[1];
+    const loopTrace = [0, 0];
+    const finallyLooped = noCatchLoop(value, loopTrace) + loopTrace[0] * 100 + loopTrace[1];
+    const outerTrace = [0, 0];
+    const finallyOuterLooped = noCatchOuterLoop(value, outerTrace) + outerTrace[0] * 100 + outerTrace[1];
+    const initializedRecordMap = nestedMapInitializer(value);
+    const recordLoopTrace = [0, 0];
+    const loopedRecordMap = recordMapLoop(value, recordLoopTrace) + recordLoopTrace[0] * 100 + recordLoopTrace[1];
+    const nestedTrace = [0, 0, 0, 0];
+    let nestedCleaned = 0;
+    try {
+      nestedCleaned = nestedMapCleanup(value % 2 === 0, value, nestedTrace);
+    } catch (error) {
+      nestedCleaned = 7;
+    }
+
+    nestedCleaned += nestedTrace[0] * 100 + nestedTrace[1] * 10 + nestedTrace[2] * 1000 + nestedTrace[3];
+    base[0] = 0;
+    const caughtNestedTrace = [0, 0, 0, 0];
+    const nestedCaught = nestedCaughtMapCleanup(value % 2 === 0, value, caughtNestedTrace) + caughtNestedTrace[0] * 100 + caughtNestedTrace[1] * 10 + caughtNestedTrace[2] * 1000 + caughtNestedTrace[3];
+    const abruptTrace = [0, 0, 0, 0];
+    let nestedAbrupt = 0;
+    try {
+      nestedAbrupt = nestedAbruptCleanup(value % 2 === 0, value, abruptTrace);
+    } catch (error) {
+      nestedAbrupt = 11;
+    }
+
+    nestedAbrupt += abruptTrace[0] * 100 + abruptTrace[1] * 10 + abruptTrace[2] * 1000 + abruptTrace[3];
+    const returnedTrace = [0, 0, 0];
+    const nestedReturned = nestedReturnedCleanup(value % 2 === 0, value, returnedTrace) + returnedTrace[0] * 100 + returnedTrace[1] * 10 + returnedTrace[2] * 1000;
+    const caughtLoopTrace = [0, 0];
+    const caughtLooped = caughtMapLoop(value, caughtLoopTrace) + caughtLoopTrace[0] * 100 + caughtLoopTrace[1];
+    const pairedLoopTrace = [0, 0];
+    const pairedLooped = pairedMapLoop(value, pairedLoopTrace) + pairedLoopTrace[0] * 100 + pairedLoopTrace[1];
+    const nestedPairTrace = [0, 0];
+    const nestedPairLooped = nestedPairedMapLoop(value, nestedPairTrace) + nestedPairTrace[0] * 100 + nestedPairTrace[1];
+    const forOfMapObserved = forOfMapLoop();
+    const countedMapObserved = countedMapLoop();
+    const postMapObserved = postMapLoop();
+    const emptyMapObserved = emptyScopedMap();
+    output.push([removedValue, arrayValue, mapFirst, mapSecond, replaced, iterated, peerValue, populated, cleared, base[0] + base[1], refilled, movedSize, caughtValue, normalRenewed, caughtRenewed, normalCleanup, caughtCleanup, branchTrace, normalConsumed, caughtConsumed, earlyRestored, lateRestored, earlyExpression, lateExpression, conditionalRenewed, normalSurvivor, outsideRestored, finallyRenewed, finallyReturned, finallyLooped, finallyOuterLooped, initializedRecordMap, loopedRecordMap, nestedCleaned, nestedCaught, nestedAbrupt, nestedReturned, caughtLooped, pairedLooped, nestedPairLooped, emptyMapObserved, countedMapObserved, postMapObserved, forOfMapObserved, knownEntryRelease(value), movedFieldEntryRelease(value), replacementEntryOutcome(value, value % 2 !== 0), branchEntryRelease(value, value % 2 === 0), mixedBranchEntryRelease(value, value % 2 === 0), pairedBranchEntryRelease(value, value % 2 === 0), postEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), countedEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), forOfEntryLoopRelease(value, value % 2 === 0 ? 0 : 2), loopEntryRefill(value, value % 2 === 0 ? 0 : 2), innerBranchEntryRelease(value, value % 2 === 0), branchEntryRefill(value, value % 2 === 0), iterationEntryMutation(value, value % 2 === 0 ? 0 : 2), postIterationEntryMutation(value, value % 2 === 0 ? 0 : 2), abruptIterationEntryMutation(value, value % 2 === 0), countedUpdateEntryMutation(value, value % 2 === 0), finallyEntryMutation(value), cleanupIterationMutation(value, value % 2 === 0), returnCleanupEntryMutation(value, 0), returnCleanupEntryMutation(value, 1), returnCleanupEntryMutation(value, 2), returnCleanupEntryMutation(value, 3), returnCleanupEntryMutation(value, 4), nestedCleanupEntryMutation(value, value % 2 === 0, false), nestedCleanupEntryMutation(value, value % 2 === 0, true), directNestedEntryMutation(value, value % 2 === 0), labelledBlockEntryMutation(value, value % 2 === 0), labelledLoopBlockEntryMutation(value, value % 2 === 0), ordinaryEntryEdges(value, value % 2 === 0 ? 0 : 2, false), ordinaryEntryEdges(value, 2, true), narrowedOrdinaryEntryEdges(value, 2, false), noBackedgeEntryBreak(value), noBackedgeEntryReturn(value), phaseJoinedEntry(value, false), phaseJoinedEntry(value, true), finallyNormalJoinedEntry(value, value % 2 !== 0), errorPhaseEntry(value, value % 2 !== 0), finallyErrorEntry(value, value % 2 !== 0), finallyPendingError(value, value % 2 !== 0), handlerRethrowEntry(value), cleanupOutgoingEntry(value, value % 2 !== 0), catchFinallyEntry(value, 0), catchFinallyEntry(value, 1), catchFinallyEntry(value, 2), catchFinallyEntry(value, 3), returnCarrierEntry(value, 0), returnCarrierEntry(value, 1), returnCarrierEntry(value, 2), catchReturnCarrierEntry(value, 0), catchReturnCarrierEntry(value, 1), catchReturnCarrierEntry(value, 2), controlCarrierEntry(value, 0), controlCarrierEntry(value, 1), controlCarrierEntry(value, 2), handlerControlCarrierEntry(value, 0), handlerControlCarrierEntry(value, 1), handlerControlCarrierEntry(value, 2), cleanupOverrideEntry(value, 0), cleanupOverrideEntry(value, 1), cleanupOverrideEntry(value, 2), cleanupOverrideEntry(value, 3), handlerCleanupOverrideEntry(value, 0), handlerCleanupOverrideEntry(value, 1), handlerCleanupOverrideEntry(value, 2), handlerCleanupOverrideEntry(value, 3), indexedReplacementEntry(value), indexedFieldReplacementEntry(value), indexedMovedReplacementEntry(value), indexedPopEntry(value), indexedShiftEntry(value), indexedEmptyEntry(value), indexedRetainedEntry(value), indexedIndependentResult(value), indexedMutableResult(value), indexedReplacedResult(value), indexedCommaRemoval(value), indexedNestedCommaRemoval(value), indexedRetainedCommaResult(value), indexedCommaReassignment(value), nullableRecordReplacement(value), nullableRecordNullResult(value), nullableFieldReplacement(value), nullableFieldArray(value), nullableControlStores(value), nullableValueJoins(value), nullableParameterRead(value), nullableOwnedJoin(value), nullableElementSlots(value), containerBoundaries(value), borrowedNullableViews(value), nullableParameterStores(value), independentNullableParameters(value)]);
+    i += 1;
+  }
+
+  return output;
 }
 
 function prefixResult(fail: boolean): int {
-    if (fail) throw 5;
-    return 1;
+  if (fail) throw 5;
+  return 1;
 }
 
 function main() {
-    const result = workload(3, 0, "composition");
+  const result = workload(3, 0, "composition");
 }
 
 function noCatchRenewal(fail: boolean, value: int, trace: Mutable<int[]>): int {
-    const finallyOld = [value];
-    const finallyNext = [value + 1];
-    let finallyMap = new Map<string, Holder>();
-    finallyMap.set("old", {
-        run: (): int => finallyOld[0]
+  const finallyOld = [value];
+  const finallyNext = [value + 1];
+  let finallyMap = new Map<string, Holder>();
+  finallyMap.set("old", {
+    run: (): int => finallyOld[0]
+  });
+  let retained = 0;
+  try {
+    const finallyPrefix = prefixResult(fail);
+    finallyMap.clear();
+    finallyMap.set("next", {
+      run: (): int => finallyNext[0]
     });
-    let retained = 0;
-    try {
-        const finallyPrefix = prefixResult(fail);
-        finallyMap.clear();
-        finallyMap.set("next", {
-            run: (): int => finallyNext[0]
-        });
-        retained = finallyMap.size;
-    } finally {
-        trace[0] = finallyMap.size;
-        finallyMap.clear();
-        trace[1] = finallyMap.size;
-    }
+    retained = finallyMap.size;
+  } finally {
+    trace[0] = finallyMap.size;
+    finallyMap.clear();
+    trace[1] = finallyMap.size;
+  }
 
-    finallyOld[0] = value + 70;
-    finallyNext[0] = value + 71;
-    return retained + finallyOld[0] + finallyNext[0];
+  finallyOld[0] = value + 70;
+  finallyNext[0] = value + 71;
+  return retained + finallyOld[0] + finallyNext[0];
 }
 
 function noCatchReturn(early: boolean, value: int, trace: Mutable<int[]>): int {
-    const returnOld = [value];
-    const returnNext = [value + 1];
-    let returnMap = new Map<string, Holder>();
-    returnMap.set("old", {
-        run: (): int => returnOld[0]
+  const returnOld = [value];
+  const returnNext = [value + 1];
+  let returnMap = new Map<string, Holder>();
+  returnMap.set("old", {
+    run: (): int => returnOld[0]
+  });
+  try {
+    const returnPrefix = prefixResult(false);
+    if (early) return value + 80;
+    returnMap.clear();
+    returnMap.set("next", {
+      run: (): int => returnNext[0]
     });
-    try {
-        const returnPrefix = prefixResult(false);
-        if (early) return value + 80;
-        returnMap.clear();
-        returnMap.set("next", {
-            run: (): int => returnNext[0]
-        });
-    } finally {
-        trace[0] = returnMap.size;
-        returnMap.clear();
-        trace[1] = returnMap.size;
-    }
+  } finally {
+    trace[0] = returnMap.size;
+    returnMap.clear();
+    trace[1] = returnMap.size;
+  }
 
-    returnOld[0] = value + 82;
-    returnNext[0] = value + 83;
-    return returnOld[0] + returnNext[0];
+  returnOld[0] = value + 82;
+  returnNext[0] = value + 83;
+  return returnOld[0] + returnNext[0];
 }
 
 function noCatchLoop(value: int, trace: Mutable<int[]>): int {
-    const loopOld = [value];
-    const loopNext = [value + 1];
-    let turn = 0;
-    let loopObserved = 0;
-    while (turn < 3) {
-        let loopMap = new Map<string, Holder>();
-        loopMap.set("old", {
-            run: (): int => loopOld[0]
-        });
-        turn += 1;
-        try {
-            const loopPrefix = prefixResult(false);
-            loopMap.clear();
-            loopMap.set("next", {
-                run: (): int => loopNext[0]
-            });
-            if (turn === 1) continue;
-            if (turn === 3) break;
-        } finally {
-            trace[0] += loopMap.size;
-            loopMap.clear();
-            trace[1] += loopMap.size;
-        }
-
-        loopOld[0] = value + 90;
-        loopNext[0] = value + 91;
-        loopObserved = loopOld[0] + loopNext[0];
+  const loopOld = [value];
+  const loopNext = [value + 1];
+  let turn = 0;
+  let loopObserved = 0;
+  while (turn < 3) {
+    let loopMap = new Map<string, Holder>();
+    loopMap.set("old", {
+      run: (): int => loopOld[0]
+    });
+    turn += 1;
+    try {
+      const loopPrefix = prefixResult(false);
+      loopMap.clear();
+      loopMap.set("next", {
+        run: (): int => loopNext[0]
+      });
+      if (turn === 1) continue;
+      if (turn === 3) break;
+    } finally {
+      trace[0] += loopMap.size;
+      loopMap.clear();
+      trace[1] += loopMap.size;
     }
 
-    return loopObserved + turn;
+    loopOld[0] = value + 90;
+    loopNext[0] = value + 91;
+    loopObserved = loopOld[0] + loopNext[0];
+  }
+
+  return loopObserved + turn;
 }
 
 function noCatchOuterLoop(value: int, trace: Mutable<int[]>): int {
-    const loopOld = [value];
-    const loopNext = [value + 1];
-    let turn = 0;
-    let loopObserved = 0;
-    let loopMap = new Map<string, Holder>();
-    while (turn < 3) {
-        loopMap.set("old", {
-            run: (): int => loopOld[0]
-        });
-        turn += 1;
-        try {
-            const loopPrefix = prefixResult(false);
-            loopMap.clear();
-            loopMap.set("next", {
-                run: (): int => loopNext[0]
-            });
-            if (turn === 1) continue;
-            if (turn === 3) break;
-        } finally {
-            trace[0] += loopMap.size;
-            loopMap.clear();
-            trace[1] += loopMap.size;
-        }
-
-        loopOld[0] = value + 90;
-        loopNext[0] = value + 91;
-        loopObserved = loopOld[0] + loopNext[0];
+  const loopOld = [value];
+  const loopNext = [value + 1];
+  let turn = 0;
+  let loopObserved = 0;
+  let loopMap = new Map<string, Holder>();
+  while (turn < 3) {
+    loopMap.set("old", {
+      run: (): int => loopOld[0]
+    });
+    turn += 1;
+    try {
+      const loopPrefix = prefixResult(false);
+      loopMap.clear();
+      loopMap.set("next", {
+        run: (): int => loopNext[0]
+      });
+      if (turn === 1) continue;
+      if (turn === 3) break;
+    } finally {
+      trace[0] += loopMap.size;
+      loopMap.clear();
+      trace[1] += loopMap.size;
     }
 
-    return loopObserved + turn + loopMap.size;
+    loopOld[0] = value + 90;
+    loopNext[0] = value + 91;
+    loopObserved = loopOld[0] + loopNext[0];
+  }
+
+  return loopObserved + turn + loopMap.size;
 }
 
 function nestedMapInitializer(value: int): int {
-    const initializerOld = [value];
-    const initializerNext = [value + 1];
-    const initializerBox: RefillBox = {
-        marker: value + 100, handlers: new Map<string, Holder>()
-    };
-    initializerBox.handlers.set("old", {
-        run: (): int => initializerOld[0]
-    });
-    initializerBox.handlers.set("next", {
-        run: (): int => initializerNext[0]
-    });
-    const initializerObserved = initializerBox.handlers.size + initializerBox.marker;
-    initializerBox.handlers.clear();
-    initializerOld[0] = value + 101;
-    initializerNext[0] = value + 102;
-    return initializerObserved + initializerOld[0] + initializerNext[0] + initializerBox.handlers.size;
+  const initializerOld = [value];
+  const initializerNext = [value + 1];
+  const initializerBox: RefillBox = {
+    marker: value + 100, handlers: new Map<string, Holder>()
+  };
+  initializerBox.handlers.set("old", {
+    run: (): int => initializerOld[0]
+  });
+  initializerBox.handlers.set("next", {
+    run: (): int => initializerNext[0]
+  });
+  const initializerObserved = initializerBox.handlers.size + initializerBox.marker;
+  initializerBox.handlers.clear();
+  initializerOld[0] = value + 101;
+  initializerNext[0] = value + 102;
+  return initializerObserved + initializerOld[0] + initializerNext[0] + initializerBox.handlers.size;
 }
 
 function recordMapLoop(value: int, trace: Mutable<int[]>): int {
-    const recordLoopOld = [value];
-    const recordLoopNext = [value + 1];
-    let turn = 0;
-    let recordLoopObserved = 0;
-    let recordLoopBox: RefillBox = {
-        marker: value + 110, handlers: new Map<string, Holder>()
-    };
-    while (turn < 3) {
-        recordLoopBox.handlers.set("old", {
-            run: (): int => recordLoopOld[0]
-        });
-        turn += 1;
-        try {
-            const recordLoopPrefix = prefixResult(false);
-            recordLoopBox.handlers.clear();
-            recordLoopBox.handlers.set("next", {
-                run: (): int => recordLoopNext[0]
-            });
-            if (turn === 1) continue;
-            if (turn === 3) break;
-        } finally {
-            trace[0] += recordLoopBox.handlers.size;
-            recordLoopBox.handlers.clear();
-            trace[1] += recordLoopBox.handlers.size;
-        }
-
-        recordLoopBox.marker += 1;
-        recordLoopOld[0] = value + 111;
-        recordLoopNext[0] = value + 112;
-        recordLoopObserved = recordLoopOld[0] + recordLoopNext[0] + recordLoopBox.marker;
+  const recordLoopOld = [value];
+  const recordLoopNext = [value + 1];
+  let turn = 0;
+  let recordLoopObserved = 0;
+  let recordLoopBox: RefillBox = {
+    marker: value + 110, handlers: new Map<string, Holder>()
+  };
+  while (turn < 3) {
+    recordLoopBox.handlers.set("old", {
+      run: (): int => recordLoopOld[0]
+    });
+    turn += 1;
+    try {
+      const recordLoopPrefix = prefixResult(false);
+      recordLoopBox.handlers.clear();
+      recordLoopBox.handlers.set("next", {
+        run: (): int => recordLoopNext[0]
+      });
+      if (turn === 1) continue;
+      if (turn === 3) break;
+    } finally {
+      trace[0] += recordLoopBox.handlers.size;
+      recordLoopBox.handlers.clear();
+      trace[1] += recordLoopBox.handlers.size;
     }
 
-    const recordLoopOrder = Object.keys(recordLoopBox)[0] === "marker" ? 4 : 0;
-    return recordLoopObserved + turn + recordLoopBox.handlers.size + recordLoopOrder;
+    recordLoopBox.marker += 1;
+    recordLoopOld[0] = value + 111;
+    recordLoopNext[0] = value + 112;
+    recordLoopObserved = recordLoopOld[0] + recordLoopNext[0] + recordLoopBox.marker;
+  }
+
+  const recordLoopOrder = Object.keys(recordLoopBox)[0] === "marker" ? 4 : 0;
+  return recordLoopObserved + turn + recordLoopBox.handlers.size + recordLoopOrder;
 }
 
 function nestedCaughtMapCleanup(fail: boolean, value: int, trace: Mutable<int[]>): int {
-    const caughtNestedOld = [value];
-    const caughtNestedNext = [value + 1];
-    let caughtNestedMap = new Map<string, Holder>();
-    caughtNestedMap.set("old", {
-        run: (): int => caughtNestedOld[0]
-    });
-    let caughtNestedObserved = -1;
+  const caughtNestedOld = [value];
+  const caughtNestedNext = [value + 1];
+  let caughtNestedMap = new Map<string, Holder>();
+  caughtNestedMap.set("old", {
+    run: (): int => caughtNestedOld[0]
+  });
+  let caughtNestedObserved = -1;
+  try {
     try {
-        try {
-            const caughtNestedPrefix = prefixResult(fail);
-            caughtNestedMap.clear();
-            caughtNestedMap.set("next", {
-                run: (): int => caughtNestedNext[0]
-            });
-            caughtNestedObserved = caughtNestedMap.size;
-        } catch (error) {
-            caughtNestedObserved = 7;
-            caughtNestedMap.clear();
-            caughtNestedMap.set("next", {
-                run: (): int => caughtNestedNext[0]
-            });
-            trace[0] += caughtNestedMap.size;
-            caughtNestedMap.clear();
-            trace[1] += caughtNestedMap.size;
-        }
-    } finally {
-        trace[2] += caughtNestedMap.size;
-        caughtNestedMap.clear();
-        trace[3] += caughtNestedMap.size;
+      const caughtNestedPrefix = prefixResult(fail);
+      caughtNestedMap.clear();
+      caughtNestedMap.set("next", {
+        run: (): int => caughtNestedNext[0]
+      });
+      caughtNestedObserved = caughtNestedMap.size;
+    } catch (error) {
+      caughtNestedObserved = 7;
+      caughtNestedMap.clear();
+      caughtNestedMap.set("next", {
+        run: (): int => caughtNestedNext[0]
+      });
+      trace[0] += caughtNestedMap.size;
+      caughtNestedMap.clear();
+      trace[1] += caughtNestedMap.size;
     }
+  } finally {
+    trace[2] += caughtNestedMap.size;
+    caughtNestedMap.clear();
+    trace[3] += caughtNestedMap.size;
+  }
 
-    caughtNestedOld[0] = value + 120;
-    caughtNestedNext[0] = value + 121;
-    return caughtNestedObserved + caughtNestedOld[0] + caughtNestedNext[0];
+  caughtNestedOld[0] = value + 120;
+  caughtNestedNext[0] = value + 121;
+  return caughtNestedObserved + caughtNestedOld[0] + caughtNestedNext[0];
 }
 
 function nestedMapCleanup(fail: boolean, value: int, trace: Mutable<int[]>): int {
-    const nestedOld = [value];
-    const nestedNext = [value + 1];
-    let nestedMap = new Map<string, Holder>();
-    nestedMap.set("old", {
-        run: (): int => nestedOld[0]
-    });
-    let nestedObserved = -1;
+  const nestedOld = [value];
+  const nestedNext = [value + 1];
+  let nestedMap = new Map<string, Holder>();
+  nestedMap.set("old", {
+    run: (): int => nestedOld[0]
+  });
+  let nestedObserved = -1;
+  try {
     try {
-        try {
-            const nestedPrefix = prefixResult(fail);
-            nestedMap.clear();
-            nestedMap.set("next", {
-                run: (): int => nestedNext[0]
-            });
-            nestedObserved = nestedMap.size;
-        } finally {
-            trace[0] += nestedMap.size;
-            nestedMap.clear();
-            trace[1] += nestedMap.size;
-        }
+      const nestedPrefix = prefixResult(fail);
+      nestedMap.clear();
+      nestedMap.set("next", {
+        run: (): int => nestedNext[0]
+      });
+      nestedObserved = nestedMap.size;
     } finally {
-        trace[2] += nestedMap.size;
-        nestedMap.clear();
-        trace[3] += nestedMap.size;
+      trace[0] += nestedMap.size;
+      nestedMap.clear();
+      trace[1] += nestedMap.size;
     }
+  } finally {
+    trace[2] += nestedMap.size;
+    nestedMap.clear();
+    trace[3] += nestedMap.size;
+  }
 
-    nestedOld[0] = value + 120;
-    nestedNext[0] = value + 121;
-    return nestedObserved + nestedOld[0] + nestedNext[0];
+  nestedOld[0] = value + 120;
+  nestedNext[0] = value + 121;
+  return nestedObserved + nestedOld[0] + nestedNext[0];
 }
 
 function nestedAbruptCleanup(fail: boolean, value: int, trace: Mutable<int[]>): int {
-    const abruptOld = [value];
-    const abruptNext = [value + 1];
-    let abruptMap = new Map<string, Holder>();
-    abruptMap.set("old", {
-        run: (): int => abruptOld[0]
-    });
-    let abruptObserved = -1;
+  const abruptOld = [value];
+  const abruptNext = [value + 1];
+  let abruptMap = new Map<string, Holder>();
+  abruptMap.set("old", {
+    run: (): int => abruptOld[0]
+  });
+  let abruptObserved = -1;
+  try {
     try {
-        try {
-            const abruptPrefix = prefixResult(fail);
-            abruptMap.clear();
-            abruptMap.set("next", {
-                run: (): int => abruptNext[0]
-            });
-            abruptObserved = abruptMap.size;
-        } catch (error) {
-            abruptMap.clear();
-            abruptMap.set("next", {
-                run: (): int => abruptNext[0]
-            });
-            throw 9;
-        } finally {
-            trace[0] += abruptMap.size;
-            abruptMap.clear();
-            trace[1] += abruptMap.size;
-            if (fail) throw 11;
-        }
+      const abruptPrefix = prefixResult(fail);
+      abruptMap.clear();
+      abruptMap.set("next", {
+        run: (): int => abruptNext[0]
+      });
+      abruptObserved = abruptMap.size;
+    } catch (error) {
+      abruptMap.clear();
+      abruptMap.set("next", {
+        run: (): int => abruptNext[0]
+      });
+      throw 9;
     } finally {
-        trace[2] += abruptMap.size;
-        abruptMap.clear();
-        trace[3] += abruptMap.size;
+      trace[0] += abruptMap.size;
+      abruptMap.clear();
+      trace[1] += abruptMap.size;
+      if (fail) throw 11;
     }
+  } finally {
+    trace[2] += abruptMap.size;
+    abruptMap.clear();
+    trace[3] += abruptMap.size;
+  }
 
-    abruptOld[0] = value + 120;
-    abruptNext[0] = value + 121;
-    return abruptObserved + abruptOld[0] + abruptNext[0];
+  abruptOld[0] = value + 120;
+  abruptNext[0] = value + 121;
+  return abruptObserved + abruptOld[0] + abruptNext[0];
 }
 
 function nestedReturnedCleanup(fail: boolean, value: int, trace: Mutable<int[]>): int {
-    const returnedOld = [value];
-    const returnedNext = [value + 1];
-    let returnedMap = new Map<string, Holder>();
-    returnedMap.set("old", {
-        run: (): int => returnedOld[0]
-    });
+  const returnedOld = [value];
+  const returnedNext = [value + 1];
+  let returnedMap = new Map<string, Holder>();
+  returnedMap.set("old", {
+    run: (): int => returnedOld[0]
+  });
+  try {
     try {
-        try {
-            const returnedPrefix = prefixResult(fail);
-            returnedMap.clear();
-            returnedMap.set("next", {
-                run: (): int => returnedNext[0]
-            });
-            return returnedOld[0] + value;
-        } catch (error) {
-            returnedMap.clear();
-            returnedMap.set("next", {
-                run: (): int => returnedNext[0]
-            });
-            return returnedNext[0] + value;
-        } finally {
-            trace[0] += returnedMap.size;
-            returnedMap.clear();
-            trace[1] += returnedMap.size;
-        }
+      const returnedPrefix = prefixResult(fail);
+      returnedMap.clear();
+      returnedMap.set("next", {
+        run: (): int => returnedNext[0]
+      });
+      return returnedOld[0] + value;
+    } catch (error) {
+      returnedMap.clear();
+      returnedMap.set("next", {
+        run: (): int => returnedNext[0]
+      });
+      return returnedNext[0] + value;
     } finally {
-        returnedMap.clear();
-        returnedOld[0] = 0;
-        returnedNext[0] = 0;
-        trace[2] += returnedMap.size;
+      trace[0] += returnedMap.size;
+      returnedMap.clear();
+      trace[1] += returnedMap.size;
     }
+  } finally {
+    returnedMap.clear();
+    returnedOld[0] = 0;
+    returnedNext[0] = 0;
+    trace[2] += returnedMap.size;
+  }
 }
 
 function caughtMapLoop(value: int, trace: Mutable<int[]>): int {
-    const caughtLoopOld = [value];
-    const caughtLoopNext = [value + 1];
-    let turn = 0;
-    let caughtLoopObserved = 0;
-    let caughtLoopMap = new Map<string, Holder>();
-    while (turn < 3) {
-        caughtLoopMap.set("old", {
-            run: (): int => caughtLoopOld[0]
-        });
-        turn += 1;
-        try {
-            const caughtLoopPrefix = prefixResult(turn !== 2);
-            caughtLoopMap.clear();
-            caughtLoopMap.set("next", {
-                run: (): int => caughtLoopNext[0]
-            });
-        } catch (error) {
-            caughtLoopMap.clear();
-            caughtLoopMap.set("next", {
-                run: (): int => caughtLoopNext[0]
-            });
-            if (turn === 1) continue;
-            break;
-        } finally {
-            trace[0] += caughtLoopMap.size;
-            caughtLoopMap.clear();
-            trace[1] += caughtLoopMap.size;
-            caughtLoopOld[0] = value + 140;
-            caughtLoopNext[0] = value + 141;
-        }
-
-        caughtLoopObserved = caughtLoopOld[0] + caughtLoopNext[0];
+  const caughtLoopOld = [value];
+  const caughtLoopNext = [value + 1];
+  let turn = 0;
+  let caughtLoopObserved = 0;
+  let caughtLoopMap = new Map<string, Holder>();
+  while (turn < 3) {
+    caughtLoopMap.set("old", {
+      run: (): int => caughtLoopOld[0]
+    });
+    turn += 1;
+    try {
+      const caughtLoopPrefix = prefixResult(turn !== 2);
+      caughtLoopMap.clear();
+      caughtLoopMap.set("next", {
+        run: (): int => caughtLoopNext[0]
+      });
+    } catch (error) {
+      caughtLoopMap.clear();
+      caughtLoopMap.set("next", {
+        run: (): int => caughtLoopNext[0]
+      });
+      if (turn === 1) continue;
+      break;
+    } finally {
+      trace[0] += caughtLoopMap.size;
+      caughtLoopMap.clear();
+      trace[1] += caughtLoopMap.size;
+      caughtLoopOld[0] = value + 140;
+      caughtLoopNext[0] = value + 141;
     }
 
-    caughtLoopOld[0] = value + 142;
-    caughtLoopNext[0] = value + 143;
-    return caughtLoopObserved + turn + caughtLoopMap.size + caughtLoopOld[0] + caughtLoopNext[0];
+    caughtLoopObserved = caughtLoopOld[0] + caughtLoopNext[0];
+  }
+
+  caughtLoopOld[0] = value + 142;
+  caughtLoopNext[0] = value + 143;
+  return caughtLoopObserved + turn + caughtLoopMap.size + caughtLoopOld[0] + caughtLoopNext[0];
 }
 
 function pairedMapLoop(value: int, trace: Mutable<int[]>): int {
-    const pairedOld = [value];
-    const pairedNext = [value + 1];
-    let turn = 0;
-    const spareMap = new Map<string, int>();
-    let pairedLeft = new Map<string, Holder>();
-    let pairedRight = new Map<string, Holder>();
-    while (turn < 3) {
-        pairedLeft.set("old", {
-            run: (): int => pairedOld[0]
-        });
-        pairedRight.set("next", {
-            run: (): int => pairedNext[0]
-        });
-        turn += 1;
-        try {
-            const pairedPrefix = prefixResult(turn !== 2);
-        } catch (error) {
-            if (turn === 1) continue;
-            break;
-        } finally {
-            trace[0] += pairedLeft.size + pairedRight.size;
-            pairedLeft.clear();
-            pairedRight.clear();
-            pairedOld[0] = value + 150;
-            pairedNext[0] = value + 151;
-            trace[1] += pairedLeft.size + pairedRight.size;
-        }
+  const pairedOld = [value];
+  const pairedNext = [value + 1];
+  let turn = 0;
+  const spareMap = new Map<string, int>();
+  let pairedLeft = new Map<string, Holder>();
+  let pairedRight = new Map<string, Holder>();
+  while (turn < 3) {
+    pairedLeft.set("old", {
+      run: (): int => pairedOld[0]
+    });
+    pairedRight.set("next", {
+      run: (): int => pairedNext[0]
+    });
+    turn += 1;
+    try {
+      const pairedPrefix = prefixResult(turn !== 2);
+    } catch (error) {
+      if (turn === 1) continue;
+      break;
+    } finally {
+      trace[0] += pairedLeft.size + pairedRight.size;
+      pairedLeft.clear();
+      pairedRight.clear();
+      pairedOld[0] = value + 150;
+      pairedNext[0] = value + 151;
+      trace[1] += pairedLeft.size + pairedRight.size;
     }
+  }
 
-    trace[1] += spareMap.size;
-    return pairedOld[0] + pairedNext[0] + turn + pairedLeft.size + pairedRight.size;
+  trace[1] += spareMap.size;
+  return pairedOld[0] + pairedNext[0] + turn + pairedLeft.size + pairedRight.size;
 }
 
 function nestedPairedMapLoop(value: int, trace: Mutable<int[]>): int {
-    const nestedPairOld = [value];
-    const nestedPairNext = [value + 1];
-    let turn = 0;
-    let nestedPairLeft = new Map<string, Holder>();
-    let nestedPairRight = new Map<string, Holder>();
-    while (turn < 3) {
-        nestedPairLeft.set("old", {
-            run: (): int => nestedPairOld[0]
-        });
-        nestedPairRight.set("next", {
-            run: (): int => nestedPairNext[0]
-        });
-        turn += 1;
-        try {
-            try {
-                const nestedPairPrefix = prefixResult(turn !== 2);
-            } catch (error) {
-                if (turn === 1) continue;
-                break;
-            } finally {
-                trace[1] += turn;
-            }
-        } catch (error) {
-            trace[1] += 1000;
-        } finally {
-            trace[0] += nestedPairLeft.size + nestedPairRight.size;
-            nestedPairLeft.clear();
-            nestedPairRight.clear();
-            nestedPairOld[0] = value + 150;
-            nestedPairNext[0] = value + 151;
-            trace[1] += nestedPairLeft.size + nestedPairRight.size;
-        }
+  const nestedPairOld = [value];
+  const nestedPairNext = [value + 1];
+  let turn = 0;
+  let nestedPairLeft = new Map<string, Holder>();
+  let nestedPairRight = new Map<string, Holder>();
+  while (turn < 3) {
+    nestedPairLeft.set("old", {
+      run: (): int => nestedPairOld[0]
+    });
+    nestedPairRight.set("next", {
+      run: (): int => nestedPairNext[0]
+    });
+    turn += 1;
+    try {
+      try {
+        const nestedPairPrefix = prefixResult(turn !== 2);
+      } catch (error) {
+        if (turn === 1) continue;
+        break;
+      } finally {
+        trace[1] += turn;
+      }
+    } catch (error) {
+      trace[1] += 1000;
+    } finally {
+      trace[0] += nestedPairLeft.size + nestedPairRight.size;
+      nestedPairLeft.clear();
+      nestedPairRight.clear();
+      nestedPairOld[0] = value + 150;
+      nestedPairNext[0] = value + 151;
+      trace[1] += nestedPairLeft.size + nestedPairRight.size;
     }
+  }
 
-    return nestedPairOld[0] + nestedPairNext[0] + turn + nestedPairLeft.size + nestedPairRight.size;
+  return nestedPairOld[0] + nestedPairNext[0] + turn + nestedPairLeft.size + nestedPairRight.size;
 }
 
 function emptyScopedMap(): int {
-    const unfilled = new Map<string, Holder>();
-    let emptyObserved = unfilled.size;
-    if (unfilled.has("none")) emptyObserved += 100;
-    if (unfilled.delete("none")) emptyObserved += 1000;
-    {
-        const absent = unfilled.get("none");
-        emptyObserved += absent === undefined ? 1 : 0;
-        if (absent !== undefined) emptyObserved += absent.run();
-    }
+  const unfilled = new Map<string, Holder>();
+  let emptyObserved = unfilled.size;
+  if (unfilled.has("none")) emptyObserved += 100;
+  if (unfilled.delete("none")) emptyObserved += 1000;
+  {
+    const absent = unfilled.get("none");
+    emptyObserved += absent === undefined ? 1 : 0;
+    if (absent !== undefined) emptyObserved += absent.run();
+  }
 
-    for (const [key, entry] of unfilled) {
-        emptyObserved += entry.run();
-    }
+  for (const [key, entry] of unfilled) {
+    emptyObserved += entry.run();
+  }
 
-    const emptyMoved = unfilled;
-    emptyObserved += emptyMoved.size;
-    emptyMoved.clear();
-    return emptyObserved;
+  const emptyMoved = unfilled;
+  emptyObserved += emptyMoved.size;
+  emptyMoved.clear();
+  return emptyObserved;
 }
 
 function countedMapLoop(): int {
-    const countedValues = [3];
-    let countedTurn = 0;
-    let countedHandlers = new Map<string, Holder>();
-    for (let step = 0; step < 3; step += 1) {
-        countedHandlers.set("value", {
-            run: (): int => countedValues[0]
-        });
-        try {
-            prefixResult(countedTurn !== 1);
-        } catch (error) {
-            if (countedTurn === 0) continue;
-            break;
-        } finally {
-            countedHandlers.clear();
-            countedValues[0] += 2;
-            countedTurn += 1;
-        }
+  const countedValues = [3];
+  let countedTurn = 0;
+  let countedHandlers = new Map<string, Holder>();
+  for (let step = 0; step < 3; step += 1) {
+    countedHandlers.set("value", {
+      run: (): int => countedValues[0]
+    });
+    try {
+      prefixResult(countedTurn !== 1);
+    } catch (error) {
+      if (countedTurn === 0) continue;
+      break;
+    } finally {
+      countedHandlers.clear();
+      countedValues[0] += 2;
+      countedTurn += 1;
     }
+  }
 
-    return countedTurn + countedHandlers.size + countedValues[0];
+  return countedTurn + countedHandlers.size + countedValues[0];
 }
 
 function postMapLoop(): int {
-    const postValues = [3];
-    let postTurn = 0;
-    let postHandlers = new Map<string, Holder>();
-    do {
-        postHandlers.set("value", {
-            run: (): int => postValues[0]
-        });
-        try {
-            prefixResult(postTurn !== 1);
-        } catch (error) {
-            if (postTurn === 0) continue;
-            break;
-        } finally {
-            postHandlers.clear();
-            postValues[0] += 2;
-            postTurn += 1;
-        }
+  const postValues = [3];
+  let postTurn = 0;
+  let postHandlers = new Map<string, Holder>();
+  do {
+    postHandlers.set("value", {
+      run: (): int => postValues[0]
+    });
+    try {
+      prefixResult(postTurn !== 1);
+    } catch (error) {
+      if (postTurn === 0) continue;
+      break;
+    } finally {
+      postHandlers.clear();
+      postValues[0] += 2;
+      postTurn += 1;
     }
+  }
 
-    while (postTurn < 3);
-    return postTurn + postHandlers.size + postValues[0];
+  while (postTurn < 3);
+  return postTurn + postHandlers.size + postValues[0];
 }
 
 function forOfMapLoop(): int {
-    const iterValues = [3];
-    const iterSteps = [0, 1, 2];
-    let iterHandlers = new Map<string, Holder>();
-    for (const step of iterSteps) {
-        iterHandlers.set("value", {
-            run: (): int => iterValues[0]
-        });
-        try {
-            prefixResult(step !== 1);
-        } catch (error) {
-            if (step === 0) continue;
-            break;
-        } finally {
-            iterHandlers.clear();
-            iterValues[0] += 2;
-        }
+  const iterValues = [3];
+  const iterSteps = [0, 1, 2];
+  let iterHandlers = new Map<string, Holder>();
+  for (const step of iterSteps) {
+    iterHandlers.set("value", {
+      run: (): int => iterValues[0]
+    });
+    try {
+      prefixResult(step !== 1);
+    } catch (error) {
+      if (step === 0) continue;
+      break;
+    } finally {
+      iterHandlers.clear();
+      iterValues[0] += 2;
     }
+  }
 
-    return iterHandlers.size + iterValues[0];
+  return iterHandlers.size + iterValues[0];
 }
 
 function knownEntryRelease(value: int): int {
-    const releaseFirst = [value];
-    const releaseSecond = [value + 1];
-    const releaseMap = new Map<string, Holder>();
-    releaseMap.set("first", {
-        run: (): int => releaseFirst[0]
-    });
-    releaseMap.set("second", {
-        run: (): int => releaseSecond[0]
-    });
-    let releaseObserved = releaseMap.delete("first") ? 1 : 0;
-    releaseFirst[0] = value + 2;
-    {
-        const releaseSaved = releaseMap.get("second");
-        if (releaseSaved !== undefined) releaseObserved += releaseSaved.run();
-    }
+  const releaseFirst = [value];
+  const releaseSecond = [value + 1];
+  const releaseMap = new Map<string, Holder>();
+  releaseMap.set("first", {
+    run: (): int => releaseFirst[0]
+  });
+  releaseMap.set("second", {
+    run: (): int => releaseSecond[0]
+  });
+  let releaseObserved = releaseMap.delete("first") ? 1 : 0;
+  releaseFirst[0] = value + 2;
+  {
+    const releaseSaved = releaseMap.get("second");
+    if (releaseSaved !== undefined) releaseObserved += releaseSaved.run();
+  }
 
-    releaseObserved += releaseFirst[0] + releaseMap.size;
-    releaseMap.clear();
-    releaseSecond[0] = value + 3;
-    return releaseObserved + releaseSecond[0];
+  releaseObserved += releaseFirst[0] + releaseMap.size;
+  releaseMap.clear();
+  releaseSecond[0] = value + 3;
+  return releaseObserved + releaseSecond[0];
 }
 
 type ReleaseInner = {
-    handlers: Map<string, Holder>;
-    label: string;
+  handlers: Map<string, Holder>;
+  label: string;
 };
 
 type ReleaseOuter = {
-    inner: ReleaseInner;
-    marker: int;
+  inner: ReleaseInner;
+  marker: int;
 };
 
 function movedFieldEntryRelease(value: int): int {
-    const fieldFirst = [value];
-    const fieldSecond = [value + 1];
-    const fieldOriginal: ReleaseOuter = {
-        inner: {
-            handlers: new Map<string, Holder>(), label: "kept"
-        }, marker: 23
-    };
-    const fieldMoved = fieldOriginal;
-    fieldMoved.inner.handlers.set("first", {
-        run: (): int => fieldFirst[0]
-    });
-    fieldMoved.inner.handlers.set("second", {
-        run: (): int => fieldSecond[0]
-    });
-    let fieldObserved = fieldMoved.inner.handlers.delete("first") ? 1 : 0;
-    fieldFirst[0] = value + 2;
-    fieldMoved.inner.handlers.set("next", {
-        run: (): int => fieldFirst[0]
-    });
-    for (const [key, entry] of fieldMoved.inner.handlers) {
-        fieldObserved += entry.run();
-    }
+  const fieldFirst = [value];
+  const fieldSecond = [value + 1];
+  const fieldOriginal: ReleaseOuter = {
+    inner: {
+      handlers: new Map<string, Holder>(), label: "kept"
+    }, marker: 23
+  };
+  const fieldMoved = fieldOriginal;
+  fieldMoved.inner.handlers.set("first", {
+    run: (): int => fieldFirst[0]
+  });
+  fieldMoved.inner.handlers.set("second", {
+    run: (): int => fieldSecond[0]
+  });
+  let fieldObserved = fieldMoved.inner.handlers.delete("first") ? 1 : 0;
+  fieldFirst[0] = value + 2;
+  fieldMoved.inner.handlers.set("next", {
+    run: (): int => fieldFirst[0]
+  });
+  for (const [key, entry] of fieldMoved.inner.handlers) {
+    fieldObserved += entry.run();
+  }
 
-    fieldObserved += fieldMoved.inner.label.length + fieldMoved.marker;
-    fieldMoved.inner.handlers.clear();
-    fieldFirst[0] = value + 4;
-    fieldSecond[0] = value + 5;
-    return fieldObserved + fieldFirst[0] + fieldSecond[0];
+  fieldObserved += fieldMoved.inner.label.length + fieldMoved.marker;
+  fieldMoved.inner.handlers.clear();
+  fieldFirst[0] = value + 4;
+  fieldSecond[0] = value + 5;
+  return fieldObserved + fieldFirst[0] + fieldSecond[0];
 }
 
 function replacementEntryOutcome(value: int, fail: boolean): int {
-    const outcomeFirst = [value];
-    const outcomeNext = [value + 1];
-    const outcomeMap = new Map<string, Holder>();
-    outcomeMap.set("first", {
-        run: (): int => outcomeFirst[0]
-    });
-    let outcomeObserved = 0;
-    try {
-        outcomeMap.set("first", (prefixResult(fail), {
-            run: (): int => outcomeNext[0]
-        }));
-    } catch (error) {
-        outcomeObserved = 5;
-    }
+  const outcomeFirst = [value];
+  const outcomeNext = [value + 1];
+  const outcomeMap = new Map<string, Holder>();
+  outcomeMap.set("first", {
+    run: (): int => outcomeFirst[0]
+  });
+  let outcomeObserved = 0;
+  try {
+    outcomeMap.set("first", (prefixResult(fail), {
+      run: (): int => outcomeNext[0]
+    }));
+  } catch (error) {
+    outcomeObserved = 5;
+  }
 
-    {
-        const outcomeSaved = outcomeMap.get("first");
-        if (outcomeSaved !== undefined) outcomeObserved += outcomeSaved.run();
-    }
+  {
+    const outcomeSaved = outcomeMap.get("first");
+    if (outcomeSaved !== undefined) outcomeObserved += outcomeSaved.run();
+  }
 
-    outcomeMap.clear();
-    outcomeFirst[0] = value + 4;
-    outcomeNext[0] = value + 5;
-    return outcomeObserved + outcomeFirst[0] + outcomeNext[0];
+  outcomeMap.clear();
+  outcomeFirst[0] = value + 4;
+  outcomeNext[0] = value + 5;
+  return outcomeObserved + outcomeFirst[0] + outcomeNext[0];
 }
 
 function branchEntryRelease(value: int, branch: boolean): int {
-    const branchFirst = [value];
-    const branchSecond = [value + 1];
-    const branchHandlers = new Map<string, Holder>();
-    branchHandlers.set("first", {
-        run: (): int => branchFirst[0]
-    });
-    branchHandlers.set("second", {
-        run: (): int => branchSecond[0]
-    });
-    let branchObserved = 0;
-    if (branch) {
-        branchHandlers.delete("first");
-        branchObserved = 1;
-    } else {
-        branchHandlers.delete("first");
-        branchObserved = 2;
-    }
+  const branchFirst = [value];
+  const branchSecond = [value + 1];
+  const branchHandlers = new Map<string, Holder>();
+  branchHandlers.set("first", {
+    run: (): int => branchFirst[0]
+  });
+  branchHandlers.set("second", {
+    run: (): int => branchSecond[0]
+  });
+  let branchObserved = 0;
+  if (branch) {
+    branchHandlers.delete("first");
+    branchObserved = 1;
+  } else {
+    branchHandlers.delete("first");
+    branchObserved = 2;
+  }
 
-    branchFirst[0] = value + 2;
-    for (const [key, entry] of branchHandlers) {
-        branchObserved += entry.run();
-    }
+  branchFirst[0] = value + 2;
+  for (const [key, entry] of branchHandlers) {
+    branchObserved += entry.run();
+  }
 
-    branchObserved += branchFirst[0] + branchHandlers.size;
-    branchHandlers.clear();
-    branchSecond[0] = value + 3;
-    return branchObserved + branchSecond[0];
+  branchObserved += branchFirst[0] + branchHandlers.size;
+  branchHandlers.clear();
+  branchSecond[0] = value + 3;
+  return branchObserved + branchSecond[0];
 }
 
 function mixedBranchEntryRelease(value: int, branch: boolean): int {
-    const mixedFirst = [value];
-    const mixedSecond = [value + 1];
-    const mixedHandlers = new Map<string, Holder>();
-    mixedHandlers.set("first", {
-        run: (): int => mixedFirst[0]
-    });
-    mixedHandlers.set("second", {
-        run: (): int => mixedSecond[0]
-    });
-    if (branch) {
-        mixedHandlers.clear();
-    } else {
-        mixedHandlers.delete("first");
-    }
-
-    mixedFirst[0] = value + 2;
-    let mixedObserved = mixedHandlers.size + mixedFirst[0];
-    for (const [key, entry] of mixedHandlers) {
-        mixedObserved += entry.run();
-    }
-
+  const mixedFirst = [value];
+  const mixedSecond = [value + 1];
+  const mixedHandlers = new Map<string, Holder>();
+  mixedHandlers.set("first", {
+    run: (): int => mixedFirst[0]
+  });
+  mixedHandlers.set("second", {
+    run: (): int => mixedSecond[0]
+  });
+  if (branch) {
     mixedHandlers.clear();
-    mixedSecond[0] = value + 3;
-    return mixedObserved + mixedSecond[0];
+  } else {
+    mixedHandlers.delete("first");
+  }
+
+  mixedFirst[0] = value + 2;
+  let mixedObserved = mixedHandlers.size + mixedFirst[0];
+  for (const [key, entry] of mixedHandlers) {
+    mixedObserved += entry.run();
+  }
+
+  mixedHandlers.clear();
+  mixedSecond[0] = value + 3;
+  return mixedObserved + mixedSecond[0];
 }
 
 function pairedBranchEntryRelease(value: int, branch: boolean): int {
-    const pairedFirst = [value];
-    const pairedSecond = [value + 1];
-    const pairedThird = [value + 2];
-    const pairedLeft = new Map<string, Holder>();
-    const pairedRight = new Map<string, Holder>();
-    pairedLeft.set("first", {
-        run: (): int => pairedFirst[0]
-    });
-    pairedLeft.set("second", {
-        run: (): int => pairedSecond[0]
-    });
-    pairedRight.set("first", {
-        run: (): int => pairedFirst[0]
-    });
-    pairedRight.set("third", {
-        run: (): int => pairedThird[0]
-    });
-    if (branch) {
-        pairedLeft.delete("first");
-        pairedRight.delete("first");
-    } else {
-        pairedRight.delete("first");
-        pairedLeft.delete("first");
-    }
+  const pairedFirst = [value];
+  const pairedSecond = [value + 1];
+  const pairedThird = [value + 2];
+  const pairedLeft = new Map<string, Holder>();
+  const pairedRight = new Map<string, Holder>();
+  pairedLeft.set("first", {
+    run: (): int => pairedFirst[0]
+  });
+  pairedLeft.set("second", {
+    run: (): int => pairedSecond[0]
+  });
+  pairedRight.set("first", {
+    run: (): int => pairedFirst[0]
+  });
+  pairedRight.set("third", {
+    run: (): int => pairedThird[0]
+  });
+  if (branch) {
+    pairedLeft.delete("first");
+    pairedRight.delete("first");
+  } else {
+    pairedRight.delete("first");
+    pairedLeft.delete("first");
+  }
 
-    pairedFirst[0] = value + 3;
-    let pairedObserved = pairedFirst[0] + pairedLeft.size + pairedRight.size;
-    for (const [key, entry] of pairedLeft) {
-        pairedObserved += entry.run();
-    }
+  pairedFirst[0] = value + 3;
+  let pairedObserved = pairedFirst[0] + pairedLeft.size + pairedRight.size;
+  for (const [key, entry] of pairedLeft) {
+    pairedObserved += entry.run();
+  }
 
-    for (const [key, entry] of pairedRight) {
-        pairedObserved += entry.run();
-    }
+  for (const [key, entry] of pairedRight) {
+    pairedObserved += entry.run();
+  }
 
-    pairedLeft.clear();
-    pairedRight.clear();
-    pairedSecond[0] = value + 4;
-    pairedThird[0] = value + 5;
-    return pairedObserved + pairedSecond[0] + pairedThird[0];
+  pairedLeft.clear();
+  pairedRight.clear();
+  pairedSecond[0] = value + 4;
+  pairedThird[0] = value + 5;
+  return pairedObserved + pairedSecond[0] + pairedThird[0];
 }
 
 function postEntryLoopRelease(value: int, limit: int): int {
-    const postFirst = [value];
-    const postSecond = [value + 1];
-    const postHandlers = new Map<string, Holder>();
-    postHandlers.set("first", {
-        run: (): int => postFirst[0]
-    });
-    postHandlers.set("second", {
-        run: (): int => postSecond[0]
-    });
-    let postTurn = 0;
-    do {
-        postHandlers.delete("first");
-        postTurn += 1;
-    }
+  const postFirst = [value];
+  const postSecond = [value + 1];
+  const postHandlers = new Map<string, Holder>();
+  postHandlers.set("first", {
+    run: (): int => postFirst[0]
+  });
+  postHandlers.set("second", {
+    run: (): int => postSecond[0]
+  });
+  let postTurn = 0;
+  do {
+    postHandlers.delete("first");
+    postTurn += 1;
+  }
 
-    while (postTurn < limit);
-    postFirst[0] = value + 2;
-    let postObserved = postFirst[0] + postTurn + postHandlers.size;
-    for (const [key, entry] of postHandlers) {
-        postObserved += entry.run();
-    }
+  while (postTurn < limit);
+  postFirst[0] = value + 2;
+  let postObserved = postFirst[0] + postTurn + postHandlers.size;
+  for (const [key, entry] of postHandlers) {
+    postObserved += entry.run();
+  }
 
-    postHandlers.clear();
-    postSecond[0] = value + 3;
-    return postObserved + postSecond[0];
+  postHandlers.clear();
+  postSecond[0] = value + 3;
+  return postObserved + postSecond[0];
 }
 
 function countedEntryLoopRelease(value: int, limit: int): int {
-    const countedFirst = [value];
-    const countedSecond = [value + 1];
-    const countedEntries = new Map<string, Holder>();
-    let countedTurns = 0;
-    for (let step = 0; step < limit; step += 1) {
-        countedEntries.set("first", {
-            run: (): int => countedFirst[0]
-        });
-        countedEntries.set("second", {
-            run: (): int => countedSecond[0]
-        });
-        countedEntries.delete("first");
-        countedTurns += 1;
-    }
+  const countedFirst = [value];
+  const countedSecond = [value + 1];
+  const countedEntries = new Map<string, Holder>();
+  let countedTurns = 0;
+  for (let step = 0; step < limit; step += 1) {
+    countedEntries.set("first", {
+      run: (): int => countedFirst[0]
+    });
+    countedEntries.set("second", {
+      run: (): int => countedSecond[0]
+    });
+    countedEntries.delete("first");
+    countedTurns += 1;
+  }
 
-    countedFirst[0] = value + 2;
-    let countedObserved = countedFirst[0] + countedTurns + countedEntries.size;
-    for (const [key, entry] of countedEntries) {
-        countedObserved += entry.run();
-    }
+  countedFirst[0] = value + 2;
+  let countedObserved = countedFirst[0] + countedTurns + countedEntries.size;
+  for (const [key, entry] of countedEntries) {
+    countedObserved += entry.run();
+  }
 
-    countedEntries.clear();
-    countedSecond[0] = value + 3;
-    return countedObserved + countedSecond[0];
+  countedEntries.clear();
+  countedSecond[0] = value + 3;
+  return countedObserved + countedSecond[0];
 }
 
 function forOfEntryLoopRelease(value: int, limit: int): int {
-    const forOfFirst = [value];
-    const forOfSecond = [value + 1];
-    const forOfEntries = new Map<string, Holder>();
-    const entrySteps: int[] = [];
-    for (let step = 0; step < limit; step += 1) {
-        entrySteps.push(step);
-    }
+  const forOfFirst = [value];
+  const forOfSecond = [value + 1];
+  const forOfEntries = new Map<string, Holder>();
+  const entrySteps: int[] = [];
+  for (let step = 0; step < limit; step += 1) {
+    entrySteps.push(step);
+  }
 
-    let forOfTurns = 0;
-    for (const step of entrySteps) {
-        forOfEntries.set("first", {
-            run: (): int => forOfFirst[0]
-        });
-        forOfEntries.set("second", {
-            run: (): int => forOfSecond[0]
-        });
-        forOfEntries.delete("first");
-        forOfTurns += 1;
-    }
+  let forOfTurns = 0;
+  for (const step of entrySteps) {
+    forOfEntries.set("first", {
+      run: (): int => forOfFirst[0]
+    });
+    forOfEntries.set("second", {
+      run: (): int => forOfSecond[0]
+    });
+    forOfEntries.delete("first");
+    forOfTurns += 1;
+  }
 
-    forOfFirst[0] = value + 2;
-    let forOfObserved = forOfFirst[0] + forOfTurns + forOfEntries.size;
-    for (const [key, entry] of forOfEntries) {
-        forOfObserved += entry.run();
-    }
+  forOfFirst[0] = value + 2;
+  let forOfObserved = forOfFirst[0] + forOfTurns + forOfEntries.size;
+  for (const [key, entry] of forOfEntries) {
+    forOfObserved += entry.run();
+  }
 
-    forOfEntries.clear();
-    forOfSecond[0] = value + 3;
-    return forOfObserved + forOfSecond[0];
+  forOfEntries.clear();
+  forOfSecond[0] = value + 3;
+  return forOfObserved + forOfSecond[0];
 }
 
 function loopEntryRefill(value: int, limit: int): int {
-    const refillFirst = [value];
-    const refillSecond = [value + 1];
-    const refillThird = [value + 2];
-    const refillFourth = [value + 4];
-    const refillEntries = new Map<string, Holder>();
-    refillEntries.set("first", {
-        run: (): int => refillFirst[0]
+  const refillFirst = [value];
+  const refillSecond = [value + 1];
+  const refillThird = [value + 2];
+  const refillFourth = [value + 4];
+  const refillEntries = new Map<string, Holder>();
+  refillEntries.set("first", {
+    run: (): int => refillFirst[0]
+  });
+  refillEntries.set("second", {
+    run: (): int => refillSecond[0]
+  });
+  refillEntries.delete("first");
+  refillFirst[0] = value + 3;
+  let refillTurns = 0;
+  for (let step = 0; step < limit; step += 1) {
+    refillEntries.set("third", {
+      run: (): int => refillThird[0]
     });
-    refillEntries.set("second", {
-        run: (): int => refillSecond[0]
+    refillEntries.set("fourth", {
+      run: (): int => refillFourth[0]
     });
-    refillEntries.delete("first");
-    refillFirst[0] = value + 3;
-    let refillTurns = 0;
-    for (let step = 0; step < limit; step += 1) {
-        refillEntries.set("third", {
-            run: (): int => refillThird[0]
-        });
-        refillEntries.set("fourth", {
-            run: (): int => refillFourth[0]
-        });
-        refillTurns += 1;
-    }
+    refillTurns += 1;
+  }
 
-    let refillObserved = refillFirst[0] + refillTurns + refillEntries.size;
-    for (const [key, entry] of refillEntries) {
-        refillObserved += entry.run();
-    }
+  let refillObserved = refillFirst[0] + refillTurns + refillEntries.size;
+  for (const [key, entry] of refillEntries) {
+    refillObserved += entry.run();
+  }
 
-    refillEntries.clear();
-    refillThird[0] = value + 5;
-    refillFourth[0] = value + 6;
-    return refillObserved + refillThird[0] + refillFourth[0];
+  refillEntries.clear();
+  refillThird[0] = value + 5;
+  refillFourth[0] = value + 6;
+  return refillObserved + refillThird[0] + refillFourth[0];
 }
 
 function innerBranchEntryRelease(value: int, branch: boolean): int {
-    const innerFirst = [value];
-    const innerSecond = [value + 1];
-    const innerEntries = new Map<string, Holder>();
-    innerEntries.set("first", {
-        run: (): int => innerFirst[0]
-    });
-    innerEntries.set("second", {
-        run: (): int => innerSecond[0]
-    });
-    let innerObserved = 0;
-    if (branch) {
-        innerEntries.delete("first");
-        innerFirst[0] = value + 2;
-        innerObserved += innerFirst[0];
-    }
+  const innerFirst = [value];
+  const innerSecond = [value + 1];
+  const innerEntries = new Map<string, Holder>();
+  innerEntries.set("first", {
+    run: (): int => innerFirst[0]
+  });
+  innerEntries.set("second", {
+    run: (): int => innerSecond[0]
+  });
+  let innerObserved = 0;
+  if (branch) {
+    innerEntries.delete("first");
+    innerFirst[0] = value + 2;
+    innerObserved += innerFirst[0];
+  }
 
-    for (const [key, entry] of innerEntries) {
-        innerObserved += entry.run();
-    }
+  for (const [key, entry] of innerEntries) {
+    innerObserved += entry.run();
+  }
 
-    innerObserved += innerEntries.size;
-    innerEntries.clear();
-    innerFirst[0] = value + 3;
-    innerSecond[0] = value + 4;
-    return innerObserved + innerFirst[0] + innerSecond[0];
+  innerObserved += innerEntries.size;
+  innerEntries.clear();
+  innerFirst[0] = value + 3;
+  innerSecond[0] = value + 4;
+  return innerObserved + innerFirst[0] + innerSecond[0];
 }
 
 function branchEntryRefill(value: int, branch: boolean): int {
-    const branchRefillFirst = [value];
-    const branchRefillSecond = [value + 1];
-    const branchRefillThird = [value + 2];
-    const branchRefillFourth = [value + 3];
-    const branchRefillEntries = new Map<string, Holder>();
-    branchRefillEntries.set("first", {
-        run: (): int => branchRefillFirst[0]
+  const branchRefillFirst = [value];
+  const branchRefillSecond = [value + 1];
+  const branchRefillThird = [value + 2];
+  const branchRefillFourth = [value + 3];
+  const branchRefillEntries = new Map<string, Holder>();
+  branchRefillEntries.set("first", {
+    run: (): int => branchRefillFirst[0]
+  });
+  branchRefillEntries.set("second", {
+    run: (): int => branchRefillSecond[0]
+  });
+  branchRefillEntries.delete("first");
+  branchRefillFirst[0] = value + 4;
+  if (branch) {
+    branchRefillEntries.set("third", {
+      run: (): int => branchRefillThird[0]
     });
-    branchRefillEntries.set("second", {
-        run: (): int => branchRefillSecond[0]
+    branchRefillEntries.set("fourth", {
+      run: (): int => branchRefillFourth[0]
     });
-    branchRefillEntries.delete("first");
-    branchRefillFirst[0] = value + 4;
-    if (branch) {
-        branchRefillEntries.set("third", {
-            run: (): int => branchRefillThird[0]
-        });
-        branchRefillEntries.set("fourth", {
-            run: (): int => branchRefillFourth[0]
-        });
-    }
+  }
 
-    let branchRefillObserved = branchRefillFirst[0] + branchRefillEntries.size;
-    for (const [key, entry] of branchRefillEntries) {
-        branchRefillObserved += entry.run();
-    }
+  let branchRefillObserved = branchRefillFirst[0] + branchRefillEntries.size;
+  for (const [key, entry] of branchRefillEntries) {
+    branchRefillObserved += entry.run();
+  }
 
-    branchRefillEntries.clear();
-    branchRefillThird[0] = value + 5;
-    branchRefillFourth[0] = value + 6;
-    return branchRefillObserved + branchRefillThird[0] + branchRefillFourth[0];
+  branchRefillEntries.clear();
+  branchRefillThird[0] = value + 5;
+  branchRefillFourth[0] = value + 6;
+  return branchRefillObserved + branchRefillThird[0] + branchRefillFourth[0];
 }
 
 function iterationEntryMutation(value: int, limit: int): int {
-    const mutationFirst = [value];
-    const mutationSecond = [value + 1];
-    const mutationEntries = new Map<string, Holder>();
-    mutationEntries.set("second", {
-        run: (): int => mutationSecond[0]
+  const mutationFirst = [value];
+  const mutationSecond = [value + 1];
+  const mutationEntries = new Map<string, Holder>();
+  mutationEntries.set("second", {
+    run: (): int => mutationSecond[0]
+  });
+  let mutationTurns = 0;
+  for (let step = 0; step < limit; step += 1) {
+    mutationEntries.set("first", {
+      run: (): int => mutationFirst[0]
     });
-    let mutationTurns = 0;
-    for (let step = 0; step < limit; step += 1) {
-        mutationEntries.set("first", {
-            run: (): int => mutationFirst[0]
-        });
-        mutationEntries.delete("first");
-        mutationFirst[0] += 1;
-        mutationTurns += 1;
-    }
+    mutationEntries.delete("first");
+    mutationFirst[0] += 1;
+    mutationTurns += 1;
+  }
 
-    let mutationObserved = mutationFirst[0] + mutationTurns + mutationEntries.size;
-    for (const [key, entry] of mutationEntries) {
-        mutationObserved += entry.run();
-    }
+  let mutationObserved = mutationFirst[0] + mutationTurns + mutationEntries.size;
+  for (const [key, entry] of mutationEntries) {
+    mutationObserved += entry.run();
+  }
 
-    mutationEntries.clear();
-    mutationSecond[0] = value + 4;
-    return mutationObserved + mutationSecond[0];
+  mutationEntries.clear();
+  mutationSecond[0] = value + 4;
+  return mutationObserved + mutationSecond[0];
 }
 
 function postIterationEntryMutation(value: int, limit: int): int {
-    const postMutationFirst = [value];
-    const postMutationSecond = [value + 1];
-    const postMutationEntries = new Map<string, Holder>();
+  const postMutationFirst = [value];
+  const postMutationSecond = [value + 1];
+  const postMutationEntries = new Map<string, Holder>();
+  postMutationEntries.set("first", {
+    run: (): int => postMutationFirst[0]
+  });
+  postMutationEntries.set("second", {
+    run: (): int => postMutationSecond[0]
+  });
+  let postMutationTurns = 0;
+  do {
     postMutationEntries.set("first", {
-        run: (): int => postMutationFirst[0]
+      run: (): int => postMutationFirst[0]
     });
-    postMutationEntries.set("second", {
-        run: (): int => postMutationSecond[0]
-    });
-    let postMutationTurns = 0;
-    do {
-        postMutationEntries.set("first", {
-            run: (): int => postMutationFirst[0]
-        });
-        postMutationEntries.delete("first");
-        postMutationFirst[0] += 1;
-        postMutationTurns += 1;
-    }
+    postMutationEntries.delete("first");
+    postMutationFirst[0] += 1;
+    postMutationTurns += 1;
+  }
 
-    while (postMutationTurns < limit);
-    let postMutationObserved = postMutationFirst[0] + postMutationTurns + postMutationEntries.size;
-    for (const [key, entry] of postMutationEntries) {
-        postMutationObserved += entry.run();
-    }
+  while (postMutationTurns < limit);
+  let postMutationObserved = postMutationFirst[0] + postMutationTurns + postMutationEntries.size;
+  for (const [key, entry] of postMutationEntries) {
+    postMutationObserved += entry.run();
+  }
 
-    postMutationEntries.clear();
-    postMutationSecond[0] = value + 4;
-    return postMutationObserved + postMutationSecond[0];
+  postMutationEntries.clear();
+  postMutationSecond[0] = value + 4;
+  return postMutationObserved + postMutationSecond[0];
 }
 
 function abruptIterationEntryMutation(value: int, stop: boolean): int {
-    const abruptFirst = [value];
-    const abruptSecond = [value + 1];
-    const abruptEntries = new Map<string, Holder>();
-    abruptEntries.set("second", {
-        run: (): int => abruptSecond[0]
+  const abruptFirst = [value];
+  const abruptSecond = [value + 1];
+  const abruptEntries = new Map<string, Holder>();
+  abruptEntries.set("second", {
+    run: (): int => abruptSecond[0]
+  });
+  let abruptTurns = 0;
+  let abruptTails = 0;
+  while (abruptTurns < 3) {
+    abruptEntries.set("first", {
+      run: (): int => abruptFirst[0]
     });
-    let abruptTurns = 0;
-    let abruptTails = 0;
-    while (abruptTurns < 3) {
-        abruptEntries.set("first", {
-            run: (): int => abruptFirst[0]
-        });
-        abruptEntries.delete("first");
-        abruptFirst[0] += 1;
-        abruptTurns += 1;
-        if (stop) break;
-        if (abruptTurns < 3) continue;
-        abruptTails += 1;
-    }
+    abruptEntries.delete("first");
+    abruptFirst[0] += 1;
+    abruptTurns += 1;
+    if (stop) break;
+    if (abruptTurns < 3) continue;
+    abruptTails += 1;
+  }
 
-    let abruptObserved = abruptFirst[0] + abruptTurns + abruptEntries.size + abruptTails;
-    for (const [key, entry] of abruptEntries) {
-        abruptObserved += entry.run();
-    }
+  let abruptObserved = abruptFirst[0] + abruptTurns + abruptEntries.size + abruptTails;
+  for (const [key, entry] of abruptEntries) {
+    abruptObserved += entry.run();
+  }
 
-    abruptEntries.clear();
-    abruptSecond[0] = value + 4;
-    return abruptObserved + abruptSecond[0];
+  abruptEntries.clear();
+  abruptSecond[0] = value + 4;
+  return abruptObserved + abruptSecond[0];
 }
 
 function countedUpdateEntryMutation(value: int, stop: boolean): int {
-    const updateFirst = [value];
-    const updateSecond = [value + 1];
-    const updateThird = [value + 2];
-    const updateEntries = new Map<string, Holder>();
-    updateEntries.set("second", {
-        run: (): int => updateSecond[0]
+  const updateFirst = [value];
+  const updateSecond = [value + 1];
+  const updateThird = [value + 2];
+  const updateEntries = new Map<string, Holder>();
+  updateEntries.set("second", {
+    run: (): int => updateSecond[0]
+  });
+  let updateTurns = 0;
+  let updateObservedSize = 0;
+  for (let step = 0; step < 3; step = (updateObservedSize += updateEntries.size, updateEntries.delete("temporary"), step + 1)) {
+    updateEntries.set("first", {
+      run: (): int => updateFirst[0]
     });
-    let updateTurns = 0;
-    let updateObservedSize = 0;
-    for (let step = 0; step < 3; step = (updateObservedSize += updateEntries.size, updateEntries.delete("temporary"), step + 1)) {
-        updateEntries.set("first", {
-            run: (): int => updateFirst[0]
-        });
-        updateEntries.delete("first");
-        updateFirst[0] += 1;
-        updateEntries.set("temporary", {
-            run: (): int => updateThird[0]
-        });
-        updateTurns += 1;
-        if (stop && updateTurns === 2) {
-            updateEntries.delete("temporary");
-            break;
-        }
-
-        if (updateTurns < 3) continue;
+    updateEntries.delete("first");
+    updateFirst[0] += 1;
+    updateEntries.set("temporary", {
+      run: (): int => updateThird[0]
+    });
+    updateTurns += 1;
+    if (stop && updateTurns === 2) {
+      updateEntries.delete("temporary");
+      break;
     }
 
-    updateThird[0] = value + 4;
-    let updateObserved = updateFirst[0] + updateTurns + updateEntries.size + updateObservedSize + updateThird[0];
-    for (const [key, entry] of updateEntries) {
-        updateObserved += entry.run();
-    }
+    if (updateTurns < 3) continue;
+  }
 
-    updateEntries.clear();
-    return updateObserved;
+  updateThird[0] = value + 4;
+  let updateObserved = updateFirst[0] + updateTurns + updateEntries.size + updateObservedSize + updateThird[0];
+  for (const [key, entry] of updateEntries) {
+    updateObserved += entry.run();
+  }
+
+  updateEntries.clear();
+  return updateObserved;
 }
 
 
 function finallyEntryMutation(value: int): int {
-    const finallyEntryFirst = [value];
-    const finallyEntrySecond = [value + 1];
-    const finallyEntries = new Map<string, Holder>();
-    finallyEntries.set("first", {
-        run: (): int => finallyEntryFirst[0]
-    });
-    finallyEntries.set("second", {
-        run: (): int => finallyEntrySecond[0]
-    });
-    let finallyEntryObserved = 0;
-    try {
-        finallyEntries.delete("first");
-        finallyEntryFirst[0] = value + 4;
-        finallyEntryObserved = finallyEntryFirst[0];
-    } finally {
-        finallyEntryObserved += finallyEntries.size;
-        for (const [key, entry] of finallyEntries) {
-            finallyEntryObserved += entry.run();
-        }
+  const finallyEntryFirst = [value];
+  const finallyEntrySecond = [value + 1];
+  const finallyEntries = new Map<string, Holder>();
+  finallyEntries.set("first", {
+    run: (): int => finallyEntryFirst[0]
+  });
+  finallyEntries.set("second", {
+    run: (): int => finallyEntrySecond[0]
+  });
+  let finallyEntryObserved = 0;
+  try {
+    finallyEntries.delete("first");
+    finallyEntryFirst[0] = value + 4;
+    finallyEntryObserved = finallyEntryFirst[0];
+  } finally {
+    finallyEntryObserved += finallyEntries.size;
+    for (const [key, entry] of finallyEntries) {
+      finallyEntryObserved += entry.run();
     }
+  }
 
-    finallyEntries.clear();
-    return finallyEntryObserved + finallyEntryFirst[0];
+  finallyEntries.clear();
+  return finallyEntryObserved + finallyEntryFirst[0];
 }
 
 
 function cleanupIterationMutation(value: int, stop: boolean): int {
-    const cleanupFirst = [value];
-    const cleanupSecond = [value + 1];
-    const cleanupEntries = new Map<string, Holder>();
-    cleanupEntries.set("second", {
-        run: (): int => cleanupSecond[0]
-    });
-    let cleanupTurns = 0;
-    let cleanupTails = 0;
-    let cleanupObserved = 0;
-    while (cleanupTurns < 3) {
-        try {
-            cleanupEntries.set("first", {
-                run: (): int => cleanupFirst[0]
-            });
-            cleanupEntries.delete("first");
-            cleanupFirst[0] += 1;
-            cleanupTurns += 1;
-            if (stop) break;
-            if (cleanupTurns < 3) continue;
-            cleanupTails += 1;
-        } finally {
-            cleanupObserved += cleanupEntries.size;
-            for (const [key, entry] of cleanupEntries) {
-                cleanupObserved += entry.run();
-            }
-        }
+  const cleanupFirst = [value];
+  const cleanupSecond = [value + 1];
+  const cleanupEntries = new Map<string, Holder>();
+  cleanupEntries.set("second", {
+    run: (): int => cleanupSecond[0]
+  });
+  let cleanupTurns = 0;
+  let cleanupTails = 0;
+  let cleanupObserved = 0;
+  while (cleanupTurns < 3) {
+    try {
+      cleanupEntries.set("first", {
+        run: (): int => cleanupFirst[0]
+      });
+      cleanupEntries.delete("first");
+      cleanupFirst[0] += 1;
+      cleanupTurns += 1;
+      if (stop) break;
+      if (cleanupTurns < 3) continue;
+      cleanupTails += 1;
+    } finally {
+      cleanupObserved += cleanupEntries.size;
+      for (const [key, entry] of cleanupEntries) {
+        cleanupObserved += entry.run();
+      }
     }
+  }
 
-    cleanupEntries.clear();
-    cleanupSecond[0] = value + 4;
-    return cleanupFirst[0] + cleanupTurns + cleanupTails + cleanupObserved + cleanupSecond[0];
+  cleanupEntries.clear();
+  cleanupSecond[0] = value + 4;
+  return cleanupFirst[0] + cleanupTurns + cleanupTails + cleanupObserved + cleanupSecond[0];
 }
 
 function returnCleanupEntryResult(value: int, mode: int, trace: int[]): int {
-    const returnFirst = [value];
-    const returnSecond = [value + 1];
-    const returnEntries = new Map<string, Holder>();
-    returnEntries.set("second", {
-        run: (): int => returnSecond[0]
-    });
-    let returnTurns = 0;
-    while (returnTurns < 3) {
-        try {
-            returnEntries.set("first", {
-                run: (): int => returnFirst[0]
-            });
-            returnEntries.delete("first");
-            returnFirst[0] += 1;
-            returnTurns += 1;
-            if (returnTurns === 2) {
-                if (mode === 3 || mode === 4) throw returnFirst[0];
-                return returnFirst[0];
-            }
-        } finally {
-            trace[0] += returnTurns * 10 + returnEntries.size;
-            for (const [key, entry] of returnEntries) {
-                trace[1] += entry.run();
-            }
+  const returnFirst = [value];
+  const returnSecond = [value + 1];
+  const returnEntries = new Map<string, Holder>();
+  returnEntries.set("second", {
+    run: (): int => returnSecond[0]
+  });
+  let returnTurns = 0;
+  while (returnTurns < 3) {
+    try {
+      returnEntries.set("first", {
+        run: (): int => returnFirst[0]
+      });
+      returnEntries.delete("first");
+      returnFirst[0] += 1;
+      returnTurns += 1;
+      if (returnTurns === 2) {
+        if (mode === 3 || mode === 4) throw returnFirst[0];
+        return returnFirst[0];
+      }
+    } finally {
+      trace[0] += returnTurns * 10 + returnEntries.size;
+      for (const [key, entry] of returnEntries) {
+        trace[1] += entry.run();
+      }
 
-            if (returnTurns === 2) {
-                if (mode === 1) return value + 20;
-                if (mode === 2) continue;
-                if (mode === 4) return value + 30;
-            }
-        }
+      if (returnTurns === 2) {
+        if (mode === 1) return value + 20;
+        if (mode === 2) continue;
+        if (mode === 4) return value + 30;
+      }
     }
+  }
 
-    returnEntries.clear();
-    return returnFirst[0];
+  returnEntries.clear();
+  return returnFirst[0];
 }
 
 function returnCleanupEntryMutation(value: int, mode: int): int {
-    const returnTrace = [0, 0];
-    let returnResult = 0;
-    try {
-        returnResult = returnCleanupEntryResult(value, mode, returnTrace);
-    } catch (error) {
-        if (typeof error === "number") returnResult = error;
-        else throw error;
-    }
+  const returnTrace = [0, 0];
+  let returnResult = 0;
+  try {
+    returnResult = returnCleanupEntryResult(value, mode, returnTrace);
+  } catch (error) {
+    if (typeof error === "number") returnResult = error;
+    else throw error;
+  }
 
-    return returnResult + returnTrace[0] + returnTrace[1];
+  return returnResult + returnTrace[0] + returnTrace[1];
 }
 
 function nestedCleanupEntryMutation(value: int, stop: boolean, overrideInner: boolean): int {
-    const nestedEntryFirst = [value];
-    const nestedEntrySecond = [value + 1];
-    const nestedEntryMap = new Map<string, Holder>();
-    nestedEntryMap.set("second", {
-        run: (): int => nestedEntrySecond[0]
-    });
-    let nestedEntryTurns = 0;
-    let nestedEntryTails = 0;
-    let nestedEntryInner = 0;
-    let nestedEntryObserved = 0;
-    outer: while (nestedEntryTurns < 3) {
+  const nestedEntryFirst = [value];
+  const nestedEntrySecond = [value + 1];
+  const nestedEntryMap = new Map<string, Holder>();
+  nestedEntryMap.set("second", {
+    run: (): int => nestedEntrySecond[0]
+  });
+  let nestedEntryTurns = 0;
+  let nestedEntryTails = 0;
+  let nestedEntryInner = 0;
+  let nestedEntryObserved = 0;
+  outer: while (nestedEntryTurns < 3) {
+    try {
+      inner: while (true) {
         try {
-            inner: while (true) {
-                try {
-                    nestedEntryMap.set("first", {
-                        run: (): int => nestedEntryFirst[0]
-                    });
-                    nestedEntryMap.delete("first");
-                    nestedEntryFirst[0] += 1;
-                    nestedEntryTurns += 1;
-                    if (stop) break outer;
-                    if (nestedEntryTurns < 3) continue outer;
-                    break inner;
-                } finally {
-                    nestedEntryInner += nestedEntryTurns;
-                    if (overrideInner && nestedEntryTurns === 1) continue inner;
-                }
-            }
-
-            nestedEntryTails += 1;
+          nestedEntryMap.set("first", {
+            run: (): int => nestedEntryFirst[0]
+          });
+          nestedEntryMap.delete("first");
+          nestedEntryFirst[0] += 1;
+          nestedEntryTurns += 1;
+          if (stop) break outer;
+          if (nestedEntryTurns < 3) continue outer;
+          break inner;
         } finally {
-            nestedEntryObserved += nestedEntryMap.size;
-            for (const [key, entry] of nestedEntryMap) {
-                nestedEntryObserved += entry.run();
-            }
+          nestedEntryInner += nestedEntryTurns;
+          if (overrideInner && nestedEntryTurns === 1) continue inner;
         }
-    }
+      }
 
-    nestedEntryMap.clear();
-    nestedEntrySecond[0] = value + 4;
-    return nestedEntryFirst[0] + nestedEntrySecond[0] + nestedEntryTurns + nestedEntryTails + nestedEntryInner * 100 + nestedEntryObserved;
+      nestedEntryTails += 1;
+    } finally {
+      nestedEntryObserved += nestedEntryMap.size;
+      for (const [key, entry] of nestedEntryMap) {
+        nestedEntryObserved += entry.run();
+      }
+    }
+  }
+
+  nestedEntryMap.clear();
+  nestedEntrySecond[0] = value + 4;
+  return nestedEntryFirst[0] + nestedEntrySecond[0] + nestedEntryTurns + nestedEntryTails + nestedEntryInner * 100 + nestedEntryObserved;
 }
 
 function directNestedEntryMutation(value: int, stop: boolean): int {
-    const directFirst = [value];
-    const directSecond = [value + 1];
-    const directMap = new Map<string, Holder>();
-    directMap.set("second", {
-        run: (): int => directSecond[0]
-    });
-    let directTurns = 0;
-    let directTails = 0;
-    let directObserved = 0;
-    outer: while (directTurns < 3) {
-        inner: while (true) {
-            directMap.set("first", {
-                run: (): int => directFirst[0]
-            });
-            directMap.delete("first");
-            directFirst[0] += 1;
-            directTurns += 1;
-            if (stop) break outer;
-            if (directTurns < 3) continue outer;
-            break inner;
-        }
-
-        directTails += 1;
+  const directFirst = [value];
+  const directSecond = [value + 1];
+  const directMap = new Map<string, Holder>();
+  directMap.set("second", {
+    run: (): int => directSecond[0]
+  });
+  let directTurns = 0;
+  let directTails = 0;
+  let directObserved = 0;
+  outer: while (directTurns < 3) {
+    inner: while (true) {
+      directMap.set("first", {
+        run: (): int => directFirst[0]
+      });
+      directMap.delete("first");
+      directFirst[0] += 1;
+      directTurns += 1;
+      if (stop) break outer;
+      if (directTurns < 3) continue outer;
+      break inner;
     }
 
-    for (const [key, entry] of directMap) {
-        directObserved += entry.run();
-    }
+    directTails += 1;
+  }
 
-    directMap.clear();
-    return directFirst[0] + directSecond[0] + directObserved + directTurns + directTails;
+  for (const [key, entry] of directMap) {
+    directObserved += entry.run();
+  }
+
+  directMap.clear();
+  return directFirst[0] + directSecond[0] + directObserved + directTurns + directTails;
 }
 
 function labelledBlockEntryMutation(value: int, stop: boolean): int {
-    const blockFirst = [value];
-    const blockSecond = [value + 1];
-    const blockThird = [value + 2];
-    const blockEntries = new Map<string, Holder>();
-    blockEntries.set("second", {
-        run: (): int => blockSecond[0]
-    });
-    let blockObserved = 0;
-    exit: {
-        try {
-            blockEntries.set("first", {
-                run: (): int => blockFirst[0]
-            });
-            if (stop) break exit;
-            blockEntries.delete("first");
-            blockFirst[0] += 1;
-            blockEntries.set("third", {
-                run: (): int => blockThird[0]
-            });
-        } finally {
-            blockObserved += blockEntries.size;
-            for (const [key, entry] of blockEntries) {
-                blockObserved += entry.run();
-            }
-        }
-    }
-
-    for (const [key, entry] of blockEntries) {
+  const blockFirst = [value];
+  const blockSecond = [value + 1];
+  const blockThird = [value + 2];
+  const blockEntries = new Map<string, Holder>();
+  blockEntries.set("second", {
+    run: (): int => blockSecond[0]
+  });
+  let blockObserved = 0;
+  exit: {
+    try {
+      blockEntries.set("first", {
+        run: (): int => blockFirst[0]
+      });
+      if (stop) break exit;
+      blockEntries.delete("first");
+      blockFirst[0] += 1;
+      blockEntries.set("third", {
+        run: (): int => blockThird[0]
+      });
+    } finally {
+      blockObserved += blockEntries.size;
+      for (const [key, entry] of blockEntries) {
         blockObserved += entry.run();
+      }
     }
+  }
 
-    blockEntries.clear();
-    return blockFirst[0] + blockSecond[0] + blockThird[0] + blockObserved;
+  for (const [key, entry] of blockEntries) {
+    blockObserved += entry.run();
+  }
+
+  blockEntries.clear();
+  return blockFirst[0] + blockSecond[0] + blockThird[0] + blockObserved;
 }
 
 function labelledLoopBlockEntryMutation(value: int, stop: boolean): int {
-    const loopBlockFirst = [value];
-    const loopBlockSecond = [value + 1];
-    const loopBlockThird = [value + 2];
-    const loopBlockEntries = new Map<string, Holder>();
-    loopBlockEntries.set("second", {
-        run: (): int => loopBlockSecond[0]
-    });
-    let loopBlockObserved = 0;
-    exit: {
-        try {
-            while (true) {
-                loopBlockEntries.set("first", {
-                    run: (): int => loopBlockFirst[0]
-                });
-                if (stop) break exit;
-                loopBlockEntries.delete("first");
-                loopBlockFirst[0] += 1;
-                loopBlockEntries.set("third", {
-                    run: (): int => loopBlockThird[0]
-                });
-                break;
-            }
-        } finally {
-            loopBlockObserved += loopBlockEntries.size;
-            for (const [key, entry] of loopBlockEntries) {
-                loopBlockObserved += entry.run();
-            }
-        }
-    }
-
-    for (const [key, entry] of loopBlockEntries) {
+  const loopBlockFirst = [value];
+  const loopBlockSecond = [value + 1];
+  const loopBlockThird = [value + 2];
+  const loopBlockEntries = new Map<string, Holder>();
+  loopBlockEntries.set("second", {
+    run: (): int => loopBlockSecond[0]
+  });
+  let loopBlockObserved = 0;
+  exit: {
+    try {
+      while (true) {
+        loopBlockEntries.set("first", {
+          run: (): int => loopBlockFirst[0]
+        });
+        if (stop) break exit;
+        loopBlockEntries.delete("first");
+        loopBlockFirst[0] += 1;
+        loopBlockEntries.set("third", {
+          run: (): int => loopBlockThird[0]
+        });
+        break;
+      }
+    } finally {
+      loopBlockObserved += loopBlockEntries.size;
+      for (const [key, entry] of loopBlockEntries) {
         loopBlockObserved += entry.run();
+      }
     }
+  }
 
-    loopBlockEntries.clear();
-    return loopBlockFirst[0] + loopBlockSecond[0] + loopBlockThird[0] + loopBlockObserved;
+  for (const [key, entry] of loopBlockEntries) {
+    loopBlockObserved += entry.run();
+  }
+
+  loopBlockEntries.clear();
+  return loopBlockFirst[0] + loopBlockSecond[0] + loopBlockThird[0] + loopBlockObserved;
 }
 
 function ordinaryEntryEdges(value: int, limit: int, stop: boolean): int {
-    const edgeFirst = [value];
-    const edgeSecond = [value + 1];
-    const edgeEntries = new Map<string, Holder>();
-    edgeEntries.set("old", {
-        run: (): int => edgeFirst[0]
+  const edgeFirst = [value];
+  const edgeSecond = [value + 1];
+  const edgeEntries = new Map<string, Holder>();
+  edgeEntries.set("old", {
+    run: (): int => edgeFirst[0]
+  });
+  let edgeTurns = 0;
+  while (edgeTurns < limit) {
+    edgeEntries.delete("old");
+    edgeFirst[0] += 1;
+    edgeTurns += 1;
+    if (stop) break;
+    edgeEntries.set("new", {
+      run: (): int => edgeSecond[0]
     });
-    let edgeTurns = 0;
-    while (edgeTurns < limit) {
-        edgeEntries.delete("old");
-        edgeFirst[0] += 1;
-        edgeTurns += 1;
-        if (stop) break;
-        edgeEntries.set("new", {
-            run: (): int => edgeSecond[0]
-        });
-        if (edgeTurns < limit) continue;
-    }
+    if (edgeTurns < limit) continue;
+  }
 
-    let edgeObserved = edgeEntries.size;
-    for (const [key, entry] of edgeEntries) {
-        edgeObserved += entry.run();
-    }
+  let edgeObserved = edgeEntries.size;
+  for (const [key, entry] of edgeEntries) {
+    edgeObserved += entry.run();
+  }
 
-    edgeEntries.clear();
-    return edgeFirst[0] + edgeSecond[0] + edgeTurns + edgeObserved;
+  edgeEntries.clear();
+  return edgeFirst[0] + edgeSecond[0] + edgeTurns + edgeObserved;
 }
 
 function narrowedOrdinaryEntryEdges(value: int, limit: int, stop: boolean): int {
-    const narrowedEdgeFirst = [value];
-    const narrowedEdgeSecond = [value + 1];
-    const narrowedEdgeEntries = new Map<string, Holder>();
-    const narrowedDiscard = [value + 2];
-    narrowedEdgeEntries.set("discard", {
-        run: (): int => narrowedDiscard[0]
+  const narrowedEdgeFirst = [value];
+  const narrowedEdgeSecond = [value + 1];
+  const narrowedEdgeEntries = new Map<string, Holder>();
+  const narrowedDiscard = [value + 2];
+  narrowedEdgeEntries.set("discard", {
+    run: (): int => narrowedDiscard[0]
+  });
+  narrowedEdgeEntries.delete("discard");
+  narrowedDiscard[0] += 1;
+  narrowedEdgeEntries.set("old", {
+    run: (): int => narrowedEdgeFirst[0]
+  });
+  let narrowedEdgeTurns = 0;
+  while (narrowedEdgeTurns < limit) {
+    narrowedEdgeEntries.delete("old");
+    narrowedEdgeFirst[0] += 1;
+    narrowedEdgeTurns += 1;
+    if (stop) break;
+    narrowedEdgeEntries.set("new", {
+      run: (): int => narrowedEdgeSecond[0]
     });
-    narrowedEdgeEntries.delete("discard");
-    narrowedDiscard[0] += 1;
-    narrowedEdgeEntries.set("old", {
-        run: (): int => narrowedEdgeFirst[0]
-    });
-    let narrowedEdgeTurns = 0;
-    while (narrowedEdgeTurns < limit) {
-        narrowedEdgeEntries.delete("old");
-        narrowedEdgeFirst[0] += 1;
-        narrowedEdgeTurns += 1;
-        if (stop) break;
-        narrowedEdgeEntries.set("new", {
-            run: (): int => narrowedEdgeSecond[0]
-        });
-        if (narrowedEdgeTurns < limit) continue;
-    }
+    if (narrowedEdgeTurns < limit) continue;
+  }
 
-    let narrowedEdgeObserved = narrowedEdgeEntries.size;
-    for (const [key, entry] of narrowedEdgeEntries) {
-        narrowedEdgeObserved += entry.run();
-    }
+  let narrowedEdgeObserved = narrowedEdgeEntries.size;
+  for (const [key, entry] of narrowedEdgeEntries) {
+    narrowedEdgeObserved += entry.run();
+  }
 
-    narrowedEdgeEntries.clear();
-    return narrowedEdgeFirst[0] + narrowedEdgeSecond[0] + narrowedEdgeTurns + narrowedEdgeObserved + narrowedDiscard[0];
+  narrowedEdgeEntries.clear();
+  return narrowedEdgeFirst[0] + narrowedEdgeSecond[0] + narrowedEdgeTurns + narrowedEdgeObserved + narrowedDiscard[0];
 }
 
 function noBackedgeEntryBreak(value: int): int {
-    const noBackFirst = [value];
-    const noBackSecond = [value + 2];
-    const noBackEntries = new Map<string, Holder>();
-    noBackEntries.set("first", {
-        run: (): int => noBackFirst[0]
-    });
-    noBackEntries.set("second", {
-        run: (): int => noBackSecond[0]
-    });
-    do {
-        noBackEntries.delete("first");
-        noBackFirst[0] += 1;
-        break;
-    }
+  const noBackFirst = [value];
+  const noBackSecond = [value + 2];
+  const noBackEntries = new Map<string, Holder>();
+  noBackEntries.set("first", {
+    run: (): int => noBackFirst[0]
+  });
+  noBackEntries.set("second", {
+    run: (): int => noBackSecond[0]
+  });
+  do {
+    noBackEntries.delete("first");
+    noBackFirst[0] += 1;
+    break;
+  }
 
-    while (false);
-    let noBackObserved = noBackEntries.size;
-    for (const [key, entry] of noBackEntries) {
-        noBackObserved += entry.run();
-    }
+  while (false);
+  let noBackObserved = noBackEntries.size;
+  for (const [key, entry] of noBackEntries) {
+    noBackObserved += entry.run();
+  }
 
-    noBackEntries.clear();
-    noBackFirst[0] += 10;
-    return noBackFirst[0] + noBackObserved;
+  noBackEntries.clear();
+  noBackFirst[0] += 10;
+  return noBackFirst[0] + noBackObserved;
 }
 
 function noBackedgeEntryReturn(value: int): int {
-    const returnNoBackFirst = [value];
-    const returnNoBackSecond = [value + 2];
-    const returnNoBackEntries = new Map<string, Holder>();
-    returnNoBackEntries.set("first", {
-        run: (): int => returnNoBackFirst[0]
-    });
-    returnNoBackEntries.set("second", {
-        run: (): int => returnNoBackSecond[0]
-    });
-    while (true) {
-        returnNoBackEntries.delete("first");
-        returnNoBackFirst[0] += 1;
-        return returnNoBackFirst[0];
-    }
+  const returnNoBackFirst = [value];
+  const returnNoBackSecond = [value + 2];
+  const returnNoBackEntries = new Map<string, Holder>();
+  returnNoBackEntries.set("first", {
+    run: (): int => returnNoBackFirst[0]
+  });
+  returnNoBackEntries.set("second", {
+    run: (): int => returnNoBackSecond[0]
+  });
+  while (true) {
+    returnNoBackEntries.delete("first");
+    returnNoBackFirst[0] += 1;
+    return returnNoBackFirst[0];
+  }
 
-    return 0;
+  return 0;
 }
 
 function phaseJoinFailure(fail: boolean): void {
-    if (fail) throw 913;
+  if (fail) throw 913;
 }
 
 function phaseJoinedEntry(value: int, fail: boolean): int {
-    const phaseJoinFirst = [value];
-    const phaseJoinSecond = [value + 2];
-    const phaseJoinEntries = new Map<string, Holder>();
-    phaseJoinEntries.set("first", {
-        run: (): int => phaseJoinFirst[0]
-    });
-    phaseJoinEntries.set("second", {
-        run: (): int => phaseJoinSecond[0]
-    });
-    try {
-        phaseJoinFailure(fail);
-        phaseJoinEntries.delete("first");
-    } catch (error) {
-        phaseJoinEntries.delete("first");
-        phaseJoinFirst[0] += 2;
-    }
+  const phaseJoinFirst = [value];
+  const phaseJoinSecond = [value + 2];
+  const phaseJoinEntries = new Map<string, Holder>();
+  phaseJoinEntries.set("first", {
+    run: (): int => phaseJoinFirst[0]
+  });
+  phaseJoinEntries.set("second", {
+    run: (): int => phaseJoinSecond[0]
+  });
+  try {
+    phaseJoinFailure(fail);
+    phaseJoinEntries.delete("first");
+  } catch (error) {
+    phaseJoinEntries.delete("first");
+    phaseJoinFirst[0] += 2;
+  }
 
-    phaseJoinFirst[0] += 1;
-    let phaseJoinObserved = phaseJoinEntries.size;
-    for (const [key, entry] of phaseJoinEntries) {
-        phaseJoinObserved += entry.run();
-    }
+  phaseJoinFirst[0] += 1;
+  let phaseJoinObserved = phaseJoinEntries.size;
+  for (const [key, entry] of phaseJoinEntries) {
+    phaseJoinObserved += entry.run();
+  }
 
-    phaseJoinEntries.clear();
-    return phaseJoinFirst[0] + phaseJoinObserved;
+  phaseJoinEntries.clear();
+  return phaseJoinFirst[0] + phaseJoinObserved;
 }
 
 function finallyNormalJoinedEntry(value: int, fail: boolean): int {
-    const finallyJoinFirst = [value];
-    const finallyJoinSecond = [value + 2];
-    const finallyJoinEntries = new Map<string, Holder>();
-    finallyJoinEntries.set("first", {
-        run: (): int => finallyJoinFirst[0]
-    });
-    finallyJoinEntries.set("second", {
-        run: (): int => finallyJoinSecond[0]
-    });
-    let finallyJoinCaught = 0;
-    try {
-        phaseJoinFailure(fail);
-    } catch (error) {
-        finallyJoinCaught += 1;
-    } finally {
-        finallyJoinEntries.delete("first");
-    }
+  const finallyJoinFirst = [value];
+  const finallyJoinSecond = [value + 2];
+  const finallyJoinEntries = new Map<string, Holder>();
+  finallyJoinEntries.set("first", {
+    run: (): int => finallyJoinFirst[0]
+  });
+  finallyJoinEntries.set("second", {
+    run: (): int => finallyJoinSecond[0]
+  });
+  let finallyJoinCaught = 0;
+  try {
+    phaseJoinFailure(fail);
+  } catch (error) {
+    finallyJoinCaught += 1;
+  } finally {
+    finallyJoinEntries.delete("first");
+  }
 
-    finallyJoinFirst[0] += 1;
-    let finallyJoinObserved = finallyJoinEntries.size;
-    for (const [key, entry] of finallyJoinEntries) {
-        finallyJoinObserved += entry.run();
-    }
+  finallyJoinFirst[0] += 1;
+  let finallyJoinObserved = finallyJoinEntries.size;
+  for (const [key, entry] of finallyJoinEntries) {
+    finallyJoinObserved += entry.run();
+  }
 
-    finallyJoinEntries.clear();
-    return finallyJoinFirst[0] + finallyJoinObserved + finallyJoinCaught;
+  finallyJoinEntries.clear();
+  return finallyJoinFirst[0] + finallyJoinObserved + finallyJoinCaught;
 }
 
 function errorPhaseEntry(value: int, fail: boolean): int {
-    const errorPhaseFirst = [value];
-    const errorPhaseSecond = [value + 2];
-    const errorPhaseEntries = new Map<string, Holder>();
-    errorPhaseEntries.set("first", {
-        run: (): int => errorPhaseFirst[0]
-    });
-    errorPhaseEntries.set("second", {
-        run: (): int => errorPhaseSecond[0]
-    });
-    try {
-        errorPhaseEntries.delete("first");
-        phaseJoinFailure(fail);
-    } catch (error) {
-        errorPhaseFirst[0] += 1;
-    }
+  const errorPhaseFirst = [value];
+  const errorPhaseSecond = [value + 2];
+  const errorPhaseEntries = new Map<string, Holder>();
+  errorPhaseEntries.set("first", {
+    run: (): int => errorPhaseFirst[0]
+  });
+  errorPhaseEntries.set("second", {
+    run: (): int => errorPhaseSecond[0]
+  });
+  try {
+    errorPhaseEntries.delete("first");
+    phaseJoinFailure(fail);
+  } catch (error) {
+    errorPhaseFirst[0] += 1;
+  }
 
-    let errorPhaseObserved = errorPhaseEntries.size;
-    for (const [key, entry] of errorPhaseEntries) {
-        errorPhaseObserved += entry.run();
-    }
+  let errorPhaseObserved = errorPhaseEntries.size;
+  for (const [key, entry] of errorPhaseEntries) {
+    errorPhaseObserved += entry.run();
+  }
 
-    errorPhaseEntries.clear();
-    return errorPhaseFirst[0] + errorPhaseObserved;
+  errorPhaseEntries.clear();
+  return errorPhaseFirst[0] + errorPhaseObserved;
 }
 
 function finallyErrorEntry(value: int, fail: boolean): int {
-    const catchFirst = [value];
-    const catchSecond = [value + 2];
-    const catchEntries = new Map<string, Holder>();
-    catchEntries.set("first", {
-        run: (): int => catchFirst[0]
-    });
-    catchEntries.set("second", {
-        run: (): int => catchSecond[0]
-    });
-    let catchObserved = 0;
-    try {
-        catchEntries.delete("first");
-        phaseJoinFailure(fail);
-    } catch (error) {
-        catchFirst[0] += 1;
-        catchObserved += 10;
-    } finally {
-        catchObserved += catchEntries.size;
-        for (const [key, entry] of catchEntries) catchObserved += entry.run();
-    }
+  const catchFirst = [value];
+  const catchSecond = [value + 2];
+  const catchEntries = new Map<string, Holder>();
+  catchEntries.set("first", {
+    run: (): int => catchFirst[0]
+  });
+  catchEntries.set("second", {
+    run: (): int => catchSecond[0]
+  });
+  let catchObserved = 0;
+  try {
+    catchEntries.delete("first");
+    phaseJoinFailure(fail);
+  } catch (error) {
+    catchFirst[0] += 1;
+    catchObserved += 10;
+  } finally {
+    catchObserved += catchEntries.size;
+    for (const [key, entry] of catchEntries) catchObserved += entry.run();
+  }
 
-    catchEntries.clear();
-    return catchFirst[0] + catchObserved;
+  catchEntries.clear();
+  return catchFirst[0] + catchObserved;
 }
 
 function finallyPendingError(value: int, fail: boolean): int {
-    const pendingFirst = [value];
-    const pendingSecond = [value + 2];
-    const pendingEntries = new Map<string, Holder>();
-    pendingEntries.set("first", {
-        run: (): int => pendingFirst[0]
-    });
-    pendingEntries.set("second", {
-        run: (): int => pendingSecond[0]
-    });
-    let pendingObserved = 0;
-    let pendingCaught = 0;
+  const pendingFirst = [value];
+  const pendingSecond = [value + 2];
+  const pendingEntries = new Map<string, Holder>();
+  pendingEntries.set("first", {
+    run: (): int => pendingFirst[0]
+  });
+  pendingEntries.set("second", {
+    run: (): int => pendingSecond[0]
+  });
+  let pendingObserved = 0;
+  let pendingCaught = 0;
+  try {
     try {
-        try {
-            pendingEntries.delete("first");
-            phaseJoinFailure(fail);
-        } finally {
-            pendingObserved += pendingEntries.size;
-            for (const [key, entry] of pendingEntries) pendingObserved += entry.run();
-            pendingEntries.clear();
-        }
-
-        pendingObserved += 4;
-    } catch (error) {
-        pendingCaught = 10;
+      pendingEntries.delete("first");
+      phaseJoinFailure(fail);
+    } finally {
+      pendingObserved += pendingEntries.size;
+      for (const [key, entry] of pendingEntries) pendingObserved += entry.run();
+      pendingEntries.clear();
     }
 
-    pendingFirst[0] += 1;
-    return pendingFirst[0] + pendingObserved + pendingCaught;
+    pendingObserved += 4;
+  } catch (error) {
+    pendingCaught = 10;
+  }
+
+  pendingFirst[0] += 1;
+  return pendingFirst[0] + pendingObserved + pendingCaught;
 }
 
 function handlerRethrowEntry(value: int): int {
-    const rethrowFirst = [value];
-    const rethrowSecond = [value + 1];
-    const rethrowEntries = new Map<string, Holder>();
-    rethrowEntries.set("first", {
-        run: (): int => rethrowFirst[0]
-    });
-    rethrowEntries.set("second", {
-        run: (): int => rethrowSecond[0]
-    });
-    let rethrowObserved = 0;
+  const rethrowFirst = [value];
+  const rethrowSecond = [value + 1];
+  const rethrowEntries = new Map<string, Holder>();
+  rethrowEntries.set("first", {
+    run: (): int => rethrowFirst[0]
+  });
+  rethrowEntries.set("second", {
+    run: (): int => rethrowSecond[0]
+  });
+  let rethrowObserved = 0;
+  try {
     try {
-        try {
-            throw 17;
-        } catch (error) {
-            rethrowEntries.delete("first");
-            rethrowFirst[0] += 1;
-            throw 18;
-        }
+      throw 17;
     } catch (error) {
-        rethrowFirst[0] += 1;
-        for (const [key, entry] of rethrowEntries) rethrowObserved += entry.run();
+      rethrowEntries.delete("first");
+      rethrowFirst[0] += 1;
+      throw 18;
     }
+  } catch (error) {
+    rethrowFirst[0] += 1;
+    for (const [key, entry] of rethrowEntries) rethrowObserved += entry.run();
+  }
 
-    rethrowEntries.clear();
-    return rethrowFirst[0] + rethrowObserved;
+  rethrowEntries.clear();
+  return rethrowFirst[0] + rethrowObserved;
 }
 
 function cleanupOutgoingEntry(value: int, overrideError: boolean): int {
-    const cleanedFirst = [value];
-    const cleanedSecond = [value + 1];
-    const cleanedEntries = new Map<string, Holder>();
-    cleanedEntries.set("first", {
-        run: (): int => cleanedFirst[0]
-    });
-    cleanedEntries.set("second", {
-        run: (): int => cleanedSecond[0]
-    });
-    let cleanedObserved = 0;
+  const cleanedFirst = [value];
+  const cleanedSecond = [value + 1];
+  const cleanedEntries = new Map<string, Holder>();
+  cleanedEntries.set("first", {
+    run: (): int => cleanedFirst[0]
+  });
+  cleanedEntries.set("second", {
+    run: (): int => cleanedSecond[0]
+  });
+  let cleanedObserved = 0;
+  try {
     try {
-        try {
-            throw 27;
-        } finally {
-            cleanedEntries.delete("first");
-            cleanedFirst[0] += 1;
-            if (overrideError) throw 28;
-        }
-    } catch (error) {
-        cleanedFirst[0] += 1;
-        if (typeof error === "number") cleanedObserved += error;
-        else throw error;
-        for (const [key, entry] of cleanedEntries) cleanedObserved += entry.run();
+      throw 27;
+    } finally {
+      cleanedEntries.delete("first");
+      cleanedFirst[0] += 1;
+      if (overrideError) throw 28;
     }
+  } catch (error) {
+    cleanedFirst[0] += 1;
+    if (typeof error === "number") cleanedObserved += error;
+    else throw error;
+    for (const [key, entry] of cleanedEntries) cleanedObserved += entry.run();
+  }
 
-    cleanedEntries.clear();
-    return cleanedFirst[0] + cleanedObserved;
+  cleanedEntries.clear();
+  return cleanedFirst[0] + cleanedObserved;
 }
 
 function catchFinallyEntry(value: int, mode: int): int {
-    const handledFirst = [value];
-    const handledSecond = [value + 1];
-    const handledEntries = new Map<string, Holder>();
-    handledEntries.set("first", {
-        run: (): int => handledFirst[0]
-    });
-    handledEntries.set("second", {
-        run: (): int => handledSecond[0]
-    });
-    let handledObserved = 0;
+  const handledFirst = [value];
+  const handledSecond = [value + 1];
+  const handledEntries = new Map<string, Holder>();
+  handledEntries.set("first", {
+    run: (): int => handledFirst[0]
+  });
+  handledEntries.set("second", {
+    run: (): int => handledSecond[0]
+  });
+  let handledObserved = 0;
+  try {
     try {
-        try {
-            handledEntries.delete("first");
-            if (mode !== 0) throw 37;
-        } catch (error) {
-            handledFirst[0] += 1;
-            if (mode >= 2) throw 38;
-        } finally {
-            handledFirst[0] += 1;
-            handledObserved += handledEntries.size;
-            for (const [key, entry] of handledEntries) handledObserved += entry.run();
-            if (mode === 3) throw 39;
-        }
+      handledEntries.delete("first");
+      if (mode !== 0) throw 37;
     } catch (error) {
-        handledFirst[0] += 1;
-        if (typeof error === "number") handledObserved += error;
-        else throw error;
+      handledFirst[0] += 1;
+      if (mode >= 2) throw 38;
+    } finally {
+      handledFirst[0] += 1;
+      handledObserved += handledEntries.size;
+      for (const [key, entry] of handledEntries) handledObserved += entry.run();
+      if (mode === 3) throw 39;
     }
+  } catch (error) {
+    handledFirst[0] += 1;
+    if (typeof error === "number") handledObserved += error;
+    else throw error;
+  }
 
-    handledEntries.clear();
-    return handledFirst[0] + handledObserved;
+  handledEntries.clear();
+  return handledFirst[0] + handledObserved;
 }
 
 function returnCarrierResult(value: int, mode: int, trace: int[]): int {
-    const carriedFirst = [value];
-    const carriedSecond = [value + 1];
-    const carriedEntries = new Map<string, Holder>();
-    carriedEntries.set("first", {
-        run: (): int => carriedFirst[0]
-    });
-    carriedEntries.set("second", {
-        run: (): int => carriedSecond[0]
-    });
-    try {
-        carriedEntries.delete("first");
-        carriedFirst[0] += 1;
-        return carriedFirst[0];
-    } finally {
-        carriedFirst[0] += 10;
-        trace[0] += carriedEntries.size;
-        for (const [key, entry] of carriedEntries) trace[0] += entry.run();
-        if (mode === 1) return carriedFirst[0];
-        if (mode === 2) throw carriedFirst[0];
-    }
+  const carriedFirst = [value];
+  const carriedSecond = [value + 1];
+  const carriedEntries = new Map<string, Holder>();
+  carriedEntries.set("first", {
+    run: (): int => carriedFirst[0]
+  });
+  carriedEntries.set("second", {
+    run: (): int => carriedSecond[0]
+  });
+  try {
+    carriedEntries.delete("first");
+    carriedFirst[0] += 1;
+    return carriedFirst[0];
+  } finally {
+    carriedFirst[0] += 10;
+    trace[0] += carriedEntries.size;
+    for (const [key, entry] of carriedEntries) trace[0] += entry.run();
+    if (mode === 1) return carriedFirst[0];
+    if (mode === 2) throw carriedFirst[0];
+  }
 }
 
 function returnCarrierEntry(value: int, mode: int): int {
-    const carriedTrace = [0];
-    let carriedResult = 0;
-    try {
-        carriedResult = returnCarrierResult(value, mode, carriedTrace);
-    } catch (error) {
-        if (typeof error === "number") carriedResult = error;
-        else throw error;
-    }
+  const carriedTrace = [0];
+  let carriedResult = 0;
+  try {
+    carriedResult = returnCarrierResult(value, mode, carriedTrace);
+  } catch (error) {
+    if (typeof error === "number") carriedResult = error;
+    else throw error;
+  }
 
-    return carriedResult + carriedTrace[0];
+  return carriedResult + carriedTrace[0];
 }
 
 function catchReturnCarrierResult(value: int, mode: int, catchTrace: int[]): int {
-    const caughtCarriedFirst = [value];
-    const caughtCarriedSecond = [value + 1];
-    const caughtCarriedEntries = new Map<string, Holder>();
-    caughtCarriedEntries.set("first", {
-        run: (): int => caughtCarriedFirst[0]
-    });
-    caughtCarriedEntries.set("second", {
-        run: (): int => caughtCarriedSecond[0]
-    });
-    try {
-        throw 27;
-    } catch (error) {
-        caughtCarriedEntries.delete("first");
-        caughtCarriedFirst[0] += 1;
-        return caughtCarriedFirst[0];
-    } finally {
-        caughtCarriedFirst[0] += 10;
-        catchTrace[0] += caughtCarriedEntries.size;
-        for (const [key, entry] of caughtCarriedEntries) catchTrace[0] += entry.run();
-        if (mode === 1) return caughtCarriedFirst[0];
-        if (mode === 2) throw caughtCarriedFirst[0];
-    }
+  const caughtCarriedFirst = [value];
+  const caughtCarriedSecond = [value + 1];
+  const caughtCarriedEntries = new Map<string, Holder>();
+  caughtCarriedEntries.set("first", {
+    run: (): int => caughtCarriedFirst[0]
+  });
+  caughtCarriedEntries.set("second", {
+    run: (): int => caughtCarriedSecond[0]
+  });
+  try {
+    throw 27;
+  } catch (error) {
+    caughtCarriedEntries.delete("first");
+    caughtCarriedFirst[0] += 1;
+    return caughtCarriedFirst[0];
+  } finally {
+    caughtCarriedFirst[0] += 10;
+    catchTrace[0] += caughtCarriedEntries.size;
+    for (const [key, entry] of caughtCarriedEntries) catchTrace[0] += entry.run();
+    if (mode === 1) return caughtCarriedFirst[0];
+    if (mode === 2) throw caughtCarriedFirst[0];
+  }
 }
 
 function catchReturnCarrierEntry(value: int, mode: int): int {
-    const caughtCarriedTrace = [0];
-    let caughtCarriedResult = 0;
-    try {
-        caughtCarriedResult = catchReturnCarrierResult(value, mode, caughtCarriedTrace);
-    } catch (error) {
-        if (typeof error === "number") caughtCarriedResult = error;
-        else throw error;
-    }
+  const caughtCarriedTrace = [0];
+  let caughtCarriedResult = 0;
+  try {
+    caughtCarriedResult = catchReturnCarrierResult(value, mode, caughtCarriedTrace);
+  } catch (error) {
+    if (typeof error === "number") caughtCarriedResult = error;
+    else throw error;
+  }
 
-    return caughtCarriedResult + caughtCarriedTrace[0];
+  return caughtCarriedResult + caughtCarriedTrace[0];
 }
 
 
 function controlCarrierEntry(value: int, mode: int): int {
-    const destinationFirst = [value];
-    const destinationSecond = [value + 1];
-    const destinationEntries = new Map<string, Holder>();
-    destinationEntries.set("first", {
-        run: (): int => destinationFirst[0]
-    });
-    destinationEntries.set("second", {
-        run: (): int => destinationSecond[0]
-    });
-    let destinationTurn = 0;
-    let destinationObserved = 0;
-    controlOuter: while (destinationTurn < 2) {
-        controlInner: while (true) {
-            try {
-                if (mode === 0) {
-                    destinationEntries.delete("first");
-                    destinationFirst[0] += 1;
-                    destinationObserved += destinationFirst[0];
-                    break controlOuter;
-                }
-
-                if (mode === 1) {
-                    destinationEntries.delete("second");
-                    destinationSecond[0] += 1;
-                    destinationObserved += destinationSecond[0];
-                    break controlInner;
-                }
-
-                destinationEntries.delete("first");
-                destinationFirst[0] += 1;
-                destinationObserved += destinationFirst[0];
-                destinationTurn += 1;
-                continue controlOuter;
-            } finally {
-                destinationObserved += destinationEntries.size;
-                for (const [key, entry] of destinationEntries) {
-                    destinationObserved += entry.run();
-                }
-            }
+  const destinationFirst = [value];
+  const destinationSecond = [value + 1];
+  const destinationEntries = new Map<string, Holder>();
+  destinationEntries.set("first", {
+    run: (): int => destinationFirst[0]
+  });
+  destinationEntries.set("second", {
+    run: (): int => destinationSecond[0]
+  });
+  let destinationTurn = 0;
+  let destinationObserved = 0;
+  controlOuter: while (destinationTurn < 2) {
+    controlInner: while (true) {
+      try {
+        if (mode === 0) {
+          destinationEntries.delete("first");
+          destinationFirst[0] += 1;
+          destinationObserved += destinationFirst[0];
+          break controlOuter;
         }
 
+        if (mode === 1) {
+          destinationEntries.delete("second");
+          destinationSecond[0] += 1;
+          destinationObserved += destinationSecond[0];
+          break controlInner;
+        }
+
+        destinationEntries.delete("first");
+        destinationFirst[0] += 1;
+        destinationObserved += destinationFirst[0];
         destinationTurn += 1;
+        continue controlOuter;
+      } finally {
+        destinationObserved += destinationEntries.size;
+        for (const [key, entry] of destinationEntries) {
+          destinationObserved += entry.run();
+        }
+      }
     }
 
-    destinationEntries.clear();
-    return destinationObserved + destinationFirst[0] + destinationSecond[0];
+    destinationTurn += 1;
+  }
+
+  destinationEntries.clear();
+  return destinationObserved + destinationFirst[0] + destinationSecond[0];
 }
 
 function handlerControlCarrierEntry(value: int, mode: int): int {
-    const handlerDestinationFirst = [value];
-    const handlerDestinationSecond = [value + 1];
-    const handlerDestinationEntries = new Map<string, Holder>();
-    handlerDestinationEntries.set("first", {
-        run: (): int => handlerDestinationFirst[0]
-    });
-    handlerDestinationEntries.set("second", {
-        run: (): int => handlerDestinationSecond[0]
-    });
-    let handlerDestinationTurn = 0;
-    let handlerDestinationObserved = 0;
-    handlerOuter: while (handlerDestinationTurn < 2) {
-        handlerInner: while (true) {
-            try {
-                throw 29;
-            } catch (error) {
-                if (mode === 0) {
-                    handlerDestinationEntries.delete("first");
-                    handlerDestinationFirst[0] += 1;
-                    handlerDestinationObserved += handlerDestinationFirst[0];
-                    break handlerOuter;
-                }
-
-                if (mode === 1) {
-                    handlerDestinationEntries.delete("second");
-                    handlerDestinationSecond[0] += 1;
-                    handlerDestinationObserved += handlerDestinationSecond[0];
-                    break handlerInner;
-                }
-
-                handlerDestinationEntries.delete("first");
-                handlerDestinationFirst[0] += 1;
-                handlerDestinationObserved += handlerDestinationFirst[0];
-                handlerDestinationTurn += 1;
-                continue handlerOuter;
-            } finally {
-                handlerDestinationObserved += handlerDestinationEntries.size;
-                for (const [key, entry] of handlerDestinationEntries) {
-                    handlerDestinationObserved += entry.run();
-                }
-            }
+  const handlerDestinationFirst = [value];
+  const handlerDestinationSecond = [value + 1];
+  const handlerDestinationEntries = new Map<string, Holder>();
+  handlerDestinationEntries.set("first", {
+    run: (): int => handlerDestinationFirst[0]
+  });
+  handlerDestinationEntries.set("second", {
+    run: (): int => handlerDestinationSecond[0]
+  });
+  let handlerDestinationTurn = 0;
+  let handlerDestinationObserved = 0;
+  handlerOuter: while (handlerDestinationTurn < 2) {
+    handlerInner: while (true) {
+      try {
+        throw 29;
+      } catch (error) {
+        if (mode === 0) {
+          handlerDestinationEntries.delete("first");
+          handlerDestinationFirst[0] += 1;
+          handlerDestinationObserved += handlerDestinationFirst[0];
+          break handlerOuter;
         }
 
+        if (mode === 1) {
+          handlerDestinationEntries.delete("second");
+          handlerDestinationSecond[0] += 1;
+          handlerDestinationObserved += handlerDestinationSecond[0];
+          break handlerInner;
+        }
+
+        handlerDestinationEntries.delete("first");
+        handlerDestinationFirst[0] += 1;
+        handlerDestinationObserved += handlerDestinationFirst[0];
         handlerDestinationTurn += 1;
+        continue handlerOuter;
+      } finally {
+        handlerDestinationObserved += handlerDestinationEntries.size;
+        for (const [key, entry] of handlerDestinationEntries) {
+          handlerDestinationObserved += entry.run();
+        }
+      }
     }
 
-    handlerDestinationEntries.clear();
-    return handlerDestinationObserved + handlerDestinationFirst[0] + handlerDestinationSecond[0];
+    handlerDestinationTurn += 1;
+  }
+
+  handlerDestinationEntries.clear();
+  return handlerDestinationObserved + handlerDestinationFirst[0] + handlerDestinationSecond[0];
 }
 
 
 function cleanupOverrideEntry(value: int, mode: int): int {
-    const overrideFirst = [value];
-    const overrideSecond = [value + 1];
-    const overrideEntries = new Map<string, Holder>();
-    overrideEntries.set("first", {
-        run: (): int => overrideFirst[0]
-    });
-    overrideEntries.set("second", {
-        run: (): int => overrideSecond[0]
-    });
-    let overrideTurn = 0;
-    let overrideObserved = 0;
-    overrideOuter: while (overrideTurn < 2) {
-        overrideInner: while (true) {
-            try {
-                if (mode === 0) return 100;
-                if (mode === 1) throw 31;
-                if (mode === 2) continue overrideOuter;
-                break overrideInner;
-            } finally {
-                overrideEntries.delete("first");
-                overrideFirst[0] += 1;
-                overrideTurn += 1;
-                overrideObserved += overrideTurn + overrideEntries.size;
-                for (const [key, entry] of overrideEntries) {
-                    overrideObserved += entry.run();
-                }
-
-                if (overrideTurn < 2) continue overrideOuter;
-                break overrideOuter;
-            }
+  const overrideFirst = [value];
+  const overrideSecond = [value + 1];
+  const overrideEntries = new Map<string, Holder>();
+  overrideEntries.set("first", {
+    run: (): int => overrideFirst[0]
+  });
+  overrideEntries.set("second", {
+    run: (): int => overrideSecond[0]
+  });
+  let overrideTurn = 0;
+  let overrideObserved = 0;
+  overrideOuter: while (overrideTurn < 2) {
+    overrideInner: while (true) {
+      try {
+        if (mode === 0) return 100;
+        if (mode === 1) throw 31;
+        if (mode === 2) continue overrideOuter;
+        break overrideInner;
+      } finally {
+        overrideEntries.delete("first");
+        overrideFirst[0] += 1;
+        overrideTurn += 1;
+        overrideObserved += overrideTurn + overrideEntries.size;
+        for (const [key, entry] of overrideEntries) {
+          overrideObserved += entry.run();
         }
-    }
 
-    overrideEntries.clear();
-    return overrideFirst[0] + overrideSecond[0] + overrideObserved;
+        if (overrideTurn < 2) continue overrideOuter;
+        break overrideOuter;
+      }
+    }
+  }
+
+  overrideEntries.clear();
+  return overrideFirst[0] + overrideSecond[0] + overrideObserved;
 }
 
 function handlerCleanupOverrideEntry(value: int, mode: int): int {
-    const handlerOverrideFirst = [value];
-    const handlerOverrideSecond = [value + 1];
-    const handlerOverrideEntries = new Map<string, Holder>();
-    handlerOverrideEntries.set("first", {
-        run: (): int => handlerOverrideFirst[0]
-    });
-    handlerOverrideEntries.set("second", {
-        run: (): int => handlerOverrideSecond[0]
-    });
-    let handlerOverrideTurn = 0;
-    let handlerOverrideObserved = 0;
-    handlerOverrideOuter: while (handlerOverrideTurn < 2) {
-        handlerOverrideInner: while (true) {
-            try {
-                throw 37;
-            } catch (error) {
-                if (mode === 0) return 100;
-                if (mode === 1) throw 31;
-                if (mode === 2) continue handlerOverrideOuter;
-                break handlerOverrideInner;
-            } finally {
-                handlerOverrideEntries.delete("first");
-                handlerOverrideFirst[0] += 1;
-                handlerOverrideTurn += 1;
-                handlerOverrideObserved += handlerOverrideTurn + handlerOverrideEntries.size;
-                for (const [key, entry] of handlerOverrideEntries) {
-                    handlerOverrideObserved += entry.run();
-                }
-
-                if (handlerOverrideTurn < 2) continue handlerOverrideOuter;
-                break handlerOverrideOuter;
-            }
+  const handlerOverrideFirst = [value];
+  const handlerOverrideSecond = [value + 1];
+  const handlerOverrideEntries = new Map<string, Holder>();
+  handlerOverrideEntries.set("first", {
+    run: (): int => handlerOverrideFirst[0]
+  });
+  handlerOverrideEntries.set("second", {
+    run: (): int => handlerOverrideSecond[0]
+  });
+  let handlerOverrideTurn = 0;
+  let handlerOverrideObserved = 0;
+  handlerOverrideOuter: while (handlerOverrideTurn < 2) {
+    handlerOverrideInner: while (true) {
+      try {
+        throw 37;
+      } catch (error) {
+        if (mode === 0) return 100;
+        if (mode === 1) throw 31;
+        if (mode === 2) continue handlerOverrideOuter;
+        break handlerOverrideInner;
+      } finally {
+        handlerOverrideEntries.delete("first");
+        handlerOverrideFirst[0] += 1;
+        handlerOverrideTurn += 1;
+        handlerOverrideObserved += handlerOverrideTurn + handlerOverrideEntries.size;
+        for (const [key, entry] of handlerOverrideEntries) {
+          handlerOverrideObserved += entry.run();
         }
-    }
 
-    handlerOverrideEntries.clear();
-    return handlerOverrideFirst[0] + handlerOverrideSecond[0] + handlerOverrideObserved;
+        if (handlerOverrideTurn < 2) continue handlerOverrideOuter;
+        break handlerOverrideOuter;
+      }
+    }
+  }
+
+  handlerOverrideEntries.clear();
+  return handlerOverrideFirst[0] + handlerOverrideSecond[0] + handlerOverrideObserved;
 }
 
 function indexedReplacementEntry(value: int): int {
-    const indexedFirst = [value];
-    const indexedSecond = [value + 1];
-    const indexedEntries: Holder[] = [{
-        run: (): int => indexedFirst[0]
-    }, {
-        run: (): int => indexedSecond[0]
-    }];
-    indexedEntries[1] = {
-        run: (): int => indexedFirst[0]
-    };
-    indexedSecond[0] += 2;
-    return indexedEntries[0].run() + indexedEntries[1].run() + indexedSecond[0];
+  const indexedFirst = [value];
+  const indexedSecond = [value + 1];
+  const indexedEntries: Holder[] = [{
+    run: (): int => indexedFirst[0]
+  }, {
+    run: (): int => indexedSecond[0]
+  }];
+  indexedEntries[1] = {
+    run: (): int => indexedFirst[0]
+  };
+  indexedSecond[0] += 2;
+  return indexedEntries[0].run() + indexedEntries[1].run() + indexedSecond[0];
 }
 
 type IndexedOwner = {
-    handlers: Holder[];
-    marker: int;
+  handlers: Holder[];
+  marker: int;
 };
 
 function indexedFieldReplacementEntry(value: int): int {
-    const indexedFieldFirst = [value];
-    const indexedFieldSecond = [value + 1];
-    const indexedFieldOwner: IndexedOwner = {
-        handlers: [{
-            run: (): int => indexedFieldFirst[0]
-        }, {
-            run: (): int => indexedFieldSecond[0]
-        }], marker: 7
-    };
-    indexedFieldOwner.handlers[1] = {
-        run: (): int => indexedFieldFirst[0]
-    };
-    indexedFieldSecond[0] += 2;
-    return indexedFieldOwner.handlers[0].run() + indexedFieldOwner.handlers[1].run() + indexedFieldSecond[0] + indexedFieldOwner.marker;
+  const indexedFieldFirst = [value];
+  const indexedFieldSecond = [value + 1];
+  const indexedFieldOwner: IndexedOwner = {
+    handlers: [{
+      run: (): int => indexedFieldFirst[0]
+    }, {
+      run: (): int => indexedFieldSecond[0]
+    }], marker: 7
+  };
+  indexedFieldOwner.handlers[1] = {
+    run: (): int => indexedFieldFirst[0]
+  };
+  indexedFieldSecond[0] += 2;
+  return indexedFieldOwner.handlers[0].run() + indexedFieldOwner.handlers[1].run() + indexedFieldSecond[0] + indexedFieldOwner.marker;
 }
 
 function indexedMovedReplacementEntry(value: int): int {
-    const indexedMovedFirst = [value];
-    const indexedMovedSecond = [value + 1];
-    const indexedOriginal: Holder[] = [{
-        run: (): int => indexedMovedFirst[0]
-    }, {
-        run: (): int => indexedMovedSecond[0]
-    }];
-    const indexedMovedEntries = indexedOriginal;
-    indexedMovedEntries[1] = {
-        run: (): int => indexedMovedFirst[0]
-    };
-    indexedMovedSecond[0] += 3;
-    return indexedMovedEntries[0].run() + indexedMovedEntries[1].run() + indexedMovedSecond[0];
+  const indexedMovedFirst = [value];
+  const indexedMovedSecond = [value + 1];
+  const indexedOriginal: Holder[] = [{
+    run: (): int => indexedMovedFirst[0]
+  }, {
+    run: (): int => indexedMovedSecond[0]
+  }];
+  const indexedMovedEntries = indexedOriginal;
+  indexedMovedEntries[1] = {
+    run: (): int => indexedMovedFirst[0]
+  };
+  indexedMovedSecond[0] += 3;
+  return indexedMovedEntries[0].run() + indexedMovedEntries[1].run() + indexedMovedSecond[0];
 }
 
 function indexedPopEntry(value: int): int {
-    const popFirst = [value];
-    const popSecond = [value + 1];
-    const popEntries: Holder[] = [{
-        run: (): int => popFirst[0]
-    }, {
-        run: (): int => popSecond[0]
-    }];
-    popEntries.pop();
-    popSecond[0] += 2;
-    return popEntries[0].run() + popSecond[0];
+  const popFirst = [value];
+  const popSecond = [value + 1];
+  const popEntries: Holder[] = [{
+    run: (): int => popFirst[0]
+  }, {
+    run: (): int => popSecond[0]
+  }];
+  popEntries.pop();
+  popSecond[0] += 2;
+  return popEntries[0].run() + popSecond[0];
 }
 
 function indexedShiftEntry(value: int): int {
-    const shiftFirst = [value];
-    const shiftSecond = [value + 1];
-    const shiftEntries: Holder[] = [{
-        run: (): int => shiftFirst[0]
-    }, {
-        run: (): int => shiftSecond[0]
-    }];
-    shiftEntries.shift();
-    shiftFirst[0] += 3;
-    return shiftEntries[0].run() + shiftFirst[0];
+  const shiftFirst = [value];
+  const shiftSecond = [value + 1];
+  const shiftEntries: Holder[] = [{
+    run: (): int => shiftFirst[0]
+  }, {
+    run: (): int => shiftSecond[0]
+  }];
+  shiftEntries.shift();
+  shiftFirst[0] += 3;
+  return shiftEntries[0].run() + shiftFirst[0];
 }
 
 function indexedEmptyEntry(value: int): int {
-    const emptyFirst = [value];
-    const emptySecond = [value + 1];
-    const emptyEntries: Holder[] = [{
-        run: (): int => emptyFirst[0]
-    }, {
-        run: (): int => emptySecond[0]
-    }];
-    emptyEntries.pop();
-    emptyEntries.pop();
-    emptyEntries.pop();
-    emptyFirst[0] += 2;
-    emptySecond[0] += 3;
-    return emptyEntries.length + emptyFirst[0] + emptySecond[0];
+  const emptyFirst = [value];
+  const emptySecond = [value + 1];
+  const emptyEntries: Holder[] = [{
+    run: (): int => emptyFirst[0]
+  }, {
+    run: (): int => emptySecond[0]
+  }];
+  emptyEntries.pop();
+  emptyEntries.pop();
+  emptyEntries.pop();
+  emptyFirst[0] += 2;
+  emptySecond[0] += 3;
+  return emptyEntries.length + emptyFirst[0] + emptySecond[0];
 }
 
 function indexedRetainedEntry(value: int): int {
-    const retainedFirst = [value];
-    const retainedSecond = [value + 1];
-    const retainedEntries: Holder[] = [{
-        run: (): int => retainedFirst[0]
-    }, {
-        run: (): int => retainedSecond[0]
-    }];
-    let observed = 0;
-    {
-        const removed = retainedEntries.pop();
-        if (removed !== undefined) observed = removed.run();
-    }
+  const retainedFirst = [value];
+  const retainedSecond = [value + 1];
+  const retainedEntries: Holder[] = [{
+    run: (): int => retainedFirst[0]
+  }, {
+    run: (): int => retainedSecond[0]
+  }];
+  let observed = 0;
+  {
+    const removed = retainedEntries.pop();
+    if (removed !== undefined) observed = removed.run();
+  }
 
-    retainedSecond[0] += 2;
-    return observed + retainedEntries[0].run() + retainedSecond[0];
+  retainedSecond[0] += 2;
+  return observed + retainedEntries[0].run() + retainedSecond[0];
 }
 
 function indexedIndependentResult(value: int): int {
-    const independentFirst = [value];
-    const independentSecond = [value + 1];
-    const independentEntries: Holder[] = [{
-        run: (): int => independentFirst[0]
-    }, {
-        run: (): int => independentSecond[0]
-    }];
-    const removed = independentEntries.pop();
-    independentEntries[0] = {
-        run: (): int => independentSecond[0]
-    };
-    independentFirst[0] += 3;
-    let observed = 0;
-    if (removed !== undefined) observed = removed.run();
-    return observed + independentEntries[0].run() + independentFirst[0];
+  const independentFirst = [value];
+  const independentSecond = [value + 1];
+  const independentEntries: Holder[] = [{
+    run: (): int => independentFirst[0]
+  }, {
+    run: (): int => independentSecond[0]
+  }];
+  const removed = independentEntries.pop();
+  independentEntries[0] = {
+    run: (): int => independentSecond[0]
+  };
+  independentFirst[0] += 3;
+  let observed = 0;
+  if (removed !== undefined) observed = removed.run();
+  return observed + independentEntries[0].run() + independentFirst[0];
 }
 
 function indexedMutableResult(value: int): int {
-    const mutableFirst = [value];
-    const mutableSecond = [value + 1];
-    const mutableEntries: Holder[] = [{
-        run: (): int => mutableFirst[0]
-    }, {
-        run: (): int => mutableSecond[0]
-    }];
-    let removed = mutableEntries.pop();
-    mutableEntries[0] = {
-        run: (): int => mutableSecond[0]
-    };
-    mutableFirst[0] += 3;
-    let observed = 0;
-    if (removed !== undefined) observed = removed.run();
-    removed = undefined;
-    return observed + mutableEntries[0].run() + mutableFirst[0];
+  const mutableFirst = [value];
+  const mutableSecond = [value + 1];
+  const mutableEntries: Holder[] = [{
+    run: (): int => mutableFirst[0]
+  }, {
+    run: (): int => mutableSecond[0]
+  }];
+  let removed = mutableEntries.pop();
+  mutableEntries[0] = {
+    run: (): int => mutableSecond[0]
+  };
+  mutableFirst[0] += 3;
+  let observed = 0;
+  if (removed !== undefined) observed = removed.run();
+  removed = undefined;
+  return observed + mutableEntries[0].run() + mutableFirst[0];
 }
 
 function indexedReplacedResult(value: int): int {
-    const replacedFirst = [value];
-    const replacedSecond = [value + 1];
-    const replacedThird = [value + 2];
-    const replacedEntries: Holder[] = [{
-        run: (): int => replacedFirst[0]
-    }, {
-        run: (): int => replacedSecond[0]
-    }];
-    let removed = replacedEntries.pop();
-    removed = {
-        run: (): int => replacedThird[0]
-    };
-    replacedSecond[0] += 3;
-    let observed = 0;
-    if (removed !== undefined) observed = removed.run();
-    return observed + replacedEntries[0].run() + replacedSecond[0];
+  const replacedFirst = [value];
+  const replacedSecond = [value + 1];
+  const replacedThird = [value + 2];
+  const replacedEntries: Holder[] = [{
+    run: (): int => replacedFirst[0]
+  }, {
+    run: (): int => replacedSecond[0]
+  }];
+  let removed = replacedEntries.pop();
+  removed = {
+    run: (): int => replacedThird[0]
+  };
+  replacedSecond[0] += 3;
+  let observed = 0;
+  if (removed !== undefined) observed = removed.run();
+  return observed + replacedEntries[0].run() + replacedSecond[0];
 }
 
 function indexedCommaRemoval(value: int): int {
-    const commaFirst = [value];
-    const commaSecond = [value + 1];
-    const commaEntries: Holder[] = [{
-        run: (): int => commaFirst[0]
-    }, {
-        run: (): int => commaSecond[0]
-    }];
-    (commaEntries.pop(), commaSecond[0] += 2);
-    return commaEntries[0].run() + commaSecond[0];
+  const commaFirst = [value];
+  const commaSecond = [value + 1];
+  const commaEntries: Holder[] = [{
+    run: (): int => commaFirst[0]
+  }, {
+    run: (): int => commaSecond[0]
+  }];
+  (commaEntries.pop(), commaSecond[0] += 2);
+  return commaEntries[0].run() + commaSecond[0];
 }
 
 function indexedNestedCommaRemoval(value: int): int {
-    const nestedCommaFirst = [value];
-    const nestedCommaSecond = [value + 1];
-    const nestedCommaEntries: Holder[] = [{
-        run: (): int => nestedCommaFirst[0]
-    }, {
-        run: (): int => nestedCommaSecond[0]
-    }];
-    ((nestedCommaEntries.shift(), nestedCommaFirst[0] += 3), (nestedCommaEntries.pop(), nestedCommaSecond[0] += 2), nestedCommaEntries.pop());
-    return nestedCommaFirst[0] + nestedCommaSecond[0] + nestedCommaEntries.length;
+  const nestedCommaFirst = [value];
+  const nestedCommaSecond = [value + 1];
+  const nestedCommaEntries: Holder[] = [{
+    run: (): int => nestedCommaFirst[0]
+  }, {
+    run: (): int => nestedCommaSecond[0]
+  }];
+  ((nestedCommaEntries.shift(), nestedCommaFirst[0] += 3), (nestedCommaEntries.pop(), nestedCommaSecond[0] += 2), nestedCommaEntries.pop());
+  return nestedCommaFirst[0] + nestedCommaSecond[0] + nestedCommaEntries.length;
 }
 
 function indexedRetainedCommaResult(value: int): int {
-    const retainedCommaFirst = [value];
-    const retainedCommaSecond = [value + 1];
-    const retainedCommaEntries: Holder[] = [{
-        run: (): int => retainedCommaFirst[0]
-    }, {
-        run: (): int => retainedCommaSecond[0]
-    }];
-    let observed = 0;
-    {
-        const removed = (retainedCommaEntries.pop(), retainedCommaSecond[0] += 2, retainedCommaEntries.shift());
-        if (removed !== undefined) observed = removed.run();
-    }
+  const retainedCommaFirst = [value];
+  const retainedCommaSecond = [value + 1];
+  const retainedCommaEntries: Holder[] = [{
+    run: (): int => retainedCommaFirst[0]
+  }, {
+    run: (): int => retainedCommaSecond[0]
+  }];
+  let observed = 0;
+  {
+    const removed = (retainedCommaEntries.pop(), retainedCommaSecond[0] += 2, retainedCommaEntries.shift());
+    if (removed !== undefined) observed = removed.run();
+  }
 
-    retainedCommaFirst[0] += 3;
-    return observed + retainedCommaFirst[0] + retainedCommaSecond[0];
+  retainedCommaFirst[0] += 3;
+  return observed + retainedCommaFirst[0] + retainedCommaSecond[0];
 }
 
 function indexedCommaReassignment(value: int): int {
-    const reassignedCommaFirst = [value];
-    const reassignedCommaSecond = [value + 1];
-    const reassignedCommaThird = [value + 2];
-    const reassignedCommaEntries: Holder[] = [{
-        run: (): int => reassignedCommaFirst[0]
-    }, {
-        run: (): int => reassignedCommaSecond[0]
-    }, {
-        run: (): int => reassignedCommaThird[0]
-    }];
-    let removed = reassignedCommaEntries.pop();
-    removed = (reassignedCommaEntries.pop(), reassignedCommaSecond[0] += 2, reassignedCommaEntries.shift());
-    reassignedCommaThird[0] += 3;
-    let observed = 0;
-    if (removed !== undefined) observed = removed.run();
-    removed = undefined;
-    reassignedCommaFirst[0] += 4;
-    return observed + reassignedCommaFirst[0] + reassignedCommaSecond[0] + reassignedCommaThird[0];
+  const reassignedCommaFirst = [value];
+  const reassignedCommaSecond = [value + 1];
+  const reassignedCommaThird = [value + 2];
+  const reassignedCommaEntries: Holder[] = [{
+    run: (): int => reassignedCommaFirst[0]
+  }, {
+    run: (): int => reassignedCommaSecond[0]
+  }, {
+    run: (): int => reassignedCommaThird[0]
+  }];
+  let removed = reassignedCommaEntries.pop();
+  removed = (reassignedCommaEntries.pop(), reassignedCommaSecond[0] += 2, reassignedCommaEntries.shift());
+  reassignedCommaThird[0] += 3;
+  let observed = 0;
+  if (removed !== undefined) observed = removed.run();
+  removed = undefined;
+  reassignedCommaFirst[0] += 4;
+  return observed + reassignedCommaFirst[0] + reassignedCommaSecond[0] + reassignedCommaThird[0];
 }
 
 function nullableRecordReplacement(value: int): int {
-    const nullableFirst = [value];
-    const nullableSecond = [value + 1];
-    let nullableSaved: Holder | undefined = undefined;
-    nullableSaved = {
-        run: (): int => nullableFirst[0]
-    };
-    nullableSaved = {
-        run: (): int => nullableSecond[0]
-    };
-    nullableFirst[0] += 3;
-    let observed = 0;
-    if (nullableSaved !== undefined) observed = nullableSaved.run();
-    nullableSaved = undefined;
-    nullableSecond[0] += 4;
-    return observed + nullableFirst[0] + nullableSecond[0];
+  const nullableFirst = [value];
+  const nullableSecond = [value + 1];
+  let nullableSaved: Holder | undefined = undefined;
+  nullableSaved = {
+    run: (): int => nullableFirst[0]
+  };
+  nullableSaved = {
+    run: (): int => nullableSecond[0]
+  };
+  nullableFirst[0] += 3;
+  let observed = 0;
+  if (nullableSaved !== undefined) observed = nullableSaved.run();
+  nullableSaved = undefined;
+  nullableSecond[0] += 4;
+  return observed + nullableFirst[0] + nullableSecond[0];
 }
 
 function nullableRecordNullResult(value: int): int {
-    const nullableValues = [value];
-    let nullSaved: Holder | null = null;
-    nullSaved = {
-        run: (): int => nullableValues[0]
-    };
-    let observed = 0;
-    if (nullSaved !== null) observed = nullSaved.run();
-    nullSaved = null;
-    nullableValues[0] += 2;
-    return observed + nullableValues[0];
+  const nullableValues = [value];
+  let nullSaved: Holder | null = null;
+  nullSaved = {
+    run: (): int => nullableValues[0]
+  };
+  let observed = 0;
+  if (nullSaved !== null) observed = nullSaved.run();
+  nullSaved = null;
+  nullableValues[0] += 2;
+  return observed + nullableValues[0];
 }
 
 type NullableFieldPair = {
-    left: Holder | undefined;
-    right: Holder | undefined;
+  left: Holder | undefined;
+  right: Holder | undefined;
 };
 
 type NullableFieldArray = {
-    saved: Holder | undefined;
-    items: Holder[];
+  saved: Holder | undefined;
+  items: Holder[];
 };
 
 function nullableFieldReplacement(value: int): int {
-    const fieldFirst = [value];
-    const fieldSecond = [value + 1];
-    const fieldThird = [value + 2];
-    const pair: NullableFieldPair = {
-        left: undefined, right: undefined
-    };
-    pair.left = {
-        run: (): int => fieldFirst[0]
-    };
-    pair.right = {
-        run: (): int => fieldSecond[0]
-    };
-    pair.left = {
-        run: (): int => fieldThird[0]
-    };
-    fieldFirst[0] += 3;
-    let observed = 0;
-    if (pair.left !== undefined && pair.right !== undefined) observed = pair.left.run() + pair.right.run();
-    pair.left = undefined;
-    fieldThird[0] += 4;
-    pair.right = undefined;
-    fieldSecond[0] += 5;
-    return observed + fieldFirst[0] + fieldSecond[0] + fieldThird[0];
+  const fieldFirst = [value];
+  const fieldSecond = [value + 1];
+  const fieldThird = [value + 2];
+  const pair: NullableFieldPair = {
+    left: undefined, right: undefined
+  };
+  pair.left = {
+    run: (): int => fieldFirst[0]
+  };
+  pair.right = {
+    run: (): int => fieldSecond[0]
+  };
+  pair.left = {
+    run: (): int => fieldThird[0]
+  };
+  fieldFirst[0] += 3;
+  let observed = 0;
+  if (pair.left !== undefined && pair.right !== undefined) observed = pair.left.run() + pair.right.run();
+  pair.left = undefined;
+  fieldThird[0] += 4;
+  pair.right = undefined;
+  fieldSecond[0] += 5;
+  return observed + fieldFirst[0] + fieldSecond[0] + fieldThird[0];
 }
 
 function nullableFieldArray(value: int): int {
-    const fieldArrayFirst = [value];
-    const fieldArraySecond = [value + 1];
-    const box: NullableFieldArray = {
-        saved: undefined, items: [{
-            run: (): int => fieldArrayFirst[0]
-        }]
-    };
-    box.saved = {
-        run: (): int => fieldArraySecond[0]
-    };
-    box.items.pop();
-    fieldArrayFirst[0] += 2;
-    let observed = 0;
-    if (box.saved !== undefined) observed = box.saved.run() + fieldArrayFirst[0] + box.items.length;
-    box.saved = undefined;
-    fieldArraySecond[0] += 3;
-    return observed + fieldArraySecond[0];
+  const fieldArrayFirst = [value];
+  const fieldArraySecond = [value + 1];
+  const box: NullableFieldArray = {
+    saved: undefined, items: [{
+      run: (): int => fieldArrayFirst[0]
+    }]
+  };
+  box.saved = {
+    run: (): int => fieldArraySecond[0]
+  };
+  box.items.pop();
+  fieldArrayFirst[0] += 2;
+  let observed = 0;
+  if (box.saved !== undefined) observed = box.saved.run() + fieldArrayFirst[0] + box.items.length;
+  box.saved = undefined;
+  fieldArraySecond[0] += 3;
+  return observed + fieldArraySecond[0];
 }
 
 function nullableControlStores(value: int): int {
-    const controlFirst = [value];
-    const controlSecond = [value + 2];
-    const controlPair: NullableFieldPair = {
-        left: undefined, right: undefined
-    };
-    let controlTurn = 0;
-    while (controlTurn < 3) {
-        if (controlTurn % 2 === 0) {
-            controlPair.left = {
-                run: (): int => controlFirst[0]
-            };
-        } else {
-            controlPair.right = {
-                run: (): int => controlSecond[0]
-            };
-        }
-
-        controlTurn += 1;
+  const controlFirst = [value];
+  const controlSecond = [value + 2];
+  const controlPair: NullableFieldPair = {
+    left: undefined, right: undefined
+  };
+  let controlTurn = 0;
+  while (controlTurn < 3) {
+    if (controlTurn % 2 === 0) {
+      controlPair.left = {
+        run: (): int => controlFirst[0]
+      };
+    } else {
+      controlPair.right = {
+        run: (): int => controlSecond[0]
+      };
     }
 
-    let observed = 0;
-    if (value % 2 === 0) controlPair.right = undefined;
-    if (controlPair.left !== undefined) observed += controlPair.left.run();
-    if (controlPair.right !== undefined) observed += controlPair.right.run();
-    return observed + controlTurn;
+    controlTurn += 1;
+  }
+
+  let observed = 0;
+  if (value % 2 === 0) controlPair.right = undefined;
+  if (controlPair.left !== undefined) observed += controlPair.left.run();
+  if (controlPair.right !== undefined) observed += controlPair.right.run();
+  return observed + controlTurn;
 }
 
 type NullableFieldSlot = {
-    saved: Holder | undefined;
+  saved: Holder | undefined;
 };
 
 function nullableOwnedResult(seed: int): Holder | undefined {
-    if (seed % 2 === 0) return {
-        run: (): int => seed + 1
-    };
-    return undefined;
+  if (seed % 2 === 0) return {
+    run: (): int => seed + 1
+  };
+  return undefined;
 }
 
 function nullableValueJoins(value: int): int {
-    const joinFirst = [value];
-    const joinSecond = [value + 5];
-    const made = nullableOwnedResult(value);
-    let observed = made !== undefined ? made.run() : 0;
-    const chosen: Holder | undefined = value % 2 === 0 ? {
-        run: (): int => joinFirst[0]
-    }
+  const joinFirst = [value];
+  const joinSecond = [value + 5];
+  const made = nullableOwnedResult(value);
+  let observed = made !== undefined ? made.run() : 0;
+  const chosen: Holder | undefined = value % 2 === 0 ? {
+    run: (): int => joinFirst[0]
+  }
 
-    : undefined;
-    if (chosen !== undefined) observed += chosen.run();
-    const slots: NullableFieldSlot[] = [{
-        saved: undefined
-    }, {
-        saved: undefined
-    }];
-    slots[value % 2].saved = {
-        run: (): int => joinSecond[0]
-    };
-    for (const slot of slots) {
-        if (slot.saved !== undefined) observed += slot.saved.run();
-    }
+  : undefined;
+  if (chosen !== undefined) observed += chosen.run();
+  const slots: NullableFieldSlot[] = [{
+    saved: undefined
+  }, {
+    saved: undefined
+  }];
+  slots[value % 2].saved = {
+    run: (): int => joinSecond[0]
+  };
+  for (const slot of slots) {
+    if (slot.saved !== undefined) observed += slot.saved.run();
+  }
 
-    return observed + slots.length;
+  return observed + slots.length;
 }
 
 function nullableFieldReader(slot: ReadOnly<NullableFieldSlot>): int {
-    if (slot.saved !== undefined) return slot.saved.run();
-    return 1;
+  if (slot.saved !== undefined) return slot.saved.run();
+  return 1;
 }
 
 function nullableParameterRead(value: int): int {
-    const readFirst = [value];
-    const slot: NullableFieldSlot = {
-        saved: undefined
-    };
-    const before = nullableFieldReader(slot);
-    if (value % 2 === 0) slot.saved = {
-        run: (): int => readFirst[0] + 2
-    };
-    return before + nullableFieldReader(slot);
+  const readFirst = [value];
+  const slot: NullableFieldSlot = {
+    saved: undefined
+  };
+  const before = nullableFieldReader(slot);
+  if (value % 2 === 0) slot.saved = {
+    run: (): int => readFirst[0] + 2
+  };
+  return before + nullableFieldReader(slot);
 }
 
 function nullableOwnedJoin(value: int): int {
-    let chosen: Holder | undefined = undefined;
-    if (value % 2 === 0) {
-        chosen = {
-            run: (): int => value + 2
-        };
-    } else if (value > 2) {
-        chosen = {
-            run: (): int => value * 3
-        };
-    }
+  let chosen: Holder | undefined = undefined;
+  if (value % 2 === 0) {
+    chosen = {
+      run: (): int => value + 2
+    };
+  } else if (value > 2) {
+    chosen = {
+      run: (): int => value * 3
+    };
+  }
 
-    return chosen !== undefined ? chosen.run() : 4;
+  return chosen !== undefined ? chosen.run() : 4;
 }
 
 function nullableFieldClearer(slot: Mutable<NullableFieldSlot>, limit: int): int {
-    let seen = 0;
-    if (slot.saved !== undefined) {
-        seen = slot.saved.run();
-        if (seen > limit) slot.saved = undefined;
-    }
+  let seen = 0;
+  if (slot.saved !== undefined) {
+    seen = slot.saved.run();
+    if (seen > limit) slot.saved = undefined;
+  }
 
-    return seen;
+  return seen;
 }
 
 function nullableElementSlots(value: int): int {
-    const elementFirst = [value];
-    const slots: (Holder | undefined)[] = [undefined, {
-        run: (): int => elementFirst[0]
-    }];
-    slots[0] = {
-        run: (): int => elementFirst[0] + 2
-    };
-    slots.push(undefined);
-    let observed = 0;
-    for (const slot of slots) observed += slot?.run() ?? 1;
-    const removed = slots.shift();
-    if (removed !== undefined) observed += removed.run();
-    const kept: NullableFieldSlot = {
-        saved: {
-            run: (): int => value + 4
-        }
-    };
-    observed += nullableFieldClearer(kept, value % 2 === 0 ? 0 : 100);
-    return observed + slots.length + (kept.saved === undefined ? 10 : 20);
+  const elementFirst = [value];
+  const slots: (Holder | undefined)[] = [undefined, {
+    run: (): int => elementFirst[0]
+  }];
+  slots[0] = {
+    run: (): int => elementFirst[0] + 2
+  };
+  slots.push(undefined);
+  let observed = 0;
+  for (const slot of slots) observed += slot?.run() ?? 1;
+  const removed = slots.shift();
+  if (removed !== undefined) observed += removed.run();
+  const kept: NullableFieldSlot = {
+    saved: {
+      run: (): int => value + 4
+    }
+  };
+  observed += nullableFieldClearer(kept, value % 2 === 0 ? 0 : 100);
+  return observed + slots.length + (kept.saved === undefined ? 10 : 20);
 }
 
 function containerTotal(handlers: ReadOnly<Holder[]>): int {
-    let sum = 0;
-    for (const handler of handlers) sum += handler.run();
-    return sum;
+  let sum = 0;
+  for (const handler of handlers) sum += handler.run();
+  return sum;
 }
 
 function containerLookup(table: ReadOnly<Map<string, Holder>>, key: string): int {
-    const found = table.get(key);
-    if (found !== undefined) return found.run();
-    return 1;
+  const found = table.get(key);
+  if (found !== undefined) return found.run();
+  return 1;
 }
 
 function containerBoundaries(value: int): int {
-    const boundaryFirst = [value];
-    const handlers: Holder[] = [];
-    handlers.push({
-        run: (): int => boundaryFirst[0]
-    });
-    handlers.push({
-        run: (): int => value + 2
-    });
-    const table = new Map<string, Holder>();
-    table.set("first", {
-        run: (): int => boundaryFirst[0] + 3
-    });
-    return containerTotal(handlers) + containerLookup(table, value % 2 === 0 ? "first" : "none") + handlers.length;
+  const boundaryFirst = [value];
+  const handlers: Holder[] = [];
+  handlers.push({
+    run: (): int => boundaryFirst[0]
+  });
+  handlers.push({
+    run: (): int => value + 2
+  });
+  const table = new Map<string, Holder>();
+  table.set("first", {
+    run: (): int => boundaryFirst[0] + 3
+  });
+  return containerTotal(handlers) + containerLookup(table, value % 2 === 0 ? "first" : "none") + handlers.length;
 }
 
 function borrowedNullableReader(holder: ReadOnly<Holder> | undefined = undefined): int {
-    return holder?.run() ?? 1;
+  return holder?.run() ?? 1;
 }
 
 function borrowedNullableViews(value: int): int {
-    const viewValues = [value];
-    const viewBoxes: NullableFieldSlot[] = [{
-        saved: undefined
-    }];
-    let observed = borrowedNullableReader() + borrowedNullableReader(undefined) - 1;
-    viewBoxes[0].saved = {
-        run: (): int => viewValues[0]
-    };
-    const savedView = viewBoxes[0].saved;
-    observed += borrowedNullableReader(savedView) + borrowedNullableReader(savedView);
-    observed += borrowedNullableReader(viewBoxes[0].saved);
-    return observed + viewBoxes.length;
+  const viewValues = [value];
+  const viewBoxes: NullableFieldSlot[] = [{
+    saved: undefined
+  }];
+  let observed = borrowedNullableReader() + borrowedNullableReader(undefined) - 1;
+  viewBoxes[0].saved = {
+    run: (): int => viewValues[0]
+  };
+  const savedView = viewBoxes[0].saved;
+  observed += borrowedNullableReader(savedView) + borrowedNullableReader(savedView);
+  observed += borrowedNullableReader(viewBoxes[0].saved);
+  return observed + viewBoxes.length;
 }
 
 function installNullableOwned(slot: Mutable<NullableFieldSlot>, seed: int): void {
-    const replacement: Holder | undefined = {
-        run: (): int => seed
-    };
-    slot.saved = replacement;
+  const replacement: Holder | undefined = {
+    run: (): int => seed
+  };
+  slot.saved = replacement;
 }
 
 function nullableParameterStores(value: int): int {
-    const slot: NullableFieldSlot = {
-        saved: undefined
-    };
-    let observed = slot.saved?.run() ?? 1;
-    installNullableOwned(slot, value);
-    observed += slot.saved?.run() ?? 1;
-    installNullableOwned(slot, value + 2);
-    observed += slot.saved?.run() ?? 1;
-    slot.saved = undefined;
-    return observed + (slot.saved === undefined ? 1 : 0);
+  const slot: NullableFieldSlot = {
+    saved: undefined
+  };
+  let observed = slot.saved?.run() ?? 1;
+  installNullableOwned(slot, value);
+  observed += slot.saved?.run() ?? 1;
+  installNullableOwned(slot, value + 2);
+  observed += slot.saved?.run() ?? 1;
+  slot.saved = undefined;
+  return observed + (slot.saved === undefined ? 1 : 0);
 }
 
 function independentParameterRead(left: ReadOnly<NullableFieldSlot>, right: ReadOnly<NullableFieldSlot>): int {
-    return (left.saved?.run() ?? 1) + (right.saved?.run() ?? 1);
+  return (left.saved?.run() ?? 1) + (right.saved?.run() ?? 1);
 }
 
 function independentParameterFill(left: Mutable<NullableFieldSlot>, right: Mutable<NullableFieldSlot>, seed: int): void {
-    left.saved = {
-        run: (): int => seed
-    };
-    right.saved = {
-        run: (): int => seed + 2
-    };
+  left.saved = {
+    run: (): int => seed
+  };
+  right.saved = {
+    run: (): int => seed + 2
+  };
 }
 
 function independentNullableParameters(value: int): int {
-    const leftCapture = [value];
-    const rightCapture = [value + 3];
-    const left: NullableFieldSlot = {
-        saved: {
-            run: (): int => leftCapture[0]
-        }
-    };
-    const right: NullableFieldSlot = {
-        saved: {
-            run: (): int => rightCapture[0]
-        }
-    };
-    let observed = independentParameterRead(left, right) + independentParameterRead(right, left);
-    independentParameterFill(left, right, value + 5);
-    const leftArray: Holder[] = [{
-        run: (): int => leftCapture[0]
-    }];
-    const rightArray: Holder[] = [{
-        run: (): int => rightCapture[0]
-    }];
-    const leftMap = new Map<string, Holder>();
-    const rightMap = new Map<string, Holder>();
-    leftMap.set("k", {
-        run: (): int => leftCapture[0]
-    });
-    rightMap.set("k", {
-        run: (): int => rightCapture[0]
-    });
-    return observed + independentParameterRead(left, right) + independentArrayRead(leftArray, rightArray) + independentMapRead(leftMap, rightMap);
+  const leftCapture = [value];
+  const rightCapture = [value + 3];
+  const left: NullableFieldSlot = {
+    saved: {
+      run: (): int => leftCapture[0]
+    }
+  };
+  const right: NullableFieldSlot = {
+    saved: {
+      run: (): int => rightCapture[0]
+    }
+  };
+  let observed = independentParameterRead(left, right) + independentParameterRead(right, left);
+  independentParameterFill(left, right, value + 5);
+  const leftArray: Holder[] = [{
+    run: (): int => leftCapture[0]
+  }];
+  const rightArray: Holder[] = [{
+    run: (): int => rightCapture[0]
+  }];
+  const leftMap = new Map<string, Holder>();
+  const rightMap = new Map<string, Holder>();
+  leftMap.set("k", {
+    run: (): int => leftCapture[0]
+  });
+  rightMap.set("k", {
+    run: (): int => rightCapture[0]
+  });
+  return observed + independentParameterRead(left, right) + independentArrayRead(leftArray, rightArray) + independentMapRead(leftMap, rightMap);
 }
 
 function independentArrayRead(left: ReadOnly<Holder[]>, right: ReadOnly<Holder[]>): int {
-    return left[0].run() + right[0].run();
+  return left[0].run() + right[0].run();
 }
 
 function independentMapRead(left: ReadOnly<Map<string, Holder>>, right: ReadOnly<Map<string, Holder>>): int {
-    let observed = (left.get("k")?.run() ?? 1) + (right.get("k")?.run() ?? 1);
-    for (const [key, holder] of left) observed += holder.run();
-    for (const [key, holder] of right) observed += holder.run();
-    return observed;
+  let observed = (left.get("k")?.run() ?? 1) + (right.get("k")?.run() ?? 1);
+  for (const [key, holder] of left) observed += holder.run();
+  for (const [key, holder] of right) observed += holder.run();
+  return observed;
 }

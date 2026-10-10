@@ -1,24 +1,24 @@
 function workload(n: int, seed: int, input: string): string[] {
-    const consumer = transfer;
-    const output: string[] = [];
-    let i = 0;
-    while (i < n) {
-        const value = clone(input);
-        output.push(consumer(take, value));
-        i = i + 1;
-    }
+  const consumer = transfer;
+  const output: string[] = [];
+  let i = 0;
+  while (i < n) {
+    const value = clone(input);
+    output.push(consumer(take, value));
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function take(text: string): string {
-    return text;
+  return text;
 }
 
 function transfer(f: Once<Function<string, [text: Owned<string>]>>, text: string): string {
-    return f(text);
+  return f(text);
 }
 
 function main() {
-    const result = workload(2, 7, " xé😀e\u0301 ");
+  const result = workload(2, 7, " xé😀e\u0301 ");
 }

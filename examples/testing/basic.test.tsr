@@ -1,9 +1,9 @@
 import { describe, test, expect, strictEqual } from "std:testing";
 
 describe("standard testing", (): void => {
-    test("adds integers", (): void => {
-        expect(2 + 3).toBe(5);
-    }); test("checks strings", (): void => {
-        strictEqual("tsrust".length, 6);
-    });
+  test("adds integers", (): void => {
+    expect(2 + 3).toBe(5);
+  }); test("checks strings", (): void => {
+    strictEqual("tsrust".length, 6);
+  });
 });

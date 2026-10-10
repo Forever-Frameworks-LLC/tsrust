@@ -3,93 +3,93 @@ import { strictEqual } from "std:testing";
 function main() {
     // Rest parameters.
     const seen: int[] = [];
-    let total = 0;
-    function add(label: string, ...values: int[]): int {
-        for (const value of values) {
-            seen.push(value);
-            total += value;
-        }
-
-        return values.length + label.length;
+  let total = 0;
+  function add(label: string, ...values: int[]): int {
+    for (const value of values) {
+      seen.push(value);
+      total += value;
     }
 
-    strictEqual(add("a"), 1);
-    strictEqual(add("b", 1), 2);
-    strictEqual(add("c", 2, 3), 3);
-    const more = [4, 5];
-    strictEqual(add("d", ...more), 3);
-    strictEqual(seen.join(","), "1,2,3,4,5");
-    strictEqual(total, 15);
+    return values.length + label.length;
+  }
+
+  strictEqual(add("a"), 1);
+  strictEqual(add("b", 1), 2);
+  strictEqual(add("c", 2, 3), 3);
+  const more = [4, 5];
+  strictEqual(add("d", ...more), 3);
+  strictEqual(seen.join(","), "1,2,3,4,5");
+  strictEqual(total, 15);
 
     // Callback parameters.
     const base = [10];
-    let calls = 0;
-    function each(run: (value: int) => int): int {
-        calls += 1;
-        return run(base[0]);
-    }
+  let calls = 0;
+  function each(run: (value: int) => int): int {
+    calls += 1;
+    return run(base[0]);
+  }
 
-    strictEqual(each((value: int): int => value + 1), 11);
-    const step = [5];
-    strictEqual(each((value: int): int => value + step.length), 11);
-    strictEqual(calls, 2);
-    strictEqual(base[0], 10);
+  strictEqual(each((value: int): int => value + 1), 11);
+  const step = [5];
+  strictEqual(each((value: int): int => value + step.length), 11);
+  strictEqual(calls, 2);
+  strictEqual(base[0], 10);
 
     // Type parameters.
     const notes: string[] = [];
-    let count = 0;
-    function note<T>(value: T): T {
-        notes.push("x");
-        count += 1;
-        return value;
-    }
+  let count = 0;
+  function note<T>(value: T): T {
+    notes.push("x");
+    count += 1;
+    return value;
+  }
 
-    strictEqual(note<int>(1), 1);
-    strictEqual(note("a"), "a");
-    strictEqual(note(2), 2);
-    strictEqual(notes.length, 3);
-    strictEqual(count, 3);
+  strictEqual(note<int>(1), 1);
+  strictEqual(note("a"), "a");
+  strictEqual(note(2), 2);
+  strictEqual(notes.length, 3);
+  strictEqual(count, 3);
 
     // A recursive group keeps the variables of each member call separate.
     const log: int[] = [];
-    function descend(depth: int): void {
-        function level(): void {
-            const current = [depth];
-            function visit(): void {
-                log.push(current[0]);
-                if (current[0] > 0) {
-                    descend(current[0] - 1);
-                }
-            }
-
-            visit();
+  function descend(depth: int): void {
+    function level(): void {
+      const current = [depth];
+      function visit(): void {
+        log.push(current[0]);
+        if (current[0] > 0) {
+          descend(current[0] - 1);
         }
+      }
 
-        level();
+      visit();
     }
 
-    descend(2);
-    strictEqual(log.join(","), "2,1,0");
+    level();
+  }
 
-    let hits = 0;
-    function even(value: int): boolean {
-        hits += 1;
-        if (value === 0) {
-            return true;
-        }
+  descend(2);
+  strictEqual(log.join(","), "2,1,0");
 
-        return odd(value - 1);
+  let hits = 0;
+  function even(value: int): boolean {
+    hits += 1;
+    if (value === 0) {
+      return true;
     }
 
-    function odd(value: int): boolean {
-        hits += 1;
-        if (value === 0) {
-            return false;
-        }
+    return odd(value - 1);
+  }
 
-        return even(value - 1);
+  function odd(value: int): boolean {
+    hits += 1;
+    if (value === 0) {
+      return false;
     }
 
-    strictEqual(even(4), true);
-    strictEqual(hits, 5);
+    return even(value - 1);
+  }
+
+  strictEqual(even(4), true);
+  strictEqual(hits, 5);
 }

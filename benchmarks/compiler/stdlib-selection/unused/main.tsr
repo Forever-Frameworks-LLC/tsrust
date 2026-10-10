@@ -1,5 +1,5 @@
 import { value as number } from "./helper.tsr";
 
 function main() {
-    console.log(number());
+  console.log(number());
 }

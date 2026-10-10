@@ -1,37 +1,37 @@
 import { strictEqual } from 'std:testing';
 
 function left(start: int) {
-    console.log("left", start);
-    let calls = start;
-    function select<T>(value: T): T {
-        calls += 1;
-        console.log(calls);
-        return value;
-    }
+  console.log("left", start);
+  let calls = start;
+  function select<T>(value: T): T {
+    calls += 1;
+    console.log(calls);
+    return value;
+  }
 
-    return select;
+  return select;
 }
 
 function right(start: int) {
-    console.log("right", start);
-    let calls = start;
-    function choose<T>(value: T): T {
-        calls += 2;
-        console.log(calls);
-        return value;
-    }
+  console.log("right", start);
+  let calls = start;
+  function choose<T>(value: T): T {
+    calls += 2;
+    console.log(calls);
+    return value;
+  }
 
-    return choose;
+  return choose;
 }
 
 function main() {
-    let checks = 0;
-    let arguments = 0;
-    const fixed: Function<int, [value: int]> = (checks++ === 0 ? left : right)(++arguments);
-    strictEqual(fixed(7), 7);
-    const mapped = [3, 4].map((checks++ === 0 ? left : right)(++arguments));
-    strictEqual(mapped[0], 3);
-    strictEqual(mapped[1], 4);
-    strictEqual(checks, 2);
-    strictEqual(arguments, 2);
+  let checks = 0;
+  let arguments = 0;
+  const fixed: Function<int, [value: int]> = (checks++ === 0 ? left : right)(++arguments);
+  strictEqual(fixed(7), 7);
+  const mapped = [3, 4].map((checks++ === 0 ? left : right)(++arguments));
+  strictEqual(mapped[0], 3);
+  strictEqual(mapped[1], 4);
+  strictEqual(checks, 2);
+  strictEqual(arguments, 2);
 }

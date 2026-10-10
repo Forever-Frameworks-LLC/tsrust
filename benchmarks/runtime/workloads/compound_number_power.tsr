@@ -1,19 +1,19 @@
 function workload(n: int, seed: int): number[] {
-    const left: number[] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-    const right: number[] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-    const output: number[] = [];
-    let i = 0;
-    while (i < n) {
-        let value: number = left[(i * 13 + seed) % 8];
-        const rhs: number = right[(i * 7 + seed) % 8];
-        value **= rhs;
-        output.push(value);
-        i = i + 1;
-    }
+  const left: number[] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+  const right: number[] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+  const output: number[] = [];
+  let i = 0;
+  while (i < n) {
+    let value: number = left[(i * 13 + seed) % 8];
+    const rhs: number = right[(i * 7 + seed) % 8];
+    value **= rhs;
+    output.push(value);
+    i = i + 1;
+  }
 
-    return output;
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

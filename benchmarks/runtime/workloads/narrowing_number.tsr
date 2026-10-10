@@ -1,30 +1,30 @@
 function workload(n: int, seed: int): number[] {
-    const values: number[] = [Number(seed) / 4.0, -0.0, 0.5, -2.5, 17.0];
-    const output: number[] = [];
-    let i = 0;
-    while (i < n) {
-        const mode = (i + seed) % 3;
-        const at = (i * 13 + seed) % 5;
-        const value: number | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at];
-        if (value === null || value === undefined) {
-            if (value === null) {
-                output.push(0.0);
-                output.push(0.0);
-            } else {
-                output.push(1.0);
-                output.push(0.0);
-            }
-        } else {
-            output.push(2.0);
-            output.push(value.valueOf());
-        }
-
-        i = i + 1;
+  const values: number[] = [Number(seed) / 4.0, -0.0, 0.5, -2.5, 17.0];
+  const output: number[] = [];
+  let i = 0;
+  while (i < n) {
+    const mode = (i + seed) % 3;
+    const at = (i * 13 + seed) % 5;
+    const value: number | null | undefined = mode === 0 ? null : mode === 1 ? undefined : values[at];
+    if (value === null || value === undefined) {
+      if (value === null) {
+        output.push(0.0);
+        output.push(0.0);
+      } else {
+        output.push(1.0);
+        output.push(0.0);
+      }
+    } else {
+      output.push(2.0);
+      output.push(value.valueOf());
     }
 
-    return output;
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

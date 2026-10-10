@@ -1,24 +1,24 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function make(id: int): () => int {
-    return (): int => {
-        return id;
-    };
+  return (): int => {
+    return id;
+  };
 }
 
 function main() {
-    const id = 7;
-    const get = make(id);
-    const flag = true;
-    const check = (): boolean => {
-        return flag;
-    };
-    console.log(id);
-    console.log(get());
-    console.log(get());
-    console.log(flag);
-    console.log(check());
-    console.log(check());
+  const id = 7;
+  const get = make(id);
+  const flag = true;
+  const check = (): boolean => {
+    return flag;
+  };
+  console.log(id);
+  console.log(get());
+  console.log(get());
+  console.log(flag);
+  console.log(check());
+  console.log(check());
 }

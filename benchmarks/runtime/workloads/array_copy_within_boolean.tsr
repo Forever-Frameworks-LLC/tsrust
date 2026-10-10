@@ -1,127 +1,127 @@
 function workload(n: int, seed: int): boolean[] {
-    const output: boolean[] = [];
-    let i = 0;
-    while (i < n) {
-        const values: boolean[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
-        if ((i + seed) % 8 === 7) {
-            values.copyWithin(target(i, seed), start(i, seed));
-        } else {
-            values.copyWithin(target(i, seed), start(i, seed), ending(i, seed));
-        }
-
-        for (const value of values) {
-            output.push(value);
-        }
-
-        i = i + 1;
+  const output: boolean[] = [];
+  let i = 0;
+  while (i < n) {
+    const values: boolean[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
+    if ((i + seed) % 8 === 7) {
+      values.copyWithin(target(i, seed), start(i, seed));
+    } else {
+      values.copyWithin(target(i, seed), start(i, seed), ending(i, seed));
     }
 
-    return output;
+    for (const value of values) {
+      output.push(value);
+    }
+
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function start(i: int, seed: int): int {
-    const c = (i + seed) % 8;
-    if (c === 0) {
-        return 0;
-    }
+  const c = (i + seed) % 8;
+  if (c === 0) {
+    return 0;
+  }
 
-    if (c === 1) {
-        return 1;
-    }
+  if (c === 1) {
+    return 1;
+  }
 
-    if (c === 2) {
-        return -6;
-    }
+  if (c === 2) {
+    return -6;
+  }
 
-    if (c === 3) {
-        return -9;
-    }
-
-    if (c === 4) {
-        return -9;
-    }
-
-    if (c === 5) {
-        return 4;
-    }
-
-    if (c === 6) {
-        return -3;
-    }
-
+  if (c === 3) {
     return -9;
+  }
+
+  if (c === 4) {
+    return -9;
+  }
+
+  if (c === 5) {
+    return 4;
+  }
+
+  if (c === 6) {
+    return -3;
+  }
+
+  return -9;
 }
 
 function ending(i: int, seed: int): int {
-    const c = (i + seed) % 8;
-    if (c === 0) {
-        return 5;
-    }
+  const c = (i + seed) % 8;
+  if (c === 0) {
+    return 5;
+  }
 
-    if (c === 1) {
-        return 6;
-    }
+  if (c === 1) {
+    return 6;
+  }
 
-    if (c === 2) {
-        return -1;
-    }
-
-    if (c === 3) {
-        return 9;
-    }
-
-    if (c === 4) {
-        return 9;
-    }
-
-    if (c === 5) {
-        return 1;
-    }
-
-    if (c === 6) {
-        return 9;
-    }
-
+  if (c === 2) {
     return -1;
+  }
+
+  if (c === 3) {
+    return 9;
+  }
+
+  if (c === 4) {
+    return 9;
+  }
+
+  if (c === 5) {
+    return 1;
+  }
+
+  if (c === 6) {
+    return 9;
+  }
+
+  return -1;
 }
 
 function target(i: int, seed: int): int {
-    const c = (i + seed) % 8;
-    if (c === 0) {
-        return 1;
-    }
+  const c = (i + seed) % 8;
+  if (c === 0) {
+    return 1;
+  }
 
-    if (c === 1) {
-        return 0;
-    }
-
-    if (c === 2) {
-        return -2;
-    }
-
-    if (c === 3) {
-        return -9;
-    }
-
-    if (c === 4) {
-        return 9;
-    }
-
-    if (c === 5) {
-        return 2;
-    }
-
-    if (c === 6) {
-        return -1;
-    }
-
+  if (c === 1) {
     return 0;
+  }
+
+  if (c === 2) {
+    return -2;
+  }
+
+  if (c === 3) {
+    return -9;
+  }
+
+  if (c === 4) {
+    return 9;
+  }
+
+  if (c === 5) {
+    return 2;
+  }
+
+  if (c === 6) {
+    return -1;
+  }
+
+  return 0;
 }
 
 function item(base: int): boolean {
-    return base % 3 !== 0;
+  return base % 3 !== 0;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

@@ -1,24 +1,24 @@
 import { strictEqual } from "std:testing";
 
 type Box = {
-    text: string | undefined;
+  text: string | undefined;
 };
 
 function take({ text = "new" }: Owned<Box>): string {
-    return text;
+  return text;
 }
 
 function sum([first = 3, second = first + 2]: int[] = []): int {
-    return first + second;
+  return first + second;
 }
 
 function main() {
-    strictEqual(take({
-        text: undefined
-    }), "new");
-    strictEqual(take({
-        text: "old"
-    }), "old");
-    strictEqual(sum(), 8);
-    strictEqual(sum([7]), 16);
+  strictEqual(take({
+    text: undefined
+  }), "new");
+  strictEqual(take({
+    text: "old"
+  }), "old");
+  strictEqual(sum(), 8);
+  strictEqual(sum([7]), 16);
 }

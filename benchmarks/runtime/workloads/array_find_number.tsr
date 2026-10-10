@@ -1,64 +1,64 @@
 function workload(n: int, seed: int): number[] {
-    const output: number[] = [];
-    let i = 0;
-    while (i < n) {
-        const count = (i + seed) % 4;
-        const mode = (i * 7 + seed) % 5;
-        const values: number[] = [];
-        if (count > 0) {
-            values.push(-0.0);
-        }
-
-        if (count > 1) {
-            values.push(Number(seed) / 4.0);
-        }
-
-        if (count > 2) {
-            values.push(0.0 / 0.0);
-        }
-
-        let visits = 0;
-        let trace = 0;
-        let sourceVisits = 0;
-        const selected = values.find((value: number, index: int, source: number[]): boolean => {
-            visits = visits + 1; trace = trace * 10 + index + 1; sourceVisits = sourceVisits + source.length; return source.length === count && (value === source[index] || Number.isNaN(value)) && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
-        });
-        if (selected === undefined) {
-            output.push(0.0);
-            output.push(0.0 / 0.0);
-        } else {
-            output.push(1.0);
-            output.push(selected);
-        }
-
-        output.push(Number(values.length));
-        output.push(Number(visits));
-        output.push(Number(trace));
-        output.push(Number(sourceVisits));
-        if (values.length > 0) {
-            output.push(values[0]);
-        } else {
-            output.push(0.0 / 0.0);
-        }
-
-        if (values.length > 1) {
-            output.push(values[1]);
-        } else {
-            output.push(0.0 / 0.0);
-        }
-
-        if (values.length > 2) {
-            output.push(values[2]);
-        } else {
-            output.push(0.0 / 0.0);
-        }
-
-        i = i + 1;
+  const output: number[] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 4;
+    const mode = (i * 7 + seed) % 5;
+    const values: number[] = [];
+    if (count > 0) {
+      values.push(-0.0);
     }
 
-    return output;
+    if (count > 1) {
+      values.push(Number(seed) / 4.0);
+    }
+
+    if (count > 2) {
+      values.push(0.0 / 0.0);
+    }
+
+    let visits = 0;
+    let trace = 0;
+    let sourceVisits = 0;
+    const selected = values.find((value: number, index: int, source: number[]): boolean => {
+      visits = visits + 1; trace = trace * 10 + index + 1; sourceVisits = sourceVisits + source.length; return source.length === count && (value === source[index] || Number.isNaN(value)) && (mode === 1 && index === 0 || mode === 2 && index % 2 === 0 || mode === 3 && index >= 1 || mode === 4);
+    });
+    if (selected === undefined) {
+      output.push(0.0);
+      output.push(0.0 / 0.0);
+    } else {
+      output.push(1.0);
+      output.push(selected);
+    }
+
+    output.push(Number(values.length));
+    output.push(Number(visits));
+    output.push(Number(trace));
+    output.push(Number(sourceVisits));
+    if (values.length > 0) {
+      output.push(values[0]);
+    } else {
+      output.push(0.0 / 0.0);
+    }
+
+    if (values.length > 1) {
+      output.push(values[1]);
+    } else {
+      output.push(0.0 / 0.0);
+    }
+
+    if (values.length > 2) {
+      output.push(values[2]);
+    } else {
+      output.push(0.0 / 0.0);
+    }
+
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

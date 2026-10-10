@@ -1,38 +1,38 @@
 function main() {
-    console.log("".isWellFormed());
-    console.log("".toWellFormed() === "");
-    console.log("A".isWellFormed());
-    console.log("A".toWellFormed() === "A");
-    console.log("a\u0000b".isWellFormed());
-    console.log("a\u0000b".toWellFormed() === "a\u0000b");
-    console.log("\u0000".isWellFormed());
-    console.log("\u0000".toWellFormed() === "\u0000");
-    console.log("﻿".isWellFormed());
-    console.log("﻿".toWellFormed() === "﻿");
-    console.log("é".isWellFormed());
-    console.log("é".toWellFormed() === "é");
-    console.log("é".isWellFormed());
-    console.log("é".toWellFormed() === "é");
-    console.log("😀".isWellFormed());
-    console.log("😀".toWellFormed() === "😀");
-    console.log("﷐".isWellFormed());
-    console.log("﷐".toWellFormed() === "﷐");
-    console.log("￾".isWellFormed());
-    console.log("￾".toWellFormed() === "￾");
-    console.log("￿".isWellFormed());
-    console.log("￿".toWellFormed() === "￿");
-    console.log("􏿿".isWellFormed());
-    console.log("􏿿".toWellFormed() === "􏿿");
-    console.log("﻿a\u0000é😀é﷐￿􏿿".isWellFormed());
-    console.log("﻿a\u0000é😀é﷐￿􏿿".toWellFormed() === "﻿a\u0000é😀é﷐￿􏿿");
-    console.log("᠎​".isWellFormed());
-    console.log("᠎​".toWellFormed() === "᠎​");
-    console.log("  ".isWellFormed());
-    console.log("  ".toWellFormed() === "  ");
-    console.log("\u0001".isWellFormed());
-    console.log("\u0001".toWellFormed() === "\u0001");
-    const owned: string = "é😀".repeat(2);
-    console.log(owned.isWellFormed());
-    console.log(owned.toWellFormed() === "é😀é😀");
-    console.log(owned === "é😀é😀");
+  console.log("".isWellFormed());
+  console.log("".toWellFormed() === "");
+  console.log("A".isWellFormed());
+  console.log("A".toWellFormed() === "A");
+  console.log("a\u0000b".isWellFormed());
+  console.log("a\u0000b".toWellFormed() === "a\u0000b");
+  console.log("\u0000".isWellFormed());
+  console.log("\u0000".toWellFormed() === "\u0000");
+  console.log("﻿".isWellFormed());
+  console.log("﻿".toWellFormed() === "﻿");
+  console.log("é".isWellFormed());
+  console.log("é".toWellFormed() === "é");
+  console.log("é".isWellFormed());
+  console.log("é".toWellFormed() === "é");
+  console.log("😀".isWellFormed());
+  console.log("😀".toWellFormed() === "😀");
+  console.log("﷐".isWellFormed());
+  console.log("﷐".toWellFormed() === "﷐");
+  console.log("￾".isWellFormed());
+  console.log("￾".toWellFormed() === "￾");
+  console.log("￿".isWellFormed());
+  console.log("￿".toWellFormed() === "￿");
+  console.log("􏿿".isWellFormed());
+  console.log("􏿿".toWellFormed() === "􏿿");
+  console.log("﻿a\u0000é😀é﷐￿􏿿".isWellFormed());
+  console.log("﻿a\u0000é😀é﷐￿􏿿".toWellFormed() === "﻿a\u0000é😀é﷐￿􏿿");
+  console.log("᠎​".isWellFormed());
+  console.log("᠎​".toWellFormed() === "᠎​");
+  console.log("  ".isWellFormed());
+  console.log("  ".toWellFormed() === "  ");
+  console.log("\u0001".isWellFormed());
+  console.log("\u0001".toWellFormed() === "\u0001");
+  const owned: string = "é😀".repeat(2);
+  console.log(owned.isWellFormed());
+  console.log(owned.toWellFormed() === "é😀é😀");
+  console.log(owned === "é😀é😀");
 }

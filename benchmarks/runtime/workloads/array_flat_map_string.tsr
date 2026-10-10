@@ -1,33 +1,33 @@
 function workload(n: int, seed: int, input: string): string[][] {
-    const output: string[][] = [];
-    const sizes: int[] = [0, 1, 4, 5, 17];
-    let i = 0;
-    while (i < n) {
-        const count = sizes[(i + seed) % 5];
-        const source: string[] = [];
-        let j = 0;
-        while (j < count) {
-            const ordinal = j;
-            source.push(input.concat(":", String(ordinal)));
-            j = j + 1;
-        }
-
-        const flattened = source.flatMap(mapPiece);
-        output.push(flattened);
-        i = i + 1;
+  const output: string[][] = [];
+  const sizes: int[] = [0, 1, 4, 5, 17];
+  let i = 0;
+  while (i < n) {
+    const count = sizes[(i + seed) % 5];
+    const source: string[] = [];
+    let j = 0;
+    while (j < count) {
+      const ordinal = j;
+      source.push(input.concat(":", String(ordinal)));
+      j = j + 1;
     }
 
-    return output;
+    const flattened = source.flatMap(mapPiece);
+    output.push(flattened);
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function mapPiece(value: string, index: int, source: string[]): string[] {
-    if (index % 3 === 0) {
-        return [];
-    }
+  if (index % 3 === 0) {
+    return [];
+  }
 
-    return [value.concat(":a"), value.concat(":b")];
+  return [value.concat(":a"), value.concat(":b")];
 }
 
 function main() {
-    const result = workload(2, 7, "dynamic text");
+  const result = workload(2, 7, "dynamic text");
 }

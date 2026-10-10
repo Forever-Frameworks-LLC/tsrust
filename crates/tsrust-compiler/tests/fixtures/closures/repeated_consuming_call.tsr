@@ -1,16 +1,16 @@
 type User = {
-    name: string;
+  name: string;
 };
 
 function main() {
-    const user: User = {
-        name: "Pat"
-    };
-    const get = (): User => {
-        return user;
-    };
-    const first = get();
-    const second = get();
-    console.log(first.name);
-    console.log(second.name);
+  const user: User = {
+    name: "Pat"
+  };
+  const get = (): User => {
+    return user;
+  };
+  const first = get();
+  const second = get();
+  console.log(first.name);
+  console.log(second.name);
 }

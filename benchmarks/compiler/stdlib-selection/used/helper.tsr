@@ -1,5 +1,5 @@
 import { basename as fileName } from "std:path";
 
 export function report(): string {
-    return fileName("/tmp/report.txt", ".txt");
+  return fileName("/tmp/report.txt", ".txt");
 }

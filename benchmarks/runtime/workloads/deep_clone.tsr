@@ -1,31 +1,31 @@
 type Details = {
-    name: string;
-    scores: int[];
+  name: string;
+  scores: int[];
 };
 
 type User = {
-    details: Details;
+  details: Details;
 };
 
 function workload(n: int, seed: int): int {
-    let sum = seed;
-    let i = 0;
-    while (i < n) {
-        const user: User = {
-            details: {
-                name: " Pat ", scores: [i, seed]
-            }
-        };
-        const saved = clone(user);
-        user.details.scores[0] = i + 1;
-        sum = sum + saved.details.scores[0] + user.details.scores[0] + saved.details.scores[1];
-        sum = sum + saved.details.scores.length;
-        i = i + 1;
-    }
+  let sum = seed;
+  let i = 0;
+  while (i < n) {
+    const user: User = {
+      details: {
+        name: " Pat ", scores: [i, seed]
+      }
+    };
+    const saved = clone(user);
+    user.details.scores[0] = i + 1;
+    sum = sum + saved.details.scores[0] + user.details.scores[0] + saved.details.scores[1];
+    sum = sum + saved.details.scores.length;
+    i = i + 1;
+  }
 
-    return sum;
+  return sum;
 }
 
 function main() {
-    console.log(workload(2, 7));
+  console.log(workload(2, 7));
 }

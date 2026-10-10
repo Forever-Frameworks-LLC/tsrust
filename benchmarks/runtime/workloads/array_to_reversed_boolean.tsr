@@ -1,23 +1,23 @@
 function workload(n: int, seed: int): boolean[] {
-    const output: boolean[] = [];
-    let i = 0;
-    while (i < n) {
-        const values: boolean[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
-        const result = values.toReversed();
-        for (const value of result) {
-            output.push(value);
-        }
-
-        i = i + 1;
+  const output: boolean[] = [];
+  let i = 0;
+  while (i < n) {
+    const values: boolean[] = [item(seed + i + 0), item(seed + i + 1), item(seed + i + 2), item(seed + i + 3), item(seed + i + 4), item(seed + i + 5)];
+    const result = values.toReversed();
+    for (const value of result) {
+      output.push(value);
     }
 
-    return output;
+    i = i + 1;
+  }
+
+  return output;
 }
 
 function item(base: int): boolean {
-    return base % 3 !== 0;
+  return base % 3 !== 0;
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

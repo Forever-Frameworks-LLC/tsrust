@@ -1,28 +1,28 @@
 function workload(n: int, seed: int): int {
-    const consumer = useOnce;
-    let trace = seed;
-    let i = 0;
-    while (i < n) {
-        const callback = (x: int): int => {
-            return x + seed % 13;
-        };
-        const factory = consumer((f: Once<Function<int, [x: int]>>): () => int => {
-            return (): int => {
-                return f(i);
-            };
-        }, callback);
-        const value = factory();
-        trace = (trace * 131 + value) % 1000000007;
-        i = i + 1;
-    }
+  const consumer = useOnce;
+  let trace = seed;
+  let i = 0;
+  while (i < n) {
+    const callback = (x: int): int => {
+      return x + seed % 13;
+    };
+    const factory = consumer((f: Once<Function<int, [x: int]>>): () => int => {
+      return (): int => {
+        return f(i);
+      };
+    }, callback);
+    const value = factory();
+    trace = (trace * 131 + value) % 1000000007;
+    i = i + 1;
+  }
 
-    return trace;
+  return trace;
 }
 
 function useOnce(c: Once<Function<() => int, [f: Once<Function<int, [x: int]>>]>>, f: Once<Function<int, [x: int]>>): () => int {
-    return c(f);
+  return c(f);
 }
 
 function main() {
-    const result = workload(2, 7);
+  const result = workload(2, 7);
 }

@@ -1,24 +1,24 @@
 type State = {
-    value: int;
+  value: int;
 };
 
 function main() {
-    const state: State = {
-        value: 0
-    };
-    const actions: (() => int)[] = [(): int => {
-        state.value += 1;
-        return state.value;
-    }];
-    const visitor = (action: Mutable<Function<int>>, index: int): int => {
-        return action() + index;
-    };
-    console.log(actions.map(visitor, ...[]).join(","));
-    console.log(actions[0]());
-    actions.forEach((action: Mutable<Function<int>>): void => {
-        console.log(action());
-    }, ...[]);
-    console.log(actions.flatMap((action: Mutable<Function<int>>): int[] => {
-        return [action()];
-    }, ...[]).join(","));
+  const state: State = {
+    value: 0
+  };
+  const actions: (() => int)[] = [(): int => {
+    state.value += 1;
+    return state.value;
+  }];
+  const visitor = (action: Mutable<Function<int>>, index: int): int => {
+    return action() + index;
+  };
+  console.log(actions.map(visitor, ...[]).join(","));
+  console.log(actions[0]());
+  actions.forEach((action: Mutable<Function<int>>): void => {
+    console.log(action());
+  }, ...[]);
+  console.log(actions.flatMap((action: Mutable<Function<int>>): int[] => {
+    return [action()];
+  }, ...[]).join(","));
 }

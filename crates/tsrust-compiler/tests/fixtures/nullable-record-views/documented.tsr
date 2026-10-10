@@ -1,24 +1,24 @@
 type Holder = {
-    run: ReadOnly<Function<int>>;
+  run: ReadOnly<Function<int>>;
 };
 
 type Box = {
-    saved: Holder | undefined;
+  saved: Holder | undefined;
 };
 
 function read(holder: ReadOnly<Holder> | undefined): int {
-    return holder?.run() ?? -1;
+  return holder?.run() ?? -1;
 }
 
 function main(): void {
-    const values = [3];
-    const boxes: Box[] = [{
-        saved: undefined
-    }];
-    boxes[0].saved = {
-        run: (): int => values[0]
-    };
-    const saved = boxes[0].saved;
-    console.log(read(saved), read(saved));
-    console.log(boxes[0].saved?.run() ?? -1);
+  const values = [3];
+  const boxes: Box[] = [{
+    saved: undefined
+  }];
+  boxes[0].saved = {
+    run: (): int => values[0]
+  };
+  const saved = boxes[0].saved;
+  console.log(read(saved), read(saved));
+  console.log(boxes[0].saved?.run() ?? -1);
 }
