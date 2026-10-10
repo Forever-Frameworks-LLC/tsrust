@@ -2359,13 +2359,14 @@ impl SourceIndex {
             && let Some(open) = self.pairs[n]
         {
             if open > 0 {
-                let receiver = self.receiver_type_end(open - 1, depth + 1);
+                let receiver = self.written_type(&self.receiver_type_end(open - 1, depth + 1));
+                let receiver = ["ReadOnly<", "Mutable<", "Owned<"].into_iter().find_map(|wrapper| receiver.strip_prefix(wrapper).and_then(|inner| inner.strip_suffix('>')).filter(|inner| array_element_type(inner).is_some())).unwrap_or(&receiver);
                 if let Some(element) = array_element_type(&receiver) {
                     return element.into();
                 }
                 // A string position is a one-character string.
                 if receiver == "string" {
-                    return receiver;
+                    return receiver.into();
                 }
                 if !receiver.is_empty() {
                     return String::new();
@@ -2477,7 +2478,7 @@ impl SourceIndex {
     fn documentation(&self, s: &Symbol) -> String {
         format!(
             "```tsrust\n{}\n```{}",
-            s.signature,
+            self.display_type(&s.signature),
             if s.docs.is_empty() {
                 String::new()
             } else {
@@ -2562,10 +2563,13 @@ impl SourceIndex {
         types: &std::collections::BTreeMap<String, String>,
     ) -> bool {
         let Some(declaration) = dependency.symbols.iter().find(|s| {
-            s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 12 | 23)
+            s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 12 | 23 | 26)
         }) else {
             return false;
         };
+        if declaration.kind == 26 {
+            return self.import_structured_native_alias(dependency, declaration, local, span, uri, types);
+        }
         let mut symbol = declaration.clone();
         if let Some(module) = uri.strip_prefix("tsrust-stdlib:///")
             && let Some(entry) = builtins_for(module).into_iter().find(|entry| entry["name"] == exported)
@@ -2792,7 +2796,7 @@ impl SourceIndex {
         let items = exports
             .filter_map(|exported| {
                 let symbol = dependency.symbols.iter().find(|s| {
-                    &s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23)
+                    &s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23 | 26)
                 })?;
                 let kind = match symbol.kind {
                     12 => 3,
@@ -3122,14 +3126,14 @@ impl SourceIndex {
                 self.receiver_type(dot)
             };
             let mut items=builtins_for(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
-            items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":s.signature,"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}})));
+            items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}})));
             return json!(items);
         }
         let mut items = vec![];
         let scope = self.scope_at(offset);
         let mut visible = std::collections::BTreeMap::new();
         for (id, s) in self.symbols.iter().enumerate() {
-            if s.owner.is_none()
+            if s.owner.is_none() && !s.name.starts_with("__tsrust_private_")
                 && self.contains_scope(scope, s.scope)
 
             {
@@ -3154,7 +3158,7 @@ impl SourceIndex {
                 continue;
             }
             if s.name.starts_with(prefix) {
-                items.push(json!({"label":s.name,"kind":match s.kind {12=>3,10=>13,23=>7,_=>6},"detail":s.signature,"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}}));
+                items.push(json!({"label":s.name,"kind":match s.kind {12=>3,10=>13,23=>7,_=>6},"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}}));
             }
         }
         for word in [
@@ -3570,6 +3574,7 @@ fn remap_imported_type(
                         | "Owned"
                         | "Set"
                         | "Map"
+                        | "Result"
                 )
             {
                 output.push_str(token);

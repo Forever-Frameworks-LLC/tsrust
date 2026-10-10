@@ -1537,3 +1537,32 @@ fn native_byte_calls_document_recursive_signatures_and_hidden_result_payloads() 
         assert!(help.to_string().contains("0..255"), "{help}");
     }
 }
+
+#[test]
+fn structured_exported_aliases_keep_hidden_native_fields_without_name_collisions() {
+    let entry = tsrust_compiler::format("import {Failures as Problems, Outcome as Batch} from './dep.tsr';type ByteError={fake:int;};function accept(result:ReadOnly<Batch>):void{}function report(errors:ReadOnly<Problems>):void{console.log(errors[0].message);}function main(){report([{code:'range',message:'bad'}]);}").unwrap();
+    let dependency = tsrust_compiler::format("import {ByteError as Failure} from 'std:bytes';export type Failures=Failure[];export type Outcome=Result<Failure[],int>;").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/dep.tsr").unwrap(), 1, dependency);
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for (mode, index) in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)].into_iter().enumerate() {
+        let hover = ask(&index, &entry, "Batch>", "textDocument/hover");
+        assert!(hover.to_string().replace(' ', "").contains("Result<ByteError[],int>"), "{hover}");
+        assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+        let globals = ask(&index, &entry, "report([{", "textDocument/completion");
+        assert!(!globals.to_string().contains("__tsrust_private_"), "private type leaked in global completion");
+        let hover = ask(&index, &entry, "Problems>", "textDocument/hover");
+        assert!(hover.to_string().contains("type Problems"), "{hover}");
+        assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+        let hover = ask(&index, &entry, "message);", "textDocument/hover");
+        assert!(hover.to_string().contains("Explains the failure"), "mode {mode}: {hover}; receiver {}", ask(&index, &entry, "errors[0]", "textDocument/hover"));
+        let completion = ask(&index, &entry, "message);", "textDocument/completion");
+        let fields = completion.as_array().unwrap();
+        assert!(fields.iter().any(|field| field["label"] == "offset"), "{completion}");
+        assert!(!fields.iter().any(|field| field["label"] == "fake"), "{completion}");
+        let definition = ask(&index, &entry, "Problems>", "textDocument/definition");
+        assert_eq!(definition["uri"], "file:///tsrust-intelligence/dep.tsr", "{definition}");
+    }
+}

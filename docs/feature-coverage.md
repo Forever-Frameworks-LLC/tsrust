@@ -12,7 +12,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 
 ## Contents
 
-[Arrays](#arrays) · [Async](#async) · [BigInt](#bigint) · [Binary and typed arrays](#binary-and-typed-arrays) · [Booleans](#booleans) · [Collections](#collections) · [Control flow](#control-flow) · [Dates](#dates) · [Declarations and syntax](#declarations-and-syntax) · [Decorators](#decorators) · [Errors](#errors) · [Functions and classes](#functions-and-classes) · [Generators](#generators) · [Globals](#globals) · [Host workstreams](#host-workstreams) · [Integer extension](#integer-extension) · [Internationalization](#internationalization) · [Iterators](#iterators) · [Null and undefined](#null-and-undefined) · [Numbers](#numbers) · [Objects](#objects) · [Primitive storage](#primitive-storage) · [Regular expressions](#regular-expressions) · [Resource management](#resource-management) · [Serialization](#serialization) · [Strings](#strings) · [Symbols](#symbols) · [Typed results](#typed-results) · [TypeScript types](#typescript-types)
+[Arrays](#arrays) · [Async](#async) · [BigInt](#bigint) · [Binary and typed arrays](#binary-and-typed-arrays) · [Booleans](#booleans) · [Collections](#collections) · [Control flow](#control-flow) · [Dates](#dates) · [Declarations and syntax](#declarations-and-syntax) · [Decorators](#decorators) · [Errors](#errors) · [Functions and classes](#functions-and-classes) · [Generators](#generators) · [Globals](#globals) · [Host workstreams](#host-workstreams) · [Integer extension](#integer-extension) · [Internationalization](#internationalization) · [Iterators](#iterators) · [Null and undefined](#null-and-undefined) · [Numbers](#numbers) · [Objects](#objects) · [Owned native bytes](#owned-native-bytes) · [Primitive storage](#primitive-storage) · [Regular expressions](#regular-expressions) · [Resource management](#resource-management) · [Serialization](#serialization) · [Strings](#strings) · [Symbols](#symbols) · [Typed results](#typed-results) · [TypeScript types](#typescript-types)
 
 ## Coverage summary
 
@@ -39,6 +39,7 @@ Full compiler regression and accumulated performance comparisons run at complete
 | Null and undefined | 17 | 17 | 0 | 3 |
 | Numbers | 132 | 129 | 0 | 9 |
 | Objects | 96 | 15 | 0 | 81 |
+| Owned native bytes | 4 | 4 | 0 | 0 |
 | Primitive storage | 13 | 11 | 0 | 2 |
 | Regular expressions | 53 | 0 | 0 | 53 |
 | Resource management | 22 | 0 | 0 | 22 |
@@ -1868,6 +1869,15 @@ Full compiler regression and accumulated performance comparisons run at complete
 | `Reflect.preventExtensions` | pending | missing |  |
 | `Reflect.set` | pending | missing |  |
 | `Reflect.setPrototypeOf` | pending | missing |  |
+
+## Owned native bytes
+
+| Operation | Implementation | Comparison | Scope / evidence |
+| --- | --- | --- | --- |
+| `native.bytes.error` | native variant | compile-only | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
+| `native.bytes.fromArray` | native variant | paired group | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
+| `native.bytes.length` | native variant | paired group | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
+| `native.bytes.type` | native variant | compile-only | Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190.; [evidence](./milestones/187-native-byte-foundation.md) · [evidence](./native-bytes.md) · [native_bytes](../benchmarks/runtime/workloads/native_bytes.tsr) |
 
 ## Primitive storage
 

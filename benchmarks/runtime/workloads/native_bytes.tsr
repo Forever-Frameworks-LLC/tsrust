@@ -1,0 +1,57 @@
+import { fromArray, length } from "std:bytes";
+
+function workload(n: int, seed: int, input: string): int[][] {
+    const output: int[][] = [];
+    const construct = fromArray;
+    const observe = length;
+    let i = 0;
+    while (i < n) {
+        const byte = (i + seed) % 256;
+        const values = [0, byte, 255];
+        let first = -1;
+        let second = -1;
+        match (construct(values)) {
+            Ok(bytes) => {
+                first = observe(bytes);
+                second = observe(bytes);
+            },
+            Err(error) => {
+                first = -2;
+                second = -2;
+            },
+        }
+
+        let empty = -1;
+        match (fromArray([])) {
+            Ok(bytes) => {
+                empty = length(bytes);
+            },
+            Err(error) => {
+                empty = -2;
+            },
+        }
+
+        let offset = -1;
+        let codeLength = -1;
+        const invalid = i % 2 === 0 ? -1 : 256;
+        match (fromArray([byte, invalid, 0])) {
+            Ok(bytes) => {
+                offset = -2;
+                codeLength = length(bytes);
+            },
+            Err(error) => {
+                offset = error.offset ?? -3;
+                codeLength = error.code.length;
+            },
+        }
+
+        output.push([first, second, values[1], empty, offset, codeLength]);
+        i += 1;
+    }
+
+    return output;
+}
+
+function main() {
+    workload(1, 0, "bytes");
+}

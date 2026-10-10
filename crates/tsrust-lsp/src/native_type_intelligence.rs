@@ -2,6 +2,23 @@
 use super::*;
 
 impl SourceIndex {
+    pub(super) fn import_structured_native_alias(&mut self, dependency: &SourceIndex, declaration: &Symbol, local: &str, span: Span, uri: &str, types: &std::collections::BTreeMap<String, String>) -> bool {
+        let mut mappings = types.clone();
+        for (name, identity) in &dependency.native_type_aliases {
+            mappings.insert(name.clone(), self.native_type_spelling(*identity));
+        }
+        let Some(ty) = remap_imported_type(&dependency.written_type(&declaration.ty), &mappings) else { return false; };
+        self.type_aliases.insert(local.into(), ty.clone());
+        let mut symbol = declaration.clone();
+        symbol.name = local.into();
+        symbol.ty = ty.clone();
+        symbol.signature = format!("type {local} = {}", self.display_type(&ty));
+        symbol.span = span;
+        symbol.extent = span;
+        self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
+        self.symbols.push(symbol);
+        true
+    }
     /// Materialize result payloads even when their type names were not imported.
     /// Private spelling prevents collisions with user declarations.
     pub(super) fn native_type_spelling(&mut self, identity: tsrust_compiler::native_signatures::NativeTypeId) -> String {

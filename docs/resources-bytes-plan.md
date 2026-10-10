@@ -1,11 +1,10 @@
 # B11/S07: resources and bytes
 
-Status: gate 187 is in progress. Native declaration identity, recursive signature
-projection, checked type imports, public error record execution, editor type help, direct exported aliases and
-opaque capability guards are implemented. Initial fromArray/length operations now
-execute with checked Result payloads and documented editor signatures. B10/S06 is accepted at gate 186
-(publication 1b631986). Resource close consumes ownership, as chosen by the owner.
-S07 is not accepted; no byte workload is measured.
+Status: gate 187 native declaration/signature foundation and initial fromArray/length
+slice are accepted. B11/S07 remains in progress; gates 188–190 cover wider owned byte
+operations, views and resource lifecycle. No byte workload is measured. B10/S06 is
+accepted at gate 186. Resource close consumes ownership by owner decision.
+See the gate 187 record and current continuation handoff.
 
 ## Audit of the current compiler
 
@@ -219,18 +218,14 @@ matched workload and remaining alias/storage coverage. Installed consumers remai
 
 ## Continuation prompt
 
-Continue B11/S07 from this plan. Read AGENTS.md and the development workflow first.
-B10 is accepted at gate 186. Gate 187 has checked native type imports, recursive
-signature projection, ByteError native execution, editor type help and capability
-guards, plus fromArray/length with checked Result storage and full catalog help.
-Do not reimplement these increments. std_bytes.rs passes. Direct native re-export
-witnesses pass. Checked result payloads get editor fields even without explicit native
-type imports. Next cover structured exported aliases with hidden native elements,
-stored native callable/aggregate cases and the minimal matched workload. Finish gate 187 before the wider byte operations of gate
-188. Resource close consumes ownership and rejects later use/double close, including
-after failure. Consumers remain B10 until verified source is published. Routine
-increments use bounded checks; full regressions and timing belong to the completed
-S07 family milestone.
+Continue B11/S07 from docs/handoff-2026-10-10-gate187-accepted.md. Gate 187 is accepted:
+native identities/imports/aliases, recursive callable signatures, fromArray/length,
+native Result and aggregate storage, editor help and the matched workload all have
+focused evidence. Do not redo them. Implement gate 188 owned byte operations and its
+capability/cleanup matrix, then gates 189 views/UTF-8 and 190 resources. Consuming close
+rejects later use/double close even after failure. Keep bounded checks and complete
+matched support as operations land. Full regressions and timing belong to the completed
+S07 family milestone. Preserve the existing declaration-only match inference limit.
 
 ## Gate 187 signature metadata increment
 
@@ -452,3 +447,21 @@ runtime/results/native-byte-construction-2026-10-10-checks.json. Gate 187 remain
 matched workload support, structured exported-alias editor coverage and remaining
 storage/callable witnesses are next. No timing, full regression or installed consumer
 refresh was performed for this increment.
+
+
+## Gate 187 closing increment
+
+Stored native constructors/observers and callback forwarding execute with generic
+identity, Bytes record/array storage and Result record/array storage. Structured
+exported array and Result aliases now keep hidden native field help, public display
+names and source navigation. A local record named ByteError cannot capture the native
+identity. Internal editor symbols are excluded from global completion. Closing aliases
+also found and repaired built-in Result qualification in exported compiler aliases;
+both primitive and native Result aliases execute afterward.
+
+The minimal native_bytes workload and independent TypeScript/oracle pair are registered
+with source guards, runner/profile/report hooks and six retained observations per
+iteration. Five native/Node-after-tsc cases pass untimed. The closing focused batch
+has 68 passes, with exact SQLite evidence and byte-for-byte readback. Gate 187 is
+accepted; S07 is not. See docs/milestones/187-native-byte-foundation.md. Next gate is
+188; do not repeat the completed foundation or retime unaffected workloads.

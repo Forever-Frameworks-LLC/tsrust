@@ -6,6 +6,8 @@ Start with [the proposed roadmap](./roadmap.md) to scope implementation, [open d
 
 ## Current work
 
+[Owned native bytes](native-bytes.md) documents the initial std:bytes construction and borrowing API. [Gate 187](milestones/187-native-byte-foundation.md) accepts the typed native foundation and untimed matched workload; wider byte operations, views and resource lifecycle remain in progress.
+
 [Milestone 100: call spread](./milestones/100-call-spread.md) is in progress after closed gate 99. It covers dense homogeneous arrays, real argument counts, ownership and current callable/builtin targets.
 
 [Call spread](./call-spread.md) explains array expansion into call arguments, count checks, evaluation order, ownership and built-in calls. Examples are verified with the current compiler and native execution. Gate 100 focused acceptance is recorded in its [milestone](./milestones/100-call-spread.md); measurements are pending checkpoint 101.

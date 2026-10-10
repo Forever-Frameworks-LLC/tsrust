@@ -22282,6 +22282,78 @@
       "evidence": []
     },
     {
+      "id": "native.bytes.error",
+      "display": "native.bytes.error",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "compile-only",
+      "evidence": [
+        "./milestones/187-native-byte-foundation.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_bytes"
+      ],
+      "measured": false,
+      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+    },
+    {
+      "id": "native.bytes.fromArray",
+      "display": "native.bytes.fromArray",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/187-native-byte-foundation.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_bytes"
+      ],
+      "measured": false,
+      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+    },
+    {
+      "id": "native.bytes.length",
+      "display": "native.bytes.length",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/187-native-byte-foundation.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_bytes"
+      ],
+      "measured": false,
+      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+    },
+    {
+      "id": "native.bytes.type",
+      "display": "native.bytes.type",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "compile-only",
+      "evidence": [
+        "./milestones/187-native-byte-foundation.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_bytes"
+      ],
+      "measured": false,
+      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+    },
+    {
       "id": "storage.bigint",
       "display": "storage.bigint",
       "category": "Primitive storage",

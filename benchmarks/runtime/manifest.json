@@ -20338,6 +20338,34 @@
       "specification": "Seven retained observations per iteration: two readonly inspections, one consumed payload observation, two ordered callback/error observations, one observation after two exclusive record/array mutations and one caught-failure/finally observation. Independent arithmetic oracle; values cover both variants and callable state.",
       "sourceSha256": "0ada939da613145ca30c681ab799ae17e7b8159d3bb9586ed2130c68287db5d5",
       "counterpartSha256": "f438a6603a71d76d03277543e0e07ec3020e34d282a9ef3182a4c798751940bf"
+    },
+    {
+      "id": "native_bytes",
+      "family": "native-bytes",
+      "source": "workloads/native_bytes.tsr",
+      "counterpart": "workloads/native_bytes.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One byte construction and validation scenario",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 187,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Gate 187 native declaration and initial owned byte construction/borrowing foundation accepted. Five native/Node-after-tsc correctness cases verified untimed. Wider byte operations, views and resources remain pending; no timing yet.",
+      "specification": "Six retained observations per iteration: two borrowed lengths of an independent byte copy, reused input element, empty buffer length, first invalid element offset and error code length. Alternating negative/above-byte invalid elements. Independent arithmetic oracle.",
+      "sourceSha256": "55910a4de8d30e2ab861f36276fdf01932637ccde1c50099e667b32318170ba0",
+      "counterpartSha256": "8abd937864bd327631a3e1eef641f76e4d6c763870b582c401c6f7a69fbef334"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

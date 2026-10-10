@@ -832,3 +832,12 @@ SQLite evidence. See [the record](milestones/186-result-match.md),
 [the map](b10-result-match-acceptance-map.md) and [the guide](result-match.md).
 B11/S07 resources and bytes is the next dependency row; general discriminated unions
 and advanced match forms remain separate.
+
+
+B11/S07 now has gate 187's native declaration/signature foundation and initial owned
+byte construction/length. Native identities survive aliases and Result/aggregate
+storage; editor help includes hidden native payloads. The matched six-observation
+byte workload passes five native/Node-after-tsc cases untimed. Wider owned byte
+operations, borrowed views and resource lifecycle remain gates 188–190; S07 is not
+accepted or measured. See [the record](milestones/187-native-byte-foundation.md) and
+[the guide](native-bytes.md).

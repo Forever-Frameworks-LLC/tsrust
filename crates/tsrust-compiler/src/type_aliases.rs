@@ -118,7 +118,7 @@ pub(crate) fn link_names(annotation: &mut ValueAnnotation, linked: &dyn Fn(&str)
         if let Kind::Named(name) | Kind::Applied { name, .. } = &mut current.kind {
             let builtin = matches!(
                 name.text.as_str(),
-                "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map"
+                "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result"
                     | "Function" | "Mutable" | "ReadOnly" | "Once" | "Owned"
             );
             if !builtin && !name.text.starts_with(LINKED_PREFIX) {
