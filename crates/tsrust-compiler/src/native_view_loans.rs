@@ -8,6 +8,20 @@ pub(crate) struct Loan {
     pub access: BorrowAccess,
     pub creation: Span,
     pub retained: bool,
+    pub path: Vec<Segment>,
+    pub guards: Vec<VariantGuard>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum Segment {
+    Field(String),
+    Element,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct VariantGuard {
+    pub path: Vec<Segment>,
+    pub success: usize,
 }
 
 pub(super) fn join(
@@ -18,14 +32,7 @@ pub(super) fn join(
         (None, other) | (other, None) => other,
         (Some(mut left), Some(right)) => {
             left.extend(*right);
-            left.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
-            left.dedup_by(|right, left| {
-                if right.root != left.root || right.access != left.access {
-                    return false;
-                }
-                left.retained |= right.retained;
-                true
-            });
+            native_view_projections::normalize(&mut left);
             Some(left)
         }
     }
@@ -48,6 +55,7 @@ impl Analyzer {
             for loan in binding.native_view_loans.as_deref().into_iter().flatten() {
                 if loan.retained
                     && loan.root == root
+                    && native_view_projections::possible(context, holder, loan)
                     && (loan.access == BorrowAccess::Exclusive
                         || matches!(mode, Mode::Mutate | Mode::Consume))
                 {
@@ -82,9 +90,56 @@ impl Analyzer {
         if !context.native_view_calls {
             return Ok(Vec::new());
         }
-        let mut pending = vec![expr];
-        let mut result = Vec::new();
-        while let Some(value) = pending.pop() {
+        enum Task<'a> {
+            Value(&'a Expr),
+            Wrapped(&'a Expr, Segment),
+            Wrap(usize, Segment),
+            Select(usize, Segment),
+            Narrow(usize, Type),
+            Guard(usize, usize),
+        }
+        let mut pending = vec![Task::Value(expr)];
+        let mut result: Vec<Loan> = Vec::new();
+        while let Some(task) = pending.pop() {
+            let value = match task {
+                Task::Value(value) => value,
+                Task::Wrapped(value, segment) => {
+                    pending.push(Task::Wrap(result.len(), segment));
+                    pending.push(Task::Value(value));
+                    continue;
+                }
+                Task::Wrap(start, segment) => {
+                    for loan in &mut result[start..] {
+                        native_view_projections::wrap(loan, &segment);
+                    }
+                    continue;
+                }
+                Task::Guard(start, variant) => {
+                    for loan in &mut result[start..] {
+                        native_view_projections::guard(loan, variant);
+                    }
+                    continue;
+                }
+                Task::Select(start, segment) => {
+                    let mut index = 0;
+                    result.retain_mut(|loan| {
+                        index += 1;
+                        index <= start || native_view_projections::select(loan, &segment)
+                    });
+                    continue;
+                }
+                Task::Narrow(start, ty) => {
+                    let mut index = 0;
+                    result.retain_mut(|loan| {
+                        index += 1;
+                        index <= start || native_view_projections::narrow(loan, ty)
+                    });
+                    continue;
+                }
+            };
+            if value.ty.is_some_and(Type::is_copy) {
+                continue;
+            }
             match &value.kind {
                 ExprKind::Name(_) => {
                     if let Some(id) = value.binding
@@ -97,45 +152,80 @@ impl Analyzer {
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {
-                        result.extend(Self::native_view_source_loans(
+                        let mut loans = Self::native_view_source_loans(
                             context,
                             &args[contract.source_parameter],
                             contract,
-                        )?);
+                        )?;
+                        if contract.slot == crate::native_return_borrows::ReturnSlot::ResultOk {
+                            let variant = value.ty.and_then(Type::union).and_then(|union| context.native_view_results.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "A native Result view requires its checked success identity.",value.span))?;
+                            for loan in &mut loans {
+                                native_view_projections::wrap(
+                                    loan,
+                                    &Segment::Field("payload".into()),
+                                );
+                                native_view_projections::guard(loan, variant);
+                            }
+                        }
+                        result.extend(loans);
                     }
                 }
                 ExprKind::Sequence(values) => {
                     if let Some(last) = values.last() {
-                        pending.push(last);
+                        pending.push(Task::Value(last));
                     }
                 }
-                ExprKind::Inject { value, .. }
-                | ExprKind::TypeAssertion { value, .. }
-                | ExprKind::Project { value, .. } => pending.push(value),
-                ExprKind::Field(value, _) | ExprKind::Index(value, _) => pending.push(value),
+                ExprKind::Inject { value, .. } => {
+                    if let Some(Type::Record(id)) = value.ty {
+                        pending.push(Task::Guard(result.len(), id));
+                    }
+                    pending.push(Task::Value(value));
+                }
+                ExprKind::TypeAssertion { value, .. } => pending.push(Task::Value(value)),
+                ExprKind::Project {
+                    value, narrowed, ..
+                } => {
+                    pending.push(Task::Narrow(result.len(), *narrowed));
+                    pending.push(Task::Value(value));
+                }
+                ExprKind::Field(value, field) => {
+                    pending.push(Task::Select(result.len(), Segment::Field(field.clone())));
+                    pending.push(Task::Value(value));
+                }
+                ExprKind::Index(value, _) => {
+                    pending.push(Task::Select(result.len(), Segment::Element));
+                    pending.push(Task::Value(value));
+                }
                 ExprKind::Unary {
                     op: UnaryOp::NonNull | UnaryOp::RestPack,
                     value,
                     ..
-                } => pending.push(value),
+                } => pending.push(Task::Value(value)),
                 ExprKind::Conditional {
                     consequent,
                     alternate,
                     ..
                 } => {
-                    pending.push(consequent);
-                    pending.push(alternate);
+                    pending.push(Task::Value(consequent));
+                    pending.push(Task::Value(alternate));
                 }
-                ExprKind::Array(values) => pending.extend(values),
-                ExprKind::Record(fields) => pending.extend(fields.iter().map(|(_, value)| value)),
+                ExprKind::Array(values) => {
+                    for value in values {
+                        pending.push(Task::Wrapped(value, Segment::Element));
+                    }
+                }
+                ExprKind::Record(fields) => {
+                    for (field, value) in fields {
+                        pending.push(Task::Wrapped(value, Segment::Field(field.text.clone())));
+                    }
+                }
                 _ => {}
             }
         }
         for loan in &mut result {
             loan.retained = true;
         }
-        result.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
-        result.dedup_by(|right, left| right.root == left.root && right.access == left.access);
+        native_view_projections::normalize(&mut result);
         Ok(result)
     }
 
@@ -181,23 +271,25 @@ impl Analyzer {
                 source.span,
             ));
         }
-        let mut result = Vec::new();
+        let mut result = Self::native_view_value_loans(context, source)?;
+        for loan in &mut result {
+            loan.path.clear();
+            loan.guards.clear();
+        }
         for root in roots {
-            if let Some(inherited) = &context.bindings[root].native_view_loans {
-                result.extend(inherited.iter().cloned());
-            }
             result.push(Loan {
                 root,
                 access: contract.access,
                 creation: source.span,
                 retained: true,
+                path: Vec::new(),
+                guards: Vec::new(),
             });
         }
         for loan in &mut result {
             loan.retained = true;
         }
-        result.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
-        result.dedup_by(|right, left| right.root == left.root && right.access == left.access);
+        native_view_projections::normalize(&mut result);
         Ok(result)
     }
 }
@@ -228,6 +320,8 @@ mod tests {
                 access,
                 creation: Span::new(10, 20),
                 retained: true,
+                path: Vec::new(),
+                guards: Vec::new(),
             }],
         );
         id
@@ -393,6 +487,8 @@ mod tests {
                 access: BorrowAccess::Exclusive,
                 creation: Span::new(20, 30),
                 retained: true,
+                path: Vec::new(),
+                guards: Vec::new(),
             }],
         );
         let alternative = Availability::of(&context.bindings[view]);
@@ -458,8 +554,11 @@ mod tests {
             false,
         )
         .unwrap();
-        let mut parsed =
-            crate::syntax::parse("function main(){if(flag){view=left;}else{view=right;}}").unwrap();
+        let formatted =
+            crate::formatting::format("function main(){if(flag){view=left;}else{view=right;}}")
+                .unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut parsed = crate::syntax::parse(&formatted).unwrap();
         let mut body = parsed.functions.remove(0).body;
         let mut analyzer =
             Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
@@ -493,6 +592,226 @@ mod tests {
             .clone()
             .join(moved)
             .restore(&mut context.bindings[view]);
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+    }
+    #[test]
+    fn result_error_projection_drops_success_provenance() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let result = retained(&mut context, owner, "result", BorrowAccess::ReadOnly);
+        context.bindings[result].native_view_loans.as_mut().unwrap()[0]
+            .guards
+            .push(VariantGuard {
+                path: vec![],
+                success: 10,
+            });
+        let projected = Expr::new(
+            ExprKind::Project {
+                value: Box::new(name(&context, result)),
+                union: UnionId {
+                    index: 0,
+                    copy: false,
+                },
+                narrowed: Type::Record(11),
+            },
+            Span::default(),
+        );
+        assert!(
+            Analyzer::native_view_value_loans(&context, &projected)
+                .unwrap()
+                .is_empty()
+        );
+    }
+    #[test]
+    fn result_error_flow_releases_success_loan_until_branches_join() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let result = retained(&mut context, owner, "result", BorrowAccess::ReadOnly);
+        context.bindings[result].native_view_loans.as_mut().unwrap()[0]
+            .guards
+            .push(VariantGuard {
+                path: vec![],
+                success: 10,
+            });
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        context.flow.insert(
+            crate::flow::Place {
+                root: result,
+                fields: vec![],
+            },
+            crate::flow::Fact {
+                members: vec![Type::Record(11)],
+                origin: None,
+            },
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+        context.flow.clear();
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_err()
+        );
+    }
+    #[test]
+    fn record_selection_keeps_only_selected_field_provenance() {
+        let mut context = Context::new("test".into());
+        let first = local(&mut context, "first");
+        let second = local(&mut context, "second");
+        let left = retained(&mut context, first, "left", BorrowAccess::ReadOnly);
+        let right = retained(&mut context, second, "right", BorrowAccess::ReadOnly);
+        let token = |name: &str| Token {
+            text: name.into(),
+            kind: TokenKind::Symbol,
+            span: Span::default(),
+        };
+        let record = Expr::new(
+            ExprKind::Record(vec![
+                (token("left"), name(&context, left)),
+                (token("right"), name(&context, right)),
+            ]),
+            Span::default(),
+        );
+        let selected = Expr::new(
+            ExprKind::Field(Box::new(record), "left".into()),
+            Span::default(),
+        );
+        let loans = Analyzer::native_view_value_loans(&context, &selected).unwrap();
+        assert_eq!(loans.len(), 1);
+        assert_eq!(loans[0].root, first);
+        assert!(loans[0].path.is_empty());
+    }
+    #[test]
+    fn success_payload_projection_removes_guard_and_payload_path() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let result = retained(&mut context, owner, "result", BorrowAccess::ReadOnly);
+        let loan = &mut context.bindings[result].native_view_loans.as_mut().unwrap()[0];
+        loan.path.push(Segment::Field("payload".into()));
+        loan.guards.push(VariantGuard {
+            path: vec![],
+            success: 10,
+        });
+        let projected = Expr::new(
+            ExprKind::Project {
+                value: Box::new(name(&context, result)),
+                union: UnionId {
+                    index: 0,
+                    copy: false,
+                },
+                narrowed: Type::Record(10),
+            },
+            Span::default(),
+        );
+        let selected = Expr::new(
+            ExprKind::Field(Box::new(projected), "payload".into()),
+            Span::default(),
+        );
+        let loans = Analyzer::native_view_value_loans(&context, &selected).unwrap();
+        assert_eq!(loans.len(), 1);
+        assert!(loans[0].guards.is_empty() && loans[0].path.is_empty());
+        let view = local(&mut context, "view");
+        Analyzer::set_native_view_loans(&mut context, view, loans);
+        context.names.remove("result");
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_err()
+        );
+    }
+    #[test]
+    fn checked_result_match_allows_owner_replacement_in_error_arm() {
+        let source = r#"type Outcome=Result<string,int>;type Holder={outcome:Outcome;};function main(){match(result){Ok(value)=>{}Err(error)=>{owner="changed";}}}"#;
+        let formatted = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut parsed = crate::syntax::parse(&formatted).unwrap();
+        let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+        let holder = analyzer
+            .program
+            .records
+            .iter()
+            .position(|record| record.name.text == "Holder")
+            .unwrap();
+        let ty = analyzer.program.records[holder].fields[0].ty.unwrap();
+        let (_, variants) = analyzer.result_variant_records(ty).unwrap();
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        context.bindings[owner].rebindable = true;
+        let result = retained(&mut context, owner, "result", BorrowAccess::ReadOnly);
+        context.bindings[result].ty = ty;
+        let loan = &mut context.bindings[result].native_view_loans.as_mut().unwrap()[0];
+        loan.path.push(Segment::Field("payload".into()));
+        loan.guards.push(VariantGuard {
+            path: vec![],
+            success: variants[0],
+        });
+        let before = context.clone();
+        let mut body = parsed.functions.remove(0).body;
+        analyzer.block(&mut context, &mut body, Type::Void).unwrap();
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+        let source =
+            r#"function main(){match(result){Ok(value)=>{owner="changed";}Err(error)=>{}}}"#;
+        let formatted = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut body = crate::syntax::parse(&formatted)
+            .unwrap()
+            .functions
+            .remove(0)
+            .body;
+        let error = analyzer
+            .block(&mut before.clone(), &mut body, Type::Void)
+            .unwrap_err();
+        assert_eq!(error.code, "native-view-conflict");
+    }
+    #[test]
+    fn error_field_guard_does_not_release_unconditional_sibling_loan() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let holder = retained(&mut context, owner, "holder", BorrowAccess::ReadOnly);
+        let mut guarded = context.bindings[holder].native_view_loans.as_ref().unwrap()[0].clone();
+        guarded.path = vec![
+            Segment::Field("first".into()),
+            Segment::Field("payload".into()),
+        ];
+        guarded.guards = vec![VariantGuard {
+            path: vec![Segment::Field("first".into())],
+            success: 10,
+        }];
+        let mut direct = guarded.clone();
+        direct.path = vec![Segment::Field("second".into())];
+        direct.guards.clear();
+        let mut loans = vec![guarded, direct];
+        native_view_projections::normalize(&mut loans);
+        assert_eq!(loans.len(), 2);
+        Analyzer::set_native_view_loans(&mut context, holder, loans);
+        context.flow.insert(
+            crate::flow::Place {
+                root: holder,
+                fields: vec!["first".into()],
+            },
+            crate::flow::Fact {
+                members: vec![Type::Record(11)],
+                origin: None,
+            },
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        context.bindings[holder]
+            .native_view_loans
+            .as_mut()
+            .unwrap()
+            .retain(|loan| !loan.guards.is_empty());
         assert!(
             Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
                 .is_ok()

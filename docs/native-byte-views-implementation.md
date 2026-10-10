@@ -220,3 +220,35 @@ with private loans injected into the starting context. They verify replacement f
 different origins in the two arms, restoration, one-path transfer and two-path transfer.
 This is still private integration evidence. Result variant projection and path-specific
 success-loan release, precise field paths and return lifetime inference remain open.
+
+## Result and value-relative projections
+
+Retained native loans now carry value-relative storage paths and variant guards.
+Native Result factories associate their checked union identity with its success
+record, and success loans occupy that record's payload field. This map is allocated
+only after a checked native Result borrow call. Source aliases and diagnostic spans
+do not establish variant identity.
+
+The isolated native_view_projections module handles wrapping, field/element selection,
+variant projection, flow feasibility and normalization. Projecting Err discards loans
+that require Ok. Projecting Ok removes the satisfied guard; selecting its payload
+preserves an unconditional loan in the resulting view. Flow facts on a Result or a
+nested record field release a success loan on Err paths only. Unknown or joined paths
+retain every potentially live loan. A guarded sibling cannot discharge an unrelated
+unconditional loan to the same owner.
+
+An iterative value walker preserves paths through record and array literals,
+conditional values, injections and projections. Record field selection no longer
+inherits every sibling's provenance. Array element paths remain conservative across
+indices. Normalization and Availability joins distinguish paths and guards, so loans
+to the same owner in different locations cannot silently collapse into one condition.
+Reborrow source projection inherits only the selected value's provenance before
+resetting paths relative to the new native view.
+
+Private analyzer tests cover parsed, formatted Result matches: owner replacement is
+accepted in Err and rejected in Ok. They also check payload transport, sibling field
+selection and guarded/unconditional loans to one owner. These tests inject native
+loans into real analyzer contexts; no public factory or end-to-end source/native view
+execution is claimed. Owner access still conflicts at whole-binding granularity.
+Field-sensitive owner conflicts, projection moves/replacement, source escape and
+return lifetime inference remain pending, along with the broader view matrix.

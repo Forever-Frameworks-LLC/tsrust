@@ -1,3 +1,5 @@
+#[path = "native_view_projections.rs"]
+mod native_view_projections;
 #[path = "native_view_loans.rs"]
 mod native_view_loans;
 #[path = "native_capabilities.rs"]
@@ -474,6 +476,7 @@ struct Context {
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
     native_view_calls: bool,
+    native_view_results: Option<Box<HashMap<UnionId,usize>>>,
     storage_exits: storage_exit_availability::Exits,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
@@ -532,6 +535,7 @@ impl Context {
         Self {
             control_stored: HashSet::new(),
             native_view_calls: false,
+            native_view_results: None,
             storage_exits: Default::default(),
             capture_restoration:None,
             region_loop_depth:None,
@@ -14295,6 +14299,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                 context.native_view_calls = true;
             }
             let result = native_type(binding.result, &self.program.records);
+            if binding.returned_borrow.is_some_and(|contract| contract.slot == crate::native_return_borrows::ReturnSlot::ResultOk) {
+                let (union,variants) = self.result_variant_records(result).expect("validated native Result borrow");
+                context.native_view_results.get_or_insert_with(Default::default).insert(union,variants[0]);
+            }
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);
             return Ok(result);

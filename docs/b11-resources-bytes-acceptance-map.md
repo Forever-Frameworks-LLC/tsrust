@@ -53,3 +53,14 @@ checks pass. Project formatting changes zero files. Result-path release, precise
 fields, return lifetimes and public factories remain pending. No timing ran.
 See handoff-2026-10-10-native-view-branches.md and SQLite record
 runtime/results/native-view-branches-2026-10-10-checks.json.
+
+### Gate 189 Result and value projection progress
+
+Native loan storage paths and nominal variant guards now distinguish success payloads
+from Err and unrelated record siblings. Parsed, formatted match bodies in private
+analyzer contexts permit owner replacement in Err and reject it in Ok. Seventeen loan
+checks, 89 depth-canary tests and 14 native editor checks pass, with no failures or
+aborted targets. Formatting changes zero files. Owner field conflicts, projected
+moves/replacement, escape checking, return lifetimes and public factories remain
+pending. No timing ran. See handoff-2026-10-10-native-view-result-paths.md and SQLite
+record runtime/results/native-view-result-paths-2026-10-10-checks.json.
