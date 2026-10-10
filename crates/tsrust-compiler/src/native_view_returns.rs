@@ -254,4 +254,22 @@ mod tests {
         assert_eq!(sources.len(), 2);
     }
 
+    #[test]
+    fn input_view_has_carried_origin_without_self_conflict() {
+        let mut parsed = crate::syntax::parse("type Window={};function main(){}").unwrap();
+        parsed.records[0].native_type = Some(crate::native_signatures::NativeTypeId::ByteView);
+        let analyzer = Analyzer::new(parsed).unwrap();
+        let mut context = Context::new("test".into());
+        let input = local(&mut context, "input", true);
+        context.bindings[input].ty = Type::Record(0);
+        analyzer.seed_native_parameters(&mut context).unwrap();
+        let origins = context.bindings[input].native_view_loans.as_ref().unwrap();
+        assert_eq!(origins.len(), 1);
+        assert_eq!(origins[0].source, LifetimeSource::Carried(vec![]));
+        assert!(!origins[0].retained);
+        Analyzer::check_native_view_access(&context, input, Mode::Consume, Span::default()).unwrap();
+        let returned = value(&context, input).unwrap();
+        analyzer.record_native_return(&mut context, &returned).unwrap();
+    }
+
 }

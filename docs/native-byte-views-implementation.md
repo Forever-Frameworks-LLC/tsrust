@@ -301,3 +301,26 @@ remain pending. Carried is currently constructed only by these private tests, so
 non-test build reports its unused-variant warning. The retained summary can conservatively
 include returns superseded by finally. No public borrowed signature is enabled, no
 native returned-view execution is claimed, and gate 189 remains open.
+
+## Input carrier origin seeding
+
+native_view_parameters seeds dormant Carried origins for native view inputs before
+checking callable bodies. Record fields, nested array ranks and tagged union members
+retain separate value-relative paths. Union origins retain their variant guards.
+Moving an input view can therefore return its inner lifetime without pretending that
+the function's local parameter slot survives. Dormant seeds do not create a conflicting
+self-borrow. Subsequent storage of the view activates its ordinary retained loan.
+
+A program-level native declaration flag keeps ordinary callable checking on a constant
+empty path. Parameter shape walks and cycle checks are iterative. Recursive input
+containers that reach borrowed native storage currently report native-view-shape;
+unrelated recursive types remain valid. This is an explicit intermediate limitation,
+not acceptance of recursive view layouts. Map/Set storage, callback carriers, capture
+seeding, forwarding contracts and named backend lifetimes remain pending.
+
+Formatted source tests now verify consumed view identity, record fields, nested arrays,
+Result success guards and independent parameter origins. These use private native type
+identities injected into parsed source, because public view exports remain guarded.
+They establish source analysis and checked summaries, not returned native execution.
+The Carried variant now has a production constructor; its earlier unused warning is
+resolved. Gate 189 and S07 remain open and unmeasured.

@@ -1,3 +1,5 @@
+#[path = "native_view_parameters.rs"]
+mod native_view_parameters;
 #[path = "native_view_returns.rs"]
 mod native_view_returns;
 #[path = "native_view_places.rs"]
@@ -737,6 +739,7 @@ mod exception_escape_tests {
 }
 
 struct Analyzer {
+    native_borrow_types: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
     program: Program,
@@ -1651,7 +1654,9 @@ impl Analyzer {
             .map(|(id, fun)| (id, fun.clone()))
             .collect();
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
+        let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
+            native_borrow_types,
             named_captures,
             assumed_capture_access: Default::default(),
             generic_functions,
@@ -5148,6 +5153,7 @@ impl Analyzer {
     fn check_source_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
         context.callable_scope_depth = context.lexical_scopes.len();
         context.native_returns=None;
+        self.seed_native_parameters(context)?;
         let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
         self.validate_native_returns(context)?;
         Ok(returned)
