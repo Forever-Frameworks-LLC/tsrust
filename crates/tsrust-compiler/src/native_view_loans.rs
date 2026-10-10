@@ -7,6 +7,28 @@ pub(crate) struct Loan {
     pub root: usize,
     pub access: BorrowAccess,
     pub creation: Span,
+    pub retained: bool,
+}
+
+pub(super) fn join(
+    left: Option<Box<Vec<Loan>>>,
+    right: Option<Box<Vec<Loan>>>,
+) -> Option<Box<Vec<Loan>>> {
+    match (left, right) {
+        (None, other) | (other, None) => other,
+        (Some(mut left), Some(right)) => {
+            left.extend(*right);
+            left.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
+            left.dedup_by(|right, left| {
+                if right.root != left.root || right.access != left.access {
+                    return false;
+                }
+                left.retained |= right.retained;
+                true
+            });
+            Some(left)
+        }
+    }
 }
 
 impl Analyzer {
@@ -16,16 +38,16 @@ impl Analyzer {
         mode: Mode,
         span: Span,
     ) -> Result<(), Diagnostic> {
-        if context.effects_only {
+        if context.effects_only || !context.native_view_calls {
             return Ok(());
         }
-        for &holder in &context.native_view_holders {
-            let binding = &context.bindings[holder];
-            if binding.transferred.is_some() || context.names.get(&binding.name) != Some(&holder) {
+        for (holder, binding) in context.bindings.iter().enumerate() {
+            if context.names.get(&binding.name) != Some(&holder) {
                 continue;
             }
             for loan in binding.native_view_loans.as_deref().into_iter().flatten() {
-                if loan.root == root
+                if loan.retained
+                    && loan.root == root
                     && (loan.access == BorrowAccess::Exclusive
                         || matches!(mode, Mode::Mutate | Mode::Consume))
                 {
@@ -47,10 +69,9 @@ impl Analyzer {
     pub(super) fn set_native_view_loans(context: &mut Context, holder: usize, loans: Vec<Loan>) {
         if loans.is_empty() {
             context.bindings[holder].native_view_loans = None;
-            context.native_view_holders.remove(&holder);
         } else {
             context.bindings[holder].native_view_loans = Some(Box::new(loans));
-            context.native_view_holders.insert(holder);
+            context.native_view_calls = true;
         }
     }
 
@@ -58,7 +79,7 @@ impl Analyzer {
         context: &Context,
         expr: &Expr,
     ) -> Result<Vec<Loan>, Diagnostic> {
-        if context.native_view_holders.is_empty() && !context.native_view_calls {
+        if !context.native_view_calls {
             return Ok(Vec::new());
         }
         let mut pending = vec![expr];
@@ -109,6 +130,9 @@ impl Analyzer {
                 ExprKind::Record(fields) => pending.extend(fields.iter().map(|(_, value)| value)),
                 _ => {}
             }
+        }
+        for loan in &mut result {
+            loan.retained = true;
         }
         result.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
         result.dedup_by(|right, left| right.root == left.root && right.access == left.access);
@@ -166,7 +190,11 @@ impl Analyzer {
                 root,
                 access: contract.access,
                 creation: source.span,
+                retained: true,
             });
+        }
+        for loan in &mut result {
+            loan.retained = true;
         }
         result.sort_by_key(|loan| (loan.root, loan.access == BorrowAccess::Exclusive));
         result.dedup_by(|right, left| right.root == left.root && right.access == left.access);
@@ -199,6 +227,7 @@ mod tests {
                 root: owner,
                 access,
                 creation: Span::new(10, 20),
+                retained: true,
             }],
         );
         id
@@ -350,6 +379,126 @@ mod tests {
         );
     }
     #[test]
+    fn branch_restore_and_join_keep_each_reaching_owner_loan() {
+        let mut context = Context::new("test".into());
+        let first = local(&mut context, "first");
+        let second = local(&mut context, "second");
+        let view = retained(&mut context, first, "view", BorrowAccess::ReadOnly);
+        let before = Availability::of(&context.bindings[view]);
+        Analyzer::set_native_view_loans(
+            &mut context,
+            view,
+            vec![Loan {
+                root: second,
+                access: BorrowAccess::Exclusive,
+                creation: Span::new(20, 30),
+                retained: true,
+            }],
+        );
+        let alternative = Availability::of(&context.bindings[view]);
+        before.clone().restore(&mut context.bindings[view]);
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, second, Mode::Read, Span::default())
+                .is_ok()
+        );
+        before
+            .join(alternative)
+            .restore(&mut context.bindings[view]);
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, second, Mode::Read, Span::default())
+                .is_err()
+        );
+    }
+    #[test]
+    fn transfer_on_one_branch_does_not_release_other_branch_loan() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let view = retained(&mut context, owner, "view", BorrowAccess::ReadOnly);
+        let active = Availability::of(&context.bindings[view]);
+        Analyzer::access(
+            &mut context,
+            view,
+            Mode::Consume,
+            Span::default(),
+            &Loans::default(),
+        )
+        .unwrap();
+        let moved = Availability::of(&context.bindings[view]);
+        active.join(moved).restore(&mut context.bindings[view]);
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_err()
+        );
+    }
+    #[test]
+    fn checked_if_replacement_retains_origins_from_both_arms() {
+        let mut context = Context::new("test".into());
+        let first = local(&mut context, "first");
+        let second = local(&mut context, "second");
+        retained(&mut context, first, "left", BorrowAccess::ReadOnly);
+        retained(&mut context, second, "right", BorrowAccess::ReadOnly);
+        let view = local(&mut context, "view");
+        context.bindings[view].rebindable = true;
+        Analyzer::bind(
+            &mut context,
+            &Token {
+                text: "flag".into(),
+                kind: TokenKind::Symbol,
+                span: Span::default(),
+            },
+            Type::Boolean,
+            false,
+        )
+        .unwrap();
+        let mut parsed =
+            crate::syntax::parse("function main(){if(flag){view=left;}else{view=right;}}").unwrap();
+        let mut body = parsed.functions.remove(0).body;
+        let mut analyzer =
+            Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        analyzer.block(&mut context, &mut body, Type::Void).unwrap();
+        context.names.remove("left");
+        context.names.remove("right");
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, second, Mode::Mutate, Span::default())
+                .is_err()
+        );
+    }
+    #[test]
+    fn transfer_on_both_paths_releases_retained_loan() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let view = retained(&mut context, owner, "view", BorrowAccess::Exclusive);
+        Analyzer::access(
+            &mut context,
+            view,
+            Mode::Consume,
+            Span::default(),
+            &Loans::default(),
+        )
+        .unwrap();
+        let moved = Availability::of(&context.bindings[view]);
+        moved
+            .clone()
+            .join(moved)
+            .restore(&mut context.bindings[view]);
+        assert!(
+            Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+    }
+    #[test]
     fn exclusive_native_view_blocks_reads_until_scope_ends() {
         let mut context = Context::new("test".into());
         let owner = local(&mut context, "owner");
@@ -383,7 +532,7 @@ mod tests {
         let mut context = Context::new("test".into());
         let owner = local(&mut context, "owner");
         let view = retained(&mut context, owner, "view", BorrowAccess::ReadOnly);
-        let loans = context.bindings[view].native_view_loans.clone();
+        let expression = name(&context, view);
         Analyzer::access(
             &mut context,
             view,
@@ -397,7 +546,8 @@ mod tests {
                 .is_ok()
         );
         let moved = local(&mut context, "moved");
-        Analyzer::set_native_view_loans(&mut context, moved, *loans.unwrap());
+        let loans = Analyzer::native_view_value_loans(&context, &expression).unwrap();
+        Analyzer::set_native_view_loans(&mut context, moved, loans);
         assert!(
             Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
                 .is_err()

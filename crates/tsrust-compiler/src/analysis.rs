@@ -407,21 +407,25 @@ struct ConditionalPlan {
 
 #[derive(Clone, Default)]
 struct Availability {
+    native_view_loans: Option<Box<Vec<native_view_loans::Loan>>>,
     transferred: Option<Span>,
     fields: BTreeMap<Vec<String>, Span>,
 }
 impl Availability {
     fn of(binding: &Binding) -> Self {
         Self {
+            native_view_loans: binding.native_view_loans.clone(),
             transferred: binding.transferred,
             fields: binding.moved_fields.clone(),
         }
     }
     fn restore(self, binding: &mut Binding) {
+        binding.native_view_loans = self.native_view_loans;
         binding.transferred = self.transferred;
         binding.moved_fields = self.fields;
     }
     fn join(mut self, other: Self) -> Self {
+        self.native_view_loans = native_view_loans::join(self.native_view_loans, other.native_view_loans);
         self.transferred = self.transferred.or(other.transferred);
         for (path, span) in other.fields {
             self.fields.entry(path).or_insert(span);
@@ -469,7 +473,6 @@ struct Context {
     /// a whole record. Their nullable callback records keep one carrier type
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
-    native_view_holders: std::collections::BTreeSet<usize>,
     native_view_calls: bool,
     storage_exits: storage_exit_availability::Exits,
     capture_restoration:Option<capture_restoration::Tracker>,
@@ -528,7 +531,6 @@ impl Context {
     fn new(function_name: String) -> Self {
         Self {
             control_stored: HashSet::new(),
-            native_view_holders: Default::default(),
             native_view_calls: false,
             storage_exits: Default::default(),
             capture_restoration:None,
@@ -6929,6 +6931,9 @@ impl Analyzer {
                     .insert(projection.path.clone(), projection.span);
             } else {
                 binding.transferred = Some(span);
+                if let Some(origins) = &mut binding.native_view_loans {
+                    for loan in origins.iter_mut() { loan.retained = false; }
+                }
             }
         }
         Ok(())

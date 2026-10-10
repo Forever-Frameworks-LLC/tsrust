@@ -41,3 +41,15 @@ is enabled. Branch joins, Result-path release, precise projections, source escap
 and lifetime inference remain pending. This is not gate acceptance or measurement.
 See handoff-2026-10-10-native-view-loans.md and SQLite record
 runtime/results/native-view-loans-2026-10-10-checks.json.
+
+### Gate 189 loan join progress
+
+Native view provenance and retained state now participate in Availability restoration
+and joins. Transfers on one path cannot release another reaching path's loan; two
+transferred paths keep the old holder dormant. Eleven focused loan checks pass,
+including parsed if replacements with private loans injected into the analyzer.
+Ten depth-canary suites pass 89 tests with no failures or aborts; 14 native editor
+checks pass. Project formatting changes zero files. Result-path release, precise
+fields, return lifetimes and public factories remain pending. No timing ran.
+See handoff-2026-10-10-native-view-branches.md and SQLite record
+runtime/results/native-view-branches-2026-10-10-checks.json.

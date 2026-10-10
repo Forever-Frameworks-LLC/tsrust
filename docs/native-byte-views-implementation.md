@@ -199,3 +199,24 @@ provenance, captures, all control-flow exits, last-use release and return lifeti
 relationships still need implementation and source-level witnesses. Do not remove
 the projection guard based on these checks. Existing source programs do not acquire
 new borrow-producing bindings at this checkpoint.
+
+## Loan availability joins
+
+Native loan origins and their retained state now participate in Availability snapshots,
+restoration and joins. Whole-binding consumption marks the old holder's loans dormant
+without deleting origins needed by the moved value. Initializing the destination
+reactivates those origins. A join retains an owner loan if either reaching path retains
+it, even when the binding is unavailable because another path transferred it. A join
+of two transferred paths does not reactivate the old holder.
+
+The initial holder index could become stale when Availability restored a binding.
+It is replaced by a stable binding scan in functions that have encountered native
+views. Ordinary functions retain a constant empty fast path with no scan or allocation.
+Visible lexical identity still excludes dead or shadowed holders. This supersedes the
+ordered-index detail in the preceding checkpoint description.
+
+The focused tests now include parsed if statements checked through the actual analyzer
+with private loans injected into the starting context. They verify replacement from
+different origins in the two arms, restoration, one-path transfer and two-path transfer.
+This is still private integration evidence. Result variant projection and path-specific
+success-loan release, precise field paths and return lifetime inference remain open.
