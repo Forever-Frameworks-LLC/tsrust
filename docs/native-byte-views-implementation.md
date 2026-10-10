@@ -280,3 +280,24 @@ loan when its scope ends. These checks still inject native loan state; they do n
 publish factories or prove native execution of source views. Dynamic indexed stores,
 collection removal/clear, source escapes, returned lifetime inference, captures and the
 remaining control-flow/composition matrix still need implementation and witnesses.
+
+
+## Returned-source analysis checkpoint
+
+The dedicated native_view_returns module traces returned loan origins through local
+aliases to source parameters. Returning a borrow of local owner storage or a consuming
+owner parameter reports native-view-escape. Final parameter access inference rechecks
+the retained summary. Checked functions preserve the summary for later lifetime emission.
+The source trace is iterative and diagnoses alias cycles without recursion.
+
+Loan origins distinguish Storage from Carried lifetime slots. Moving an input view
+can preserve its carried lifetime even when the input is consumed; borrowing owned
+storage in that input cannot. Normalization keeps these sources separate. This avoids
+allowing a consumed mixed record merely because another field contains a view.
+
+Private tests inject origins into real return analysis. Parameter carrier seeding,
+backend named lifetimes, forwarding calls and exception completion reconciliation
+remain pending. Carried is currently constructed only by these private tests, so a
+non-test build reports its unused-variant warning. The retained summary can conservatively
+include returns superseded by finally. No public borrowed signature is enabled, no
+native returned-view execution is claimed, and gate 189 remains open.

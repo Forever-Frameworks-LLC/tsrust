@@ -7,6 +7,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
         (
             left.root,
             &left.owner_fields,
+            &left.source,
             left.access == crate::native_return_borrows::BorrowAccess::Exclusive,
             &left.path,
             &left.guards,
@@ -14,6 +15,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
             .cmp(&(
                 right.root,
                 &right.owner_fields,
+                &right.source,
                 right.access == crate::native_return_borrows::BorrowAccess::Exclusive,
                 &right.path,
                 &right.guards,
@@ -22,6 +24,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
     loans.dedup_by(|right, left| {
         if right.root != left.root
             || right.owner_fields != left.owner_fields
+            || right.source != left.source
             || right.access != left.access
             || right.path != left.path
             || right.guards != left.guards

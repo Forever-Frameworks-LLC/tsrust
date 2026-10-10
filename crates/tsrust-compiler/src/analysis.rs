@@ -1,3 +1,5 @@
+#[path = "native_view_returns.rs"]
+mod native_view_returns;
 #[path = "native_view_places.rs"]
 mod native_view_places;
 #[path = "native_view_projections.rs"]
@@ -228,6 +230,7 @@ pub struct Binding {
 #[derive(Debug)]
 pub struct CheckedFunction {
     pub(crate) storage_exits: storage_exit_availability::Exits,
+    pub(crate) native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
     pub template: bool,
     pub specialization: bool,
     pub name: String,
@@ -480,6 +483,7 @@ struct Context {
     native_view_calls: bool,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
     storage_exits: storage_exit_availability::Exits,
+    native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
@@ -538,7 +542,7 @@ impl Context {
             control_stored: HashSet::new(),
             native_view_calls: false,
             native_view_results: None,
-            storage_exits: Default::default(),
+            storage_exits: Default::default(), native_returns: None,
             capture_restoration:None,
             region_loop_depth:None,
             region_entry_loans:None,
@@ -2509,7 +2513,7 @@ impl Analyzer {
             depth: context.closure_depth,
             parameters,
             function: CheckedFunction {
-                storage_exits: context.storage_exits.clone(),
+                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(),
                 template: outer.template,
                 specialization: false,
                 name: outer.function_name.clone(),
@@ -2620,7 +2624,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..count).collect(),
                 function: CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
                     template: false,
                     specialization: false,
                     name: binding.name.into(),
@@ -2663,7 +2667,7 @@ impl Analyzer {
             return Ok(false);
         }
         self.checked[index] = Some(CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
             template: true,
             specialization: false,
             name: self.program.functions[index].name.text.clone(),
@@ -2814,7 +2818,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..bindings.len()).collect(),
                 function: CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
                     template: false,
                     specialization: false,
                     name: name.into(),
@@ -2973,7 +2977,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
                 template: true,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -3046,7 +3050,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
                 template: inner.function.template,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -3696,7 +3700,7 @@ impl Analyzer {
             depth: 1,
             parameters: (0..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(),
+                storage_exits: Default::default(), native_returns: None,
                 template: true,
                 specialization: false,
                 name: "result-shape".into(),
@@ -4429,13 +4433,14 @@ impl Analyzer {
         let result_type = self.nullable_record_result(&mut body, result_type)?;
         self.finalize_nullable_returns(&mut body, result_type)?;
         self.declared_parameter_access(index, &mut context)?;
+        self.validate_native_returns(&context)?;
         if self.assumed_modes.is_some() && self.callable_result_type(self.signatures[index].result)
         {
             self.known_results.insert(index, result_type);
         }
         let uncalled = self.prepare_uncalled_capturing_functions(index, &context)?;
         self.checked[index] = Some(CheckedFunction {
-                storage_exits: context.storage_exits.clone(),
+                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(),
             template: context.template,
             specialization: index >= self.original_count,
             name: name.text,
@@ -5142,7 +5147,10 @@ impl Analyzer {
     #[inline(never)]
     fn check_source_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
         context.callable_scope_depth = context.lexical_scopes.len();
-        if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}
+        context.native_returns=None;
+        let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
+        self.validate_native_returns(context)?;
+        Ok(returned)
     }
 
     #[inline(never)]
@@ -5401,7 +5409,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
-        let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
@@ -5411,7 +5419,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type)->Result<(),Diagnostic> {
-        let caller=CheckedFunction{storage_exits:Default::default(),template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
         let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
         for id in targets {
             if self.checked[id].is_none() && !self.visiting[id] {self.function(id)?;}
@@ -5875,6 +5883,7 @@ impl Analyzer {
         }
         actual = converted;
         if !context.inferred_body_result { self.require(actual, Some(result_type), span)?; }
+        if let Some(value)=value {self.record_native_return(context,value)?;}
         if self.discovering_results && self.has_pending_result(actual) {
             return Ok(());
         }

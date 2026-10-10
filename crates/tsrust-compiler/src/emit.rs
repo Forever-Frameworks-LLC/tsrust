@@ -9323,7 +9323,7 @@ mod exception_region_tests {
         let caller_index=program.program.functions.iter().position(|function|function.name=="value").unwrap();
         let caller_contract=program.program.error_effects.function_errors[caller_index].clone();
         assert!(!caller_contract.opaque,"stored caller must have a resolved saved contract");
-        let original=program.program.functions.iter_mut().find(|function|function.name=="value").unwrap();let caller=crate::analysis::CheckedFunction{storage_exits:original.storage_exits.clone(),template:original.template,specialization:original.specialization,name:original.name.clone(),bindings:original.bindings.clone(),parameter_count:original.parameter_count,result:original.result,body:original.body.clone()};original.body.clear();original.result=crate::syntax::Type::Void;
+        let original=program.program.functions.iter_mut().find(|function|function.name=="value").unwrap();let caller=crate::analysis::CheckedFunction{storage_exits:original.storage_exits.clone(),native_returns:original.native_returns.clone(),template:original.template,specialization:original.specialization,name:original.name.clone(),bindings:original.bindings.clone(),parameter_count:original.parameter_count,result:original.result,body:original.body.clone()};original.body.clear();original.result=crate::syntax::Type::Void;
         let runtime=crate::error_effects::materialize_runtime_record(&mut program.program);
         let mut emitter=super::emitter_for(&program.program, "");emitter.counted_calls=true;emitter.callback_traits=true;
         let (family,_,origins)=program.program.stored_contracts.families().find(|(_,_,origins)|origins.len()==2).unwrap();

@@ -102,7 +102,7 @@ impl Analyzer {
             parameters: (0..checked.parameter_count).collect(),
             parameter_callbacks:bindings[..checked.parameter_count].iter().map(|binding|match binding.ty {Type::Callback(id)=>Some(self.callables.callbacks[id].structural),_=>None}).collect(),
             function: CheckedFunction {
-                storage_exits: checked.storage_exits.clone(),
+                storage_exits: checked.storage_exits.clone(), native_returns: checked.native_returns.clone(),
                 template: checked.template, specialization: true, name: checked.name.clone(),
                 bindings, parameter_count: 0,
                 result: checked.result, body: checked.body.clone(),

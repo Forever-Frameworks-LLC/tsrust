@@ -6,6 +6,7 @@ use crate::native_return_borrows::{BorrowAccess, ReturnedBorrow};
 pub(crate) struct Loan {
     pub root: usize,
     pub owner_fields: Vec<String>,
+    pub source: LifetimeSource,
     pub access: BorrowAccess,
     pub creation: Span,
     pub retained: bool,
@@ -13,7 +14,13 @@ pub(crate) struct Loan {
     pub guards: Vec<VariantGuard>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum LifetimeSource {
+    Storage,
+    Carried(Vec<Segment>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Segment {
     Field(String),
     Element,
@@ -262,6 +269,7 @@ impl Analyzer {
             result.push(Loan {
                 root: place.root,
                 owner_fields: place.fields,
+                source: LifetimeSource::Storage,
                 access: contract.access,
                 creation: source.span,
                 retained: true,
@@ -301,6 +309,7 @@ mod tests {
             vec![Loan {
                 root: owner,
                 owner_fields: Vec::new(),
+                source: LifetimeSource::Storage,
                 access,
                 creation: Span::new(10, 20),
                 retained: true,
@@ -469,6 +478,7 @@ mod tests {
             vec![Loan {
                 root: second,
                 owner_fields: Vec::new(),
+                source: LifetimeSource::Storage,
                 access: BorrowAccess::Exclusive,
                 creation: Span::new(20, 30),
                 retained: true,
