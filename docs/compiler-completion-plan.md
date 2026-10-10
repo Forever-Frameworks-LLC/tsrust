@@ -178,7 +178,7 @@ chaining, `in`) already had accepted rows under other identifiers.
 | B12 | S12 thread prerequisites: transferred captures, Send-like checks | standard library roadmap | pending | incomplete |
 | B13 | S13 async compiler: `async`/`await`, async main, suspend-safe loans | standard library roadmap | `unsupported` at declaration | incomplete |
 | B15 | Assignment as a value for strings, arrays and records (`(text = "x").length`) | inventory `control.assignmentExpression` | the value is the target read in place; computed places rejected | accepted: gate 179 ([record](milestones/179-owned-assignment-values.md)) |
-| B14 | `switch` fallthrough between non-empty cases | inventory `control.fallthrough` | `unsupported` with guidance | decision (see C) |
+| B14 | `switch` fallthrough between non-empty cases | inventory `control.fallthrough` | `unsupported` with guidance; empty cases share the next body | closed by owner decision (2026-10-10): stays rejected; inventory row carries `policy` |
 
 ## C. Not in an approved plan: owner decision required
 
@@ -218,8 +218,9 @@ exclusion.
    the section D families.
 
 Still undecided and therefore not in scope: decorators, tagged templates, regular
-expression literals, computed property names, object identity equality, `switch`
-fallthrough (B14), and the URI, `globalThis`, `JSON` and `Date` globals. The owner
+expression literals, computed property names, object identity equality, and the URI,
+`globalThis`, `JSON` and `Date` globals. `switch` fallthrough (B14) was decided on
+2026-10-10: it stays rejected. The owner
 confirmed nothing about B15; it proceeds on the stated rule (the value of an owned
 assignment is a read-only view of the target) and is flagged in its record.
 

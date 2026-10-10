@@ -20,8 +20,9 @@ B13, then D2 to D5. Structural record keys for data records need their own row.
 
 ## Open items
 
-- Owner decisions: B14 `switch` fallthrough; whether the formatter may rewrite the
-  protected fixtures.
+- B14 is decided (2026-10-10): `switch` fallthrough between non-empty cases stays
+  rejected. Recorded in the ledger and the coverage inventory.
+- Owner decision still open: whether the formatter may rewrite the protected fixtures.
 - 49 of 441 `node --test benchmarks/runtime/*.test.mjs` tests fail at accepted commits
   (stale pinned identities and one `ReferenceError`). They predate B7 and are tracked
   as a separate task.

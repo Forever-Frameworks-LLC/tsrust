@@ -11100,9 +11100,13 @@
       "category": "Control flow",
       "kind": "language",
       "declarationSources": [],
-      "implementation": "pending",
+      "implementation": "policy",
       "comparison": "missing",
-      "evidence": []
+      "evidence": [
+        "./compiler-completion-plan.md",
+        "../crates/tsrust-compiler/tests/switch_statements.rs"
+      ],
+      "note": "Fallthrough between non-empty switch cases is excluded by owner decision (2026-10-10): end a case with break, return, continue or throw. Empty cases still share the next body."
     },
     {
       "id": "control.finally",
