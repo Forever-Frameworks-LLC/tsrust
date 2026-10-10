@@ -7642,6 +7642,12 @@ impl Emitter<'_> {
             unreachable!("unary expression")
         };
         Ok({
+        if let UnaryOp::VariantIs(variant) = op {
+            let union = value.ty.and_then(Type::union).expect("checked variant test");
+            let index = self.program.unions[union.index()].members.iter().position(|member| member == variant).expect("checked alternative");
+            let family = if !union.copy || matches!(value.ty, Some(Type::BorrowedUnion(_))) { "ViewUnion" } else { "Union" };
+            return Err(format!("matches!({}, {family}{}::V{index}(_))", self.expr(fun, value, Mode::Read), union.index()));
+        }
         if matches!(op, UnaryOp::Typeof | UnaryOp::Void) {
             let unresolved = matches!(&value.kind, ExprKind::Name(_) if value.binding.is_none() && value.ty == Some(Type::Undefined));
             if *op == UnaryOp::Typeof
@@ -7702,6 +7708,7 @@ impl Emitter<'_> {
         let number = value.ty == Some(Type::Number);
         let value = self.expr(fun, value, Mode::Copy);
         match op {
+            UnaryOp::VariantIs(_) => unreachable!("variant test emitted separately"),
             UnaryOp::PatternSelection=>unreachable!("pattern selection lowered before emission"),
             UnaryOp::Spread => unreachable!("source spread must be lowered by checked call planning"),
             UnaryOp::NonNull

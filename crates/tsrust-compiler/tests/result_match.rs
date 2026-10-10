@@ -1,9 +1,143 @@
 mod support;
 
 #[test]
+fn result_type_identity_supports_nested_payloads_and_forwarding() {
+    for source in [
+        "function relay(value: Result<int, string>): Result<int, string> { return value; } function main() {}",
+        "function relay(value: Result<int, int>): Result<int, int> { return value; } function main() {}",
+        "function relay(value: Result<void, string>): Result<void, string> { return value; } function main() {}",
+        "type User = { name: string; }; function relay(value: Result<User[], string | null>): Result<User[], string | null> { return value; } function main() {}",
+        "type Box<T> = { value: Result<T, string>; }; function relay(value: Box<int>): Box<int> { return value; } function main() {}",
+        "function relay(value: Result<Result<int, string>, boolean>): Result<Result<int, string>, boolean> { return value; } function main() {}",
+    ] {
+        let formatted = support::format_round_trip(source);
+        tsrust_compiler::check(&formatted).unwrap_or_else(|error| panic!("{}", error.render("input.tsr", &formatted)));
+    }
+}
+
+#[test]
+fn result_type_parameters_are_required_and_preserve_nominal_identity() {
+    for source in [
+        "function relay(value: Result): void {} function main() {}",
+        "function relay(value: Result<int>): void {} function main() {}",
+        "function relay(value: Result<int, string, boolean>): void {} function main() {}",
+    ] {
+        support::reject(source, "arity");
+    }
+    for source in [
+        "function relay(value: Result<int, string>): Result<string, int> { return value; } function main() {}",
+        "type A = { value: int; }; type B = { value: int; }; function relay(value: Result<A, string>): Result<B, string> { return value; } function main() {}",
+    ] {
+        support::reject(source, "type");
+    }
+}
+
+#[test]
+fn contextual_result_constructors_compile_and_drop_owned_payloads_natively() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+type User = { name: string; };
+function success(): Result<User[], string> { return Ok([{ name: "Pat" }]); }
+function failure(): Result<int, string> { return Err("zero"); }
+function unit(): Result<void, string> { return Ok(); }
+function main() {
+    const first: Result<int, string> = Ok(5);
+    const second: Result<int, string> = Err("zero");
+    const nested: Result<Result<int, string>, boolean> = Ok(Err("nested"));
+    const absent: Result<string | null, int> = Ok(null);
+    const users = success();
+    const error = failure();
+    const empty = unit();
+    strictEqual(2 + 3, 5);
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn contextual_result_constructors_check_payloads_arity_and_ownership() {
+    for (source, code) in [
+        ("function main() { const result = Ok(1); }", "annotation-required"),
+        ("function main() { const result: Result<int, string> = Ok(\"bad\"); }", "type"),
+        ("function main() { const result: Result<int, string> = Err(2); }", "type"),
+        ("function main() { const result: Result<int, string> = Ok(); }", "arity"),
+        ("function main() { const result: Result<void, string> = Ok(1); }", "arity"),
+        ("function main() { const text = \"owned\"; const result: Result<string, int> = Ok(text); console.log(text); }", "transferred"),
+    ] {
+        support::reject(source, code);
+    }
+}
+
+#[test]
+fn result_matches_require_exhaustive_reachable_variants() {
+    for (arms, code) in [
+        ("Ok(value) => {}", "match-exhaustiveness"),
+        ("", "match-exhaustiveness"),
+        ("Ok(a) => {}, Ok(b) => {}, Err(e) => {}", "match-unreachable"),
+        ("_ => {}, Err(e) => {}", "match-unreachable"),
+        ("Other(value) => {}, _ => {}", "match-pattern"),
+    ] {
+        let source = format!("function main() {{ const result: Result<int,string> = Ok(1); match (result) {{ {arms} }} }}");
+        support::reject(&source, code);
+    }
+}
+
+#[test]
+fn matches_evaluate_once_nest_and_propagate_owned_errors() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+type Counter = { calls: int; };
+function make(counter: Mutable<Counter>, fail: boolean): Result<int, string> {
+    counter.calls += 1;
+    if (fail) { return Err("failed"); }
+    return Ok(7);
+}
+function double(counter: Mutable<Counter>, fail: boolean): Result<int, string> {
+    match (make(counter, fail)) {
+        Ok(value) => { return Ok(value * 2); },
+        Err(error) => { return Err(error); },
+    }
+}
+function main() {
+    const counter: Counter = { calls: 0 };
+    match (double(counter, false)) {
+        Ok(value) => { strictEqual(value, 14); },
+        Err(error) => { strictEqual(error, "unexpected"); },
+    }
+    strictEqual(counter.calls, 1);
+    match (double(counter, true)) {
+        Err(error) => { strictEqual(error, "failed"); },
+        _ => { strictEqual(counter.calls, -1); },
+    }
+    strictEqual(counter.calls, 2);
+    const nested: Result<Result<string, int>, boolean> = Ok(Ok("inside"));
+    match (nested) {
+        Ok(inner) => {
+            match (inner) {
+                Ok(text) => { strictEqual(text, "inside"); },
+                Err(code) => { strictEqual(code, -1); },
+            }
+        },
+        Err(flag) => { strictEqual(flag, true); },
+    }
+    const empty: Result<void, string> = Ok();
+    match (empty) { Ok(_) => {}, Err(error) => { strictEqual(error, "unexpected"); } }
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+}
+
+#[test]
 fn result_construction_and_exhaustive_match_execute() {
     let directory = support::TempDirectory::new();
-    let path = directory.source(r#"
+    let source = r#"
 import { strictEqual } from "std:testing";
 
 function divide(a: int, b: int): Result<int, string> {
@@ -21,7 +155,8 @@ function main() {
         Err(error) => { strictEqual(error, "zero"); },
     }
 }
-"#);
+"#;
+    let path = directory.source(&support::format_round_trip(source));
     let output = support::run(support::cli().arg("run").arg(path), 60);
     support::success(&output);
     assert!(output.stdout.is_empty());

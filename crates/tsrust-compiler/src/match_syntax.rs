@@ -66,6 +66,73 @@ pub fn parse(source: &str) -> Result<MatchSyntax, Diagnostic> {
 }
 
 impl Parser<'_> {
+    pub(super) fn match_statement_header(&self) -> bool {
+        if !self.is("match") || !self.tokens.get(self.i + 1).is_some_and(|token| token.text == "(") { return false; }
+        let mut depth = 0usize;
+        for (offset, token) in self.tokens[self.i + 1..].iter().enumerate() {
+            if token.kind != TokenKind::Symbol { continue; }
+            match token.text.as_str() {
+                "(" => depth += 1,
+                ")" => {
+                    depth = depth.saturating_sub(1);
+                    if depth == 0 { return self.tokens.get(self.i + offset + 2).is_some_and(|token| token.text == "{"); }
+                }
+                _ => {},
+            }
+        }
+        false
+    }
+
+    #[inline(never)]
+    pub(super) fn lower_match_statement(&mut self) -> Result<Stmt, Diagnostic> {
+        let holder = self.pattern_holder();
+        let ParsedMatch { scrutinee, arms, span } = self.match_statement_syntax()?;
+        let statement = |kind, span| Stmt { labels: Vec::new(), control_target: None, kind, span };
+        let intrinsic = |name: &str, tag: Option<(&str, Span)>, span: Span| {
+            let mut arguments = vec![Expr::new(ExprKind::Name(holder.text.clone()), span)];
+            if let Some((tag, at)) = tag { arguments.push(Expr::new(ExprKind::String(tag.into()), at)); }
+            Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(name.into()), span)), arguments), span)
+        };
+        let mut coverage = intrinsic("@match:coverage", None, span);
+        if let ExprKind::Call(_, arguments) = &mut coverage.kind {
+            for arm in &arms {
+                let (name, at) = match &arm.pattern {
+                    ParsedPattern::Wildcard(at) => ("_", *at),
+                    ParsedPattern::Variant { name, .. } => (name.text.as_str(), name.span),
+                };
+                arguments.push(Expr::new(ExprKind::String(name.into()), at));
+            }
+        }
+        let mut tail = Vec::new();
+        for arm in arms.into_iter().rev() {
+            let mut body = arm.body;
+            let tag = match arm.pattern {
+                ParsedPattern::Wildcard(_) => None,
+                ParsedPattern::Variant { name, binding } => {
+                    if let Some(binding) = binding {
+                        let value = intrinsic("@match:payload", Some((&name.text, name.span)), binding.span);
+                        let mut temporary = self.pattern_holder();
+                        temporary.span = Span::new(binding.span.start, binding.span.start);
+                        let field = Expr::new(ExprKind::Field(Box::new(Expr::new(ExprKind::Name(temporary.text.clone()), binding.span)), "payload".into()), binding.span);
+                        body.insert(0, statement(StmtKind::Let { rebindable: false, name: binding, annotation: None, value: field, binding: None }, arm.span));
+                        body.insert(0, statement(StmtKind::Let { rebindable: false, name: temporary, annotation: None, value, binding: None }, arm.span));
+                    }
+                    Some(name)
+                }
+            };
+            // Coverage checking precedes the chain and proves the final arm is
+            // the remainder. This lets existing return/loan joins remain exact.
+            if tail.is_empty() { tail.push(statement(StmtKind::Block(body), arm.span)); }
+            else {
+                let condition = tag.map(|name| intrinsic("@match:variant", Some((&name.text, name.span)), arm.span)).unwrap_or_else(|| Expr::new(ExprKind::Boolean(true), arm.span));
+                tail = vec![statement(StmtKind::If { condition, then_body: body, else_body: tail }, arm.span)];
+            }
+        }
+        let mut body = vec![statement(StmtKind::Let { rebindable: false, name: holder, annotation: None, value: scrutinee, binding: None }, span), statement(StmtKind::Expr(coverage), span)];
+        body.extend(tail);
+        Ok(statement(StmtKind::Block(body), span))
+    }
+
     #[inline(never)]
     fn match_statement_syntax(&mut self) -> Result<ParsedMatch, Diagnostic> {
         let start = self.expect("match")?.span.start;
@@ -76,6 +143,7 @@ impl Parser<'_> {
         let mut arms = Vec::new();
         while !self.accept("}") {
             if self.peek().kind == TokenKind::End { self.expect("}")?; }
+            if self.depth + arms.len() >= 128 { return Err(Diagnostic::new("unsupported", "Match arm nesting exceeds the prototype limit of 128.", self.peek().span)); }
             let arm_start = self.peek().span.start;
             let pattern = self.match_pattern()?;
             self.expect("=>")?;

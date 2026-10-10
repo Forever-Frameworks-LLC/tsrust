@@ -1,5 +1,9 @@
 #[path = "retained_capture_projection.rs"]
 mod retained_capture_projection;
+#[path = "result_construction.rs"]
+mod result_construction;
+#[path = "result_matching.rs"]
+mod result_matching;
 #[path = "installer_value_uses.rs"]
 mod installer_value_uses;
 #[path = "captured_record_borrows.rs"]
@@ -3051,6 +3055,7 @@ impl Analyzer {
     }
 
     fn type_name(&self, ty: Type) -> std::borrow::Cow<'_, str> {
+        if let Some(name) = self.result_type_name(ty) { return name.into(); }
         let name = match ty {
             Type::Int => "int",
             Type::Number => "number",
@@ -7635,6 +7640,12 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Option<Type>, Diagnostic> {
+        if let Some(result) = self.result_match_intrinsic(context, expr, loans)? {
+            return Ok(Some(result));
+        }
+        if let Some(result) = self.result_constructor(context, expr, loans, expected)? {
+            return Ok(Some(result));
+        }
         if mode == Mode::Consume
             && let Some(Type::StoredCallable(family)) = expected
         {
@@ -10019,6 +10030,7 @@ impl Analyzer {
                 ..
             } if matches!(op,BinaryOp::Coalesce|BinaryOp::PatternDefault) => self.coalesce_hint(context, left, right, expr.span,*op==BinaryOp::PatternDefault),
             ExprKind::Unary { op, value, .. } => {
+                if matches!(op, UnaryOp::VariantIs(_)) { return Some(Type::Boolean); }
                 if *op==UnaryOp::PatternSelection {return self.pattern_selection_hint(context,value);}
                 if *op == UnaryOp::OptionalBoundary {
                     let ty = self.expression_type_hint(context, value)?;
@@ -15656,6 +15668,14 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Unary { op, operator, value } = &mut expr.kind else {
             unreachable!("unary dispatch");
         };
+        if let UnaryOp::VariantIs(variant) = *op {
+            let ty = self.expression(context, value, Mode::Read, loans, None)?;
+            if !ty.union().is_some_and(|union| self.unions.members(union).contains(&variant)) {
+                return Err(Diagnostic::new("match-pattern", "The selected variant is not part of this value's type.", *operator));
+            }
+            self.require(Type::Boolean, expected, span)?;
+            return Ok((Type::Boolean, false));
+        }
         {
             if matches!(op, UnaryOp::Typeof | UnaryOp::Void) {
                 return self.unary_inspection(context, expr, loans, expected);

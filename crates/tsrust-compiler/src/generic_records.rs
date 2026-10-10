@@ -3,6 +3,8 @@ use crate::syntax::*;
 use crate::type_syntax::{TypeName, ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
 use std::collections::{BTreeMap, HashMap};
+#[path = "result_types.rs"]
+mod result_types;
 
 #[derive(Default)]
 pub(crate) struct Cache {
@@ -65,7 +67,7 @@ pub(crate) fn specialize_in(
     for record in std::mem::take(&mut program.records) {
         if matches!(
             record.name.text.as_str(),
-            "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "Set" | "Map"
+            "int" | "number" | "boolean" | "string" | "null" | "undefined" | "void" | "Set" | "Map" | "Result"
         ) {
             return Err(Diagnostic::new(
                 "duplicate",
@@ -187,6 +189,15 @@ impl Context<'_> {
                 Ok(())
             }
             Kind::Applied { name, arguments } => {
+                if name.text == "Result" {
+                    if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span)); }
+                    for argument in arguments {
+                        if !matches!(&argument.kind, Kind::Named(name) if name.text == "void") {
+                            self.validate_template(argument, parameters)?;
+                        }
+                    }
+                    return Ok(());
+                }
                 if name.text == "Map" {
                     if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Map requires key and value types.", value.span)); }
                     for argument in arguments { self.validate_template(argument, parameters)?; }
@@ -252,10 +263,15 @@ impl Context<'_> {
             crate::type_substitution::apply(value, bindings)?;
             return self.annotation(value, &HashMap::new());
         }
+        if matches!(&value.kind, Kind::Applied { name, .. } if name.text == "Result") {
+            return self.result_annotation(value);
+        }
         match &mut value.kind {
             Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
-                if let Some(argument) = bindings.get(&name.text) {
+                if name.text == "Result" {
+                    return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));
+                } else if let Some(argument) = bindings.get(&name.text) {
                     *value = argument.clone();
                 } else if self.templates.contains_key(&name.text) {
                     return Err(Diagnostic::new(

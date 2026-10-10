@@ -3,6 +3,21 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn result_constructors_have_behavioral_hover_signature_help_and_completion() {
+    let source = "function main(){const value:Result<int,string>=Ok(5);const error:Result<int,string>=Err(\"failed\");}";
+    assert!(tsrust_compiler::check(source).is_ok());
+    for name in ["Ok", "Err"] {
+        let hover = ask(source, "textDocument/hover", &format!("{name}("), 0);
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains("Result") && docs.contains("```tsrust") && docs.contains("Ownership"), "{hover}");
+    }
+    let help = ask(source, "textDocument/signatureHelp", "5);", 0);
+    assert!(help["signatures"][0]["label"].as_str().unwrap_or("").contains("Ok("), "{help}");
+    let completion = ask("function main(){ O }", "textDocument/completion", " }", 0);
+    assert!(completion.as_array().is_some_and(|items| items.iter().any(|item| item["label"] == "Ok")), "{completion}");
+}
+
+#[test]
 fn stored_callback_catch_hover_uses_the_completed_installer_origin() {
     let source = tsrust_compiler::format(r#"
         type Holder = { run: ReadOnly<Function<int>>; };

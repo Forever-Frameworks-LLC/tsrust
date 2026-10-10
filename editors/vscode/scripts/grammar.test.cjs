@@ -14,6 +14,7 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
   });
   const grammar = await registry.loadGrammar('source.tsrust');
   const cases = [
+    ['match (result) { Ok(value) => {} Err(error) => {} }', [['match', 'keyword.control']]],
     ["const whole=7_654_321;const bits=0b1010_0011;const oct=0o7_7;const hex=0xDE_AD;const fraction=.1_2e-0_1;", [["7_654_321","constant.numeric"],["0b1010_0011","constant.numeric"],["0o7_7","constant.numeric"],["0xDE_AD","constant.numeric"],[".1_2e-0_1","constant.numeric"]]],
     ['function identity<T>(value: T): T { return value; }', [['function', 'storage.type'], ['identity', 'entity.name.function'], ['<', 'keyword.operator']]],
     ['interface Box<T> { value: T; }', [['interface', 'storage.type'], ['Box', 'entity.name.type']]],

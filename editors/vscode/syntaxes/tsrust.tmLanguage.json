@@ -59,7 +59,7 @@
     },
     {
       "name": "keyword.control.tsrust",
-      "match": "\\b(?:if|else|while|do|for|of|in|return|break|continue|switch|case|default|try|catch|finally|throw)\\b"
+      "match": "\\b(?:if|else|while|do|for|of|in|return|break|continue|switch|match|case|default|try|catch|finally|throw)\\b"
     },
     {
       "name": "meta.binding.tsrust",

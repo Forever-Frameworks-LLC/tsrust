@@ -474,7 +474,7 @@ impl Linker<'_> {
                 } else { self.names.get(base).cloned().unwrap_or_else(|| {
                     if matches!(
                         base,
-                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map"
+                        "int" | "number" | "boolean" | "string" | "void" | "null" | "undefined" | "Set" | "Map" | "Result"
                     ) {
                         base.into()
                     } else {
@@ -663,11 +663,12 @@ impl Linker<'_> {
                     if let Some(linked) = self.names.get(name) {
                         *name = linked.clone();
                     } else if crate::native_bindings::by_symbol(name).is_none()
+                        && !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload")
                         && crate::syntax::global_number_member(name, false).is_none()
                         && crate::syntax::global_number_member(name, true).is_none()
                         && !matches!(
                         name.as_str(),
-                        "Object#in" | "console" | "Math" | "Number" | "Array" | "Set" | "Map" | "Object" | "String" | "Boolean" | "clone" | "undefined"
+                        "Object#in" | "console" | "Math" | "Number" | "Array" | "Set" | "Map" | "Result" | "Ok" | "Err" | "Object" | "String" | "Boolean" | "clone" | "undefined"
                     ) {
                         *name = symbol(self.module, name);
                     }

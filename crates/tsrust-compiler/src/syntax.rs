@@ -827,6 +827,8 @@ pub fn string_html_target(name: &str) -> Option<CallTarget> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnaryOp {
+    /// Checked tag test for one alternative of a closed union.
+    VariantIs(Type),
     /// Internal default-pattern selection; missing positions produce undefined.
     PatternSelection,
     /// Checked-only identity for a statically selected nullish operand.
@@ -2702,6 +2704,8 @@ impl Parser<'_> {
         }
         if self.is("function") {
             self.local_function_statement()
+        } else if self.match_statement_header() {
+            self.lower_match_statement()
         } else if self.is("try") {
             self.try_statement()
         } else if self.is("for") {

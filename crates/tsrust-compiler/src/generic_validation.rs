@@ -41,6 +41,10 @@ fn annotation(
                 }
             }
             Kind::Applied { name, arguments } => {
+                if name.text == "Result" {
+                    if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span)); }
+                    pending.extend(arguments); continue;
+                }
                 if name.text == "Map" {
                     if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Map requires key and value types.", value.span)); }
                     pending.extend(arguments); continue;

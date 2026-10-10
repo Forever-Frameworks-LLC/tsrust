@@ -100,3 +100,41 @@ the loose copy was removed.
 This API is not yet wired into program statement dispatch. Nested match statements,
 checked Result types, native emission and editor support remain pending. The
 end-to-end witness remains red. This is a source checkpoint, not gate acceptance.
+
+## Construction and matching increment
+
+The preceding syntax-only status describes checkpoint `2be14c83`. The current
+increment wires statement matching into the ordinary parser. Like switch lowering,
+it uses an owned temporary and existing blocks/branches. Compiler-only operations
+validate finite coverage before the branches and project only the selected variant.
+Extraction first moves the entire private variant to a temporary, then moves its
+payload using the existing record ownership rules. No visitor family or cleanup
+model is bypassed.
+
+Result type identity uses two distinct private nominal alternatives in the existing
+tagged-union arena. Each alternative contains only its own payload; both type
+arguments participate in identity. A void alternative has zero fields and its
+constructor takes zero arguments. Nested Results, arrays, nominal records and
+nullable payloads have focused type evidence. Contextual constructors and nested
+matching execute natively, including single evaluation and explicit owned-error
+propagation. The original end-to-end witness is now green.
+
+Constructor catalog entries include behavior, arity, context requirements,
+ownership and executable examples. Focused hover, signature help and completion
+pass; the TextMate grammar recognizes match. All three catalog examples execute
+with exact output after idempotent formatting. See `result-match.md` for source
+examples and current limits.
+
+Next work is explicit constructor type arguments, generic/callable payload
+integration, borrowed matching and scope/drop stress, pattern-binding editor facts,
+project assistance and matched benchmark support. Complete the family milestone
+before claiming B10 acceptance or refreshing installed consumers.
+
+Current bounded evidence: seven Result integration tests, five match syntax tests
+and ten depth canaries pass. The three executable Result witnesses format in memory,
+require idempotence and run the formatted source. All twelve compiler commands
+exited successfully, with no absent result line or stack abort. Their complete
+outputs are stored in SQLite at
+`runtime/results/result-match-construction-2026-10-10-checks.json`; exact readback
+passed and loose copies were removed. One focused editor test and the real TextMate
+tokenization test pass. This is not a whole-crate regression or a timing result.
