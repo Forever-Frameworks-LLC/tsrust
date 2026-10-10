@@ -64,3 +64,15 @@ aborted targets. Formatting changes zero files. Owner field conflicts, projected
 moves/replacement, escape checking, return lifetimes and public factories remain
 pending. No timing ran. See handoff-2026-10-10-native-view-result-paths.md and SQLite
 record runtime/results/native-view-result-paths-2026-10-10-checks.json.
+
+### Gate 189 owner place and record lifecycle progress
+
+Loans distinguish owner field paths from holder storage paths. Disjoint owner fields
+remain usable; overlapping fields and whole-owner replacement conflict. Projected
+record moves deactivate only their old holder origins, and direct field replacement
+installs new origins without discarding sibling loans. Conditional sources retain
+distinct fields of one owner. Twenty-three private loan checks, 89 depth-canary tests
+and 14 native editor checks pass, without failures or aborts. Formatting changes zero
+files. No timing ran. Return lifetimes, escapes, indexed collection transport and public
+factories remain pending. See handoff-2026-10-10-native-view-owner-places.md and SQLite
+record runtime/results/native-view-owner-fields-2026-10-10-checks.json.

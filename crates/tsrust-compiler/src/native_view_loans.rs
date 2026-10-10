@@ -5,6 +5,7 @@ use crate::native_return_borrows::{BorrowAccess, ReturnedBorrow};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Loan {
     pub root: usize,
+    pub owner_fields: Vec<String>,
     pub access: BorrowAccess,
     pub creation: Span,
     pub retained: bool,
@@ -45,6 +46,22 @@ impl Analyzer {
         mode: Mode,
         span: Span,
     ) -> Result<(), Diagnostic> {
+        Self::check_native_view_place(
+            context,
+            root,
+            native_view_places::access_fields(context, root),
+            mode,
+            span,
+        )
+    }
+
+    pub(super) fn check_native_view_place(
+        context: &Context,
+        root: usize,
+        fields: &[String],
+        mode: Mode,
+        span: Span,
+    ) -> Result<(), Diagnostic> {
         if context.effects_only || !context.native_view_calls {
             return Ok(());
         }
@@ -55,6 +72,7 @@ impl Analyzer {
             for loan in binding.native_view_loans.as_deref().into_iter().flatten() {
                 if loan.retained
                     && loan.root == root
+                    && native_view_places::overlaps(&loan.owner_fields, fields)
                     && native_view_projections::possible(context, holder, loan)
                     && (loan.access == BorrowAccess::Exclusive
                         || matches!(mode, Mode::Mutate | Mode::Consume))
@@ -234,51 +252,16 @@ impl Analyzer {
         source: &Expr,
         contract: ReturnedBorrow,
     ) -> Result<Vec<Loan>, Diagnostic> {
-        let mut pending = vec![source];
-        while let Some(place) = pending.pop() {
-            match &place.kind {
-                ExprKind::Conditional {
-                    consequent,
-                    alternate,
-                    ..
-                } => {
-                    pending.push(consequent);
-                    pending.push(alternate);
-                }
-                ExprKind::Sequence(values) => {
-                    if let Some(last) = values.last() {
-                        pending.push(last);
-                    }
-                }
-                ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } => {
-                    pending.push(value)
-                }
-                _ if Self::named_storage(place) => {}
-                _ => {
-                    return Err(Diagnostic::new(
-                        "native-view-source",
-                        "Every source alternative of a stored native view requires named storage that outlives the view.",
-                        place.span,
-                    ));
-                }
-            }
-        }
-        let roots = Self::view_sources(context, source);
-        if roots.is_empty() {
-            return Err(Diagnostic::new(
-                "native-view-source",
-                "A stored native view requires named source storage that outlives the view.",
-                source.span,
-            ));
-        }
+        let places = native_view_places::sources(context, source)?;
         let mut result = Self::native_view_value_loans(context, source)?;
         for loan in &mut result {
             loan.path.clear();
             loan.guards.clear();
         }
-        for root in roots {
+        for place in places {
             result.push(Loan {
-                root,
+                root: place.root,
+                owner_fields: place.fields,
                 access: contract.access,
                 creation: source.span,
                 retained: true,
@@ -317,6 +300,7 @@ mod tests {
             id,
             vec![Loan {
                 root: owner,
+                owner_fields: Vec::new(),
                 access,
                 creation: Span::new(10, 20),
                 retained: true,
@@ -484,6 +468,7 @@ mod tests {
             view,
             vec![Loan {
                 root: second,
+                owner_fields: Vec::new(),
                 access: BorrowAccess::Exclusive,
                 creation: Span::new(20, 30),
                 retained: true,
@@ -816,6 +801,213 @@ mod tests {
             Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
                 .is_ok()
         );
+    }
+    #[test]
+    fn native_owner_field_loan_allows_disjoint_sibling_access() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let view = retained(&mut context, owner, "view", BorrowAccess::Exclusive);
+        context.bindings[view].native_view_loans.as_mut().unwrap()[0].owner_fields =
+            vec!["left".into()];
+        context.projection = Some(Projection {
+            root: "owner".into(),
+            path: vec!["right".into()],
+            replacing: false,
+            span: Span::default(),
+        });
+        assert!(
+            Analyzer::access(
+                &mut context,
+                owner,
+                Mode::Mutate,
+                Span::default(),
+                &Loans::default()
+            )
+            .is_ok()
+        );
+        context.projection.as_mut().unwrap().path = vec!["left".into(), "nested".into()];
+        assert_eq!(
+            Analyzer::access(
+                &mut context,
+                owner,
+                Mode::Read,
+                Span::default(),
+                &Loans::default()
+            )
+            .unwrap_err()
+            .code,
+            "native-view-conflict"
+        );
+        context.projection = None;
+        assert!(
+            Analyzer::access(
+                &mut context,
+                owner,
+                Mode::Read,
+                Span::default(),
+                &Loans::default()
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn moving_one_holder_field_does_not_retain_its_old_loan() {
+        let mut context = Context::new("test".into());
+        let first = local(&mut context, "first");
+        let second = local(&mut context, "second");
+        let holder = retained(&mut context, first, "holder", BorrowAccess::ReadOnly);
+        let mut left = context.bindings[holder].native_view_loans.as_ref().unwrap()[0].clone();
+        left.path = vec![Segment::Field("left".into())];
+        let mut right = left.clone();
+        right.root = second;
+        right.path = vec![Segment::Field("right".into())];
+        Analyzer::set_native_view_loans(&mut context, holder, vec![left, right]);
+        context.projection = Some(Projection {
+            root: "holder".into(),
+            path: vec!["left".into()],
+            replacing: false,
+            span: Span::default(),
+        });
+        Analyzer::access(
+            &mut context,
+            holder,
+            Mode::Consume,
+            Span::default(),
+            &Loans::default(),
+        )
+        .unwrap();
+        context.projection = None;
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, second, Mode::Mutate, Span::default())
+                .is_err()
+        );
+    }
+    fn record_context() -> (Analyzer, Context, usize, usize, usize) {
+        let analyzer = Analyzer::new(
+            crate::syntax::parse("type Pair={left:string;right:string;};function main(){}")
+                .unwrap(),
+        )
+        .unwrap();
+        let pair = analyzer
+            .program
+            .records
+            .iter()
+            .position(|record| record.name.text == "Pair")
+            .unwrap();
+        let mut context = Context::new("test".into());
+        let first = local(&mut context, "first");
+        let second = local(&mut context, "second");
+        let holder = retained(&mut context, first, "holder", BorrowAccess::ReadOnly);
+        context.bindings[holder].ty = Type::Record(pair);
+        let mut left = context.bindings[holder].native_view_loans.as_ref().unwrap()[0].clone();
+        left.path = vec![Segment::Field("left".into())];
+        let mut right = left.clone();
+        right.root = second;
+        right.path = vec![Segment::Field("right".into())];
+        Analyzer::set_native_view_loans(&mut context, holder, vec![left, right]);
+        (analyzer, context, holder, first, second)
+    }
+    fn source_body(source: &str) -> Vec<Stmt> {
+        let formatted = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        crate::syntax::parse(&formatted)
+            .unwrap()
+            .functions
+            .remove(0)
+            .body
+    }
+    #[test]
+    fn checked_field_replacement_releases_only_replaced_origins() {
+        let (mut analyzer, mut context, _, first, second) = record_context();
+        let third = local(&mut context, "third");
+        retained(&mut context, third, "replacement", BorrowAccess::ReadOnly);
+        let mut body = source_body("function main(){holder.left=replacement;}");
+        analyzer.block(&mut context, &mut body, Type::Void).unwrap();
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+        for owner in [second, third] {
+            assert!(
+                Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
+                    .is_err()
+            );
+        }
+    }
+    #[test]
+    fn checked_field_move_releases_old_holder_and_keeps_sibling_loan() {
+        let (mut analyzer, mut context, _, first, second) = record_context();
+        context.bindings[first].rebindable = true;
+        let before = context.clone();
+        let mut body = source_body("function main(){const moved=holder.left;}");
+        analyzer.block(&mut context, &mut body, Type::Void).unwrap();
+        assert!(
+            Analyzer::check_native_view_access(&context, first, Mode::Mutate, Span::default())
+                .is_ok()
+        );
+        assert!(
+            Analyzer::check_native_view_access(&context, second, Mode::Mutate, Span::default())
+                .is_err()
+        );
+        let mut body = source_body(r#"function main(){const moved=holder.left;first="changed";}"#);
+        assert_eq!(
+            analyzer
+                .block(&mut before.clone(), &mut body, Type::Void)
+                .unwrap_err()
+                .code,
+            "native-view-conflict"
+        );
+    }
+    #[test]
+    fn checked_owner_field_access_keeps_sibling_mutable() {
+        let (mut analyzer, mut context, owner, _, _) = record_context();
+        context.bindings[owner].native_view_loans = None;
+        let view = retained(&mut context, owner, "view", BorrowAccess::Exclusive);
+        context.bindings[view].native_view_loans.as_mut().unwrap()[0].owner_fields =
+            vec!["left".into()];
+        let mut body = source_body(r#"function main(){holder.right="changed";}"#);
+        analyzer.block(&mut context, &mut body, Type::Void).unwrap();
+        let mut body = source_body(r#"function main(){holder.left="changed";}"#);
+        assert_eq!(
+            analyzer
+                .block(&mut context, &mut body, Type::Void)
+                .unwrap_err()
+                .code,
+            "native-view-conflict"
+        );
+    }
+    #[test]
+    fn conditional_sources_keep_distinct_fields_of_one_owner() {
+        let mut context = Context::new("test".into());
+        let owner = local(&mut context, "owner");
+        let field = |field: &str| {
+            Expr::new(
+                ExprKind::Field(Box::new(name(&context, owner)), field.into()),
+                Span::default(),
+            )
+        };
+        let source = Expr::new(
+            ExprKind::Conditional {
+                predicate: Box::new(Expr::new(ExprKind::Boolean(true), Span::default())),
+                consequent: Box::new(field("left")),
+                alternate: Box::new(field("right")),
+            },
+            Span::default(),
+        );
+        let contract = ReturnedBorrow {
+            source_parameter: 0,
+            access: BorrowAccess::ReadOnly,
+            payload: crate::native_signatures::NativeTypeId::ByteView,
+            slot: crate::native_return_borrows::ReturnSlot::Direct,
+        };
+        let loans = Analyzer::native_view_source_loans(&context, &source, contract).unwrap();
+        assert_eq!(loans.len(), 2);
+        assert_eq!(loans[0].owner_fields, vec!["left"]);
+        assert_eq!(loans[1].owner_fields, vec!["right"]);
     }
     #[test]
     fn exclusive_native_view_blocks_reads_until_scope_ends() {

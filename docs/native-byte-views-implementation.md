@@ -252,3 +252,31 @@ loans into real analyzer contexts; no public factory or end-to-end source/native
 execution is claimed. Owner access still conflicts at whole-binding granularity.
 Field-sensitive owner conflicts, projection moves/replacement, source escape and
 return lifetime inference remain pending, along with the broader view matrix.
+
+## Owner places and projected record lifecycle
+
+Loans now distinguish the borrowed owner's field path from the value-relative holder
+path. A shared or exclusive loan on one record field conflicts with that field, its
+parents and its descendants, while disjoint sibling fields remain usable. Whole-owner
+replacement still conflicts with every borrowed field. Native functions compute direct
+field access footprints even before a partial move has occurred; ordinary functions
+retain their existing path-allocation fast path.
+
+native_view_places isolates footprint selection, overlap, source alternatives and
+record-field replacement. Conditional borrow sources retain distinct field paths even
+when both alternatives have the same owner binding. Indexed sources use the containing
+array footprint; this does not prove disjoint byte ranges or array indices. Reborrow
+provenance retains the original owner's path and the selected parent storage path.
+
+Consuming a record field deactivates only the old holder loans under that field. The
+moved value reactivates its selected origins, and sibling loans remain live. Replacing
+a direct record field removes its old origins and installs the new value's prefixed
+origins without replacing sibling provenance. Normalization and joins include owner
+paths as well as holder paths and variant guards.
+
+Private analyzer witnesses check parsed, formatted sibling mutation, field replacement
+and field moves. The moved value blocks its owner inside its scope and releases that
+loan when its scope ends. These checks still inject native loan state; they do not
+publish factories or prove native execution of source views. Dynamic indexed stores,
+collection removal/clear, source escapes, returned lifetime inference, captures and the
+remaining control-flow/composition matrix still need implementation and witnesses.

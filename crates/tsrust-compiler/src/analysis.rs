@@ -1,3 +1,5 @@
+#[path = "native_view_places.rs"]
+mod native_view_places;
 #[path = "native_view_projections.rs"]
 mod native_view_projections;
 #[path = "native_view_loans.rs"]
@@ -5092,6 +5094,7 @@ impl Analyzer {
             self.widen_scoped_array_storage(context, base, actual, value.span)?;
         }
         self.update_local_record_field_type(context,target,actual)?;
+        Self::replace_native_view_field(context,target,value)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
     }
@@ -5937,7 +5940,7 @@ impl Analyzer {
                 target.span,
             ));
         }
-        Self::check_native_view_access(context, id, Mode::Mutate, target.span)?;
+        Self::check_native_view_place(context, id, &[], Mode::Mutate, target.span)?;
         // Replacement needs no old value, but cannot invalidate an outstanding loan.
         if !context.effects_only
             && context
@@ -6927,6 +6930,9 @@ impl Analyzer {
             );
             if let Some(projection) = projection {
                 context.has_field_moves = true;
+                if let Some(origins)=&mut binding.native_view_loans {
+                    native_view_places::consume(origins,&projection.path);
+                }
                 binding
                     .moved_fields
                     .retain(|path, _| !path.starts_with(&projection.path));
@@ -10745,7 +10751,7 @@ impl Analyzer {
         } else {
             false
         };
-        let mut direct = if top_projection && (partial || !loans.is_empty()) {
+        let mut direct = if top_projection && (partial || !loans.is_empty() || context.native_view_calls) {
             Self::direct_fields(base)
         } else {
             None
