@@ -1,6 +1,31 @@
 mod support;
 
 #[test]
+fn result_callable_payloads_preserve_owned_environments_and_invocation_contracts() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+function counter(start: int): Result<Function<int>, string> {
+    let value = start;
+    return Ok((): int => { value += 1; return value; });
+}
+function message(text: string): Result<Once<Function<string>>, int> {
+    return Ok((): string => { return text; });
+}
+function main() {
+    const first = counter(10);
+    const second = counter(20);
+    match (first) { Ok(action) => { strictEqual(action(), 11); strictEqual(action(), 12); }, Err(_) => { strictEqual(1, 0); } }
+    match (second) { Ok(action) => { strictEqual(action(), 21); }, Err(_) => { strictEqual(1, 0); } }
+    const once = message("owned");
+    match (once) { Ok(action) => { strictEqual(action(), "owned"); }, Err(_) => { strictEqual(1, 0); } }
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
 fn explicit_result_constructors_substitute_generics_and_preserve_shadowing() {
     let directory = support::TempDirectory::new();
     let source = r#"
