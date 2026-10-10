@@ -24,6 +24,9 @@ mod callable_environment_demand;
 mod cloneability;
 mod definite_assignment;
 mod completion;
+// Checked match statements will consume this component when their AST lands.
+#[cfg(test)]
+mod match_coverage;
 mod error_effects;
 mod diagnostic;
 mod emit;
