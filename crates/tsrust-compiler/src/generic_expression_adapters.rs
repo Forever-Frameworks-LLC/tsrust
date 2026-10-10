@@ -38,7 +38,7 @@ impl Analyzer {
         for (parameter, solved) in params.iter_mut().zip(contract.parameters) {
             parameter.ty = ParameterAnnotation::Named(Box::new(solved.annotation));
         }
-        let mut materialize = |annotation: &mut crate::type_syntax::ValueAnnotation| self.generic_records.materialize(annotation, &mut self.program.records, &mut self.record_names, &self.unions);
+        let mut materialize = |annotation: &mut crate::type_syntax::ValueAnnotation| self.generic_records.materialize(annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables);
         crate::source_walk::result_annotation(&mut result, &mut materialize)?;
         for parameter in params.iter_mut() {
             if let ParameterAnnotation::Named(annotation) = &mut parameter.ty { materialize(annotation)?; }

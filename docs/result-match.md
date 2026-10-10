@@ -40,6 +40,21 @@ Owned construction transfers the payload without cloning. Matching transfers the
 owned result into the match scope; an arm can transfer its selected payload onward.
 The inactive payload does not exist. Normal scope cleanup handles retained values.
 
+Owned callable payloads retain captured state and invocation rules:
+
+```ts
+function counter(start: int): Result<Function<int>, string> {
+    let value = start;
+    return Ok((): int => { value += 1; return value; });
+}
+```
+
+Matching its success arm binds a reusable owned callable. `Once<Function<...>>`
+instead permits one invocation. A borrowed `ReadOnly<Function<...>>` or
+`Mutable<Function<...>>` cannot be stored directly in a Result. Generic wrappers
+can take explicit callable arguments, such as `wrap<Function<int>>(callback)`;
+an inline callback alone may not supply enough information for generic inference.
+
 Explicit propagation uses a return in the failure arm:
 
 ```ts
@@ -54,8 +69,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Callable payloads,
-borrowed matching, project-wide pattern-binding assistance, matched benchmarks and
+B10 is not accepted. Borrowed matching, project-wide pattern-binding assistance, matched benchmarks and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.
 Nested match statements are supported.

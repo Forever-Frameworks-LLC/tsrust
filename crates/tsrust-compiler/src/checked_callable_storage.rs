@@ -1,6 +1,14 @@
 //! Register already checked environments without repeating source access effects.
 use super::*;
 impl Analyzer {
+    // A source template checks the owned contract now; only its caller-specific
+    // specialization can register a concrete environment. Templates are not emitted.
+    pub(super) fn abstract_stored_callable(&self, context: &Context, family: usize, actual: Type, span: Span) -> Result<Option<Type>, Diagnostic> {
+        if !context.template || !matches!(actual, Type::Callback(_)) || self.callables.storage.is_borrowed(family) { return Ok(None); }
+        let declaration = self.callables.storage.declaration(family).ok_or_else(|| Diagnostic::new("callable-layout", "Unknown callable storage signature.", span))?;
+        self.require(actual, Some(Type::Callback(declaration)), span)?;
+        Ok(Some(Type::StoredCallable(family)))
+    }
     // Conversion consumes only checked metadata; the source expression was
     // already evaluated and its ownership effects must not be repeated.
     pub(super) fn checked_stored_callable_value(&mut self,context:&mut Context,value:&mut Expr,family:usize,actual:Type)->Result<Type,Diagnostic> {
@@ -24,6 +32,10 @@ impl Analyzer {
             }
         }
         self.require(actual, Some(expected), value.span)?;
+        if let Some(ty) = self.abstract_stored_callable(context, family, actual, value.span)? {
+            value.wrap_storage(family);
+            return Ok(ty);
+        }
         let Type::Closure(mut origin) = actual else {
             return Err(Diagnostic::new(
                 "callable-layout",

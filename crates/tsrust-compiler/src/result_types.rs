@@ -21,7 +21,11 @@ impl Context<'_> {
             return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span));
         }
         for argument in arguments.iter_mut() { self.annotation(argument, &HashMap::new())?; }
-        let types = arguments.iter().map(|argument| crate::analysis::resolve_value_type(argument, true, &self.names, self.unions)).collect::<Result<Vec<_>, _>>()?;
+        let types = arguments.iter().map(|argument| {
+            let mut resolver = self.callables.resolver(&self.names, self.unions);
+            if let Some((ty, _)) = resolver.storage_declaration(argument)? { Ok(ty) }
+            else { resolver.resolve_value_annotation(argument, true) }
+        }).collect::<Result<Vec<_>, Diagnostic>>()?;
         let mut alternatives = Vec::with_capacity(2);
         for (variant, payload) in ["Ok", "Err"].into_iter().zip(types.iter().copied()) {
             let key = (format!("Result#{variant}"), types.clone());

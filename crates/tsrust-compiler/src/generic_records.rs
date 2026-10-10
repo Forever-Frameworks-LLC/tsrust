@@ -24,6 +24,7 @@ impl Cache {
         records: &mut Vec<Record>,
         names: &mut HashMap<String, usize>,
         unions: &crate::unions::UnionArena,
+        callables: &mut crate::callable_resolution::Tables,
     ) -> Result<(), Diagnostic> {
         let mut context = Context {
             templates: std::mem::take(&mut self.templates),
@@ -33,6 +34,7 @@ impl Cache {
             names: std::mem::take(names),
             depth: 0,
             unions,
+            callables,
         };
         let result = context.annotation(annotation, &HashMap::new());
         // Return all state on errors too; callers never lose existing checked records.
@@ -47,12 +49,13 @@ impl Cache {
 
 #[cfg(test)]
 pub(crate) fn specialize(program: &mut Program) -> Result<(), Diagnostic> {
-    specialize_in(program, &crate::unions::UnionArena::default()).map(|_| ())
+    specialize_in(program, &crate::unions::UnionArena::default(), &mut crate::callable_resolution::Tables::default()).map(|_| ())
 }
 
 pub(crate) fn specialize_in(
     program: &mut Program,
     unions: &crate::unions::UnionArena,
+    callables: &mut crate::callable_resolution::Tables,
 ) -> Result<Cache, Diagnostic> {
     let mut context = Context {
         templates: BTreeMap::new(),
@@ -62,6 +65,7 @@ pub(crate) fn specialize_in(
         counts: HashMap::new(),
         depth: 0,
         unions,
+        callables,
     };
     let mut declarations = HashMap::new();
     for record in std::mem::take(&mut program.records) {
@@ -147,6 +151,7 @@ struct Context<'a> {
     counts: HashMap<String, usize>,
     depth: usize,
     unions: &'a crate::unions::UnionArena,
+    callables: &'a mut crate::callable_resolution::Tables,
 }
 impl Context<'_> {
     fn validate_template(
@@ -676,7 +681,8 @@ mod tests {
     fn retained_materialization_appends_without_changing_record_or_union_ids() {
         let mut program = crate::syntax::parse("type Original={value:int|null;};type Box<T>={value:T;};type Tree<T>={value:T;children:Tree<T>[];};type Holder={value:Box<int|null>;};function main(){}").unwrap();
         let unions = crate::unions::UnionArena::default();
-        let mut cache = specialize_in(&mut program, &unions).unwrap();
+        let mut callables = crate::callable_resolution::Tables::default();
+        let mut cache = specialize_in(&mut program, &unions, &mut callables).unwrap();
         let mut names = program.records.iter().enumerate().map(|(id, record)| {
             (record.name.text.clone(), id)
         }).collect::<HashMap<_, _>>();
@@ -690,16 +696,16 @@ mod tests {
         let initial = program.records.len();
         for source in ["Box<string|null>", "Box<(null|string)>"] {
             let mut annotation = crate::type_syntax::parse(source).unwrap();
-            cache.materialize(&mut annotation, &mut program.records, &mut names, &unions).unwrap();
+            cache.materialize(&mut annotation, &mut program.records, &mut names, &unions, &mut callables).unwrap();
             assert_eq!(crate::analysis::resolve_value_type(&annotation, false, &names, &unions).unwrap(), Type::Record(initial));
         }
         assert_eq!(program.records.len(), initial + 1);
         assert_eq!(cache.counts["Box"], 2);
         let mut nested = crate::type_syntax::parse("Box<Box<int>>").unwrap();
-        cache.materialize(&mut nested, &mut program.records, &mut names, &unions).unwrap();
+        cache.materialize(&mut nested, &mut program.records, &mut names, &unions, &mut callables).unwrap();
         assert_eq!(program.records.len(), initial + 3);
         let mut tree = crate::type_syntax::parse("Tree<int>").unwrap();
-        cache.materialize(&mut tree, &mut program.records, &mut names, &unions).unwrap();
+        cache.materialize(&mut tree, &mut program.records, &mut names, &unions, &mut callables).unwrap();
         assert_eq!(program.records.len(), initial + 4);
         assert_eq!(cache.counts["Tree"], 1, "recursive array fields reuse the published instance");
         crate::analysis::append_checked_record_fields(&mut program.records, &names, &unions, &mut fields, &mut crate::callable_resolution::Tables::default()).unwrap();
@@ -717,7 +723,7 @@ mod tests {
         assert_eq!(crate::analysis::resolve_value_type(&program.records[0].fields[0].annotation, false, &names, &unions).unwrap(), before);
         let length = program.records.len();
         let mut invalid = crate::type_syntax::parse("Box<int,string>").unwrap();
-        assert_eq!(cache.materialize(&mut invalid, &mut program.records, &mut names, &unions).unwrap_err().code, "arity");
+        assert_eq!(cache.materialize(&mut invalid, &mut program.records, &mut names, &unions, &mut callables).unwrap_err().code, "arity");
         assert_eq!(program.records.len(), length);
         assert_eq!(names["Original"], 0);
     }
@@ -725,12 +731,13 @@ mod tests {
     fn appended_fields_use_ordinary_recursive_layout_rejection() {
         let mut program = crate::syntax::parse("type Original={value:int;};type Bad<T>={value:Bad<T>;};function main(){}").unwrap();
         let unions = crate::unions::UnionArena::default();
-        let mut cache = specialize_in(&mut program, &unions).unwrap();
+        let mut callables = crate::callable_resolution::Tables::default();
+        let mut cache = specialize_in(&mut program, &unions, &mut callables).unwrap();
         let mut names = program.records.iter().enumerate().map(|(id, record)| (record.name.text.clone(), id)).collect();
         let mut fields = Vec::new();
         crate::analysis::append_checked_record_fields(&mut program.records, &names, &unions, &mut fields, &mut crate::callable_resolution::Tables::default()).unwrap();
         let mut annotation = crate::type_syntax::parse("Bad<int>").unwrap();
-        cache.materialize(&mut annotation, &mut program.records, &mut names, &unions).unwrap();
+        cache.materialize(&mut annotation, &mut program.records, &mut names, &unions, &mut callables).unwrap();
         let error = crate::analysis::append_checked_record_fields(&mut program.records, &names, &unions, &mut fields, &mut crate::callable_resolution::Tables::default()).unwrap_err();
         assert_eq!(error.code, "recursive-layout");
         assert_eq!(fields[0]["value"], Type::Int);
@@ -747,14 +754,15 @@ mod tests {
         source.push_str("function main(){}");
         let mut program = crate::syntax::parse(&source).unwrap();
         let unions = crate::unions::UnionArena::default();
-        let mut cache = specialize_in(&mut program, &unions).unwrap();
+        let mut callables = crate::callable_resolution::Tables::default();
+        let mut cache = specialize_in(&mut program, &unions, &mut callables).unwrap();
         let mut names = program.records.iter().enumerate().map(|(id, record)| (record.name.text.clone(), id)).collect();
         let initial = program.records.len();
         let mut existing = crate::type_syntax::parse("Box<Argument0>").unwrap();
-        cache.materialize(&mut existing, &mut program.records, &mut names, &unions).unwrap();
+        cache.materialize(&mut existing, &mut program.records, &mut names, &unions, &mut callables).unwrap();
         assert_eq!(program.records.len(), initial);
         let mut next = crate::type_syntax::parse("Box<int>").unwrap();
-        let error = cache.materialize(&mut next, &mut program.records, &mut names, &unions).unwrap_err();
+        let error = cache.materialize(&mut next, &mut program.records, &mut names, &unions, &mut callables).unwrap_err();
         assert_eq!(error.code, "generic-limit");
         assert_eq!(cache.counts["Box"], 128);
         assert_eq!(program.records.len(), initial);

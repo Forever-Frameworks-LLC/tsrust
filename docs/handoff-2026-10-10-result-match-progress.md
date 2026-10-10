@@ -31,12 +31,13 @@ payload types. Unknown facts remain unknown. Arm arrows are not function arrows.
 
 ## Evidence
 
-Result integration: nine passing tests, including formatted native witnesses,
-explicit generic constructors, shadowing and source diagnostics. Earlier parser
-increment: five syntax tests and ten depth canaries passed. Latest editor batch:
-six tests passed, covering bindings, constructor help, contextual arrows and
-destructuring. Three catalog examples pass idempotent formatting and exact native
-output. Complete command records are in SQLite under result-match-prefixed paths
+Result integration: twelve passing tests, including formatted native witnesses,
+explicit generic constructors, callable storage, shadowing and source diagnostics.
+The final callable compiler batch passes 25 tests, including ten depth canaries.
+Earlier parser increment: five syntax tests passed. Final focused editor batch:
+five tests passed, covering bindings, callable payload help and constructor help.
+Four catalog examples pass idempotent formatting and exact native output. The
+independent Node callable reference passes. Complete command records are in SQLite under result-match-prefixed paths
 documented in the plan. Exact readback passed and loose copies were removed.
 
 No full regression or performance run was performed for B10. Installed consumers
@@ -45,11 +46,14 @@ gates or claim workloads were measured.
 
 ## Next work
 
-1. Integrate callable payload identity correctly. Result materialization currently
-   runs in generic_records before analyzer callable Tables exist. Callable payload
-   annotations therefore fail in result_types.rs. Do not guess callable IDs,
-   erase ownership or use display spelling as checked identity. Resolve the
-   phase dependency with focused failing witnesses first.
+1. Owned callable payload integration is now implemented. The analyzer creates
+   callable Tables before initial materialization and lends the same registry to
+   all retained materialization. Result keys use canonical storage types. Explicit
+   generic wrappers check their arguments through the callable resolver. Abstract
+   template storage checks contracts; only concrete specializations register
+   environments. Native witnesses cover captured state, Once, forwarding and both
+   variants. Keep context-free inline callback inference as an explicit limitation;
+   callers can supply the callable type argument. Continue with the following work.
 2. Implement and verify borrowed matching under existing read/mutate rules,
    including escape rejection, moved Results, replacement, early return and
    cleanup. Current matching transfers an owned scrutinee.
@@ -75,8 +79,9 @@ paths. Preserve completed evidence and rerun only affected checks.
 
 ## Continuation prompt
 
-Continue B10 from this handoff. Finish the remaining Result/match family using
+Continue B10 from this handoff. Owned callable payloads are implemented; finish
+the remaining Result/match family using
 focused TDD and checked ownership identities. Read AGENTS.md and the workflow
 first. Keep single-file editor support and explicit constructor shadowing intact.
-Do not accept B10 until callable payloads, borrowed matching, project assistance,
+Do not accept B10 until borrowed matching, project assistance,
 cleanup witnesses, benchmarks and family evidence are complete.

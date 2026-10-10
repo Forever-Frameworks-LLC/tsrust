@@ -334,7 +334,7 @@ impl Analyzer {
                     annotation,
                     &mut self.program.records,
                     &mut self.record_names,
-                    &self.unions,
+                    &self.unions, &mut self.callables,
                 )
             };
             crate::source_walk::function_annotations(function, &mut materialize)?;
@@ -350,7 +350,7 @@ impl Analyzer {
                 &mut argument,
                 &mut self.program.records,
                 &mut self.record_names,
-                &self.unions,
+                &self.unions, &mut self.callables,
             )?;
             self.callable_resolver().resolve_value_annotation(&argument, false)?;
         }

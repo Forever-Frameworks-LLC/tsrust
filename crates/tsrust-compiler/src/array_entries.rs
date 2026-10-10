@@ -21,7 +21,7 @@ impl Analyzer {
         let mut annotation=crate::type_syntax::ValueAnnotation {
             kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(Type::Int,span)?,types.annotation(element.ty(),span)?]),span,
         };
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         let Type::Record(pair)=self.resolve_value_annotation(&annotation,false)? else {unreachable!("materialized tuple")};
         let result=Type::Array(ArrayElement::Record(pair,0));

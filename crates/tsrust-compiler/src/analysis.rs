@@ -1530,10 +1530,10 @@ impl Analyzer {
             ));
         }
         let unions = crate::unions::UnionArena::default();
-        let mut generic_records = crate::generic_records::specialize_in(&mut program, &unions)?;
+        let mut callables = crate::callable_resolution::Tables::default();
+        let mut generic_records = crate::generic_records::specialize_in(&mut program, &unions, &mut callables)?;
         let mut record_names = HashMap::new();
         let mut function_names = HashMap::new();
-        let mut callables = crate::callable_resolution::Tables::default();
         let mut fields = Vec::new();
         for (index, record) in program.records.iter().enumerate() {
             if [
@@ -1563,8 +1563,9 @@ impl Analyzer {
                 &mut program.records,
                 &mut record_names,
                 &unions,
+                &mut callables,
             )?;
-            resolve_value_type(argument, false, &record_names, &unions)?;
+            callables.resolver(&record_names, &unions).resolve_value_annotation(argument, false)?;
         }
         append_checked_record_fields(
             &mut program.records,
@@ -1715,12 +1716,7 @@ impl Analyzer {
                     .map(|(variable, argument)| {
                         Ok((
                             variable.text.clone(),
-                            resolve_value_type(
-                                argument,
-                                false,
-                                &analyzer.record_names,
-                                &analyzer.unions,
-                            )?,
+                            analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(argument, false)?,
                         ))
                     })
                     .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
@@ -7795,6 +7791,7 @@ impl Analyzer {
                     unreachable!("stored wrapper type");
                 };
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
+                if let Some(ty) = self.abstract_stored_callable(context, family, actual, value.span)? { return Ok(ty); }
                 let Type::Closure(origin) = actual else {
                     return Err(Diagnostic::new(
                         "callable-layout",

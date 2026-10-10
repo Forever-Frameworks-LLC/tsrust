@@ -12,6 +12,7 @@ function counter(start: int): Result<Function<int>, string> {
 function message(text: string): Result<Once<Function<string>>, int> {
     return Ok((): string => { return text; });
 }
+function relay(value: Result<Function<int, [value: int]>, string>): Result<Function<int, [input: int]>, string> { return value; }
 function main() {
     const first = counter(10);
     const second = counter(20);
@@ -19,6 +20,44 @@ function main() {
     match (second) { Ok(action) => { strictEqual(action(), 21); }, Err(_) => { strictEqual(1, 0); } }
     const once = message("owned");
     match (once) { Ok(action) => { strictEqual(action(), "owned"); }, Err(_) => { strictEqual(1, 0); } }
+    const explicit = Ok<Function<int, [value: int]>, string>((value: int): int => value + 3);
+    const forwarded = relay(explicit);
+    match (forwarded) { Ok(action) => { strictEqual(action(4), 7); }, Err(_) => { strictEqual(1, 0); } }
+    const callableError: Result<int, Function<string>> = Err((): string => "error");
+    match (callableError) { Ok(_) => { strictEqual(1, 0); }, Err(action) => { strictEqual(action(), "error"); } }
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
+fn result_callable_payloads_reject_borrowed_storage_and_preserve_once_and_shape_errors() {
+    for (source, code) in [
+        ("function main(){const result:Result<ReadOnly<Function<int>>,string>=Ok(():int=>1);}", "callback-escape"),
+        ("function main(){const result:Result<Mutable<Function<int>>,string>=Ok(():int=>1);}", "callback-escape"),
+        ("function wrap(borrowed:ReadOnly<Function<int>>,owned:Function<int>):Result<Function<int>,string>{return Ok(borrowed);}function main(){}", "callback-contract"),
+        ("function main(){const result:Result<Once<Function<string>>,int>=Ok(():string=>\"owned\");match(result){Ok(action)=>{action();action();},Err(_)=>{}}}", "closure-consumed"),
+        ("function relay(value:Result<Function<int>,string>):Result<Once<Function<int>>,string>{return value;}function main(){}", "type"),
+        ("function relay(value:Result<Function<int>,string>):Result<Function<string>,string>{return value;}function main(){}", "type"),
+    ] { support::reject(source, code); }
+}
+
+#[test]
+fn generic_result_wrappers_accept_explicit_callable_type_arguments() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+function wrap<T>(value: T): Result<T, string> { return Ok(value); }
+function main() {
+    const result = wrap<Function<int>>((): int => 7);
+    match (result) { Ok(action) => { strictEqual(action(), 7); }, Err(_) => { strictEqual(1, 0); } }
+    let value = 40;
+    const captured = wrap<Function<int>>((): int => { value += 1; return value; });
+    match (captured) { Ok(action) => { strictEqual(action(), 41); strictEqual(action(), 42); }, Err(_) => { strictEqual(1, 0); } }
+    const text = "once";
+    const once = wrap<Once<Function<string>>>((): string => text);
+    match (once) { Ok(action) => { strictEqual(action(), "once"); }, Err(_) => { strictEqual(1, 0); } }
 }
 "#;
     let path = directory.source(&support::format_round_trip(source));

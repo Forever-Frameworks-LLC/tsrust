@@ -58,7 +58,7 @@ impl Analyzer {
             }else{return Ok(None);};
             let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
             let mut annotation=crate::type_syntax::ValueAnnotation{span:value.span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:family.into(),span:value.span},arguments:arguments.into_iter().map(|ty|types.annotation(ty,value.span)).collect::<Result<Vec<_>,_>>()?}};
-            self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+            self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
             append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
             return self.resolve_value_annotation(&annotation,false).map(Some);
         }
@@ -70,7 +70,7 @@ impl Analyzer {
         if let Some(ty)=self.expression_type_hint(context,value){return Ok(Some(ty));}
         let annotation=match &value.kind {ExprKind::SetConstructor(_,Some(annotation))|ExprKind::MapConstructor(_,Some(annotation))=>annotation,_=>return Ok(None)};
         let mut annotation=annotation.as_ref().clone();
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         self.resolve_value_annotation(&annotation,false).map(Some)
     }

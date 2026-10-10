@@ -3003,11 +3003,15 @@
   "name": "Result",
   "signature": "type Result<T, E>",
   "parameters": [],
-  "documentation": "Stores exactly one success payload of type T or error payload of type E. Use it for a fallible operation whose caller must handle failure explicitly. Construct with Ok or Err and inspect with an exhaustive match. Ok(value) and Err(error) arms expose only their active payload. Missing variants and unreachable arms are compile errors; a final _ arm handles the remainder. There are no public value/error fields. A void variant has no payload; construct it without an argument and match it with Ok(_) or Err(_).\n\n```tsrust\nconst result: Result<int, string> = Ok(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }\n// 5\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
+  "documentation": "Stores exactly one success payload of type T or error payload of type E. Use it for a fallible operation whose caller must handle failure explicitly. Construct with Ok or Err and inspect with an exhaustive match. Ok(value) and Err(error) arms expose only their active payload. Missing variants and unreachable arms are compile errors; a final _ arm handles the remainder. Owned Function<...> and Once<Function<...>> payloads retain their invocation contract and captured state. Borrowed ReadOnly or Mutable callbacks cannot be stored directly as Result payloads. There are no public value/error fields. A void variant has no payload; construct it without an argument and match it with Ok(_) or Err(_).\n\n```tsrust\nconst result: Result<int, string> = Ok(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }\n// 5\n```\n\n```tsrust\nconst callback: Result<Function<int>, string> = Ok((): int => 7); match (callback) { Ok(action) => { console.log(action()); }, Err(_) => { console.log(-1); } }\n// 7\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
   "examples": [
     {
       "source": "const result: Result<int, string> = Ok(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }",
       "output": "5\n"
+    },
+    {
+      "source": "const callback: Result<Function<int>, string> = Ok((): int => 7); match (callback) { Ok(action) => { console.log(action()); }, Err(_) => { console.log(-1); } }",
+      "output": "7\n"
     }
   ]
 },

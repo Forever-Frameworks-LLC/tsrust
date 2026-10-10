@@ -121,7 +121,7 @@ impl Analyzer {
         self.require_cloneable(key,expression.span)?;
         let key_annotation=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions}.annotation(key,expression.span)?;
         let mut annotation=crate::type_syntax::ValueAnnotation{span:expression.span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:"Set".into(),span:expression.span},arguments:vec![key_annotation]}};
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         while self.fields.len()<self.program.records.len(){self.fields.push(HashMap::new());}
         let result=self.resolve_value_annotation(&annotation,false)?;
         self.require(result,expected,expression.span)?;
@@ -150,7 +150,7 @@ impl Analyzer {
         self.require_cloneable(key,span)?;
         let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key,span)?,types.annotation(key,span)?])};
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         let Type::Record(pair)=self.resolve_value_annotation(&annotation,false)? else {unreachable!("Set entry tuple")};
         Ok((Type::Array(ArrayElement::Record(pair,0)),pair))
@@ -190,7 +190,7 @@ impl Analyzer {
         let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span,
             kind: crate::type_syntax::ValueAnnotationKind::Applied {
                 name: crate::type_syntax::TypeName { text: "Set".into(), span: expression.span }, arguments: vec![key_annotation] } };
-        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions)?;
+        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
         while self.fields.len() < self.program.records.len() { self.fields.push(HashMap::new()); }
         let result = self.resolve_value_annotation(&annotation, false)?;
         self.require(result, expected, expression.span)?;

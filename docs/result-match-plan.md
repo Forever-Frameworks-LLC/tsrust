@@ -180,3 +180,32 @@ read back from SQLite at
 removed. No compiler behavior changed in this increment. Project-wide assistance,
 callable payload integration, borrowed matching, cleanup stress and benchmarks
 remain pending. B10 is still open.
+
+## Owned callable payload increment
+
+Result materialization now borrows the analyzer's single callable Tables registry.
+Initial and retained materialization use the same checked storage identities as
+record fields and native emission. Result cache keys contain canonical storage
+family types, not source-local callback IDs or display spelling. Parameter labels
+do not split otherwise identical families; owning and once contracts remain distinct.
+
+Focused native witnesses cover independent captured counters, Once string payloads,
+explicit constructors, forwarding with different parameter labels and error-side
+callbacks. Explicit generic wrappers now validate callable arguments through the
+ordinary resolver. Template storage checks the owned contract without inventing
+an environment; caller specialization must register the actual concrete origin.
+Borrowed-to-owned conversion remains a source error even inside a template.
+
+The final affected compiler batch passes 25 tests: twelve Result tests, three
+adjacent callable/generic tests and ten depth canaries. Earlier materialization
+unit tests pass three tests. Five final focused editor tests pass, including
+callable binding signature help. The four catalog examples execute with exact
+native output after idempotent formatting. The independent Node reference includes
+captured callable payloads and explicit generic wrapping and passes. No whole-crate
+regression or timing run was performed.
+
+Command records are imported with exact readback into SQLite under
+`runtime/results/result-match-callables-2026-10-10-*.json`; loose copies are removed.
+Borrowed matching, project-wide assistance, cleanup stress, matched workloads and
+family acceptance are still open. Generic inference from a context-free inline
+callback still needs explicit type arguments and is not claimed as completed here.

@@ -21,6 +21,17 @@ fn result_match_bindings_have_payload_help_and_arm_local_navigation() {
 }
 
 #[test]
+fn result_match_callable_payloads_have_checked_signature_help() {
+    let source = tsrust_compiler::format("function main(){const result:Result<Function<int,[amount:int]>,string>=Ok((amount:int):int=>amount+2);match(result){Ok(action)=>{console.log(action(3));},Err(_)=>{}}}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover = ask(&source, "textDocument/hover", "action(3)", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("Function<int"), "{hover}");
+    let help = ask(&source, "textDocument/signatureHelp", "3)", 0);
+    assert_eq!(help["signatures"][0]["parameters"][0]["label"], "amount: int", "{help}");
+}
+
+#[test]
 fn result_match_unused_bindings_and_discard_patterns_keep_distinct_editor_roles() {
     let source = tsrust_compiler::format("function main(){const result:Result<string,int>=Ok(\"hello\");match(result){Ok(unused)=>{},Err(_)=>{}}}").unwrap();
     assert_eq!(tsrust_compiler::format(&source).unwrap(), source);

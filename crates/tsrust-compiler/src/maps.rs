@@ -140,7 +140,7 @@ impl Analyzer {
         let (result,method)=if name=="entries" {
             let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
             let mut annotation=crate::type_syntax::ValueAnnotation{span:expression.span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(map.key,expression.span)?,types.annotation(map.value,expression.span)?])};
-            self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+            self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
             append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
             let Type::Record(pair)=self.resolve_value_annotation(&annotation,false)? else {unreachable!("Map entry tuple")};
             (Type::Array(ArrayElement::Record(pair,0)),MapMethod::Entries(pair))
@@ -196,7 +196,7 @@ impl Analyzer {
                 if let Some((key, value)) = target_types {
                     let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
                     let mut pair = crate::type_syntax::ValueAnnotation { span: source.span, kind: crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key, source.span)?, types.annotation(value, source.span)?]) };
-                    self.generic_records.materialize(&mut pair, &mut self.program.records, &mut self.record_names, &self.unions)?;
+                    self.generic_records.materialize(&mut pair, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
                     append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
                     let pair = self.resolve_value_annotation(&pair, false)?;
                     source_context = ArrayElement::from_value_type(pair).map(Type::Array);
@@ -223,7 +223,7 @@ impl Analyzer {
         let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span, kind: crate::type_syntax::ValueAnnotationKind::Applied {
             name: crate::type_syntax::TypeName { text: "Map".into(), span: expression.span }, arguments: vec![types.annotation(key, expression.span)?, types.annotation(value, expression.span)?],
         } };
-        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions)?;
+        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
         let result = self.resolve_value_annotation(&annotation, false)?;
         self.require(result, expected, expression.span)?;
@@ -238,7 +238,7 @@ impl Analyzer {
         if let Some(pair)=map.entry{return Ok(pair);}
         let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(map.key,span)?,types.annotation(map.value,span)?])};
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         let Type::Record(declaration)=self.resolve_value_annotation(&annotation,false)?else{unreachable!("Map iteration tuple")};
         // Annotation round trips retain the tuple's nominal identity, but not
@@ -278,7 +278,7 @@ impl Analyzer {
         let groups=self.constructor_array_type(element,span)?;
         let types=crate::generic_inference::Types{ callable_annotations: None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:"Map".into(),span},arguments:vec![types.annotation(key.ty(),span)?,types.annotation(groups,span)?]}};
-        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions)?;
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         let result=self.resolve_value_annotation(&annotation,false)?;self.require(result,expected,span)?;
         let callee=Expr::new(ExprKind::Field(Box::new(source),"groupBy#map".into()),span);

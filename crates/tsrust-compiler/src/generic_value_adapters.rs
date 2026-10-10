@@ -58,7 +58,7 @@ impl Analyzer {
         // concrete record identities before the wrapper signature is checked.
         let mut materialize = |annotation: &mut crate::type_syntax::ValueAnnotation| {
             self.generic_records.materialize(annotation, &mut self.program.records,
-                &mut self.record_names, &self.unions)
+                &mut self.record_names, &self.unions, &mut self.callables)
         };
         crate::source_walk::result_annotation(result, &mut materialize)?;
         for parameter in params.iter_mut() {
