@@ -577,3 +577,19 @@ This supersedes the earlier lack of complete direct forwarding bodies. Capturing
 factory bodies, escaped environments, mixed callable storage, readable/mutable
 observer contracts and public editor/catalog integration remain pending. Keep the
 publication guard until the required matrix is complete.
+
+### Complete owned capturing factory bodies
+
+Parsed factory functions now have private executable coverage for closures owning
+Bytes and returning readonly or exclusive Result views. Only native type projection
+and import linkage bypass publication. Return summaries, invocation modes, capture
+storage, closure bodies and bridges all come from normal analysis and emission.
+Both variants preserve allocation pointer identity at O0/O3. The exclusive variant
+writes through its first view and observes the changed byte on a later invocation.
+Independent native compilation rejects views outliving either owning closure.
+
+Source callers are also checked: returning a view from a local owning closure is
+rejected, moving that closure while its view is retained is rejected, and moving it
+before creating a view remains valid. These witnesses pass without production edits.
+Shared external captures, mutable reference captures, deeper escaped/rebound
+environments and mixed callback storage still require complete source bodies.

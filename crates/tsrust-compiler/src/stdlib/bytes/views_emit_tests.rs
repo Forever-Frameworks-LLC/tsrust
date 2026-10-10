@@ -1,5 +1,188 @@
 use super::*;
 #[test]
+fn native_view_capturing_factory_moves_preserve_source_loans() {
+    for mutable in [false, true] {
+        for (body, expected) in [
+            (
+                "const reader=factory(owner);const value=reader();const moved=reader;",
+                Some("native-view-conflict"),
+            ),
+            (
+                "const reader=factory(owner);const moved=reader;const value=moved();",
+                None,
+            ),
+        ] {
+            let mut parsed = capturing_factory_program(
+                mutable,
+                &format!("function useFactory(owner:int){{{body}}}"),
+            );
+            parsed.functions[1].params[0].1 = parsed.functions[0].params[0].1.clone();
+            match (crate::analysis::analyze(parsed), expected) {
+                (Err(error), Some(code)) => assert_eq!(error.code, code, "{body}: {error:?}"),
+                (Ok(_), None) => (),
+                (Err(error), None) => panic!("{body}: {error:?}"),
+                (Ok(_), Some(_)) => panic!("{body}: conflicting receiver move accepted"),
+            }
+        }
+    }
+}
+#[test]
+fn native_view_capturing_factory_rejects_source_receiver_escape() {
+    for mutable in [false, true] {
+        let mut parsed = capturing_factory_program(
+            mutable,
+            "function invalid(owner:int){const reader=factory(owner);return reader();}",
+        );
+        parsed.functions[1].params[0].1 = parsed.functions[0].params[0].1.clone();
+        let error = crate::analysis::analyze(parsed)
+            .err()
+            .expect("local receiver cannot supply an escaping view");
+        assert_eq!(error.code, "native-view-escape", "{error:?}");
+    }
+}
+fn capturing_factory_program(mutable: bool, tail: &str) -> crate::syntax::Program {
+    let source = format!(
+        "function factory(owner:int){{return ()=>nativeView(owner,0,2);}}{tail}function main(){{}}"
+    );
+    let formatted = crate::formatting::format(&source).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+    let mut parsed = crate::syntax::parse(&formatted).unwrap();
+    let binding = if mutable {
+        &super::super::bindings::VIEW_MUT
+    } else {
+        &super::super::bindings::VIEW
+    };
+    crate::native_binding_types::prepare_private_view_test(&mut parsed.records, binding).unwrap();
+    parsed.functions[0].params[0].1 = crate::native_type_resolution::project(
+        &mut parsed.records,
+        &crate::native_signatures::Signature::Named(NativeTypeId::Bytes),
+        crate::Span::default(),
+    )
+    .unwrap();
+    let crate::syntax::StmtKind::Return(Some(value)) = &mut parsed.functions[0].body[0].kind else {
+        panic!("factory return")
+    };
+    let crate::syntax::ExprKind::Closure { body, .. } = &mut value.kind else {
+        panic!("closure")
+    };
+    let crate::syntax::StmtKind::Return(Some(value)) = &mut body[0].kind else {
+        panic!("view return")
+    };
+    let crate::syntax::ExprKind::Call(callee, _) = &mut value.kind else {
+        panic!("factory call")
+    };
+    callee.kind = crate::syntax::ExprKind::Name(format!("@native:std:bytes#{}", binding.name));
+    parsed
+}
+#[test]
+fn native_view_capturing_factory_emits_complete_owned_body() {
+    for mutable in [false, true] {
+        let binding = if mutable {
+            &super::super::bindings::VIEW_MUT
+        } else {
+            &super::super::bindings::VIEW
+        };
+        let parsed = capturing_factory_program(mutable, "");
+        let checked = crate::analysis::analyze(parsed).unwrap();
+        let closure = &checked.closures[0];
+        assert_eq!(closure.captures[0].storage, crate::Mode::Consume);
+        assert_eq!(
+            closure.invocation,
+            if mutable {
+                crate::Mode::Mutate
+            } else {
+                crate::Mode::Read
+            }
+        );
+        assert!(closure.function.native_returns.is_some());
+        let bytes = checked
+            .records
+            .iter()
+            .position(|record| record.native_type == Some(NativeTypeId::Bytes))
+            .unwrap();
+        let NativeType::Structured(signature) = binding.result else {
+            panic!("result")
+        };
+        let Type::Union(result) =
+            crate::native_binding_types::resolve(&checked.records, signature).unwrap()
+        else {
+            panic!("union")
+        };
+        let members = &checked.unions[result.index()].members;
+        let [ok, _] = crate::result_identity::variants(&checked.records, members).unwrap();
+        let tag = members
+            .iter()
+            .position(|member| *member == Type::Record(ok))
+            .unwrap();
+        let mut generated = crate::emit::emit(&checked);
+        let main = generated.find("fn main()").unwrap();
+        let opening = main + generated[main..].find('{').unwrap() + 1;
+        generated.insert_str(opening, "capturing_view_probe();");
+        let mutation = if mutable {
+            "value.field0.bytes[0]=7;"
+        } else {
+            ""
+        };
+        let expected = if mutable { 7 } else { 4 };
+        let probe = format!(
+            "fn capturing_view_probe(){{let owner=Record{bytes}{{bytes:vec![4,5,6]}};let pointer=owner.bytes.as_ptr();let mut reader=function0(owner);match reader.call(){{Union{result_id}::V{tag}(value)=>{{assert_eq!(value.field0.bytes,&[4,5]);assert_eq!(value.field0.bytes.as_ptr(),pointer);{mutation}}},_=>panic!(\"view\")}}match reader.call(){{Union{result_id}::V{tag}(value)=>assert_eq!(value.field0.bytes[0],{expected}),_=>panic!(\"later view\")}}}}",
+            result_id = result.index()
+        );
+        let directory =
+            std::env::temp_dir().join(format!("tsrust-capturing-view-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(directory.clone());
+        let input = directory.join("capture.rs");
+        std::fs::write(&input, format!("{generated}\n{probe}")).unwrap();
+        for level in ["0", "3"] {
+            let output = directory.join(format!("capture-{level}"));
+            let compile = std::process::Command::new("rustc")
+                .arg("--edition=2024")
+                .arg("-C")
+                .arg(format!("opt-level={level}"))
+                .arg(&input)
+                .arg("-o")
+                .arg(&output)
+                .output()
+                .unwrap();
+            assert!(
+                compile.status.success(),
+                "{}",
+                String::from_utf8_lossy(&compile.stderr)
+            );
+            assert!(
+                std::process::Command::new(output)
+                    .status()
+                    .unwrap()
+                    .success()
+            );
+        }
+        let escaped = format!(
+            "{generated}\n{probe}\nfn receiver_escape(){{let escaped;{{let mut reader=function0(Record{bytes}{{bytes:vec![4,5,6]}});escaped=reader.call();}}match escaped{{Union{}::V{tag}(value)=>assert_eq!(value.field0.bytes.len(),2),_=>()}}}}",
+            result.index()
+        );
+        std::fs::write(&input, escaped).unwrap();
+        let rejected = std::process::Command::new("rustc")
+            .arg("--edition=2024")
+            .arg(&input)
+            .arg("-o")
+            .arg(directory.join("escape"))
+            .output()
+            .unwrap();
+        assert!(
+            !rejected.status.success(),
+            "view escaped its owning closure"
+        );
+        assert!(String::from_utf8_lossy(&rejected.stderr).contains("does not live long enough"));
+    }
+}
+#[test]
 fn native_view_factory_bridges_name_the_source_lifetime() {
     let source = "function read(bytes:ReadOnly<int>,start:int,end:int):int{return nativeView(bytes,start,end);}function write(bytes:Mutable<int>,start:int,end:int):int{return nativeView(bytes,start,end);}function main(){}";
     let formatted = crate::formatting::format(source).unwrap();
