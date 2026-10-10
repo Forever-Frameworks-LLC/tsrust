@@ -254,4 +254,77 @@ fn main() {{
             );
         }
     }
+    #[test]
+    fn returned_native_views_compile_with_distinct_input_lifetimes() {
+        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
+        parsed.records[1].native_type=Some(crate::native_signatures::NativeTypeId::ByteViewMut);
+        let checked=crate::analysis::analyze(parsed).unwrap();
+        let outcome_identity=checked.functions.iter().position(|function|function.name=="outcomeIdentity").unwrap();
+        let outcome=checked.functions[outcome_identity].result.union().unwrap();
+        let members=&checked.unions[outcome.index()].members;
+        let [ok,_]=crate::result_identity::variants(&checked.records,members).unwrap();
+        let ok_tag=members.iter().position(|member|*member==Type::Record(ok)).unwrap();
+        let outcome_id=outcome.index();
+        let pair_first=checked.functions.iter().position(|function|function.name=="pairFirst").unwrap();
+        let unwrap=checked.functions.iter().position(|function|function.name=="unwrap").unwrap();
+        let write_identity=checked.functions.iter().position(|function|function.name=="writeIdentity").unwrap();
+        let array_identity=checked.functions.iter().position(|function|function.name=="arrayIdentity").unwrap();
+        let first=checked.functions.iter().position(|function|function.name=="first").unwrap();
+        let choose=checked.functions.iter().position(|function|function.name=="choose").unwrap();
+        let mut rust=crate::emit::emit(&checked).replace("fn main()", "fn unused_source_main()");
+        let base=rust.clone();
+        rust.push_str(&format!(r#"
+fn main() {{
+    let owner=vec![1u8,2,3];
+    let returned;
+    {{ let short=vec![9u8]; returned=function{first}(Record0{{bytes:&owner}}, &Record0{{bytes:&short}}); }}
+    assert_eq!(returned.bytes.as_ptr(),owner.as_ptr());
+    let field;
+    {{ let short=vec![8u8];field=function{pair_first}(Record3{{field0:Record0{{bytes:&owner}},field1:Record0{{bytes:&short}}}}); }}
+    assert_eq!(field.bytes.as_ptr(),owner.as_ptr());
+    let wrapped=function{unwrap}(Record2{{field0:Record0{{bytes:&owner}}}});
+    assert_eq!(wrapped.bytes.as_ptr(),owner.as_ptr());
+    let values=function{array_identity}(RecordArray0::from([Record0{{bytes:&owner}}]));
+    assert_eq!(values[0].bytes.as_ptr(),owner.as_ptr());
+    let outcome=function{outcome_identity}(Union{outcome_id}::V{ok_tag}(Record{ok}{{field0:Record0{{bytes:&owner}}}}));
+    match outcome {{ Union{outcome_id}::V{ok_tag}(value)=>assert_eq!(value.field0.bytes.as_ptr(),owner.as_ptr()),_=>panic!("unexpected error") }}
+    let mut writable=vec![4u8,5];
+    {{ let returned=function{write_identity}(Record1{{bytes:&mut writable}});returned.bytes[0]=8; }}
+    assert_eq!(writable[0],8);
+    let other=vec![7u8];
+    let selected=function{choose}(Record0{{bytes:&owner}},Record0{{bytes:&other}},false);
+    assert_eq!(selected.bytes.as_ptr(),other.as_ptr());
+}}
+"#));
+        let directory=std::env::temp_dir().join(format!("tsrust-returned-view-{}",std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());
+        let input=directory.join("returns.rs");std::fs::write(&input,rust).unwrap();
+        let rejected=directory.join("escape.rs");
+        std::fs::write(&rejected,base+&format!(r#"
+fn main() {{
+    let owner=vec![1u8];
+    let escaped;
+    {{ let short=vec![2u8]; escaped=function{choose}(Record0{{bytes:&owner}},Record0{{bytes:&short}},false); }}
+    assert_eq!(escaped.bytes[0],2);
+}}
+"#)).unwrap();
+        let rejected_output=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024"]).arg(&rejected).arg("-o").arg(directory.join("escape")).output().unwrap();
+        assert!(!rejected_output.status.success(),"escaping selected input unexpectedly compiled");
+        assert!(String::from_utf8_lossy(&rejected_output.stderr).contains("does not live long enough"));
+
+        for level in [0,3] {
+            let output=directory.join(format!("returns-{level}"));
+            let compiled=std::process::Command::new("rustup").args(["run",crate::RUST_BACKEND_VERSION,"rustc","--edition=2024",&format!("-Copt-level={level}")]).arg(&input).arg("-o").arg(&output).output().unwrap();
+            assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));
+            assert!(std::process::Command::new(output).status().unwrap().success());
+        }
+    }
+
 }

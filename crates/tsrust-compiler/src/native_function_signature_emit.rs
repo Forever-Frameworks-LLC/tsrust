@@ -3,6 +3,7 @@ use super::*;
 
 pub(super) struct NativeSignature {
     pub(super) params: String,
+    pub(super) result: String,
     pub(super) generics: String,
     pub(super) replacement_where: String,
 }
@@ -68,6 +69,7 @@ impl Emitter<'_> {
         parameter_shapes: &[Option<crate::fixed_storage::Shape>],
     ) -> NativeSignature {
         let fun = plan.function;
+        let native_lifetimes = native_view_lifetime_emit::Lifetimes::new(fun, &plan.parameters);
         let borrow_lifetimes = &plan.borrow_lifetimes;
         let params = plan
             .parameters
@@ -118,15 +120,17 @@ impl Emitter<'_> {
                                     && !id.copy
                                     && b.mode == Mode::Read
                                 {
-                                    self.native_type(Type::BorrowedUnion(id))
+                                    self.native_view_signature_type(Type::BorrowedUnion(id),Some(index),&native_lifetimes)
                                 } else {
-                                    self.native_type(input_ty)
+                                    self.native_view_signature_type(input_ty,Some(index),&native_lifetimes)
                                 }
                             },
                             |shape| self.shape_type(shape),
                         )
                 };
-                let qualifier = if borrow_lifetimes.contains_key(&index) && !qualifier.is_empty() {
+                let qualifier = if let Some(lifetime)=native_lifetimes.storage(index) {
+                    match b.mode {Mode::Read=>format!("&{lifetime} "),Mode::Mutate=>format!("&{lifetime} mut "),_=>qualifier.to_owned()}
+                } else if borrow_lifetimes.contains_key(&index) && !qualifier.is_empty() {
                     match b.mode {
                         Mode::Read => format!("&'record_input{} ", borrow_lifetimes[&index]),
                         Mode::Mutate => format!("&'record_input{} mut ", borrow_lifetimes[&index]),
@@ -181,6 +185,7 @@ impl Emitter<'_> {
             .into_iter()
             .map(|id| format!("'record_input{id}"))
             .collect::<Vec<_>>();
+        lifetime_generics.extend(native_lifetimes.declarations.iter().cloned());
         lifetime_generics.extend(generics);
         lifetime_generics.extend(plan.owner_inputs.iter().map(|source| format!("O{source}")));
         let mut generics = lifetime_generics;
@@ -222,13 +227,15 @@ impl Emitter<'_> {
         } else {
             format!("<{}>", generics.join(", "))
         };
-        let replacements = plan.replacement_bounds;
+        let mut replacements = plan.replacement_bounds;
+        replacements.extend(native_lifetimes.bounds.iter().cloned());
         let replacement_where = if replacements.is_empty() {
             String::new()
         } else {
             format!(" where {}", replacements.join(", "))
         };
         NativeSignature {
+            result:self.native_view_signature_type(fun.result,None,&native_lifetimes),
             params,
             generics,
             replacement_where,

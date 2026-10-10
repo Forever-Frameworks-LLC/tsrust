@@ -324,3 +324,28 @@ identities injected into parsed source, because public view exports remain guard
 They establish source analysis and checked summaries, not returned native execution.
 The Carried variant now has a production constructor; its earlier unused warning is
 resolved. Gate 189 and S07 remain open and unmeasured.
+
+## Named function lifetime emission
+
+native_view_lifetime_emit assigns a distinct named lifetime to each carried input
+slot. Function result slots use their checked origin summary. A result supplied by
+one input uses that input's lifetime directly; a result that can come from several
+inputs gets its own lifetime with an outlives bound from every possible source.
+Unrelated input lifetimes are not combined. Storage dependencies separately name the
+borrow on their parameter. These declarations integrate with the shared native
+function signature planner and its existing callback and record bounds.
+
+The signature renderer preserves borrowed native storage through record generic
+fields, array ranks and union payloads. It does not rewrite anonymous lifetime text
+or infer a source from argument order. Ordinary types retain the existing renderer.
+The current output grouping uses value-relative paths; recursive layout, callback
+composition and forwarding contracts still require further work.
+
+Private parsed-source native witnesses compile at O0 and O3. They check pointer
+identity after returning a view, a selected record field, an array and a Result,
+exclusive write-through, and alternative input selection. A returned first field
+outlives a separate unused field's owner. An independent rejection control confirms
+that a selected result cannot outlive either possible source. These witnesses inject
+private native identities and call generated functions from a Rust harness. They do
+not publish source factories or prove source-call lifetime propagation. Keep the
+projection guard until those paths and the remaining gate matrix are complete.

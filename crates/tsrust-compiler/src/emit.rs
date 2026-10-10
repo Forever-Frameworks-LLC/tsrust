@@ -1,3 +1,5 @@
+#[path = "native_view_lifetime_emit.rs"]
+mod native_view_lifetime_emit;
 #[path = "closure_owner_uses.rs"]
 mod closure_owner_uses;
 #[path = "closure_record_signature_emit.rs"]
@@ -2612,7 +2614,7 @@ impl Emitter<'_> {
             let index = plan.function;
             let fun = &self.program.functions[index];
             self.active_plan.set(Some(plan_id));
-            let native_function_signature_emit::NativeSignature {params,generics,replacement_where} = self.native_function_signature(index,&plan.parameters);
+            let native_function_signature_emit::NativeSignature {params,generics,replacement_where,result: view_result} = self.native_function_signature(index,&plan.parameters);
             let result_target=self.result_functions.borrow().get(&index).cloned();
             if result_target.is_some() {
             }
@@ -2625,7 +2627,7 @@ impl Emitter<'_> {
             } else {
                 format!("function{index}")
             };
-            let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",self.native_type(fun.result),error),None=>self.native_type(fun.result)};
+            let native_result=match &result_target {Some((_,error))=>format!("Result<{},{}>",view_result,error),None=>view_result};
             let _ = writeln!(output,"fn {name}{generics}({params}) -> {native_result}{replacement_where} {{");
             if name == "main" {
                 output.push_str(self.entry_setup);

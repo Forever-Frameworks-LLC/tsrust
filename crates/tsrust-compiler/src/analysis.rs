@@ -7,7 +7,7 @@ mod native_view_places;
 #[path = "native_view_projections.rs"]
 mod native_view_projections;
 #[path = "native_view_loans.rs"]
-mod native_view_loans;
+pub(crate) mod native_view_loans;
 #[path = "native_capabilities.rs"]
 mod native_capabilities;
 #[path = "retained_capture_projection.rs"]
