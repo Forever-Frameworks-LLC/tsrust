@@ -106,6 +106,19 @@ pub(crate) fn capture_layout_with_environments(
         .iter()
         .map(|capture| {
             let captured = storage_type(capture.inner);
+            if let Some(id)=captured.union()
+                && crate::environment_lifetimes::contains_native_view(captured,&program.records,&|id|program.unions[id.index()].members.clone()) {
+                let count=lifetime_count(captured);
+                let borrowed=matches!(capture.storage,Mode::Read|Mode::Mutate);
+                let start=next;next+=usize::from(borrowed)+count;
+                let (ty,begin,reference)=match capture.storage {
+                    Mode::Read=>(Type::BorrowedUnion(id),start,String::new()),
+                    Mode::Mutate=>(captured,start+1,format!("&{} mut ",lifetimes[start])),
+                    _=>(captured,start,String::new()),
+                };
+                let field=environment_type(ty,&lifetimes[begin..next]).unwrap_or_else(||data_type(ty));
+                return format!("{reference}{field}");
+            }
             let payload = captured
                 .union()
                 .and_then(|id| {

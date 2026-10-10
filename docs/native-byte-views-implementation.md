@@ -426,3 +426,21 @@ Borrowing receiver contracts, captured owner storage, Result capture layouts,
 escaped and rebound closure environments, specialized callbacks and arbitrary
 stored families still require their own matrix. The source factories remain guarded
 and gate 189 remains open.
+
+## Captured Result payloads
+
+Native view unions use the complete capture environment shape rather than the first
+non-nullish alternative. Owned union fields and read-only union views retain named
+lifetime arguments for their non-copy variants. Private native witnesses cover a
+consuming `Result<ByteView, int>` capture on both Ok and Err paths, and a read-only
+callback matching either path without taking the caller's Result. O0/O3 execution
+checks success pointer identity and the unchanged error payload.
+
+Closure context projection now remaps explicit ReadOnly parameter facts alongside
+Mutable facts. Losing the ReadOnly fact previously made a captured Result match
+request ownership. An ordinary Result regression checks a borrowed record payload
+and a string error through a captured match, independently of native view metadata.
+
+These checks do not yet establish variant-distinct lifetimes when both Result
+payloads contain views, borrowed receiver returns, or escaped callback environments.
+The full view plan and public signature guard remain in force.

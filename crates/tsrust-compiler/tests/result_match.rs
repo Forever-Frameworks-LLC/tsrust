@@ -157,6 +157,12 @@ fn readonly_result_matches_lend_payloads_without_consuming_the_caller() {
     let source = r#"
 import { strictEqual } from "std:testing";
 type User = { name: string; };
+function capturedMeasure(result: ReadOnly<Result<User, string>>): int {
+    const read = (): int => {
+        match (result) { Ok(user) => { return user.name.length; }, Err(error) => { return error.length; } }
+    };
+    return read();
+}
 function measure(result: ReadOnly<Result<User, string>>): int {
     match (result) {
         Ok(user) => { return user.name.length; },
@@ -168,11 +174,13 @@ function copied(result: ReadOnly<Result<User, string>>): string {
 }
 function main() {
     const user: Result<User, string> = Ok({ name: "Pat" });
+    strictEqual(capturedMeasure(user), 3);
     strictEqual(measure(user), 3);
     strictEqual(copied(user), "Pat");
     strictEqual(measure(user), 3);
     match (user) { Ok(value) => { strictEqual(value.name, "Pat"); }, Err(_) => { strictEqual(1, 0); } }
     const error: Result<User, string> = Err("failed");
+    strictEqual(capturedMeasure(error), 6);
     strictEqual(measure(error), 6);
     strictEqual(copied(error), "failed");
     strictEqual(measure(error), 6);

@@ -42,6 +42,7 @@ pub(super) fn project(outer: &Context, slots: &[usize]) -> Context {
             .insert(binding.name.clone(), context.bindings.len());
         context.bindings.push(binding);
     }
+    context.readonly_parameters = outer.readonly_parameters.iter().filter_map(|id| remap.get(id).copied()).collect();
     context.mutable_parameters = outer.mutable_parameters.iter().filter_map(|id| remap.get(id).copied()).collect();
     context.mutable_match_borrows = context.bindings.iter().enumerate().filter_map(|(id, binding)| binding.mutable_place.then_some(id)).collect();
     context.source_bindings = outer
@@ -91,6 +92,7 @@ mod tests {
         let hidden = binding(&mut outer, "hidden", 20, Type::Int);
         let view = binding(&mut outer, "view", 30, Type::String);
         outer.bindings[view].view_roots = vec![root, hidden];
+        outer.readonly_parameters.insert(view);
         outer.bindings[view].input_ty = Some(Type::Undefined);
         outer.bindings[view].rest = true;
         outer.bindings[view].omission = crate::ParameterOmission::Optional;
@@ -103,6 +105,8 @@ mod tests {
             .push((root, Mode::Read, Span::new(50, 51)));
         let inner = project(&outer, &[view, root]);
         assert_eq!(inner.bindings[0].view_roots, vec![1]);
+        assert!(inner.readonly_parameters.contains(&0));
+        assert!(!inner.readonly_parameters.contains(&view));
         assert_eq!(inner.bindings[0].mode, Mode::Read);
         assert!(inner.bindings.iter().all(|b| b.input_ty.is_none()
             && !b.rest

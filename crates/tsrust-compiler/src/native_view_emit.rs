@@ -269,13 +269,15 @@ fn main() {{
     }
     #[test]
     fn returned_native_views_compile_with_distinct_input_lifetimes() {
-        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function capturedPair(input:Pair):Window{const callback=():Window=>input.one;return callback();}function capturedWrite(input:WriteWindow):WriteWindow{const callback=():WriteWindow=>input;return callback();}function captured(input:Window):Window{const callback=():Window=>input;return callback();}function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
+        let source="type Window={};type WriteWindow={};type Shelf={item:Window;};type Pair={one:Window;two:Window;};type Outcome=Result<Window,int>;function capturedStatus(input:ReadOnly<Outcome>):boolean{const callback=():boolean=>{match(input){Ok(_) => {return true;},Err(_) => {return false;}}};return callback();}function capturedOutcome(input:Outcome):Outcome{const callback=():Outcome=>input;return callback();}function capturedPair(input:Pair):Window{const callback=():Window=>input.one;return callback();}function capturedWrite(input:WriteWindow):WriteWindow{const callback=():WriteWindow=>input;return callback();}function captured(input:Window):Window{const callback=():Window=>input;return callback();}function identity(input:Window):Window{return input;}function relay(input:Window):Window{return identity(input);}function arrowChoose(left:Window,right:Window,flag:boolean):Window{const callback=(first:Window,second:Window):Window=>{if(flag){return first;}return second;};return callback(left,right);}function arrowRelay(input:Window):Window{const identity=(value:Window):Window=>value;return identity(input);}function savedRelay(input:Window):Window{const saved=identity;return saved(input);}function outcomeIdentity(input:Outcome):Outcome{return input;}function pairFirst(input:Pair):Window{return input.one;}function unwrap(input:Shelf):Window{return input.item;}function writeIdentity(input:WriteWindow):WriteWindow{return input;}function arrayIdentity(input:Window[]):Window[]{return input;}function first(left:Window,right:Window):Window{return left;}function choose(left:Window,right:Window,flag:boolean):Window{if(flag){return left;}return right;}function main(){}";
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let mut parsed=crate::syntax::parse(&formatted).unwrap();
         parsed.records[0].native_type=Some(crate::native_signatures::NativeTypeId::ByteView);
         parsed.records[1].native_type=Some(crate::native_signatures::NativeTypeId::ByteViewMut);
         let checked=crate::analysis::analyze(parsed).unwrap();
+        let captured_status=checked.functions.iter().position(|function|function.name=="capturedStatus").unwrap();
+        let captured_outcome=checked.functions.iter().position(|function|function.name=="capturedOutcome").unwrap();
         let captured_pair=checked.functions.iter().position(|function|function.name=="capturedPair").unwrap();
         let captured_write=checked.functions.iter().position(|function|function.name=="capturedWrite").unwrap();
         let captured=checked.functions.iter().position(|function|function.name=="captured").unwrap();
@@ -286,9 +288,10 @@ fn main() {{
         let outcome_identity=checked.functions.iter().position(|function|function.name=="outcomeIdentity").unwrap();
         let outcome=checked.functions[outcome_identity].result.union().unwrap();
         let members=&checked.unions[outcome.index()].members;
-        let [ok,_]=crate::result_identity::variants(&checked.records,members).unwrap();
+        let [ok,err]=crate::result_identity::variants(&checked.records,members).unwrap();
         let ok_tag=members.iter().position(|member|*member==Type::Record(ok)).unwrap();
         let outcome_id=outcome.index();
+        let err_tag=members.iter().position(|member|*member==Type::Record(err)).unwrap();
         let pair_first=checked.functions.iter().position(|function|function.name=="pairFirst").unwrap();
         let unwrap=checked.functions.iter().position(|function|function.name=="unwrap").unwrap();
         let write_identity=checked.functions.iter().position(|function|function.name=="writeIdentity").unwrap();
@@ -317,6 +320,12 @@ fn main() {{
     assert_eq!(wrapped.bytes.as_ptr(),owner.as_ptr());
     let values=function{array_identity}(RecordArray0::from([Record0{{bytes:&owner}}]));
     assert_eq!(values[0].bytes.as_ptr(),owner.as_ptr());
+    assert!(function{captured_status}(Union{outcome_id}::V{ok_tag}(Record{ok}{{field0:Record0{{bytes:&owner}}}}).tsr_view()));
+    assert!(!function{captured_status}(Union{outcome_id}::V{err_tag}(Record{err}{{field0:17}}).tsr_view()));
+    let captured_outcome=function{captured_outcome}(Union{outcome_id}::V{ok_tag}(Record{ok}{{field0:Record0{{bytes:&owner}}}}));
+    match captured_outcome {{ Union{outcome_id}::V{ok_tag}(value)=>assert_eq!(value.field0.bytes.as_ptr(),owner.as_ptr()),_=>panic!("captured success lost") }}
+    let captured_error=function{captured_outcome}(Union{outcome_id}::V{err_tag}(Record{err}{{field0:17}}));
+    match captured_error {{ Union{outcome_id}::V{err_tag}(value)=>assert_eq!(value.field0,17),_=>panic!("captured error lost") }}
     let outcome=function{outcome_identity}(Union{outcome_id}::V{ok_tag}(Record{ok}{{field0:Record0{{bytes:&owner}}}}));
     match outcome {{ Union{outcome_id}::V{ok_tag}(value)=>assert_eq!(value.field0.bytes.as_ptr(),owner.as_ptr()),_=>panic!("unexpected error") }}
     let mut writable=vec![4u8,5];

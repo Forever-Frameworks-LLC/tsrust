@@ -128,6 +128,13 @@ impl Emitter<'_> {
                     lifetime_parameters(&arguments)
                 )
             }
+            Type::Union(id) | Type::BorrowedUnion(id) if self.native_views.contains(ty) => {
+                let borrowed=matches!(ty,Type::BorrowedUnion(_));
+                let prefix=if borrowed {let lifetime=lifetimes[*next].clone();*next+=1;format!("{lifetime}, ")}else{String::new()};
+                let arguments=self.program.unions[id.index()].members.iter().filter(|member|!member.is_copy())
+                    .map(|&member|self.record_environment_type(member,lifetimes,next)).collect::<Vec<_>>().join(", ");
+                format!("{}Union{}<{prefix}{arguments}>",if borrowed {"View"}else{""},id.index())
+            }
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 if let Some(payload) = self.callback_payload(ty) {
                     let payload = self.record_environment_type(payload, lifetimes, next);
