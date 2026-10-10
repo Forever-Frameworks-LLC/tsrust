@@ -1,9 +1,11 @@
 //! Complete source/native controls for views carried in stored callback fields.
 use super::*;
 
+const STORED_SOURCE:&str = "type Window={};type Holder={read:Once<Function<Window>>;marker:int;};function save(view:Window):Holder{return {read:()=>view,marker:1};}function relay(first:Window,second:Window):Window{const holder=save(second);return holder.read();}function main(){}";
+
 #[test]
 fn native_view_record_callback_preserves_selected_input() {
-    let source = "type Window={};type Holder={read:Once<Function<Window>>;marker:int;};function save(view:Window):Holder{return {read:()=>view,marker:1};}function relay(first:Window,second:Window):Window{const holder=save(second);return holder.read();}function main(){}";
+    let source = STORED_SOURCE;
     let formatted=crate::formatting::format(source).unwrap();
     assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
     let mut parsed=crate::syntax::parse(&formatted).unwrap();
@@ -97,4 +99,17 @@ fn native_view_mixed_record_preserves_selected_input() {
     assert_eq!(origins.len(),1);
     assert_eq!(origins[0].root,1);
     assert_record_execution(&checked,relay,"mixed");
+}
+
+#[test]
+fn native_view_stored_callback_reports_missing_lifetime_storage() {
+    let formatted=crate::formatting::format(STORED_SOURCE).unwrap();
+    assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+    let mut parsed=crate::syntax::parse(&formatted).unwrap();
+    parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);
+    let error=crate::analysis::analyze(parsed).err().expect("stored payload lifetime planning is still guarded");
+    assert_eq!(error.code,"native-view-callable-storage");
+    assert!(error.message.contains("owns its environment"));
+    assert!(error.message.contains("not implemented"));
+    assert!(!error.related.is_empty());
 }

@@ -70,3 +70,19 @@ Analyzer dispatch changes require all ten normal-stack depth canaries and Result
 Format the entire project before source checkpoints. Preserve original failed and
 successful logs byte for byte in SQLite and verify their restoration. Keep public
 publication guarded while any required representation or provenance case is open.
+
+## Carried-slot metadata checkpoint
+
+native_view_callable_storage.rs now derives candidate lifetime slots from checked
+capture bindings. Each slot retains the capture field, its relative payload path,
+Result variant guards and readonly/exclusive access. Construction-context root IDs
+and source spans are not part of this layout description. Physical shared/mutable
+capture storage, physical storage loans and foreign roots are excluded. Slots are
+candidate metadata only; they do not certify that a family can safely store the
+value, and finite alternative identity/ABI integration remains pending in step 1.
+
+The owning-storage guard now identifies this case with native-view-callable-storage
+rather than claiming the callback fails to own its environment. Existing ownership
+and invocation guards remain. Focused controls cover readonly/exclusive payloads,
+nested record fields, Result success guards and the retained publication guard.
+The positive stored callback witness remains red and must not be counted as accepted.

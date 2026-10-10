@@ -42,6 +42,13 @@ impl StorageContract {
             .related(closure.span, "Single-use closure is created here."));
         }
         if closure.borrowed {
+            if let Some(slots)=crate::native_view_callable_storage::carried_slots(closure) {
+                return Err(Diagnostic::new(
+                    "native-view-callable-storage",
+                    format!("This callback owns its environment but carries {} borrowed byte-view lifetime slot(s). Storing it in an owning callback family requires lifetime-bearing callable storage, which is not implemented yet.",slots.len()),
+                    span,
+                ).related(closure.span,"Carried byte-view environment is created here."));
+            }
             return Err(Diagnostic::new(
                 "callback-escape",
                 "An owned callback requires an environment without borrowed captures.",
