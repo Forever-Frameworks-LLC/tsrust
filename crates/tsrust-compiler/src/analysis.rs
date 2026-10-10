@@ -500,6 +500,8 @@ struct Context {
     /// and their capture loans until the scope ends.
     control_stored: HashSet<usize>,
     native_view_calls: bool,
+    /// Lexical depth at which a local holding native views was declared.
+    native_view_declaration_depths: HashMap<usize, usize>,
     native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
     native_view_results: Option<Box<HashMap<UnionId,usize>>>,
@@ -563,6 +565,7 @@ impl Context {
         Self {
             control_stored: HashSet::new(),
             native_view_calls: false,
+            native_view_declaration_depths: HashMap::new(),
             native_view_environments: None,
             native_shadowed_bindings: None,
             native_view_results: None,
@@ -5114,14 +5117,22 @@ impl Analyzer {
         }
         let contract=if let ExprKind::Index(base, _) = &target.kind && let Some(Type::Array(element)) = base.ty {
             self.scoped_array_element_contract(base, element)
-        } else {self.local_record_field_contract(context,target).unwrap_or(ty)};
+        } else {self.local_record_field_contract(context,target).or_else(||self.native_view_field_contract(context,target,ty)).unwrap_or(ty)};
         self.prepare_direct_callback_store(context, target, value)?;
-        let actual = if let Type::StoredCallable(family) = contract {
+        // A redeclared scoped field accepts any value of its written contract. Only a
+        // new closure is checked against the symbolic family; other values keep the
+        // concrete family they already have.
+        let redeclared_native = contract != ty && self.native_view_field_contract(context,target,ty) == Some(contract);
+        let actual = if redeclared_native && !matches!(value.kind, ExprKind::Closure { .. } | ExprKind::Conditional { .. }) {
+            self.expression(context, value, Mode::Consume, &active, None)?
+        } else if let Type::StoredCallable(family) = contract {
             self.stored_callable_value(context, value, family, &active)?
         } else {
             self.expression(context, value, Mode::Consume, &active, Some(contract))?
         };
-        self.require(actual, Some(contract), value.span)?;
+        if !self.scoped_native_storage_contract(actual, contract, value.span)? {
+            self.require(actual, Some(contract), value.span)?;
+        }
         let binding = Self::root_binding(target).expect("checked field has a binding");
         if let Some((_, path)) = Self::direct_fields(target) {
             Self::availability(
@@ -5141,6 +5152,7 @@ impl Analyzer {
             self.widen_scoped_array_storage(context, base, actual, value.span)?;
         }
         self.update_local_record_field_type(context,target,actual)?;
+        self.update_native_view_field_type(context,target,actual);
         Self::replace_native_view_field(context,target,value)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
@@ -5858,6 +5870,9 @@ impl Analyzer {
         }
         let native_loans = Self::native_view_value_loans(context, value)?;
         let id = Self::bind(context, name, actual, false)?;
+        if !native_loans.is_empty() || (self.native_borrow_types && self.native_shape_contains_view(actual)) {
+            context.native_view_declaration_depths.insert(id, context.lexical_scopes.len());
+        }
         Self::set_native_view_loans(context, id, native_loans);
         if mutable_view {
             context.bindings[id].mutable_place = true;
@@ -6100,7 +6115,8 @@ impl Analyzer {
         if matches!((actual,ty),(Type::Record(a),Type::Record(b)) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if matches!((actual,ty),(Type::Array(ArrayElement::Record(a,0)),Type::Array(ArrayElement::Record(b,0))) if self.scoped_records.declaration(a)==self.scoped_records.declaration(b)){context.bindings[id].ty=actual;}
         if self.scoped_record_nullable_contract(actual, ty) { context.bindings[id].ty = actual; }
-        let native_loans = Self::native_view_value_loans(context, value)?;
+        let mut native_loans = Self::native_view_value_loans(context, value)?;
+        Self::retain_unified_native_view_loans(context, id, &mut native_loans);
         Self::set_native_view_loans(context, id, native_loans);
         context.bindings[id].transferred = None;
         context.bindings[id].moved_fields.clear();

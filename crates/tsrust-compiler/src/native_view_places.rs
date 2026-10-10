@@ -93,6 +93,52 @@ fn source_error(span: Span) -> Diagnostic {
 }
 
 impl Analyzer {
+    /// A replacement in the block that declares the local redeclares its native
+    /// storage, which starts a new lifetime. Any other replacement assigns to the same
+    /// native variable. Rust releases the earlier owners for conflict checks, but a
+    /// lifetime in a function signature is unified over every value the variable
+    /// ever holds. The earlier origins therefore stay as dormant provenance: they do
+    /// not block their owners and they still reach a returned value.
+    pub(super) fn retain_unified_native_view_loans(context: &Context, holder: usize, incoming: &mut Vec<Loan>) {
+        let binding = &context.bindings[holder];
+        let redeclared = !binding.parameter
+            && !binding.capture_reference
+            && binding.borrowed_place.is_none()
+            && !binding.mutable_place
+            && context.native_view_declaration_depths.get(&holder) == Some(&context.lexical_scopes.len());
+        if redeclared {
+            return;
+        }
+        Self::extend_dormant(incoming, binding.native_view_loans.as_deref().into_iter().flatten());
+    }
+    fn extend_dormant<'a>(incoming: &mut Vec<Loan>, previous: impl Iterator<Item = &'a Loan>) {
+        for loan in previous {
+            let mut dormant = loan.clone();
+            dormant.retained = false;
+            let known = incoming.iter().any(|current| {
+                let mut current = current.clone();
+                current.retained = false;
+                current == dormant
+            });
+            if !known {
+                incoming.push(dormant);
+            }
+        }
+    }
+    /// A direct field of a local record, replaced in the block that declares the
+    /// local, redeclares that field's native storage. Returns the local.
+    pub(super) fn native_view_field_redeclared(context: &Context, target: &Expr) -> Option<usize> {
+        let ExprKind::Field(base, _) = &target.kind else { return None; };
+        if !matches!(base.kind, ExprKind::Name(_)) { return None; }
+        let holder = base.binding?;
+        let binding = &context.bindings[holder];
+        (!binding.parameter
+            && !binding.capture_reference
+            && binding.borrowed_place.is_none()
+            && !binding.mutable_place
+            && context.native_view_declaration_depths.get(&holder) == Some(&context.lexical_scopes.len()))
+        .then_some(holder)
+    }
     pub(super) fn replace_native_view_field(
         context: &mut Context,
         target: &Expr,
@@ -118,7 +164,12 @@ impl Analyzer {
             .as_deref()
             .cloned()
             .unwrap_or_default();
+        let replaced = retained.iter().filter(|loan| under(loan, &place.fields)).cloned().collect::<Vec<_>>();
         retained.retain(|loan| !under(loan, &place.fields));
+        if Self::native_view_field_redeclared(context, target).is_none() {
+            // The field keeps one native variable: see retain_unified_native_view_loans.
+            Self::extend_dormant(&mut incoming, replaced.iter());
+        }
         retained.extend(incoming);
         native_view_projections::normalize(&mut retained);
         Self::set_native_view_loans(context, place.root, retained);

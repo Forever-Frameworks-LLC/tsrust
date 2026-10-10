@@ -20,9 +20,6 @@ impl Emitter<'_> {
         let mut returns=Vec::<Loan>::new();
         for (arm,alternative) in layout.alternatives.iter().enumerate() {
             let closure=self.program.closures.get(alternative.origin).ok_or_else(||unsupported("Unknown native callable family environment."))?;
-            if self.program.error_effects.closures.get(alternative.origin).copied().unwrap_or(true) {
-                return Err(unsupported("Fallible native view callable families require error ABI planning."));
-            }
             if self.native_captures.lifetimes[alternative.origin]!=alternative.slots.len() {
                 return Err(unsupported("Native callable family capture lifetimes do not match its carried-view slots."));
             }
@@ -49,7 +46,6 @@ impl Emitter<'_> {
                 returns.push(returned);
             }
         }
-        if returns.is_empty() {return Err(unsupported("Native family view emission requires checked returned capture lifetimes."));}
         let plan=native_view_lifetime_emit::Lifetimes::with_named_sources(inputs,&returns)?;
         let name=format!("NativeViewCallable{id}");
         let generics=format!("<{}>",lifetimes.join(", "));
@@ -65,9 +61,12 @@ impl Emitter<'_> {
         let parameters=contract.params.iter().enumerate().map(|(position,&parameter)|format!(",argument{position}:{}",self.native_argument_type(parameter,""))).collect::<String>();
         let arguments=(0..contract.params.len()).map(|position|format!("argument{position}")).collect::<Vec<_>>().join(", ");
         let result=self.native_view_signature_type(contract.result,None,&plan);
+        // A family with a throwing alternative uses the error layout planned for its
+        // identity; alternatives that cannot throw are adapted to it like ordinary families.
+        let result=match self.result_storage.borrow().get(&id) {Some((error,_))=>format!("Result<{result},{error}>"),None=>result};
         writeln!(generated,"impl{generics} {name}{generics} {{fn call{method_generics}(self{parameters})->{result}{bounds} {{match self {{").unwrap();
         for alternative in &layout.alternatives {
-            writeln!(generated,"Self::V{}(mut value)=>value.call({arguments}),",alternative.origin).unwrap();
+            writeln!(generated,"Self::V{}(mut value)=>{},",alternative.origin,self.stored_origin_result(id,alternative.origin,format!("value.call({arguments})"))).unwrap();
         }
         generated.push_str("}}}\n");
         output.push_str(&generated);

@@ -332,3 +332,39 @@ alternative arrays, absent nullable values, stored-family captures, field and
 control-flow replacement joins, and the broader invocation/error ABI still need
 coverage and implementation. Public factories, shared observer contracts, complete
 IntelliSense examples and matched subarray workloads remain gated on the full matrix.
+
+## Invocation ABI and replacement checkpoint
+
+The family backend no longer limits stored view callbacks to scalar arguments, view
+results and non-throwing bodies. `validate_abi` kept those limits only as guards; the
+emitted `call` method already forwards each argument with its ordinary native type.
+Now supported through normal analysis and native execution, for readonly and
+exclusive views at two optimization levels:
+
+- arguments that own data (`Owned<string>`) or borrow it (`ReadOnly<string>`), and an
+  owned view argument that the callback does not return;
+- optional, default and rest parameters;
+- callbacks that return `int` or `void` while they own a captured view;
+- throwing callbacks. A family with a throwing alternative uses the error layout
+  planned for its identity, and alternatives that cannot throw are adapted to it. A
+  caught failure consumes the callback and leaves the other owner usable.
+
+Replacement now follows what Rust does with one native variable. Rust releases the
+earlier owner of a reassigned local, so conflict checks stay precise. A lifetime in a
+function signature is different: it is unified over every value the variable ever
+holds. `retain_unified_native_view_loans` therefore keeps the replaced origins as
+dormant loans (`retained: false`). They do not block their owners and they still
+reach a returned value, so the function signature names every possible input.
+
+- A replacement in the block that declares the local redeclares its native storage
+  and starts a new lifetime. This now also applies to a direct field of a local
+  record, including a new callback alternative and an absent value.
+- A replacement in a nested block, a branch or a loop assigns to the same variable.
+  The result then depends on both inputs, and generated Rust rejects a caller that
+  ends either owner too early.
+
+Still open: a new callback alternative stored into a field inside a nested block (it
+needs a carrier type joined before the declaration), arrays that receive alternatives
+by `push`, absent-to-present nullable transitions, captures of stored families, results
+that borrow an invocation argument, and propagation of a thrown error through the
+test harness relay.

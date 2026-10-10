@@ -24,6 +24,24 @@ impl Analyzer {
         }
     }
 
+    /// The written contract of a scoped callback field whose native storage is
+    /// redeclared by this replacement. The new value keeps its own concrete family.
+    pub(super) fn native_view_field_contract(&self,context:&Context,target:&Expr,current:Type)->Option<Type> {
+        if !self.native_borrow_types {return None;}
+        let Type::StoredCallable(family)=current else{return None;};
+        self.callables.storage.scoped_native_family(family)?;
+        let holder=Self::native_view_field_redeclared(context,target)?;
+        let ExprKind::Field(_,name)=&target.kind else{return None;};
+        let Type::Record(record)=context.bindings[holder].ty else{return None;};
+        let nominal=self.scoped_records.declaration(record);
+        self.program.records[nominal].fields.iter().find(|field|field.name.text==*name)?.ty.filter(|ty|matches!(ty,Type::StoredCallable(_)))
+    }
+    pub(super) fn update_native_view_field_type(&mut self,context:&mut Context,target:&Expr,actual:Type) {
+        if !self.native_borrow_types || !self.native_shape_contains_view(actual) {return;}
+        let Some(holder)=Self::native_view_field_redeclared(context,target) else{return;};
+        let ExprKind::Field(_,name)=&target.kind else{return;};
+        if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),actual) {context.bindings[holder].ty=root;}
+    }
     pub(super) fn common_native_view_storage(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic> {
         if !self.native_borrow_types || left==right {return Ok(None);}
         let (Type::StoredCallable(source),Type::StoredCallable(target))=(left,right) else{return Ok(None);};

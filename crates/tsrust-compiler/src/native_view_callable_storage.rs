@@ -90,22 +90,15 @@ pub(crate) fn validate_abi(
     layout: &Family,
     contract: &crate::analysis::CallbackContract,
     closures: &[CheckedClosure],
-    effects: &crate::error_effects::ErrorEffects,
+    _effects: &crate::error_effects::ErrorEffects,
     span: crate::Span,
 ) -> Result<(), crate::Diagnostic> {
     let unsupported = |message: &str| crate::Diagnostic::new("native-view-family-emission", message, span);
     if layout.invocation != Mode::Consume || layout.alternatives.is_empty() || contract.structural != layout.signature {
         return Err(unsupported("This native family ABI requires a matching finite one-shot callback contract."));
     }
-    if contract.params.iter().any(|parameter| !parameter.ty.is_copy()) {
-        return Err(unsupported("Native view callable family arguments with owned or borrowed data require additional argument lifetime planning."));
-    }
-    let mut has_returns = false;
     for alternative in &layout.alternatives {
         let closure = closures.get(alternative.origin).ok_or_else(|| unsupported("Unknown native callable family environment."))?;
-        if effects.closures.get(alternative.origin).copied().unwrap_or(true) {
-            return Err(unsupported("Fallible native view callable families require error ABI planning."));
-        }
         if carried_slots(closure).unwrap_or_default() != alternative.slots {
             return Err(unsupported("Native callable family capture paths and access must match the checked environment."));
         }
@@ -116,11 +109,7 @@ pub(crate) fn validate_abi(
             if matches!(loan.source, LifetimeSource::Storage) {
                 return Err(unsupported("A consuming native family cannot return a borrow of destroyed capture storage."));
             }
-            has_returns = true;
         }
-    }
-    if !has_returns {
-        return Err(unsupported("Native family view emission requires checked returned capture lifetimes."));
     }
     Ok(())
 }

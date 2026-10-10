@@ -33,9 +33,13 @@ fn assert_record_execution(checked:&crate::analysis::CheckedProgram,relay:usize,
     let write=if mutable {"returned.bytes[0]+=10;"}else{""};
     let expected=if mutable {17}else{7};
     let first_access=if matches!(checked.functions[relay].bindings[0].mode,crate::Mode::Read|crate::Mode::Mutate){"&"}else{""};
-    let probe = format!(
+    // A result that may also carry the first input needs both owners for its whole life.
+    let joined=checked.functions[relay].native_returns.as_deref().is_some_and(|loans|loans.iter().any(|loan|loan.root==0));
+    let probe = if joined {format!(
+        "fn carried_probe(){{let mut owner=vec![7u8,8];let pointer=owner.as_ptr();{{let mut short=vec![1u8];let mut returned=function{relay}({first_access}Record{view}{{bytes:{reference} short}},Record{view}{{bytes:{reference} owner}});assert_eq!(returned.bytes.as_ptr(),pointer);assert_eq!(returned.bytes,&[7,8]);{write}}}assert_eq!(owner[0],{expected});}}"
+    )} else {format!(
         "fn carried_probe(){{let mut owner=vec![7u8,8];let pointer=owner.as_ptr();{{let mut returned;{{let mut short=vec![1u8];returned=function{relay}({first_access}Record{view}{{bytes:{reference} short}},Record{view}{{bytes:{reference} owner}});}}assert_eq!(returned.bytes.as_ptr(),pointer);assert_eq!(returned.bytes,&[7,8]);{write}}}assert_eq!(owner[0],{expected});}}"
-    );
+    )};
     let directory = std::env::temp_dir().join(format!(
         "tsrust-record-carried-view-environment-{label}-{}",
         std::process::id()
@@ -89,6 +93,16 @@ fn assert_record_execution(checked:&crate::analysis::CheckedProgram,relay:usize,
         "carried capture escaped its selected input owner"
     );
     assert!(String::from_utf8_lossy(&rejected.stderr).contains("does not live long enough"));
+    if joined {
+        // The first input is a possible origin too, so it cannot end before the result.
+        let negative = format!(
+            "{generated}\n{probe}\nfn invalid_first_escape(){{let mut second=vec![7u8,8];let escaped;{{let mut first=vec![1u8];escaped=function{relay}({first_access}Record{view}{{bytes:{reference} first}},Record{view}{{bytes:{reference} second}});}}assert_eq!(escaped.bytes.len(),2);}}"
+        );
+        std::fs::write(&input, negative).unwrap();
+        let rejected = std::process::Command::new("rustc").arg("--edition=2024").arg(&input).arg("-o").arg(directory.join("rejected")).output().unwrap();
+        assert!(!rejected.status.success(), "joined result escaped its first input owner");
+        assert!(String::from_utf8_lossy(&rejected.stderr).contains("does not live long enough"));
+    }
 }
 
 #[test]
@@ -106,25 +120,6 @@ fn native_view_mixed_record_preserves_selected_input() {
     assert_record_execution(&checked,relay,"mixed");
 }
 
-#[test]
-fn native_view_stored_callback_rejects_unplanned_abi_at_source() {
-    for (result, parameters, body, expected) in [
-        ("Window", "text:string", "return view;", "arguments"),
-        ("void", "", "const discarded=view;", "returned capture"),
-        ("Window", "", "if(fail){throw 3;}return view;", "Fallible"),
-    ] {
-        let source=format!("type Window={{}};type Holder={{read:Once<Function<{result}{}>>;}};function save(view:Window,fail:boolean):Holder{{return {{read:({parameters}):{result}=>{{{body}}}}};}}function main(){{}}",if parameters.is_empty(){""}else{",[ReadOnly<string>]"});
-        let formatted=crate::formatting::format(&source).unwrap();
-        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
-        let mut parsed=crate::syntax::parse(&formatted).unwrap();
-        parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);
-        let error=crate::analysis::analyze(parsed).err().expect("unsupported ABI needs a source diagnostic");
-        assert_eq!(error.code,"native-view-family-emission","{error:?}");
-        assert!(error.message.contains(expected),"{error:?}");
-        assert_ne!(error.span,crate::Span::default());
-    }
-}
-
 fn assert_stored_source_case(source:&str,label:&str) {
     assert_stored_source_access(source,label,false);
 }
@@ -137,7 +132,7 @@ fn assert_stored_source_access(source:&str,label:&str,mutable:bool) {
     let relay=checked.functions.iter().position(|function|function.name=="relay" && !function.template).unwrap();
     let origins=checked.functions[relay].native_returns.as_ref().expect("stored callback needs caller origins");
     assert!(!origins.is_empty(),"{label}");
-    assert!(origins.iter().all(|loan|loan.root==1),"{label}: {origins:?}");
+    assert!(origins.iter().any(|loan|loan.root==1),"{label}: {origins:?}");
     assert_record_execution(&checked,relay,label);
 }
 
@@ -217,4 +212,82 @@ fn native_view_storage_rejects_consumed_callback_reuse() {
     let error=crate::analysis::analyze(parsed).err().expect("consumed callback cannot be invoked again");
     assert_eq!(error.code,"closure-consumed","{error:?}");
     assert!(!error.related.is_empty());
+}
+
+/// Invocation contracts and replacement forms of stored view callbacks. Every row
+/// runs natively at two optimization levels for readonly and exclusive views.
+#[test]
+fn native_view_storage_invocation_and_replacement_matrix() {
+    let once="read:Once<Function<Window>>;marker:int;";
+    let plain="return {read:()=>view,marker:1};";
+    let cases:&[(&str,&str,&str,&str)]=&[
+        ("nullable-present-then-absent","read:Once<Function<Window>>|undefined;marker:int;",plain,"let holder=save(first);holder.read=undefined;const other=save(second);return (other.read!)();"),
+        ("field-replacement",once,plain,"let holder=save(first);holder.read=()=>second;return holder.read();"),
+        ("field-replacement-from-record",once,plain,"let holder=save(first);const other=save(second);holder.read=other.read;return holder.read();"),
+        ("replacement-in-block",once,plain,"let holder=save(first);{holder=save(second);}return holder.read();"),
+        ("replacement-in-branch",once,plain,"let holder=save(first);if(holder.marker>0){holder=save(second);}return holder.read();"),
+        ("replacement-in-both-branches",once,plain,"let holder=save(first);if(holder.marker>0){holder=save(second);}else{const other=save(second);holder=other;}return holder.read();"),
+        ("argument-int","read:Once<Function<Window,[int]>>;marker:int;","return {read:(n:int)=>view,marker:1};","const holder=save(second);return holder.read(3);"),
+        ("argument-borrowed-string","read:Once<Function<Window,[ReadOnly<string>]>>;marker:int;","return {read:(text:string)=>view,marker:1};","const holder=save(second);const t=\"x\";return holder.read(t);"),
+        ("argument-owned-string","read:Once<Function<Window,[Owned<string>]>>;marker:int;","return {read:(text:Owned<string>)=>view,marker:1};","const holder=save(second);return holder.read(\"x\");"),
+        ("optional-parameter","read:Once<Function<Window,[n?:int]>>;marker:int;","return {read:(n?:int)=>view,marker:1};","const holder=save(second);return holder.read();"),
+        ("default-parameter","read:Once<Function<Window,[n?:int]>>;marker:int;","return {read:(n:int=2)=>view,marker:1};","const holder=save(second);return holder.read();"),
+        ("rest-parameter","read:Once<Function<Window,[...values:int[]]>>;marker:int;","return {read:(...values:int[])=>view,marker:1};","const holder=save(second);return holder.read(1,2);"),
+        ("returns-int","read:Once<Function<int>>;marker:int;","return {read:()=>{const kept=view;return 7;},marker:1};","const holder=save(first);const n=holder.read();return second;"),
+        ("returns-void","read:Once<Function<void>>;marker:int;","return {read:()=>{const kept=view;},marker:1};","const holder=save(first);holder.read();return second;"),
+        ("throwing-success","read:Once<Function<int,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{const kept=view;if(fail){throw 3;}return 4;},marker:1};","const holder=save(first);let seen=0;try{seen=holder.read(false);}catch(error){seen=9;}return second;"),
+        ("throwing-failure","read:Once<Function<Window,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{if(fail){throw 3;}return view;},marker:1};","const holder=save(first);let failed=false;try{const lost=holder.read(true);}catch(error){failed=true;}return second;"),
+        ("throwing-void-failure","read:Once<Function<void,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{const kept=view;if(fail){throw 3;}},marker:1};","const holder=save(first);let failed=false;try{holder.read(true);}catch(error){failed=true;}return second;"),
+        ("throwing-mixed-alternatives","read:Once<Function<int,[boolean]>>;marker:int;","return {read:marker()>0?(fail:boolean)=>{const kept=view;if(fail){throw 3;}return 1;}:(fail:boolean)=>{const kept=view;return 2;},marker:1};","const holder=save(first);let seen=0;try{seen=holder.read(false);}catch(error){seen=9;}return second;"),
+        ("argument-owned-view-ignored","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>view,marker:1};","const holder=save(second);return holder.read(first);"),
+        ("replacement-in-loop",once,plain,"let holder=save(first);for(let i=0;i<1;i+=1){holder=save(second);break;}return holder.read();"),
+    ];
+    for (label,holder,save,relay) in cases {
+        for mutable in [false,true] {
+            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function main(){{}}");
+            assert_stored_source_access(&source,label,mutable);
+        }
+    }
+}
+
+#[test]
+#[ignore = "pending storage forms; each must pass before gate 189 closes"]
+fn zz_matrix_probe() {
+    let once="read:Once<Function<Window>>;marker:int;";
+    let plain="return {read:()=>view,marker:1};";
+    let cases:&[(&str,&str,&str,&str)]=&[
+        ("array-push-alternative","read:Once<Function<Window>>[];marker:int;","const list:Once<Function<Window>>[]=[];list.push(()=>view);return {read:list,marker:1};","const holder=save(second);const action=holder.read.pop()!;return action();"),
+        ("nullable-absent-then-present","read:Once<Function<Window>>|undefined;marker:int;","return {read:undefined,marker:1};","let holder=save(first);holder.read=()=>second;return (holder.read!)();"),
+        ("nullable-conditional","read:Once<Function<Window>>|undefined;marker:int;","return {read:true?()=>view:undefined,marker:1};","const holder=save(second);return (holder.read!)();"),
+        ("stored-family-capture",once,plain,"const holder=save(second);const outer:Once<Function<Window>>=()=>holder.read();return outer();"),
+        ("stored-family-capture-field",once,plain,"const holder=save(second);const action=holder.read;const outer:Once<Function<Window>>=()=>action();return outer();"),
+        ("stored-family-recapture-record",once,plain,"const holder=save(second);const next:Holder={read:()=>holder.read(),marker:2};return next.read();"),
+        ("field-replacement-in-branch",once,plain,"let holder=save(first);if(holder.marker>0){holder.read=()=>second;}return holder.read();"),
+        ("throwing-view-success","read:Once<Function<Window,[boolean]>>;marker:int;","return {read:(fail:boolean)=>{if(fail){throw 3;}return view;},marker:1};","const holder=save(second);return holder.read(false);"),
+        ("argument-owned-view","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>other,marker:1};","const holder=save(first);return holder.read(second);"),
+        ("array-two-views","read:Once<Function<Window>>[];marker:int;","return {read:[()=>view],marker:1};","const holder=save(second);const other=save(first);holder.read.push(other.read.pop()!);const action=holder.read.shift()!;return action();"),
+    ];
+    let filter=std::env::var("PROBE").ok();
+    for (label,holder,save,relay) in cases {
+        if filter.as_ref().is_some_and(|f|!label.contains(f.as_str())) {continue;}
+        for mutable in [false,true] {
+            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function marker():int{{return 1;}}function main(){{}}");
+            if std::env::var("DUMP").is_ok() && !mutable {
+                let mut parsed=crate::syntax::parse(&crate::formatting::format(&source).unwrap()).unwrap();
+                parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(NativeTypeId::ByteView);
+                match crate::analysis::analyze(parsed) {
+                    Ok(checked)=>{let relay=checked.functions.iter().position(|function|function.name=="relay" && !function.template).unwrap();println!("ORIGINS {:?}",checked.functions[relay].native_returns.as_ref().map(|loans|loans.iter().map(|loan|loan.root).collect::<Vec<_>>()));let generated=crate::emit::emit(&checked);let start=generated.find(&format!("fn function{relay}")).unwrap_or(0);let end=generated[start..].find("\nfn main").map_or(generated.len(),|n|start+n);println!("DUMP {label}\n{}",&generated[start..end.min(start+3000)]);}
+                    Err(error)=>println!("DUMP {label} analysis {error:?}"),
+                }
+            }
+            let outcome=std::panic::catch_unwind(||assert_stored_source_access(&source,label,mutable));
+            match outcome {
+                Ok(())=>println!("PROBE OK    {label} mutable={mutable}"),
+                Err(payload)=>{
+                    let text=payload.downcast_ref::<String>().cloned().or_else(||payload.downcast_ref::<&str>().map(|s|s.to_string())).unwrap_or_default();
+                    println!("PROBE FAIL  {label} mutable={mutable}: {}",text.chars().take(420).collect::<String>().replace('\n'," "));
+                }
+            }
+        }
+    }
 }

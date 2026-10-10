@@ -6,10 +6,14 @@ impl Analyzer {
         if !self.native_borrow_types {return Ok(());}
         // A shadow at this lexical sequence replaces the live storage for all
         // subsequent uses. Branch/loop joins require separate carrier planning.
+        // Only the declaring block can shadow the local for the rest of its scope.
+        let declared=body.iter().filter_map(|statement|match &statement.kind {StmtKind::Let{binding:Some(binding),..}=>Some(*binding),_=>None}).collect::<Vec<_>>();
         for statement in body {
             let StmtKind::Assign{target,value,operator:None}=&mut statement.kind else{continue;};
-            if !matches!(target.kind,ExprKind::Name(_)) {continue;}
-            let Some(binding)=target.binding else{continue;};
+            let field=match &target.kind {ExprKind::Field(base,_) if matches!(base.kind,ExprKind::Name(_))=>base.binding,_=>None};
+            if !matches!(target.kind,ExprKind::Name(_)) && field.is_none() {continue;}
+            let Some(binding)=target.binding.or(field) else{continue;};
+            if !declared.contains(&binding) {continue;}
             let slot=&context.bindings[binding];
             if slot.parameter || slot.capture_reference || slot.borrowed_place.is_some() || slot.mutable_place {continue;}
             let Some(ty)=value.ty else{continue;};
