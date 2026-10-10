@@ -288,3 +288,26 @@ fn native_utf8_requires_exact_typed_arguments() {
         assert_eq!(error.code,code,"{error:?}");
     }
 }
+
+#[test]
+fn recursive_borrowed_native_projection_keeps_distinct_identities() {
+    use tsrust_compiler::{native_type_resolution::{intern, project, linked_name}, Span};
+    use tsrust_compiler::type_syntax::ValueAnnotationKind as Kind;
+    let span = Span::new(3, 7);
+    let mut records = Vec::new();
+    let signature = Signature::Result(&Signature::Array(&Signature::Named(NativeTypeId::ByteView)), &Signature::Named(NativeTypeId::ByteError));
+    let projected = project(&mut records, &signature, span).unwrap();
+    let Kind::Applied { arguments, .. } = projected.kind else { panic!("Result projection"); };
+    let Kind::Array(element) = &arguments[0].kind else { panic!("view array projection"); };
+    assert!(matches!(&element.kind, Kind::Named(name) if name.text == linked_name(NativeTypeId::ByteView)));
+    let view = intern(&mut records, NativeTypeId::ByteView, span).unwrap();
+    let mutable = intern(&mut records, NativeTypeId::ByteViewMut, span).unwrap();
+    let owned = intern(&mut records, NativeTypeId::Bytes, span).unwrap();
+    assert_ne!(view, mutable);
+    assert_ne!(view, owned);
+    assert_ne!(mutable, owned);
+    assert_eq!(records.len(), 4);
+    assert_eq!(intern(&mut records, NativeTypeId::ByteView, Span::default()).unwrap(), view);
+    assert_eq!(records[view].native_type, Some(NativeTypeId::ByteView));
+    assert_eq!(records[mutable].native_type, Some(NativeTypeId::ByteViewMut));
+}

@@ -6,6 +6,8 @@ use crate::native_signatures::{NativeTypeId, Signature};
 pub enum Representation {
     Opaque,
     Record,
+    /// A scoped native value whose storage is borrowed, never independently owned.
+    Borrowed(crate::native_return_borrows::BorrowAccess),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,6 +38,12 @@ pub struct Declaration {
 }
 
 impl Declaration {
+    pub fn borrow_access(&self) -> Option<crate::native_return_borrows::BorrowAccess> {
+        match self.representation {
+            Representation::Borrowed(access) => Some(access),
+            _ => None,
+        }
+    }
     pub fn source_constructible(&self) -> bool {
         self.representation == Representation::Record
     }
@@ -68,16 +76,66 @@ static BYTE_ERROR: Declaration = Declaration {
     ],
 };
 
+static BYTE_VIEW: Declaration = Declaration {
+    id: NativeTypeId::ByteView,
+    module: "std:bytes",
+    name: "ByteView",
+    representation: Representation::Borrowed(crate::native_return_borrows::BorrowAccess::ReadOnly),
+    independent_clone: false,
+    collection_key: false,
+    thread_transfer: false,
+    fields: &[],
+    capabilities: &[],
+};
+static BYTE_VIEW_MUT: Declaration = Declaration {
+    id: NativeTypeId::ByteViewMut,
+    module: "std:bytes",
+    name: "ByteViewMut",
+    representation: Representation::Borrowed(crate::native_return_borrows::BorrowAccess::Exclusive),
+    independent_clone: false,
+    collection_key: false,
+    thread_transfer: false,
+    fields: &[],
+    capabilities: &[],
+};
+
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
         NativeTypeId::Bytes => &BYTES,
         NativeTypeId::ByteError => &BYTE_ERROR,
+        NativeTypeId::ByteView => &BYTE_VIEW,
+        NativeTypeId::ByteViewMut => &BYTE_VIEW_MUT,
     }
 }
 
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
+    // Borrowed identities stay private until source loans and lifetime emission agree.
     [&BYTES, &BYTE_ERROR].into_iter().find(|item| item.module == module && item.name == name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::native_return_borrows::BorrowAccess;
+
+    #[test]
+    fn byte_view_identities_are_nonconstructible_borrowed_storage() {
+        for (id, access) in [
+            (NativeTypeId::ByteView, BorrowAccess::ReadOnly),
+            (NativeTypeId::ByteViewMut, BorrowAccess::Exclusive),
+        ] {
+            let declaration = declaration(id);
+            assert_eq!(declaration.borrow_access(), Some(access));
+            assert!(!declaration.source_constructible());
+            assert!(!declaration.independent_clone);
+            assert!(!declaration.collection_key);
+            assert!(!declaration.thread_transfer);
+            assert!(declaration.fields.is_empty());
+        }
+        assert_eq!(declaration(NativeTypeId::Bytes).borrow_access(), None);
+        assert_eq!(declaration(NativeTypeId::ByteError).borrow_access(), None);
+    }
 }

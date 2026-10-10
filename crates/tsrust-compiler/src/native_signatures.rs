@@ -6,6 +6,8 @@
 pub enum NativeTypeId {
     Bytes,
     ByteError,
+    ByteView,
+    ByteViewMut,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,6 +40,54 @@ pub enum RenderError {
 }
 
 impl Signature {
+    /// Find scoped native storage without rendering names or recursing on the
+    /// Rust stack. Signature and declaration-field edges share the same bounds.
+    pub fn contains_borrowed_native(&self) -> Result<bool, RenderError> {
+        if matches!(
+            self,
+            Self::String
+                | Self::Boolean
+                | Self::Int
+                | Self::Number
+                | Self::Void
+                | Self::Intrinsic(_)
+        ) {
+            return Ok(false);
+        }
+        let mut pending = vec![(self, 0usize)];
+        let mut visited = 0;
+        while let Some((signature, depth)) = pending.pop() {
+            if depth > 128 {
+                return Err(RenderError::Depth);
+            }
+            visited += 1;
+            if visited > 4096 {
+                return Err(RenderError::Size);
+            }
+            match signature {
+                Self::Named(id) => {
+                    let declaration = crate::native_types::declaration(*id);
+                    if declaration.borrow_access().is_some() {
+                        return Ok(true);
+                    }
+                    pending.extend(
+                        declaration
+                            .fields
+                            .iter()
+                            .map(|field| (&field.signature, depth + 1)),
+                    );
+                }
+                Self::Array(element) => pending.push((element, depth + 1)),
+                Self::Result(value, error) => {
+                    pending.push((error, depth + 1));
+                    pending.push((value, depth + 1));
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
+    }
+
     /// Render using the caller's visible native aliases. Unknown names stay an
     /// error instead of being guessed from an unrelated declaration's spelling.
     pub fn render(&self, mut visible: impl FnMut(NativeTypeId) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
@@ -101,7 +151,7 @@ mod tests {
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {
         static ARRAY: Signature = Signature::Array(&Signature::Named(NativeTypeId::Bytes));
         let result = Signature::Result(&ARRAY, &Signature::Named(NativeTypeId::ByteError));
-        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
+        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| None), Err(RenderError::MissingType(NativeTypeId::Bytes)));
     }
 
@@ -121,6 +171,48 @@ mod tests {
         for _ in 0..13 { value = Box::leak(Box::new(Signature::Result(value, value))); }
         assert_eq!(value.render(|_| None), Err(RenderError::Size));
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| Some("x".repeat(65537))), Err(RenderError::Size));
+    }
+
+    #[test]
+    fn borrowed_native_shapes_keep_identity_through_nested_signatures() {
+        let signature = Signature::Result(
+            &Signature::Array(&Signature::Named(NativeTypeId::ByteView)),
+            &Signature::Named(NativeTypeId::ByteError),
+        );
+        assert_eq!(signature.contains_borrowed_native(), Ok(true));
+        assert_eq!(
+            signature
+                .render(|id| Some(crate::native_types::declaration(id).name.into()))
+                .unwrap(),
+            "Result<ByteView[], ByteError>"
+        );
+        assert_eq!(
+            Signature::Named(NativeTypeId::ByteViewMut).contains_borrowed_native(),
+            Ok(true)
+        );
+        assert_eq!(
+            Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::ByteView))
+                .contains_borrowed_native(),
+            Ok(true)
+        );
+        assert_eq!(
+            Signature::Named(NativeTypeId::Bytes).contains_borrowed_native(),
+            Ok(false)
+        );
+        assert_eq!(
+            Signature::Named(NativeTypeId::ByteError).contains_borrowed_native(),
+            Ok(false)
+        );
+        let mut deep: &'static Signature = &Signature::Int;
+        for _ in 0..129 {
+            deep = Box::leak(Box::new(Signature::Array(deep)));
+        }
+        assert_eq!(deep.contains_borrowed_native(), Err(RenderError::Depth));
+        let mut broad: &'static Signature = &Signature::Int;
+        for _ in 0..13 {
+            broad = Box::leak(Box::new(Signature::Result(broad, broad)));
+        }
+        assert_eq!(broad.contains_borrowed_native(), Err(RenderError::Size));
     }
 
     #[test]

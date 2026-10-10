@@ -38,13 +38,43 @@ pub enum ContractError {
     ExclusiveSourceRequired,
     ExpectedResult,
     PayloadMismatch,
+    MissingReturnContract,
+    SignatureLimit,
+    PayloadNotBorrowed,
+    PayloadAccessMismatch,
+    ReadOnlySource,
+    BorrowedErrorPayload,
 }
 
 impl NativeBinding {
+    pub fn contains_borrowed_signatures(
+        &self,
+    ) -> Result<bool, crate::native_signatures::RenderError> {
+        for ty in self
+            .parameters
+            .iter()
+            .map(|parameter| parameter.ty)
+            .chain(std::iter::once(self.result))
+        {
+            if ty.signature().contains_borrowed_native()? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// Validate identities and access before a declaration reaches type projection.
     /// This checks metadata, not whether the backend supports its lifetime ABI.
     pub fn validate_returned_borrow(&self) -> Result<(), ContractError> {
         let Some(contract) = self.returned_borrow else {
+            if self
+                .result
+                .signature()
+                .contains_borrowed_native()
+                .map_err(|_| ContractError::SignatureLimit)?
+            {
+                return Err(ContractError::MissingReturnContract);
+            }
             return Ok(());
         };
         let source = self
@@ -75,11 +105,34 @@ impl NativeBinding {
         let signature = self.result.signature();
         let payload = match (contract.slot, &signature) {
             (ReturnSlot::Direct, signature) => signature,
-            (ReturnSlot::ResultOk, Signature::Result(value, _)) => value,
+            (ReturnSlot::ResultOk, Signature::Result(value, error)) => {
+                if error
+                    .contains_borrowed_native()
+                    .map_err(|_| ContractError::SignatureLimit)?
+                {
+                    return Err(ContractError::BorrowedErrorPayload);
+                }
+                value
+            }
             (ReturnSlot::ResultOk, _) => return Err(ContractError::ExpectedResult),
         };
         if *payload != Signature::Named(contract.payload) {
             return Err(ContractError::PayloadMismatch);
+        }
+        let access = crate::native_types::declaration(contract.payload)
+            .borrow_access()
+            .ok_or(ContractError::PayloadNotBorrowed)?;
+        if access != contract.access {
+            return Err(ContractError::PayloadAccessMismatch);
+        }
+        if contract.access == BorrowAccess::Exclusive {
+            if let Signature::Named(id) = source.ty.signature() {
+                if crate::native_types::declaration(id).borrow_access()
+                    == Some(BorrowAccess::ReadOnly)
+                {
+                    return Err(ContractError::ReadOnlySource);
+                }
+            }
         }
         Ok(())
     }
@@ -95,7 +148,12 @@ mod tests {
     };
 
     static OWNER: Signature = Signature::Named(NativeTypeId::Bytes);
-    static RESULT: Signature =
+    static VIEW: Signature = Signature::Named(NativeTypeId::ByteView);
+    static MUTABLE_VIEW: Signature = Signature::Named(NativeTypeId::ByteViewMut);
+    static RESULT: Signature = Signature::Result(&VIEW, &Signature::Named(NativeTypeId::ByteError));
+    static MUTABLE_RESULT: Signature =
+        Signature::Result(&MUTABLE_VIEW, &Signature::Named(NativeTypeId::ByteError));
+    static OWNED_RESULT: Signature =
         Signature::Result(&OWNER, &Signature::Named(NativeTypeId::ByteError));
 
     fn binding(access: Mode, optional: bool, rest: bool) -> NativeBinding {
@@ -111,7 +169,7 @@ mod tests {
             returned_borrow: Some(ReturnedBorrow {
                 source_parameter: 0,
                 access: BorrowAccess::ReadOnly,
-                payload: NativeTypeId::Bytes,
+                payload: NativeTypeId::ByteView,
                 slot: ReturnSlot::ResultOk,
             }),
             ..crate::stdlib::bytes::bindings::COPY
@@ -178,6 +236,8 @@ mod tests {
     fn exclusive_return_requires_exclusive_source_and_exact_payload_slot() {
         let mut probe = binding(Mode::Read, false, false);
         probe.returned_borrow.as_mut().unwrap().access = BorrowAccess::Exclusive;
+        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::ByteViewMut;
+        probe.result = NativeType::Structured(&MUTABLE_RESULT);
         assert_eq!(
             probe.validate_returned_borrow(),
             Err(ContractError::ExclusiveSourceRequired)
@@ -189,13 +249,13 @@ mod tests {
             probe.validate_returned_borrow(),
             Err(ContractError::PayloadMismatch)
         );
-        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::Bytes;
+        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::ByteViewMut;
         probe.returned_borrow.as_mut().unwrap().slot = ReturnSlot::Direct;
         assert_eq!(
             probe.validate_returned_borrow(),
             Err(ContractError::PayloadMismatch)
         );
-        probe.result = NativeType::Structured(&OWNER);
+        probe.result = NativeType::Structured(&MUTABLE_VIEW);
         assert_eq!(probe.validate_returned_borrow(), Ok(()));
         probe.returned_borrow.as_mut().unwrap().slot = ReturnSlot::ResultOk;
         assert_eq!(
@@ -240,6 +300,76 @@ mod tests {
                 .unwrap_err();
         assert_eq!(error.code, "native-return-borrow");
         assert!(records.is_empty());
+    }
+
+    #[test]
+    fn returned_borrow_payload_must_be_borrowed_storage_with_matching_access() {
+        let mut probe = binding(Mode::Read, false, false);
+        probe.result = NativeType::Structured(&OWNED_RESULT);
+        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::Bytes;
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::PayloadNotBorrowed)
+        );
+        probe.result = NativeType::Structured(&RESULT);
+        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::ByteView;
+        probe.returned_borrow.as_mut().unwrap().access = BorrowAccess::Exclusive;
+        probe.parameters = binding(Mode::Mutate, false, false).parameters;
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::PayloadAccessMismatch)
+        );
+        probe.result = NativeType::Structured(&MUTABLE_RESULT);
+        probe.returned_borrow.as_mut().unwrap().payload = NativeTypeId::ByteViewMut;
+        probe.parameters = Box::leak(Box::new([NativeParameter {
+            ty: NativeType::Structured(&VIEW),
+            ..probe.parameters[0]
+        }]));
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::ReadOnlySource)
+        );
+    }
+
+    #[test]
+    fn borrowed_results_cannot_omit_a_contract_and_observers_cannot_bypass_the_abi_guard() {
+        let mut probe = binding(Mode::Read, false, false);
+        probe.returned_borrow = None;
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::MissingReturnContract)
+        );
+        probe.result =
+            NativeType::Structured(&Signature::Array(&Signature::Named(NativeTypeId::ByteView)));
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::MissingReturnContract)
+        );
+        probe.result = NativeType::Int;
+        probe.parameters = Box::leak(Box::new([NativeParameter {
+            ty: NativeType::Structured(&Signature::Array(&Signature::Named(
+                NativeTypeId::ByteViewMut,
+            ))),
+            ..probe.parameters[0]
+        }]));
+        assert_eq!(probe.validate_returned_borrow(), Ok(()));
+        let mut records = Vec::new();
+        let error =
+            crate::native_binding_types::prepare(&mut records, &probe, crate::Span::default())
+                .unwrap_err();
+        assert_eq!(error.code, "native-return-borrow");
+        assert!(records.is_empty());
+    }
+
+    #[test]
+    fn result_error_cannot_hide_an_untracked_borrow() {
+        let mut probe = binding(Mode::Read, false, false);
+        static BORROWED_ERROR_RESULT: Signature = Signature::Result(&VIEW, &MUTABLE_VIEW);
+        probe.result = NativeType::Structured(&BORROWED_ERROR_RESULT);
+        assert_eq!(
+            probe.validate_returned_borrow(),
+            Err(ContractError::BorrowedErrorPayload)
+        );
     }
 
     #[test]

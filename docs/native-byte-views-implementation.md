@@ -9,8 +9,9 @@ Currently it fails because view is not exported; keep that original diagnostic.
 ## Current architectural facts
 
 Native declarations project into ordinary nominal records. Their private runtime
-storage is emitted separately. Signature supports owned Named/Array/Result shapes;
-NativeBinding describes argument access but has no returned-borrow provenance.
+storage is emitted separately. Signature supports nominal Named/Array/Result shapes, including private borrowed
+identities. NativeBinding describes argument access and returned source contracts;
+source provenance and lifetime-bearing emission remain pending.
 Result bridges currently return owned union alternatives without a source lifetime.
 The existing ViewUnion borrows an existing union object: it does not make that
 union's owned payload a newly returned native slice.
@@ -115,10 +116,9 @@ missing export. All current public bindings explicitly retain owned results.
 Type projection validates the contract before interning anything. Until provenance
 and lifetime emission are connected, it rejects even a structurally valid returned
 borrow. This guard is deliberate intermediate safety, not accepted view support.
-Synthetic metadata tests use Bytes as a payload identity without publishing such a
-binding. Introducing ByteView and ByteViewMut must also validate their borrowed
-representation and access capabilities; an owned Bytes payload must not become an
-accepted borrowed representation merely because the metadata slot matches.
+The first metadata checkpoint used Bytes as a synthetic payload without publishing
+such a binding. The identity checkpoint below replaces that placeholder with actual
+borrowed declarations and rejects owned payloads explicitly.
 
 The isolated views_runtime.rs backend helpers return actual &[u8] and &mut [u8].
 They share checked_range with copy, preserving start-before-end diagnostics and
@@ -126,3 +126,27 @@ empty end ranges. Readonly and mutable nested reborrows retain source storage;
 mutable writes reach the source. These helpers are not yet emitted or exported by
 Tsrust. Their Rust tests do not prove Tsrust source provenance or lifetime checking.
 The retained read.tsr probe remains red until that integration is implemented.
+
+## Borrowed identity checkpoint
+
+ByteView and ByteViewMut now have distinct native identities and borrowed
+representations with readonly and exclusive access. Neither is source constructible,
+independently cloneable, collection-key eligible or independently thread transferable.
+They remain absent from source exports until lifetime and source-loan integration is
+ready. Their identities intern and project recursively without becoming Bytes or
+sharing an arena identity with the other view kind.
+
+Returned-borrow validation now requires a genuinely borrowed payload with exactly
+matching access. An owned Bytes result cannot masquerade as a borrow. An exclusive
+borrow cannot originate from a readonly native view. Borrowed results cannot omit
+their contract, including borrowed storage nested in arrays or Result alternatives.
+A native Result Ok borrow contract cannot hide an additional borrow in its error
+payload. This restriction concerns the single-source native contract, not a new
+language-wide restriction on Result types.
+
+The bounded iterative signature walk also recognizes borrowed parameters. Projection
+therefore rejects a view-taking observer before interning anything, even when its
+result is owned and it has no returned-borrow contract. This prevents an observer
+from bypassing the pending ABI guard. Fixed-storage analysis treats borrowed native
+representations as native storage, not as empty source records. Source factories,
+loan propagation and lifetime-bearing emission remain the next required work.

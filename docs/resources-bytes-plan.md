@@ -610,3 +610,13 @@ Safe slice helpers share copy's range validation and support readonly/exclusive
 nested reborrows. They are backend groundwork, not source-language view acceptance.
 See native-byte-views-implementation.md for the remaining provenance, representation,
 loan and editor integration. Gate 189 and the S07 milestone remain open.
+
+### Gate 189 borrowed identities
+
+ByteView and ByteViewMut have private identity-bearing declarations with readonly
+and exclusive borrowed representations. Contracts validate payload representation,
+access and the absence of untracked Result error borrows. Bounded shape traversal
+finds borrowed storage in nested signatures; observers cannot bypass the pending
+provenance/ABI guard. Recursive identity projection and native fixed-storage controls
+are verified. Source exports and factories remain unpublished. Continue with source
+loan propagation and safe lifetime-bearing emission; this is not gate acceptance.

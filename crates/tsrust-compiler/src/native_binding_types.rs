@@ -16,8 +16,11 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
     ))?;
     // Fail closed until source provenance and lifetime-bearing emission are integrated.
     // A valid contract must never be projected as an ordinary owned result.
-    if binding.returned_borrow.is_some() {
-        return Err(Diagnostic::new("native-return-borrow", "Native returned borrows require source provenance and a lifetime-bearing backend representation.", span));
+    let borrowed_shape = binding.contains_borrowed_signatures().map_err(|_| Diagnostic::new(
+        "native-type-limit", "Native signature exceeds its borrowed-shape traversal limit.", span,
+    ))?;
+    if binding.returned_borrow.is_some() || borrowed_shape {
+        return Err(Diagnostic::new("native-return-borrow", "Native borrowed values require source provenance and a lifetime-bearing backend representation.", span));
     }
     for ty in binding.parameters.iter().map(|parameter| parameter.ty).chain(std::iter::once(binding.result)) {
         let NativeType::Structured(signature) = ty else { continue; };

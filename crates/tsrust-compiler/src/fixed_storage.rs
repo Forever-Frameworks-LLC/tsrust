@@ -575,7 +575,7 @@ fn layout_bound(
         Type::Int | Type::Number | Type::Boolean => Some(8),
         Type::String => Some(crate::storage::string_storage_bound()),
         Type::Record(record) => {
-            if program.records[record].native_type.is_some_and(|id| crate::native_types::declaration(id).representation == crate::native_types::Representation::Opaque) { return None; }
+            if program.records[record].native_type.is_some_and(|id| !crate::native_types::declaration(id).source_constructible()) { return None; }
             let mut bytes = 8_usize;
             for field in &program.records[record].fields {
                 bytes = bytes
@@ -1472,10 +1472,11 @@ mod native_layout_tests {
     #[test]
     fn opaque_native_storage_is_not_inferred_from_empty_public_fields() {
         let mut program = crate::syntax::parse("type Empty={};function main(){}").unwrap();
-        let bytes = crate::native_type_resolution::intern(&mut program.records, crate::native_signatures::NativeTypeId::Bytes, crate::Span::new(0, 0)).unwrap();
+        let native = [crate::native_signatures::NativeTypeId::Bytes, crate::native_signatures::NativeTypeId::ByteView, crate::native_signatures::NativeTypeId::ByteViewMut]
+            .map(|id| crate::native_type_resolution::intern(&mut program.records, id, crate::Span::new(0, 0)).unwrap());
         let checked = crate::analysis::analyze(program).unwrap();
         let runtime = RecordRuntime::new(&checked.records, &checked.unions);
-        assert_eq!(layout_bound(&checked, &runtime, Type::Record(bytes), 0), None);
+        for id in native { assert_eq!(layout_bound(&checked, &runtime, Type::Record(id), 0), None); }
         assert_eq!(layout_bound(&checked, &runtime, Type::Record(0), 0), Some(8));
     }
 }
