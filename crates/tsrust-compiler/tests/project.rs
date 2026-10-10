@@ -590,27 +590,54 @@ fn editor_header_loading_tolerates_bodies_but_preserves_module_boundaries() {
         graph.modules[&SourceId("main.tsr".into())].source.text,
         entry
     );
-    for (entry, dep, code) in [
+    // Names and imports that are still being typed are left out of the header graph.
+    // Strict loading reports each of them.
+    for (entry, dep, code, bindings) in [
         (
-            "import { hidden } from './dep.tsr';function main(){",
-            "function hidden(){}",
+            "import { hidden, value } from './dep.tsr';function main(){}",
+            "function hidden(){}export function value(){}",
             "module-private",
+            vec!["value"],
         ),
         (
-            "import { value as } from './dep.tsr';",
+            "import { value } from './dep.tsr';import { value as } from './dep.tsr';",
             "export function value(){}",
             "module-syntax",
+            vec!["value"],
         ),
         (
-            "import { value } from './dep.tsr';function value(){",
+            "import { } from './dep.tsr';function main(){}",
             "export function value(){}",
-            "module-duplicate",
+            "module-syntax",
+            vec![],
         ),
     ] {
         let memory = Memory::new(&[("main.tsr", entry), ("dep.tsr", dep)]);
-        let error = load_project_headers(&memory, "main.tsr").err().unwrap();
-        assert_eq!(error.code, code, "{error:?}");
+        assert_eq!(load_project(&memory, "main.tsr").err().unwrap().code, code, "{entry}");
+        let graph = load_project_headers(&memory, "main.tsr").unwrap();
+        let module = &graph.modules[&SourceId("main.tsr".into())];
+        let names = module
+            .imports
+            .iter()
+            .flat_map(|import| &import.bindings)
+            .map(|binding| binding.exported.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(names, bindings, "{entry}");
+        let import = &module.imports[0];
+        assert!(entry[import.names.start..import.names.end].trim().split(',').all(|name| name.trim().is_empty() || name.trim().chars().all(|c| c.is_alphanumeric())), "{entry}");
     }
+    // A text or comment that is not finished blanks only its own line.
+    let entry = "import { value } from './dep.tsr';\nfunction first(){const s=\"abc\nexport function main(){value();}";
+    let memory = Memory::new(&[("main.tsr", entry), ("dep.tsr", "export function value(){}")]);
+    assert_eq!(load_project(&memory, "main.tsr").err().unwrap().code, "syntax");
+    let graph = load_project_headers(&memory, "main.tsr").unwrap();
+    assert!(graph.modules[&SourceId("main.tsr".into())].exports.contains_key("main"));
+    // Conflicts between complete declarations are still reported.
+    let memory = Memory::new(&[
+        ("main.tsr", "import { value } from './dep.tsr';function value(){"),
+        ("dep.tsr", "export function value(){}"),
+    ]);
+    assert_eq!(load_project_headers(&memory, "main.tsr").err().unwrap().code, "module-duplicate");
 }
 
 #[test]

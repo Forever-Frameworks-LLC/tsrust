@@ -561,14 +561,19 @@ fn current_headers_supply_imported_help_while_bodies_are_incomplete() {
         2,
         "function greet(value:int):int{return value;}export type User={name:string;};".into(),
     );
+    // A removed export loses its imported help; the names that remain keep theirs.
     let next = workspace.snapshot();
-    assert_eq!(
-        tsrust_compiler::project::load_project_headers(&next, &source_id(root).unwrap().0)
-            .err()
-            .unwrap()
-            .code,
-        "module-private"
-    );
+    assert!(next.check(&source_id(root).unwrap()).is_err());
+    let graph = tsrust_compiler::project::load_project_headers(&next, &source_id(root).unwrap().0)
+        .unwrap();
+    let index = ProjectIndex::new(&graph);
+    let stale = index
+        .request("textDocument/hover", &json!({"position":{"line":0,"character":entry.rfind("hello(2)").unwrap()}}), root)
+        .unwrap()
+        .unwrap();
+    assert!(!stale.to_string().contains("Current helper."), "{stale}");
+    let completion = ask(&index, entry, "na", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "name"), "{completion}");
 }
 
 #[test]

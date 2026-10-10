@@ -10426,6 +10426,8 @@ impl Analyzer {
         Ok(Type::Array(element))
     }
 
+    /// Nested literals recurse through this function, so the work around each element
+    /// lives in separate functions and this frame stays small.
     fn array_literal(
         &mut self,
         context: &mut Context,
@@ -10434,6 +10436,33 @@ impl Analyzer {
         expected: Option<Type>,
         span: Span,
     ) -> Result<Type, Diagnostic> {
+        let mut element = self.array_literal_element_hint(context, values, expected, span)?;
+        for value in values.iter_mut() {
+            if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
+            let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
+                self.stored_callable_value(context, value, family, loans)?
+            } else {
+                self.expression(
+                    context,
+                    value,
+                    Mode::Consume,
+                    loans,
+                    element.map(ArrayElement::ty),
+                )?
+            };
+            self.finish_array_literal_element(context, value, actual, &mut element)?;
+        }
+        self.finish_array_literal(values, element, span)
+    }
+
+    #[inline(never)]
+    fn array_literal_element_hint(
+        &mut self,
+        context: &mut Context,
+        values: &mut [Expr],
+        expected: Option<Type>,
+        span: Span,
+    ) -> Result<Option<ArrayElement>, Diagnostic> {
         let mixed = if expected.is_none() {
             self.mixed_literal_element(context, values, span)?
         } else {
@@ -10456,26 +10485,33 @@ impl Analyzer {
         if values.is_empty() && element.is_none() && self.builtin_literals {
             element = Some(ArrayElement::Int(0));
         }
-        for value in values.iter_mut() {
-            if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
-            let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
-                self.stored_callable_value(context, value, family, loans)?
-            } else {
-                self.expression(
-                    context,
-                    value,
-                    Mode::Consume,
-                    loans,
-                    element.map(ArrayElement::ty),
-                )?
-            };
-            let actual = if element.is_none() { self.inferred_callable_array_element(context, value, actual)? } else { actual };
-            let Type::Array(inferred) = Self::transform_array_type(actual, value.span)? else {
-                unreachable!("array element conversion returns an array");
-            };
-            self.require(actual, element.map(ArrayElement::ty), value.span)?;
-            element.get_or_insert(inferred);
-        }
+        Ok(element)
+    }
+
+    #[inline(never)]
+    fn finish_array_literal_element(
+        &mut self,
+        context: &mut Context,
+        value: &mut Expr,
+        actual: Type,
+        element: &mut Option<ArrayElement>,
+    ) -> Result<(), Diagnostic> {
+        let actual = if element.is_none() { self.inferred_callable_array_element(context, value, actual)? } else { actual };
+        let Type::Array(inferred) = Self::transform_array_type(actual, value.span)? else {
+            unreachable!("array element conversion returns an array");
+        };
+        self.require(actual, element.map(ArrayElement::ty), value.span)?;
+        element.get_or_insert(inferred);
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn finish_array_literal(
+        &mut self,
+        values: &mut [Expr],
+        element: Option<ArrayElement>,
+        span: Span,
+    ) -> Result<Type, Diagnostic> {
         let element = element.ok_or_else(|| {
             Diagnostic::new(
                 "array-type",
@@ -14396,6 +14432,8 @@ self.names_materialized_type(element.with_depth(0).ty())
         Ok(())
     }
 
+    /// Nested call arguments recurse through this function, so its own frame stays
+    /// small: the work before and after the arguments lives in separate functions.
     fn declared_named_call(
         &mut self,
         context: &mut Context,
@@ -14403,7 +14441,23 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
     ) -> Result<Type, Diagnostic> {
         let span = expr.span;
-        let ExprKind::Call(callee, args) = &mut expr.kind else {
+        let (index, capture_slots, params) = self.declared_call_contract(context, expr)?;
+        let ExprKind::Call(_, args) = &mut expr.kind else {
+            unreachable!("declared call dispatch");
+        };
+        Self::prepare_arguments(args, &params, span)?;
+        self.check_call_arguments(context, args, &params, loans)?;
+        self.finish_declared_call(context, expr, index, &capture_slots, &params, loans)
+    }
+
+    #[inline(never)]
+    #[allow(clippy::type_complexity)]
+    fn declared_call_contract(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+    ) -> Result<(usize, Vec<(usize, Mode)>, Vec<ArgumentContract>), Diagnostic> {
+        let ExprKind::Call(callee, _) = &mut expr.kind else {
             unreachable!("declared call dispatch");
         };
         let ExprKind::Name(name) = &mut callee.kind else {
@@ -14456,8 +14510,23 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .enumerate().map(|(position,((mode,ty),initializer))|ArgumentContract {rest:self.program.functions[index].rest_parameter && position+1==self.signatures[index].params.len(),ty,mode,omission:initializer.omission()})
                 .collect()
         };
-        Self::prepare_arguments(args, &params, span)?;
-        self.check_call_arguments(context, args, &params, loans)?;
+        Ok((index, capture_slots, params))
+    }
+
+    #[inline(never)]
+    fn finish_declared_call(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        index: usize,
+        capture_slots: &[(usize, Mode)],
+        params: &[ArgumentContract],
+        loans: &Loans,
+    ) -> Result<Type, Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Call(callee, args) = &mut expr.kind else {
+            unreachable!("declared call dispatch");
+        };
         // A function still being checked is on a recursive path. A new closure
         // around a borrowed callback would give every level a larger callback
         // type, which has no finite native instantiation. Owned callbacks have
@@ -14479,7 +14548,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
         }
         if !capture_slots.is_empty() {
-            self.named_capture_arguments(context, &capture_slots, args, &params, callee.span, loans)?;
+            self.named_capture_arguments(context, capture_slots, args, params, callee.span, loans)?;
         }
         let (index, result) = self.resolved_call(context, index, args, span)?;
         for (argument, parameter) in args.iter_mut().zip(&self.signatures[index].params) {
@@ -15521,12 +15590,101 @@ self.names_materialized_type(element.with_depth(0).ty())
             | ExprKind::CompoundAssign { .. } => {
                 unreachable!("updates checked in their own frame")
             }
-            ExprKind::Unary {
-                op,
-                operator,
-                value,
-            } => {
-                if matches!(op, UnaryOp::Typeof | UnaryOp::Void) {
+            ExprKind::Unary { .. } => {
+                let (ty, finish) = self.expression_unary(context, expr, loans, expected)?;
+                if !finish {
+                    return Ok(ty);
+                }
+                ty
+            }
+            ExprKind::Binary { .. } => {
+                let (ty, finish) = self.expression_binary(context, expr, loans, expected)?;
+                if !finish {
+                    return Ok(ty);
+                }
+                ty
+            }
+            ExprKind::Closure {
+                id,
+                params,
+                result,
+                body,
+            } => self.closure(context, (*id, params, result), expected, body, span, loans)?,
+            ExprKind::String(_) => Type::String,
+            ExprKind::Integer(spelling) => {
+                if expected == Some(Type::Number) {
+                    spelling.parse::<f64>().map_err(|_| {
+                        Diagnostic::new("syntax", "Invalid contextual number literal.", span)
+                    })?;
+                    Type::Number
+                } else {
+                    spelling.parse::<i64>().map_err(|_|Diagnostic::new("integer-range", "Integer literal is outside the int range -9223372036854775808..=9223372036854775807.", span))?;
+                    Type::Int
+                }
+            }
+            ExprKind::Number(_) => Type::Number,
+            ExprKind::Boolean(_) => Type::Boolean,
+            ExprKind::Null => Type::Null,
+            ExprKind::Undefined => Type::Undefined,
+            ExprKind::Sequence(_) | ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
+                unreachable!("array expressions checked in the small dispatch frame")
+            }
+            ExprKind::Name(_) => unreachable!("names checked in their own frame"),
+            ExprKind::Field(_, _) => unreachable!("fields checked in the small dispatch frame"),
+            ExprKind::Record(_) => unreachable!("records checked in the small dispatch frame"),
+            ExprKind::Template(_) => unreachable!("templates checked in their own frame"),
+            ExprKind::Inject { .. } | ExprKind::Project { .. } => {
+                unreachable!("injections checked in their own frame")
+            }
+            ExprKind::Call(_, _) => unreachable!("calls checked in their own frame"),
+        };
+        expr.ty = Some(ty);
+        Ok(ty)
+    }
+
+    /// Checked outside `expression_inner` so that nested operands recurse through a
+    /// small frame. The flag is false when the result type is already recorded.
+    #[inline(never)]
+    fn expression_unary(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<(Type, bool), Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Unary { op, operator, value } = &mut expr.kind else {
+            unreachable!("unary dispatch");
+        };
+        {
+            if matches!(op, UnaryOp::Typeof | UnaryOp::Void) {
+                return self.unary_inspection(context, expr, loans, expected);
+            }
+            if *op == UnaryOp::Not
+                && self
+                    .expression_type_hint(context, value)
+                    .is_some_and(|ty| !matches!(ty, Type::Boolean | Type::Void))
+            {
+                return self.unary_truth_test(context, expr, loans, expected);
+            }
+            let _ = (span, operator);
+            self.unary_operator(context, expr, loans, expected)
+        }
+    }
+
+    #[inline(never)]
+    #[allow(unused_variables)]
+    fn unary_inspection(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<(Type, bool), Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Unary { op, operator, value } = &mut expr.kind else {
+            unreachable!("unary dispatch");
+        };
                     if *op == UnaryOp::Typeof
                         && let ExprKind::Name(name) = &value.kind
                         && !context.names.contains_key(name)
@@ -15560,8 +15718,22 @@ self.names_materialized_type(element.with_depth(0).ty())
                         Type::Undefined
                     };
                     expr.ty = Some(result);
-                    return Ok(result);
-                }
+                    return Ok((result, false));
+                    }
+
+    #[inline(never)]
+    #[allow(unused_variables, unreachable_code)]
+    fn unary_truth_test(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<(Type, bool), Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Unary { op, operator, value } = &mut expr.kind else {
+            unreachable!("unary dispatch");
+        };
                 if *op == UnaryOp::Not
                     && matches!(
                         self.expression_type_hint(context, value),
@@ -15570,7 +15742,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 {
                     self.expression(context, value, Mode::Copy, loans, None)?;
                     expr.ty = Some(Type::Boolean);
-                    return Ok(Type::Boolean);
+                    return Ok((Type::Boolean, false));
                 }
                 if *op == UnaryOp::Not
                     && let Some(ty) = self.expression_type_hint(context, value)
@@ -15585,7 +15757,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         let (yes, no) = Self::condition_outcomes(context, value);
                         context.condition_flows.insert((span.start, span.end), (no, yes));
                         expr.ty = Some(Type::Boolean);
-                        return Ok(Type::Boolean);
+                        return Ok((Type::Boolean, false));
                     }
                     // `!value` tests truthiness; the value is only read.
                     let mode = if ty.is_copy() { Mode::Copy } else { Mode::Read };
@@ -15594,8 +15766,24 @@ self.names_materialized_type(element.with_depth(0).ty())
                         return Err(Diagnostic::new("type", "A function call without a return value has no truth value.", value.span));
                     }
                     expr.ty = Some(Type::Boolean);
-                    return Ok(Type::Boolean);
+                    return Ok((Type::Boolean, false));
                 }
+        unreachable!("the dispatch selects a non-boolean operand")
+    }
+
+    #[inline(never)]
+    #[allow(unused_variables)]
+    fn unary_operator(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<(Type, bool), Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Unary { op, operator, value } = &mut expr.kind else {
+            unreachable!("unary dispatch");
+        };
                 let operand = if *op == UnaryOp::Not {
                     Type::Boolean
                 } else if *op == UnaryOp::BitNot {
@@ -15617,17 +15805,27 @@ self.names_materialized_type(element.with_depth(0).ty())
                         .condition_flows
                         .insert((span.start, span.end), (no, yes));
                 }
-                operand
-            }
-            ExprKind::Binary {
-                op,
-                operator,
-                left,
-                right,
-            } => {
+                Ok((operand, true))
+    }
+
+    /// Checked outside `expression_inner` so that nested operands recurse through a
+    /// small frame. The flag is false when the result type is already recorded.
+    #[inline(never)]
+    fn expression_binary(
+        &mut self,
+        context: &mut Context,
+        expr: &mut Expr,
+        loans: &Loans,
+        expected: Option<Type>,
+    ) -> Result<(Type, bool), Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Binary { op, operator, left, right } = &mut expr.kind else {
+            unreachable!("binary dispatch");
+        };
+        {
                 let equality = matches!(op, BinaryOp::Equal | BinaryOp::NotEqual);
                 if equality && Self::is_typeof_guard(context, left, right) {
-                    return self.typeof_equality(context, span, *op, left, right, loans);
+                    return self.typeof_equality(context, span, *op, left, right, loans).map(|ty| (ty, false));
                 }
                 let hints = [
                     self.expression_type_hint(context, left),
@@ -15639,7 +15837,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                         .iter()
                         .any(|ty| matches!(ty, Some(Type::Null | Type::Undefined)))
                 {
-                    return self.union_equality(context, (span, *operator), *op, left, right, loans);
+                    return self.union_equality(context, (span, *operator), *op, left, right, loans).map(|ty| (ty, false));
                 }
                 let nullish_equality = equality
                     && [
@@ -15649,7 +15847,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     .iter()
                     .any(|ty| matches!(ty, Some(Type::Null | Type::Undefined)));
                 if nullish_equality {
-                    return self.nullish_equality(context, span, *op, left, right, loans);
+                    return self.nullish_equality(context, span, *op, left, right, loans).map(|ty| (ty, false));
                 }
 
                 let ordering = matches!(
@@ -15742,7 +15940,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if equality && crate::flow::guard_pair(left, right, &context.names).is_some() {
                     self.remember_guard(context, span, *op, left, right);
                 }
-                match op {
+                let ty = match op {
                     op if op.bitwise_or_power() => left_type,
                     BinaryOp::Add
                     | BinaryOp::Subtract
@@ -15750,44 +15948,9 @@ self.names_materialized_type(element.with_depth(0).ty())
                     | BinaryOp::Divide
                     | BinaryOp::Remainder => left_type,
                     _ => Type::Boolean,
-                }
-            }
-            ExprKind::Closure {
-                id,
-                params,
-                result,
-                body,
-            } => self.closure(context, (*id, params, result), expected, body, span, loans)?,
-            ExprKind::String(_) => Type::String,
-            ExprKind::Integer(spelling) => {
-                if expected == Some(Type::Number) {
-                    spelling.parse::<f64>().map_err(|_| {
-                        Diagnostic::new("syntax", "Invalid contextual number literal.", span)
-                    })?;
-                    Type::Number
-                } else {
-                    spelling.parse::<i64>().map_err(|_|Diagnostic::new("integer-range", "Integer literal is outside the int range -9223372036854775808..=9223372036854775807.", span))?;
-                    Type::Int
-                }
-            }
-            ExprKind::Number(_) => Type::Number,
-            ExprKind::Boolean(_) => Type::Boolean,
-            ExprKind::Null => Type::Null,
-            ExprKind::Undefined => Type::Undefined,
-            ExprKind::Sequence(_) | ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
-                unreachable!("array expressions checked in the small dispatch frame")
-            }
-            ExprKind::Name(_) => unreachable!("names checked in their own frame"),
-            ExprKind::Field(_, _) => unreachable!("fields checked in the small dispatch frame"),
-            ExprKind::Record(_) => unreachable!("records checked in the small dispatch frame"),
-            ExprKind::Template(_) => unreachable!("templates checked in their own frame"),
-            ExprKind::Inject { .. } | ExprKind::Project { .. } => {
-                unreachable!("injections checked in their own frame")
-            }
-            ExprKind::Call(_, _) => unreachable!("calls checked in their own frame"),
-        };
-        expr.ty = Some(ty);
-        Ok(ty)
+                };
+                Ok((ty, true))
+        }
     }
 }
 

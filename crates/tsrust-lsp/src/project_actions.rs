@@ -3,6 +3,7 @@ use crate::{LineIndex, project_diagnostics::file_uri, workspace::WorkspaceSnapsh
 use lsp_types::Range;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use tsrust_compiler::{
     Span,
     project::{ProjectDiagnostic, ProjectFix, SourceId, SourceProvider, check_graph, load_project},
@@ -11,8 +12,10 @@ use tsrust_compiler::{
 pub struct ProjectActions {
     source: SourceId,
     range: Range,
-    actions: Vec<Value>,
+    actions: Vec<(Value, Vec<ClosedInput>)>,
 }
+/// Checked text of a file that is not open in the editor.
+type ClosedInput = (SourceId, Arc<String>);
 struct Overlay<'a> {
     snapshot: &'a WorkspaceSnapshot,
     sources: BTreeMap<SourceId, String>,
@@ -73,11 +76,6 @@ impl ProjectActions {
                 };
                 let mut valid = true;
                 for fix in fixes.iter().rev() {
-                    // Versioned open buffers protect application; closed-file edits require a later host guard.
-                    if snapshot.version(&fix.location.source).is_none() {
-                        valid = false;
-                        break;
-                    }
                     let Some(text) = overlay.sources.get_mut(&fix.location.source) else {
                         valid = false;
                         break;
@@ -129,6 +127,16 @@ impl ProjectActions {
             if !accepted {
                 continue;
             }
+            // A document version protects an open buffer. A closed file has none, so each
+            // request compares its disk text with the text this edit was validated against.
+            let closed = fixes
+                .iter()
+                .map(|fix| &fix.location.source)
+                .filter(|id| snapshot.version(id).is_none())
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .map(|id| (id.clone(), Arc::clone(&sources[id])))
+                .collect::<Vec<_>>();
             let mut changes: BTreeMap<SourceId, Vec<Value>> = BTreeMap::new();
             for fix in &fixes {
                 let text = &sources[&fix.location.source];
@@ -143,7 +151,7 @@ impl ProjectActions {
                     fixes.len()
                 )
             };
-            actions.push(json!({"title":title,"kind":"quickfix","isPreferred":!clone,"edit":{"documentChanges":changes}}));
+            actions.push((json!({"title":title,"kind":"quickfix","isPreferred":!clone,"edit":{"documentChanges":changes}}), closed));
         }
         Ok(Self {
             source: error.location.source.clone(),
@@ -166,6 +174,15 @@ impl ProjectActions {
         {
             return Ok(vec![]);
         }
-        Ok(self.actions.clone())
+        Ok(self
+            .actions
+            .iter()
+            .filter(|(_, closed)| {
+                closed.iter().all(|(id, text)| {
+                    std::fs::read_to_string(&id.0).is_ok_and(|disk| disk == **text)
+                })
+            })
+            .map(|(action, _)| action.clone())
+            .collect())
     }
 }

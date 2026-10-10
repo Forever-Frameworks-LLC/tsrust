@@ -611,6 +611,31 @@ mod project_protocol_tests {
                 break;
             }
         }
+        // An unfinished text and an import that is still being typed keep project assistance.
+        let typing = "import { value } from './dep.tsr';\nimport { val } from './dep.tsr';\nfunction main(){const s=\"abc";
+        notify(
+            &client,
+            "textDocument/didChange",
+            json!({"textDocument":{"uri":root,"version":4},"contentChanges":[{"text":typing}]}),
+        );
+        until(&client, |p| p["uri"] == root && p["version"] == 4);
+        client.sender.send(Message::Request(Request {
+            id: RequestId::from(11), method: "textDocument/completion".into(),
+            params: json!({"textDocument":{"uri":root},"position":{"line":1,"character":"import { val".len()}}),
+        })).unwrap();
+        loop {
+            if let Message::Response(response) = client
+                .receiver
+                .recv_timeout(Duration::from_secs(3))
+                .unwrap()
+                && response.id == RequestId::from(11)
+            {
+                let completion = response.result.unwrap();
+                let labels = completion.as_array().unwrap().iter().map(|item| item["label"].clone()).collect::<Vec<_>>();
+                assert_eq!(labels, [json!("value")], "{completion}");
+                break;
+            }
+        }
         client
             .sender
             .send(Message::Request(Request {

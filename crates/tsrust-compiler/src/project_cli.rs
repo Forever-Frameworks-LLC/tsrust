@@ -167,9 +167,10 @@ fn location_json(location: &crate::project::SourceLocation) -> String {
 
 /// Detect real top-level module declarations without interpreting comment or string contents.
 pub fn uses_modules(source: &str) -> Result<bool, Diagnostic> {
-    let tokens = crate::syntax::lex(source)?;
+    // An unfinished string or comment must not hide the module declarations around it.
+    let tokens = crate::project::lex_tolerant(source)?;
     let mut depth = 0usize;
-    Ok(tokens.iter().any(|token| {
+    Ok(tokens.iter().enumerate().any(|(index, token)| {
         if token.kind == crate::syntax::TokenKind::Symbol {
             if token.text == "{" {
                 depth += 1;
@@ -178,15 +179,34 @@ pub fn uses_modules(source: &str) -> Result<bool, Diagnostic> {
                 depth = depth.saturating_sub(1);
             }
         }
-        depth == 0
-            && token.kind == crate::syntax::TokenKind::Name
-            && matches!(token.text.as_str(), "import" | "export")
+        if token.kind != crate::syntax::TokenKind::Name {
+            return false;
+        }
+        let name = |offset: usize, texts: &[&str]| {
+            tokens.get(index + offset).is_some_and(|next| {
+                next.kind == crate::syntax::TokenKind::Name
+                    && (texts.is_empty() || texts.contains(&next.text.as_str()))
+            })
+        };
+        // A declaration that can only start at the top level also ends a body whose
+        // closing brace is not written yet.
+        match token.text.as_str() {
+            "export" => depth == 0 || (name(1, &["function", "type", "enum", "interface"]) && name(2, &[])),
+            "import" => {
+                depth == 0
+                    || tokens.get(index + 1).is_some_and(|next| {
+                        next.kind == crate::syntax::TokenKind::Symbol && next.text == "{"
+                    })
+            }
+            _ => false,
+        }
     }))
 }
 
 /// Identify a top-level main declaration without treating member/string text as code.
 pub fn declares_main(source: &str) -> Result<bool, Diagnostic> {
-    let tokens = crate::syntax::lex(source)?;
+    // An unfinished string or comment must not hide the module declarations around it.
+    let tokens = crate::project::lex_tolerant(source)?;
     let mut depth = 0usize;
     for (index, token) in tokens.iter().enumerate() {
         if depth == 0

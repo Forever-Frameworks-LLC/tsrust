@@ -64,3 +64,10 @@ is justified by a demonstrated regression.
 `node --test benchmarks/runtime/*.test.mjs` reports 49 failures in 441 tests. The same
 49 fail at the commit before this gate. They are older pinned-identity and harness
 failures and were not changed here.
+
+## Correction (2026-10-10)
+
+The whole-compiler run recorded for this gate was not clean. One or two suites aborted
+with a stack overflow and were not counted, because an aborted suite prints no result
+line. The cause was stack growth in the expression checker, not a wrong result. It is
+repaired at gate 185; see [the gate 185 record](185-project-editor.md).

@@ -70,6 +70,8 @@ pub struct SourceIndex {
     templates: Vec<(usize, usize)>,
     end_scope: usize,
     pub(crate) checked_control_labels: Vec<(Span,Span)>,
+    /// Import name regions with the completion items of the imported module.
+    import_exports: Vec<(Span, Vec<Value>)>,
     checked_views: Vec<(Span, String)>,
     checked_method_results: Vec<(Span, String)>,
     checked_optional_receivers: Vec<(Span, String)>,
@@ -116,6 +118,7 @@ impl SourceIndex {
             templates: vec![],
             end_scope: 0,
             checked_control_labels: vec![],
+            import_exports: vec![],
             type_aliases: Default::default(),
             checked_views: vec![],
             checked_method_results: vec![],
@@ -214,6 +217,9 @@ impl SourceIndex {
                     } else if bytes[offset] == delimiter {
                         offset += 1;
                         unterminated_string = false;
+                        break;
+                    } else if matches!(bytes[offset], b'\n' | b'\r') {
+                        // A quoted string cannot span lines; later lines keep their own tokens.
                         break;
                     } else {
                         offset += source[offset..].chars().next().unwrap().len_utf8();
@@ -2762,6 +2768,38 @@ impl SourceIndex {
             }
         }
     }
+    /// Offer the exports of a dependency between the braces of its import.
+    pub(crate) fn import_export_names<'a>(
+        &mut self,
+        names: Span,
+        dependency: &SourceIndex,
+        exports: impl Iterator<Item = &'a String>,
+    ) {
+        let items = exports
+            .filter_map(|exported| {
+                let symbol = dependency.symbols.iter().find(|s| {
+                    &s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23)
+                })?;
+                let kind = match symbol.kind {
+                    12 => 3,
+                    10 => 13,
+                    11 => 8,
+                    _ => 22,
+                };
+                Some(json!({"label":symbol.name,"kind":kind,"detail":symbol.signature,"documentation":{"kind":"markdown","value":symbol.docs}}))
+            })
+            .collect();
+        self.import_exports.push((names, items));
+    }
+    /// Offer the documented members of a native module between the braces of its import.
+    pub(crate) fn import_native_names(&mut self, names: Span, module: &str) {
+        let items = builtins_for(module)
+            .into_iter()
+            .filter(|entry| entry["name"].is_string())
+            .map(|entry| json!({"label":entry["name"],"kind":3,"detail":entry["signature"],"documentation":{"kind":"markdown","value":entry["documentation"]}}))
+            .collect();
+        self.import_exports.push((names, items));
+    }
     pub(crate) fn finish_imports(&mut self) {
         self.materialize_generic_fields();
         self.refresh_checked_initializers();
@@ -3031,6 +3069,31 @@ impl SourceIndex {
         let prefix = &self.source[prefix_start..offset];
         let before = self.tokens.iter().rposition(|t| t.span.end <= prefix_start);
         let replace = self.range(Span::new(prefix_start, offset));
+        if let Some((names, items)) = self
+            .import_exports
+            .iter()
+            .find(|(names, _)| names.start <= offset && offset <= names.end)
+        {
+            // After `as` the user writes a new local name, which has no candidates.
+            if before.is_some_and(|id| self.text(id) == "as") {
+                return json!([]);
+            }
+            let written = self
+                .tokens
+                .iter()
+                .filter(|token| names.start <= token.span.start && token.span.end <= names.end && token.span.start != prefix_start)
+                .map(|token| token.text.as_str())
+                .collect::<Vec<_>>();
+            return json!(items
+                .iter()
+                .filter(|item| item["label"].as_str().is_some_and(|label| label.starts_with(prefix) && !written.contains(&label)))
+                .map(|item| {
+                    let mut item = item.clone();
+                    item["textEdit"] = json!({"range":replace,"newText":item["label"]});
+                    item
+                })
+                .collect::<Vec<_>>());
+        }
         if before.is_some_and(|id| member_separator(self.text(id))) {
             let dot = before.unwrap();
             let ty = if dot > 0

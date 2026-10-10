@@ -1,6 +1,6 @@
 # S04 increment: project input snapshots
 
-Status: isolated workspace input layer implemented and verified. Protocol/scheduler integration, live project diagnostics, imported-symbol IntelliSense/navigation and project quick fixes remain pending. S04 is not accepted yet.
+Status: S04 is accepted at gate 185 on 2026-10-10. See [the gate record](185-project-editor.md) and [the acceptance map](../b9-project-editor-acceptance-map.md). The sections below are the history of the increments; each "remaining" list describes the state at that increment.
 
 ## Implemented contract
 

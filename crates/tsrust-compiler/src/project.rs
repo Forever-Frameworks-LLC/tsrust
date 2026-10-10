@@ -134,6 +134,8 @@ pub struct ImportBinding {
 pub struct ModuleImport {
     pub path: String,
     pub span: Span,
+    /// The text between the braces of the import, where names are written.
+    pub names: Span,
     pub bindings: Vec<ImportBinding>,
     pub target: Option<SourceId>,
     /// Registry identity for a native standard-library import; never a disk source.
@@ -160,18 +162,68 @@ pub fn is_test_entry(path: &str) -> bool {
     path.ends_with(".test.tsr") || path.ends_with(".spec.tsr")
 }
 
+/// Tokens of a source with an unfinished string, template or comment. The rest of the
+/// line that fails to lex is treated as blank, so later lines keep their declarations and
+/// every token keeps its position in the original text.
+pub(crate) fn lex_tolerant(text: &str) -> Result<Vec<syntax::Token>, Diagnostic> {
+    let mut bytes = text.as_bytes().to_vec();
+    loop {
+        let current = std::str::from_utf8(&bytes).expect("blanking whole characters preserves UTF-8");
+        let error = match syntax::lex(current) {
+            Ok(tokens) => return Ok(tokens),
+            Err(error) => error,
+        };
+        let mut start = error.span.start.min(bytes.len());
+        while !current.is_char_boundary(start) {
+            start -= 1;
+        }
+        let end = bytes[start..]
+            .iter()
+            .position(|byte| matches!(byte, b'\n' | b'\r'))
+            .map_or(bytes.len(), |offset| start + offset);
+        if bytes[start..end].iter().all(|byte| *byte == b' ') {
+            return Err(error);
+        }
+        bytes[start..end].fill(b' ');
+    }
+}
 fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
     let id = &source.id;
-    let tokens = syntax::lex(&source.text).map_err(|e| source_error(id, e))?;
+    let tokens = if declarations {
+        syntax::lex(&source.text).map_err(|e| source_error(id, e))?
+    } else {
+        lex_tolerant(&source.text).map_err(|e| source_error(id, e))?
+    };
     let mut bytes = source.text.as_bytes().to_vec();
     let mut imports = vec![];
     let mut exports = BTreeMap::new();
     let mut depth = 0usize;
     let mut i = 0;
-    while i < tokens.len() && tokens[i].kind != TokenKind::End {
+    'scan: while i < tokens.len() && tokens[i].kind != TokenKind::End {
         let token = &tokens[i];
-        if depth == 0 && token.kind == TokenKind::Name && token.text == "import" {
+        // An export or import can only start at the top level. Header loading uses that to
+        // leave a body whose closing brace is not written yet.
+        let unfinished_body = !declarations
+            && depth > 0
+            && token.kind == TokenKind::Name
+            && match token.text.as_str() {
+                "export" => tokens.get(i + 1).is_some_and(|next| next.kind == TokenKind::Name && matches!(next.text.as_str(), "function" | "type" | "enum" | "interface"))
+                    && tokens.get(i + 2).is_some_and(|name| name.kind == TokenKind::Name),
+                "import" => tokens.get(i + 1).is_some_and(|next| next.kind == TokenKind::Symbol && next.text == "{"),
+                _ => false,
+            };
+        if (depth == 0 || unfinished_body) && token.kind == TokenKind::Name && token.text == "import" {
             let start = token.span.start;
+            depth = 0;
+            // Header loading keeps the complete imports of a file while one is being typed.
+            macro_rules! incomplete {
+                ($error:expr) => {{
+                    if declarations {
+                        return Err($error);
+                    }
+                    continue 'scan;
+                }};
+            }
             i += 1;
             let fail = |index: usize, message: &str| {
                 error(
@@ -182,16 +234,22 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                 )
             };
             if tokens[i].kind != TokenKind::Symbol || tokens[i].text != "{" {
-                return Err(fail(
+                incomplete!(fail(
                     i,
                     "Expected named import: import { name } from './file.tsr';",
                 ));
             }
             i += 1;
+            let names_start = tokens[i - 1].span.end;
             let mut bindings = vec![];
-            loop {
+            let names_end = loop {
+                if !declarations && tokens[i].kind == TokenKind::Symbol && tokens[i].text == "}" {
+                    // Header loading accepts braces whose names are not written yet.
+                    i += 1;
+                    break tokens[i - 1].span.start;
+                }
                 if tokens[i].kind != TokenKind::Name {
-                    return Err(fail(i, "Expected an imported name."));
+                    incomplete!(fail(i, "Expected an imported name."));
                 }
                 let exported = tokens[i].text.clone();
                 let span = tokens[i].span;
@@ -200,7 +258,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                 if tokens[i].kind == TokenKind::Name && tokens[i].text == "as" {
                     i += 1;
                     if tokens[i].kind != TokenKind::Name {
-                        return Err(fail(i, "Expected a local import alias."));
+                        incomplete!(fail(i, "Expected a local import alias."));
                     }
                     local = tokens[i].text.clone();
                     i += 1;
@@ -212,23 +270,23 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                 });
                 if tokens[i].kind == TokenKind::Symbol && tokens[i].text == "}" {
                     i += 1;
-                    break;
+                    break tokens[i - 1].span.start;
                 }
                 if tokens[i].kind != TokenKind::Symbol || tokens[i].text != "," {
-                    return Err(fail(i, "Expected ',' or '}' in named import."));
+                    incomplete!(fail(i, "Expected ',' or '}' in named import."));
                 }
                 i += 1;
                 if tokens[i].kind == TokenKind::Symbol && tokens[i].text == "}" {
                     i += 1;
-                    break;
+                    break tokens[i - 1].span.start;
                 }
-            }
+            };
             if tokens[i].kind != TokenKind::Name || tokens[i].text != "from" {
-                return Err(fail(i, "Expected 'from' after import bindings."));
+                incomplete!(fail(i, "Expected 'from' after import bindings."));
             }
             i += 1;
             if tokens[i].kind != TokenKind::String {
-                return Err(fail(i, "Expected a quoted module path."));
+                incomplete!(fail(i, "Expected a quoted module path."));
             }
             let path = tokens[i].text.clone();
             let span = tokens[i].span;
@@ -246,7 +304,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             }
             i += 1;
             if tokens[i].kind != TokenKind::Symbol || tokens[i].text != ";" {
-                return Err(fail(i, "Expected ';' after import."));
+                incomplete!(fail(i, "Expected ';' after import."));
             }
             for byte in &mut bytes[start..tokens[i].span.end] {
                 if !matches!(*byte, b'\n' | b'\r') {
@@ -256,11 +314,13 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             imports.push(ModuleImport {
                 path,
                 span,
+                names: Span::new(names_start, names_end),
                 bindings,
                 target: None,
                 native: None,
             });
-        } else if depth == 0 && token.kind == TokenKind::Name && token.text == "export" {
+        } else if (depth == 0 || unfinished_body) && token.kind == TokenKind::Name && token.text == "export" {
+            depth = 0;
             if tokens[i + 1].kind != TokenKind::Name
                 || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface")
                 || tokens[i + 2].kind != TokenKind::Name
@@ -493,6 +553,11 @@ fn visit(
             chain.pop();
         }
         let dependency = &graph.modules[&target];
+        if !declarations {
+            // A name that is still being typed is not an export yet. Header loading keeps
+            // the other bindings; strict loading reports the name below.
+            import.bindings.retain(|binding| dependency.exports.contains_key(&binding.exported));
+        }
         for binding in &import.bindings {
             if !dependency.exports.contains_key(&binding.exported) {
                 return Err(error(

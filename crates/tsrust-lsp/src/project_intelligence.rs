@@ -41,6 +41,7 @@ impl ProjectIndex {
             let mut index = SourceIndex::with_entry_help(&module.source.text, id == &graph.entry);
             for import in &module.imports {
                 if let Some(native) = import.native {
+                    index.import_native_names(import.names, native);
                     for binding in &import.bindings {
                         for index in [&mut index, &mut declaration] {
                             index.import_native(
@@ -58,6 +59,7 @@ impl ProjectIndex {
                 };
                 let dependency = &graph.modules[target];
                 let foreign = &declarations[target];
+                index.import_export_names(import.names, foreign, dependency.exports.keys());
                 let Ok(uri) = file_uri(target) else {
                     continue;
                 };

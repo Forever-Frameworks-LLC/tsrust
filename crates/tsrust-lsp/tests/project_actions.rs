@@ -109,3 +109,78 @@ fn dependency_syntax_fix_targets_the_dependency_and_requires_whole_project_succe
         );
     }
 }
+
+#[test]
+fn closed_dependency_fix_is_offered_only_while_disk_matches_the_checked_text() {
+    let directory = std::env::temp_dir().join(format!("tsrust-closed-fix-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let directory = directory.canonicalize().unwrap();
+    let dep_path = directory.join("dep.tsr");
+    let library = "export function value():string {const text=\"😀\"\nreturn text;}";
+    std::fs::write(&dep_path, library).unwrap();
+    let root = format!("file://{}/main.tsr", directory.display());
+    let dep = format!("file://{}", dep_path.display());
+    let mut workspace = Workspace::default();
+    workspace.open(
+        source_id(&root).unwrap(),
+        3,
+        "import { value } from './dep.tsr';function main(){console.log(value());}".into(),
+    );
+    let input = workspace.snapshot();
+    let error = input.check(&source_id(&root).unwrap()).err().unwrap();
+    assert_eq!(error.location.source, source_id(&dep).unwrap());
+    let buckets = convert(&input, Some(&error)).unwrap();
+    let params = json!({"range":buckets[&source_id(&dep).unwrap()][0].range});
+    let actions = ProjectActions::build(&input, &source_id(&root).unwrap(), &error).unwrap();
+    let response = actions.request(&source_id(&dep).unwrap(), &params).unwrap();
+    assert_eq!(response.len(), 1, "{response:?}");
+    let change = &response[0]["edit"]["documentChanges"][0];
+    assert_eq!(change["textDocument"]["uri"], dep);
+    // A closed file has no editor version; the edit applies to the verified disk text.
+    assert!(change["textDocument"]["version"].is_null(), "{change}");
+    assert_eq!(change["edits"][0]["newText"], ";");
+    // Same length and a restored modification time: only a content comparison detects this.
+    let modified = std::fs::metadata(&dep_path).unwrap().modified().unwrap();
+    std::fs::write(&dep_path, library.replace("text", "tezt")).unwrap();
+    std::fs::File::options().write(true).open(&dep_path).unwrap().set_modified(modified).unwrap();
+    assert!(actions.request(&source_id(&dep).unwrap(), &params).unwrap().is_empty());
+    std::fs::write(&dep_path, library).unwrap();
+    assert_eq!(actions.request(&source_id(&dep).unwrap(), &params).unwrap().len(), 1);
+    std::fs::remove_file(&dep_path).unwrap();
+    assert!(actions.request(&source_id(&dep).unwrap(), &params).unwrap().is_empty());
+    std::fs::remove_dir_all(&directory).unwrap();
+}
+
+#[test]
+fn session_offers_closed_dependency_fixes_until_the_file_changes() {
+    let directory = std::env::temp_dir().join(format!("tsrust-closed-session-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let directory = directory.canonicalize().unwrap();
+    let dep_path = directory.join("dep.tsr");
+    let library = "export function value():string {const text=\"a\"\nreturn text;}";
+    std::fs::write(&dep_path, library).unwrap();
+    let root = format!("file://{}/main.tsr", directory.display());
+    let dep = format!("file://{}", dep_path.display());
+    let mut session = ProjectSession::default();
+    let snapshot = Snapshot {
+        uri: root.clone(),
+        version: 4,
+        generation: 1,
+        text: "import { value } from './dep.tsr';function main(){console.log(value());}".into(),
+    };
+    session.open(&snapshot);
+    let input = session.prepare(&snapshot).unwrap();
+    let error = input.check(&source_id(&root).unwrap()).err().unwrap();
+    let buckets = convert(&input, Some(&error)).unwrap();
+    let params = json!({"range":buckets[&source_id(&dep).unwrap()][0].range});
+    let actions = ProjectActions::build(&input, &source_id(&root).unwrap(), &error).unwrap();
+    session.cache_actions(&root, &input, Some(actions));
+    let response = session.code_actions(&dep, &params).unwrap();
+    let change = &response[0]["edit"]["documentChanges"][0];
+    assert_eq!(change["textDocument"]["uri"], dep);
+    assert!(change["textDocument"]["version"].is_null());
+    // Opening the dependency makes the editor buffer the authority; the cached edit expires.
+    session.open(&Snapshot { uri: dep.clone(), version: 1, generation: 2, text: library.into() });
+    assert_eq!(session.code_actions(&dep, &params).unwrap(), json!([]));
+    std::fs::remove_dir_all(&directory).unwrap();
+}

@@ -870,7 +870,7 @@ fn bundled_containment_projection_links_specializes_and_executes() {
     let main="function main(){exercise();}";
     let graph=ProjectGraph {entry:entry.clone(),order:vec![standard.clone(),entry.clone()],modules:BTreeMap::from([
         (standard.clone(),ModuleSource{source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())])}),
-        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new()})
+        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),names:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new()})
     ])};
     let checked=check_graph(graph).unwrap();
     crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");

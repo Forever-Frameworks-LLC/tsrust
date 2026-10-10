@@ -86,3 +86,10 @@ SQLite also retains min/mean/max throughput, in complete scenarios per second:
 
 The Node composition minimum reflects a slower sample; the median comparison above
 remains the useful central signal. All samples remain preserved rather than filtered.
+
+## Correction (2026-10-10)
+
+The whole-compiler run recorded for this gate was not clean. One or two suites aborted
+with a stack overflow and were not counted, because an aborted suite prints no result
+line. The cause was stack growth in the expression checker, not a wrong result. It is
+repaired at gate 185; see [the gate 185 record](185-project-editor.md).
