@@ -91,3 +91,23 @@ does not make byte views clonable. Test allocation costs and long-chain behavior
 Explicit close remains the separate resource lifecycle contract: it consumes a
 resource even on error, with nonthrowing scope-exit cleanup for unclosed resources.
 Bytes and borrowed byte views do not require explicit close.
+
+## Lifetime boundary groundwork
+
+The shared iterative cycle index now identifies recursive record components through
+record fields, array ranks and unions. Readonly and exclusive view reachability
+propagates through the component; exclusive access wins when both occur. Acyclic
+outer records retain independent slots. Incomplete type graphs do not claim a
+complete lifetime boundary.
+
+Source capture counting and native capture counting use the same index. A focused
+red test first demonstrated the old 129-slot rejection; the repaired count is one
+slot for a recursive component and three for an outer record containing two such
+values and an independent view. Checks: 31 recursive tests, four environment tests
+and two native capture tests pass, with no failures or aborted targets in the green
+runs. The cycle test includes 4,096 record nodes. Exact red and green logs are in
+SQLite under `tsrust-recursive-view-*.log`.
+
+This is groundwork, not public recursive-storage acceptance. Parameter provenance,
+record/runtime emission, lifetime enumeration and source/native/editor fixtures
+remain required before removing the existing source diagnostic. No timing ran.

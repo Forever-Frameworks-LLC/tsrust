@@ -71,6 +71,7 @@ mod argument_access_loans;
 mod scoped_record_bridge;
 mod aggregate_callable_facts;
 mod environment_lifetimes;
+mod recursive_view_shapes;
 mod record_runtime;
 mod runtime;
 mod storage;

@@ -7,6 +7,8 @@ pub(crate) fn count(
     members: impl Fn(UnionId) -> Vec<Type>,
     leaf: impl Fn(Type) -> usize,
 ) -> usize {
+    let recursive = contains_native_view(root, records, &members)
+        .then(|| crate::recursive_view_shapes::Index::new(records, &members));
     let mut total = 0usize;
     let mut pending = vec![(root, false)];
     let mut active = std::collections::HashSet::new();
@@ -29,7 +31,7 @@ pub(crate) fn count(
                 let Some(record) = records.get(id) else {
                     return 129;
                 };
-                if record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {
+                if recursive.as_ref().is_some_and(|index| index.access(id).is_some()) || record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {
                     total=total.saturating_add(1);
                     if total>128 {return 129;}
                     continue;
@@ -76,6 +78,24 @@ pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recursive_native_records_share_one_slot_without_merging_outer_siblings() {
+        let mut window = crate::cloneability::tests::record(&[]);
+        window.native_type = Some(crate::native_signatures::NativeTypeId::ByteView);
+        let array = |id| Type::Array(crate::syntax::ArrayElement::Record(id, 0));
+        let records = vec![
+            window,
+            crate::cloneability::tests::record(&[Type::Record(0), array(1)]),
+            crate::cloneability::tests::record(&[Type::Record(1), Type::Record(0), Type::Record(1)]),
+            crate::cloneability::tests::record(&[array(4), Type::Record(0)]),
+            crate::cloneability::tests::record(&[array(3)]),
+        ];
+        assert_eq!(count(Type::Record(1), &records, |_| vec![], |_| 0), 1);
+        assert_eq!(count(Type::Record(2), &records, |_| vec![], |_| 0), 3);
+        assert_eq!(count(Type::Record(3), &records, |_| vec![], |_| 0), 1);
+        assert_eq!(count(Type::Record(4), &records, |_| vec![], |_| 0), 1);
+    }
 
     #[test]
     fn native_slice_captures_reserve_inner_lifetime_slots() {
