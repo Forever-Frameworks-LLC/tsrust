@@ -88,6 +88,13 @@ mod tests {
             context.bindings[id].rebindable = true;
         }
         let mut statements = parsed.functions.remove(1).body;
+        if body.contains("try") {
+            return analyzer.check_exception_callable_body(
+                &mut context,
+                &mut statements,
+                Type::Void,
+            );
+        }
         analyzer.block(&mut context, &mut statements, Type::Void)
     }
     #[test]
@@ -112,5 +119,32 @@ mod tests {
     #[test]
     fn native_view_scope_dead_local_holder_releases_owner() {
         check_body("let owner='bytes';{const local=borrow(owner);}owner='changed';").unwrap();
+    }
+    #[test]
+    fn native_view_scope_control_exits_reject_dangling_holders() {
+        for body in [
+            "while(true){const owner='bytes';view=borrow(owner);break;}",
+            "let count=0;while(count<1){const owner='bytes';view=borrow(owner);count=count+1;continue;}",
+            "try{const owner='bytes';view=borrow(owner);throw 1;}catch(error){}",
+        ] {
+            let error = check_body(body).unwrap_err();
+            assert_eq!(error.code, "native-view-escape", "{body}: {error:?}");
+        }
+    }
+    #[test]
+    fn native_view_scope_control_exits_release_dead_holders() {
+        for body in [
+            "let owner='bytes';while(true){const local=borrow(owner);break;}owner='changed';",
+            "let owner='bytes';let count=0;while(count<1){const local=borrow(owner);count=count+1;continue;}owner='changed';",
+            "let owner='bytes';try{const local=borrow(owner);throw 1;}catch(error){}owner='changed';",
+        ] {
+            check_body(body).unwrap_or_else(|error| panic!("{body}: {error:?}"));
+        }
+    }
+    #[test]
+    fn native_view_scope_finally_replacement_releases_owner() {
+        check_body("let owner='bytes';try{view=borrow(owner);throw 1;}catch(error){}finally{view=safe;}owner='changed';").unwrap();
+        let error=check_body("let owner='bytes';try{view=borrow(owner);throw 1;}catch(error){}owner='changed';view=safe;").unwrap_err();
+        assert_eq!(error.code, "native-view-conflict");
     }
 }

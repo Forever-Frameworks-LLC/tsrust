@@ -532,3 +532,10 @@ The new private witnesses parse and format source blocks and exercise real call,
 assignment and scope analysis against an injected borrowed factory interface.
 They do not provide complete public factory-body acceptance. Exceptional exits,
 loop completions and escaped callback environments still need their own coverage.
+
+The next private source batch verifies break and continue exits, typed throw/catch
+paths and finally replacement through the existing exception callable checker.
+Dangling outer holders are rejected; dead local holders release access; replacing
+an outer view in finally releases its owner, whereas retaining it through catch
+continues to block mutation. These controls pass without further production edits.
+They cover these concrete paths, not all completion joins or borrowed throw payloads.
