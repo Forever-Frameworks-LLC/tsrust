@@ -20,9 +20,11 @@ function main() {
 // 5
 ```
 
-The result annotation supplies both constructor types. A local constructor needs
-an annotation, such as `const value: Result<int, string> = Ok(5)`. A constructor
-without enough context is a compile error. A void alternative has no payload:
+The result annotation supplies both constructor types. A local constructor can use
+an annotation, such as `const value: Result<int, string> = Ok(5)`, or explicit type
+arguments: `const value = Ok<int, string>(5)`. `Err<int, string>("failed")` creates
+the corresponding failure. A constructor without enough context is a compile error.
+A void alternative has no payload:
 `const done: Result<void, string> = Ok()`; match success with `Ok(_)`.
 
 The scrutinee is evaluated once. A match must handle both variants, or use a final
@@ -48,7 +50,7 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 ## Implementation status
 
 The first construction/matching increment has focused compiler and native evidence.
-B10 is not accepted. Explicit constructor type arguments, callable payloads,
+B10 is not accepted. Callable payloads,
 borrowed matching, full pattern-binding editor assistance, matched benchmarks and
 family acceptance remain open. Match expressions, guards, nested destructuring
 patterns, `?` propagation and general discriminated unions are not implemented.

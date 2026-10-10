@@ -1,6 +1,46 @@
 mod support;
 
 #[test]
+fn explicit_result_constructors_substitute_generics_and_preserve_shadowing() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import { strictEqual } from "std:testing";
+function wrap<T>(value: T): Result<T, string> { return Ok<T, string>(value); }
+function identity<T>(value: T): T { return value; }
+function main() {
+    const success = Ok<int, string>(9);
+    match (success) { Ok(value) => { strictEqual(value, 9); }, Err(_) => { strictEqual(1, 0); } }
+    const failure = Err<int, string>("failed");
+    match (failure) { Ok(_) => { strictEqual(1, 0); }, Err(error) => { strictEqual(error, "failed"); } }
+    const generic = wrap("owned");
+    match (generic) { Ok(value) => { strictEqual(value, "owned"); }, Err(_) => { strictEqual(1, 0); } }
+    const empty = Ok<void, string>();
+    match (empty) { Ok(_) => {}, Err(_) => { strictEqual(1, 0); } }
+    { const Ok = identity; strictEqual(Ok<int>(4), 4); }
+}
+"#;
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
+fn explicit_result_constructor_types_are_checked_without_generic_declarations() {
+    for (source, code) in [
+        ("function main(){const value=Ok<int,string>(5);}", None),
+        ("function main(){const value=Err<int,string>(\"error\");}", None),
+        ("function Ok<T>(value:T):T{return value;} function main(){const value=Ok<int>(5);}", None),
+        ("function main(){const value=Ok<int>(5);}", Some("arity")),
+        ("function main(){const value=Ok<int,string,boolean>(5);}", Some("arity")),
+        ("function main(){const value=Ok<string,int>(5);}", Some("type")),
+        ("function main(){const value:Result<string,int>=Ok<int,string>(5);}", Some("type")),
+        ("function Ok(value:int):int{return value;} function main(){const value=Ok<int,string>(5);}", Some("type")),
+    ] {
+        if let Some(code) = code { support::reject(source, code); }
+        else { tsrust_compiler::check(&support::format_round_trip(source)).unwrap(); }
+    }
+}
+
+#[test]
 fn result_type_identity_supports_nested_payloads_and_forwarding() {
     for source in [
         "function relay(value: Result<int, string>): Result<int, string> { return value; } function main() {}",

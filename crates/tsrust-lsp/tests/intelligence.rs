@@ -3,6 +3,26 @@ use serde_json::{Value, json};
 use tsrust_lsp::intelligence::SourceIndex;
 
 #[test]
+fn explicit_result_constructor_help_keeps_type_arguments_out_of_value_parameters() {
+    let source = "function main(){const result=Ok<int,string>(5);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover = ask(source, "textDocument/hover", "Ok<", 0);
+    let docs = hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(!docs.contains("not supported yet") && docs.contains("explicit type arguments"), "{hover}");
+    let help = ask(source, "textDocument/signatureHelp", "5);", 0);
+    assert_eq!(help["signatures"][0]["parameters"].as_array().map(Vec::len), Some(1), "{help}");
+    assert_eq!(help["signatures"][0]["parameters"][0]["label"], "value: int", "{help}");
+    let unit = "function main(){const result=Ok<void,string>();}";
+    let help = ask(unit, "textDocument/signatureHelp", ");", 0);
+    assert_eq!(help["signatures"][0]["parameters"].as_array().map(Vec::len), Some(0), "{help}");
+    let nested = "function main(){const result=Err<Result<int,string>,string>(\"failed\");}";
+    tsrust_compiler::check(nested).unwrap();
+    let help = ask(nested, "textDocument/signatureHelp", "\"failed\"", 0);
+    assert_eq!(help["signatures"][0]["parameters"][0]["label"], "error: string", "{help}");
+    assert!(help["signatures"][0]["label"].as_str().unwrap().contains("Result<Result<int,string>, string>"), "{help}");
+}
+
+#[test]
 fn result_constructors_have_behavioral_hover_signature_help_and_completion() {
     let source = "function main(){const value:Result<int,string>=Ok(5);const error:Result<int,string>=Err(\"failed\");}";
     assert!(tsrust_compiler::check(source).is_ok());

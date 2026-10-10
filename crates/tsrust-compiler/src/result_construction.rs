@@ -13,11 +13,12 @@ impl Analyzer {
     ) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, _) = &expression.kind else { return Ok(None); };
         let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
-        if !matches!(name.as_str(), "Ok" | "Err")
+        let explicit = matches!(name.as_str(), "@result:Ok" | "@result:Err");
+        if !explicit && (!matches!(name.as_str(), "Ok" | "Err")
             || context.names.contains_key(name) || context.pending_names.contains(name)
             || self.function_names.contains_key(name) || self.generic_functions.template(name).is_some()
-        { return Ok(None); }
-        let variant = name.clone();
+        ) { return Ok(None); }
+        let variant = name.strip_prefix("@result:").unwrap_or(name).to_owned();
         let Some(Type::Union(union)) = expected else {
             return Err(Diagnostic::new("annotation-required", "A Result constructor needs a Result<T, E> annotation or call/return context.", expression.span));
         };

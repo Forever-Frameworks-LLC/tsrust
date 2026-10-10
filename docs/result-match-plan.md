@@ -138,3 +138,27 @@ outputs are stored in SQLite at
 `runtime/results/result-match-construction-2026-10-10-checks.json`; exact readback
 passed and loose copies were removed. One focused editor test and the real TextMate
 tokenization test pass. This is not a whole-crate regression or a timing result.
+
+## Explicit constructor increment
+
+Explicit `Ok<T, E>(value)` and `Err<T, E>(error)` now supply a checked Result context
+through the existing assertion/context machinery. This is ordinary type checking,
+not an unchecked cast. Generic specialization substitutes the arguments before
+materialization. Lexical shadows and declared functions retain their own generic
+call semantics. Constructor calls also work when a file has no generic declaration;
+wrong arity, payload type and incompatible surrounding Result types are diagnosed.
+The catalog and guide describe both contextual and explicit construction.
+
+Signature help specializes explicit constructor payloads, including nested type
+arguments. A void payload displays no value parameter. The focused editor witness
+covers both constructors and void construction; the three catalog examples pass
+idempotent formatting and exact native-output checks.
+
+Bounded evidence for this increment is stored in SQLite at
+`runtime/results/result-match-explicit-2026-10-10-compiler.json` and
+`runtime/results/result-match-explicit-2026-10-10-editor-docs.json`. Exact readback
+passed and loose copies were removed. The compiler batch contains 21 passing
+tests across Result, generic specialization, lexical shadowing and the recovered
+rest/math stack canaries. Both focused editor tests pass after signature-help
+specialization. No full regression or timing run was performed. Callable payloads,
+borrowed matching, pattern-binding editor facts and benchmark support remain open.

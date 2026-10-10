@@ -3017,10 +3017,10 @@
   "parameters": [
     "value: T"
   ],
-  "documentation": "Constructs a successful Result containing value. A Result<T, E> annotation or call/return context must determine both payload types. For example, use it to return a computed value from a fallible function. Takes exactly one value of type T; when T is void, takes no argument. A wrong payload type or argument count is a compile error. No error payload is created, and no exception is thrown. Explicit constructor type arguments are not supported yet.\n\n```tsrust\nconst result: Result<int, string> = Ok(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }\n// 5\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
+  "documentation": "Constructs a successful Result containing value. A Result<T, E> annotation, call/return context, or explicit type arguments must determine both payload types. For example, use it to return a computed value from a fallible function. Takes exactly one value of type T; when T is void, takes no argument. A wrong payload type or argument count is a compile error. No error payload is created, and no exception is thrown. Use Ok<T, E>(...) when no surrounding Result type supplies that information.\n\n```tsrust\nconst result = Ok<int, string>(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }\n// 5\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
   "examples": [
     {
-      "source": "const result: Result<int, string> = Ok(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }",
+      "source": "const result = Ok<int, string>(5); match (result) { Ok(value) => { console.log(value); }, Err(_) => { console.log(-1); } }",
       "output": "5\n"
     }
   ]
@@ -3031,10 +3031,10 @@
   "parameters": [
     "error: E"
   ],
-  "documentation": "Constructs a failed Result containing error. A Result<T, E> annotation or call/return context must determine both payload types. Use it to return an error that the caller must inspect or forward. Takes exactly one error of type E; when E is void, takes no argument. A wrong payload type or argument count is a compile error. No success payload is created, and construction does not throw. Explicit constructor type arguments are not supported yet.\n\n```tsrust\nconst result: Result<int, string> = Err(\"failed\"); match (result) { Ok(_) => { console.log(\"unexpected\"); }, Err(error) => { console.log(error); } }\n// failed\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
+  "documentation": "Constructs a failed Result containing error. A Result<T, E> annotation, call/return context, or explicit type arguments must determine both payload types. Use it to return an error that the caller must inspect or forward. Takes exactly one error of type E; when E is void, takes no argument. A wrong payload type or argument count is a compile error. No success payload is created, and construction does not throw. Use Err<T, E>(...) when no surrounding Result type supplies that information.\n\n```tsrust\nconst result = Err<int, string>(\"failed\"); match (result) { Ok(_) => { console.log(\"unexpected\"); }, Err(error) => { console.log(error); } }\n// failed\n```\n\nOwnership: Owned payloads transfer into the Result without an implicit clone. Matching an owned Result transfers it and exposes the selected payload in its arm; that binding does not escape its lexical scope unless explicitly returned or transferred.",
   "examples": [
     {
-      "source": "const result: Result<int, string> = Err(\"failed\"); match (result) { Ok(_) => { console.log(\"unexpected\"); }, Err(error) => { console.log(error); } }",
+      "source": "const result = Err<int, string>(\"failed\"); match (result) { Ok(_) => { console.log(\"unexpected\"); }, Err(error) => { console.log(error); } }",
       "output": "failed\n"
     }
   ]

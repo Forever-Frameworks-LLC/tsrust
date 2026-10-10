@@ -9,6 +9,8 @@ mod project_generic_intelligence;
 
 #[path = "generic_intelligence.rs"]
 mod generic_intelligence;
+#[path = "result_intelligence.rs"]
+mod result_intelligence;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -1738,7 +1740,8 @@ impl SourceIndex {
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
         let set_constructor = matches!(self.text(method), "Set" | "Map") && method > 0 && self.text(method - 1) == "new";
-        if !(checked_generic || array_constructor || set_constructor) || self.text(next) != "<" {
+        let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
+        if !(checked_generic || array_constructor || set_constructor || result_constructor) || self.text(next) != "<" {
             return None;
         }
         let mut depth = 0usize;
@@ -3410,6 +3413,7 @@ impl SourceIndex {
                     .flatten()
             }) {
                 let mut b = b;
+                self.specialize_result_constructor_help(callee, open, &mut b);
                 if matches!(self.text(callee), "Set" | "Map") && self.text(callee + 1) == "<" && self.text(open - 1) == ">" {
                     let key = self.snippet(callee + 2, open - 1);
                     if self.text(callee) == "Map" && let Some((key,value)) = key.split_once(',') {

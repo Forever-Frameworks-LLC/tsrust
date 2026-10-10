@@ -56,6 +56,7 @@ struct Pending {
 #[derive(Default)]
 pub(crate) struct Cache {
     templates: BTreeMap<String, Function>,
+    nongeneric_names: std::collections::BTreeSet<String>,
     callable_proofs: crate::generic_call_validation::Proofs,
     lexical: lexical_instances::Instances,
     instances: HashMap<(String, Vec<Key>, Vec<Type>), String>,
@@ -353,10 +354,25 @@ impl Cache {
                 return Ok(());
             };
             let Some((name, callee_span)) = explicit_call_name(callee) else { return Ok(()); };
+            if matches!(name.as_str(), "@result:Ok" | "@result:Err") { return Ok(()); }
             let explicit = self.calls.get(&(expression.span.start, expression.span.end));
             let shadowed = shadows.iter().any(|(local, span)| {
                 local == name && span.start <= callee_span.start && callee_span.end <= span.end
             });
+            if matches!(name.as_str(), "Ok" | "Err") && !shadowed
+                && !self.templates.contains_key(name) && !self.nongeneric_names.contains(name)
+                && let Some(arguments) = explicit
+            {
+                if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Result constructors require success and error type arguments.", callee_span)); }
+                let mut arguments = arguments.clone();
+                for argument in &mut arguments { crate::type_substitution::apply(argument, &bindings)?; }
+                *name = format!("@result:{name}");
+                let span = expression.span;
+                let original = std::mem::replace(expression, Expr::new(ExprKind::Undefined, span));
+                let annotation = ValueAnnotation { kind: Kind::Applied { name: crate::type_syntax::TypeName { text: "Result".into(), span: callee_span }, arguments }, span: callee_span };
+                *expression = Expr::new(ExprKind::TypeAssertion { value: Box::new(original), annotation: Box::new(annotation), satisfies: false }, span);
+                return Ok(());
+            }
             if !self.templates.contains_key(name) || shadowed {
                 if let Some(arguments) = explicit {
                     if shadowed {
@@ -471,7 +487,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
     if !program
         .functions
         .iter()
-        .any(|function| !function.type_parameters.is_empty())
+        .any(|function| !function.type_parameters.is_empty()) && program.call_type_arguments.is_empty()
     {
         return Ok(Cache::default());
     }
@@ -489,6 +505,7 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
     let callable_proofs = crate::generic_call_validation::validate(program)?;
     let mut declarations = HashMap::new();
     let mut cache = Cache {
+        nongeneric_names: program.functions.iter().filter(|function| function.type_parameters.is_empty()).map(|function| function.name.text.clone()).collect(),
         captured_checked_instances: HashMap::new(),
         templates: BTreeMap::new(),
         callable_proofs,
