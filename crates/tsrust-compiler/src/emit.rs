@@ -1,3 +1,6 @@
+#[cfg(test)]
+#[path = "native_view_family_emit.rs"]
+mod native_view_family_emit;
 #[path = "native_view_lifetime_emit.rs"]
 mod native_view_lifetime_emit;
 #[path = "native_view_environment_emit.rs"]

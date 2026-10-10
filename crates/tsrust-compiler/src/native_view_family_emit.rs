@@ -1,0 +1,146 @@
+//! Private native family ABI proof; owning source storage remains guarded.
+use super::*;
+
+use crate::analysis::native_view_loans::{LifetimeSource,Loan,Segment,VariantGuard};
+use std::collections::BTreeMap;
+
+fn captured_source(capture:usize,path:&[Segment],guards:&[VariantGuard])->LifetimeSource {
+    let prefix=Segment::Field(format!("capture{capture}"));
+    let mut path=path.to_vec();path.insert(0,prefix.clone());
+    let guards=guards.iter().map(|guard|{let mut guard=guard.clone();guard.path.insert(0,prefix.clone());guard}).collect();
+    LifetimeSource::carried(path,guards)
+}
+
+impl Emitter<'_> {
+    fn emit_native_view_family(&self,output:&mut String,id:usize,layout:&crate::native_view_callable_storage::Family,contract:&crate::analysis::CallbackContract)->Result<(),crate::Diagnostic> {
+        let unsupported=|message:&str|crate::Diagnostic::new("native-view-family-emission",message,crate::Span::default());
+        if layout.invocation!=Mode::Consume || layout.alternatives.is_empty() || contract.structural!=layout.signature {
+            return Err(unsupported("This native family ABI requires a matching finite one-shot callback contract."));
+        }
+        if contract.params.iter().any(|parameter|!parameter.ty.is_copy()) {
+            return Err(unsupported("Native view callable family arguments with owned or borrowed data require additional argument lifetime planning."));
+        }
+        let mut inputs=BTreeMap::new();
+        let mut lifetimes=Vec::new();
+        let mut returns=Vec::<Loan>::new();
+        for (arm,alternative) in layout.alternatives.iter().enumerate() {
+            let closure=self.program.closures.get(alternative.origin).ok_or_else(||unsupported("Unknown native callable family environment."))?;
+            if self.program.error_effects.closures.get(alternative.origin).copied().unwrap_or(true) {
+                return Err(unsupported("Fallible native view callable families require error ABI planning."));
+            }
+            if self.native_captures.lifetimes[alternative.origin]!=alternative.slots.len() {
+                return Err(unsupported("Native callable family capture lifetimes do not match its carried-view slots."));
+            }
+            for (slot_index,slot) in alternative.slots.iter().enumerate() {
+                let name=format!("'native_family{arm}_{slot_index}");
+                inputs.insert((arm,captured_source(slot.capture,&slot.path,&slot.guards)),name.clone());
+                lifetimes.push(name);
+            }
+            for loan in closure.function.native_returns.as_deref().into_iter().flatten() {
+                if closure.parameters.contains(&loan.root) {
+                    return Err(unsupported("Native family results borrowing an invocation argument require argument lifetime planning."));
+                }
+                let mut returned=loan.clone();
+                returned.root=arm;
+                returned.source=match &loan.source {
+                    LifetimeSource::Carried(path)=>captured_source(loan.root,path,&[]),
+                    LifetimeSource::VariantCarried{path,guards}=>captured_source(loan.root,path,guards),
+                    LifetimeSource::Storage=>return Err(unsupported("A consuming native family cannot return a borrow of destroyed capture storage.")),
+                };
+                returns.push(returned);
+            }
+        }
+        if returns.is_empty() {return Err(unsupported("Native family view emission requires checked returned capture lifetimes."));}
+        let plan=native_view_lifetime_emit::Lifetimes::with_named_sources(inputs,&returns)?;
+        let name=format!("NativeViewCallable{id}");
+        let generics=format!("<{}>",lifetimes.join(", "));
+        let mut generated=String::new();
+        writeln!(generated,"enum {name}{generics} {{").unwrap();
+        for (arm,alternative) in layout.alternatives.iter().enumerate() {
+            let environment=self.native_view_environment_type(alternative.origin,Some(arm),&plan,&[],&[]);
+            writeln!(generated,"V{}({environment}),",alternative.origin).unwrap();
+        }
+        generated.push_str("}\n");
+        let method_generics=if plan.declarations.is_empty(){String::new()}else{format!("<{}>",plan.declarations.join(", "))};
+        let bounds=if plan.bounds.is_empty(){String::new()}else{format!(" where {}",plan.bounds.join(", "))};
+        let parameters=contract.params.iter().enumerate().map(|(position,&parameter)|format!(",argument{position}:{}",self.native_argument_type(parameter,""))).collect::<String>();
+        let arguments=(0..contract.params.len()).map(|position|format!("argument{position}")).collect::<Vec<_>>().join(", ");
+        let result=self.native_view_signature_type(contract.result,None,&plan);
+        writeln!(generated,"impl{generics} {name}{generics} {{fn call{method_generics}(self{parameters})->{result}{bounds} {{match self {{").unwrap();
+        for alternative in &layout.alternatives {
+            writeln!(generated,"Self::V{}(mut value)=>value.call({arguments}),",alternative.origin).unwrap();
+        }
+        generated.push_str("}}}\n");
+        output.push_str(&generated);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_view_once_family_emits_real_alternative_lifetimes() {
+        for mutable in [false,true] {assert_family(mutable);}
+    }
+
+    fn assert_family(mutable:bool) {
+        let source="type Window={};function first(view:Window){return ()=>view;}function second(view:Window){return ()=>view;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let mut parsed=crate::syntax::parse(&formatted).unwrap();
+        parsed.records[0].native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
+        let mut checked=crate::analysis::analyze(parsed).unwrap();
+        let result=checked.closures[0].function.result;
+        let structural=checked.callable_shapes.intern([],result,Some(crate::syntax::CallbackKind::OwnedOnce));
+        let contract=crate::analysis::CallbackContract {structural,parameter_names:vec![],params:vec![],result,kind:crate::syntax::CallbackKind::OwnedOnce};
+        let layout=crate::native_view_callable_storage::family_slots(&contract,&checked.callable_shapes,[0,1],&checked.closures,crate::Span::default()).unwrap().unwrap();
+        let emitter=emitter_for(&checked,"");
+        let mut family=String::new();
+        emitter.emit_native_view_family(&mut family,7,&layout,&contract).unwrap();
+        assert!(!family.contains("Box<") && !family.contains("clone") && !family.contains("unsafe"));
+        let mut invalid=layout.clone();invalid.invocation=Mode::Read;
+        let mut unchanged="sentinel".to_owned();
+        assert!(emitter.emit_native_view_family(&mut unchanged,8,&invalid,&contract).is_err());
+        assert_eq!(unchanged,"sentinel");
+        invalid=layout.clone();invalid.alternatives[0].slots.clear();
+        assert!(emitter.emit_native_view_family(&mut unchanged,8,&invalid,&contract).is_err());
+        assert_eq!(unchanged,"sentinel");
+        let mut generated=crate::emit::emit(&checked);
+        let main=generated.find("fn main()").unwrap();
+        let opening=main+generated[main..].find('{').unwrap()+1;
+        generated.insert_str(opening,"family_probe();");
+        let probe=if mutable {
+            "fn family_probe(){for flag in [true,false]{let mut first=vec![1u8];let mut second=vec![7u8,8];let first_ptr=first.as_ptr();let second_ptr=second.as_ptr();{let selected=if flag{NativeViewCallable7::V0(function0(Record0{bytes:&mut first}))}else{NativeViewCallable7::V1(function1(Record0{bytes:&mut second}))};let result=selected.call();assert_eq!(result.bytes.as_ptr(),if flag{first_ptr}else{second_ptr});result.bytes[0]+=10;}assert_eq!(first[0],if flag{11}else{1});assert_eq!(second[0],if flag{7}else{17});}}"
+        } else {"fn family_probe(){let first=vec![1u8];let second=vec![7u8,8];for flag in [true,false]{let selected=if flag{NativeViewCallable7::V0(function0(Record0{bytes:&first}))}else{NativeViewCallable7::V1(function1(Record0{bytes:&second}))};let result=selected.call();assert_eq!(result.bytes.as_ptr(),if flag{first.as_ptr()}else{second.as_ptr()});assert_eq!(result.bytes.len(),if flag{1}else{2});}}"};
+
+        let directory=std::env::temp_dir().join(format!("tsrust-native-view-family-{mutable}-{}",std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());
+        let input=directory.join("family.rs");
+        std::fs::write(&input,format!("{generated}\n{family}\n{probe}")).unwrap();
+        for level in ["0","3"] {
+            let output=directory.join(format!("family-{level}"));
+            let compiled=std::process::Command::new("rustc").arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&input).arg("-o").arg(&output).output().unwrap();
+            assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));
+            assert!(std::process::Command::new(output).status().unwrap().success());
+        }
+        let owner=if mutable {"let mut owner=vec![1u8];"}else{"let owner=vec![1u8];"};
+        let reference=if mutable {"&mut owner"}else{"&owner"};
+        let negative=format!("fn invalid_escape(){{let result;{{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));result=selected.call();}}assert_eq!(result.bytes.len(),1);}}");
+        let repeated=format!("fn invalid_reuse(){{{owner}let selected=NativeViewCallable7::V0(function0(Record0{{bytes:{reference}}}));let first=selected.call();let second=selected.call();assert_eq!(first.bytes.len(),second.bytes.len());}}");
+        let mut rejections=vec![(negative,"does not live long enough"),(repeated,"moved value")];
+        if mutable {
+            rejections.push(("fn invalid_mutation(){let mut owner=vec![1u8];let selected=NativeViewCallable7::V0(function0(Record0{bytes:&mut owner}));let result=selected.call();owner[0]=2;assert_eq!(result.bytes[0],1);}".into(),"cannot borrow"));
+        }
+        for (negative,diagnostic) in rejections {
+            std::fs::write(&input,format!("{generated}\n{family}\n{probe}\n{negative}")).unwrap();
+            let rejected=std::process::Command::new("rustc").arg("--edition=2024").arg(&input).arg("-o").arg(directory.join("rejected")).output().unwrap();
+            assert!(!rejected.status.success());
+            assert!(String::from_utf8_lossy(&rejected.stderr).contains(diagnostic),"{}",String::from_utf8_lossy(&rejected.stderr));
+        }
+    }
+}

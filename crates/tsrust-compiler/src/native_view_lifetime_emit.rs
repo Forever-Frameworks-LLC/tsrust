@@ -28,21 +28,35 @@ impl Lifetimes {
             *name=format!("'native_input{root}_{slot}");*slot+=1;
             plan.declarations.push(name.clone());
         }
+        plan.plan_outputs(function.native_returns.as_deref().map(Vec::as_slice).unwrap_or(&[]));
+        plan
+    }
+
+    #[cfg(test)]
+    pub(super) fn with_named_sources(inputs:BTreeMap<(usize,LifetimeSource),String>,returns:&[crate::analysis::native_view_loans::Loan])->Result<Self,crate::Diagnostic> {
+        if returns.iter().any(|loan|!inputs.contains_key(&(loan.root,loan.source.clone()))) {
+            return Err(crate::Diagnostic::new("native-view-family-emission","A returned family view has no named capture source lifetime.",crate::Span::default()));
+        }
+        let mut plan=Self{inputs,..Self::default()};
+        plan.plan_outputs(returns);
+        Ok(plan)
+    }
+
+    fn plan_outputs(&mut self,returns:&[crate::analysis::native_view_loans::Loan]) {
         let mut outputs=BTreeMap::<(Vec<Segment>,Vec<VariantGuard>),Vec<String>>::new();
-        for loan in function.native_returns.as_deref().into_iter().flatten() {
-            outputs.entry((loan.path.clone(),loan.guards.clone())).or_default().push(plan.inputs[&(loan.root,loan.source.clone())].clone());
+        for loan in returns {
+            outputs.entry((loan.path.clone(),loan.guards.clone())).or_default().push(self.inputs[&(loan.root,loan.source.clone())].clone());
         }
         for (path,mut sources) in outputs {
             sources.sort();sources.dedup();
             let name=if sources.len()==1 {sources.remove(0)} else {
-                let output=format!("'native_return{}",plan.outputs.len());
-                plan.declarations.push(output.clone());
-                plan.bounds.extend(sources.into_iter().map(|source|format!("{source}: {output}")));
+                let output=format!("'native_return{}",self.outputs.len());
+                self.declarations.push(output.clone());
+                self.bounds.extend(sources.into_iter().map(|source|format!("{source}: {output}")));
                 output
             };
-            plan.outputs.insert(path,name);
+            self.outputs.insert(path,name);
         }
-        plan
     }
     pub(super) fn storage(&self,root:usize)->Option<&str> {
         self.inputs.get(&(root,LifetimeSource::Storage)).map(String::as_str)

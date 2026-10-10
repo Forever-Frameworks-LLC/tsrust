@@ -141,3 +141,27 @@ complete native emission runs at O0/O3 with both pointer identities and independ
 rejects selected-owner escape. These are transport prerequisites. Prepared owning
 family lookup, family variants, source storage admission and native family emission
 remain pending, and the original stored-callback positive witness remains red.
+
+## Private one-shot native family ABI proof
+
+native_view_family_emit.rs now emits a finite enum whose variants contain the
+normally emitted concrete environments with independently named view lifetimes.
+Its consuming call method joins only the source lifetimes needed by each returned
+payload path. The shared native lifetime planner names these output intersections;
+normal function and closure emission uses the same output planning helper.
+
+This backend is test-only until source family admission and provenance integration
+are complete. It is not an emitted source storage feature. The initial proof covers
+non-fallible one-shot families with scalar arguments and views carried by captures.
+Borrowed invocation arguments, fallible families and reusable families still require
+their planned ABI work. Invalid invocation, mismatched slot counts and missing return
+sources are diagnosed before appending generated declarations.
+
+The private test uses parsed, formatted factories and normal native closure emission.
+The additional family enum is constructed through the typed candidate layout. Both
+readonly and exclusive alternatives execute at O0/O3, preserve selected pointer
+identity, and exclusive writes reach the original buffer. Independent native
+compilations reject owner escape, a second consuming call, and conflicting owner
+mutation while an exclusive result remains live. No copy, shared owner or erased
+pointer replaces the slice payload. This proves the initial backend representation,
+not public API or stored-callback acceptance; the original source witness stays red.
