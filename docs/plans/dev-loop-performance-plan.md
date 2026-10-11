@@ -372,3 +372,35 @@ include separate runtime compilation; original failure is retained. Evidence use
 
 Extended dev-session memory, installed refresh, Linux execution and final milestone
 regression/performance review remain pending.
+
+## Installed runtime reuse and extended-session measurements
+
+Four CLI consumers are refreshed/hash verified from `0ac179f2`. The unchanged
+six-sample dev-loop-v1 protocol passes output, runtime reuse, native watching and
+shutdown checks. Matching source and harness hashes are verified against both the
+original baseline and retained-frontend checkpoint. Records use
+`tsrust-dev-runtime-*` in SQLite.
+
+For 6/130 files, median leaf edits are 451.22/488.77 ms (preceding retained-frontend
+544.46/594.08), and shared edits 432.17/458.14 ms (529.37/566.78). Cold medians
+increase to 585.73/481.57 ms (411.71/421.72); the first small-project cold sample
+was 1,280.0 ms and is retained. Warm medians are 138.85/123.97 ms. Config medians
+are 280.46/356.65 ms (266.88/244.36); the larger shape's individual config samples
+are 356.6, 250.4 and 360.0 ms. All hit the program cache; backend probe times were
+59.5, 31.0 and 61.2 ms, so probe/supervisor scheduling remains a review target.
+These three-sample distributions show improved edit latency in this run, not a
+universal performance guarantee. Preserve cold/config regressions in final review.
+
+A separate 48-edit-per-shape installed witness verifies all 96 output oracles and
+runtime hits. Each final cache has 32 program artifacts, one runtime artifact and
+one lock per namespace. Program caches occupy 36.5/41.4 MB and runtime caches 2.6 MB.
+Small-project RSS ends at 12,672 KiB; large-project RSS at 16,624 KiB. During edits
+24–48 the ranges are 12,672–12,704 and 16,608–16,624 KiB, within the witness's 8 MiB
+stability allowance. This bounds the observed session, not all project sizes or
+allocator behavior. The exact diagnostic script is retained in SQLite as
+`tsrust-dev-session-witness.py` for reproduction.
+
+Full compiler regressions have started; their acceptance is pending. Linux Rust
+targets and Docker CLI are present, but Docker's daemon socket is absent; Linux
+execution still needs an available runner. Complete editor regressions, Linux
+validation, performance review and obsolete-output cleanup before milestone closure.
