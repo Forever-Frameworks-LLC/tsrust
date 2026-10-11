@@ -106,3 +106,28 @@ A concurrent-save witness now performs 2,000 atomic replacements across 100 file
 while snapshots reconcile. Final contents match an independent clean scan and
 native subscriptions remain active. This macOS witness passes; it does not stand
 in for Linux overflow execution. Evidence: `tsrust-dev-event-races.log` in SQLite.
+
+## Native watcher comparison and installed acceptance
+
+The unchanged dev-loop-v1 harness and exact generated source hashes were rerun with
+three samples per shape after `c1431c38`. For 6 files, median leaf/shared edits were
+530.16/512.35 ms (baseline 522.89/508.98 ms); for 130 files, 554.31/535.10 ms
+(baseline 556.73/537.04 ms). This change does not establish a fresh-edit speedup.
+Idle CPU fell from 0.02 seconds to 0.00 at ps resolution for 6 files, and from
+0.16–0.17 to 0.00–0.01 per three-second window for 130 files. Zero is a measurement
+resolution limit, not proof of no CPU work.
+
+Median 130-file cold/warm startup increased from 372.52/109.35 ms to
+402.40/122.76 ms. Subscription setup includes a redundant initial refresh in the
+current snapshot path; review this overhead before closing watcher performance
+acceptance. Three samples do not establish statistical significance. Original
+baseline, individual comparison samples and derived summaries remain in SQLite as
+`tsrust-dev-baseline-fixed.json`, `tsrust-dev-events-measured.json` and
+`tsrust-dev-events-comparison.json`.
+
+Four installed/workspace CLI copies were atomically refreshed and hash verified
+from `c1431c38`. Installed startup, atomic-save rebuild, exact output and clean
+shutdown pass without polling fallback. The LSP is unchanged and remains at its
+accepted environment checkpoint. Evidence uses `tsrust-dev-events-installed*`.
+Linux execution/overflow evidence, startup overhead review and the remaining
+retained-state/runtime-compilation steps still prevent milestone closure.
