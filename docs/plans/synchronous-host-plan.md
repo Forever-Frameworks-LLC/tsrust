@@ -1,8 +1,8 @@
 # S09 synchronous host APIs
 
-Status: read-only file resources are accepted in S07. Further S09 work is paused
-behind the owner-prioritized `new` and `dev` CLI milestone. This is task ordering,
-not a pause of the overall roadmap goal.
+Status: read-only file resources are accepted in S07. The owner-prioritized
+`new` and `dev` CLI milestone is accepted on macOS, including installed consumers.
+S09 public file-write integration is next.
 
 The next file slice is create, write and writeAll. The private backend now has
 focused tests for truncation, exact binary content, read-only descriptor failures,

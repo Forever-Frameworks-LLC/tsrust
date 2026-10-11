@@ -1,6 +1,6 @@
 # Project CLI workflows: new and dev
 
-Status: source implementation and focused checks pass; installed-consumer acceptance is pending. The owner prioritized this milestone before
+Status: accepted on macOS, including installed-consumer acceptance at `57ba7b74`. The owner prioritized this milestone before
 further S09 host operations and application workflows. Keep the last working
 program running when a development build fails (explicitly approved).
 
@@ -86,3 +86,10 @@ Original command logs use `tsrust-project-commands-*`, `tsrust-project-config-bu
 `tsrust-project-dev-checks.log` and `tsrust-cli-workflow-*` in SQLite. No runtime
 performance measurement or new full compiler/LSP regression is claimed for this
 CLI-only milestone. The preceding complete diagnostics regression remains recorded.
+
+Installed debug/editor/release/global CLI consumers were atomically refreshed from
+`57ba7b74` and hash-verified. The installed CLI passes scaffold creation, nested-root
+check/format/test/run/build, imported-source dev restart and interrupt shutdown.
+Evidence is retained in SQLite as `tsrust-project-cli-consumer-build.log`,
+`tsrust-project-cli-consumer-refresh.json` and `tsrust-project-cli-installed-smoke.log`.
+Linux process supervision is implemented but was not independently exercised here.
