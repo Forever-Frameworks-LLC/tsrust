@@ -42,3 +42,44 @@ from names or automatically mark a family reviewed. Each public symbol still nee
 the source anchors and reviewed fields specified in the policy. Compiler globals
 outside the registry remain a separate discovery pass; the present count is not
 proof that every public compiler symbol has been discovered.
+
+## Numeric global review
+
+The following six globals are recognized independently by
+`syntax.rs::global_number_member`, checked through
+`analysis.rs::global_number_name`, and emitted through the existing Number call
+or constant targets. Local, pending and function declarations take precedence.
+Bare function references are rejected; callers can use a typed callback wrapper.
+No import migration is needed. Keep both existing spellings, recommending the
+familiar global for simple parsing/predicates and Number members when grouping
+numeric utilities. Neither spelling adds a second implementation.
+
+| Symbol | Purpose and signature | Failure and ownership | Backend/dependency | Disposition |
+|---|---|---|---|---|
+| `parseInt` | Integer prefix: `(text: string, radix?: int): number`; omitted/zero radix selects decimal with hexadecimal-prefix recognition | Missing digits or invalid radix returns NaN; wrong types/arity rejected. Borrows text, copies radix; receiver absent | `NumberParseInt`, `runtime_strings.rs::tsr_number_parse_int`; bundled string support | Retain global and `Number.parseInt`; no implicit string conversion |
+| `parseFloat` | Decimal prefix: `(text: string): number`, including signed Infinity | Missing numeric prefix returns NaN; wrong types/arity rejected. Borrows text; receiver absent | `NumberParseFloat`, `runtime_strings.rs::tsr_number_parse_float`; bundled string support | Retain global and `Number.parseFloat`; no implicit string conversion |
+| `isNaN` | `(value: number): boolean`, tests NaN | Wrong types/arity rejected; copies scalar, no mutation | `NumberIsNaN`, emitted `f64::is_nan`; no imported native feature | Retain global and `Number.isNaN`; document strict number input |
+| `isFinite` | `(value: number): boolean`, excludes infinities and NaN | Wrong types/arity rejected; copies scalar, no mutation | `NumberIsFinite`, emitted `f64::is_finite`; no imported native feature | Retain global and `Number.isFinite`; document strict number input |
+| `NaN` | `number` constant for not-a-number | Assignment rejected unless shadowed; scalar copy; unequal to itself | `NumericConstant::NumberNaN`, emitted f64 constant | Retain global and `Number.NaN` |
+| `Infinity` | Positive infinite `number` constant; unary minus produces negative infinity | Assignment rejected unless shadowed; scalar copy | `NumericConstant::NumberPositiveInfinity`, emitted f64 constant | Retain global and `Number.POSITIVE_INFINITY` |
+
+Source anchors: `syntax.rs::global_number_member` and `NumericConstant`,
+`analysis.rs::number_parse_int`, `number_parse_float`, `number_predicate` and
+`global_number_name`, `emit.rs` Number target arms, and
+`runtime_strings.rs::tsr_number_parse_int` / `tsr_number_parse_float` (all under
+`crates/tsrust-compiler/src`). Catalog rows in `globals` and `Number` agree with
+these signatures. LSP uses the global catalog and resolves user declarations
+before builtin help. Three compiler/native tests in `global_number_functions.rs`
+and the focused editor test pass, covering values, errors, callback use,
+shadowing, hover, completion and parameter help. Evidence:
+`tsrust-api-globals-compiler.log` and `tsrust-api-globals-editor.log` in SQLite.
+
+## Editor fallback discovery
+
+The catalog-only pass omitted six documented spellings: `Math`, `console`, `int`,
+`number`, `string` and `boolean`. Their hover text lives in
+`crates/tsrust-lsp/src/intelligence.rs` rather than `builtins.json`. `void` also has
+fallback text but already had a catalog row. The inventory now discovers these
+fallback arms and records their source anchor, producing 399 rows. This is a
+discovery correction, not a public API change. Review of these spellings and the
+remaining receiver/namespace operations is still pending.

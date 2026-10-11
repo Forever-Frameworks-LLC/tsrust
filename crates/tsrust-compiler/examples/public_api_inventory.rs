@@ -16,6 +16,16 @@ fn main() {
             rows.insert(key.clone(), json!({"identity":key,"group":group,"name":name,"catalog":entry,"review":"pending"}));
         }
     }
+    // Some global/primitive hovers live outside builtins.json. Keep these in
+    // discovery so a catalog-only audit cannot silently omit their spellings.
+    let editor=include_str!("../../tsrust-lsp/src/intelligence.rs");
+    let fallback=editor.split("let (signature, docs, parameters): (&str, &str, Vec<&str>) = match self.text(token) {").nth(1).expect("review changed editor fallback").split("_ => return None,").next().unwrap();
+    for line in fallback.lines().map(str::trim).filter(|line|line.ends_with("=> (")) {
+        let name=line.strip_prefix('"').unwrap().split('"').next().unwrap();
+        let key=format!("globals::{name}");
+        let row=rows.entry(key.clone()).or_insert_with(||json!({"identity":key,"group":"globals","name":name,"review":"pending"}));
+        row["editorFallback"]=json!({"file":"crates/tsrust-lsp/src/intelligence.rs","anchor":"let (signature, docs, parameters)"});
+    }
     for binding in BINDINGS {
         modules.insert(binding.module.to_owned());
         let key = format!("{}::{}", binding.module, binding.name);
