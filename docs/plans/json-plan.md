@@ -287,3 +287,14 @@ owned cleanup. SQLite evidence uses `tsrust-s10-jsonl-*`, including both origina
 failing witnesses. Public native file adapters, explicit close/flush behavior,
 writer support, editor/catalog examples and matched streaming benchmarks remain
 required before JSONL acceptance. This core does not publish a Tsrust export yet.
+
+The existing bounded file reader now implements Rust `Read`/`BufRead` through
+its unique resource owner. JSONL can consume that owner or borrow it without
+allocating another read-ahead buffer. Ordinary `buffered_read` shares the same
+refill/consume path and preserves its allocation-before-I/O, zero-length and
+short-read behavior. File integration witnesses alternate JSONL and byte reads,
+then resume JSONL without losing buffered bytes. Descriptor checks cover owned
+EOF, malformed input and early drop. Existing file lifecycle/partial-I/O tests
+also execute at native optimization levels 0 and 3. Evidence is stored under
+`tsrust-s10-jsonl-file-*`. This is private backend integration; public JSONL
+bindings, explicit close and writer APIs remain pending.

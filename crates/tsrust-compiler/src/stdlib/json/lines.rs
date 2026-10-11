@@ -103,6 +103,37 @@ mod tests {
    assert!(!format!("{error:?}").contains("secret"));assert_eq!(reader.next().unwrap_err(),error);
   }
  }
+ #[test]
+ fn file_reader_preserves_read_ahead_across_jsonl_and_byte_reads() {
+  use crate::stdlib::{buffered_fs,fs};
+  let path=std::env::temp_dir().join(format!("tsrust-jsonl-borrowed-{}",std::process::id()));
+  std::fs::write(&path,b"0\n1\nnull").unwrap();
+  let mut input=buffered_fs::buffer_reader(fs::open(path.to_str().unwrap()).unwrap(),8).unwrap();
+  assert_eq!(input.read(&mut []).unwrap(),0);
+  {let mut lines=Lines::new(&mut input,limits()).unwrap();assert_eq!(lines.next().unwrap(),Some(Value::from(0)));}
+  assert_eq!(buffered_fs::buffered_read(&mut input,2).unwrap(),b"1\n");
+  {let mut lines=Lines::new(&mut input,limits()).unwrap();assert_eq!(lines.next().unwrap(),Some(Value::Null));assert_eq!(lines.next().unwrap(),None);}
+  input.close().unwrap();std::fs::remove_file(path).unwrap();
+ }
+ #[test]
+ fn owned_file_reader_closes_on_eof_error_and_early_drop() {
+  use crate::stdlib::{buffered_fs,fs};
+  use std::os::fd::AsRawFd;
+  unsafe extern "C" {fn fcntl(fd:i32,command:i32,...)->i32;}
+  let path=std::env::temp_dir().join(format!("tsrust-jsonl-owned-{}",std::process::id()));
+  for (input,mode) in [(b"null".as_slice(),0),(b"bad\n",1),(b"0\n1\n",2)] {
+   std::fs::write(&path,input).unwrap();
+   let file=fs::open(path.to_str().unwrap()).unwrap();let fd=file.get().0.as_raw_fd();
+   let mut lines=Lines::new(buffered_fs::buffer_reader(file,2).unwrap(),limits()).unwrap();
+   match mode {
+    0=>{assert_eq!(lines.next().unwrap(),Some(Value::Null));assert_eq!(unsafe{fcntl(fd,1)},-1);},
+    1=>{assert_eq!(lines.next().unwrap_err().error.code,"invalid-json");assert_eq!(unsafe{fcntl(fd,1)},-1);},
+    _=>{assert_eq!(lines.next().unwrap(),Some(Value::from(0)));assert_ne!(unsafe{fcntl(fd,1)},-1);},
+   }
+   drop(lines);assert_eq!(unsafe{fcntl(fd,1)},-1);
+  }
+  std::fs::remove_file(path).unwrap();
+ }
  struct Counted {reads:std::rc::Rc<std::cell::Cell<usize>>,drops:std::rc::Rc<std::cell::Cell<usize>>,bytes:&'static [u8]}
  impl Read for Counted {fn read(&mut self,out:&mut [u8])->io::Result<usize>{let count=out.len().min(self.bytes.len());out[..count].copy_from_slice(&self.bytes[..count]);self.bytes=&self.bytes[count..];self.reads.set(self.reads.get()+count);Ok(count)}}
  impl Drop for Counted {fn drop(&mut self){self.drops.set(self.drops.get()+1);}}

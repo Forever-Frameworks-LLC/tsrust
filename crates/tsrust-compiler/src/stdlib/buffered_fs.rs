@@ -1,6 +1,6 @@
 //! Owned, bounded file buffers. The underlying File has exactly one owner.
 use super::{fs::{FileHandle,FsFailure,MAX_READ_BYTES,validate_write_length},resource::{Backend,Resource}};
-use std::io::{Read,Write};
+use std::io::{BufRead,Read,Write};
 pub const DEFAULT_CAPACITY:i64=8192;
 pub const MAX_CAPACITY:i64=1048576;
 pub struct BufferedReaderBackend {file:FileHandle,buffer:Vec<u8>,start:usize,end:usize}
@@ -31,6 +31,33 @@ impl Backend for BufferedWriterBackend {
         flushed?;closed
     }
 }
+impl BufRead for BufferedReaderBackend {
+    fn fill_buf(&mut self)->std::io::Result<&[u8]> {
+        if self.start==self.end {
+            let count=loop {match self.file.get_mut().0.read(&mut self.buffer) {
+                Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,
+                result=>break result?,
+            }};
+            self.start=0;self.end=count;
+        }
+        Ok(&self.buffer[self.start..self.end])
+    }
+    fn consume(&mut self,count:usize) {self.start+=count.min(self.end-self.start);}
+}
+impl Read for BufferedReaderBackend {
+    fn read(&mut self,output:&mut [u8])->std::io::Result<usize> {
+        if output.is_empty() {return Ok(0);}
+        let available=self.fill_buf()?;let count=output.len().min(available.len());
+        output[..count].copy_from_slice(&available[..count]);self.consume(count);Ok(count)
+    }
+}
+impl BufRead for BufferedReader {
+    fn fill_buf(&mut self)->std::io::Result<&[u8]> {self.get_mut().fill_buf()}
+    fn consume(&mut self,count:usize) {self.get_mut().consume(count);}
+}
+impl Read for BufferedReader {
+    fn read(&mut self,output:&mut [u8])->std::io::Result<usize> {self.get_mut().read(output)}
+}
 pub fn buffered_read(reader:&mut BufferedReader,length:i64)->Result<Vec<u8>,FsFailure> {
     let length=usize::try_from(length).ok().filter(|length|*length<=MAX_READ_BYTES)
         .ok_or_else(||FsFailure::read_error("length-range","Read length must be between 0 and 67108864 bytes."))?;
@@ -39,15 +66,9 @@ pub fn buffered_read(reader:&mut BufferedReader,length:i64)->Result<Vec<u8>,FsFa
     // Reserve the result before performing I/O or consuming buffered bytes.
     let mut result=Vec::new();result.try_reserve_exact(length.min(reader.buffer.len()))
         .map_err(|_|FsFailure::read_error("allocation","Unable to allocate read buffer."))?;
-    if reader.start==reader.end {
-        let count=loop {match reader.file.get_mut().0.read(&mut reader.buffer) {
-            Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,
-            result=>break result.map_err(|error|FsFailure::io("read",error))?,
-        }};
-        reader.start=0;reader.end=count;
-    }
-    let count=length.min(reader.end-reader.start);
-    result.extend_from_slice(&reader.buffer[reader.start..reader.start+count]);reader.start+=count;Ok(result)
+    let available=reader.fill_buf().map_err(|error|FsFailure::io("read",error))?;
+    let count=length.min(available.len());
+    result.extend_from_slice(&available[..count]);reader.consume(count);Ok(result)
 }
 fn flush_buffer(output:&mut impl Write,buffer:&mut Vec<u8>)->Result<(),FsFailure> {
     let mut written=0;
