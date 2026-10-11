@@ -246,3 +246,22 @@ fn recursive_view_callback_storage_keeps_short_owner_diagnostics() {
     let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
     assert_eq!(diagnostic["code"], "native-view-escape");
 }
+
+#[test]
+fn recursive_record_parameter_callbacks_keep_shared_owner_diagnostics() {
+    let source = include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-parameters.tsr");
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, source.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers = source.split("function main()").next().unwrap();
+    for (version, arguments) in [(2, "read(short),other"), (3, "other,read(short)")] {
+        let source = format!("{helpers}function leak(other:ByteView){{const short=bytes(3);return take(build({arguments}));}}function main(){{const owner=bytes(7);const callback=leak(read(owner));const result=callback();console.log(length(result));}}");
+        workspace.open(id("main"), version, source);
+        let snapshot = workspace.snapshot();
+        let error = snapshot.check(&id("main")).err().unwrap();
+        assert_eq!(error.code, "native-view-escape");
+        let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+        let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+        assert_eq!(diagnostic["code"], "native-view-escape");
+    }
+}

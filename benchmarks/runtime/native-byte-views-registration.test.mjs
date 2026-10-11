@@ -96,7 +96,7 @@ test('Recursive stored callbacks retain invocation and traversal observations', 
     for (const [kind, file] of [['native', row.source], ['typescript', row.counterpart]]) {
         const source = read('./' + file);
         assertNativeByteViewsSource(source, row, kind);
-        for (const from of ['parent.next = root;', 'sum += first(root.read());', 'read: () => captured', 'depth % 2 === 0 ? node(owner) : alternate(owner)']) {
+        for (const from of ['parent.next = root;', 'sum += first(root.read());', 'read: () => captured', 'depth % 2 === 0 ? node(owner) : alternate(owner)', 'const tail=take(root);', 'return chunk.read;']) {
             const changed = replaceCodeSnippet(source, from, '');
             const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
             assert.throws(() => assertNativeByteViewsSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind));

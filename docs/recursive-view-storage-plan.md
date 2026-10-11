@@ -317,14 +317,25 @@ from a different closure. Returning an extracted callback retains the shared
 component lifetime and rejects even an owner retained only by a discarded sibling.
 The native 10,000-node probe now alternates two factories at O0/O3.
 
-Record-parameter transport remains pending. The saved `take(holder:Holder)` probe
-returning `holder.read` reports unresolved `error-effect` despite a constructed
-concrete argument. Its declared field still names the lifetime-free symbolic
-family. Resolve the parameter's concrete family and lifetime contract together;
-suppressing that diagnostic would not establish a correct native ABI. Also verify
-callback-only view storage, nullable callback fields and recursive replacement
-through parameters before gate 189 acceptance. The finite-layout guard remains
-for unsupported specializations.
+Record-parameter transport now has focused acceptance for a uniquely resolved
+concrete recursive component. Discovery collects callback families before binding
+parameters; definitive checking retains real owner summaries and replaces stale
+speculative callback return metadata. Native recursive records remain whole for
+ordinary readonly borrowing and partial moves. Constructors checked against a
+concrete parameter reuse the same component, including its mutually recursive
+members. There is no added allocation or recursive value conversion.
+
+The public parameter fixture and source variants cover owning/readonly parameters,
+whole-record returns, extracted callback returns, explicit callback annotations,
+inline construction, source-order permutations, mixed factories and mutual links.
+Both the actual captured owner and a discarded sibling owner reject escape. The
+native 10,000-node small-stack witness now passes through an owning record parameter
+and proves pointer identity and both owner lifetime rejections at O0/O3.
+
+Before gate 189 acceptance, verify callback-only view storage, nullable callback
+fields and recursive replacement through parameters. The finite-layout guard
+remains for unsupported specializations; multiple incompatible components are not
+resolved by choosing one arbitrarily.
 
 SQLite preserves 24 source-emission, CLI/editor, registration and formatting
 logs under `tsrust-nullable-links-*.log`, plus the exact callback probe source

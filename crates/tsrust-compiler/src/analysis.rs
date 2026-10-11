@@ -2509,6 +2509,8 @@ impl Analyzer {
             // Creation effects and loans above still apply to this invocation.
             // Emission reuses the first fully checked body and capture layout.
             if !self.discovering_results {
+                self.closures[id].function.native_returns = context.native_returns.clone();
+                self.closures[id].function.storage_exits = context.storage_exits.clone();
                 self.closures[id].function.bindings = context.bindings;
                 self.closures[id].function.body = if method_template {
                     body.clear();
@@ -4271,6 +4273,12 @@ impl Analyzer {
     }
 
     fn function_context(&mut self, index: usize, body: &mut [Stmt]) -> Result<Context, Diagnostic> {
+        // Discovery has collected concrete recursive components. Parameter
+        // bindings must carry that same callback family and shared lifetime.
+        let signature = &mut self.signatures[index];
+        for ty in signature.params.iter_mut().chain(&mut signature.body_params) {
+            *ty = self.scoped_records.recursive_parameter(*ty);
+        }
         let mut context = Context::new(self.program.functions[index].name.text.clone());
         context.effects_only = self.effects_only;
         context.template = self.templates.contains_key(&index);
@@ -5396,14 +5404,21 @@ impl Analyzer {
     /// that a constructed record of its type holds. Records are constructed in
     /// any function, so construct them all before a handler is typed: check
     /// each body once without recording effects and without following calls.
-    /// Errors are ignored here; the definitive check reports them.
+    /// Recursive view parameters also need the concrete callback families that
+    /// constructors select. Errors are ignored here; definitive checking reports
+    /// them and replaces speculative callback return-lifetime metadata.
     #[inline(never)]
     fn discover_record_callbacks(&mut self) {
         let borrowing_field = |record: &Record| record.fields.iter().any(|field| {
             matches!(field.ty, Some(Type::Callback(id)) if !self.callables.callbacks[id].kind.is_owned())
         });
-        if !self.program.records.iter().any(borrowing_field)
-            || !self.program.functions.iter().any(|function| return_type_inference::has_exception_region(&function.body))
+        let recursive_views = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
+        let recursive_callbacks = self.program.records.iter().enumerate().any(|(id, record)|
+            recursive_views.access(id).is_some() && record.fields.iter().any(|field| matches!(field.ty, Some(Type::StoredCallable(_)))))
+            && self.signatures.iter().any(|signature| signature.params.iter().any(|ty|
+                matches!(ty, Type::Record(record) if recursive_views.access(*record).is_some())));
+        if !recursive_callbacks && (!self.program.records.iter().any(borrowing_field)
+            || !self.program.functions.iter().any(|function| return_type_inference::has_exception_region(&function.body)))
         {
             return;
         }

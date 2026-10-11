@@ -57,7 +57,9 @@ pub(super) fn target(expression:&Expr)->Option<Target> {
 
 impl Analyzer {
     pub(super) fn remember_native_function_returns(&self,context:&mut Context,id:usize,span:Span)->Result<(),Diagnostic> {
-        if !self.native_borrow_types {return Ok(());}
+        // Discovery resolves field types without following calls. Only the
+        // definitive pass can require and transport checked owner summaries.
+        if !self.native_borrow_types || self.discovering_results {return Ok(());}
         let Some(function)=self.checked[id].as_ref() else {
             if self.native_shape_contains_view(self.signatures[id].result) {
                 return Err(Diagnostic::new("native-view-call","Recursive returned views require a stabilized source lifetime summary.",span));

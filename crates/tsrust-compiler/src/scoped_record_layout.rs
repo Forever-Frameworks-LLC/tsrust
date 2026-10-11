@@ -10,6 +10,7 @@ pub(crate) struct Registry {
     bases: HashMap<usize, usize>,
     instances: HashMap<(usize, Vec<Type>), usize>,
     recursive_instances: HashMap<(usize, Vec<Type>), usize>,
+    recursive_parameters: HashMap<usize, std::collections::HashSet<usize>>,
     parameter_contracts: std::collections::HashSet<usize>,
 }
 
@@ -71,6 +72,9 @@ mod recursive_tests {
         let links = crate::recursive_links::Index::new(&records, |id| unions.members(id));
         assert!(links.boxed(next, specialized));
         assert_eq!(registry.materialize_recursive(0, fields, &mut records, &unions).unwrap(), specialized);
+        let concrete_fields = records[specialized].fields.iter().map(|field| field.ty.unwrap()).collect();
+        assert_eq!(registry.materialize_recursive(specialized, concrete_fields, &mut records, &unions).unwrap(), specialized);
+        assert_eq!(registry.recursive_parameter(Type::Record(0)), Type::Record(specialized));
         assert_eq!(records.len(), 2);
     }
 
@@ -89,6 +93,7 @@ mod recursive_tests {
             &mut records, &unions).unwrap();
         let Type::Array(ArrayElement::Record(child, 2)) = records[specialized].fields[1].ty.unwrap() else { panic!("preserved array rank") };
         assert_eq!(registry.declaration(child), 1);
+        assert_eq!(registry.recursive_parameter(Type::Record(1)), Type::Record(child));
         let back = records[child].fields[0].ty.unwrap().union().unwrap();
         assert!(unions.members(back).contains(&Type::Record(specialized)));
         assert_eq!(records[specialized].fields[2].ty, Some(Type::Record(2)));

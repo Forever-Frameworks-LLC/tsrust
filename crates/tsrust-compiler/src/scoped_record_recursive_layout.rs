@@ -4,6 +4,14 @@ use crate::{Diagnostic, Span, syntax::{ArrayElement, Record, Type}, unions::Unio
 use std::collections::{HashMap, HashSet};
 
 impl Registry {
+    pub(crate) fn recursive_parameter(&self, ty: Type) -> Type {
+        let Type::Record(base) = ty else { return ty; };
+        if self.declaration(base) != base { return ty; }
+        let mut instances = self.recursive_parameters.get(&base).into_iter().flatten().copied();
+        let Some(instance) = instances.next() else { return ty; };
+        if instances.all(|other| other == instance) { Type::Record(instance) } else { ty }
+    }
+
     pub(crate) fn materialize_recursive(
         &mut self,
         base: usize,
@@ -12,8 +20,7 @@ impl Registry {
         unions: &UnionArena,
     ) -> Result<usize, Diagnostic> {
         let base = self.declaration(base);
-        let key = (base, types);
-        if let Some(&id) = self.recursive_instances.get(&key) { return Ok(id); }
+        if let Some(&id) = self.recursive_instances.get(&(base, types.clone())) { return Ok(id); }
         let mut edges = vec![Vec::new(); records.len()];
         let mut reverse = vec![Vec::new(); records.len()];
         for (id, record) in records.iter().enumerate() {
@@ -42,7 +49,27 @@ impl Registry {
         let mut component = forward.intersection(&back).copied().collect::<Vec<_>>();
         component.sort_unstable();
         if component.len() == 1 && !edges[base].contains(&base) {
-            return Ok(self.materialize(base, key.1, records));
+            return Ok(self.materialize(base, types, records));
+        }
+        // A literal checked against a concrete parameter already names the
+        // component's concrete links. Normalize those links before lookup so
+        // it reuses the same finite layout as a nominally annotated literal.
+        let declarations = self.bases.iter().filter_map(|(&instance, &declaration)|
+            component.contains(&declaration).then_some((instance, declaration))).collect();
+        let types = types.into_iter().map(|ty| remap_type(ty, &declarations, unions)).collect::<Result<Vec<_>, _>>()?;
+        let key = (base, types);
+        if let Some(&id) = self.recursive_instances.get(&key) { return Ok(id); }
+        // Another member may have materialized this component already. Reuse
+        // its matching record instead of cloning a second, symbolic component.
+        let mut matching = Vec::new();
+        for &instance in self.recursive_parameters.get(&base).into_iter().flatten() {
+            let fields = records[instance].fields.iter().map(|field|
+                remap_type(field.ty.expect("concrete field"), &declarations, unions)).collect::<Result<Vec<_>, _>>()?;
+            if fields == key.1 { matching.push(instance); }
+        }
+        if let [instance] = matching.as_slice() {
+            self.recursive_instances.insert(key, *instance);
+            return Ok(*instance);
         }
         // Reserve identities before rewriting any edge. No recursively expanded
         // record or callback environment is needed, even for mutually recursive types.
@@ -61,7 +88,11 @@ impl Registry {
             instances.push(record);
         }
         records.extend(instances);
-        for (&original, &instance) in &remap { self.bases.insert(instance, self.declaration(original)); }
+        for (&original, &instance) in &remap {
+            let declaration = self.declaration(original);
+            self.bases.insert(instance, declaration);
+            self.recursive_parameters.entry(declaration).or_default().insert(instance);
+        }
         let instance = remap[&base];
         self.recursive_instances.insert(key, instance);
         Ok(instance)

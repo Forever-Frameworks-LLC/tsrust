@@ -267,3 +267,46 @@ fn recursive_callbacks_return_extracted_families_with_shared_owner_lifetimes() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
 }
+
+#[test]
+fn recursive_callback_record_parameters_return_the_stored_family() {
+    let helpers = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let declarations = "function take(holder:Holder){return holder.read;}function size(holder:ReadOnly<Holder>):int{return length(holder.data);}function relay(holder:Holder):Holder{return holder;}";
+    let main = "function main(){const first=bytes(3);const second=bytes(7);const holder=relay(build(read(first),read(second)));strictEqual(size(holder),2);const callback=take(holder);const result=callback();match(at(result,0)){Ok(value)=>{strictEqual(value,7);},Err(error)=>{throw error.message;},}}";
+    let direct = helpers.split("function build(").next().unwrap();
+    let mutual_helpers = helpers.replace("next?: Holder;", "next?: Link;").replace("function bytes", "type Link={value:Holder;};function bytes");
+    let mutual = format!("{mutual_helpers}{declarations}function takeLink(link:Link){{return take(link.value);}}{}", main.replace("const callback=take(holder);", "holder.next={value:build(read(first),read(second))};const callback=takeLink(holder.next!);"));
+    let sources = [
+        mutual,
+        format!("{helpers}{}{main}", declarations.replace("function take(holder:Holder)", "function take(holder:Holder):Once<Function<ByteView>>")),
+        format!("{helpers}function other(first:ByteView,second:ByteView):Holder{{return {{data:first,read:()=>second}};}}{declarations}{}", main.replace("build(read(first),read(second))", "other(read(first),read(second))")),
+        format!("{helpers}{declarations}{main}"),
+        format!("{declarations}{main}{helpers}"),
+        format!("{direct}{declarations}{}", main.replace("const holder=", "const selected=read(second);const holder=").replace("build(read(first),read(second))", "{data:read(first),read:()=>selected}")),
+        format!("{helpers}{declarations}{}", main.replace("const callback=take(holder);", "const child:Holder=build(read(first),read(second));holder.next=child;const callback=take(holder.next!);")),
+    ];
+    for source in sources {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(&source));
+        for optimized in [false, true] {
+            let mut command = support::cli();
+            command.arg("run").arg(&path);
+            if optimized { command.arg("--release"); }
+            support::success(&support::run(&mut command,120));
+        }
+    }
+}
+
+#[test]
+fn recursive_callback_record_parameters_preserve_every_owner() {
+    let helpers = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    for arguments in ["read(short),other", "other,read(short)"] {
+        let source = format!("{helpers}function take(holder:Holder){{return holder.read;}}function leak(other:ByteView){{const short=bytes(3);return take(build({arguments}));}}function main(){{const owner=bytes(7);const callback=leak(read(owner));const result=callback();console.log(length(result));}}");
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(&source));
+        let output = support::run(support::cli().arg("check").arg(path),60);
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
+    }
+}

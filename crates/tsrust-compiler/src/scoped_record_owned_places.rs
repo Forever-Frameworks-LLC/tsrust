@@ -45,6 +45,11 @@ impl Emitter<'_> {
     ) -> Option<crate::scoped_record_places::Layout> {
         if self.finally_moves.contains(fun,id) {return None;}
         let binding = fun.bindings.get(id)?;
+        // Recursive view components deliberately share one lifetime. Keep their
+        // concrete record intact so ordinary borrowing and partial moves agree.
+        if matches!(binding.ty, Type::Record(record) if self.native_views.recursive(record)) {
+            return None;
+        }
         if binding.parameter && id >= fun.parameter_count {
             return None;
         }

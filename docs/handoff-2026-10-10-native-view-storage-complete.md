@@ -169,15 +169,28 @@ The matched stored-callback workload now alternates two factories and keeps the
 same operation denominator and independent oracle. Original untimed records remain
 intact; see the acceptance map for the new records.
 
-Next: recursive record parameter transport. The saved
-`tsrust-recursive-family-return.tsr` probe has `take(holder:Holder){return holder.read;}`
-and fails with `error-effect`: the parameter's symbolic callback family has no
-resolved origin, although the argument is a concrete constructed record. The
-`take(first,second){const holder=build(first,second);return holder.read;}` form now
-passes native execution and shortest-owner rejection, so the outstanding issue is
-parameter representation/provenance. Verify callback-only view storage and nullable
-callback fields too. Then finish resource gate 190, S07 acceptance and the roadmap.
-Installed consumers remain `4367f4cc`; no family timing has run.
+Recursive record parameters now retain the concrete callback family and shared
+owner lifetime. The public `recursive-parameters.tsr` fixture exercises owning
+transport, readonly field access, whole-record return and callback extraction.
+Additional checks cover both declaration orders, direct construction, explicit
+callback result annotations, mixed factories, nullable child extraction and mutual
+record parameters. Both the captured owner and a discarded sibling owner reject
+escape. The native 10,000-node probe now consumes the chain through a parameter,
+checks slice pointer identity and rejects both short-owner cases at O0/O3.
+
+Discovery collects the concrete component before parameter binding. It does not
+require native callee lifetime summaries; definitive checking does. Rechecked
+closures now replace return-lifetime and storage-exit metadata. Recursive records
+retain whole native storage so readonly borrows and partial moves agree. Cache
+normalization reuses concrete parameter literals and other members of an already
+materialized component; it does not introduce recursive conversion or allocations.
+No arbitrary component is selected when several incompatible instances exist.
+
+Next: verify and complete callback-only recursive view storage, nullable callback
+fields, and replacement through recursive parameters. The finite-layout guard
+remains for unsupported specializations. Then finish resource gate 190, S07
+acceptance and the roadmap. Installed consumers remain `4367f4cc`; no family timing
+has run. See the acceptance map for this checkpoint's exact evidence.
 
 ## Working environment
 

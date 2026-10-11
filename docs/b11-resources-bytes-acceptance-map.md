@@ -9,8 +9,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive callback parameter/storage composition; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive callback parameter/storage composition | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending remaining recursive callback storage composition; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending remaining recursive callback storage composition | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -796,3 +796,40 @@ reports an unresolved `error-effect` contract despite a concrete constructed
 argument. Resolve parameter family identity and lifetime provenance together.
 Callback-only view storage and nullable callback-field composition still need
 verification. Gate 189, gate 190 and S07 remain open; consumers stay `4367f4cc`.
+
+### Recursive callback record parameter transport
+
+Recursive record parameters now retain the concrete stored callback family and
+shared owner lifetime. The public `recursive-parameters.tsr` fixture covers owning
+transport, readonly access, whole-record returns and callback extraction. Focused
+variants add source-order permutations, direct construction, explicit callable
+return annotations, mixed factories, nullable child extraction and mutual links.
+Both a captured short owner and a discarded sibling short owner reject escape.
+
+Concrete literals and mutually recursive members reuse the existing component.
+Recursive records retain whole native storage for borrowing and partial moves.
+Discovery does not require native return summaries; definitive checking does, and
+reused closures refresh their return-lifetime/storage-exit metadata. No byte copy,
+shared owner, lifetime erasure, added link allocation or recursive conversion is
+introduced. Incompatible component ambiguity is not resolved arbitrarily.
+
+Focused evidence covers the 21 public byte tests, including repaired affected
+recursive cases; 34 record tests; 114 callable tests; four native family tests;
+three editor diagnostics tests; five benchmark registration/mutation tests; and
+the formatter token/idempotence corpus. The native chain witness now transports
+10,000 links through an owning parameter at O0/O3, proves slice pointer identity,
+and rejects both short-owner cases on the Rust side.
+
+The matched stored-callback workload now returns its final callback through a
+record parameter. Both engines keep the original 17-node observation and operation
+denominator. Gate 189 still needs the remaining storage compositions; gate 190,
+S07 regressions and family measurements remain pending. Installed consumers remain
+`4367f4cc`.
+
+Native and Node-after-tsc agree on five untimed cases in SQLite record
+`runtime/results/2026-10-11T06-42-06-526Z-verify.json` (`verifiedOnly: true`, no
+execution samples). SQLite also preserves 31 exact logs under
+`tsrust-recursive-parameter-*.log`, including failed witnesses and their repairs.
+All records were read back byte-for-byte before loose copies were deleted;
+`PRAGMA quick_check` passes. Final whole-project formatting changed no files;
+the formatted public parameter fixture executes with the release compiler.

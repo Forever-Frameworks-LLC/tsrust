@@ -20642,10 +20642,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": false,
       "measured": false,
-      "notes": "Recursive records combine two factories in one stored callback field family. Matched untimed verification and S07 acceptance are tracked separately.",
-      "specification": "Build a 17-node nullable chain alternating two callback factories. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, recording node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "62d9abaa049c635acc1609a6bf49e1928b58dda30e1f4f4e17f67a1b8a9b9b38",
-      "counterpartSha256": "840a84f0ed490f5a8107e6b05110470d915738cf74ef0ef0c27da46750f2691d"
+      "notes": "Recursive records combine two factories in one stored callback field family and return the final callback through a record parameter. Matched untimed verification and S07 acceptance are tracked separately.",
+      "specification": "Build a 17-node nullable chain alternating two callback factories. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, returning the final callback through an owning record parameter after observing its direct view length. Record node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
+      "sourceSha256": "64a1045afca2c2ce41404547b389f36c0f0681ddd25503552030173df8270e45",
+      "counterpartSha256": "b519c217ef660bcd279da69869c7069dc52b4d534bbe22286cb23a77ef340c1c"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -3,6 +3,8 @@ function byteWindow(owner: Uint8Array): Uint8Array { return owner.subarray(0, 2)
 function first(data: Uint8Array): number { return data[0]; }
 function node(owner: Uint8Array): Chunk { const data=byteWindow(owner); const captured=byteWindow(owner); return {data:data,read:()=>captured}; }
 function alternate(owner: Uint8Array): Chunk { const data=byteWindow(owner); const captured=byteWindow(owner); return {data:data,read:()=>captured}; }
+function take(chunk: Chunk) { return chunk.read; }
+
 function workload(n: number, seed: number, input: string): number[][] {
   const output: number[][] = [];
   let i = 0;
@@ -23,9 +25,11 @@ function workload(n: number, seed: number, input: string): number[][] {
       const child = root.next!;
       root = child;
     }
-    sum += first(root.read());
+    const size = root.data.length;
+    const tail = take(root);
+    sum += first(tail());
     count++;
-    output.push([count, sum, root.data.length]);
+    output.push([count, sum, size]);
     i++;
   }
   return output;

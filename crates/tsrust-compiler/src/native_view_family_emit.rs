@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn recursive_view_callback_native_chain_keeps_identity_and_bounded_drop() {
-        let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function other(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function main(){}";
+        let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function other(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function take(holder:Holder){return holder.read;}function main(){}";
         let source = crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&source).unwrap(), source);
         let mut parsed = crate::syntax::parse(&source).unwrap();
@@ -272,18 +272,19 @@ mod tests {
         assert_eq!(checked.functions[other].result, Type::Record(record));
         let Type::StoredCallable(family) = checked.records[record].fields[1].ty.unwrap() else { unreachable!() };
         assert_eq!(checked.stored_contracts.origins(family).unwrap().len(), 2);
+        let take = checked.functions.iter().position(|function| function.name == "take").unwrap();
         let union = checked.records[record].fields[2].ty.unwrap().union().unwrap();
         let tag = checked.unions[union.index()].members.iter().position(|ty| *ty == Type::Record(record)).unwrap();
         let union = union.index();
         let make = format!("function{factory}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let alternate = format!("function{other}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
-        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());let result=root.field1.call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);drop(root.field2);}}).unwrap().join().unwrap();}}");
-        let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained=holder.field1.call();}}assert_eq!(retained.bytes[0],7);}}");
+        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());let result=function{take}(root).call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
+        let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
         let mut generated = crate::emit::emit(&checked);
         let main = generated.find("fn main()").unwrap();
         let opening = main + generated[main..].find('{').unwrap() + 1;
         generated.insert_str(opening,"family_probe();");
-        let sibling_owner = format!("fn invalid_sibling_escape(){{let retained;let second=vec![7u8];{{let first=vec![3u8];let holder={make};retained=holder.field1.call();}}assert_eq!(retained.bytes[0],7);}}");
+        let sibling_owner = format!("fn invalid_sibling_escape(){{let retained;let second=vec![7u8];{{let first=vec![3u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
         compile_family(&generated,"",&probe,vec![(negative,"does not live long enough"),(sibling_owner,"does not live long enough")],"recursive-chain");
     }
 
