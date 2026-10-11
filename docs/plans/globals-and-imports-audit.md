@@ -128,3 +128,10 @@ The [Math/Number review](globals-and-imports-math-number-audit.md) covers 58
 namespace members, independently reconciled against compiler targets/constants.
 Keep global placement and explicit numeric contracts. Number conversion, other
 namespaces and remaining receiver/type surfaces are still pending.
+
+## Object/console review slice
+
+The [Object/console review](globals-and-imports-object-console-audit.md) covers 27
+members, reflection limits, output effects and console argument exceptions.
+Keep global placement. countReset parameter documentation now matches its existing
+non-string-label exception; runtime behavior is unchanged.

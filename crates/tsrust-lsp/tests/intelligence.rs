@@ -9889,3 +9889,12 @@ fn authored_documentation_preserves_lines_tags_and_inferred_signatures() {
     let item=completion.as_array().unwrap().iter().find(|item|item["label"]=="greeting").unwrap();
     assert!(item["documentation"]["value"].as_str().unwrap().contains("**Returns**"),"{item}");
 }
+
+#[test]
+fn console_count_reset_documents_string_label_requirement() {
+    let source="function main(){console.countReset(1);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","countReset",0);
+    let docs=hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(docs.contains("Non-string labels other than undefined warn"),"{hover}");
+}

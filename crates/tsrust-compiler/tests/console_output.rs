@@ -231,3 +231,9 @@ fn nullable_console_values_preserve_payloads_absence_and_borrows() {
         console.log(lower.join('|'),upper.join('|'));
     }"#, "Charlie\nCharlie\nundefined\n7 null\n{ name: null }\nnull\n{ name: 'Pat' }\npresent\n[ 1, 2 ]\n[ 1, 2 ]\nalice|bob|charlie ALICE|BOB|CHARLIE\n", "");
 }
+
+#[test]
+fn count_reset_requires_string_labels_without_resetting_numeric_labels() {
+    let source=support::format_round_trip(r#"function main(){console.count(1);console.countReset(1);console.count(1);console.countReset("1");console.count(1);console.count();console.countReset(undefined);console.count();}"#);
+    native(&source,"1: 1\n1: 2\n1: 1\ndefault: 1\ndefault: 1\n","Count for '1' does not exist\n");
+}
