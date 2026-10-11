@@ -124,3 +124,18 @@ Logs `tsrust-test-log-*` are retained in SQLite, including the initial fixture i
 path error and its repair. Formatting and installed refresh evidence accompany the
 source checkpoint. This user-priority repair does not close S09 or its pending
 buffered-file benchmark acceptance.
+
+## Dev-loop performance follow-up
+
+The first repair keeps normal output to watching/build-duration/program output,
+with process details and compiler phase timings behind `--verbose`. Dev builds now
+reuse the validated `target/tsrust-native` cache across sessions, while executable
+copies remain private. Five project CLI checks cover quiet output, cache hits across
+sessions, dependency restarts, retaining the last good program on errors and process
+group shutdown. Evidence is stored as `tsrust-dev-loop-*` in SQLite.
+
+A three-start diagnostic smoke records cold and identical warm startups and phase
+timings; this is not a statistical performance benchmark. Fresh edits still compile
+the whole generated native program. Event-based watching, retained compiler state,
+native runtime separation and cache-retention policy remain follow-up work. Keep
+these items open rather than equating warm artifact reuse with incremental builds.

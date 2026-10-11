@@ -16,7 +16,7 @@ const USAGE: &str = "tsrust — native TypeScript-style programs
 Usage:
   tsrust <command> [input.tsr] [options]
   tsrust new <name-or-path>
-  tsrust dev [--release] [-- program-arguments]
+  tsrust dev [--release] [--verbose] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
@@ -192,6 +192,7 @@ fn run() -> Result<u8, String> {
     }
     let source = fs::read_to_string(&source_path).map_err(|e| e.to_string())?;
 
+    let check_started=std::time::Instant::now();
     let checked = if command == "test" {
         tsrust_compiler::project_cli::check_test_inputs(&test_paths)
     } else { tsrust_compiler::project_cli::check_input(&source_path, &source) };
@@ -220,7 +221,10 @@ fn run() -> Result<u8, String> {
     {
         return Err("output must not overwrite a project source file".into());
     }
+    let check_elapsed=check_started.elapsed();
+    let emit_started=std::time::Instant::now();
     let (rust, native_features) = analysis.emit_rust_with_native_features();
+    let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
         if let Some(output) = output {
             fs::write(output, rust).map_err(|e| e.to_string())?;
@@ -229,7 +233,9 @@ fn run() -> Result<u8, String> {
         }
         return Ok(0);
     }
+    let backend_started=std::time::Instant::now();
     let backend_identity = verify_backend()?;
+    let backend_elapsed=backend_started.elapsed();
     let directory = TempDirectory::new().map_err(|e| e.to_string())?;
     let generated = directory.0.join("program.rs");
     fs::write(&generated, &rust).map_err(|e| e.to_string())?;
@@ -278,9 +284,12 @@ fn run() -> Result<u8, String> {
             features.as_bytes(),
         ],
     );
+    let cache_started=std::time::Instant::now();
     let reused = cache
         .lookup()
         .is_some_and(|cached| fs::copy(cached, &executable).is_ok());
+    let cache_elapsed=cache_started.elapsed();
+    let native_started=std::time::Instant::now();
     if !reused {
         let result = backend_command()
             .arg("--edition=2024")
@@ -313,6 +322,9 @@ fn run() -> Result<u8, String> {
         }
         // Cache failure must not turn a successful native build into a failure.
         let _ = cache.publish(&executable);
+    }
+    if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1") {
+        eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",check_elapsed.as_secs_f64()*1000.0,emit_elapsed.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused {"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused {0.0}else{native_started.elapsed().as_secs_f64()*1000.0});
     }
     if command == "run" || command == "test" {
         let mut executable_command=Command::new(&executable);

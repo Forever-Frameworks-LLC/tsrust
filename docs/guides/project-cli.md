@@ -64,3 +64,17 @@ on its original stream; logs are retained when a test fails. Colors follow
 terminal support and `--color auto|always|never`. Set `TSRUST_TEST_REPORTER=plain` for
 the compact line reporter used by older scripts. Direct `runTests()` calls retain
 that compact output unless the pretty reporter is selected through the environment.
+
+
+Dev output defaults to one watching message and a build/rebuild duration, followed
+by program output. Successful program exits are silent; failed builds and nonzero
+exits remain visible. `tsrust dev --verbose` adds process IDs, temporary binary
+paths and successful exit messages, plus checking, emission, backend verification,
+cache lookup and combined native compilation/linking timings.
+
+Dev shares the validated project cache at `target/tsrust-native` across edits and
+sessions. Each running executable remains a private copy, so builds cannot overwrite
+its inode. Identical source/toolchain/options reuse an artifact; a new source version
+still needs native compilation. The watcher still polls source contents and checking
+still starts afresh for each build. Filesystem events, retained compiler state and
+separate runtime compilation remain follow-up performance work.

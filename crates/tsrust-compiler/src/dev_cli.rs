@@ -55,24 +55,29 @@ mod platform {
         for path in files {values.insert(path.clone(),fs::read(&path).map_err(|e|format!("{}: {e}",path.display()))?);}
         Ok(values)
     }
-    fn build(root:&Path,release:bool,expected:&Fingerprint)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint)->Result<Option<(TempDirectory,PathBuf)>,String> {
         let project=project_config::load(root)?;
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
         let binary=files.0.join("program");
         let mut command=Command::new(std::env::current_exe().map_err(|e|e.to_string())?);
         command.current_dir(root).arg("build").arg(&project.entry).arg("--output").arg(&binary)
-            .env("TSRUST_CACHE_DIR",files.0.join("cache"));
+            .env("TSRUST_CACHE_DIR",root.join("target/tsrust-native"));
+        if verbose {command.env("TSRUST_BUILD_TIMINGS","1");} else {command.stdout(std::process::Stdio::null()).env_remove("TSRUST_BUILD_TIMINGS");}
         if release {command.arg("--release");}
         let mut compiler=Process::spawn(&mut command)?;
+        let mut last_input_check=Instant::now();
         let status=loop {
-            if STOP.load(Ordering::Relaxed) || &fingerprint(root)!=expected {return Ok(None);}
+            if STOP.load(Ordering::Relaxed) {return Ok(None);}
+            if last_input_check.elapsed()>=Duration::from_millis(100) {
+                if &fingerprint(root)!=expected {return Ok(None);}
+                last_input_check=Instant::now();
+            }
             if let Some(status)=compiler.child.try_wait().map_err(|e|e.to_string())? {break status;}
-            std::thread::sleep(Duration::from_millis(100));
+            std::thread::sleep(Duration::from_millis(20));
         };
         compiler.stop();
         if !status.success(){return Err("Build failed".into());}
-        // A private per-build cache must not accumulate across edit cycles.
-        let _=fs::remove_dir_all(files.0.join("cache"));
+        // The executable stays private; validated native cache entries survive edits and restarts.
         Ok(Some((files,binary)))
     }
     #[cfg(test)]
@@ -94,35 +99,40 @@ mod platform {
         }
     }
     pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
-        let mut release=false;let mut program_args=Vec::new();let mut passthrough=false;
+        let mut release=false;let mut verbose=false;let mut program_args=Vec::new();let mut passthrough=false;
         for arg in args {
             if passthrough {program_args.push(arg);continue;}
             match arg.as_str() {
                 "--"=>passthrough=true,
                 "--release" if !release=>release=true,
-                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [-- program-arguments]")),
+                "--verbose" if !verbose=>verbose=true,
+                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [-- program-arguments]")),
             }
         }
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
         let _signals=Signals::install()?;
         let root=project.root;
         eprintln!("[dev] Watching {}. Press Ctrl+C to stop.",root.display());
-        let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;
+        let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
         while !STOP.load(Ordering::Relaxed) {
             let input=fingerprint(&root);
             if previous.as_ref()!=Some(&input) {
-                // Require one quiet interval; a new edit replaces pending work.
-                std::thread::sleep(Duration::from_millis(100));
-                if fingerprint(&root)!=input {continue;}
+                // Debounce edits, but initial startup has no preceding edit burst.
+                if previous.is_some() {
+                    std::thread::sleep(Duration::from_millis(100));
+                    if fingerprint(&root)!=input {continue;}
+                }
                 previous=Some(input.clone());
-                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,&input)};
+                let build_started=Instant::now();
+                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input)};
                 match result {
                     Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && fingerprint(&root)==input=>{
+                        eprintln!("[dev] {} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0);built_once=true;
                         if let Some(mut old)=running.take(){old.process.stop();}
                         let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
                         match Process::spawn(&mut command) {
                             Ok(process)=>{
-                                eprintln!("[dev] Started program (pid {}).",process.child.id());
+                                if verbose {eprintln!("[dev] Started program (pid {}).",process.child.id());}
                                 running=Some(Running{process,_files:files});
                             },
                             Err(error)=>eprintln!("[dev] Cannot start program: {error}"),
@@ -135,7 +145,7 @@ mod platform {
             }
             if let Some(active)=&mut running {
                 if let Some(status)=active.process.child.try_wait().map_err(|e|e.to_string())? {
-                    eprintln!("[dev] Program exited with {status}; waiting for changes.");
+                    if verbose || !status.success() {eprintln!("[dev] Program exited with {status}; waiting for changes.");}
                     running.take();
                 }
             }

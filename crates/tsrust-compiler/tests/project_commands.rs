@@ -82,7 +82,7 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     let root=dir.0.join("hello");
     fs::write(root.join("src/main.tsr"),"import {greeting} from './greeting.tsr';function main(){console.log(greeting());while(true){}}").unwrap();
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return 42;}").unwrap();
-    let mut dev=Dev(support::cli().current_dir(root.join("src")).args(["dev","--","--help"]).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap());
+    let mut dev=Dev(support::cli().current_dir(root.join("src")).args(["dev","--verbose","--","--help"]).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap());
     let (tx,rx)=mpsc::channel();
     let out=dev.0.stdout.take().unwrap();let err=dev.0.stderr.take().unwrap();
     let sender=tx.clone();std::thread::spawn(move||{for line in BufReader::new(out).lines(){if sender.send(line.unwrap()).is_err(){break;}}});
@@ -107,4 +107,31 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     unsafe {kill(dev.0.id() as i32,2);}
     wait(&rx,&mut lines,"[dev] Stopped.");
     assert!(dev.0.wait().unwrap().success());assert_ne!(unsafe {kill(new,0)},0,"interrupted dev must reap its program");
+}
+
+#[cfg(unix)]
+#[test]
+fn dev_is_quiet_by_default_and_reuses_native_builds_across_sessions() {
+ use std::{io::{BufRead,BufReader},process::Stdio,sync::mpsc,time::Duration};
+ unsafe extern "C" {fn kill(pid:i32,signal:i32)->i32;}
+ let dir=support::TempDirectory::new();support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","cache-demo"]),20));let root=dir.0.join("cache-demo");
+ for verbose in [false,true] {
+  let mut command=support::cli();command.current_dir(&root).arg("dev");if verbose{command.arg("--verbose");}
+  let mut child=command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+  let out=child.stdout.take().unwrap();let err=child.stderr.take().unwrap();let(tx,rx)=mpsc::channel();let sender=tx.clone();
+  std::thread::spawn(move||for line in BufReader::new(out).lines(){if sender.send(line.unwrap()).is_err(){break;}});
+  std::thread::spawn(move||for line in BufReader::new(err).lines(){if tx.send(line.unwrap()).is_err(){break;}});
+  let mut lines=Vec::new();let mut success=false;
+  for _ in 0..30 {
+   match rx.recv_timeout(Duration::from_secs(2)){Ok(line)=>{success|=line.contains("Hello from cache-demo!");lines.push(line);if success{break;}},Err(_)=>break}
+  }
+  unsafe {kill(child.id() as i32,2);}
+  let status=child.wait().unwrap();lines.extend(rx.try_iter());
+  assert!(success&&status.success(),"{lines:?}");
+  if verbose {assert!(lines.iter().any(|line|line.contains("cache=hit")),"{lines:?}");}
+  else {
+   assert!(lines.iter().any(|line|line.contains("Built in")&&line.contains("ms")),"{lines:?}");
+   assert!(!lines.iter().any(|line|line.starts_with("Built /")||line.contains("pid ")||line.contains("exit status: 0")),"{lines:?}");
+  }
+ }
 }
