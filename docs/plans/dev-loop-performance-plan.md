@@ -446,3 +446,20 @@ remaining dev-loop performance/lifecycle review are still pending. The exact ful
 Runtime separation adds no required user flags: `tsrust build`, `run`, `test` and
 `dev` select, cache and link support automatically. The Rust backend's `--extern`
 argument is an internal implementation detail.
+
+## Cache contention and dev cancellation
+
+A focused lifecycle witness reproduced `dev` hanging on Ctrl+C while another
+process held the program-cache namespace lock. Dev now attempts cache lookup and
+publication without waiting, for both program and runtime artifacts. A busy cache
+causes a private build and skips publication if still busy. Ordinary build/run/test
+cache coordination is unchanged. This can duplicate compilation during contention,
+but preserves the existing isolation and eviction lock while keeping dev supervision
+responsive. No user option or configuration is required.
+
+Seventeen focused cache, retention, runtime-reuse and cancellation checks pass;
+the intentional subprocess-worker ignore is still exercised by its parent test.
+A strengthened witness holds both cache locks through compilation, observable
+program output and successful interruption. Original failure and passing evidence
+are stored as `tsrust-dev-cache-contention-*` and `tsrust-dev-both-cache-locks.log`
+in SQLite. These focused checks supplement the completed full regressions.

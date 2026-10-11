@@ -29,6 +29,26 @@ fn interrupt_cancels_backend_version_probe_and_its_descendants() {
  for pid in pids.split_whitespace().map(|s|s.parse::<i32>().unwrap()) {assert_ne!(unsafe{kill(pid,0)},0,"backend descendant {pid} survived interrupt");}
 }
 
+#[test]
+fn interrupt_during_cache_contention_reaps_dev() {
+ let dir=support::TempDirectory::new();
+ support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));
+ let root=dir.0.join("app");let mut locks=Vec::new();
+ for namespace in ["target/tsrust-native/v2","target/tsrust-native/runtime/v2"] {
+  let cache=root.join(namespace);fs::create_dir_all(&cache).unwrap();
+  let lock=fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(cache.join(".cache.lock")).unwrap();lock.lock().unwrap();locks.push(lock);
+ }
+ let log=dir.0.join("output");let file=fs::File::create(&log).unwrap();
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose"]).stdout(file.try_clone().unwrap()).stderr(file).process_group(0);
+ let mut dev=Group(command.spawn().unwrap());wait_text(&log,"syntax reused=");
+ // Both cache namespaces remain locked through private compilation, execution
+ // and shutdown. Neither lookup nor publication may block supervision.
+ wait_text(&log,"Hello from app!");
+ unsafe{kill(dev.0.id()as i32,2);}
+ let until=Instant::now()+Duration::from_secs(3);
+ loop {if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<until,"dev blocked on another cache user after interrupt");std::thread::sleep(Duration::from_millis(20));}
+}
+
 fn wait_text(path:&std::path::Path,needle:&str)->String {
  let until=Instant::now()+Duration::from_secs(20);
  loop {let text=fs::read_to_string(path).unwrap_or_default();if text.contains(needle){return text;}assert!(Instant::now()<until,"missing {needle}: {text}");std::thread::sleep(Duration::from_millis(20));}

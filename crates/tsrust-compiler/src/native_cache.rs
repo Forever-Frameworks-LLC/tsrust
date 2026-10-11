@@ -40,15 +40,22 @@ impl NativeCache {
     }
     /// Copy under the namespace lock so eviction cannot race a reader.
     pub fn copy_to(&self,destination:&Path)->bool {
-        let Ok(_lock)=self.lock() else{return false;};
+        self.copy_with_lock(destination,true)
+    }
+    /// Dev supervision must not wait for another process's cache lock.
+    pub fn try_copy_to(&self,destination:&Path)->bool {
+        self.copy_with_lock(destination,false)
+    }
+    fn copy_with_lock(&self,destination:&Path,wait:bool)->bool {
+        let Ok(_lock)=self.lock(wait) else{return false;};
         let Some(source)=self.lookup() else{return false;};
         if std::fs::copy(source,destination).is_err(){return false;}
         let _=std::fs::write(self.directory.join("used"),[]);true
     }
-    fn lock(&self)->std::io::Result<std::fs::File> {
+    fn lock(&self,wait:bool)->std::io::Result<std::fs::File> {
         let root=self.directory.parent().unwrap();std::fs::create_dir_all(root)?;
         let lock=std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(root.join(".cache.lock"))?;
-        lock.lock()?;Ok(lock)
+        if wait {lock.lock()?;} else {lock.try_lock().map_err(std::io::Error::from)?;}Ok(lock)
     }
     fn prune(&self)->std::io::Result<()> {
         let root=self.directory.parent().unwrap();let mut entries=Vec::new();let mut total=0u64;
@@ -73,10 +80,17 @@ impl NativeCache {
     }
     /// Publish a complete sibling staging directory atomically; serialize repair per cache identity.
     pub fn publish(&self, executable: &Path) -> std::io::Result<()> {
+        self.publish_with_lock(executable,true)
+    }
+    /// Return immediately when another process is copying or publishing.
+    pub fn try_publish(&self, executable:&Path)->std::io::Result<()> {
+        self.publish_with_lock(executable,false)
+    }
+    fn publish_with_lock(&self, executable:&Path,wait:bool)->std::io::Result<()> {
         let root = self.directory.parent().expect("cache directory parent");
         // New protocol has a separate namespace: older binaries may still hold
         // legacy per-artifact lock inodes, which must never be removed under them.
-        let _lock=self.lock()?;
+        let _lock=self.lock(wait)?;
         self.prune()?;
         if std::fs::metadata(executable)?.len().saturating_add(self.identity.len() as u64+8)>256*1024*1024{return Ok(());}
         if self.lookup().is_some(){let _=std::fs::write(self.directory.join("used"),[]);return Ok(());}

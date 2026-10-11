@@ -107,10 +107,10 @@ mod platform {
             b"native-cache-abi-2",backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
         ]);
-        let cache_started=Instant::now();let reused=cache.copy_to(&binary);let cache_elapsed=cache_started.elapsed();
+        let cache_started=Instant::now();let reused=cache.try_copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {
-            let mut prepared=crate::runtime_build::Prepared::new(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
+            let mut prepared=crate::runtime_build::Prepared::for_dev(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
             if let Some(mut command)=prepared.command.take() {
                 let errors=files.0.join("runtime.stderr");
                 command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
@@ -128,7 +128,7 @@ mod platform {
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
-            let _=cache.publish(&binary);
+            let _=cache.try_publish(&binary);
         }
         if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         Ok(Some((files,binary)))
