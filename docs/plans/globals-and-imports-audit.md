@@ -141,3 +141,9 @@ non-string-label exception; runtime behavior is unchanged.
 The [string review](globals-and-imports-string-audit.md) covers 50 receiver/static
 members, indexing units, errors and copying costs. Preserve current spellings;
 string conversion, remaining receiver families and type primitives remain pending.
+
+## Scalar conversion/formatting review slice
+
+The [scalar review](globals-and-imports-scalar-audit.md) covers fourteen global
+conversion and scalar receiver APIs. Preserve global/receiver placement and
+explicit rounding, parsing and fixed-locale contracts.
