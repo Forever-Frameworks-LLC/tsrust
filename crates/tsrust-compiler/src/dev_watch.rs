@@ -56,8 +56,10 @@ impl Watcher {
     }
     fn read_snapshot(&mut self,root:&Path)->Fingerprint {
         #[cfg(test)] {self.scans+=1;}
-        let mut files=tsrust_compiler::source_discovery::discover(&[root.to_owned()])?;
-        files.push(root.join(crate::project_config::FILE));
+        let mut files=tsrust_compiler::source_discovery::discover_project_inputs(&[root.to_owned()])?;
+        let config=root.join(crate::project_config::FILE);
+        files.push(fs::canonicalize(&config).map_err(|error|format!("{}: {error}",config.display()))?);
+        files.sort();files.dedup();
         let mut values=BTreeMap::new();
         for path in files {
             let error=|e:std::io::Error|format!("{}: {e}",path.display());

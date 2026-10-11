@@ -6,13 +6,40 @@ pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc
 /// Watcher-owned bytes remain fixed for the lifetime of a request. Files outside
 /// the existing watch policy retain normal filesystem resolution and reading.
 pub(crate) struct Snapshot {pub root:PathBuf,pub files:std::collections::BTreeMap<PathBuf,crate::dev_watch::Contents>}
+impl Snapshot {
+ fn normalize(&self,path:&std::path::Path)->PathBuf {
+  let mut normalized=PathBuf::new();
+  for component in path.components(){match component {std::path::Component::CurDir=>{},std::path::Component::ParentDir=>{normalized.pop();},other=>normalized.push(other.as_os_str())}}
+  normalized
+ }
+ fn captured(&self,path:&std::path::Path)->bool {
+  (path.extension().is_some_and(|ext|ext=="tsr")||path.file_name().is_some_and(|name|name=="tsrust.config.json"))&&path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))
+ }
+}
 impl SourceProvider for Snapshot {
- fn resolve(&self,importer:Option<&tsrust_compiler::project::SourceId>,path:&str)->Result<tsrust_compiler::project::SourceId,String> {FileSourceProvider.resolve(importer,path)}
+ fn resolve(&self,importer:Option<&tsrust_compiler::project::SourceId>,path:&str)->Result<tsrust_compiler::project::SourceId,String> {
+  use tsrust_compiler::{project::SourceId,project_resolution};
+  let candidates=if let Some(importer)=importer {
+   let aliases=project_resolution::discover(std::path::Path::new(&importer.0),|path|{
+    let path=self.normalize(path);
+    if let Some(contents)=self.files.get(&path){return String::from_utf8(contents.bytes().to_vec()).map(Some).map_err(|error|error.to_string());}
+    if self.captured(&path){return Ok(None);}
+    match std::fs::read_to_string(&path){Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(format!("{}: {error}",path.display()))}
+   })?;
+   project_resolution::candidates(std::path::Path::new(&importer.0),path,aliases.as_ref())?
+  }else{vec![PathBuf::from(path)]};
+  for candidate in &candidates {
+   let candidate=self.normalize(candidate);
+   if self.files.contains_key(&candidate){return Ok(SourceId(candidate.to_str().ok_or("Source path must be valid UTF-8.")?.into()));}
+   if !self.captured(&candidate)&&candidate.is_file(){return FileSourceProvider.resolve(None,candidate.to_str().ok_or("Source path must be valid UTF-8.")?);}
+  }
+  Err(format!("Source {path} is absent from this build snapshot; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))
+ }
  fn read(&self,id:&tsrust_compiler::project::SourceId)->Result<String,String> {
   let path=std::path::Path::new(&id.0);
   match self.files.get(path) {
    Some(contents)=>String::from_utf8(contents.bytes().to_vec()).map_err(|e|e.to_string()),
-   None if path.extension().is_some_and(|ext|ext=="tsr") && path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))=>Err(format!("{} is absent from this build snapshot",path.display())),
+   None if self.captured(path)=>Err(format!("{} is absent from this build snapshot",path.display())),
    None=>FileSourceProvider.read(id),
   }
  }
@@ -39,7 +66,7 @@ fn compile(session:&mut ProjectSession,entry:&std::path::Path,sources:&Snapshot)
  let mut identity=Vec::new();
  match &analysis {
   CheckedInput::Project(project)=>for(id,module)in &project.graph.modules {for value in [id.0.as_bytes(),module.source.text.as_bytes()] {identity.extend_from_slice(&(value.len()as u64).to_le_bytes());identity.extend_from_slice(value);}},
-  CheckedInput::Single(_)=>{let id=FileSourceProvider.resolve(None,entry.to_str().ok_or("Source path must be valid UTF-8.")?)?;identity.extend_from_slice(&(id.0.len()as u64).to_le_bytes());identity.extend_from_slice(id.0.as_bytes());identity.extend_from_slice(source.as_bytes());},
+  CheckedInput::Single(_)=>{let id=sources.resolve(None,entry.to_str().ok_or("Source path must be valid UTF-8.")?)?;identity.extend_from_slice(&(id.0.len()as u64).to_le_bytes());identity.extend_from_slice(id.0.as_bytes());identity.extend_from_slice(source.as_bytes());},
  }
  let stats=if matches!(analysis,CheckedInput::Project(_)){session.stats()}else{SessionStats::default()};
  Ok(Output{rust,features,identity,stats,check,emit})
@@ -52,13 +79,36 @@ mod tests {
   let formatted=tsrust_compiler::format(text).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);std::fs::write(path,formatted).unwrap();
  }
  #[test]
+ fn aliases_and_candidate_selection_remain_frozen_after_disk_changes() {
+  let dir=crate::TempDirectory::new().unwrap();let root=std::fs::canonicalize(&dir.0).unwrap();let entry=root.join("main.tsr");
+  std::fs::create_dir_all(root.join("src/component")).unwrap();
+  std::fs::write(root.join("tsrust.config.json"),r#"{"paths":{"@/*":"./src/*"}}"#).unwrap();
+  write(&entry,"import {value} from '@/component';function main(){console.log(value());}");
+  write(&root.join("src/component/index.tsr"),"export function value():int{return 1;}");
+  let mut watcher=crate::dev_watch::Watcher::default();let snapshot=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};let mut session=ProjectSession::default();
+  let original=compile(&mut session,&entry,&snapshot).unwrap().rust;
+  write(&root.join("src/component.tsr"),"export function value():int{return 2;}");
+  assert_eq!(compile(&mut session,&entry,&snapshot).unwrap().rust,original);
+  std::fs::write(root.join("tsrust.config.json"),r#"{"paths":{"@/*":"./missing/*"}}"#).unwrap();
+  std::fs::remove_file(root.join("src/component/index.tsr")).unwrap();
+  assert_eq!(compile(&mut session,&entry,&snapshot).unwrap().rust,original);
+  let current=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};assert!(compile(&mut session,&entry,&current).is_err());
+ }
+ #[test]
+ fn nested_config_is_captured_and_changed_mappings_invalidate_snapshot() {
+  let dir=crate::TempDirectory::new().unwrap();let root=std::fs::canonicalize(&dir.0).unwrap();std::fs::create_dir(root.join("nested")).unwrap();
+  std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();let config=root.join("nested/tsrust.config.json");std::fs::write(&config,r#"{"paths":{"@/*":"./*"}}"#).unwrap();
+  let mut watcher=crate::dev_watch::Watcher::default();let first=watcher.snapshot(&root).unwrap();assert!(first.contains_key(&config));
+  std::fs::write(config,r#"{"paths":{"@/*":"../*"}}"#).unwrap();assert_ne!(first,watcher.snapshot(&root).unwrap());
+ }
+ #[test]
  fn frozen_sources_preserve_emission_and_diagnostic_lines_after_disk_edits() {
   let dir=crate::TempDirectory::new().unwrap();let root=std::fs::canonicalize(&dir.0).unwrap();let entry=root.join("main.tsr");let dep=root.join("dep.tsr");
   write(&entry,"import {value} from './dep.tsr';function main(){console.log(value());}");write(&dep,"export function value():int{return 1;}");
   std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
   let mut watcher=crate::dev_watch::Watcher::default();let sources=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};let mut session=ProjectSession::default();
   let later=root.join("later.tsr");write(&later,"export function later():int{return 1;}");
-  assert!(sources.read(&sources.resolve(None,later.to_str().unwrap()).unwrap()).is_err());
+  assert!(sources.resolve(None,later.to_str().unwrap()).is_err());
   std::fs::remove_file(later).unwrap();
   let original=compile(&mut session,&entry,&sources).unwrap().rust;
   write(&entry,"function main(){console.log('changed');}");write(&dep,"export function value():int{return 2;}");

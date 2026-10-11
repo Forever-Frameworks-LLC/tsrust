@@ -165,3 +165,26 @@ captured build snapshot. Resolve against captured configuration and candidate
 identities before accepting dev behavior; include configuration edits during a
 build and nested project configuration discovery. Existing watchers recognize
 configuration filenames, but that alone does not prove snapshot consistency.
+
+## Dev snapshot alias resolution
+
+Dev now selects captured source candidates and reads captured project aliases
+within its watched root. Creating a higher-priority source file, changing an
+alias or deleting its previous target after capture no longer changes emission
+for that request. Single-file identity also uses the captured provider. Nested
+configuration files join source files in the watcher input map; configuration
+paths are canonicalized before deduplication, including temporary-directory aliases
+on macOS. Ordinary source discovery used by checking/formatting still returns
+source files only.
+
+Focused witnesses preserve emission after those disk edits and verify that a
+fresh snapshot observes the changed mapping. Existing dev watcher/event tests are
+included in the bounded batch. Records: `tsrust-dev-alias-*` in SQLite.
+
+Remaining acceptance includes end-to-end dev restart/last-working-program behavior,
+installed CLI/editor refresh and alias completion/navigation. Review symlink and
+outside-root dependency behavior before final acceptance: the existing discovery
+policy excludes symlinks and generated directories, and this captured resolver
+must not claim immutable identities for files outside its captured map. In-root
+uncaptured source candidates are rejected rather than read live. Broader watched
+dependency coverage is not proved by this snapshot slice.

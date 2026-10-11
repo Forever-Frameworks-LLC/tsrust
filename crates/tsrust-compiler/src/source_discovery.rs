@@ -2,6 +2,13 @@
 use std::{fs, path::PathBuf};
 
 pub fn discover(inputs: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    discover_inner(inputs,false)
+}
+
+/// Source files and nested project configuration for consistent dev snapshots.
+pub fn discover_project_inputs(inputs:&[PathBuf])->Result<Vec<PathBuf>,String> {discover_inner(inputs,true)}
+
+fn discover_inner(inputs:&[PathBuf],include_configs:bool)->Result<Vec<PathBuf>,String> {
     let mut pending = inputs.to_vec();
     let mut files = Vec::new();
     while let Some(path) = pending.pop() {
@@ -27,10 +34,10 @@ pub fn discover(inputs: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
                 {
                     pending.push(entry.path());
                 } else if kind.is_file()
-                    && entry
+                    && (include_configs && entry.file_name()=="tsrust.config.json" || entry
                         .path()
                         .extension()
-                        .is_some_and(|extension| extension == "tsr")
+                        .is_some_and(|extension| extension == "tsr"))
                 {
                     files.push(entry.path());
                 }
