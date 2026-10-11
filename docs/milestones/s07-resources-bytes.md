@@ -120,3 +120,23 @@ logical bytes were removed. Current executable consumers and the 17 current S07
 benchmark builds remain. The next full regression build will recreate its test
 executables; no rebuild was performed merely to repopulate the cache. Exact cleanup
 inventory is stored as `tsrust-s07-cleanup.json` in SQLite.
+
+## Direct Rust comparison support
+
+`node benchmarks/runtime/direct-rust-bytes.mjs --verify` checks handwritten Rust
+counterparts for `native_bytes` and `native_byte_views_callbacks` against the same
+independent result oracles at O0 and O3. Removing `--verify` runs the original
+three-process, eight-warmup, 31-sample protocol and three allocation profiles.
+Both variants preserve complete nested result rows and observe/drop them outside
+the timed interval. Source hashes and exact commands are captured, and input drift
+during a run is rejected.
+
+These references call the same checked byte backend directly from handwritten
+Rust control flow, using `Vec` output and ordinary borrowed slices/closures. This
+isolates compiler-generated representation and call overhead; it does not compare
+alternative byte implementations. Construction covers valid, empty and invalid
+values. The view witness covers a captured view and a returned argument view,
+including a view derived from a borrowed byte owner. The unused fixed input string
+is omitted from direct Rust; native adaptation is outside timing, and its bytes
+remain separately reported in allocation evidence. Conclusions are limited to
+these two representative workloads, not every byte or recursive-view operation.
