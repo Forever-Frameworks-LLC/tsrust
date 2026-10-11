@@ -378,3 +378,50 @@ fn imported_unopened_file_publishes_multiple_syntax_errors_and_repairs() {
     server.finish(0);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repairs() {
+    let directory=std::env::temp_dir().join(format!("tsrust-workspace-scan-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    std::fs::create_dir(&directory).unwrap();
+    let directory=directory.canonicalize().unwrap();
+    let uri_for=|path: &std::path::Path|tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(path.to_str().unwrap().into())).unwrap().to_string();
+    let file=directory.join("unopened.tsr");
+    std::fs::write(&file,"function broken(){const a:int=\"bad\";}").unwrap();
+    let uri=uri_for(&file);
+    let root=uri_for(&directory);
+    let mut server=Server::start();
+    server.request(1,"initialize",json!({"rootUri":root,"capabilities":{},"initializationOptions":{"debounceMs":20}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
+    assert!(server.messages.recv_timeout(Duration::from_millis(50)).is_err(),"Do not publish before initialized notification");
+    server.notify("initialized",json!({}));
+    let expect=|server:&Server, uri:&str, count:usize| {
+        let start=Instant::now();
+        loop {
+            assert!(start.elapsed()<Duration::from_secs(5));
+            if let Message::Notification(notification)=server.receive()
+                && notification.method=="textDocument/publishDiagnostics" && notification.params["uri"]==uri
+                && notification.params["diagnostics"].as_array().unwrap().len()==count {break;}
+        }
+    };
+    expect(&server,&uri,1);
+    server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":"function broken(){}"}}));
+    expect(&server,&uri,0);
+    server.notify("textDocument/didClose",json!({"textDocument":{"uri":uri}}));
+    expect(&server,&uri,1);
+    let created=directory.join("created.tsr");let created_uri=uri_for(&created);
+    std::fs::write(&created,"function broken(){const a=;const b=;}").unwrap();
+    server.notify("workspace/didChangeWatchedFiles",json!({"changes":[{"uri":created_uri,"type":1}]}));
+    expect(&server,&created_uri,2);
+    std::fs::remove_file(&created).unwrap();
+    server.notify("workspace/didChangeWatchedFiles",json!({"changes":[{"uri":created_uri,"type":3}]}));
+    expect(&server,&created_uri,0);
+    let outside="file:///outside-workspace-scan.tsr";
+    server.notify("textDocument/didOpen",json!({"textDocument":{"uri":outside,"languageId":"tsrust","version":1,"text":"function bad(){const value:int=\"bad\";}"}}));
+    expect(&server,outside,1);
+    server.notify("workspace/didChangeWorkspaceFolders",json!({"event":{"removed":[{"uri":root,"name":"removed"}],"added":[]}}));
+    expect(&server,&uri,0);
+    server.request(2,"shutdown",Value::Null);
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
+    server.finish(0);
+    std::fs::remove_dir_all(directory).unwrap();
+}

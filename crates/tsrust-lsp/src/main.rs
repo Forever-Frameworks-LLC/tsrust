@@ -8,7 +8,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::{Duration, Instant};
 use tsrust_lsp::{Documents, Snapshot, code_actions, diagnostics};
 
-struct Job {
+struct DocumentJob {
     snapshot: Snapshot,
     workspace: Option<tsrust_lsp::workspace::WorkspaceSnapshot>,
 }
@@ -22,10 +22,18 @@ enum DiagnosticBatch {
     ),
 }
 
-struct Checked {
+struct DocumentChecked {
     snapshot: Snapshot,
     workspace: Option<tsrust_lsp::workspace::WorkspaceSnapshot>,
     result: Result<DiagnosticBatch, String>,
+}
+enum Job {
+    Document(DocumentJob),
+    Workspace(tsrust_lsp::workspace_scan::Job),
+}
+enum Checked {
+    Document(DocumentChecked),
+    Workspace(tsrust_lsp::workspace_scan::Checked),
 }
 fn send(connection: &Connection, message: impl Into<Message>) -> Result<(), String> {
     connection
@@ -53,10 +61,16 @@ fn run(
     // waiting for an obsolete check. Cooperative interruption is compiler task C3.
     std::thread::spawn(move || {
         while let Ok(job) = work.recv() {
-            let Job {
-                snapshot,
-                workspace,
-            } = job;
+            let job = match job {
+                Job::Workspace(job) => {
+                    let result=catch_unwind(AssertUnwindSafe(||tsrust_lsp::workspace_scan::check(&job)))
+                        .unwrap_or_else(|_|Err("workspace analysis panicked".into()));
+                    if completed.send(Checked::Workspace(tsrust_lsp::workspace_scan::Checked {job,result})).is_err() {break;}
+                    continue;
+                }
+                Job::Document(job) => job,
+            };
+            let DocumentJob {snapshot, workspace} = job;
             let result = catch_unwind(AssertUnwindSafe(|| {
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
@@ -93,11 +107,11 @@ fn run(
                 )
             });
             if completed
-                .send(Checked {
+                .send(Checked::Document(DocumentChecked {
                     snapshot,
                     workspace,
                     result,
-                })
+                }))
                 .is_err()
             {
                 break;
@@ -106,28 +120,34 @@ fn run(
     });
     let mut documents = Documents::default();
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
+    let mut scanner = tsrust_lsp::workspace_scan::Scanner::default();
     let mut busy = false;
     let mut initialized = false;
+    let mut ready = false;
     let mut shutdown = false;
     let mut debounce = Duration::from_millis(200);
     loop {
-        if initialized
+        if ready
             && !shutdown
             && !busy
             && let Some(snapshot) = documents.next(Instant::now())
         {
             let workspace = projects.prepare(&snapshot);
-            jobs.send(Job {
+            jobs.send(Job::Document(DocumentJob {
                 snapshot,
                 workspace,
-            })
+            }))
             .map_err(|_| "analysis worker stopped")?;
             busy = true;
         }
-        let wait = if !busy && initialized && !shutdown {
-            documents
-                .due_in(Instant::now())
-                .unwrap_or(Duration::from_secs(60))
+        if ready && !shutdown && !busy
+            && let Some(job)=scanner.next(Instant::now(),projects.workspace.snapshot()) {
+            jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
+            busy=true;
+        }
+        let wait = if !busy && ready && !shutdown {
+            documents.due_in(Instant::now()).into_iter()
+                .chain(scanner.due_in(Instant::now())).min().unwrap_or(Duration::from_secs(60))
         } else {
             Duration::from_secs(60)
         };
@@ -139,9 +159,10 @@ fn run(
                         let response = match request.method.as_str() {
                             "initialize" if !initialized && !shutdown => {
                                     debounce = Duration::from_millis(request.params.pointer("/initializationOptions/debounceMs").and_then(Value::as_u64).unwrap_or(200).min(2000));
+                                    scanner.initialize(&request.params, Instant::now());
                                     initialized = true;
                                     Response::new_ok(request.id, json!({
-                                        "capabilities": {"positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
+                                        "capabilities": {"workspace":{"workspaceFolders":{"supported":true,"changeNotifications":true}}, "positionEncoding": "utf-16", "textDocumentSync": {"openClose": true, "change": 1}, "hoverProvider": true, "codeActionProvider": {"codeActionKinds": ["quickfix"]}, "documentFormattingProvider": true, "completionProvider": {"triggerCharacters": ["."]}, "signatureHelpProvider": {"triggerCharacters": ["(", ","], "retriggerCharacters": [","]}, "definitionProvider": true, "referencesProvider": true, "documentHighlightProvider": true, "documentSymbolProvider": true, "foldingRangeProvider": true},
                                         "serverInfo": {"name": "tsrust-lsp", "version": env!("CARGO_PKG_VERSION")}
                                     }))
                             }
@@ -191,7 +212,12 @@ fn run(
                         if !initialized || shutdown { continue; }
                         let now = Instant::now();
                         let handled: Result<(), String> = match notification.method.as_str() {
+                            "initialized" => {ready=true;Ok(())},
+                            "workspace/didChangeWorkspaceFolders" => {
+                                scanner.change_folders(&notification.params,now);Ok(())
+                            },
                             "workspace/didChangeWatchedFiles" => serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(notification.params).map_err(|e|e.to_string()).map(|params| {
+                                scanner.dirty(now,debounce);
                                 for change in params.changes {
                                     for dependent in projects.changed_file(change.uri.as_str()) { documents.reschedule(&dependent, now, debounce); }
                                 }
@@ -199,6 +225,7 @@ fn run(
                             "textDocument/didOpen" => serde_json::from_value::<DidOpenTextDocumentParams>(notification.params).map_err(|e| e.to_string()).map(|params| {
                                 let doc = params.text_document;
                                 if doc.language_id == "tsrust" {
+                                    scanner.dirty(now,debounce);
                                     let uri = doc.uri.to_string();
                                     documents.open(uri.clone(), doc.version, doc.text, now);
                                     if let Some(snapshot) = documents.snapshot(&uri) {
@@ -215,17 +242,21 @@ fn run(
                                 if !documents.change(&uri, params.text_document.version, change.text, now, debounce) {
                                     eprintln!("tsrust-lsp: ignored outdated or unopened document change: {uri}");
                                 } else if let Some(snapshot) = documents.snapshot(&uri) {
+                                    scanner.dirty(now,debounce);
                                     for dependent in projects.change(snapshot) { documents.reschedule(&dependent, now, debounce); }
                                 }
                                 Ok(())
                             }),
                             "textDocument/didClose" => serde_json::from_value::<DidCloseTextDocumentParams>(notification.params).map_err(|e| e.to_string()).and_then(|params| {
                                 let uri = params.text_document.uri.to_string();
+                                scanner.dirty(now,debounce);
                                 documents.close(&uri);
                                 let (dependents, publications) = projects.close(&uri);
                                 for dependent in dependents { documents.reschedule(&dependent, now, debounce); }
-                                for publication in publications { publish_project(&connection, publication)?; }
-                                send(&connection, Notification::new("textDocument/publishDiagnostics".into(), json!({"uri": uri, "diagnostics": []})))
+                                if scanner.covers(&uri) {Ok(())} else {
+                                    for publication in publications { publish_project(&connection, publication)?; }
+                                    send(&connection, Notification::new("textDocument/publishDiagnostics".into(), json!({"uri": uri, "diagnostics": []})))
+                                }
                             }),
                             _ => Ok(()),
                         };
@@ -236,19 +267,39 @@ fn run(
             }
             recv(results) -> result => {
                 busy = false;
-                let checked = result.map_err(|_| "analysis worker stopped")?;
+                let checked = match result.map_err(|_| "analysis worker stopped")? {
+                    Checked::Workspace(checked) => {
+                        if !shutdown {
+                            match scanner.accept(checked,&projects,Instant::now(),debounce) {
+                                Ok(publications)=>for publication in publications {
+                                    if !scanner.covers(&publication.uri) {documents.reschedule(&publication.uri,Instant::now(),debounce);}
+                                    publish_project(&connection,publication)?;
+                                },
+                                Err(error)=>log_failure(&connection,format!("Could not check workspace: {error}. Previous diagnostics may be outdated."))?,
+                            }
+                        }
+                        continue;
+                    }
+                    Checked::Document(checked)=>checked,
+                };
                 if !shutdown && documents.current(&checked.snapshot) && checked.workspace.as_ref().is_none_or(|snapshot| projects.workspace.current(snapshot)) {
                     match checked.result {
                         Ok(DiagnosticBatch::Single(diagnostics)) => {
+                            if scanner.covers(&checked.snapshot.uri) {continue;}
                             for publication in projects.forget_project(&checked.snapshot.uri) { publish_project(&connection, publication)?; }
                             send(&connection, Notification::new("textDocument/publishDiagnostics".into(), json!({
                                 "uri": checked.snapshot.uri, "version": checked.snapshot.version, "diagnostics": diagnostics
                             })))?;
                         },
                         Ok(DiagnosticBatch::Project(buckets,index,actions)) => {
+                            if let Ok(entry)=tsrust_lsp::project_diagnostics::source_id(&checked.snapshot.uri) {
+                                projects.workspace.register(entry,checked.workspace.as_ref().expect("project input"));
+                            }
                             projects.cache_actions(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), actions);
                             projects.cache_index(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), index);
-                            for publication in projects.accept(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), buckets)? { publish_project(&connection, publication)?; }
+                            if !scanner.covers(&checked.snapshot.uri) {
+                                for publication in projects.accept(&checked.snapshot.uri, checked.workspace.as_ref().expect("project input"), buckets)? { publish_project(&connection, publication)?; }
+                            }
                         },
                         Err(error) => log_failure(&connection, format!("Could not check {}: {error}. Previous diagnostics may be outdated.", checked.snapshot.uri))?,
                     }
@@ -314,6 +365,7 @@ mod tests {
     fn initialize(client: &Connection) {
         request(client, 1, "initialize");
         assert!(matches!(receive(client), Message::Response(response) if response.error.is_none()));
+        notify(client,"initialized",json!({}));
     }
     #[test]
     fn slow_check_cannot_publish_after_edit_close_or_reopen() {
@@ -451,6 +503,7 @@ mod project_protocol_tests {
                 .unwrap(),
             Message::Response(_)
         ));
+        notify(&client,"initialized",json!({}));
         let root = "file:///tsrust-live-project/main.tsr";
         let dep = "file:///tsrust-live-project/dep.tsr";
         notify(

@@ -2,6 +2,15 @@
 
 `tsrust run` and the editor play button keep generated Rust, the executable and default cache in a private system temporary directory, removed when the command finishes (including ordinary errors). They leave no build artifacts beside the source. Force-killing the compiler or shutting down the system can interrupt cleanup. `build -o` preserves the requested executable and caches successful artifacts in `target/tsrust-native` under the working directory. Set `TSRUST_CACHE_DIR` to explicitly retain a reusable cache for either command; that directory is not automatically removed. Checks still run before reuse, and the pinned backend is verified. Source graph, generated Rust, native features, backend identity and optimization options invalidate old artifacts. Missing or corrupt cache entries rebuild; cache write failure does not invalidate a successful build. Remove the cache directory to clear it. This is a local artifact cache, not a package download mechanism.
 
+Workspace diagnostics scan `.tsr` files recursively, including unopened files.
+They skip `.git`, `node_modules`, `target` and symlinks during discovery. Open
+buffers override disk contents, including unsaved new files. File watcher changes
+and workspace folder changes schedule a fresh scan; deleted files and removed
+folders have their old diagnostics cleared. Opening a file outside the workspace
+still checks that file. Syntax recovery reports multiple statement errors;
+semantic checking currently reports the first type or ownership error per entry.
+
+
 ## Using the editor
 
 Run terminals retain output after the process exits; no acknowledgement is needed to finish the run. Command echo and the terminal-reuse prompt remain hidden. Set `tsrust.run.closeOnSuccess` to true only if automatic terminal closure is desired. Lint uses the Output panel and formatting runs through the editor; neither needs a terminal acknowledgement. Reload the VS Code window after installing the updated extension. The terminal presentation change passed extension type checking and packaging; interactive terminal behavior has not been manually verified in the running window.

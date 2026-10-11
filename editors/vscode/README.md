@@ -2,6 +2,15 @@
 
 Local editor support for `.tsr`: a file icon, syntax highlighting, documentation hover, argument help, autocomplete, source navigation, snippets, and live syntax, type and ownership errors from the actual Tsrust compiler. Errors include related transfer/access locations and appear in Problems. Unsaved files and untitled Tsrust buffers are checked in memory; Rust code generation and rustc are not involved.
 
+Workspace diagnostics scan `.tsr` files recursively, including unopened files.
+They skip `.git`, `node_modules`, `target` and symlinks during discovery. Open
+buffers override disk contents, including unsaved new files. File watcher changes
+and workspace folder changes schedule a fresh scan; deleted files and removed
+folders have their old diagnostics cleared. Opening a file outside the workspace
+still checks that file. Syntax recovery reports multiple statement errors;
+semantic checking currently reports the first type or ownership error per entry.
+
+
 ## Build and install locally
 
 From the repository root, with its pinned Rust toolchain and Node.js 22 or newer:

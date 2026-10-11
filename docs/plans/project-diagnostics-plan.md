@@ -107,3 +107,31 @@ stored under `tsrust-module-diagnostics-*` in SQLite. This does not yet provide
 workspace discovery of unrelated unopened files, multiple semantic/ownership
 errors, or recovery of every malformed declaration/header. Installed-consumer
 refresh remains pending until the coordinated diagnostic update.
+
+## Workspace discovery checkpoint
+
+The LSP now reads workspace folders (or the legacy root URI), discovers recursive
+`.tsr` inputs through the shared formatter/check discovery, and checks unopened
+files. A single analysis worker handles both document jobs and workspace scans.
+The pending scan is replaced after edits, opens, closes, watcher notifications and
+workspace-folder changes. Revisions plus immutable buffer/disk inputs prevent stale
+results from publishing. Unsaved new files under a root join the scan; open buffers
+override disk contents. Discovery excludes generated directories and symlinks.
+
+Workspace scans own diagnostics within their coverage; document jobs still refresh
+navigation, actions and dependency tracking. Files outside workspace coverage retain
+the existing document behavior. Closing a workspace document returns diagnostics
+to its disk contents. Deleted files and removed roots clear their publications.
+Scanning starts after the client's initialized notification.
+
+Validation: 13 framed protocol tests, four project-session tests and three scanner
+lifecycle tests pass. Three worker tests also pass after their initialization
+helpers send the required initialized notification. An expanded protocol witness also verifies initialization
+ordering, outside-workspace files and root removal. The scanner tests cover shared
+roots, unsaved new files, exclusions, symlink cycles, stale buffer/disk inputs and
+root removal while a scan is in flight. Whole-project formatting changes zero files
+and fingerprints. Closed logs use `tsrust-workspace-scan-*` in SQLite.
+
+Remaining diagnostic milestone work: semantic/ownership recovery, broader malformed
+syntax boundaries, final combined acceptance and coordinated installed-consumer
+refresh. No benchmark timing or installed-editor acceptance is claimed here.

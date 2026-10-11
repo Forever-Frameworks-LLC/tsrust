@@ -25,6 +25,10 @@ pub struct ProjectSession {
     sequence: u64,
 }
 impl ProjectSession {
+    pub fn publication(&self, id: &SourceId, version: Option<i32>, diagnostics: Vec<Diagnostic>) -> Option<Publication> {
+        let uri=self.uris.get(id).cloned().or_else(||file_uri(id).ok().map(|uri|uri.to_string()))?;
+        Some(Publication {uri,version,diagnostics})
+    }
     pub fn cache_actions(
         &mut self,
         uri: &str,

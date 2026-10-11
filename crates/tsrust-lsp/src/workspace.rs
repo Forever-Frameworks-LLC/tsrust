@@ -138,6 +138,7 @@ impl WorkspaceSnapshot {
             .iter()
             .all(|(id, stamp)| disk_stamp(id) == *stamp)
     }
+    pub fn open_sources(&self) -> Vec<SourceId> { self.open.keys().cloned().collect() }
     pub fn check(&self, entry: &SourceId) -> Result<ProjectAnalysis, ProjectDiagnostic> {
         check_graph(load_project(self, &entry.0)?)
     }
