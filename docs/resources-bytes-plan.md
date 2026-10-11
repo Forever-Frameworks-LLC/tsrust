@@ -628,3 +628,18 @@ The approved byte-view and recursive-storage scope is accepted at source checkpo
 Earlier pending callback-composition statements describe historical checkpoints.
 Gate 190 and S07 complete regressions, matched timing, performance review and final
 consumer refresh remain open. No measurement acceptance is implied.
+
+## Gate 190 backend increment
+
+The private `stdlib/resource.rs` owner shares explicit close and fallback release,
+with an instrumented backend and O0/O3 lifecycle witnesses. Source handle identity,
+capability metadata, file operations and source-level cleanup acceptance remain
+pending. This increment publishes no fake resource API.
+
+The concrete backend must report the actual close operation. Rust's
+[File documentation](https://doc.rust-lang.org/std/fs/struct.File.html) confirms
+that Drop ignores closing errors and that synchronization is a separate operation.
+Apple's [close reference](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/close.2.html)
+documents an interrupted-call error; platform ownership behavior must be established
+before choosing a retry policy. Do not implement fallible close by merely dropping
+a Rust File or silently substituting sync_all.

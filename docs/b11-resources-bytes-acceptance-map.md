@@ -975,3 +975,28 @@ pending entries remain chronological evidence. Measurement flags remain false.
 SQLite readback reconfirmed the latest repaired matrix/native/editor/diagnostic
 passes. This review preserves completed checks; it does not claim a new complete
 regression or timing pass. Gate 190 is the next implementation step.
+
+### Gate 190 private resource backend
+
+`stdlib/resource.rs` now defines a unique backend owner with consuming explicit
+close and a nonthrowing fallback that discards reported close failures. Taking the
+backend before explicit close prevents a second release during wrapper destruction,
+including when close returns Err. Borrowed access does not expose ownership.
+
+The private instrumented backend checks exact release order for scope exit, early
+return, replacement, Result failure, callback failure, unused closure disposal,
+explicit successful/failed close and panic unwinding. Three unit tests pass; two
+native integration tests rerun the release witnesses at O0/O3 and reject native
+reuse, clone, comparison and hashing. The original missing-backend failure and
+repaired results use the `tsrust-resource-backend-*` SQLite prefix.
+
+This runtime is currently test-only and is not a published source handle or a
+completed source capability/ABI integration. The next step is the concrete file
+backend and registry integration, followed by generated Tsrust cleanup witnesses,
+source/editor rejections, catalog examples and matched benchmark support. Gate 190
+and S07 remain open. No regression milestone or timing pass ran.
+
+Whole-project formatting changes no files or fingerprints. The token/idempotence
+corpus and formatted recursive-mutation native fixture pass. Six logs were imported
+and read back exactly before removal; SQLite integrity passes. Two completed test
+executables were pruned; current consumers were retained.
