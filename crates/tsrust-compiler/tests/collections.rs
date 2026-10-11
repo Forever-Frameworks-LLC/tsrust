@@ -639,3 +639,18 @@ function main(){const owner=bytes();const values=new OrderedMap<int,Row>();value
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"unsafe mapping accepted");
  }
 }
+
+#[test]
+fn ordered_map_owned_spread_transfers_sorted_entries() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function collect(...entries:[string,string][]):string{let text='';for(const entry of entries){text+=entry[0]+entry[1];}return text;}function main(){const values=new OrderedMap<string,string>();values.set('z','last');values.set('a','first');const entries=[...values];strictEqual(entries[0][0],'a');strictEqual(entries[1][1],'last');const more=new OrderedMap<string,string>();more.set('b','2');more.set('a','1');strictEqual(collect(...more),'a1b2');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_owned_spread_retains_noncloneable_payloads() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function total(...entries:[int,ByteView][]):int{let sum=0;for(const entry of entries){sum+=entry[0]+length(entry[1]);}return sum;}function main(){const owner=bytes();const values=new OrderedMap<int,ByteView>();values.set(2,window(owner));values.set(1,window(owner));const entries=[...values];strictEqual(entries[0][0],1);strictEqual(length(entries[1][1]),2);const more=new OrderedMap<int,ByteView>();more.set(3,window(owner));strictEqual(total(...more),5);}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ for invalid in [source.replace("const entries=[...values];","const entries=[...values];console.log(values.size);"),source.replace("strictEqual(length(entries[1][1]),2);","const moved=owner;strictEqual(length(entries[1][1]),2);")] {
+  let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid owning spread accepted");
+ }
+}

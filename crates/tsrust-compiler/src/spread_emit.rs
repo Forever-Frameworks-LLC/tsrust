@@ -130,7 +130,11 @@ impl Emitter<'_> {
             if segment.spread {
                 let source=format!("spread_source{}_{index}",plan.slot);
                 write!(output,"let mut {source} = {code}; ").unwrap();
-                let iterator=if let Some(Type::Record(id))=segment.value.ty && let Some(native)=self.program.records[id].native_type.filter(|native|matches!(native,crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)) {
+                let iterator=if let Some(Type::Map(id))=segment.value.ty && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap) && segment.access==Mode::Consume {
+                    let Type::Record(pair)=segment.element else {unreachable!("checked ordered map entry")};
+                    let pair=format!("Record{}",self.program.scoped_records.declaration(pair));
+                    format!("{source}.into_source_entries().map(|(key,value)|{pair}{{field0:key,field1:value}})")
+                }else if let Some(Type::Record(id))=segment.value.ty && let Some(native)=self.program.records[id].native_type.filter(|native|matches!(native,crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)) {
                     let ordered=matches!(native,crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet);
                     match segment.access {
                         Mode::Copy=>format!("{source}.values.{}().copied()",if ordered {"key_iter"}else{"iter"}),
