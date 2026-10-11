@@ -203,7 +203,11 @@ fn recursive_records_store_view_capturing_once_callbacks() {
         .replace("strictEqual(value, 3);", "strictEqual(value, 13);")
         .replace("const result = holder.read();", "const result = holder.read();set(result,0,19);")
         .replace("strictEqual(value, 7);", "strictEqual(value, 19);");
-    for source in [source.to_owned(), mutual, arrays, mutable] {
+    let alternatives = source.replace("function main()", "function other(first:ByteView,second:ByteView):Holder{return {data:first,read:()=>second};}\nfunction main()")
+        .replace("holder.next = build(read(second), read(first));", "holder.next = other(read(second), read(first));");
+    let replaced = source.replace("  const result = holder.read();", "  const old=holder.read();strictEqual(length(old),2);const replacement=read(first);holder.read=()=>replacement;const result = holder.read();")
+        .replace("strictEqual(value, 7);", "strictEqual(value, 3);");
+    for source in [source.to_owned(), mutual, arrays, mutable, alternatives, replaced] {
         let directory = support::TempDirectory::new();
         let path = directory.source(&support::format_round_trip(&source));
         support::success(&support::run(support::cli().arg("run").arg(path),120));
@@ -213,8 +217,10 @@ fn recursive_records_store_view_capturing_once_callbacks() {
 #[test]
 fn recursive_view_callbacks_preserve_owner_and_clone_rejections() {
     let helpers = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let helpers = format!("{helpers}function other(first:ByteView,second:ByteView):Holder{{return {{data:first,read:()=>second}};}}");
     let setup = "const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));holder.next=build(read(second),read(first));";
     for (body, expected) in [
+        ("const first=bytes(3);let escaped:Holder;{const second=bytes(7);const root=build(read(first),read(first));root.next=other(read(first),read(second));escaped=root;}const result=escaped.read();console.log(length(result));".into(), "native-view-escape"),
         (format!("{setup}const moved=first;const result=holder.read();console.log(length(result));"), "native-view-conflict"),
         (format!("{setup}const copied=clone(holder);"), "clone-type"),
         (format!("{setup}const a=holder.read();const b=holder.read();console.log(length(a),length(b));"), "partial-transfer"),
@@ -244,4 +250,20 @@ fn nullable_recursive_records_execute_beside_and_with_owned_callbacks() {
             support::success(&support::run(&mut command, 120));
         }
     }
+}
+
+#[test]
+fn recursive_callbacks_return_extracted_families_with_shared_owner_lifetimes() {
+    let helpers = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let take = "function other(first:ByteView,second:ByteView):Holder{return {data:first,read:()=>second};}function take(first:ByteView,second:ByteView,flag:boolean){const holder=flag?build(first,second):other(first,second);return holder.read;}";
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(&format!("{helpers}{take}function main(){{const first=bytes(3);const second=bytes(7);const callback=take(read(first),read(second),true);const result=callback();strictEqual(length(result),2);const otherCallback=take(read(first),read(second),false);const otherResult=otherCallback();strictEqual(length(otherResult),2);}}"));
+    let path = directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let source = support::format_round_trip(&format!("{helpers}{take}function leak(second:ByteView){{const first=bytes(3);return take(read(first),second,false);}}function main(){{const second=bytes(7);const callback=leak(read(second));const result=callback();console.log(length(result));}}"));
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("check").arg(path),60);
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
 }

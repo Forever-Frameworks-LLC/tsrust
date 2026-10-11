@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 pub(super) struct Lifetimes {
     inputs: BTreeMap<(usize,LifetimeSource),String>,
     outputs: BTreeMap<(Vec<Segment>,Vec<VariantGuard>),String>,
+    shared_outputs: std::collections::BTreeSet<(Vec<Segment>,Vec<VariantGuard>)>,
     pub(super) declarations: Vec<String>,
     pub(super) bounds: Vec<String>,
 }
@@ -44,6 +45,7 @@ impl Lifetimes {
     fn plan_outputs(&mut self,returns:&[crate::analysis::native_view_loans::Loan]) {
         let mut outputs=BTreeMap::<(Vec<Segment>,Vec<VariantGuard>),Vec<String>>::new();
         for loan in returns {
+            if loan.whole { self.shared_outputs.insert((loan.path.clone(), loan.guards.clone())); }
             outputs.entry((loan.path.clone(),loan.guards.clone())).or_default().push(self.inputs[&(loan.root,loan.source.clone())].clone());
         }
         for (path,mut sources) in outputs {
@@ -63,7 +65,14 @@ impl Lifetimes {
     pub(super) fn slot(&self,input:Option<usize>,path:&[Segment],guards:&[VariantGuard])->&str {
         match input {
             Some(root)=>self.inputs.get(&(root,LifetimeSource::carried(path.to_vec(),guards.to_vec()))),
-            None=>self.outputs.get(&(path.to_vec(),guards.to_vec())),
+            None=>self.outputs.get(&(path.to_vec(),guards.to_vec())).or_else(|| {
+                // An extracted field still carries its recursive component's
+                // shared lifetime, including all owners joined at that boundary.
+                self.shared_outputs.iter()
+                    .filter(|(prefix, required)| path.starts_with(prefix) && required.iter().all(|guard| guards.contains(guard)))
+                    .max_by_key(|(prefix, _)| prefix.len())
+                    .and_then(|boundary| self.outputs.get(boundary))
+            }),
         }.map_or("'_",String::as_str)
     }
 }

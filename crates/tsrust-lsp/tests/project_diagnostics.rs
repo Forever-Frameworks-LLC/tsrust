@@ -231,8 +231,10 @@ fn callbacks_borrow_owner_arguments_without_losing_provenance() {
 #[test]
 fn recursive_view_callback_storage_keeps_short_owner_diagnostics() {
     let source = include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-callbacks.tsr");
+    let source = source.replace("function main()", "function other(first:ByteView,second:ByteView):Holder{return {data:first,read:()=>second};}\nfunction main()")
+        .replace("holder.next = build(read(second), read(first));", "holder.next = other(read(second), read(first));");
     let mut workspace = Workspace::default();
-    workspace.open(id("main"), 1, source.into());
+    workspace.open(id("main"), 1, source.clone());
     assert!(workspace.snapshot().check(&id("main")).is_ok());
     let helpers = source.split("function main()").next().unwrap();
     let invalid = format!("{helpers}function main(){{const first=bytes(3);let escaped:Holder;{{const second=bytes(7);escaped=build(read(first),read(second));}}const result=escaped.read();console.log(length(result));}}");

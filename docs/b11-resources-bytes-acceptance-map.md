@@ -9,8 +9,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending mixed-family recursive callback storage; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending mixed-family recursive callback storage | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive callback parameter/storage composition; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive callback parameter/storage composition | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -764,3 +764,35 @@ Mixed-family links remain pending: two different factories currently produce a
 source type rejection. The original fixed-layout diagnostic remains for unsupported
 specializations. Gate 189, resource gate 190 and S07 stay open. Installed consumers
 remain `4367f4cc`; no timing ran.
+
+### Recursive callback family union and extraction
+
+Different factories now contribute checked alternatives to one stable family per
+recursive record field. Existing concrete links retain their identity. No runtime
+chain conversion, extra link allocation, byte copy or shared owner is introduced.
+The same local field can be restored after Once invocation using a different
+closure. Nonrecursive family identities and independent lifetimes remain unchanged.
+Extracted callback returns preserve the recursive component's shared lifetime.
+
+Focused checks: 19 byte integrations, four native family tests, 114 callable unit
+tests (including atomic recursive-family admission/remapping), two editor checks,
+formatter corpus and formatted release execution pass. Source checks reject a
+short owner introduced by a different child factory and a short discarded sibling
+when returning the extracted callback. The native 10,000-node O0/O3 probe now
+alternates two factories. These remain focused checks, not full S07 regressions.
+
+The stored-callback workload now alternates factories while retaining its 17-node
+arithmetic oracle and operation denominator. Native and Node-after-tsc agree on
+five untimed cases each for linked views, argument callbacks and stored callbacks
+in `runtime/results/2026-10-11T06-15-33-873Z-verify.json`. A source-mutation test
+caught a guard that accepted removing one factory's callback because another
+factory still contained it. The guard now checks both complete factory bodies;
+five registration tests pass. Only the affected stored-callback verification was
+rerun, in `runtime/results/2026-10-11T06-16-24-880Z-verify.json`. Both records have
+empty execution samples and are retained. Logs use `tsrust-recursive-family-`.
+
+Record-parameter transport remains open: `take(holder:Holder){return holder.read;}`
+reports an unresolved `error-effect` contract despite a concrete constructed
+argument. Resolve parameter family identity and lifetime provenance together.
+Callback-only view storage and nullable callback-field composition still need
+verification. Gate 189, gate 190 and S07 remain open; consumers stay `4367f4cc`.

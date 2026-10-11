@@ -7,7 +7,7 @@ use crate::{Diagnostic, Mode, Span};
 /// Owned/shared construction proves structural storage eligibility. Borrowed
 /// identities additionally retain concrete alternatives and never certify ownership.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>), ScopedOwned(ContractId, Vec<usize>) }
+pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>), ScopedOwned(ContractId, Vec<usize>), RecursiveScopedOwned(ContractId, usize, usize) }
 
 impl StorageContract {
     pub(crate) fn checked(signatures: &Contracts, signature: ContractId) -> Option<Self> {
@@ -41,7 +41,7 @@ impl StorageContract {
             )
             .related(closure.span, "Single-use closure is created here."));
         }
-        if closure.borrowed && !(matches!(self,Self::ScopedOwned(..)) && crate::native_view_callable_storage::carried_slots(closure).is_some()) {
+        if closure.borrowed && !(matches!(self,Self::ScopedOwned(..)|Self::RecursiveScopedOwned(..)) && crate::native_view_callable_storage::carried_slots(closure).is_some()) {
             if let Some(slots)=crate::native_view_callable_storage::carried_slots(closure) {
                 return Err(Diagnostic::new(
                     "native-view-callable-storage",
@@ -64,7 +64,7 @@ impl StorageContract {
     }
 
     pub(crate) fn invocation(&self, signatures: &Contracts) -> Mode {
-        let signature=match self {Self::Owned(signature)|Self::ScopedOwned(signature,_)=>signature,_=>return Mode::Read};
+        let signature=match self {Self::Owned(signature)|Self::ScopedOwned(signature,_)|Self::RecursiveScopedOwned(signature,_,_)=>signature,_=>return Mode::Read};
         match signatures.get(*signature).kind {
             Some(CallbackKind::Owned) => Mode::Mutate,
             Some(CallbackKind::OwnedOnce) => Mode::Consume,

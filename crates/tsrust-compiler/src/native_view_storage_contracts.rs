@@ -2,6 +2,23 @@
 use super::*;
 
 impl Analyzer {
+    pub(super) fn recursive_native_field_value(&mut self, context: &Context, target: &Expr, value: &mut Expr, actual: Type) -> Result<Type, Diagnostic> {
+        if !self.native_borrow_types { return Ok(actual); }
+        let Type::StoredCallable(source) = actual else { return Ok(actual); };
+        if self.callables.storage.scoped_native_family(source).is_none() { return Ok(actual); }
+        let Some(holder) = Self::native_view_local_field(context, target) else { return Ok(actual); };
+        let Type::Record(record) = context.bindings[holder].ty else { return Ok(actual); };
+        let nominal = self.scoped_records.declaration(record);
+        if crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).access(nominal).is_none() { return Ok(actual); }
+        let ExprKind::Field(_, name) = &target.kind else { return Ok(actual); };
+        let field = self.program.records[nominal].fields.iter().position(|field| field.name.text == *name).expect("checked recursive field");
+        let canonical = self.callables.storage.intern_recursive_scoped_native(
+            &self.callables.shapes, &self.callables.callbacks, source, nominal, field, &self.closures, value.span,
+        )?;
+        if actual != canonical { value.wrap_record_carrier(canonical); }
+        Ok(canonical)
+    }
+
     pub(super) fn scoped_native_storage_contract(&self, actual:Type, expected:Type, span:Span)->Result<bool,Diagnostic> {
         if !self.native_borrow_types || actual==expected {return Ok(false);}
         match (actual,expected) {

@@ -161,14 +161,23 @@ on a 64 KiB stack at O0/O3. `native_byte_views_stored_callbacks` has a matched
 TypeScript source, closed-form oracle, mutation guards, hashes and harness support.
 See the acceptance map for exact counts and untimed records.
 
-Next: join different stored callback families across recursive links. The preserved
-`tsrust-recursive-concrete-alternatives.tsr` probe currently fails source checking
-with `Expected Holder | undefined, found Holder` when two factories create nodes.
-Do not treat the same-family implementation as acceptance of this composition.
-Exercise recursive replacement, argument/return transport and callback-only view
-storage too. Keep the finite-layout diagnostic until each representation is supported.
-Then finish resource gate 190, S07 family regressions/measurements and the remaining
-roadmap. Installed consumers remain `4367f4cc`.
+Mixed factory links and local callback replacement now execute. A stable family
+is keyed by recursive nominal record and field; alternatives are checked before
+admission. Nonrecursive families stay independent. Returning an extracted callback
+uses the recursive component's shared lifetime, including the shortest owner.
+The matched stored-callback workload now alternates two factories and keeps the
+same operation denominator and independent oracle. Original untimed records remain
+intact; see the acceptance map for the new records.
+
+Next: recursive record parameter transport. The saved
+`tsrust-recursive-family-return.tsr` probe has `take(holder:Holder){return holder.read;}`
+and fails with `error-effect`: the parameter's symbolic callback family has no
+resolved origin, although the argument is a concrete constructed record. The
+`take(first,second){const holder=build(first,second);return holder.read;}` form now
+passes native execution and shortest-owner rejection, so the outstanding issue is
+parameter representation/provenance. Verify callback-only view storage and nullable
+callback fields too. Then finish resource gate 190, S07 acceptance and the roadmap.
+Installed consumers remain `4367f4cc`; no family timing has run.
 
 ## Working environment
 

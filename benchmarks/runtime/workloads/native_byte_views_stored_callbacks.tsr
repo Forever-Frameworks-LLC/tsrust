@@ -25,6 +25,14 @@ function node(owner: ReadOnly<Bytes>): Chunk {
   };
 }
 
+function alternate(owner: ReadOnly<Bytes>): Chunk {
+  const data = byteWindow(owner);
+  const captured = byteWindow(owner);
+  return {
+    data: data, read: () => captured
+  };
+}
+
 function first(data: ByteView): int {
   match (at(data, 0)) {
     Ok(value) => {
@@ -46,7 +54,7 @@ function workload(n: int, seed: int, input: string): int[][] {
         let root = node(owner);
         let depth = 0;
         while (depth < 16) {
-          const parent = node(owner);
+          const parent = depth % 2 === 0 ? node(owner) : alternate(owner);
           parent.next = root;
           root = parent;
           depth++;

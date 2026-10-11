@@ -308,12 +308,23 @@ clone and repeated-Once rejection. A native probe verifies slice pointer identit
 short-owner rejection, and disposal of 10,000 linked callback nodes on a 64 KiB
 stack at O0/O3. Nullable links keep their existing unique allocation cost.
 
-Mixed callback families across links remain pending: constructing a child through
-a different factory currently gives `Expected Holder | undefined, found Holder`.
-This needs recursive family joining and corresponding native conversion; the
-same-family proof does not accept that broader scope. A guard still rejects
-specialized recursive declarations without a finite concrete native layout.
-Keep gate 189 open until this composition and its ownership/native witnesses pass.
+Mixed callback factories now join one stable family per recursive callback field.
+The family collects checked alternatives before emission; ordinary scoped families
+keep their independent identities and lifetime slots. Links retain their concrete
+record identity as factories are discovered, so joining needs no runtime chain
+conversion or extra link allocation. A consumed callback field can be restored
+from a different closure. Returning an extracted callback retains the shared
+component lifetime and rejects even an owner retained only by a discarded sibling.
+The native 10,000-node probe now alternates two factories at O0/O3.
+
+Record-parameter transport remains pending. The saved `take(holder:Holder)` probe
+returning `holder.read` reports unresolved `error-effect` despite a constructed
+concrete argument. Its declared field still names the lifetime-free symbolic
+family. Resolve the parameter's concrete family and lifetime contract together;
+suppressing that diagnostic would not establish a correct native ABI. Also verify
+callback-only view storage, nullable callback fields and recursive replacement
+through parameters before gate 189 acceptance. The finite-layout guard remains
+for unsupported specializations.
 
 SQLite preserves 24 source-emission, CLI/editor, registration and formatting
 logs under `tsrust-nullable-links-*.log`, plus the exact callback probe source

@@ -2,6 +2,7 @@ type Chunk = { data: Uint8Array; read: () => Uint8Array; next?: Chunk };
 function byteWindow(owner: Uint8Array): Uint8Array { return owner.subarray(0, 2); }
 function first(data: Uint8Array): number { return data[0]; }
 function node(owner: Uint8Array): Chunk { const data=byteWindow(owner); const captured=byteWindow(owner); return {data:data,read:()=>captured}; }
+function alternate(owner: Uint8Array): Chunk { const data=byteWindow(owner); const captured=byteWindow(owner); return {data:data,read:()=>captured}; }
 function workload(n: number, seed: number, input: string): number[][] {
   const output: number[][] = [];
   let i = 0;
@@ -11,7 +12,7 @@ function workload(n: number, seed: number, input: string): number[][] {
     let root = node(owner);
     let depth = 0;
     while (depth < 16) {
-      const parent = node(owner); parent.next = root; root = parent;
+      const parent = depth % 2 === 0 ? node(owner) : alternate(owner); parent.next = root; root = parent;
       depth++;
     }
     let sum = 0;

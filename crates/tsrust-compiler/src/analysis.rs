@@ -5148,6 +5148,7 @@ impl Analyzer {
         if !self.scoped_native_storage_contract(actual, contract, value.span)? {
             self.require(actual, Some(contract), value.span)?;
         }
+        let actual = self.recursive_native_field_value(context, target, value, actual)?;
         let binding = Self::root_binding(target).expect("checked field has a binding");
         if let Some((_, path)) = Self::direct_fields(target) {
             Self::availability(
@@ -9990,7 +9991,14 @@ impl Analyzer {
                 if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
             if scoped_native || nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
-                concrete[position] = actual;
+                concrete[position] = if let Type::StoredCallable(family) = actual
+                    && self.callables.storage.scoped_native_family(family).is_some()
+                    && crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).access(nominal).is_some() {
+                    self.callables.storage.intern_recursive_scoped_native(
+                        &self.callables.shapes, &self.callables.callbacks, family,
+                        nominal, position, &self.closures, value.span,
+                    )?
+                } else { actual };
                 specialized = true;
             }
         }
