@@ -97,7 +97,7 @@ mod tests {
         let name=path.to_str().unwrap();
         let mut reader=buffer_reader(super::super::fs::open(name).unwrap(),4).unwrap();
         assert_eq!(buffered_read(&mut reader,2).unwrap(),[0,1]);
-        assert_eq!(buffered_read(&mut reader,0).unwrap(),[]);
+        assert!(buffered_read(&mut reader,0).unwrap().is_empty());
         assert_eq!(buffered_read(&mut reader,3).unwrap(),[2,3]);
         assert_eq!(buffered_read(&mut reader,3).unwrap(),[4,5]);
         assert!(buffered_read(&mut reader,1).unwrap().is_empty());reader.close().unwrap();
