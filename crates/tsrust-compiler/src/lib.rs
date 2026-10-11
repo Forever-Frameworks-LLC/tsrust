@@ -59,6 +59,7 @@ pub use formatting::format;
 mod projections;
 pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
 pub mod project;
+pub mod project_resolution;
 pub mod project_session;
 pub mod project_cli;
 pub mod source_discovery;

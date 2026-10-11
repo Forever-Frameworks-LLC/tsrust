@@ -86,3 +86,18 @@ explicit relative imports keep their behavior.
 Follow with remaining S10 dynamic operations, typed streaming, borrowed adapters,
 public writers and the full correctness/performance matrix. Do not lose those
 requirements when prioritizing imports.
+
+## Shared resolver foundation
+
+`project_resolution.rs` defines filesystem-independent alias expansion and ordered
+file candidates. Focused checks cover configuration-relative targets, exact-match
+precedence, longest wildcard-prefix selection, wildcard suffixes, ambiguity,
+malformed mappings, explicit data extensions and `.tsr` before `index.tsr`.
+A more specific wildcard wins even if less specific mappings would be ambiguous.
+Providers remain responsible for canonical identities and snapshot ownership.
+
+This foundation is not yet connected to configuration loading, compiler source
+providers or editor snapshots. Public import behavior is unchanged. Next work
+must connect those consumers and test graph/overlay/invalidation behavior before
+claiming alias or extensionless import acceptance. Focused evidence is retained
+as `tsrust-import-resolution-*` in SQLite.
