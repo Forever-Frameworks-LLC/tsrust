@@ -131,3 +131,8 @@ shutdown pass without polling fallback. The LSP is unchanged and remains at its
 accepted environment checkpoint. Evidence uses `tsrust-dev-events-installed*`.
 Linux execution/overflow evidence, startup overhead review and the remaining
 retained-state/runtime-compilation steps still prevent milestone closure.
+
+The redundant initial subscription traversal is removed. A focused cost witness
+failed with two walks and passes with one; real notifications and failed reads
+still refresh subscriptions. All eight watcher/supervisor checks pass, including
+concurrent saves. Evidence: `tsrust-dev-startup-*`; comparative timing follows.

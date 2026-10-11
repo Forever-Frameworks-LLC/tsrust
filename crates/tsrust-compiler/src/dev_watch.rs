@@ -39,7 +39,10 @@ impl Watcher {
         }
         if let Some(events)=&mut self.events {
             let reconcile=events.changed().and_then(|changed| {
-                if changed || self.previous.as_ref().is_none_or(|value|value.is_err()) {events.refresh(root)?;Ok(true)}else{Ok(false)}
+                // new() already subscribed before the first content scan. Preserve
+                // events delivered during setup and retry failed reconciliations.
+                if changed || self.previous.as_ref().is_some_and(|value|value.is_err()) {events.refresh(root)?;}
+                Ok(changed || self.previous.as_ref().is_none_or(|value|value.is_err()))
             });
             match reconcile {
                 Ok(false)=>return self.previous.as_ref().unwrap().clone(),
@@ -89,6 +92,7 @@ mod tests {
         for _ in 0..20 {assert_eq!(watcher.snapshot(root).unwrap(),first);}
         assert_eq!(watcher.reads,reads);
         assert_eq!(watcher.scans,1,"idle native watcher must not scan directories");
+        assert_eq!(watcher.events.as_ref().unwrap().refreshes,1,"startup must walk subscriptions once");
         let modified=std::fs::metadata(&source).unwrap().modified().unwrap();
         std::fs::write(&source,"other").unwrap();
         std::fs::File::options().write(true).open(&source).unwrap().set_times(std::fs::FileTimes::new().set_modified(modified)).unwrap();

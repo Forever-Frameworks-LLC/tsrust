@@ -16,7 +16,7 @@ fn walk(root:&Path,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->
 }
 fn c_path(path:&Path)->io::Result<std::ffi::CString> {std::ffi::CString::new(path.as_os_str().as_bytes()).map_err(|_|io::Error::new(io::ErrorKind::InvalidInput,"NUL in watch path"))}
 #[cfg(target_os="macos")]
-pub(crate) struct Events {queue:OwnedFd,entries:BTreeMap<PathBuf,((u64,u64),OwnedFd)>}
+pub(crate) struct Events {#[cfg(test)] pub(crate) refreshes:usize,queue:OwnedFd,entries:BTreeMap<PathBuf,((u64,u64),OwnedFd)>}
 #[cfg(target_os="macos")]
 impl Events {
  pub(crate) fn new(root:&Path)->io::Result<Self> {
@@ -24,9 +24,10 @@ impl Events {
   let raw=unsafe{libc::kqueue()};if raw<0{return Err(io::Error::last_os_error());}
   let queue=unsafe{OwnedFd::from_raw_fd(raw)};
   if unsafe{libc::fcntl(raw,libc::F_SETFD,libc::FD_CLOEXEC)}<0{return Err(io::Error::last_os_error());}
-  let mut events=Self{queue,entries:BTreeMap::new()};events.refresh(root)?;Ok(events)
+  let mut events=Self{#[cfg(test)] refreshes:0,queue,entries:BTreeMap::new()};events.refresh(root)?;Ok(events)
  }
  pub(crate) fn refresh(&mut self,root:&Path)->io::Result<()> {
+  #[cfg(test)] {self.refreshes+=1;}
   let mut active=BTreeSet::new();
   walk(root,&mut |path,metadata| {
    active.insert(path.to_owned());let identity=(metadata.dev(),metadata.ino());
@@ -58,14 +59,15 @@ impl Events {
  }
 }
 #[cfg(target_os="linux")]
-pub(crate) struct Events {queue:OwnedFd,entries:BTreeMap<PathBuf,((u64,u64),i32)>}
+pub(crate) struct Events {#[cfg(test)] pub(crate) refreshes:usize,queue:OwnedFd,entries:BTreeMap<PathBuf,((u64,u64),i32)>}
 #[cfg(target_os="linux")]
 impl Events {
  pub(crate) fn new(root:&Path)->io::Result<Self> {
   let raw=unsafe{libc::inotify_init1(libc::IN_NONBLOCK|libc::IN_CLOEXEC)};if raw<0{return Err(io::Error::last_os_error());}
-  let mut events=Self{queue:unsafe{OwnedFd::from_raw_fd(raw)},entries:BTreeMap::new()};events.refresh(root)?;Ok(events)
+  let mut events=Self{#[cfg(test)] refreshes:0,queue:unsafe{OwnedFd::from_raw_fd(raw)},entries:BTreeMap::new()};events.refresh(root)?;Ok(events)
  }
  pub(crate) fn refresh(&mut self,root:&Path)->io::Result<()> {
+  #[cfg(test)] {self.refreshes+=1;}
   let mut active=BTreeSet::new();
   walk(root,&mut |path,metadata| {
    if !metadata.is_dir(){return Ok(());}
