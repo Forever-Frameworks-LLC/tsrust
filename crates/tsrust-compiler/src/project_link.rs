@@ -31,6 +31,7 @@ impl ProjectAnalysis {
             &self.analysis.program,
             &crate::project_runtime::setup(&self.segments),
             &self.segments,
+            Some(&self.graph),
         )
     }
     fn source_name(&self, name: &str) -> String {

@@ -108,3 +108,19 @@ suite pass with no server-path setting. Original logs are in SQLite under
 562a6c00 consumer refresh, the language server was restarted through its status item
 and the same window showed checking enabled and no Problems. Live-window acceptance
 is now verified.
+
+## Test console reporting
+
+Pretty test reports capture console output per test, render it below the result,
+label stdout/stderr, indent multiline content, and show original project source
+coordinates (including imported helpers). Suite hooks have separate labels;
+per-test hooks stay with their test. Failed tests retain their logs. Plain reports
+and ordinary console rendering retain their existing output. Source coordinates
+come from the checked project graph rather than reading files at execution time.
+
+Focused evidence: five reporter tests, 56 testing-library tests and 12 console
+output tests pass. The installed pre-fix CLI reproduces the missing attribution.
+Logs `tsrust-test-log-*` are retained in SQLite, including the initial fixture import
+path error and its repair. Formatting and installed refresh evidence accompany the
+source checkpoint. This user-priority repair does not close S09 or its pending
+buffered-file benchmark acceptance.

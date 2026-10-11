@@ -520,6 +520,7 @@ struct TsrConsoleState {
 }
 std::thread_local! {static TSR_CONSOLE_STATE: std::cell::RefCell<TsrConsoleState> = std::cell::RefCell::new(TsrConsoleState::default());}
 fn tsr_console_write(error: bool, text: &str) {
+    if tsr_console_test_capture(error,text) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -540,6 +541,7 @@ fn tsr_console_write(error: bool, text: &str) {
     });
 }
 fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
+    if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -561,6 +563,7 @@ fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
     });
 }
 fn tsr_console_text(error: bool, value: &str) {
+    if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
         let indent = state.borrow().indent;
@@ -765,5 +768,49 @@ fn tsr_console_call(method: &str, values: &[TsrConsoleValue]) {
             }
         }
         _ => unreachable!("checked console method"),
+    }
+}
+
+// Test reporting captures console calls only while a pretty-report scope is active.
+#[derive(Default)]
+struct TsrConsoleTest { name: Option<std::string::String>, entries: Vec<(bool,std::string::String,std::string::String)> }
+std::thread_local! {
+    static TSR_CONSOLE_TEST: std::cell::RefCell<TsrConsoleTest> = std::cell::RefCell::new(TsrConsoleTest::default());
+    static TSR_CONSOLE_LOCATION: std::cell::RefCell<std::string::String> = const { std::cell::RefCell::new(std::string::String::new()) };
+}
+struct TsrConsoleLocation(Option<std::string::String>);
+impl TsrConsoleLocation {
+    fn new(path:&str,line:usize,column:usize)->Self {
+        if !TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) {return Self(None);}
+        let cwd=std::env::current_dir().unwrap_or_default();
+        let path=std::path::Path::new(path);
+        let location=format!("{}:{line}:{column}",path.strip_prefix(cwd).unwrap_or(path).display());
+        Self(Some(TSR_CONSOLE_LOCATION.with(|slot|slot.replace(location))))
+    }
+}
+impl Drop for TsrConsoleLocation {fn drop(&mut self){if let Some(previous)=self.0.take(){TSR_CONSOLE_LOCATION.with(|slot|{slot.replace(previous);});}}}
+fn tsr_console_test_begin(name:&str) {
+    if std::env::var("TSRUST_TEST_REPORTER").as_deref()!=Ok("pretty") {return;}
+    TSR_CONSOLE_TEST.with(|slot|slot.borrow_mut().name=Some(name.to_owned()));
+}
+fn tsr_console_test_capture(error:bool,text:&str)->bool {
+    TSR_CONSOLE_TEST.with(|slot|{
+        let mut state=slot.borrow_mut();if state.name.is_none(){return false;}
+        let indent=TSR_CONSOLE_STATE.with(|state|state.borrow().indent);
+        let text=text.split_inclusive('\n').map(|line|format!("{:indent$}{line}","")).collect();
+        state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
+    })
+}
+fn tsr_console_test_end() {
+    let state=TSR_CONSOLE_TEST.with(|slot|std::mem::take(&mut *slot.borrow_mut()));
+    let Some(name)=state.name else{return;};
+    use std::io::Write as _;
+    for (error,location,text) in state.entries {
+        let stream=if error {"stderr"} else {"stdout"};
+        let mut output=format!("     {stream} | {name}\n");
+        if !location.is_empty(){output.push_str(&format!("       at {location}\n"));}
+        for line in text.lines(){output.push_str(&format!("      {line}\n"));}
+        if error {let _=std::io::stderr().lock().write_all(output.as_bytes());}
+        else {let _=std::io::stdout().lock().write_all(output.as_bytes());}
     }
 }

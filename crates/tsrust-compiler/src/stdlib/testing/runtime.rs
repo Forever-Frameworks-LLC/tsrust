@@ -113,7 +113,10 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
     if displayed { path.push(registry.suites[id].name.clone()); }
     ancestors.push(id);
     let label = if path.is_empty() { if registry.suites[id].name.is_empty() { "root".to_owned() } else { registry.suites[id].name.clone() } } else { path.join(" > ") };
+    let label = if file { let cwd=std::env::current_dir().unwrap_or_default(); let path=std::path::Path::new(&label); path.strip_prefix(cwd).unwrap_or(path).display().to_string() } else { label };
+    tsr_console_test_begin(&format!("{label} > beforeAll"));
     let setup_errors = if blocked.is_none() { tsrust_testing_hooks(&mut registry.suites[id], 0, false, true) } else { Vec::new() };
+    tsr_console_test_end();
     for error in &setup_errors { counts.hook_failures += 1; println!("{} {label} beforeAll: {error}", tsrust_testing_style("HOOK FAIL", "1;31")); }
     let setup_error = setup_errors.first().map(|error| format!("beforeAll: {error}"));
     let blocked = blocked.or(setup_error.as_deref());
@@ -124,6 +127,7 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
             TsrTestEntry::Test { name, mut callback } => {
                 let test_started = std::time::Instant::now();
                 path.push(name); let name = path.join(" > "); path.pop();
+                tsr_console_test_begin(&name);
                 let mut errors = Vec::new();
                 if let Some(error) = blocked { errors.push(error.to_owned()); }
                 else {
@@ -150,12 +154,15 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
                         counts.failures.push((format!("{file_name} > {name}"),errors.join("\n")));
                     } else { println!("{} {name}: {}", tsrust_testing_style("FAIL", "1;31"), errors.join("; ")); }
                 }
+                tsr_console_test_end();
             }
         }
     }
     // Teardown belongs to scopes whose setup was attempted, including failed setup.
     if setup_error.is_some() || blocked.is_none() {
+        tsr_console_test_begin(&format!("{label} > afterAll"));
         for error in tsrust_testing_hooks(&mut registry.suites[id], 1, true, false) { counts.hook_failures += 1; println!("{} {label} afterAll: {error}", tsrust_testing_style("HOOK FAIL", "1;31")); }
+        tsr_console_test_end();
     }
     if file {
         if counts.failed + counts.hook_failures > previous_failures { counts.files_failed += 1; } else { counts.files_passed += 1; }

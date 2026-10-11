@@ -207,6 +207,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
         source_segments: &[],
+        source_graph: None,
         fields,
         record_runtime,
         borrowing_records: HashSet::new(),
@@ -248,12 +249,13 @@ pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),cra
 }
 
 pub(crate) fn emit_with_native_features(program:&CheckedProgram,entry_setup:&str)->(String,Vec<&'static str>) {
-    emit_with_source_segments(program,entry_setup,&[])
+    emit_with_source_segments(program,entry_setup,&[],None)
 }
 
-pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)])->(String,Vec<&'static str>) {
+pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str,segments:&[(crate::project::SourceId,usize,usize)],graph:Option<&crate::project::ProjectGraph>)->(String,Vec<&'static str>) {
     let mut emitter=emitter_for(program,entry_setup);
     emitter.source_segments=segments;
+    emitter.source_graph=graph;
     let declarations=if needs_exception_transport(program) {emitter.prepare_result_declarations().expect("checked source exception transports")}else{String::new()};
     let mut rust = emitter.program();
     if needs_exception_transport(program) {rust.push_str(crate::runtime::EXCEPTION_COMPLETIONS);rust.push_str(&declarations);}
@@ -288,6 +290,7 @@ struct Emitter<'a> {
     finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
+    source_graph: Option<&'a crate::project::ProjectGraph>,
     fields: Vec<HashMap<&'a str, usize>>,
     record_runtime: crate::record_runtime::RecordRuntime,
     borrowing_records: HashSet<usize>,
@@ -1671,6 +1674,17 @@ impl Emitter<'_> {
             );
             let _ = write!(code, "let console_argument_{index} = {value}; ");
         }
+        if let Some(graph)=self.source_graph {
+            if let Some((source,base,_))=self.source_segments.iter().find(|(_,base,len)|callee.span.start>=*base && callee.span.end<=base+len) {
+                let text=&graph.modules[source].source.text;
+                let offset=callee.span.start-base;
+                if let Some(prefix)=text.get(..offset) {
+                    let line=prefix.bytes().filter(|byte|*byte==b'\n').count()+1;
+                    let column=prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()+1;
+                    let _=write!(code,"let _console_location = TsrConsoleLocation::new({:?}, {line}, {column}); ",source.0);
+                }
+            }
+        }
         let values = args
             .iter()
             .enumerate()
@@ -2999,7 +3013,8 @@ impl Emitter<'_> {
         if owned_support {
             output.push_str(crate::runtime::ARRAYS);
         }
-        if output.contains("TsrConsoleValue")
+        if output.contains("tsr_console_test_")
+            || output.contains("TsrConsoleValue")
             || output.contains("tsr_console_call(")
             || output.contains("tsr_console_write(")
             || output.contains("tsr_console_scalar(")

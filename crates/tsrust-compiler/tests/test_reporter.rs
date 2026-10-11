@@ -32,3 +32,30 @@ fn pretty_report_renders_record_and_array_failures_without_changing_identity_sem
  assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));assert_eq!(output.status.code(),Some(1));
  let text=String::from_utf8_lossy(&output.stdout);assert!(text.contains("Expected: [ 1, 2 ]"),"{text}");assert!(text.contains("value: 2"),"{text}");assert!(text.contains("1 failed (1)"),"{text}");
 }
+
+#[test]
+fn pretty_console_logs_show_test_and_original_module_coordinates() {
+ let dir=support::TempDirectory::new();std::fs::create_dir(dir.0.join("src")).unwrap();
+ std::fs::write(dir.0.join("src/greeting.tsr"),support::format_round_trip("export function greeting(): void {\n  console.log(\"hello\\nworld\");\n  console.warn(\"warning\");\n}\n")).unwrap();
+ let file=dir.0.join("greeting.test.tsr");std::fs::write(&file,support::format_round_trip("import {test} from 'std:testing';\nimport {greeting} from './src/greeting.tsr';\ntest('greets',():void=>{greeting();});\n")).unwrap();
+ let output=support::run(support::cli().args(["test","--color","never"]).arg(&file).current_dir(&dir.0).env("TSRUST_TEST_REPORTER","pretty"),60);support::success(&output);
+ let stdout=String::from_utf8_lossy(&output.stdout);let stderr=String::from_utf8_lossy(&output.stderr);
+ for expected in ["stdout | greets","src/greeting.tsr:2:3","      hello\n      world","✓ greets"] {assert!(stdout.contains(expected),"missing {expected}: {stdout}");}
+ for expected in ["stderr | greets","src/greeting.tsr:3:3","      warning"] {assert!(stderr.contains(expected),"missing {expected}: {stderr}");}
+ assert!(stdout.find("✓ greets").unwrap()<stdout.find("stdout | greets").unwrap());
+ assert!(!stdout.contains(dir.0.to_str().unwrap()));
+ let plain=support::run(support::cli().arg("test").arg(file).current_dir(&dir.0).env("TSRUST_TEST_REPORTER","plain"),60);support::success(&plain);
+ assert_eq!(String::from_utf8_lossy(&plain.stderr),"warning\n");
+ assert!(String::from_utf8_lossy(&plain.stdout).starts_with("hello\nworld\nPASS greets\n"));
+}
+
+#[test]
+fn pretty_console_keeps_hooks_failed_tests_and_later_test_logs_separate() {
+ let dir=support::TempDirectory::new();let file=dir.0.join("hooks.test.tsr");
+ std::fs::write(&file,support::format_round_trip("import {test,beforeAll,afterAll,beforeEach,strictEqual} from 'std:testing';beforeAll(():void=>{console.log('setup');});afterAll(():void=>{console.log('teardown');});beforeEach(():void=>{console.log('each');});test('fails',():void=>{console.log(42);strictEqual(1,2);});test('later',():void=>{console.log('survived');});")).unwrap();
+ let output=support::run(support::cli().args(["test","--color","never"]).arg(file).current_dir(&dir.0).env("TSRUST_TEST_REPORTER","pretty"),60);assert_eq!(output.status.code(),Some(1));
+ let text=String::from_utf8_lossy(&output.stdout);
+ for expected in ["beforeAll","afterAll","stdout | fails","stdout | later","      42","      survived","1 passed | 1 failed"]{assert!(text.contains(expected),"{text}");}
+ assert_eq!(text.matches("      each\n").count(),2);
+ assert!(output.stderr.is_empty());
+}
