@@ -6,6 +6,8 @@ Implemented resources and byte operations are documented in [native bytes and
 views](native-bytes.md) and [owned file reads](native-files.md). S07 evidence is
 in the [family acceptance record](milestones/s07-resources-bytes.md). The broader
 workstream proposals below do not imply implementation of later roadmap families.
+The initial [collection guide](guides/collections.md) covers the deque methods now
+implemented while S08 remains in progress.
 
 ## Workstream scope
 

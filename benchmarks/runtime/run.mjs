@@ -221,8 +221,8 @@ const engines = (id) => [
 const compilation = [], execution = [], sources = [];
 const approximateReferences=new Map(),approximateProbes=new Map(),approximateCorrectness=[];
 function prepare(w) {
- const source = fs.readFileSync(path.join(here, 'workloads', `${w.id}.tsr`), 'utf8');
- const ts = fs.readFileSync(path.join(here, 'workloads', `${w.id}.ts`), 'utf8');
+ const source = fs.readFileSync(path.join(here, w.source ?? `workloads/${w.id}.tsr`), 'utf8');
+ const ts = fs.readFileSync(path.join(here, w.counterpart ?? `workloads/${w.id}.ts`), 'utf8');
  // Refuse emitter changes instead of silently timing the wrong function.
  if(w.family==='testing-assertions'){assertTestingAssertionSource(source,w,'native');assertTestingAssertionSource(ts,w,'typescript');}
  if(w.family==='optional-default-parameters'){assertOptionalDefaultParameterSource(source,w,'native');assertOptionalDefaultParameterSource(ts,w,'typescript');}
@@ -371,7 +371,7 @@ function prepare(w) {
  else if(w.id.startsWith('array_for_each_'))assertForEachSource(source,w);
  else if (!containsCodeSnippet(source, `function workload(n: int, seed: int${w.inputText === undefined ? '' : ', input: string'}${w.scalarCoordinates ? ', coordinates: int' : ''}): ${w.result}`)) throw new Error('Workload ABI changed');
  if(isApproximate(w)){const loaded=loadApproximateReference(w,{tsrSha256:hash(source),tsSha256:hash(ts)});assertApproximateCases(loaded.reference,plan.correctnessCases(w.iterations));approximateReferences.set(w.id,loaded);}
- const emitted = run([compiler], ['emit', path.join(here, 'workloads', `${w.id}.tsr`)]).stdout;
+ const emitted = run([compiler], ['emit', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]).stdout;
  const reductionABI=assertABI(emitted, w,{source});
  const instrumented = emitted.replace('fn main()', 'fn source_main()') + '\n' + adaptRustDriver(driverRS, w,{emitted,source});
  fs.writeFileSync(path.join(build, `${w.id}.rs`), instrumented);
@@ -392,8 +392,8 @@ function prepare(w) {
   approximateProbes.set(w.id,probes);
  }
  const phases = [
-  {phase: 'frontend-check', command: [compiler, 'check', path.join(here, 'workloads', `${w.id}.tsr`)]},
-  {phase: 'frontend-emit', command: [compiler, 'emit', path.join(here, 'workloads', `${w.id}.tsr`)]},
+  {phase: 'frontend-check', command: [compiler, 'check', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]},
+  {phase: 'frontend-emit', command: [compiler, 'emit', path.join(here, w.source ?? `workloads/${w.id}.tsr`)]},
   {phase: 'rustc-optimized', command: nativeCommand},
   {phase: 'tsc-check-emit', command: tsCommand}
  ];

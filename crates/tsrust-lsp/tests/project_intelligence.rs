@@ -1710,6 +1710,29 @@ fn byte_view_factories_types_and_shared_observers_have_editor_help() {
 }
 
 #[test]
+fn native_deque_alias_methods_have_typed_editor_help() {
+    let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function inspect(input:ReadOnly<Queue<int>>){return input.back();}function main(){const values=new Queue<int>();values.pushBack(7);const first=values.front();const count=values.size;console.log(count,first);}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let borrowed = ask(&index, &entry, "back();", "textDocument/hover");
+        assert!(borrowed.to_string().contains("back(): int | undefined"), "{borrowed}");
+        let hover = ask(&index, &entry, "pushBack(7)", "textDocument/hover");
+        assert!(hover.to_string().contains("pushBack(value: int): void"), "{hover}");
+        let help = ask(&index, &entry, "7);", "textDocument/signatureHelp");
+        assert!(help.to_string().contains("value: int"), "{help}");
+        let items = ask(&index, &entry, "front();", "textDocument/completion");
+        assert!(items.to_string().contains("popFront"), "{items}");
+        let count = ask(&index, &entry, "count,", "textDocument/hover");
+        assert!(count.to_string().contains("count: int"), "{count}");
+        let first = ask(&index, &entry, "first);", "textDocument/hover");
+        assert!(first.to_string().contains("int | undefined"), "{first}");
+    }
+}
+
+#[test]
 fn native_deque_constructor_alias_has_generic_hover() {
     let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function accept(value:Queue<int>){}function main(){const values=new Queue<int>();accept(values);}").unwrap();
     let uri = "file:///tsrust-intelligence/main.tsr";

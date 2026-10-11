@@ -613,9 +613,12 @@ impl NumericConstant {
 pub enum SetMethod { Add, Has, Delete, Clear, Values, Entries(usize), IsSubsetOf, IsSupersetOf, IsDisjointFrom, Union, Intersection, Difference, SymmetricDifference }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize) }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallTarget {
+    DequeMethod(DequeMethod),
     MapMethod(MapMethod),
     SetMethod(SetMethod),    ConditionalClosure(usize),
     ConditionalCallback(usize),

@@ -10,7 +10,7 @@ enum Destination {
 impl Analyzer {
     fn remember_native_parameter_store(&self, context: &mut Context, destination: usize, incoming: Vec<Loan>, span: Span) -> Result<(), Diagnostic> {
         if context.effects_only || !context.bindings[destination].parameter || incoming.is_empty() { return Ok(()); }
-        let sources = Self::native_escape_sources(context, incoming, span)?;
+        let sources = self.native_escape_sources(context, incoming, span)?;
         let stores = context.native_mutations.get_or_insert_with(Default::default);
         for source in sources {
             let entry = (destination, source);

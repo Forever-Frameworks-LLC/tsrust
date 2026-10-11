@@ -33,7 +33,7 @@ impl Analyzer {
         if direct_view && loans.is_empty() {
             return Err(untracked(value.span));
         }
-        let sources = Self::native_escape_sources(context, loans, value.span)?;
+        let sources = self.native_escape_sources(context, loans, value.span)?;
         if !sources.is_empty() {
             let retained = context.native_returns.get_or_insert_with(Default::default);
             retained.extend(sources);
@@ -42,7 +42,7 @@ impl Analyzer {
         Ok(())
     }
 
-    pub(super) fn native_escape_sources(context: &Context, loans: Vec<native_view_loans::Loan>, span: Span) -> Result<Vec<native_view_loans::Loan>, Diagnostic> {
+    pub(super) fn native_escape_sources(&self, context: &Context, loans: Vec<native_view_loans::Loan>, span: Span) -> Result<Vec<native_view_loans::Loan>, Diagnostic> {
         let mut sources = Vec::new();
         for output in loans {
             let mut pending = vec![(
@@ -79,7 +79,8 @@ impl Analyzer {
                     };
                     sources.push(source);
                 } else {
-                    if matches!(kind, LifetimeSource::Storage) && matches!(binding.ty, Type::Map(_) | Type::Array(_))
+                    if matches!(kind, LifetimeSource::Storage) && (matches!(binding.ty, Type::Map(_) | Type::Array(_))
+                        || matches!(binding.ty, Type::Record(id) if self.program.records[id].native_element().is_some()))
                         && !binding.capture_reference
                         && binding.borrowed_place.is_none() && binding.borrowed_element.is_none()
                     {

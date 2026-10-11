@@ -267,7 +267,7 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Call(callee, args) => {
-                    if matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift|CallTarget::MapMethod(MapMethod::Get)))
+                    if matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift|CallTarget::MapMethod(MapMethod::Get)|CallTarget::DequeMethod(DequeMethod::PopFront|DequeMethod::PopBack|DequeMethod::Front|DequeMethod::Back|DequeMethod::At)))
                         && let ExprKind::Field(base,_) = &callee.kind {
                         pending.push(Task::Select(result.len(),Segment::Element));
                         pending.push(Task::Value(base));

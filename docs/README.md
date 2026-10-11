@@ -12,9 +12,9 @@
 
 S07 resources and bytes is accepted on macOS. [Family evidence](milestones/s07-resources-bytes.md)
 records complete regressions, 17 matched workloads, direct Rust comparisons and installed-consumer checks.
-S08 collections is next; later families remain pending in the standard-library roadmap.
+S08 collections is in progress; later families remain pending in the standard-library roadmap.
 
-Use [native bytes](native-bytes.md), [recursive records](recursive-records.md) and
+Use [collections](guides/collections.md), [native bytes](native-bytes.md), [recursive records](recursive-records.md) and
 [native files](native-files.md) for current behavior. Earlier handoffs and plans record
 incremental work and may describe restrictions that have since been removed.
 
@@ -22,7 +22,7 @@ incremental work and may describe restrictions that have since been removed.
 
 | Location | Purpose |
 | --- | --- |
-| Topic guides in this directory | Current language, library and product behavior |
+| [guides/](guides/) and existing topic guides | Current language, library and product behavior |
 | [plans/](plans/) | Design and implementation plans; check the current roadmap before treating old status as current |
 | [milestones/](milestones/) | Accepted gates and feature-family evidence |
 | `handoff-*.md` | Historical continuation notes; use current roadmap and family evidence first |

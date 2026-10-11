@@ -5006,6 +5006,121 @@
     ]
   }
 ],
+  "Deque": [
+  {
+    "name": "size",
+    "signature": "size: int",
+    "documentation": "Returns the number of stored elements as int. This readonly property takes no arguments. Assignment is rejected. The receiver is unchanged. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);console.log(values.size);}\n```\n\nExpected output: 1.\n\nOwnership: The receiver is borrowed readonly.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);console.log(values.size);}",
+        "output": "1\n"
+      }
+    ]
+  },
+  {
+    "name": "pushFront",
+    "signature": "pushFront(value: Element): void",
+    "documentation": "Inserts one value before the current first element. Exactly one value of the declared element type is required. Returns void and increases size by one. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushFront(2);console.log(values.popFront()!);}\n```\n\nExpected output: 2.\n\nOwnership: Owned values transfer into the queue; scalar values copy. Borrowed payloads retain their original owners. The receiver must allow mutation.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushFront(2);console.log(values.popFront()!);}",
+        "output": "2\n"
+      }
+    ],
+    "parameters": [
+      "value: Element"
+    ]
+  },
+  {
+    "name": "pushBack",
+    "signature": "pushBack(value: Element): void",
+    "documentation": "Inserts one value after the current last element. Exactly one value of the declared element type is required. Returns void and increases size by one. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popBack()!);}\n```\n\nExpected output: 2.\n\nOwnership: Owned values transfer into the queue; scalar values copy. Borrowed payloads retain their original owners. The receiver must allow mutation.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popBack()!);}",
+        "output": "2\n"
+      }
+    ],
+    "parameters": [
+      "value: Element"
+    ]
+  },
+  {
+    "name": "popFront",
+    "signature": "popFront(): Element | undefined",
+    "documentation": "Removes and returns the first element, or undefined when empty. Takes no arguments. A successful removal decreases size by one. An empty queue stays empty. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popFront()!,values.size);}\n```\n\nExpected output: 4 1.\n\nOwnership: The removed value transfers to the caller without cloning. Borrowed payloads retain their original owners. The receiver must allow mutation.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popFront()!,values.size);}",
+        "output": "4 1\n"
+      }
+    ],
+    "parameters": []
+  },
+  {
+    "name": "popBack",
+    "signature": "popBack(): Element | undefined",
+    "documentation": "Removes and returns the last element, or undefined when empty. Takes no arguments. A successful removal decreases size by one. An empty queue stays empty. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popBack()!,values.size);}\n```\n\nExpected output: 2 1.\n\nOwnership: The removed value transfers to the caller without cloning. Borrowed payloads retain their original owners. The receiver must allow mutation.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.popBack()!,values.size);}",
+        "output": "2 1\n"
+      }
+    ],
+    "parameters": []
+  },
+  {
+    "name": "front",
+    "signature": "front(): Element | undefined",
+    "documentation": "Reads the first element, or undefined when empty. Takes no arguments. Returns Element | undefined and leaves the receiver unchanged. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.front()!,values.size);}\n```\n\nExpected output: 4 2.\n\nOwnership: Scalar elements copy. Owned elements borrow readonly from a stored receiver and block its mutation or transfer while the borrow remains in scope. Temporary receivers cannot supply owned borrowed elements.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.front()!,values.size);}",
+        "output": "4 2\n"
+      }
+    ],
+    "parameters": []
+  },
+  {
+    "name": "back",
+    "signature": "back(): Element | undefined",
+    "documentation": "Reads the last element, or undefined when empty. Takes no arguments. Returns Element | undefined and leaves the receiver unchanged. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.back()!,values.size);}\n```\n\nExpected output: 2 2.\n\nOwnership: Scalar elements copy. Owned elements borrow readonly from a stored receiver and block its mutation or transfer while the borrow remains in scope. Temporary receivers cannot supply owned borrowed elements.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.back()!,values.size);}",
+        "output": "2 2\n"
+      }
+    ],
+    "parameters": []
+  },
+  {
+    "name": "at",
+    "signature": "at(index: int): Element | undefined",
+    "documentation": "Reads the element at a zero-based index counted from the front. Exactly one signed 64-bit int index is required. Negative indices and indices at or beyond size return undefined; negative indices do not count from the end. Returns Element | undefined and leaves the receiver unchanged. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.at(1)!,values.at(-1)===undefined);}\n```\n\nExpected output: 2 true.\n\nOwnership: Scalar elements copy. Owned elements borrow readonly from a stored receiver and block its mutation or transfer while the borrow remains in scope. Temporary receivers cannot supply owned borrowed elements.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.pushBack(2);console.log(values.at(1)!,values.at(-1)===undefined);}",
+        "output": "2 true\n"
+      }
+    ],
+    "parameters": [
+      "index: int"
+    ]
+  },
+  {
+    "name": "clear",
+    "signature": "clear(): void",
+    "documentation": "Removes every element and sets size to zero. Takes no arguments and returns void. Clearing an empty queue has no effect. Wrong argument counts or incompatible types are static errors.\n\n```tsrust\nimport {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.clear();console.log(values.size);}\n```\n\nExpected output: 0.\n\nOwnership: Stored owned values are released. The receiver must allow mutation. Existing view-owner restrictions remain conservatively active until the queue binding leaves scope.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(4);values.clear();console.log(values.size);}",
+        "output": "0\n"
+      }
+    ],
+    "parameters": []
+  }
+],
   "std:collections": [
   {
     "name": "Deque",

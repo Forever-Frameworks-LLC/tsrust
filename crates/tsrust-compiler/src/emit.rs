@@ -7651,6 +7651,10 @@ impl Emitter<'_> {
                     .rust()
                     .into()
             }
+            ExprKind::Field(base, name) if name == "size" && matches!(base.ty, Some(Type::Record(id)) if self.program.records[id].native_element().is_some()) => {
+                let receiver=self.conditional_arm(fun,base,Mode::Read);
+                format!("({receiver}).values.len() as i64")
+            }
             ExprKind::Field(base, name) if name == "size" && matches!(base.ty,Some(Type::Set(_) | Type::Map(_))) => {
                 let receiver=self.conditional_arm(fun,base,Mode::Read);
                 format!("({receiver}).len() as i64")
@@ -8532,6 +8536,7 @@ impl Emitter<'_> {
                     };
                     format!("{{ let object_keys_value = {value}; let mut object_keys_result = <{}>::from([]); for key in {keys} {{ object_keys_result.push(key); }} object_keys_result }}", self.native_type(expr.ty.expect("checked keys result")))
                 }
+                CallTarget::DequeMethod(method) => self.deque_method_expression(fun,expr,callee,args,method),
                 CallTarget::MapMethod(method) => self.map_method_expression(fun,expr,callee,args,method),
                     CallTarget::SetMethod(method) => self.set_method_expression(fun, expr, callee, args, method),
                 CallTarget::ObjectIs => {
@@ -10141,6 +10146,8 @@ mod exception_region_tests {
 mod set_emit;
 #[path="map_emit.rs"]
 mod map_emit;
+#[path = "stdlib/collections/emit.rs"]
+mod deque_emit;
 #[path="map_storage_epochs.rs"]
 mod map_storage_epochs;
 

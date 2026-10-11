@@ -173,7 +173,7 @@ run(['cargo', 'build', '--release', '--offline', '--locked', '--quiet']);
 const driver = fs.readFileSync(path.join(here, 'allocation-driver.rs'), 'utf8');
 const rows = [];
 for (const workload of workloads) {
- const sourcePath = path.join(here, 'workloads', `${workload.id}.tsr`);
+ const sourcePath = path.join(here, workload.source ?? `workloads/${workload.id}.tsr`);
  const source = fs.readFileSync(sourcePath);
  if(lexicalPathIds.includes(workload.id)){assertLexicalPathSource(source.toString(),workload);assertLexicalPathSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
  if(osIdentityIds.includes(workload.id)){assertOsIdentitySource(source.toString(),workload);assertOsIdentitySource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}

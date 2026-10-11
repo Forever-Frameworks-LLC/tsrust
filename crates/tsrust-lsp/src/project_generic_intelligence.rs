@@ -14,6 +14,11 @@ impl SourceIndex {
     ) -> Option<String> {
         match ty {
             ProjectType::Native(identity) => Some(self.native_type_spelling(*identity)),
+            ProjectType::AppliedNative(identity, arguments) => {
+                let name = self.native_type_spelling(*identity);
+                let arguments = arguments.iter().map(|argument| self.project_type_spelling(graph, current, argument, dependencies)).collect::<Option<Vec<_>>>()?;
+                Some(format!("{name}<{}>", arguments.join(", ")))
+            },
             ProjectType::Callable {
                 ownership,
                 parameters,

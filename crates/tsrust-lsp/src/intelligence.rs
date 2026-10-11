@@ -1820,7 +1820,12 @@ impl SourceIndex {
         }
         None
     }
-    fn primitive_method_type(method: &str, receiver: String) -> String {
+    fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if self.deque_element(&receiver).is_some() {
+            return self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
+                .and_then(|entry| entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): ").map(|(_, result)| result.to_owned())))
+                .unwrap_or_default();
+        }
         match (method, receiver.as_str()) {
             ("valueOf", "string" | "boolean" | "number" | "int") => receiver,
             ("toString", "string" | "boolean" | "int" | "number") => "string".into(),
@@ -1844,7 +1849,7 @@ impl SourceIndex {
             ("pop" | "shift" | "at" | "find" | "findLast", ty) => {
                 array_removal_result(ty).unwrap_or_default()
             }
-            _ if receiver == "string" => builtins_for(&receiver)
+            _ if receiver == "string" => self.receiver_builtins(&receiver)
                 .into_iter()
                 .find(|entry| entry["name"] == method)
                 .and_then(|entry| {
@@ -1856,7 +1861,8 @@ impl SourceIndex {
             _ => String::new(),
         }
     }
-    fn primitive_method_accepts_arguments(method: &str, receiver: &str) -> bool {
+    fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.deque_element(receiver).is_some() { return matches!(method, "pushFront" | "pushBack" | "at"); }
         if matches!(
             method,
             "join"
@@ -2083,6 +2089,7 @@ impl SourceIndex {
             if self.text(end) == "." && name(self.text(end + 1)) && self.text(end + 2) != "(" {
                 let field = end + 1;
                 ty = self.checked_view(field).map(str::to_owned).or_else(|| {
+                    if self.text(field) == "size" && self.deque_element(&ty).is_some() { return Some("int".into()); }
                     self.symbols
                         .iter()
                         .find(|symbol| {
@@ -2101,7 +2108,7 @@ impl SourceIndex {
             let callable = self.field_callable_result(&ty, self.text(end + 1), end + 1);
             if callable.is_none()
                 && close != end + 3
-                && !Self::primitive_method_accepts_arguments(self.text(end + 1), &ty)
+                && !self.primitive_method_accepts_arguments(self.text(end + 1), &ty)
             {
                 return None;
             }
@@ -2109,7 +2116,7 @@ impl SourceIndex {
                 .checked_method_result(close)
                 .map(str::to_owned)
                 .or(callable)
-                .unwrap_or_else(|| Self::primitive_method_type(self.text(end + 1), ty));
+                .unwrap_or_else(|| self.primitive_method_type(self.text(end + 1), ty));
             if ty.is_empty() {
                 return None;
             }
@@ -2337,7 +2344,7 @@ impl SourceIndex {
         let ty = self.receiver_type_end(dot - 1, 0);
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
-                && self.native_type_aliases.contains_key(inner) {
+                && (self.native_type_aliases.contains_key(inner) || self.deque_element(inner).is_some()) {
                 return inner.into();
             }
         }
@@ -2438,11 +2445,11 @@ impl SourceIndex {
                     return result;
                 }
                 if open + 1 != n
-                    && !Self::primitive_method_accepts_arguments(self.text(open - 1), &receiver)
+                    && !self.primitive_method_accepts_arguments(self.text(open - 1), &receiver)
                 {
                     return String::new();
                 }
-                return Self::primitive_method_type(self.text(open - 1), receiver);
+                return self.primitive_method_type(self.text(open - 1), receiver);
             }
             if let Some((ty, end)) =
                 self.simple_expression_type(open + 1, self.tokens[n].span.start, depth + 1)
@@ -3071,7 +3078,7 @@ impl SourceIndex {
         } else {
             self.receiver_type(token - 1)
         };
-        let mut entry = builtins_for(&receiver)
+        let mut entry = self.receiver_builtins(&receiver)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
         if (matches!(self.text(token), "flat" | "flatMap")
@@ -3138,7 +3145,7 @@ impl SourceIndex {
             } else {
                 self.receiver_type(dot)
             };
-            let mut items=builtins_for(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
+            let mut items=self.receiver_builtins(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
             items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}})));
             return json!(items);
         }

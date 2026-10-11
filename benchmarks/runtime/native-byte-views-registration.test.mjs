@@ -184,3 +184,26 @@ test('Map view transport has matched sources and an independent arithmetic oracl
     assert.deepEqual(expectedNativeByteViewsValues(row.id,2,255,'bytes'),[[8,28,2040,255,2],[8,28,0,0,2]]);
     for(const n of [0,1,37,2048]) assert.deepEqual(expectedExactResult(row.id,n,7,'bytes'),expectedNativeByteViewsObservation(row.id,n,7,'bytes'));
 });
+
+test('Deque view workload uses feature paths, real removals and independent observations', () => {
+    const row = manifest.workloads.find(value => value.id === 'native_byte_views_deque');
+    assert.ok(row);
+    assert.equal(row.measured, false);
+    assert.equal(row.source, 'workloads/collections/deque-views.tsr');
+    for (const [kind, file, required] of [
+        ['native', row.source, 'values.clear();'],
+        ['typescript', row.counterpart, 'values.length=0;'],
+    ]) {
+        const source = read('./' + file);
+        assertNativeByteViewsSource(source, row, kind);
+        const changed = replaceCodeSnippet(source, required, '');
+        const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
+        assert.throws(() => assertNativeByteViewsSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind), /Deque view scenario/);
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(row.id, 3, 255, 'bytes'), [[9,255,2295,0],[9,0,0,0],[9,1,9,0]]);
+    for (const n of [0,1,17,2048]) {
+        const expected = expectedNativeByteViewsObservation(row.id, n, 19, 'bytes');
+        assert.deepEqual(expectedExactResult(row.id, n, 19, 'bytes'), expected);
+        assert.equal(expectedChecksum(row.id, n, 19, 'bytes'), expected.checksum);
+    }
+});

@@ -2,6 +2,32 @@
 use super::*;
 
 impl SourceIndex {
+    pub(super) fn deque_element<'a>(&self, ty: &'a str) -> Option<&'a str> {
+        let ty = ["ReadOnly<", "Mutable<", "Owned<"].into_iter()
+            .find_map(|wrapper| ty.strip_prefix(wrapper).and_then(|inner| inner.strip_suffix('>')))
+            .unwrap_or(ty);
+        let (name, arguments) = ty.split_once('<')?;
+        (self.native_type_aliases.get(name.trim()) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque))
+            .then(|| arguments.strip_suffix('>')).flatten()
+    }
+    pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
+        let Some(element) = self.deque_element(ty) else { return builtins_for(ty); };
+        let mut entries = builtins_for("Deque");
+        for entry in &mut entries {
+            if let Some(signature) = entry["signature"].as_str() {
+                entry["signature"] = json!(builtin_type_substitution(signature, &[("Element", element)]));
+            }
+            if let Some(parameters) = entry["parameters"].as_array_mut() {
+                for parameter in parameters {
+                    if let Some(text) = parameter.as_str() {
+                        *parameter = json!(builtin_type_substitution(text, &[("Element", element)]));
+                    }
+                }
+            }
+        }
+        entries
+    }
+
     pub(super) fn import_structured_native_alias(&mut self, dependency: &SourceIndex, declaration: &Symbol, local: &str, span: Span, uri: &str, types: &std::collections::BTreeMap<String, String>) -> bool {
         let mut mappings = types.clone();
         for (name, identity) in &dependency.native_type_aliases {

@@ -93,6 +93,21 @@ and other opaque native types cannot use this constructor. Constructor documenta
 its executable example, alias hover, inferred types and signature help have focused
 coverage.
 
-Public methods, iteration, conditional cloning, thread-transfer capabilities and
-matched workloads remain pending. Constructor support does not establish complete
-collection acceptance. S08 remains open and no deque timing has been performed.
+The initial method surface now supports size, pushFront, pushBack, popFront,
+popBack, front, back, at and clear. Focused checks cover scalar and owned values,
+view transport, receiver mutation conflicts, moved inputs and escaping reborrows.
+Aliases have typed completion, hover and signature help, including fallback
+inference. All nine catalog examples execute after formatting and idempotence
+checks. A local deque containing exclusive views cannot return a readonly reborrow
+of that storage; the compiler now rejects it before native emission.
+
+The matched `native_byte_views_deque` workload lives in
+`benchmarks/runtime/workloads/collections/`. Five native/Node correctness cases
+pass against an independent arithmetic oracle. Runtime and allocation drivers use
+manifest source paths so active workloads can be grouped by feature. Original
+measurement records and their historical paths remain unchanged.
+
+Iteration, scoped callback payload integration, conditional cloning and
+thread-transfer capabilities remain pending. Initial methods do not establish
+complete collection acceptance. S08 remains open and no deque timing has been
+performed.

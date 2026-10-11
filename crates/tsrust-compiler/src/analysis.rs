@@ -7161,7 +7161,7 @@ impl Analyzer {
                 collect(body, mode, roots);
             } else if matches!(
                 expr.target,
-                Some(CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
+                Some(CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
             ) && matches!(expr.ty, Some(Type::BorrowedUnion(_)))
             {
                 if let ExprKind::Call(callee, _) = &expr.kind
@@ -10470,6 +10470,10 @@ impl Analyzer {
                 }
                 if let ExprKind::Field(base, name) = &callee.kind {
                     let receiver_hint = self.expression_type_hint(context, base);
+                    if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_element().is_some() {
+                        let result = self.deque_method_type(id, name, expr.span).ok()?;
+                        return Some(if matches!(name.as_str(), "front" | "back" | "at") && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });
+                    }
                     if let Some(Type::Map(id)) = receiver_hint {
                         let result = self.map_method_type(id, name, expr.span).ok()?;
                         return Some(if name == "get" && Self::stable_at_receiver(base) && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });
@@ -10888,6 +10892,7 @@ impl Analyzer {
         {
             return Self::numeric_constant_access(mode, span);
         }
+        if self.deque_receiver(context, base).is_some() { return self.deque_size(context, base, name, mode, loans, span); }
         if self.map_receiver_hint(context, base) { return self.map_size(context, base, name, mode, loans, span); }
         if self.set_receiver_hint(context, base) {
             return self.set_size(context, base, name, mode, loans, span);
@@ -11372,7 +11377,7 @@ impl Analyzer {
                     if matches!(
                         expr.target,
                         Some(
-                            CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
+                            CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
                         )
                     ) =>
                 {
@@ -14255,6 +14260,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
             return self.array_from_mapping(context,expr,loans,expected);
         }
+        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
         if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected); }
         if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected); }
         self.array_values(context, expr)?;
@@ -17075,6 +17081,8 @@ mod exception_callable_boundary_tests {
 mod sets;
 #[path = "maps.rs"]
 mod maps;
+#[path = "stdlib/collections/check.rs"]
+mod deques;
 
 impl Analyzer {
     #[inline(never)]
