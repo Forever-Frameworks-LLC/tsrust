@@ -63,3 +63,18 @@ No lifetime erasure or hidden owned copy is permitted to make these cases compil
 Verification lives in the `collections` integration target and nearby Map tests.
 Original failing and repaired diagnostics are retained in SQLite. Timing is deferred
 until the complete collection family is ready.
+
+## Deque backend progress
+
+The owned `VecDeque` backend has a focused native witness at optimization levels
+0 and 3. A separate `Vec` sequence model checks 8,192 mixed operations, indexed
+reads, both iteration directions, empty behavior and clearing. Additional checks
+cover independent deep clones, exact payload destruction, moving non-clonable
+payloads and preservation of borrowed slice addresses. Five Rust rejection cases
+cover mutation during a read or iteration, owner movement, cloning non-clonable
+views and escaping a local byte owner.
+
+This is backend evidence only. Public generic type resolution, construction,
+ownership analysis, code generation, editor documentation and matched benchmarks
+remain pending. The runtime is not yet selected by generated programs; S08 is not
+accepted and no deque timing has been performed.

@@ -102,3 +102,35 @@ function main() {}"#;
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("native-view-escape"));
 }
+
+#[test]
+fn deque_backend_matches_sequence_model_and_preserves_owned_payloads() {
+    let directory = support::TempDirectory::new();
+    let source = format!("{}\n{}", include_str!("../src/stdlib/collections/deque_runtime.rs"), include_str!("fixtures/collections/deque-backend.rs"));
+    let path = directory.0.join("deque.rs");
+    std::fs::write(&path, source).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("deque-{level}"));
+        support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary), 60));
+        support::success(&support::run(&mut std::process::Command::new(binary), 30));
+    }
+}
+
+#[test]
+fn deque_backend_rejects_borrow_invalidation_view_clone_and_owner_escape() {
+    for (body, code) in [
+        ("fn main(){let mut values=TsrDeque::new();values.push_back(1);let first=values.front().unwrap();values.pop_front();println!(\"{}\",first);}", "E0502"),
+        ("fn main(){let mut values=TsrDeque::new();values.push_back(1);let mut iterator=values.iter();values.push_front(2);println!(\"{:?}\",iterator.next());}", "E0502"),
+        ("fn main(){let mut values=TsrDeque::new();values.push_back(1);let first=values.front().unwrap();let moved=values;println!(\"{}\",first);drop(moved);}", "E0505"),
+        ("struct Window<'a>(&'a [u8]);fn main(){let owner=[1];let mut values=TsrDeque::new();values.push_back(Window(&owner));let copied=values.clone();}", "E0599"),
+        ("struct Window<'a>(&'a [u8]);fn leak()->TsrDeque<Window<'static>>{let owner=vec![1];let mut values=TsrDeque::new();values.push_back(Window(&owner));values}fn main(){}", "E0515"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let source = format!("{}\n{body}", include_str!("../src/stdlib/collections/deque_runtime.rs"));
+        let path = directory.0.join("reject.rs");
+        std::fs::write(&path, source).unwrap();
+        let output = support::run(support::rustc().arg("--edition=2024").arg("--emit=metadata").arg(&path).arg("-o").arg(directory.0.join("reject.rmeta")), 30);
+        assert!(!output.status.success(), "unsafe deque accepted: {body}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(code), "{}", String::from_utf8_lossy(&output.stderr));
+    }
+}
