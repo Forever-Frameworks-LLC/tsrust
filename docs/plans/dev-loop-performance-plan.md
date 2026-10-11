@@ -1,9 +1,9 @@
 # Dev-loop performance milestone
 
-Status: required, next implementation priority. Owner priority set 2026-10-11.
-Complete this milestone before adding more S09 APIs or starting application workflows.
-S09's completed evidence stays accepted; monotonic time resumes afterward. This is
-part of integrated release acceptance, not an optional optimization backlog.
+Status: accepted on macOS at `e8d68b27`, with Linux watcher-module acceptance.
+Owner priority set 2026-10-11. S09 monotonic time now resumes. The historical
+implementation/checkpoint sections below preserve the sequence of evidence; the
+final acceptance section supersedes their pending-status statements.
 
 ## Existing acceptance
 
@@ -61,7 +61,7 @@ Do not close this milestone with any of the three architectural steps merely lis
 as future work. Track unexpected blockers here and in the main roadmap; request an
 owner decision only if the resolution materially changes the approved contract.
 
-## Current next action
+## Historical baseline and next action
 
 The initial baseline is captured using `benchmarks/dev/baseline.py`: three samples
 each for 6-file and 130-file projects. Median leaf edits were 522.89 ms and
@@ -493,3 +493,53 @@ measurement on the optimized binary is pending. Cache-hit native compilation
 remains zero; backend identity validation and supervisor scheduling still contribute
 to warm/config latency. Cold runtime compilation is retained as an explicit cost,
 not hidden by the fresh-edit improvement.
+
+
+## Final dev-loop acceptance
+
+Implementation and measured acceptance are complete for the scoped macOS dev loop.
+The Linux notification backend has executed module-level acceptance; full Linux
+CLI/release distribution remains outside this platform claim. The three required
+architectural steps are implemented, not deferred:
+
+- Native filesystem notifications drive reconciliation, with atomic-save/race,
+  overflow, exclusion, idle and polling-fallback checks.
+- Retained source syntax and headers invalidate changed modules and dependents.
+  Clean-build comparisons cover diagnostics, default exports, recursive views,
+  callbacks/test registration and resource cleanup. Linking and ownership checking
+  remain fresh; complete application native compilation remains on a fresh edit.
+- Selected console, text, bytes, file and path runtime support is separately
+  compiled and reused without changing real Rust borrows or application layouts.
+  Program-specific types and generic adapters remain in the application crate.
+- Both artifact namespaces are bounded to 32 entries and 256 MiB each. Private
+  executable copies protect running processes; busy dev caches are bypassed.
+  Extended 48-edit sessions per project shape verify bounded observed memory/cache
+  growth. Failed/cancelled builds retain the last working program.
+
+The full compiler pass plus affected repairs covers 3,203 tests (three intentional
+ignores); the new cache-contention test additionally passes. LSP has 530 passes,
+zero failures and one intentionally ignored measurement. The final optimization
+has nine passing focused lifecycle/project checks, supplementing retained evidence.
+All four CLI consumers use source `e8d68b27`, SHA-256
+`a9c8c30ec6bd2918905b2f04401abc89c736cf4d03bb8c427e2345f922055815`.
+Installed check/test, numeric conversion, both-cache contention, invalid-edit
+retention, replacement reaping and shutdown checks pass on that binary.
+
+Final dev-loop-v1 medians for 6/130 files are: cold 581.41/517.89 ms, warm
+87.65/108.59 ms, leaf edits 448.26/474.44 ms, shared edits 404.98/434.64 ms and
+config edits 257.20/257.44 ms. Harness/source hashes and the original three samples
+per shape are unchanged. Compared with the original baseline, fresh-edit medians
+improve while cold startup costs increase from separate runtime compilation.
+The frontend wakeup optimization improves the preceding run's warm/config medians;
+individual sample variability remains visible in the original records. Acceptance
+makes no universal latency or performance-win guarantee. Further speed work must
+retain these baselines; incremental application native compilation is not claimed.
+
+Exact final measurements, consumer hashes, installed lifecycle output and release
+build records use `tsrust-dev-wakeup-*` in SQLite. Earlier successful, failed and
+comparison records remain preserved. Cleanup removed 333 obsolete shared-target
+executables (10,702,388,904 bytes), Linux harness build outputs and stale workspace
+build trees. Workspace target usage fell from 3.2 GiB to 60 MiB; the shared target
+is 4.5 GiB. Six workspace CLI/LSP executables were hash-verified unchanged, and the
+installed CLI remains intact. Evidence is `tsrust-dev-cleanup.json`. Removed test
+executables will be rebuilt when needed, using the same Cargo target.

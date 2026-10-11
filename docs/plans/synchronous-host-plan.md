@@ -45,9 +45,9 @@ See [buffered-file acceptance](buffered-files-plan.md).
 Environment lookup has a tested read-only backend and public native/editor
 implementation plus matched workload support and ten untimed native/Node cases.
 Installed CLI/LSP acceptance is complete from `1db46101`. See [environment lookup](environment-plan.md).
-Next priority is the required [dev-loop performance milestone](dev-loop-performance-plan.md).
-Resume monotonic time foundations and the path/fs/os contract audit only after its
-filesystem events, retained compiler state and separate runtime compilation acceptance. Define
+The required [dev-loop performance milestone](dev-loop-performance-plan.md) is now
+accepted on macOS, with Linux watcher-module evidence. Resume monotonic time
+foundations and the path/fs/os contract audit. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.
 
