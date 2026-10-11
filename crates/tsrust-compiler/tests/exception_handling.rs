@@ -241,3 +241,10 @@ fn expectation_matcher_failure_is_caught_in_source() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
 }
+
+#[test]
+fn partial_return_cleanup_fixture_preserves_nested_cleanup_and_siblings() {
+    let source=support::format_round_trip(include_str!("fixtures/exception-handling/owned-returns.tsr"));
+    let directory=support::TempDirectory::new();let path=directory.source(&source);
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);assert!(output.stdout.is_empty());
+}

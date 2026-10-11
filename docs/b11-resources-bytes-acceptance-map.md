@@ -314,3 +314,50 @@ checks. Five native/Node-after-tsc cases agree: SQLite record
 Exact focused logs are stored with the `tsrust-finally-slots-` prefix. Historical
 exception workload records remain unchanged; the new source fingerprints identify
 the added owned-return behavior.
+
+
+### Partial-field returns through finally: direct cleanup routes
+
+The retained partial-field E0382 probe now executes. Plain completion frames run
+cleanup at the return site and leave directly, preserving Rust's initialized-field
+state. An enclosing catch still receives cleanup errors at its proper boundary.
+Nested finally blocks share one typed abrupt route for return and throw; cleanup
+does not bypass enclosing cleanup. Frames carrying specialized storage keep their
+existing transport. No placeholder field values, whole-record extraction, implicit
+clones or unsafe code are introduced.
+
+Checks cover early/normal field returns, nested fields, sibling reads in cleanup,
+catch returns, cleanup throws, replacement returns, field restoration, outer break,
+continue after restoration and closure capture on the normal path. A cleanup's
+internal loop does not become an escaping control destination. Only checked escaping
+control targets are emitted: adding hypothetical continue paths would make Rust
+consider a moved field live on another iteration. The public `owned-returns.tsr`
+fixture uses std:testing assertions and runs through the project CLI. The editor
+retains the `partial-transfer` diagnostic for a moved field accessed during cleanup.
+
+O0/O3 native probes prove allocation identity, sibling liveness during cleanup,
+and exactly one disposal per field on ordinary and replaced returns. Existing whole
+owner and readonly/exclusive view probes still pass. Thirty focused finally unit
+checks pass, plus the 38-test exception integration batch and the added fixture and
+restoration/control cases. Formatter corpus checks pass. Original failed records
+and repaired runs are retained under `tsrust-finally-fields-` in SQLite.
+
+The first inline prototype duplicated return/error alternatives at every nesting
+level: six and ten finally levels emitted 134,760 and 1,103,220 bytes. Sharing the
+abrupt route reduced these to 77,293 and 86,365 bytes. These are generated-source
+sizes, not runtime performance measurements; a bounded growth test guards this.
+The matched exception workload now exercises both whole-owner and record-field
+returns and observes the retained sibling during cleanup. Timing remains pending.
+
+A separate integration probe uncovered a pre-existing Map callback carrier panic:
+`unchecked record carrier conversion Closure(1) to Closure(0)`. A Map of callback
+records is replaced between a return path and a normal path before finally reads
+it. The previous release compiler reproduces the same panic. Exact source and both
+logs are in SQLite as `tsrust-finally-fields-map-probe.tsr`,
+`tsrust-finally-fields-map-probe.log` and `tsrust-finally-fields-map-baseline.log`.
+Resolve this storage-carrying integration case before closing finally/resource
+acceptance. Recursive stored callbacks, gate 190 and S07 measurements remain open.
+
+Five native/Node-after-tsc cases agree for the expanded workload: SQLite
+`runtime/results/2026-10-11T02-26-03-593Z-verify.json`. Execution is empty; timing
+remains pending. The rebuilt release compiler also executes the assertion fixture.

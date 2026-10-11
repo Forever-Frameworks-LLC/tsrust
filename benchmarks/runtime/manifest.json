@@ -18768,10 +18768,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional owned-string return through finally. Five matched native/Node cases verified without timing.",
+      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling. Timing remains pending.",
       "specification": "Retain return values, cleanup trace and dynamic input text.",
-      "sourceSha256": "883f139dd7a1ff1c5610b6e411e4d05740ccc8a2b8c34b90b3b6fe2c331b07bd",
-      "counterpartSha256": "a47ad119c14af339358e953d4da53c1f9629ed4021d4a8f0cc9153d78635292e"
+      "sourceSha256": "d871b14bb7d5c9189bfee954fd1df67ef571dd08f23d47ac4770e28ab8028f0d",
+      "counterpartSha256": "0248785ce9b38129dc05edc83a82a684ed3b2843ed6259c69b255f22a7470d7b"
     },
     {
       "id": "type_assertions",

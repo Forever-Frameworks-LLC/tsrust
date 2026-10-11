@@ -108,3 +108,27 @@ fn finally_return_borrow_does_not_transfer_its_argument() {
 fn finally_normal_path_can_capture_returned_owner() {
     runs("function pick(a:string,early:boolean):string{try{if(early){return a;}}finally{console.log(1);}const run=():string=>a;return run();}function main(){console.log(pick(\"x\",true),pick(\"y\",false));}","1\n1\nx y\n");
 }
+
+#[test]
+fn partial_field_return_through_finally_preserves_siblings() {
+    runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{console.log(a.other);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one\ntwo\nx y\n");
+}
+
+#[test]
+fn partial_returns_route_nested_cleanup_catch_errors_and_replacement() {
+ for (source,expected) in [
+  ("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){throw 3;}}catch(error){return a.name;}finally{console.log(a.other);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one\ntwo\nx y\n"),
+  ("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{try{if(early){return a.name;}}finally{console.log(a.other);}}finally{console.log(2);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one\n2\ntwo\n2\nx y\n"),
+  ("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}catch(error){return \"wrong catch\";}finally{console.log(a.other);if(early){throw 7;}}return a.name;}function main(){try{console.log(pick({name:\"x\",other:\"one\"},true));}catch(error){console.log(error);}console.log(pick({name:\"y\",other:\"two\"},false));}","one\n7\ntwo\ny\n"),
+  ("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{if(early){return a.other;}}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one y\n"),
+  ("type Child={name:string;};type Row={child:Child;other:string;};function pick(a:Row,early:boolean):string{for(let i=0;i<2;i+=1){try{if(early){return a.child.name;}}finally{console.log(a.other);}}return a.child.name;}function main(){console.log(pick({child:{name:\"x\"},other:\"one\"},true),pick({child:{name:\"y\"},other:\"two\"},false));}","one\ntwo\ntwo\nx y\n"),
+ ] {runs(source,expected);}
+}
+
+#[test]
+fn partial_return_cleanup_restoration_and_control_keep_owner_state() {
+ runs("type Row={name:string;other:string;};function pick(a:Row):string{for(let i=0;i<2;i+=1){try{if(i===0){return a.name;}}finally{a.name=\"new\";if(i===0){continue;}}}return a.name;}function main(){console.log(pick({name:\"old\",other:\"sibling\"}));}","new\n");
+ runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{a.name=\"new\";}return a.name;}function main(){console.log(pick({name:\"old\",other:\"sibling\"},true),pick({name:\"old\",other:\"sibling\"},false));}","old new\n");
+ runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{outer:for(let i=0;i<2;i+=1){try{if(early){return a.name;}}finally{if(early){break outer;}}}return a.other;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one two\n");
+ runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{for(let i=0;i<2;i+=1){if(i===1){break;}console.log(a.other);}}const run=():string=>a.name;return run();}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one\ntwo\nx y\n");
+}

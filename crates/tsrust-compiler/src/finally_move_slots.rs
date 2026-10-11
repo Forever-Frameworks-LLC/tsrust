@@ -100,3 +100,53 @@ fn slot_probe(){
         }
     }
 }
+
+#[cfg(test)]
+mod partial_return_tests {
+    #[test]
+    fn partial_finally_returns_keep_sibling_alive_and_dispose_each_owner_once() {
+        let source="type Token={text:string;};type Pair={left:Token;right:Token;};function cleanup(value:ReadOnly<Token>):void{}function pick(a:Pair,early:boolean):Token{try{if(early){return a.left;}}finally{cleanup(a.right);}return a.left;}function replace(a:Pair,early:boolean):Token{try{if(early){return a.left;}}finally{cleanup(a.right);if(early){return a.right;}}return a.left;}function main(){}";
+        let formatted=crate::formatting::format(source).unwrap();assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+        let checked=crate::analysis::analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();
+        let mut native=crate::emit::emit(&checked);
+        let cleanup=native.find("fn function0(").unwrap();let opening=cleanup+native[cleanup..].find('{').unwrap()+1;
+        native.insert_str(opening,"assert_eq!(LEFT.load(std::sync::atomic::Ordering::SeqCst),0);assert_eq!(RIGHT.load(std::sync::atomic::Ordering::SeqCst),0);assert_eq!(value0.field0.as_ref(),\"right\");");
+        let main=native.find("fn main()").unwrap();let opening=main+native[main..].find('{').unwrap()+1;native.insert_str(opening,"partial_probe();");
+        native.push_str(r#"
+static LEFT:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+static RIGHT:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record0{fn drop(&mut self){let counter=if self.field0.as_ref()=="left"{&LEFT}else{&RIGHT};counter.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}
+fn partial_probe(){use std::sync::atomic::Ordering::SeqCst;
+ for early in [false,true]{for replace in [false,true]{
+  LEFT.store(0,SeqCst);RIGHT.store(0,SeqCst);
+  let left=Record0{field0:String::Owned("left".into())};let right=Record0{field0:String::Owned("right".into())};
+  let pointer=if replace && early{right.field0.as_ptr()}else{left.field0.as_ptr()};
+  let pair=Record1{field0:left,field1:right};let returned=if replace{function2(pair,early)}else{function1(pair,early)};
+  assert_eq!(returned.field0.as_ptr(),pointer,"partial return cloned payload");
+  assert_eq!(LEFT.load(SeqCst),usize::from(replace&&early));assert_eq!(RIGHT.load(SeqCst),usize::from(!(replace&&early)));
+  drop(returned);assert_eq!(LEFT.load(SeqCst),1);assert_eq!(RIGHT.load(SeqCst),1);
+ }}
+}
+"#);
+        let directory=std::env::temp_dir().join(format!("tsrust-finally-partial-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let _cleanup=Cleanup(directory.clone());let input=directory.join("probe.rs");std::fs::write(&input,native).unwrap();
+        for level in ["0","3"]{let binary=directory.join(format!("probe-{level}"));let compiled=std::process::Command::new("rustc").args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&input).arg("-o").arg(&binary).output().unwrap();assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));assert!(std::process::Command::new(binary).status().unwrap().success());}
+    }
+}
+
+#[cfg(test)]
+mod cleanup_size_tests {
+    #[test]
+    fn nested_finally_direct_exit_code_does_not_grow_exponentially() {
+        let emit=|depth|{
+            let mut body="if(early){return a.name;}".to_owned();
+            for _ in 0..depth {body=format!("try{{{body}}}finally{{console.log(a.other);}}");}
+            let source=format!("type Row={{name:string;other:string;}};function pick(a:Row,early:boolean):string{{{body}return a.name;}}function main(){{}}");
+            let formatted=crate::formatting::format(&source).unwrap();assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
+            let program=crate::analysis::analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();crate::emit::emit(&program).len()
+        };
+        let shallow=emit(6);let deep=emit(10);
+        assert!(deep<shallow*3,"nested cleanup duplicated abrupt alternatives: {shallow} -> {deep}");
+    }
+}

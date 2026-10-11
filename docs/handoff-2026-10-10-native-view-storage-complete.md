@@ -151,3 +151,24 @@ extract one field, because that would dispose siblings prematurely. Then finish
 recursive stored callable fields, resources gate 190, S07 family measurements and
 consumer refresh before following the remaining roadmap. The broader finally
 repair and S07 remain open.
+
+
+## Latest continuation: direct partial-field cleanup routes
+
+The plain-frame partial-field return failure above is repaired. `InlineExit` in
+`exception_contract_emit.rs` carries typed return/throw continuations. Cleanup runs
+inline before direct exit; shared abrupt routing avoids exponential generated code.
+Only actually escaping cleanup control targets are emitted. Whole-owner slots stay
+for existing ownership transport. The public assertion fixture and native O0/O3
+checks cover siblings, pointer identity and exact disposal; nested cleanup, catch,
+restoration, break, continue and subsequent closure capture pass.
+
+Next investigate the independently reproduced Map callback carrier panic saved as
+`tsrust-finally-fields-map-probe.tsr` in SQLite. Both the prior release compiler and
+the current compiler panic at `record_carrier_emit.rs` while converting Closure(1)
+to Closure(0). The source replaces a Map's old callback family on the normal path,
+but an early field-return path keeps its original entries before finally reads the
+Map. The direct cleanup optimization intentionally excludes storage-carrying frames;
+repair the checked carrier selection instead of erasing environments or cloning
+captures. Then finish recursive stored callback fields, resources, S07 acceptance
+and the remaining roadmap. Consumers remain at `4367f4cc`; no timing run yet.

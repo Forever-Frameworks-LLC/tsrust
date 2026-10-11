@@ -71,3 +71,13 @@ fn owned_return_through_finally_keeps_type_and_transfer_diagnostics() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&invalid,"file:///finally-owned.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="transferred"),"{diagnostics}");
 }
+
+#[test]
+fn partial_return_cleanup_keeps_editor_ownership_checks() {
+ let source="type Row={name:string;other:string;};function take(row:Row,early:boolean):string{try{try{if(early){return row.name;}}finally{console.log(row.other);}}finally{console.log(9);}return row.name;}function main(){}";
+ let formatted=tsrust_compiler::format(source).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+ assert!(tsrust_lsp::diagnostics(&formatted,"file:///owned-returns.tsr").unwrap().is_empty());
+ let invalid="type Row={name:string;other:string;};function pick(row:Row):string{try{return row.name;}finally{console.log(row.name);}}function main(){}";
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(invalid,"file:///partial-return.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="partial-transfer"),"{diagnostics}");
+}

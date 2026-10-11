@@ -212,6 +212,8 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         control_targets: exception_contract_emit::ControlStack::default(),
         completion_next: Cell::new(0),
         return_passes_through: Cell::new(false),
+        inline_return: RefCell::new(None),
+        inline_abrupt: RefCell::new(None),
         cleanup_replaces_exits: Cell::new(false),
         result_functions: RefCell::new(HashMap::new()),
         result_closures: RefCell::new(HashMap::new()),
@@ -291,6 +293,8 @@ struct Emitter<'a> {
     completion_next: Cell<usize>,
     /// Set for the next completion body: its returns reach the enclosing region unchanged.
     return_passes_through: Cell<bool>,
+    inline_return: RefCell<Option<exception_contract_emit::InlineExit>>,
+    inline_abrupt: RefCell<Option<exception_contract_emit::InlineExit>>,
     /// Inside a `try` whose abrupt `finally` replaces every pending exit.
     cleanup_replaces_exits: Cell<bool>,
     result_functions: RefCell<HashMap<usize,(String,String)>>,
@@ -3339,25 +3343,52 @@ impl Emitter<'_> {
             let cleanup=self.completion_body(fun,cleanup,ids.2,names.1,outgoing,runtime);
             return format!("{{ {declaration} let pending_completion={pending}; let cleanup_completion={cleanup}; std::mem::drop(pending_completion); cleanup_completion }}");
         }
+        let cleanup=region.finally.as_ref().map(|body|self.completion_body(fun,body,ids.2,names.1,outgoing.clone(),runtime));
+        // Keep partial-move state visible to Rust across cleanup. Storage-carrying
+        // frames retain their dedicated transport and cannot use this direct route.
+        let inline_exit=||{
+            if self.cleanup_replaces_exits.get() || !self.exception_regions.plain_return_destination(){return None;}
+            let binding=format!("finally_exit{}",ids.0);
+            let pending=binding.clone();
+            let pending=cleanup.as_ref().map_or_else(||pending.clone(),|cleanup|exception_emit::finally_region(&pending,cleanup));
+            let (outer_name,outer_contract,_)=self.exception_regions.current_transport().expect("enclosing cleanup transport");
+            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+            let widened=exception_contract_emit::checked_completion_conversion(&pending,names.1,&outer_name,&outgoing,&outer_contract,&unions,runtime,crate::Span::default()).expect("checked cleanup errors");
+            let returned=self.exception_regions.return_value("value",crate::Span::default());
+            let thrown=self.exception_regions.native_throw("error");
+            let controls=region.finally.as_ref().map_or_else(String::new,|body|exception_contract_emit::escaping_controls(body).into_iter().map(|(target,continuing,span)|{
+                let label=match target {ControlTarget::Loop(id)|ControlTarget::Tail(id)=>format!("TsrControlTarget::Loop({id})"),ControlTarget::Block(id)=>format!("TsrControlTarget::Block({id})")};
+                let kind=if continuing{"Continue"}else{"Break"};let route=self.exception_regions.control_at(target,continuing,span);
+                format!("TsrCompletion::{kind}({label})=>{{{route}}},")
+            }).collect::<String>());
+            let abrupt=self.exception_regions.inline_abrupt("completion").map_or_else(
+                ||format!("TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}}"),
+                |route|format!("completion @ (TsrCompletion::Return(_)|TsrCompletion::Throw(_))=>{{{route}}}"));
+            Some(exception_contract_emit::InlineExit{binding,ty:format!("TsrCompletion<(),{},{}>",self.native_type(fun.result),names.1),code:format!("match {widened} {{{abrupt},{controls}_=>unreachable!(\"checked abrupt cleanup exit\")}}")})
+        };
+        let inline_abrupt=inline_exit();
+        let inline=if cleanup.is_some(){inline_abrupt.clone()}else{None};
         let direct_returns=region.finally.is_none() && !self.cleanup_replaces_exits.get();
         let pending=if let Some(handler)=&region.catch {
-            self.completion_with_catch(fun,&region.body,handler,(ids.0,ids.1),names.0,names.1,outgoing.clone(),runtime,direct_returns)
+            self.completion_with_catch(fun,&region.body,handler,(ids.0,ids.1),names.0,names.1,outgoing.clone(),runtime,direct_returns,inline.clone(),inline_abrupt.clone())
         }else{
+            *self.inline_return.borrow_mut()=inline;
+            *self.inline_abrupt.borrow_mut()=inline_abrupt;
             self.return_passes_through.set(direct_returns);
             self.completion_body(fun,&region.body,ids.0,names.1,outgoing.clone(),runtime)
         };
-        if let Some(cleanup)=&region.finally {
-            let cleanup=self.completion_body(fun,cleanup,ids.2,names.1,outgoing,runtime);
-            exception_emit::finally_region(&pending,&cleanup)
-        }else{pending}
+        if let Some(cleanup)=cleanup {exception_emit::finally_region(&pending,&cleanup)}else{pending}
     }
 
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
-    fn completion_with_catch(&self,fun:&CheckedFunction,body:&[Stmt],handler:&CatchClause,ids:(usize,usize),incoming_name:&str,outgoing_name:&str,outgoing:crate::error_effects::FailureSet,runtime:Option<Type>,direct_returns:bool)->String {
+    fn completion_with_catch(&self,fun:&CheckedFunction,body:&[Stmt],handler:&CatchClause,ids:(usize,usize),incoming_name:&str,outgoing_name:&str,outgoing:crate::error_effects::FailureSet,runtime:Option<Type>,direct_returns:bool,inline:Option<exception_contract_emit::InlineExit>,inline_abrupt:Option<exception_contract_emit::InlineExit>)->String {
         let incoming=handler.error_contract.as_deref().expect("checked catch contract");
+        *self.inline_return.borrow_mut()=inline.clone();
         self.return_passes_through.set(direct_returns);
         let pending=self.completion_body(fun,body,ids.0,incoming_name,incoming.clone(),runtime);
+        *self.inline_return.borrow_mut()=inline;
+        *self.inline_abrupt.borrow_mut()=inline_abrupt;
         self.return_passes_through.set(direct_returns);
         let handled=self.completion_body(fun,&handler.body,ids.1,outgoing_name,outgoing,runtime);
         let setup=if let Some(binding)=handler.binding {
@@ -3408,6 +3439,8 @@ impl Emitter<'_> {
         let locals=exception_contract_emit::local_control_targets(body);
         let _region=self.exception_regions.enter_typed(id,locals,error_name.into(),contract,runtime);
         if self.return_passes_through.take() {self.exception_regions.mark_return_passes_through();}
+        if let Some(route)=self.inline_return.borrow_mut().take() {self.exception_regions.set_inline_return(route);}
+        if let Some(route)=self.inline_abrupt.borrow_mut().take() {self.exception_regions.set_inline_abrupt(route);}
         let mut statements=String::new();
         let prefix=if initialize_parameters {
             self.parameter_initialization(&mut statements,fun,1);
@@ -9973,7 +10006,7 @@ mod exception_region_tests {
         assert_eq!(name,"Incoming<i64>");
         let (empty,empty_name)=emitter.completion_error_layout("Unused",&crate::error_effects::FailureSet::default(),None,throwing[0].span);
         assert!(empty.is_empty());assert_eq!(empty_name,"std::convert::Infallible");
-        let expression=emitter.completion_with_catch(function,&throwing,handler,(20,21),&name,"std::convert::Infallible",crate::error_effects::FailureSet::default(),None,false);
+        let expression=emitter.completion_with_catch(function,&throwing,handler,(20,21),&name,"std::convert::Infallible",crate::error_effects::FailureSet::default(),None,false,None,None);
         region.body=throwing.clone();region.finally=Some(function.body.clone());
         let combined=emitter.completion_handlers(function,region,(22,23,24),(&name,"std::convert::Infallible"),crate::error_effects::FailureSet::default(),Some(runtime));
         let mut rust=program.emit_rust();rust.push_str(crate::runtime::EXCEPTION_COMPLETIONS);rust.push_str(&declaration);

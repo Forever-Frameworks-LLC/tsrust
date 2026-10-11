@@ -75,10 +75,24 @@ impl Storage {
 
 struct ControlStorage {target:crate::syntax::ControlTarget,continuing:bool,variant:String,storage:Storage}
 
+/// A typed abrupt completion continues directly after cleanup. Return and throw
+/// share one route so nested finally blocks do not duplicate both alternatives.
+#[derive(Clone)]
+pub(crate) struct InlineExit {
+    pub(crate) binding:String,
+    pub(crate) ty:String,
+    pub(crate) code:String,
+}
+impl InlineExit {
+    fn render(&self,value:&str)->String {format!("{{let {}:{}={value};{}}}",self.binding,self.ty,self.code)}
+}
+
 struct NativeRegion {
     /// A return in this region reaches the enclosing region unchanged: it is the
     /// body or handler of a `try` without `finally`.
     return_passes_through:bool,
+    inline_return:Option<InlineExit>,
+    inline_abrupt:Option<InlineExit>,
     id:usize,
     locals:Vec<crate::syntax::ControlTarget>,
     storage:Option<Box<Storage>>,
@@ -104,7 +118,7 @@ impl RegionStack {
     pub(crate) fn enter(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>)->RegionScope<'_> {
         let mut regions=self.0.borrow_mut();
         let previous_depth=regions.len();
-        regions.push(NativeRegion{return_passes_through:false,id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
+        regions.push(NativeRegion{return_passes_through:false,inline_return:None,inline_abrupt:None,id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
         RegionScope{stack:self,previous_depth,_storage:self.1.scope()}
     }
     pub(crate) fn enter_typed(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>,name:String,contract:crate::error_effects::FailureSet,runtime:Option<crate::syntax::Type>)->RegionScope<'_> {
@@ -128,6 +142,26 @@ impl RegionStack {
     pub(crate) fn carry_storage_on_control_exit(&self) {
         self.0.borrow_mut().last_mut().expect("entered storage region").storage.as_mut().expect("attached storage").carry_control=true;
     }
+    pub(crate) fn plain_return_destination(&self)->bool {
+        self.0.borrow().last().is_some_and(|region|region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty())
+    }
+    pub(crate) fn set_inline_return(&self,route:InlineExit) {
+        self.0.borrow_mut().last_mut().expect("entered region").inline_return=Some(route);
+    }
+    pub(crate) fn set_inline_abrupt(&self,route:InlineExit) {
+        self.0.borrow_mut().last_mut().expect("entered region").inline_abrupt=Some(route);
+    }
+    pub(crate) fn inline_abrupt(&self,value:&str)->Option<String> {
+        let regions=self.0.borrow();let region=regions.last()?;
+        (region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty()).then_some(())?;
+        Some(region.inline_abrupt.as_ref()?.render(value))
+    }
+    pub(crate) fn native_throw(&self,value:&str)->String {
+        let regions=self.0.borrow();let region=regions.last().expect("enclosing throw destination");
+        if region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty()
+            && let Some(route)=&region.inline_abrupt {return route.render(&format!("TsrCompletion::Throw({value})"));}
+        format!("break 'exception_region{} TsrCompletion::Throw({value});",region.id)
+    }
     pub(crate) fn mark_return_passes_through(&self) {
         self.0.borrow_mut().last_mut().expect("entered region").return_passes_through=true;
     }
@@ -138,7 +172,10 @@ impl RegionStack {
         // a completion value matched afterwards would hide that from its move check.
         let plain=|region:&NativeRegion|region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty();
         let mut index=regions.len().checked_sub(1).expect("entered return region");
-        while index>0 && regions[index].return_passes_through && plain(&regions[index]) && plain(&regions[index-1]) {index-=1;}
+        while index>0 && regions[index].return_passes_through && regions[index].inline_return.is_none() && plain(&regions[index]) && plain(&regions[index-1]) {index-=1;}
+        if plain(&regions[index]) && let Some(route)=&regions[index].inline_return {
+            return route.render(&format!("TsrCompletion::Return({value})"));
+        }
         if index+1!=regions.len() {
             return format!("break 'exception_region{} TsrCompletion::Return({value});",regions[index].id);
         }
@@ -311,6 +348,23 @@ pub(crate) fn local_control_targets(body:&[crate::syntax::Stmt])->Vec<crate::syn
         }
     }
     targets
+}
+
+/// Only control exits targeting an enclosing construct can escape cleanup.
+pub(crate) fn escaping_controls(body:&[crate::syntax::Stmt])->Vec<(crate::syntax::ControlTarget,bool,crate::Span)> {
+    use crate::syntax::StmtKind;
+    let locals=local_control_targets(body);let mut pending=body.iter().collect::<Vec<_>>();let mut exits=vec![];
+    while let Some(statement)=pending.pop(){match &statement.kind {
+        StmtKind::Break|StmtKind::Continue=>{
+            let target=statement.control_target.expect("checked control target");let continuing=matches!(statement.kind,StmtKind::Continue);
+            if !locals.contains(&target) && !exits.iter().any(|(prior,kind,_)|*prior==target && *kind==continuing){exits.push((target,continuing,statement.span));}
+        },
+        StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+        StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);},
+        StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+        StmtKind::Try(region)=>pending.extend(region.statements()),
+        _=>{}
+    }}exits
 }
 
 /// Route checked control targets through cleanup only when they leave this region.

@@ -13,6 +13,12 @@ function retained(value: string, early: boolean, trace: number[]): string {
   return value;
 }
 
+type RetainedOwner = {text: string; stamp: number;};
+function retainedField(value: RetainedOwner, early: boolean, trace: number[]): string {
+  try { if (early) { return value.text; } } finally { trace.push(value.stamp); }
+  return value.text;
+}
+
 function workload(n: number, seed: number, input: string): string[][] {
  const output:string[][]=[];let i=0;
  while(i<n){
@@ -20,7 +26,8 @@ function workload(n: number, seed: number, input: string): string[][] {
   const trace:number[]=[];
   const result=attempt(value,trace);
   const owned = retained(input + String(value), value % 2 === 0, trace);
-  output.push([String(result),String(replaced(value)),trace.join(","),owned]);
+    const field = retainedField({text: owned, stamp: 11}, value % 2 === 0, trace);
+  output.push([String(result),String(replaced(value)),trace.join(","),field]);
   i=i+1;
  }
  return output;

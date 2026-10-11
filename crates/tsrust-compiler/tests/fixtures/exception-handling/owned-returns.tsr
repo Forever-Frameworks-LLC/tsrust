@@ -1,0 +1,33 @@
+import { strictEqual } from "std:testing";
+
+type Row = {
+  name: string;
+  other: string;
+};
+
+function take(row: Row, early: boolean, trace: int[]): string {
+  try {
+    try {
+      if (early) {
+        return row.name;
+      }
+    } finally {
+      trace.push(row.other.length);
+    }
+  } finally {
+    trace.push(9);
+  }
+
+  return row.name;
+}
+
+function main() {
+  const trace: int[] = [];
+  strictEqual(take({
+    name: "first", other: "one"
+  }, true, trace), "first");
+  strictEqual(take({
+    name: "second", other: "four"
+  }, false, trace), "second");
+  strictEqual(trace.join(","), "3,9,4,9");
+}
