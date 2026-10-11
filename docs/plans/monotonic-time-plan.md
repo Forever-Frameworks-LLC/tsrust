@@ -3,7 +3,7 @@
 Status: focused compiler/editor/example and matched untimed acceptance complete.
 Installed CLI/LSP binary refresh and fresh-process checks pass. Matched measurements
 and allocation profiles are accepted in the [S09 measurement review](../milestones/s09-host-measurements.md).
-The existing owner editor server restarted; final UI verification remains pending.
+The final installed server restart and owner-window verification pass; S09 is accepted on macOS.
 
 `std:time` exports `monotonicNow(): number`. It takes no arguments and returns
 nonnegative fractional milliseconds from a process-local origin initialized on
@@ -54,3 +54,9 @@ UI input was delayed and accessibility state diverged from screenshots, so final
 verification of the active source status remains open. No owner files were edited.
 SQLite record `tsrust-s09-editor-restart-observation.json` retains the observation.
 Full S09 regression and final editor acceptance are still required.
+
+Final follow-up: the refreshed installed server restarted at 16:11:06 on 2026-10-11
+(PID 13362). The owner window shows `Tsrust: checking enabled` and no workspace
+problems. SQLite record `tsrust-s09-final-editor.json` supersedes the earlier UI
+verification limitation. Full compiler/LSP regressions and 52 installed smoke cases
+pass; see the linked S09 acceptance.

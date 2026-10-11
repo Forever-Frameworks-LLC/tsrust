@@ -1,8 +1,9 @@
 # S09 synchronous host measurements
 
 Measurement acceptance is complete on macOS at source checkpoint `0347e340`.
-S09 family acceptance remains pending complete regressions and the existing editor
-window verification. This report does not accept S10 or additional host APIs.
+S09 family acceptance is complete on macOS after full regressions, final installed
+consumer checks and editor verification at `b921b2fb`. This report does not accept
+S10, additional host APIs or untested native platforms.
 
 The canonical SQLite proof is `runtime/diagnostics/s09-measurement-acceptance.json`
 with SHA-256 `ba8f3981a78c3b52d7881e15116569a3ae4ac3c28eb603de03a9af9b7cc162db`.
@@ -57,3 +58,31 @@ rewrite or weakened clock/result contract is justified by this comparison alone.
 Preserve this baseline for targeted optimization if later evidence identifies a
 material application cost. Native winning every workload is not an acceptance
 requirement.
+
+## Final family acceptance
+
+`cargo test --offline --locked -p tsrust-compiler --no-fail-fast` passes 3,207 tests
+with zero failures and three intentional ignores. The equivalent `tsrust-lsp`
+command passes 532 tests with zero failures and one intentional ignore. Both use
+`CARGO_INCREMENTAL=0` and the shared `/private/tmp/tsrust-gate100-editor-target`.
+SQLite retains `tsrust-s09-full-compiler.log` and `tsrust-s09-full-lsp.log`.
+
+A locked offline release build supplies eight atomically refreshed CLI/LSP
+consumers, with identical source/destination hashes recorded in
+`tsrust-s09-final-consumers.json`. Installed smoke checks pass ten clock cases,
+ten environment cases and 32 write/full-file/buffered-file native/Node cases.
+A fresh installed LSP publishes empty diagnostics and the clock hover, then
+shuts down cleanly. Evidence is retained as `tsrust-s09-installed-*.log`.
+
+The existing owner editor executes `Tsrust: Restart Language Server`; its new
+installed process starts at 16:11:06 local time on 2026-10-11, PID 13362. The
+`main.tsr — tsrust_test` window shows `Tsrust: checking enabled` and an empty,
+unfiltered workspace Problems view. No owner files were edited. See
+`tsrust-s09-final-editor.json` for the final observation.
+
+Cleanup removes 324 test executables, obsolete workspace incremental outputs and
+disposable runtime benchmark outputs: 11,542,234,168 bytes total. All eight current
+consumer hashes remain unchanged. The shared target is approximately 4.7 GiB;
+the workspace target is 275 MiB. `tsrust-s09-output-cleanup.json` records exact
+removed paths and preserved hashes. Future tests rebuild removed executables;
+no rebuild was run merely to refill those outputs.
