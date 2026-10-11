@@ -114,3 +114,10 @@ The [collections review](globals-and-imports-collections-audit.md) covers four
 constructors/types and 29 members. Keep specialized collections imported.
 Generated helper selection is currently by family; per-method elimination is not
 claimed. Global Set/Map and remaining receiver/namespace surfaces remain open.
+
+## Global Set/Map review slice
+
+The [Set/Map review](globals-and-imports-set-map-audit.md) covers 29 constructors,
+receiver members and static grouping entries. Preserve global placement and
+explicit native ownership/copy contracts. Other namespace and receiver families
+remain pending.
