@@ -291,14 +291,17 @@ impl RecordRuntime {
 
     pub(crate) fn emit(&self, records: &[Record]) -> String {
         let mut code = String::new();
+        let views = crate::recursive_view_shapes::Index::new(records, &|id| self.unions[id.index()].members.clone());
         for (group, members) in self.groups.iter().enumerate() {
+            let lifetime = if members.iter().any(|&id| views.access(id).is_some()) { "<'view>" } else { "" };
+            let from_parameters = if lifetime.is_empty() { "<const N: usize>" } else { "<'view, const N: usize>" };
             let variants = members
                 .iter()
-                .map(|index| format!("R{index}(Record{index})"))
+                .map(|index| format!("R{index}(Record{index}{lifetime})"))
                 .collect::<Vec<_>>()
                 .join(", ");
             let cloneable = members.iter().all(|&index| self.cloneable(index));
-            let _ = writeln!(code, "enum DropNode{group} {{ {variants} }}");
+            let _ = writeln!(code, "enum DropNode{group}{lifetime} {{ {variants} }}");
             if cloneable {
                 let _ = writeln!(
                     code,
@@ -318,21 +321,21 @@ impl RecordRuntime {
                 } else {
                     ""
                 };
-                let _ = writeln!(code, "struct RecordArray{index}(Vec<Record{index}>);
-impl RecordArray{index} {{
+                let _ = writeln!(code, "struct RecordArray{index}{lifetime}(Vec<Record{index}{lifetime}>);
+impl{lifetime} RecordArray{index}{lifetime} {{
 #[inline]
-fn push(&mut self, value: Record{index}) {{
-let bytes = std::mem::size_of::<Record{index}>();
+fn push(&mut self, value: Record{index}{lifetime}) {{
+let bytes = std::mem::size_of::<Record{index}{lifetime}>();
 let target = if bytes <= 64 {{ 16 }} else if bytes <= 128 {{ 8 }} else {{ 4 }};
 let capacity = self.0.capacity();
 if self.0.len() == capacity && capacity >= 4 && capacity < target {{ self.0.reserve_exact(target - self.0.len()); }}
 self.0.push(value);
 }}
 }}
-impl std::ops::Deref for RecordArray{index} {{ type Target = Vec<Record{index}>; fn deref(&self) -> &Self::Target {{ &self.0 }} }}
-impl std::ops::DerefMut for RecordArray{index} {{ fn deref_mut(&mut self) -> &mut Self::Target {{ &mut self.0 }} }}
-impl<const N: usize> From<[Record{index}; N]> for RecordArray{index} {{ fn from(values: [Record{index}; N]) -> Self {{ Self(Vec::from(values)) }} }}
-impl Drop for RecordArray{index} {{ fn drop(&mut self) {{ if !self.0.is_empty() {{ drop_record_graph{group}(std::mem::take(&mut self.0).into_iter().map(DropNode{group}::R{index}).collect()); }} }} }}");
+impl{lifetime} std::ops::Deref for RecordArray{index}{lifetime} {{ type Target = Vec<Record{index}{lifetime}>; fn deref(&self) -> &Self::Target {{ &self.0 }} }}
+impl{lifetime} std::ops::DerefMut for RecordArray{index}{lifetime} {{ fn deref_mut(&mut self) -> &mut Self::Target {{ &mut self.0 }} }}
+impl{from_parameters} From<[Record{index}{lifetime}; N]> for RecordArray{index}{lifetime} {{ fn from(values: [Record{index}{lifetime}; N]) -> Self {{ Self(Vec::from(values)) }} }}
+impl{lifetime} Drop for RecordArray{index}{lifetime} {{ fn drop(&mut self) {{ if !self.0.is_empty() {{ drop_record_graph{group}(std::mem::take(&mut self.0).into_iter().map(DropNode{group}::R{index}).collect()); }} }} }}");
                 if cloneable {
                     let _ = writeln!(code, "impl Clone for RecordArray{index} {{ fn clone(&self) -> Self {{
 if self.0.iter().all(shallow_record{group}_{index}) {{ return Self(self.0.iter().map(clone_shallow_record{group}_{index}).collect()); }}
@@ -359,7 +362,7 @@ impl Clone for Record{index} {{ fn clone(&self) -> Self {{ if shallow_record{gro
                     .collect::<String>();
                 let _ = writeln!(
                     code,
-                    "fn drain_record{group}_{index}(value: &mut Record{index}, stack: &mut Vec<DropNode{group}>) {{ {drain} }}"
+                    "fn drain_record{group}_{index}{lifetime}(value: &mut Record{index}{lifetime}, stack: &mut Vec<DropNode{group}{lifetime}>) {{ {drain} }}"
                 );
                 if cloneable {
                     let seed = fields
@@ -431,7 +434,7 @@ fn fill_record{group}_{index}(original: &Record{index}, output: &mut Record{inde
             }
             let _ = writeln!(
                 code,
-                "fn drop_record_graph{group}(mut stack: Vec<DropNode{group}>) {{ while let Some(node) = stack.pop() {{ match node {{"
+                "fn drop_record_graph{group}{lifetime}(mut stack: Vec<DropNode{group}{lifetime}>) {{ while let Some(node) = stack.pop() {{ match node {{"
             );
             for &index in members {
                 let body = format!("drain_record{group}_{index}(&mut value, &mut stack);");
@@ -548,5 +551,76 @@ fn main() {{
             assert_eq!(run.stdout, b"10001\n");
         }
         std::fs::remove_dir_all(directory).unwrap();
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn recursive_view_arrays_keep_slice_lifetimes_and_iterative_drop() {
+    let mut source = String::new();
+    for (name, native, mutual) in [
+        ("read", crate::native_signatures::NativeTypeId::ByteView, false),
+        ("write", crate::native_signatures::NativeTypeId::ByteViewMut, false),
+        ("read_mutual", crate::native_signatures::NativeTypeId::ByteView, true),
+        ("write_mutual", crate::native_signatures::NativeTypeId::ByteViewMut, true),
+    ] {
+        let input = if mutual {
+            "type Chain={next:Link[];view:Window;};type Window={};type Link={children:Chain[];};function main(){}"
+        } else { "type Chain={next:Chain[];view:Window;};type Window={};function main(){}" };
+        let formatted = crate::formatting::format(input).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut parsed = crate::syntax::parse(&formatted).unwrap();
+        parsed.records[1].native_type = Some(native);
+        let checked = crate::analysis::analyze(parsed).unwrap();
+        assert!(!RecordRuntime::new(&checked.records, &checked.unions).cloneable(0));
+        let next = if mutual { "if nodes.is_empty() { RecordArray2::from([]) } else { RecordArray2::from([Record2 { field0: nodes }]) }" } else { "nodes" };
+        let child = if mutual { "&cursor.field0[0].field0[0]" } else { "&cursor.field0[0]" };
+        let support = crate::emit::emit(&checked).replace("fn main()", "fn unused_main()");
+        let write = if native == crate::native_signatures::NativeTypeId::ByteViewMut { "nodes[0].field1.bytes[0] += 3;" } else { "" };
+        let expected = if write.is_empty() { 7 } else { 10 };
+        source.push_str(&format!(r#"
+mod {name} {{
+{support}
+static DROPS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+impl Drop for Record1<'_> {{ fn drop(&mut self) {{ DROPS.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }} }}
+pub fn run() {{
+    let mut owner = vec![7u8; 10001];
+    let pointer = owner.as_ptr();
+    let mut nodes = RecordArray0::from([]);
+    for cell in owner.iter_mut() {{
+        nodes = RecordArray0::from([Record0 {{ field0: {next}, field1: Record1 {{ bytes: std::slice::from_mut(cell) }} }}]);
+    }}
+    assert_eq!(nodes[0].field1.bytes[0], 7);
+    {write}
+    let mut cursor = &nodes[0];
+    let mut depth = 1;
+    while !cursor.field0.is_empty() {{ cursor = {child}; depth += 1; }}
+    assert_eq!(depth, 10001);
+    assert_eq!(cursor.field1.bytes.as_ptr(), pointer);
+    drop(nodes);
+    assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst), 10001);
+    assert_eq!(owner[10000], {expected});
+    owner[0] = 9;
+    assert_eq!(owner[0], 9);
+}}
+}}
+"#));
+    }
+    source.push_str("fn main() { std::thread::Builder::new().stack_size(128 * 1024).spawn(|| { read::run(); write::run(); read_mutual::run(); write_mutual::run(); }).unwrap().join().unwrap(); }");
+    let directory = std::env::temp_dir().join(format!("tsrust-recursive-view-runtime-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+    let _cleanup = Cleanup(directory.clone());
+    let input = directory.join("main.rs");
+    std::fs::write(&input, source).unwrap();
+    for level in [0, 3] {
+        let output = directory.join(format!("run-{level}"));
+        let built = std::process::Command::new("rustup")
+            .args(["run", crate::RUST_BACKEND_VERSION, "rustc", "--edition=2024", &format!("-Copt-level={level}")])
+            .arg(&input).arg("-o").arg(&output).output().unwrap();
+        assert!(built.status.success(), "{}", String::from_utf8_lossy(&built.stderr));
+        let run = std::process::Command::new(&output).output().unwrap();
+        assert!(run.status.success(), "{}", String::from_utf8_lossy(&run.stderr));
     }
 }

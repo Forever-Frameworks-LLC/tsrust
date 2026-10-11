@@ -8,6 +8,7 @@ pub(super) struct Shapes {
     unions: Vec<bool>,
     closures: Vec<bool>,
     families: Vec<bool>,
+    recursive: Option<crate::recursive_view_shapes::Index>,
 }
 
 impl Shapes {
@@ -50,6 +51,7 @@ impl Shapes {
             unions:found[count..count+unions].to_vec(),
             closures:found[count+unions..count+unions+closures].to_vec(),
             families:found[count+unions+closures..].to_vec(),
+            recursive:Some(crate::recursive_view_shapes::Index::new(&program.records, &|id| program.unions[id.index()].members.clone())),
         }
     }
 
@@ -71,6 +73,10 @@ impl Shapes {
         else if id<count+unions {self.unions.get(id-count)}
         else if id<count+unions+closures {self.closures.get(id-count-unions)}
         else {self.families.get(id-count-unions-closures)}.copied().unwrap_or(false)
+    }
+
+    pub(super) fn recursive(&self, record: usize) -> bool {
+        self.recursive.as_ref().is_some_and(|index| index.access(record).is_some())
     }
 }
 

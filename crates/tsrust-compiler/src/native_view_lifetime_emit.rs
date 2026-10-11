@@ -115,7 +115,7 @@ impl Emitter<'_> {
                     path.pop();
                 }
             }
-            Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>{
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id)=>{
                 slots.insert((root,LifetimeSource::carried(path.clone(),guards.clone())),lifetimes[*next].clone());*next+=1;
             }
             Type::StoredCallable(family) if self.program.stored_contracts.scoped_native_family(family).is_some()=>{
@@ -174,7 +174,7 @@ impl Emitter<'_> {
         }
         if !self.native_views.contains(ty) {return self.native_type(ty);}
         match ty {
-            Type::Record(id) if native_view_emit::access(self.program,id).is_some()=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id)=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
             Type::Record(id)=>{
                 let base=self.program.scoped_records.declaration(id);
                 let parameters=self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)|{

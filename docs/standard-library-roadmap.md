@@ -104,13 +104,13 @@ Track individually: filesystem/path/env/process; bytes/encoding/base64; wall/mon
 
 ## Gate acceptance and evidence
 
-Follow development-workflow.md and existing AGENTS requirements. Focused checks per gate; full regressions/performance at existing five-gate checkpoints. This S-series is a dependency ledger, not a replacement numbering system. Before implementation begins, map accepted work to the compiler's actual gate schedule without renumbering another agent's work. Preserve running regressions and passed records.
+Follow development-workflow.md and existing AGENTS requirements. Focused checks per gate; full regressions and performance measurements at meaningful feature-family milestones, not fixed gate counts. This S-series is a dependency ledger, not a replacement numbering system. Before implementation begins, map accepted work to the compiler's actual gate schedule without renumbering another agent's work. Preserve running regressions and passed records.
 
 For each gate record: changed source identities; exact commands/results; positive and negative fixtures; ownership/loan/drop/cancellation witnesses; native execution when output matters; editor contract checks; complete builtins.json signatures/parameter help/behavior/examples; dependency/feature graph; platform coverage; benchmark registrations and separately pending measurements. Library claims require real native integration, not just parser acceptance.
 
 Update this ledger after each gate using: state (pending/in progress/blocked/accepted), implementation evidence link, measured evidence link or pending checkpoint, affected APIs, unresolved dependencies and next step. Blocked means a concrete missing contract, not general difficulty. No gate can close with a known unaddressed correctness regression in its changed behavior.
 
-Next steps: plan S07 resources and bytes against the accepted S06 Result foundation at gate 186; S04 is accepted at gate 185. std:path.basename imports, native calls/function values and installed-editor stored/factory workflows have focused evidence in the S05 milestone. Frontend scaling and runtime performance measurements remain separately pending.
+Next steps: finish the approved recursive-view storage design, remaining view callback support and gate 190 resource lifecycle, then complete S07 family acceptance; S04 is accepted at gate 185. std:path.basename imports, native calls/function values and installed-editor stored/factory workflows have focused evidence in the S05 milestone. Frontend scaling and runtime performance measurements remain separately pending.
 
 ## Primary references
 

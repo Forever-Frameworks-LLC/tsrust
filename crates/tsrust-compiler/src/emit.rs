@@ -399,7 +399,7 @@ impl Emitter<'_> {
             let slots=layout.alternatives.iter().map(|alternative|alternative.slots.len()).sum::<usize>();
             return format!("NativeViewCallable{id}<{}>",vec!["'_";slots].join(", "));
         }
-        if let Type::Record(id) = value && native_view_emit::access(self.program, id).is_some() {
+        if let Type::Record(id) = value && (native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id)) {
             return format!("Record{id}<'_>");
         }
         if let Type::Map(id) = value {
@@ -2327,6 +2327,14 @@ impl Emitter<'_> {
             if let Some(access) = native_view_emit::access(self.program, index) {
                 let mutable = if access == crate::native_return_borrows::BorrowAccess::Exclusive { "mut " } else { "" };
                 let _ = writeln!(output, "struct Record{index}<'a> {{ bytes: &'a {mutable}[u8] }}");
+                continue;
+            }
+            if self.native_views.recursive(index) {
+                let fields = record.fields.iter().enumerate().map(|(position, field)| {
+                    format!("field{position}: {}", self.recursive_view_native_type(field.ty.expect("checked field"), "'view"))
+                }).collect::<Vec<_>>().join(", ");
+                let fields = self.order_fields(index, fields);
+                let _ = writeln!(output, "struct Record{index}<'view> {{ {fields} }}");
                 continue;
             }
             let mut generic_fields = Vec::new();

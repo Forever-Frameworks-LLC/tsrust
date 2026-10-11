@@ -2,6 +2,42 @@
 use super::*;
 
 impl Emitter<'_> {
+    /// A recursive component uses one lifetime for every contained native view.
+    /// Acyclic containers outside this component still use their ordinary slots.
+    pub(super) fn recursive_view_native_type(&self, ty: Type, lifetime: &str) -> String {
+        if !self.native_views.contains(ty) { return self.native_type(ty); }
+        match ty {
+            Type::Record(id) if native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id) => {
+                format!("Record{id}<{lifetime}>")
+            }
+            Type::Record(id) => {
+                let base = self.program.scoped_records.declaration(id);
+                let arguments = self.program.records[id].fields.iter().enumerate().filter_map(|(position, field)| {
+                    let ty = field.ty.expect("checked field");
+                    self.scoped_record_native_field(id, position, ty).then(|| self.recursive_view_native_type(ty, lifetime))
+                }).collect::<Vec<_>>();
+                format!("Record{base}{}", lifetime_parameters(&arguments))
+            }
+            Type::Array(element) => {
+                let payload = self.recursive_view_native_type(element.ty(), lifetime);
+                match element {
+                    crate::syntax::ArrayElement::Record(id, 0) => {
+                        if let Some((_, arguments)) = payload.split_once('<') { format!("RecordArray{id}<{arguments}") }
+                        else { format!("RecordArray{id}") }
+                    }
+                    _ => format!("Vec<{payload}>"),
+                }
+            }
+            Type::Union(id) | Type::BorrowedUnion(id) => {
+                let arguments = self.program.unions[id.index()].members.iter().filter(|ty| !ty.is_copy())
+                    .map(|&ty| self.recursive_view_native_type(ty, lifetime)).collect::<Vec<_>>().join(", ");
+                if matches!(ty, Type::BorrowedUnion(_)) { format!("ViewUnion{}<{lifetime}, {arguments}>", id.index()) }
+                else { format!("Union{}<{arguments}>", id.index()) }
+            }
+            _ => self.native_type(ty),
+        }
+    }
+
     pub(super) fn scoped_record_native_parameter(&self, ty: Type) -> bool {
         self.native_views.contains(ty) || self.callback_record_native_parameter(ty)
     }
@@ -101,7 +137,7 @@ impl Emitter<'_> {
                     .collect::<Vec<_>>();
                 format!("BorrowedCallable{id}<{}>", arguments.join(", "))
             }
-            Type::Record(id) if native_view_emit::access(self.program,id).is_some() => {
+            Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id) => {
                 let lifetime=&lifetimes[*next];*next+=1;
                 format!("Record{id}<{lifetime}>")
             }

@@ -157,3 +157,18 @@ A stored function value (`const read = length;`) keeps the declared parameter ty
 Checks: whole compiler crate 2,926 passed, 0 failed, 4 ignored; whole editor crate 486
 passed, 0 failed, 1 ignored; no aborted target. No timing ran. Consumers remain at
 `f569190a`, so installed tools do not have views yet.
+
+### Approved continuation after consumer refresh
+
+This section supersedes older pending lists without changing their historical evidence.
+The owner approved nullable recursive links with unique ownership and one shared
+lifetime for recursive records holding byte views. Both recursive storage and the
+view-capturing callback that returns an argument view remain gate 189 work. Gate 190
+and S07 family measurements remain pending. The owned-value return through finally
+repair precedes resource cleanup acceptance.
+
+The five workspace consumers, global CLI and local VS Code extension were refreshed
+from `4367f4cc` and smoke-tested. SQLite record:
+`target/editor/consumer-refresh-2026-10-10.json`. No timing ran. Subsequent recursive
+lifetime groundwork is tracked in `recursive-view-storage-plan.md`; it does not
+claim public recursive-storage acceptance.

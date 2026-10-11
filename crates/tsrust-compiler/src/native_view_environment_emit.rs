@@ -44,7 +44,7 @@ impl Emitter<'_> {
                         }
                     }
                 }
-                Type::Record(id) if native_view_emit::access(self.program, id).is_some() => {
+                Type::Record(id) if native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id) => {
                     names.push(plan.slot(input, &path, &guards).to_owned())
                 }
                 Type::Closure(id) => {

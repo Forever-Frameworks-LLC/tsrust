@@ -111,3 +111,28 @@ SQLite under `tsrust-recursive-view-*.log`.
 This is groundwork, not public recursive-storage acceptance. Parameter provenance,
 record/runtime emission, lifetime enumeration and source/native/editor fixtures
 remain required before removing the existing source diagnostic. No timing ran.
+
+## Native recursive representation groundwork
+
+Recursive view records now emit one named lifetime, shared through their fields,
+array aliases, capture types and signature types. Recursive array support retains
+its iterative drop traversal and now carries that lifetime through its drop stack.
+Nonrecursive records keep their existing generic field representation.
+
+The initial native runtime witness failed for missing lifetime parameters. Generated
+record declarations and array support now execute readonly and exclusive self-recursive
+and mutually recursive chains at O0 and O3. Each case has 10,001 view payloads,
+checks pointer identity and exactly 10,001 destructor calls, and permits owner reuse
+after disposal. Exclusive cases verify writes reach the owner. Execution uses a
+128 KiB native thread stack to catch recursive cleanup. The unchanged noncloneable
+record cleanup test also passes. The adjacent native-view filter passes 108 tests;
+no failures or aborted targets remain in the green runs.
+
+Exact logs are in SQLite: `tsrust-recursive-view-runtime-red.log`,
+`tsrust-recursive-view-runtime-green.log`, `tsrust-recursive-view-emission.log`,
+`tsrust-recursive-view-adjacent.log`, `tsrust-recursive-view-runtime-final.log` and
+`tsrust-recursive-view-mutual-runtime.log`. These are private representation checks,
+not public source acceptance or measurements. Source parameter seeding, whole-record
+loan projections, assignment/append provenance and source/editor rejection controls
+remain before removing the recursive-storage diagnostic. Nullable links are still
+pending; their separate representation decision is approved.
