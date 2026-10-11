@@ -3,9 +3,9 @@ use std::{path::PathBuf,sync::mpsc::{self,Receiver,SyncSender},time::{Duration,I
 use tsrust_compiler::{project::{FileSourceProvider,SourceProvider},project_cli::CheckedInput,project_session::{ProjectSession,SessionStats}};
 pub(crate) struct Output {pub rust:String,pub features:Vec<&'static str>,pub identity:Vec<u8>,pub stats:SessionStats,pub check:Duration,pub emit:Duration}
 pub(crate) struct Request {pub entry:PathBuf,pub sources:Snapshot,pub reply:mpsc::Sender<Result<Output,String>>}
-/// Watcher-owned bytes remain fixed for the lifetime of a request. Files outside
-/// the existing watch policy retain normal filesystem resolution and reading.
-pub(crate) struct Snapshot {pub root:PathBuf,pub files:std::collections::BTreeMap<PathBuf,crate::dev_watch::Contents>}
+/// Watcher-owned bytes and captured entry-graph resolutions remain fixed for a
+/// request, including imported dependencies outside the ordinary watch tree.
+pub(crate) struct Snapshot {pub root:PathBuf,pub files:crate::dev_watch::Inputs}
 impl Snapshot {
  fn normalize(&self,path:&std::path::Path)->PathBuf {
   let mut normalized=PathBuf::new();
@@ -19,6 +19,7 @@ impl Snapshot {
 impl SourceProvider for Snapshot {
  fn resolve(&self,importer:Option<&tsrust_compiler::project::SourceId>,path:&str)->Result<tsrust_compiler::project::SourceId,String> {
   use tsrust_compiler::{project::SourceId,project_resolution};
+  if let Some(result)=self.files.resolutions.get(&(importer.cloned(),path.to_owned())){return result.clone();}
   let candidates=if let Some(importer)=importer {
    let aliases=project_resolution::discover(std::path::Path::new(&importer.0),|path|{
     let path=self.normalize(path);
@@ -37,6 +38,7 @@ impl SourceProvider for Snapshot {
  }
  fn read(&self,id:&tsrust_compiler::project::SourceId)->Result<String,String> {
   let path=std::path::Path::new(&id.0);
+  if let Some(error)=self.files.failures.get(path){return Err(error.clone());}
   match self.files.get(path) {
    Some(contents)=>String::from_utf8(contents.bytes().to_vec()).map_err(|e|e.to_string()),
    None if self.captured(path)=>Err(format!("{} is absent from this build snapshot",path.display())),
@@ -77,6 +79,29 @@ mod tests {
  use super::*;
  fn write(path:&std::path::Path,text:&str) {
   let formatted=tsrust_compiler::format(text).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);std::fs::write(path,formatted).unwrap();
+ }
+ #[test]
+ fn external_and_symlink_dependencies_are_captured_and_reconciled() {
+  let dir=crate::TempDirectory::new().unwrap();let base=std::fs::canonicalize(&dir.0).unwrap();let root=base.join("app");std::fs::create_dir(&root).unwrap();
+  let external=base.join("dependency.tsr");write(&external,"export function value():int{return 1;}");
+  std::os::unix::fs::symlink(&external,root.join("linked.tsr")).unwrap();
+  std::fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"app","build":{"entry":"main.tsr","output":"app"},"paths":{"@dep":"./linked.tsr"}}"#).unwrap();
+  let entry=root.join("main.tsr");write(&entry,"import {value} from '@dep';function main(){console.log(value());}");
+  let mut watcher=crate::dev_watch::Watcher::default();let first=watcher.snapshot(&root).unwrap();let frozen=Snapshot{root:root.clone(),files:first.clone()};let mut session=ProjectSession::default();
+  let original=compile(&mut session,&entry,&frozen).unwrap().rust;
+  write(&external,"export function value():int{return 2;}");
+  assert_eq!(compile(&mut session,&entry,&frozen).unwrap().rust,original);
+  let second=watcher.snapshot(&root).unwrap();assert_ne!(first,second);
+  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:second}).unwrap().rust,original);
+  let replacement=base.join("replacement.tsr");write(&replacement,"export function value():int{return 3;}");std::fs::remove_file(root.join("linked.tsr")).unwrap();std::os::unix::fs::symlink(replacement,root.join("linked.tsr")).unwrap();
+  assert_eq!(compile(&mut session,&entry,&frozen).unwrap().rust,original);
+  assert_ne!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()}).unwrap().rust,original);
+  std::fs::write(base.join("replacement.tsr"),[0xff]).unwrap();
+  let invalid=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  let error=compile(&mut session,&entry,&invalid).err().unwrap();
+  write(&base.join("replacement.tsr"),"export function value():int{return 4;}");
+  assert_eq!(compile(&mut session,&entry,&invalid).err().unwrap(),error);
+  assert!(compile(&mut session,&entry,&Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()}).is_ok());
  }
  #[test]
  fn aliases_and_candidate_selection_remain_frozen_after_disk_changes() {

@@ -21,9 +21,13 @@ fn alias_config_edits_rebuild_and_keep_the_last_program_on_failure(){
  let dir=support::TempDirectory::new();let root=dir.0.join("project");fs::create_dir_all(root.join("src/one")).unwrap();fs::create_dir(root.join("src/two")).unwrap();
  fs::write(root.join("src/main.tsr"),support::format_round_trip("import {greeting} from '@/greeting';function main(){console.log(greeting());while(true){}}" )).unwrap();
  for(name,text)in [("one","first-alias"),("two","second-alias")] {fs::write(root.join(format!("src/{name}/greeting.tsr")),support::format_round_trip(&format!("export function greeting():string{{return '{text}';}}"))).unwrap();}
- config(&root,"./src/one");let out=dir.0.join("stdout");let err=dir.0.join("stderr");
+ let external=dir.0.join("external");fs::rename(root.join("src/one"),&external).unwrap();
+ config(&root,"../external");let out=dir.0.join("stdout");let err=dir.0.join("stderr");
  let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose","--color=never"]).stdout(Stdio::from(fs::File::create(&out).unwrap())).stderr(Stdio::from(fs::File::create(&err).unwrap()));
- let mut dev=Dev(command.spawn().unwrap());wait(&out,"first-alias");let first=pid(&wait(&err,"Started program (pid "));
+ let mut dev=Dev(command.spawn().unwrap());wait(&out,"first-alias");let initial=pid(&wait(&err,"Started program (pid "));
+ fs::write(external.join("greeting.tsr"),support::format_round_trip("export function greeting():string{return 'external-rebuilt';}")).unwrap();
+ wait(&out,"external-rebuilt");let text=fs::read_to_string(&err).unwrap();let first:i32=text.rsplit_once("Started program (pid ").unwrap().1.split(')').next().unwrap().parse().unwrap();
+ assert_ne!(unsafe{kill(initial,0)},0,"outside-root edit did not replace the original program");
  config(&root,"./missing");wait(&err,"absent from this build snapshot");wait(&err,"previous program remains running");assert_eq!(unsafe{kill(first,0)},0,"last working program was stopped after bad mapping");assert!(!fs::read_to_string(&out).unwrap().contains("second-alias"));
  config(&root,"./src/two");wait(&out,"second-alias");let log=wait(&err,"Rebuilt in");assert!(log.matches("Started program (pid ").count()>=2,"{log}");assert_ne!(unsafe{kill(first,0)},0,"old program survived successful replacement");
  let second:i32=log.rsplit_once("Started program (pid ").unwrap().1.split(')').next().unwrap().parse().unwrap();

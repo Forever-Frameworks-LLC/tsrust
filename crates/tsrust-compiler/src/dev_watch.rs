@@ -3,14 +3,17 @@ use std::{collections::BTreeMap, fs, io::Read, os::unix::fs::MetadataExt, path::
 
 #[derive(Clone,Debug)]
 pub(crate) struct Contents(Arc<[u8]>);
-impl Contents {pub(crate) fn bytes(&self)->&[u8]{&self.0}}
+impl Contents {pub(crate) fn new(bytes:&[u8])->Self{Self(bytes.into())} pub(crate) fn bytes(&self)->&[u8]{&self.0}}
 impl PartialEq for Contents {
     fn eq(&self,other:&Self)->bool { Arc::ptr_eq(&self.0,&other.0) || self.0==other.0 }
 }
 impl Eq for Contents {}
-pub(crate) type Fingerprint=Result<BTreeMap<PathBuf,Contents>,String>;
-#[derive(PartialEq,Eq)]
-struct Stamp { device:u64,inode:u64,length:u64,modified:(i64,i64),changed:(i64,i64) }
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub(crate) struct Inputs {pub files:BTreeMap<PathBuf,Contents>,pub failures:BTreeMap<PathBuf,String>,pub resolutions:BTreeMap<(Option<tsrust_compiler::project::SourceId>,String),Result<tsrust_compiler::project::SourceId,String>>}
+impl std::ops::Deref for Inputs {type Target=BTreeMap<PathBuf,Contents>;fn deref(&self)->&Self::Target{&self.files}}
+pub(crate) type Fingerprint=Result<Inputs,String>;
+#[derive(Clone,PartialEq,Eq)]
+pub(crate) struct Stamp { device:u64,inode:u64,length:u64,modified:(i64,i64),changed:(i64,i64) }
 impl From<fs::Metadata> for Stamp {
     fn from(m:fs::Metadata)->Self {
         Self{device:m.dev(),inode:m.ino(),length:m.len(),modified:(m.mtime(),m.mtime_nsec()),changed:(m.ctime(),m.ctime_nsec())}
@@ -20,6 +23,7 @@ impl From<fs::Metadata> for Stamp {
 pub(crate) struct Watcher {
     entries:BTreeMap<PathBuf,(Stamp,Contents)>,
     initialized:bool,
+    dependencies:BTreeMap<PathBuf,Option<Stamp>>,
     events:Option<crate::dev_events::Events>,
     previous:Option<Fingerprint>,
     #[cfg(test)] scans:usize,
@@ -38,8 +42,10 @@ impl Watcher {
                 }
             }
         }
+        let dependencies_changed=self.dependencies.iter().any(|(path,old)|std::fs::metadata(path).ok().map(Stamp::from)!=*old);
         if let Some(events)=&mut self.events {
             let reconcile=events.changed().and_then(|changed| {
+                let changed=changed||dependencies_changed;
                 // new() already subscribed before the first content scan. Preserve
                 // events delivered during setup and retry failed reconciliations.
                 if changed || self.previous.as_ref().is_some_and(|value|value.is_err()) {events.refresh(root)?;}
@@ -80,7 +86,10 @@ impl Watcher {
             values.insert(path.clone(),self.entries[&path].1.clone());
         }
         self.entries.retain(|path,_|values.contains_key(path));
-        Ok(values)
+        let (inputs,dependencies)=crate::dev_dependencies::capture(root,values)?;
+        if self.entries.iter().any(|(path,(stamp,_))|fs::metadata(path).ok().map(Stamp::from).as_ref()!=Some(stamp)){return Err("Source changed during dependency capture; retrying".into());}
+        self.dependencies=dependencies;
+        Ok(inputs)
     }
 }
 #[cfg(test)]

@@ -206,3 +206,26 @@ suggestions. Evidence: `tsrust-dev-alias-e2e*`, `tsrust-alias-intelligence*` and
 
 Installed-consumer refresh and dependency-boundary review remain outstanding;
 these focused witnesses do not close the complete import feature or S10.
+
+## Captured dependency boundaries
+
+Dev snapshots now capture the configured entry's header dependency graph in
+addition to discovered project files. Capture retains canonical import results,
+dependency bytes and read failures, including external files and symlink targets.
+A captured request does not follow a later symlink retarget or substitute repaired
+bytes for a captured read error. Changes during capture reject that snapshot for
+retry; project source stamps are revalidated after dependency capture.
+
+Native events continue to cover ordinary project files. Only dependency paths
+outside that tree (including imported files under excluded directories) receive
+metadata reconciliation on supervisor polls. Missing attempted external paths
+and configuration discovery paths are tracked as well. Capturing headers adds
+frontend work when inputs change; no performance improvement or timing claim is
+made for that work, and the S10 milestone must retain its measurement obligation.
+
+Twelve bounded dev checks pass, including external edits, symlink retargeting,
+frozen invalid UTF-8 failures and watcher recovery. A live dev test also edits an
+outside-root imported file and observes a replacement process, then verifies bad
+alias recovery and shutdown cleanup. Evidence: `tsrust-dev-boundaries-*` in SQLite.
+Installed-consumer refresh remains pending; typed data imports and the mandatory
+API audit remain unfinished S10 requirements.

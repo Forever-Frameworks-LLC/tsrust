@@ -5,6 +5,8 @@ mod native_dependency_bundle;
 #[cfg(unix)]
 mod dev_frontend;
 #[cfg(unix)]
+mod dev_dependencies;
+#[cfg(unix)]
 mod dev_watch;
 #[cfg(unix)]
 mod dev_events;
