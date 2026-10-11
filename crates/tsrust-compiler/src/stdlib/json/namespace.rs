@@ -40,6 +40,7 @@ fn shadowed_scopes(body: &[Stmt], scopes: &mut Vec<Span>) {
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     if program.functions.iter().any(|function| function.name.text == "JSON") { return Ok(()); }
     let mut required = std::collections::BTreeMap::new();
+    let mut throwing = std::collections::BTreeSet::new();
     for function in &mut program.functions {
         if function.params.iter().any(|(name, _, _)| name.text == "JSON") { continue; }
         let mut scopes = Vec::new();
@@ -62,10 +63,14 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             let binding = match member.as_str() {
                 "tryParse" => "parse",
                 "tryStringify" => "stringify",
+                "parse" => { throwing.insert("parse"); "parse" },
+                "stringify" => { throwing.insert("stringify"); "stringify" },
                 _ => return Ok(()),
             };
             required.insert(binding, expression.span);
-            expression.kind = ExprKind::Name(format!("@native:std:json#{binding}"));
+            expression.kind = ExprKind::Name(if member.starts_with("try") {
+                format!("@native:std:json#{binding}")
+            } else { format!("@json:{binding}") });
             Ok(())
         })?;
     }
@@ -73,5 +78,59 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         let binding = crate::native_bindings::lookup("std:json", name).expect("registered JSON binding");
         crate::native_binding_types::prepare(&mut program.records, binding, span)?;
     }
+    for name in throwing {
+        if !program.functions.iter().any(|function| function.name.text == format!("@json:{name}")) {
+            let wrapper = throwing_adapter(program, name)?;
+            program.functions.push(wrapper);
+        }
+    }
     Ok(())
+}
+
+/// Ordinary checked functions preserve typed failure propagation and ownership.
+/// Only compiler-owned source is parsed here; no user text is interpolated.
+fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnostic> {
+    use crate::native_signatures::{NativeTypeId, Signature};
+    let source = if name == "parse" {
+        "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
+    } else {
+        "function adapter(value:JsonValue,maxBytes:int=16777216):string {match(backend(value,maxBytes)){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
+    };
+    let mut function = crate::syntax::parse(source)?.functions.remove(0);
+    let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
+    let shift = |span: &mut Span| { span.start += offset; span.end += offset; };
+    function.name.text = format!("@json:{name}");
+    shift(&mut function.name.span);
+    shift(&mut function.scope_span);
+    for (parameter, _, _) in &mut function.params { shift(&mut parameter.span); }
+    for initializer in &mut function.parameter_initializers {
+        if let ParameterInitializer::Default { span, .. } = initializer { shift(span); }
+    }
+    let mut bodies = vec![&mut function.body];
+    while let Some(body) = bodies.pop() {
+        for statement in body {
+            shift(&mut statement.span);
+            if let StmtKind::Let { name, .. } = &mut statement.kind { shift(&mut name.span); }
+            match &mut statement.kind {
+                StmtKind::Block(body) => bodies.push(body),
+                StmtKind::If { then_body, else_body, .. } => { bodies.push(then_body); bodies.push(else_body); }
+                _ => {}
+            }
+        }
+    }
+    crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
+        shift(&mut expression.span);
+        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") {
+            expression.kind = ExprKind::Name(format!("@native:std:json#{name}"));
+        }
+        Ok(())
+    })?;
+    let span = function.name.span;
+    if name == "parse" {
+        function.params[1].1 = crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonLimits), span)?;
+        function.result = Some(ResultAnnotation::Named(Box::new(crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonValue), span)?)));
+    } else {
+        function.params[0].1 = crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonValue), span)?;
+    }
+    Ok(function)
 }

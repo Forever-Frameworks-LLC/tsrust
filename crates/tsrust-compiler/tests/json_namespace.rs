@@ -112,3 +112,41 @@ function main(){
 }
 "#);
 }
+
+#[test]
+fn throwing_namespace_preserves_custom_limits_and_function_values() {
+    tsrust_compiler::check("function main(){JSON.stringify(JSON.parse('null'));}").unwrap();
+    run(r#"
+import {strictEqual} from 'std:testing';
+import {JsonLimits} from 'std:json';
+function main(){
+  const decode=JSON.parse;
+  const encode=JSON.stringify;
+  const value=decode('null');
+  strictEqual(encode(value),'null');
+  let caught=0;
+  const limits:JsonLimits={maxBytes:100,maxDepth:4,maxEntries:1,maxNodes:10};
+  try {decode('[1,2]',limits);} catch(error) {
+    strictEqual(error.code,'entry-limit');
+    match(JSON.tryParse('[1,2]',limits)) {
+      Ok(_)=>{throw 'limit ignored';},Err(other)=>{
+        strictEqual(error.code,other.code);
+        strictEqual(error.offset,other.offset);
+        strictEqual(error.message,other.message);
+      }
+    }
+    caught+=1;
+  }
+  try {encode(value,-1);} catch(error) {
+    match(JSON.tryStringify(value,-1)) {
+      Ok(_)=>{throw 'negative limit accepted';},Err(other)=>{
+        strictEqual(error.code,other.code);
+        strictEqual(error.offset,other.offset);
+      }
+    }
+    caught+=1;
+  }
+  strictEqual(caught,2);
+}
+"#);
+}

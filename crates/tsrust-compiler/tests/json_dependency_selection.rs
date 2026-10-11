@@ -10,6 +10,7 @@ fn json_dependencies_follow_native_values_not_namespace_spelling() {
         ("import {JsonError} from 'std:json';function main(){const error:JsonError={code:'local',message:'local',offset:0};console.log(error.code);}",false),
         ("import {parse} from 'std:json';function main(){parse('null');}",true),
         ("function main(){JSON.tryParse('null');}",true),
+        ("function main(){JSON.stringify(JSON.parse('null'));}",true),
         ("type Utility={tryParse:Function<int,[text:ReadOnly<string>]>;};function main(){const JSON:Utility={tryParse:(text:string):int=>text.length};console.log(JSON.tryParse('local'));}",false),
         ("type Utility={tryParse:Function<int,[text:ReadOnly<string>]>;};function use(JSON:Utility):int{return JSON.tryParse('local');}function main(){const local:Utility={tryParse:(text:string):int=>text.length};console.log(use(local));}",false),
     ] {

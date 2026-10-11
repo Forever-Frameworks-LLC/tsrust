@@ -4,27 +4,26 @@ Status: owner approved this placement policy and the throwing `JSON.parse` /
 Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is in progress;
 the namespace gate is not accepted.
 
-Implementation witness: `tests/json_namespace.rs` now exercises the approved
-parse/stringify pairs, unchanged imported Results, structured error parity,
-callback propagation, output limits and `finally`. The equivalent imported
-implementation passes native execution; the namespace case currently fails with
-`unsupported` at `JSON.parse`. This is an active failing test, not feature
-acceptance. SQLite evidence: `tsrust-json-namespace-contract-red-2.log`; the earlier
-harness typo and its failed run are retained in `tsrust-json-namespace-contract-red.log`.
+The four namespace entry points now work in project and single-source analysis.
+Result operations resolve to existing native bindings. Throwing operations use
+compiler-owned checked functions over the same backend, preserving structured
+`JsonError`, ordinary typed failure propagation and ownership. Local JSON bindings
+retain their meaning; actual operations select dependencies automatically.
 
-The Result entry points now resolve to existing native bindings in both project
-and single-source analysis. Focused native checks cover calls, stored function
-references, nested block/closure shadowing and unchanged imported behavior.
-Seven dependency-selection cases include plain programs, local objects, parameters,
-error-type-only imports and actual JSON operations. These pass without user linking
-flags. Evidence: `tsrust-json-namespace-result-2.log` and
-`tsrust-json-namespace-shadow-1.log` in SQLite. The first Result harness run had an
-unsupported coercive equality operator; its failed record is also preserved.
+Six focused tests pass: five namespace/native tests plus a dependency-selection
+test with eight cases. Coverage includes unchanged imported Results, stored
+function references, nested shadowing, callback error propagation, `finally`,
+custom parse limits, serialization limits and error-field parity. The original
+throwing contract failure is resolved. Evidence is retained in SQLite as
+`tsrust-json-namespace-throw-1.log`, `tsrust-json-namespace-throw-3.log` and
+`tsrust-json-namespace-throw-4.log`. The third run passed unchanged cases; its
+new limits witness needed a named JsonLimits annotation, then passed in the fourth
+run. The second run's misplaced test delimiter is retained too. Earlier Result
+and red-contract records remain preserved.
 
-Throwing adapters, complete shadowing/limits/error checks, namespace IntelliSense,
-examples and matched workload support remain pending. The throwing contract test
-remains active and failing. This implementation checkpoint is not a completed
-built-in gate or consumer release.
+Complete shadowing/invalid-input diagnostics, namespace IntelliSense, executable
+catalog examples and matched workload support remain pending. This implementation
+checkpoint is not a completed built-in gate or consumer release.
 The complete current per-symbol audit is accepted in
 [the closure review](globals-and-imports-audit-closure.md). The family summary below
 is supplemented by 399 explicit reviewed identities; it is not the audit by itself. Existing working imports
