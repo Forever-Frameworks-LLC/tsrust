@@ -310,3 +310,56 @@ fn recursive_callback_record_parameters_preserve_every_owner() {
         assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
     }
 }
+
+#[test]
+fn recursive_records_with_only_captured_views_execute() {
+    let source = include_str!("fixtures/native-byte-views/recursive-captured-views.tsr");
+    let mutual = source.replace("next?: Holder;", "next?: Link;")
+        .replace("function bytes", "type Link={value:Holder;};function bytes")
+        .replace("holder.next = build(read(second), read(first));", "holder.next={value:build(read(second),read(first))};")
+        .replace("const child = holder.next!;", "const child=holder.next!.value;");
+    let arrays = source.replace("next?: Holder;", "next:Holder[];")
+        .replace("read: () => second", "read: () => second, next: []")
+        .replace("holder.next = build(read(second), read(first));", "holder.next.push(build(read(second),read(first)));")
+        .replace("const child = holder.next!;", "const child=holder.next.pop()!;");
+    let nullable = source.replace("read: Once<Function<ByteView>>;", "read?: Once<Function<ByteView>>;")
+        .replace("child.read()", "child.read!()").replace("holder.read()", "holder.read!()");
+    let parameters = source.replace("function main()", "function take(holder:Holder){return holder.read;}function main()")
+        .replace("const result = holder.read();", "holder.next=undefined;const callback=take(holder);const result=callback();");
+    let captured = source.replace("const result = holder.read();", "holder.next=undefined;const action=()=>{const moved=holder;return moved.read();};const result=action();");
+    let mutable = source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,")
+        .replace("length, at }", "length, at, set }").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
+        .replace("const holder =", "const third=bytes(11);const fourth=bytes(13);const holder =")
+        .replace("holder.next = build(read(second), read(first));", "holder.next=build(read(third),read(fourth));")
+        .replace("strictEqual(value, 3);", "strictEqual(value, 13);").replace("const result = holder.read();", "const result=holder.read();set(result,0,19);")
+        .replace("strictEqual(value, 7);", "strictEqual(value, 19);");
+    let replaced = source.replace("const result = holder.read();", "const old=holder.read();strictEqual(length(old),2);const replacement=read(first);holder.read=()=>replacement;const result=holder.read();")
+        .replace("strictEqual(value, 7);", "strictEqual(value, 3);");
+    let helpers = source.split("function main()").next().unwrap();
+    let scalar = helpers.replace("Once<Function<ByteView>>", "Once<Function<int>>").replace("read: () => second", "read: () => {const kept=second;return length(kept);}");
+    let scalar = format!("{scalar}function main(){{const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));holder.next=build(read(second),read(first));const child=holder.next!;strictEqual(child.read(),2);strictEqual(holder.read(),2);}}");
+    let unused = format!("{helpers}function keep(second:ByteView):Holder{{const unused=bytes(3);return build(read(unused),second);}}function main(){{const owner=bytes(7);const holder=keep(read(owner));const result=holder.read();strictEqual(length(result),2);}}");
+    for source in [source.to_owned(),mutual,arrays,nullable,parameters,scalar,unused,mutable,replaced,captured] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(&source));
+        for optimized in [false,true] {
+            let mut command=support::cli();command.arg("run").arg(&path);
+            if optimized {command.arg("--release");}
+            support::success(&support::run(&mut command,120));
+        }
+    }
+    let source=format!("{helpers}function leak(first:ByteView):Holder{{const short=bytes(7);return build(first,read(short));}}function main(){{const owner=bytes(3);const holder=leak(read(owner));const result=holder.read();console.log(length(result));}}");
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+    let output=support::run(support::cli().arg("check").arg(path),60);
+    assert!(!output.status.success());
+    let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
+}
+
+#[test]
+fn uninhabited_record_callback_still_requires_a_resolved_catch_contract() {
+    let source="import {ByteView} from 'std:bytes';type Unknown={read:Once<Function<int>>;};function invoke(holder:Unknown):int{try{return holder.read();}catch(error){return 0;}}function main(){}";
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("check").arg(path),60);
+    assert!(!output.status.success());
+    let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[error-effect]"),"{stderr}");
+}

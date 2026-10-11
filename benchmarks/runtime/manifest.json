@@ -20646,6 +20646,34 @@
       "specification": "Build a 17-node nullable chain alternating two callback factories. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, returning the final callback through an owning record parameter after observing its direct view length. Record node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
       "sourceSha256": "64a1045afca2c2ce41404547b389f36c0f0681ddd25503552030173df8270e45",
       "counterpartSha256": "b519c217ef660bcd279da69869c7069dc52b4d534bbe22286cb23a77ef340c1c"
+    },
+    {
+      "id": "native_byte_views_captured_only",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_captured_only.tsr",
+      "counterpart": "workloads/native_byte_views_captured_only.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One 17-node nullable recursive view-capturing callback construction and consuming traversal",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Recursive records retain views only through captured callback environments. Matched untimed verification and S07 acceptance are tracked separately.",
+      "specification": "Build a 17-node nullable chain alternating two factories. Each node stores only a Once callback capturing a two-byte view, with no direct view field. Consume callbacks during traversal and return the final callback through an owning record parameter. Observe node count, byte sum and final returned view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
+      "sourceSha256": "9ffea0d21fdba37e83267eabe8edb23c398b6620dab9507e21cde901d26b1a2f",
+      "counterpartSha256": "2a1a2ad624145febe015c3baa387d5c33d8f4d4c222929df3f10fc95fe48f63c"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

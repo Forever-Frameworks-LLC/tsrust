@@ -186,8 +186,20 @@ normalization reuses concrete parameter literals and other members of an already
 materialized component; it does not introduce recursive conversion or allocations.
 No arbitrary component is selected when several incompatible instances exist.
 
-Next: verify and complete callback-only recursive view storage, nullable callback
-fields, and replacement through recursive parameters. The finite-layout guard
+Callback-only recursive view records now execute without a dummy direct view
+field. Lifetime detection follows actual owned-family capture slots across every
+record/capture/runtime enumerator. Symbolic bases have concrete lifetime-free
+layouts, while their specialized components use one shared lifetime. Empty owning
+families need no error ABI; unresolved catch contracts still reject. Ten public
+source variants run at O0/O3, and the native 10,000-link witness now also contains
+only two capturing callbacks, with both short-owner rejections.
+
+Next: complete nullable callback joins across factories and replacement through
+mutable recursive parameters. Basic nullable fields execute, but `tsrust-storage-composition-nullable-join.tsr`
+rejects a link from a second factory with `Expected Holder | undefined, found Holder`.
+The retained
+`tsrust-storage-composition-replacement.tsr` probe still reports `Expected closure,
+found closure` because native field replacement currently excludes parameters. The finite-layout guard
 remains for unsupported specializations. Then finish resource gate 190, S07
 acceptance and the roadmap. Installed consumers remain `4367f4cc`; no family timing
 has run. See the acceptance map for this checkpoint's exact evidence.

@@ -332,8 +332,18 @@ Both the actual captured owner and a discarded sibling owner reject escape. The
 native 10,000-node small-stack witness now passes through an owning record parameter
 and proves pointer identity and both owner lifetime rejections at O0/O3.
 
-Before gate 189 acceptance, verify callback-only view storage, nullable callback
-fields and recursive replacement through parameters. The finite-layout guard
+Callback-only recursive view storage now has focused acceptance. Recursive
+lifetime detection reads actual owned-family capture slots, including exclusive
+access, even when the callback returns an integer. Concrete recursive layouts and
+cleanup wrappers retain one shared lifetime; symbolic bases stay lifetime-free.
+The public fixture covers nullable/self/mutual/array storage, parameter transport,
+local replacement, exclusive writes and whole-record capture. An unused view
+argument does not extend the result lifetime. The two-callback native chain witness
+proves that either captured owner can limit the shared lifetime at O0/O3.
+
+Before gate 189 acceptance, complete nullable callback joins across factories and
+recursive replacement through mutable parameters. Basic nullable callback storage
+executes, while mutable-parameter replacement still reports a type mismatch. The finite-layout guard
 remains for unsupported specializations; multiple incompatible components are not
 resolved by choosing one arbitrarily.
 

@@ -1,12 +1,22 @@
 # Gate 189 native byte view integration
 
-This is the implementation route for the still-pending view half of gate 189.
-Strict UTF-8 is independent and can use the gate 188 owned-value ABI. It does not
-accept gate 189, replace views with copies, or close S07. The read.tsr fixture in
-native-byte-views is a retained red CLI probe, not an accepted executable fixture.
-Currently it fails because view is not exported; keep that original diagnostic.
+The public byte-view surface is implemented: `ByteView`, `ByteViewMut`, `view` and
+`viewMut` are exported with shared observer names, ownership diagnostics and editor
+support. `read.tsr` is an executable acceptance fixture. Scoped callable captures,
+returned argument views, recursive array/nullable storage and record-parameter
+transport have focused acceptance. Recursive records may retain views solely
+through owned callback environments; a direct view field is not required.
 
-## Current architectural facts
+Gate 189 remains pending the remaining recursive callback storage compositions.
+Gate 190 and S07 regression/measurement acceptance remain open. The current status
+and exact evidence are in `b11-resources-bytes-acceptance-map.md` and
+`handoff-2026-10-10-native-view-storage-complete.md`.
+
+The route and progress entries below preserve the earlier implementation history.
+Their red witnesses and publication guards describe those checkpoints, not the
+current public surface.
+
+## Initial architectural context
 
 Native declarations project into ordinary nominal records. Their private runtime
 storage is emitted separately. Signature supports nominal Named/Array/Result shapes, including private borrowed

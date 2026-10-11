@@ -64,9 +64,10 @@ pub(crate) fn capture_layout(
         |_, _| None,
         |binding| closure.function.bindings[binding].ty,
         |ty| {
-            crate::environment_lifetimes::count(
+            crate::environment_lifetimes::count_with_storage(
                 ty,
                 &program.records,
+                &program.stored_contracts,
                 |id| program.unions[id.index()].members.clone(),
                 |ty| match ty {
                     Type::Closure(id) => program.closures[id].lifetime_count,
@@ -109,7 +110,7 @@ pub(crate) fn capture_layout_with_environments(
         .map(|capture| {
             let captured = storage_type(capture.inner);
             if let Some(id)=captured.union()
-                && crate::environment_lifetimes::contains_native_view(captured,&program.records,&|id|program.unions[id.index()].members.clone()) {
+                && crate::environment_lifetimes::contains_native_view(captured,&program.records,&|id|program.unions[id.index()].members.clone(), &program.stored_contracts) {
                 let count=lifetime_count(captured);
                 let borrowed=matches!(capture.storage,Mode::Read|Mode::Mutate);
                 let start=next;next+=usize::from(borrowed)+count;
@@ -296,9 +297,9 @@ pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), cr
     // Recursive declarations have a fixed native field layout. A specialization
     // must retarget its recursive component before it can use concrete fields;
     // an ordinary generic instance cannot reuse the nominal declaration's ABI.
-    let views = crate::recursive_view_shapes::Index::new(&program.records, &|id| {
+    let views = crate::recursive_view_shapes::Index::with_storage(&program.records, &|id| {
         program.unions[id.index()].members.clone()
-    });
+    }, &program.stored_contracts);
     for (id, record) in program.records.iter().enumerate() {
         let base = program.scoped_records.declaration(id);
         if base != id && views.access(base).is_some() && views.access(id).is_none() {

@@ -2453,8 +2453,8 @@ impl Analyzer {
         // Cap the count just above the supported limit; inference never emits
         // this layout, and final checking still enforces the actual guard.
         let lifetime_count = captures.iter().fold(0usize, |total, capture| {
-            let nested = crate::environment_lifetimes::count(
-                context.bindings[capture.inner].ty, &self.program.records,
+            let nested = crate::environment_lifetimes::count_with_storage(
+                context.bindings[capture.inner].ty, &self.program.records, &self.callables.storage,
                 |id| self.unions.members(id),
                 |ty| match ty {
                     Type::Closure(id) => self.closures[id].lifetime_count,
@@ -5413,10 +5413,10 @@ impl Analyzer {
             matches!(field.ty, Some(Type::Callback(id)) if !self.callables.callbacks[id].kind.is_owned())
         });
         let recursive_views = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
-        let recursive_callbacks = self.program.records.iter().enumerate().any(|(id, record)|
-            recursive_views.access(id).is_some() && record.fields.iter().any(|field| matches!(field.ty, Some(Type::StoredCallable(_)))))
+        let recursive_callbacks = self.native_borrow_types && self.program.records.iter().enumerate().any(|(id, record)|
+            recursive_views.recursive(id) && record.fields.iter().any(|field| matches!(field.ty, Some(Type::StoredCallable(_)))))
             && self.signatures.iter().any(|signature| signature.params.iter().any(|ty|
-                matches!(ty, Type::Record(record) if recursive_views.access(*record).is_some())));
+                matches!(ty, Type::Record(record) if recursive_views.recursive(*record))));
         if !recursive_callbacks && (!self.program.records.iter().any(borrowing_field)
             || !self.program.functions.iter().any(|function| return_type_inference::has_exception_region(&function.body)))
         {
@@ -10008,7 +10008,7 @@ impl Analyzer {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
                 concrete[position] = if let Type::StoredCallable(family) = actual
                     && self.callables.storage.scoped_native_family(family).is_some()
-                    && crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).access(nominal).is_some() {
+                    && crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).recursive(nominal) {
                     self.callables.storage.intern_recursive_scoped_native(
                         &self.callables.shapes, &self.callables.callbacks, family,
                         nominal, position, &self.closures, value.span,
@@ -10031,9 +10031,9 @@ impl Analyzer {
             ));
         }
         if specialized {
-            let recursive = self.native_borrow_types && crate::recursive_view_shapes::Index::new(
+            let recursive = self.native_borrow_types && concrete.iter().any(|ty| self.native_shape_contains_view(*ty)) && crate::recursive_view_shapes::Index::new(
                 &self.program.records, &|id| self.unions.members(id),
-            ).access(self.scoped_records.declaration(index)).is_some();
+            ).recursive(self.scoped_records.declaration(index));
             let instance = if recursive {
                 self.scoped_records.materialize_recursive(index, concrete, &mut self.program.records, &self.unions)?
             } else { self.scoped_records.materialize(index, concrete, &mut self.program.records) };

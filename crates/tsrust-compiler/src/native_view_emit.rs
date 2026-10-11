@@ -51,7 +51,7 @@ impl Shapes {
             unions:found[count..count+unions].to_vec(),
             closures:found[count+unions..count+unions+closures].to_vec(),
             families:found[count+unions+closures..].to_vec(),
-            recursive:Some(crate::recursive_view_shapes::Index::new(&program.records, &|id| program.unions[id.index()].members.clone())),
+            recursive:Some(crate::recursive_view_shapes::Index::with_storage(&program.records, &|id| program.unions[id.index()].members.clone(), &program.stored_contracts)),
         }
     }
 
@@ -77,6 +77,9 @@ impl Shapes {
 
     pub(super) fn recursive(&self, record: usize) -> bool {
         self.recursive.as_ref().is_some_and(|index| index.access(record).is_some())
+    }
+    pub(super) fn cyclic(&self, record: usize) -> bool {
+        self.recursive.as_ref().is_some_and(|index| index.recursive(record))
     }
 }
 

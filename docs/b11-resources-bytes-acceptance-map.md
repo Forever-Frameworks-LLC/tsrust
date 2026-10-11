@@ -833,3 +833,47 @@ execution samples). SQLite also preserves 31 exact logs under
 All records were read back byte-for-byte before loose copies were deleted;
 `PRAGMA quick_check` passes. Final whole-project formatting changed no files;
 the formatted public parameter fixture executes with the release compiler.
+
+### Recursive records containing only captured views
+
+A recursive record no longer needs a direct view field to store owned callbacks
+that capture views. The recursive lifetime index follows actual family capture
+slots and merges exclusive access. Parameter seeding, loan normalization,
+environment counts, native declarations and iterative cleanup share that index.
+Recursive symbolic bases remain concrete lifetime-free layouts; specialized
+components carry their real shared lifetime. Empty owning families have no error
+ABI, while unresolved catch contracts still reject.
+
+The new public `recursive-captured-views.tsr` fixture and ten O0/O3 variants cover
+self/mutual/array links, nullable callbacks, record parameters, scalar callback
+results, an unused input owner ending early, exclusive writes, local replacement
+and capture of a whole record. Short captured-owner escape rejects. The native
+10,000-link/64 KiB stack probe also runs with two captured-view callbacks and no
+direct view field, checks pointer identity and rejects either short owner at O0/O3.
+
+Focused checks cover the 23 public byte tests through retained and repaired passes,
+114 callable tests, four native family tests, four recursive lifetime-index tests,
+four environment-count tests, two native capture tests, three recursive runtime
+tests, 34 record tests, four editor diagnostics tests and six benchmark registration
+and mutation tests. Whole-project token/idempotence and formatted native checks
+remain part of this checkpoint.
+
+`native_byte_views_captured_only` has matched TypeScript, independent observations,
+source guards/hashes and harness support. It preserves the 17-node construction
+and consuming traversal denominator. Basic nullable callback fields execute;
+nullable joins across factories and mutable-parameter replacement remain pending.
+Gate 189, gate 190 and S07 acceptance remain open. Installed consumers remain
+`4367f4cc`.
+
+Native and Node-after-tsc agree on five untimed cases for each of the linked,
+stored-callback and callback-only workloads in SQLite record
+`runtime/results/2026-10-11T06-59-38-616Z-verify.json` (`verifiedOnly: true`, no
+execution samples). The formatted public fixture also executes with the release
+compiler. SQLite retains the exact `tsrust-storage-composition-*` logs and probes,
+including the two remaining failures: nullable joins from different factories
+(`Expected Holder | undefined, found Holder`) and mutable-parameter replacement
+(`Expected closure, found closure`).
+
+Forty logs/probes and the untimed result were imported and read back byte-for-byte
+before deleting loose copies. SQLite `PRAGMA quick_check` passes. Final
+whole-project formatting changes no files; obsolete native/test outputs are pruned.

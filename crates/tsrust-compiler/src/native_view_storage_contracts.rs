@@ -9,7 +9,7 @@ impl Analyzer {
         let Some(holder) = Self::native_view_local_field(context, target) else { return Ok(actual); };
         let Type::Record(record) = context.bindings[holder].ty else { return Ok(actual); };
         let nominal = self.scoped_records.declaration(record);
-        if crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).access(nominal).is_none() { return Ok(actual); }
+        if crate::recursive_view_shapes::Index::with_storage(&self.program.records, &|id| self.unions.members(id), &self.callables.storage).access(record).is_none() { return Ok(actual); }
         let ExprKind::Field(_, name) = &target.kind else { return Ok(actual); };
         let field = self.program.records[nominal].fields.iter().position(|field| field.name.text == *name).expect("checked recursive field");
         let canonical = self.callables.storage.intern_recursive_scoped_native(

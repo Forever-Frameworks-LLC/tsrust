@@ -260,8 +260,10 @@ mod tests {
 
     #[test]
     fn recursive_view_callback_native_chain_keeps_identity_and_bounded_drop() {
+        for callback_only in [false,true] {
         let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function other(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function take(holder:Holder){return holder.read;}function main(){}";
-        let source = crate::formatting::format(source).unwrap();
+        let source = if callback_only { source.replace("data:Window;", "data:Once<Function<Window>>;").replace("data:first,", "data:()=>first,") } else { source.to_owned() };
+        let source = crate::formatting::format(&source).unwrap();
         assert_eq!(crate::formatting::format(&source).unwrap(), source);
         let mut parsed = crate::syntax::parse(&source).unwrap();
         parsed.records[0].native_type = Some(crate::native_signatures::NativeTypeId::ByteView);
@@ -278,14 +280,16 @@ mod tests {
         let union = union.index();
         let make = format!("function{factory}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let alternate = format!("function{other}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
-        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());let result=function{take}(root).call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
+        let first_pointer = if callback_only { "" } else { "assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());" };
+        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}{first_pointer}let result=function{take}(root).call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
         let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
         let mut generated = crate::emit::emit(&checked);
         let main = generated.find("fn main()").unwrap();
         let opening = main + generated[main..].find('{').unwrap() + 1;
         generated.insert_str(opening,"family_probe();");
         let sibling_owner = format!("fn invalid_sibling_escape(){{let retained;let second=vec![7u8];{{let first=vec![3u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
-        compile_family(&generated,"",&probe,vec![(negative,"does not live long enough"),(sibling_owner,"does not live long enough")],"recursive-chain");
+        compile_family(&generated,"",&probe,vec![(negative,"does not live long enough"),(sibling_owner,"does not live long enough")],if callback_only {"recursive-captured-chain"} else {"recursive-chain"});
+        }
     }
 
 }

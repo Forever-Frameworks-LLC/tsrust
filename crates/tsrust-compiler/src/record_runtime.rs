@@ -307,9 +307,14 @@ impl RecordRuntime {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn emit(&self, records: &[Record]) -> String {
+        self.emit_with_storage(records, &Default::default())
+    }
+
+    pub(crate) fn emit_with_storage(&self, records: &[Record], storage: &crate::callable_storage::Registry) -> String {
         let mut code = String::new();
-        let views = crate::recursive_view_shapes::Index::new(records, &|id| self.unions[id.index()].members.clone());
+        let views = crate::recursive_view_shapes::Index::with_storage(records, &|id| self.unions[id.index()].members.clone(), storage);
         for (group, members) in self.groups.iter().enumerate() {
             let lifetime = if members.iter().any(|&id| views.access(id).is_some()) { "<'view>" } else { "" };
             let from_parameters = if lifetime.is_empty() { "<const N: usize>" } else { "<'view, const N: usize>" };

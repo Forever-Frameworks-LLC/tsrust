@@ -11,7 +11,7 @@ pub(super) struct Shapes {
 impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
         Self {
-            recursive: crate::recursive_view_shapes::Index::new(&analyzer.program.records, &|id| analyzer.unions.members(id)),
+            recursive: crate::recursive_view_shapes::Index::with_storage(&analyzer.program.records, &|id| analyzer.unions.members(id), &analyzer.callables.storage),
             fields: analyzer.program.records.iter().map(|record| record.fields.iter()
                 .filter_map(|field| field.ty.map(|ty| (field.name.text.clone(), ty))).collect()).collect(),
             unions: analyzer.unions.snapshot(),

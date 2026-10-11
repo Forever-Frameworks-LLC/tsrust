@@ -89,8 +89,8 @@ test('Capturing callbacks retain argument views and oracle dispatch stays select
     assert.doesNotThrow(()=>expectedChecksum('native_bytes',1,7,'bytes'));
 });
 
-test('Recursive stored callbacks retain invocation and traversal observations', () => {
-    const row = manifest.workloads.find(value => value.id === 'native_byte_views_stored_callbacks');
+for (const id of ['native_byte_views_stored_callbacks','native_byte_views_captured_only']) test(id+' retains invocation and traversal observations', () => {
+    const row = manifest.workloads.find(value => value.id === id);
     assert.ok(row);
     assert.equal(reportCategory(row.id), 'bytes');
     for (const [kind, file] of [['native', row.source], ['typescript', row.counterpart]]) {

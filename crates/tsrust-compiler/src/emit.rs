@@ -1991,6 +1991,10 @@ impl Emitter<'_> {
         let declared_families=crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         for (family,_,origins) in self.program.stored_contracts.families() {
             if origins.is_empty() && !declared_families.contains(&family) {continue;}
+            // An emitted empty owning family has no value and no callable error
+            // ABI. Actual invocations still require resolved function effects.
+            if origins.is_empty() && !self.program.stored_contracts.is_borrowed(family)
+                && self.program.stored_contracts.scoped_native_family(family).is_none() { continue; }
             let span=origins.iter().next().map_or(crate::Span::default(),|origin|self.program.closures[*origin].span);
             let contract=self.program.error_effects.storage_errors.get(&family).ok_or_else(||crate::Diagnostic::new("error-effect","Result preparation requires saved storage contracts.",span))?;
             if !contract.runtime && !contract.opaque && contract.explicit.is_empty() {continue;}
@@ -2801,7 +2805,7 @@ impl Emitter<'_> {
             }
         }
         self.fixed_records(&mut output);
-        output.push_str(&self.record_runtime.emit(&self.program.records));
+        output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") {
             for (id, record) in self.program.records.iter().enumerate() {
                 if !self.record_inspectable(id) {

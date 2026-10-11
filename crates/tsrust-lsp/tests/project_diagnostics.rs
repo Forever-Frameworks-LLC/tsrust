@@ -265,3 +265,19 @@ fn recursive_record_parameter_callbacks_keep_shared_owner_diagnostics() {
         assert_eq!(diagnostic["code"], "native-view-escape");
     }
 }
+
+#[test]
+fn recursive_callback_only_records_keep_captured_owner_diagnostics() {
+    let source=include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-captured-views.tsr");
+    let mut workspace=Workspace::default();
+    workspace.open(id("main"),1,source.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers=source.split("function main()").next().unwrap();
+    let invalid=format!("{helpers}function leak(first:ByteView):Holder{{const short=bytes(7);return build(first,read(short));}}function main(){{const owner=bytes(3);const holder=leak(read(owner));const result=holder.read();console.log(length(result));}}");
+    workspace.open(id("main"),2,invalid);
+    let snapshot=workspace.snapshot();let error=snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code,"native-view-escape");
+    let diagnostics=convert(&snapshot,Some(&error)).unwrap();
+    let diagnostic=serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["code"],"native-view-escape");
+}

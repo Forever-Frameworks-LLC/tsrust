@@ -124,8 +124,8 @@ impl Storage {
         root: Type,
     ) -> Option<usize> {
         let members = |id: crate::syntax::UnionId| program.unions[id.index()].members.clone();
-        let recursive = crate::environment_lifetimes::contains_native_view(root, &program.records, &members)
-            .then(|| crate::recursive_view_shapes::Index::new(&program.records, &members));
+        let recursive = crate::environment_lifetimes::contains_native_view(root, &program.records, &members, &program.stored_contracts)
+            .then(|| crate::recursive_view_shapes::Index::with_storage(&program.records, &members, &program.stored_contracts));
         let mut pending = vec![(root, false)];
         let mut active = HashSet::new();
         let mut total = 0;
@@ -165,7 +165,7 @@ impl Storage {
                 }
                 Type::StoredCallable(family) => total += program.stored_contracts.scoped_native_family(family).map_or(0, crate::native_view_callable_storage::Family::lifetimes),
                 Type::Record(record) if recursive.as_ref().is_some_and(|index| index.access(record).is_some()) || program.records[record].native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) => total += 1,
-                Type::Array(element) if crate::environment_lifetimes::contains_native_view(element.ty(),&program.records,&|id|program.unions[id.index()].members.clone()) => pending.push((element.ty(),false)),
+                Type::Array(element) if crate::environment_lifetimes::contains_native_view(element.ty(),&program.records,&|id|program.unions[id.index()].members.clone(), &program.stored_contracts) => pending.push((element.ty(),false)),
                 Type::Record(record) => pending.extend(
                     program.records[record]
                         .fields

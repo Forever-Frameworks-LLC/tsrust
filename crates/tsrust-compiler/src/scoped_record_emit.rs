@@ -4,7 +4,7 @@ use super::*;
 impl Emitter<'_> {
     pub(super) fn native_record_declaration(&self, id: usize) -> usize {
         let base = self.program.scoped_records.declaration(id);
-        if self.native_views.recursive(base) { id } else { base }
+        if self.native_views.recursive(id) { id } else { base }
     }
 
     /// A recursive component uses one lifetime for every contained native view.

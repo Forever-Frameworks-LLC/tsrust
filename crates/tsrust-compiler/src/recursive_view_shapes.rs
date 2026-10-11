@@ -4,10 +4,24 @@ use std::collections::HashSet;
 
 pub(crate) struct Index {
     shared: Vec<Option<BorrowAccess>>,
+    cyclic: Vec<bool>,
 }
 
 impl Index {
     pub(crate) fn new(records: &[Record], members: &impl Fn(UnionId) -> Vec<Type>) -> Self {
+        Self::with_leaves(records, members, &|_| None)
+    }
+
+    pub(crate) fn with_storage(records: &[Record], members: &impl Fn(UnionId) -> Vec<Type>, storage: &crate::callable_storage::Registry) -> Self {
+        Self::with_leaves(records, members, &|ty| {
+            let Type::StoredCallable(family) = ty else { return None; };
+            let layout = storage.scoped_native_family(family)?;
+            layout.alternatives.iter().flat_map(|alternative| &alternative.slots).map(|slot| slot.access)
+                .reduce(merge)
+        })
+    }
+
+    fn with_leaves(records: &[Record], members: &impl Fn(UnionId) -> Vec<Type>, leaf: &impl Fn(Type) -> Option<BorrowAccess>) -> Self {
         let mut edges = vec![Vec::new(); records.len()];
         let mut incomplete = vec![false; records.len()];
         let mut access = vec![None; records.len()];
@@ -25,7 +39,9 @@ impl Index {
                     Type::Record(_) => incomplete[id] = true,
                     Type::Array(element) => pending.push(element.ty()),
                     Type::Union(union) | Type::BorrowedUnion(union) => pending.extend(members(union)),
-                    _ => {}
+                    _ => if let Some(borrow) = leaf(ty) {
+                        access[id] = Some(access[id].map_or(borrow, |existing| merge(existing, borrow)));
+                    }
                 }
             }
             edges[id].sort_unstable();
@@ -70,6 +86,7 @@ impl Index {
         }
         seen.fill(false);
         let mut shared = vec![None; records.len()];
+        let mut cyclic = vec![false; records.len()];
         for root in order.into_iter().rev() {
             if std::mem::replace(&mut seen[root], true) { continue; }
             let mut component = Vec::new();
@@ -82,16 +99,23 @@ impl Index {
             }
             if component.len() > 1 || edges[root].contains(&root) {
                 for member in component {
+                    cyclic[member] = true;
                     if !incomplete[member] { shared[member] = access[member]; }
                 }
             }
         }
-        Self { shared }
+        Self { shared, cyclic }
     }
 
     pub(crate) fn access(&self, record: usize) -> Option<BorrowAccess> {
         self.shared.get(record).copied().flatten()
     }
+
+    pub(crate) fn recursive(&self, record: usize) -> bool { self.cyclic.get(record).copied().unwrap_or(false) }
+}
+
+fn merge(first: BorrowAccess, second: BorrowAccess) -> BorrowAccess {
+    if first == BorrowAccess::Exclusive || second == BorrowAccess::Exclusive { BorrowAccess::Exclusive } else { BorrowAccess::ReadOnly }
 }
 
 #[cfg(test)]
@@ -103,6 +127,26 @@ mod tests {
         let mut result = record(&[]);
         result.native_type = Some(native);
         result
+    }
+
+    #[test]
+    fn captured_slots_seed_recursive_access_without_a_direct_view_field() {
+        let records = vec![
+            record(&[Type::Array(ArrayElement::Record(1, 0)), Type::StoredCallable(0)]),
+            record(&[Type::Array(ArrayElement::Record(0, 0)), Type::StoredCallable(1)]),
+            record(&[Type::Record(0)]),
+        ];
+        let symbolic = Index::new(&records, &|_| vec![]);
+        assert!(symbolic.recursive(0));
+        assert_eq!(symbolic.access(0), None);
+        let concrete = Index::with_leaves(&records, &|_| vec![], &|ty| match ty {
+            Type::StoredCallable(0) => Some(BorrowAccess::ReadOnly),
+            Type::StoredCallable(1) => Some(BorrowAccess::Exclusive),
+            _ => None,
+        });
+        assert_eq!(concrete.access(0), Some(BorrowAccess::Exclusive));
+        assert_eq!(concrete.access(1), Some(BorrowAccess::Exclusive));
+        assert_eq!(concrete.access(2), None);
     }
 
     #[test]

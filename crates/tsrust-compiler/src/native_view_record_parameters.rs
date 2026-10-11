@@ -22,6 +22,9 @@ impl Index {
 }
 impl Emitter<'_> {
     pub(super) fn scoped_record_native_field(&self,record:usize,position:usize,ty:Type)->bool {
+        // Recursive components have concrete declarations, including their
+        // lifetime-free symbolic base. They cannot use expanding field generics.
+        if self.native_views.cyclic(record) { return false; }
         let base=self.program.scoped_records.declaration(record);
         self.native_record_fields.contains(base,position)
             || self.scoped_record_native_parameter(ty)

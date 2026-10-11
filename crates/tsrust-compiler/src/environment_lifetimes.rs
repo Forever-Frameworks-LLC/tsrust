@@ -1,14 +1,25 @@
 //! Count by-value environment lifetime slots without recursive type traversal.
 use crate::syntax::{Record, Type, UnionId};
 
+#[cfg(test)]
 pub(crate) fn count(
     root: Type,
     records: &[Record],
     members: impl Fn(UnionId) -> Vec<Type>,
     leaf: impl Fn(Type) -> usize,
 ) -> usize {
-    let recursive = contains_native_view(root, records, &members)
-        .then(|| crate::recursive_view_shapes::Index::new(records, &members));
+    count_with_storage(root, records, &Default::default(), members, leaf)
+}
+
+pub(crate) fn count_with_storage(
+    root: Type,
+    records: &[Record],
+    storage: &crate::callable_storage::Registry,
+    members: impl Fn(UnionId) -> Vec<Type>,
+    leaf: impl Fn(Type) -> usize,
+) -> usize {
+    let recursive = contains_native_view(root, records, &members, storage)
+        .then(|| crate::recursive_view_shapes::Index::with_storage(records, &members, storage));
     let mut total = 0usize;
     let mut pending = vec![(root, false)];
     let mut active = std::collections::HashSet::new();
@@ -43,7 +54,7 @@ pub(crate) fn count(
                     pending.push((ty, false));
                 }
             }
-            Type::Array(element) if contains_native_view(element.ty(), records, &members) => pending.push((element.ty(),false)),
+            Type::Array(element) if contains_native_view(element.ty(), records, &members, storage) => pending.push((element.ty(),false)),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 pending.extend(members(id).into_iter().map(|ty| (ty, false)))
             }
@@ -56,7 +67,7 @@ pub(crate) fn count(
     total
 }
 
-pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->bool {
+pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>,storage:&crate::callable_storage::Registry)->bool {
     let mut pending=vec![root];
     let mut seen=std::collections::HashSet::new();
     while let Some(ty)=pending.pop() {
@@ -67,6 +78,7 @@ pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(
                 if record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {return true;}
                 pending.extend(record.fields.iter().filter_map(|field|field.ty));
             }
+            Type::StoredCallable(family) if storage.scoped_native_family(family).is_some() => return true,
             Type::Array(element)=>pending.push(element.ty()),
             Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(members(id)),
             _=>{}
