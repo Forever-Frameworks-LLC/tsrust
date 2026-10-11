@@ -8,6 +8,11 @@ function workload(n: int, seed: int, input: string): int[][] {
       values.push((i + seed + j) % 256);
     }
 
+    let traversed = 0;
+    for (const value of values) {
+      traversed += value;
+    }
+
     const top = values.peek()!;
     const copied = clone(values);
     let sum = 0;
@@ -15,7 +20,7 @@ function workload(n: int, seed: int, input: string): int[][] {
       sum += copied.pop()!;
     }
 
-    output.push([values.size, top, sum, copied.size]);
+    output.push([values.size, top, sum, copied.size, traversed]);
   }
 
   return output;

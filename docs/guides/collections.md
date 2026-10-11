@@ -82,5 +82,7 @@ normalization. Boolean true sorts above false; enums use their backing values.
 
 Scalar peek results copy. String peek results borrow the stored heap; mutation
 is rejected while that borrow remains live. Pop transfers owned values without
-cloning. `clone(heap)` explicitly creates independent storage. Heap does not yet
-provide `for...of`; repeated pop consumes values in descending order.
+cloning. `clone(heap)` explicitly creates independent storage. `for...of` borrows every
+stored element without removing it; traversal order is unspecified. Scalars copy
+and strings borrow readonly. Mutation or transfer during traversal is rejected.
+Repeated pop consumes values in descending order.

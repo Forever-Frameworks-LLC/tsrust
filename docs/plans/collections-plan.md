@@ -183,7 +183,7 @@ Metadata evidence: `tsrust-s08-ordered-metadata-acceptance.json` in SQLite.
 `std:collections` now exports `Heap<T>` with alias-aware construction, size, push,
 peek, pop and clear. The compiler checks scalar/enum ordering constraints and
 receiver ownership. String reads borrow; pops transfer values. Explicit cloning
-creates independent storage. No borrowed iteration is exposed yet.
+creates independent storage. Borrowed iteration visits all elements without removal; order is unspecified.
 
 Native witnesses cover empty results, duplicates, independent clones, owned strings,
 boolean and numeric enums, NaN/infinity/signed-zero boundaries, invalid element
@@ -195,3 +195,15 @@ The `native_heap` workload compares nine inserts, peek, independent clone and dr
 against an explicitly sorted Node array. An independent arithmetic oracle checks
 sizes, maximum and drain sum, including modulo wrap boundaries. Timing remains
 pending. Evidence: `tsrust-s08-heap-acceptance.json` in SQLite.
+
+Heap borrowed iteration now has native witnesses for scalar and owned string
+payloads, empty traversal, early return through finally, and rejection of mutation
+or transfer during traversal. Checked and fallback editor indexes resolve aliased
+loop element types. The matched heap workload independently observes traversal and
+removal sums. No timing run was performed. Evidence:
+`tsrust-s08-heap-iteration-acceptance.json` in SQLite.
+
+Source review identified an integration gap to address before S08 acceptance:
+call-spread analysis uses the shared iterable classifier, while emission still
+assumes array/Set iterator methods for native collection records. Add focused
+Deque/Heap witnesses and integrate borrowed and moving spread without hidden clones.

@@ -5150,11 +5150,15 @@
       "name": "Heap",
       "signature": "type Heap<T>",
       "parameters": [],
-      "documentation": "An owned max heap: peek reads the greatest value and pop removes it. new Heap<T>() takes no arguments and requires an explicit int, number, boolean, string or enum element type. Numbers use numeric order, with all NaNs equal and greater than infinity; signed zeros are stored as positive zero. Strings use Unicode scalar lexicographic order, without locale collation or normalization. Booleans place true above false. Enums use their backing values. Duplicate values remain separate entries. No borrowed iteration is currently provided; repeated pop consumes values in descending order. clone(heap) deep-clones independent storage.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);console.log(values.pop()!,values.pop()!);}\n```\n\nExpected output: 9 2.\n\nOwnership: passing by value transfers the heap; storage releases automatically when its owner ends.",
+      "documentation": "An owned max heap: peek reads the greatest value and pop removes it. new Heap<T>() takes no arguments and requires an explicit int, number, boolean, string or enum element type. Numbers use numeric order, with all NaNs equal and greater than infinity; signed zeros are stored as positive zero. Strings use Unicode scalar lexicographic order, without locale collation or normalization. Booleans place true above false. Enums use their backing values. Duplicate values remain separate entries. for...of borrows every stored element without removal in unspecified order. Scalar loop values copy; strings borrow readonly. Mutation or transfer during traversal is rejected. Repeated pop consumes values in descending order. clone(heap) deep-clones independent storage.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);console.log(values.pop()!,values.pop()!);}\n```\n\nExpected output: 9 2.\n\nOwnership: passing by value transfers the heap; storage releases automatically when its owner ends.",
       "examples": [
         {
           "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);console.log(values.pop()!,values.pop()!);}",
           "output": "9 2\n"
+        },
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);let sum=0;for(const value of values){sum+=value;}console.log(sum,values.size);}",
+          "output": "11 2\n"
         }
       ]
     }

@@ -6,7 +6,7 @@ impl Analyzer {
         match actual {
             Type::Array(element) => Some(element),
             Type::String => ArrayElement::from_value_type(Type::String),
-            Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Deque) => ArrayElement::from_value_type(self.program.records[id].native_element()?),
+            Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap)) => ArrayElement::from_value_type(self.program.records[id].native_element()?),
             Type::Set(id) => ArrayElement::from_value_type(self.program.records[id].set_definition.as_ref()?.key),
             Type::Map(id) => self.map_iteration_entry(id, Span::default()).ok().map(|pair|ArrayElement::Record(pair,0)),
             _ => None,

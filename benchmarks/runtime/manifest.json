@@ -20936,7 +20936,7 @@
       ],
       "iterations": 2048,
       "operationsPerIteration": 1,
-      "operationUnit": "Nine heap inserts, peek, independent clone and descending removal",
+      "operationUnit": "Nine heap inserts, borrowed traversal, peek, independent clone and descending removal",
       "inputText": "collections",
       "category": "collections",
       "implementationGate": "S08",
@@ -20945,11 +20945,11 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Five matched native and Node-after-tsc correctness cases pass; Node reference uses an explicitly sorted array. Collections family timing remains pending.",
-      "specification": "Insert nine bounded integers into a max heap, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum and empty clone size. Node uses an explicitly sorted numeric array and independent slice.",
-      "sourceSha256": "ffac34bee75892e5d8914dd1338149706b567e21f836f95b7696afab74a84d6f",
-      "counterpartSha256": "f0d798bdf9c9a31fc1c2de97175bea05881e2ed287e0484981a9baab574945a1",
-      "verificationEvidence": "runtime/results/2026-10-11T11-56-42-212Z-verify.json"
+      "notes": "Five matched native and Node-after-tsc correctness cases include borrowed traversal and independent removal observations. Collections family timing remains pending.",
+      "specification": "Insert nine bounded integers into a max heap, borrow every element without removing it, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum, empty clone size and traversal sum. Node uses an explicitly sorted numeric array and independent slice.",
+      "sourceSha256": "88e651158a5769a2032c8a0d59d7d16dac8a599fa0682f0a5454234075df5c05",
+      "counterpartSha256": "909a8f5cf70436a1cd81771c345ddc05df902436deb56d3404dcae78512ffca7",
+      "verificationEvidence": "runtime/results/2026-10-11T12-03-17-524Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

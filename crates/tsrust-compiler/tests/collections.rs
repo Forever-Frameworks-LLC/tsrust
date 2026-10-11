@@ -416,12 +416,27 @@ function main(){const values=new Heap<number>();values.push(-0.0);values.push(In
         "const values=new Heap<int>(1);",
         "const values=new Heap<int>();values.push('bad');",
         "const values=new Heap<int>();values.size=3;",
-        "const values=new Heap<int>();for(const value of values){}",
+        "const values=new Heap<int>();for(const value of values){values.push(1);}",
         "const values=new Heap<string>();values.push('a');const first=values.peek();values.clear();if(first!==undefined){console.log(first);}",
         "const values=new Heap<string>();const text='a';values.push(text);console.log(text);",
         "const values=new Heap<int[]>();",
     ] {
         let source=format!("import {{Heap}} from 'std:collections';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));
         assert!(!support::run(support::cli().arg("check").arg(path),30).status.success(),"invalid heap accepted: {body}");
+    }
+}
+
+#[test]
+fn heap_iteration_borrows_every_value_and_preserves_completion() {
+    let source=r#"import {Heap} from 'std:collections';import {strictEqual} from 'std:testing';
+function first(values:ReadOnly<Heap<int>>):int{for(const value of values){try{return value;}finally{strictEqual(values.size,3);}}return -1;}
+function main(){const values=new Heap<int>();values.push(2);values.push(9);values.push(4);let count=0;let sum=0;for(const value of values){sum+=value;count++;}strictEqual(count,3);strictEqual(sum,15);strictEqual(values.size,3);strictEqual(first(values)>0,true);const words=new Heap<string>();words.push('abc');words.push('xy');let length=0;for(const word of words){length+=word.length;}strictEqual(length,5);strictEqual(words.size,2);words.clear();for(const word of words){throw 'empty heap visited';}}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    for replacement in ["values.clear();sum+=value;","const moved=values;sum+=value;"] {
+        let source=source.replace("sum+=value;",replacement);let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("iteration-conflict"),"{}",String::from_utf8_lossy(&output.stderr));
     }
 }

@@ -1723,6 +1723,19 @@ fn native_deque_callback_payload_keeps_field_signature() {
 }
 
 #[test]
+fn native_heap_iteration_has_element_hover() {
+    let entry = tsrust_compiler::format("import {Heap as Queue} from 'std:collections';function main(){const values=new Queue<string>();values.push('a');for(const item of values){console.log(item);}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let hover = ask(&index, &entry, "item);", "textDocument/hover");
+        assert!(hover.to_string().contains("item: string"), "{hover}");
+    }
+}
+
+#[test]
 fn native_deque_iteration_has_element_hover() {
     let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function main(){const values=new Queue<string>();values.pushBack('a');for(const item of values){console.log(item);}}").unwrap();
     let uri = "file:///tsrust-intelligence/main.tsr";

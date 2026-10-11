@@ -731,7 +731,7 @@ impl SourceIndex {
                 && let Some(symbol) = self.symbols.iter().position(|s| s.span.start == self.tokens[id + 1].span.start)
             {
                 let iterable = self.infer(id + 3, self.tokens[id].span.start, 0);
-                if let Some(element) = self.deque_element(&iterable).map(str::to_owned) {
+                if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).map(str::to_owned) {
                     self.symbols[symbol].signature = format!("{keyword} {}: {element}", self.symbols[symbol].name);
                     self.symbols[symbol].ty = element;
                 }
@@ -1215,7 +1215,7 @@ impl SourceIndex {
                     "=" => self.initializer_type(close + 2, start),
                     "of" => {
                         let iterable = self.infer(close + 2, start, 0);
-                        self.deque_element(&iterable).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default()
+                        self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default()
                     }
                     _ => String::new(),
                 };
@@ -1275,7 +1275,7 @@ impl SourceIndex {
                 if ty.is_empty() && self.text(end) == "in" { ty = "string".into(); }
                 if ty.is_empty() && self.text(end) == "of" {
                     let iterable = self.infer(end + 1, self.tokens[id].span.start, 0);
-                    ty = self.deque_element(&iterable).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default();
+                    ty = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default();
                 }
                 if ty.is_empty() && self.text(end) == "=" {
                     ty = self.initializer_type(end + 1, self.tokens[id].span.start);
@@ -1997,7 +1997,7 @@ impl SourceIndex {
                     "string[]".to_owned()
                 } else if source.ends_with("[]") {
                     source
-                } else if let Some(element)=self.deque_element(&source).map(str::to_owned).or_else(|| iterable_element_type(&source)) {
+                } else if let Some(element)=self.deque_element(&source).or_else(||self.heap_element(&source)).map(str::to_owned).or_else(|| iterable_element_type(&source)) {
                     let grouped=tsrust_compiler::type_syntax::parse(&element).is_ok_and(|annotation|matches!(annotation.kind,tsrust_compiler::type_syntax::ValueAnnotationKind::Union(_)));
                     if grouped{format!("({element})[]")}else{format!("{element}[]")}
                 } else {
