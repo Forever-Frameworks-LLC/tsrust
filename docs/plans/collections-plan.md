@@ -138,3 +138,34 @@ The `native_deque_clone` workload compares explicit deep deque cloning against
 Node arrays with explicit record/array copies, then mutates the copied payload.
 Its independent arithmetic oracle observes both originals and copies. Acceptance
 evidence is stored as `tsrust-s08-deque-clone-acceptance.json`; timing remains pending.
+
+## Ordered collection contract and backend progress
+
+The planned public names are `OrderedMap<K,V>`, `OrderedSet<T>` and `Heap<T>` in
+`std:collections`. These are new types; existing Map/Set retain insertion order.
+The first ordered key surface uses homogeneous scalar keys: int, number, string,
+boolean and enums with an ordered scalar representation. Object identity keys,
+record keys and user comparators are outside this initial contract.
+
+Tree traversal is ascending by key, independent of insertion order. Integers use
+numeric order, booleans place false before true, and strings use Unicode scalar
+lexicographic order without locale collation or normalization. Number keys preserve
+the existing collection equality rule: signed zeros compare equal and all NaNs
+compare equal. Zeros are stored as positive zero; all NaNs form one key ordered
+after positive infinity. No subtraction-based comparator is used. Heap is a max
+heap under the same order: peek borrows the greatest value and pop transfers it;
+empty results are undefined. Repeated equal heap values remain separate entries.
+Heap storage order is not a sorted traversal contract.
+
+The backend now uses BTreeMap, BTreeSet and BinaryHeap. Focused Rust witnesses at
+optimization levels 0 and 3 cover 2,048 map operations against an independent
+sequence model, ordered Unicode traversal, duplicate replacement, independent deep
+cloning, empty behavior, exact drops, non-clonable borrowed payloads and retained
+slice addresses. Number witnesses cover signed zeros, infinities, multiple NaN
+representations, comparison transitivity and heap removal order. Six Rust rejection
+cases cover borrowed read/iterator invalidation, non-clonable values and escaping
+owners. Evidence is retained as `tsrust-s08-ordered-backend-acceptance.json`.
+
+Public signatures, compiler integration, lifetime/callback transport, editor help,
+executable catalog examples and matched workloads remain pending for these three
+types. These backend checks are not source-language or family acceptance.

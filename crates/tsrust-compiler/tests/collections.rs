@@ -363,3 +363,34 @@ fn deque_backend_rejects_borrow_invalidation_view_clone_and_owner_escape() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(code), "{}", String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn ordered_backends_preserve_order_ownership_and_number_equivalence() {
+    let directory=support::TempDirectory::new();
+    let source=format!("{}\n{}",include_str!("../src/stdlib/collections/ordered_runtime.rs"),include_str!("fixtures/collections/ordered-backend.rs"));
+    let path=directory.0.join("ordered.rs");std::fs::write(&path,source).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("ordered-{level}"));
+        support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),30));
+    }
+}
+
+#[test]
+fn ordered_backends_reject_invalidation_noncloneable_values_and_escape() {
+    for (body,code) in [
+        ("fn main(){let mut map=TsrOrderedMap::new();map.insert(1,2);let read=map.get(&1).unwrap();map.remove(&1);println!(\"{}\",read);}","E0502"),
+        ("fn main(){let mut map=TsrOrderedMap::new();map.insert(1,2);let mut read=map.iter();map.clear();println!(\"{:?}\",read.next());}","E0502"),
+        ("fn main(){let mut set=TsrOrderedSet::new();set.insert(1);let mut read=set.iter();set.insert(2);println!(\"{:?}\",read.next());}","E0502"),
+        ("fn main(){let mut heap=TsrHeap::new();heap.push(1);let read=heap.peek().unwrap();heap.pop();println!(\"{}\",read);}","E0502"),
+        ("struct Window<'a>(&'a [u8]);fn main(){let owner=[1];let mut map=TsrOrderedMap::new();map.insert(1,Window(&owner));let copied=map.clone();}","E0599"),
+        ("struct Window<'a>(&'a [u8]);fn leak()->TsrOrderedMap<i64,Window<'static>>{let owner=vec![1];let mut map=TsrOrderedMap::new();map.insert(1,Window(&owner));map}fn main(){}","E0515"),
+    ] {
+        let directory=support::TempDirectory::new();
+        let path=directory.0.join("reject.rs");
+        std::fs::write(&path,format!("{}\n{body}",include_str!("../src/stdlib/collections/ordered_runtime.rs"))).unwrap();
+        let output=support::run(support::rustc().arg("--edition=2024").arg("--emit=metadata").arg(&path).arg("-o").arg(directory.0.join("reject.rmeta")),30);
+        assert!(!output.status.success(),"invalid ordered collection accepted: {body}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));
+    }
+}
