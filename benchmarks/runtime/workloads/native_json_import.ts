@@ -1,0 +1,14 @@
+import settings from './typed-data/settings.json';
+
+function workload(n: number, seed: number): number {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    checksum += settings.base;
+    for (const value of settings.values) {
+      checksum += value;
+    }
+    i++;
+  }
+  return checksum;
+}

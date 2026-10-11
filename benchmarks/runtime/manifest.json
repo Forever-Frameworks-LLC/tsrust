@@ -21209,6 +21209,29 @@
       "notes": "Includes parsing, allocation, encoding, exact comparison and cleanup. Fixed lexically sorted keys and ASCII text avoid object-order and UTF-8/UTF-16 differences. Not a general JSON parity claim.",
       "sourceSha256": "13c89d28d1d4cf9feac35f12fdf2a726d68ab979afd92c2a0eeaadc4e2909d95",
       "counterpartSha256": "025e24acd97cce7cbfa75ed71e2449240c9293c1b93acaacd40dcaadcd8996e5"
+    },
+    {
+      "id": "native_json_import",
+      "category": "json",
+      "description": "Read typed immutable imported record and array data",
+      "source": "workloads/native_json_import.tsr",
+      "counterpart": "workloads/native_json_import.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One imported scalar read and three-element array scan",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "typed-data-imports",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Add the imported base and each of three imported array elements to the seeded checksum every iteration.",
+      "notes": "Data is loaded once outside timed calls. Native embeds immutable data; Node imports JSON through CommonJS. Includes repeated reads and scan, without parsing, explicit cloning or mutation. Compiler hoisting is permitted; this is not isolated memory latency.",
+      "sourceSha256": "4ba373d60baffbbc0880962629046c068258388cf28acc04d55c0b49d635abee",
+      "counterpartSha256": "ecb1dddf4da7b755dcae4386f89420365719d126a20eb337aca4799a313b8afc",
+      "dataSha256": "4bd2caafccb1ae78da2df61b7083bda68ca031519d75a567a25bf78e3e7ec026"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

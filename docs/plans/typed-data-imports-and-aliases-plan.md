@@ -395,3 +395,19 @@ body is incomplete. Evidence: `tsrust-data-boundary-*` in SQLite (three focused
 tests passed; whole-project formatting changed no files or fingerprints).
 Matched benchmark support, additional editor shape coverage and installed-consumer
 verification remain pending. No timing or S10 completion is claimed.
+
+
+## Matched imported-data benchmark support
+
+`native_json_import` now has matched Tsrust and TypeScript sources, a pinned JSON
+input, source and input guards, an independent arithmetic oracle, ordinary scalar
+ABI verification, report registration and harness support for typed JSON imports.
+Each iteration reads one imported scalar and scans a three-element imported
+array. Loading occurs before timed calls; compiler hoisting remains allowed. This
+workload does not claim to isolate memory latency, parsing or clone costs.
+
+The reusable `benchmarks/runtime/typed-data-imports-smoke.mjs` accepts `TSRUST`
+and validates five native/Node-after-tsc cases with zero timing samples. Both
+registration tests pass. Evidence: `tsrust-data-benchmark-*` in SQLite. Timing
+remains deferred to the JSON family milestone; installed-consumer refresh and
+additional editor shape coverage remain open.
