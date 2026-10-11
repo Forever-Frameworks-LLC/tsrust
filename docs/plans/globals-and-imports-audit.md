@@ -153,3 +153,15 @@ explicit rounding, parsing and fixed-locale contracts.
 The [array review](globals-and-imports-array-audit.md) covers 43 receiver/static
 APIs, including ownership and callback exceptions. Preserve placement; corrected
 at hover's stale nullable-element restriction without changing runtime behavior.
+
+## Language primitive review slice
+
+The [primitive review](globals-and-imports-primitives-audit.md) covers the final
+22 discovered rows. [Coverage manifest](globals-and-imports-coverage.json) maps
+each current identity to its review. Per-row accounting is complete; final
+independent discovery reconciliation remains before audit closure.
+
+After generating a fresh inventory, run
+`python3 tools/verify-api-audit.py /path/to/inventory.json`. The verifier rejects
+unreviewed, stale or duplicated identities and missing review files. It verifies
+coverage accounting, not semantic correctness or discovery completeness.
