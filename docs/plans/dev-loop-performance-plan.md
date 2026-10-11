@@ -167,8 +167,22 @@ module removal, recursive views, file cleanup and test registration. Two existin
 default-export native tests also pass. Original missing-API failure and passing
 records are stored as `tsrust-project-session-*` in SQLite.
 
-This is a frontend layer, not completed incremental dev compilation. Header graph
-loading still runs afresh; the CLI does not yet keep a ProjectSession alive across
-dev builds. Next integrate retained graph/header inputs and a persistent dev build
-worker, preserve cancellation/last-good behavior, and prove installed reuse. No
+This is a frontend layer, not completed incremental dev compilation. The CLI does not yet keep a ProjectSession alive across dev builds. Next integrate
+a persistent dev build worker, preserve cancellation/last-good behavior, and prove
+installed reuse. No
 speedup or full retained-state acceptance is claimed from these tests alone.
+
+
+## Retained frontend state: module headers
+
+The session now also retains strict unresolved module headers keyed by exact source
+identity and text. Every build resolves imports and validates exports against current
+inputs; cached headers never preserve resolved dependency edges. Removed modules
+are evicted, and graph failures clear both header and syntax caches.
+
+Four session checks pass, including changed symlink resolution, missing dependencies,
+recovery, unchanged-module reuse and the existing clean-build comparisons. Three
+focused loader checks also pass for diamond graphs, invalid dependencies and tolerant
+editor headers. Evidence is stored as `tsrust-project-headers-*` in SQLite. This
+remains a library layer: persistent CLI worker integration, installed reuse and
+performance acceptance are still outstanding.

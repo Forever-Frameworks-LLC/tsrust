@@ -163,6 +163,30 @@ pub struct ProjectGraph {
     pub order: Vec<SourceId>,
 }
 
+/// Strict, unresolved module headers only. Resolution and export validation are
+/// repeated against current inputs, so cached headers cannot preserve stale edges.
+#[derive(Default)]
+pub(crate) struct HeaderCache {
+    entries:BTreeMap<SourceId,ModuleSource>,
+    pub(crate) parsed:usize,
+    pub(crate) reused:usize,
+}
+impl HeaderCache {
+    pub(crate) fn begin(&mut self){self.parsed=0;self.reused=0;}
+    pub(crate) fn clear(&mut self){self.entries.clear();}
+    pub(crate) fn retain(&mut self,graph:&ProjectGraph)->usize {
+        self.entries.retain(|id,_|graph.modules.contains_key(id));self.entries.len()
+    }
+    fn parse(&mut self,source:SourceFile)->Result<ModuleSource,ProjectDiagnostic> {
+        if let Some(module)=self.entries.get(&source.id).filter(|module|module.source.text==source.text) {
+            self.reused+=1;return Ok(module.clone());
+        }
+        self.parsed+=1;self.entries.remove(&source.id);
+        let module=parse_module(source,true)?;
+        self.entries.insert(module.source.id.clone(),module.clone());Ok(module)
+    }
+}
+
 /// Conventional test entry names enable top-level registration in compiler/editor checks.
 pub fn is_test_entry(path: &str) -> bool {
     path.ends_with(".test.tsr") || path.ends_with(".spec.tsr")
@@ -483,7 +507,7 @@ pub fn load_project(
     provider: &impl SourceProvider,
     entry: &str,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
-    load_graph(provider, entry, true)
+    load_graph(provider, entry, true, None)
 }
 
 /// Check normally, then collect independent semantic errors or module syntax errors.
@@ -518,12 +542,16 @@ pub fn load_project_headers(
     provider: &impl SourceProvider,
     entry: &str,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
-    load_graph(provider, entry, false)
+    load_graph(provider, entry, false, None)
+}
+pub(crate) fn load_project_cached(provider:&impl SourceProvider,entry:&str,cache:&mut HeaderCache)->Result<ProjectGraph,ProjectDiagnostic> {
+    load_graph(provider,entry,true,Some(cache))
 }
 fn load_graph(
     provider: &impl SourceProvider,
     entry: &str,
     declarations: bool,
+    mut cache:Option<&mut HeaderCache>,
 ) -> Result<ProjectGraph, ProjectDiagnostic> {
     let entry = provider.resolve(None, entry).map_err(|message| {
         error(
@@ -547,6 +575,7 @@ fn load_graph(
         &mut active,
         &mut chain,
         declarations,
+        &mut cache,
     )?;
     Ok(graph)
 }
@@ -557,6 +586,7 @@ fn visit(
     active: &mut BTreeSet<SourceId>,
     chain: &mut Vec<(SourceId, Span)>,
     declarations: bool,
+    cache:&mut Option<&mut HeaderCache>,
 ) -> Result<(), ProjectDiagnostic> {
     active.insert(id.clone());
     let text = if let Some(source) = crate::stdlib::source(&id.0) {
@@ -565,13 +595,8 @@ fn visit(
         provider.read(&id)
             .map_err(|message| error(&id, "module-load", message, Span::default()))?
     };
-    let mut module = parse_module(
-        SourceFile {
-            id: id.clone(),
-            text,
-        },
-        declarations,
-    )?;
+    let source=SourceFile{id:id.clone(),text};
+    let mut module=if let Some(cache)=cache.as_deref_mut(){cache.parse(source)?}else{parse_module(source,declarations)?};
     for import in &mut module.imports {
         if import.path == "std:testing-runtime" && id.0 != "std:testing" {
             return Err(error(&id, "module-native", "Testing runtime bindings are private; import from std:testing.", import.span));
@@ -629,7 +654,7 @@ fn visit(
                 ));
             }
             chain.push((id.clone(), import.span));
-            visit(provider, target.clone(), graph, active, chain, declarations)?;
+            visit(provider, target.clone(), graph, active, chain, declarations, cache)?;
             chain.pop();
         }
         let dependency = &graph.modules[&target];

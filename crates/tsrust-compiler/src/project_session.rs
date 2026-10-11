@@ -1,22 +1,26 @@
 //! Retained pre-link syntax. Linked IDs, source offsets and ownership checks stay fresh.
 use std::collections::BTreeMap;
-use crate::{Diagnostic,syntax::Program,project::{SourceId,SourceProvider,ProjectGraph,ProjectAnalysis,ProjectDiagnostic,load_project}};
+use crate::{Diagnostic,syntax::Program,project::{SourceId,SourceProvider,ProjectGraph,ProjectAnalysis,ProjectDiagnostic,HeaderCache,load_project_cached}};
 
 #[derive(Clone,Copy,Debug,Default)]
-pub struct SessionStats {pub parsed:usize,pub reused:usize,pub retained:usize}
+pub struct SessionStats {pub parsed:usize,pub reused:usize,pub retained:usize,pub headers_parsed:usize,pub headers_reused:usize,pub headers_retained:usize}
 #[derive(PartialEq,Eq)]
 struct Key {source:String,index:usize,test_entry:bool,dependencies:Vec<(SourceId,u64)>}
 struct Entry {key:Key,generation:u64,program:Program}
 #[derive(Default)]
-pub struct ProjectSession {entries:BTreeMap<SourceId,Entry>,generation:u64,stats:SessionStats}
+pub struct ProjectSession {headers:HeaderCache,entries:BTreeMap<SourceId,Entry>,generation:u64,stats:SessionStats}
 impl ProjectSession {
     pub fn stats(&self)->SessionStats {self.stats}
     pub fn check(&mut self,provider:&impl SourceProvider,entry:&str)->Result<ProjectAnalysis,ProjectDiagnostic> {
         self.stats=SessionStats::default();
-        let graph=match load_project(provider,entry) {
+        self.headers.begin();
+        let loaded=load_project_cached(provider,entry,&mut self.headers);
+        self.stats.headers_parsed=self.headers.parsed;self.stats.headers_reused=self.headers.reused;
+        let graph=match loaded {
             Ok(graph)=>graph,
-            Err(error)=>{self.entries.clear();return Err(error);},
+            Err(error)=>{self.entries.clear();self.headers.clear();return Err(error);},
         };
+        self.stats.headers_retained=self.headers.retain(&graph);
         self.entries.retain(|id,_|graph.modules.contains_key(id));
         let result=crate::project_link::check_graph_cached(graph,self);
         self.stats.retained=self.entries.len();result
