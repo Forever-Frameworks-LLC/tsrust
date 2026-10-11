@@ -9908,3 +9908,35 @@ fn array_at_docs_include_nullable_element_unions() {
     assert!(!docs.contains("nullable element types"),"{hover}");
     assert!(docs.contains("declared union elements"),"{hover}");
 }
+
+#[test]
+fn json_namespace_documents_error_contracts_and_completes_members() {
+    let source="function main(){const value=JSON.parse('null');JSON.tryParse('bad');JSON.stringify(value);JSON.tryStringify(value);}";
+    for (method,result) in [("parse","JsonValue"),("tryParse","Result<JsonValue, JsonError>"),("stringify","string"),("tryStringify","Result<string, JsonError>")] {
+        let needle=format!("{method}(");
+        let hover=ask(source,"textDocument/hover",&needle,0);
+        let docs=hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains(result),"{method}: {hover}");
+        assert!(docs.contains("Ownership:"),"{method}: {hover}");
+        let mut position=at(source,&needle,0);position.character+=needle.len() as u32;
+        let signature=SourceIndex::new(source).request("textDocument/signatureHelp",&json!({"position":position}),"file:///test.tsr").unwrap();
+        assert!(signature["signatures"][0]["label"].as_str().unwrap_or("").contains(result),"{method}: {signature}");
+    }
+    let completion=ask("function main(){JSON.}","textDocument/completion","}",0);
+    for name in ["parse","tryParse","stringify","tryStringify"] {
+        assert!(completion.as_array().unwrap().iter().any(|entry|entry["label"]==name),"{completion}");
+    }
+}
+
+#[test]
+fn json_namespace_editor_respects_local_receivers() {
+    let source="type Local={custom:int;};function main(){const JSON:Local={custom:3};JSON.}";
+    let completion=ask(source,"textDocument/completion","}",2);
+    let entries=completion.as_array().unwrap();
+    assert!(entries.iter().any(|entry|entry["label"]=="custom"),"{completion}");
+    assert!(!entries.iter().any(|entry|entry["label"]=="tryParse"),"{completion}");
+    let source="function main(){const value=JSON.parse('null');JSON.stringify(value);}";
+    let hover=ask(source,"textDocument/hover","value=",0);
+    let docs=hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(docs.contains("JsonValue") && !docs.contains("@json") && !docs.contains("native#"),"{hover}");
+}

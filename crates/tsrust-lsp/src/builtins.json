@@ -1902,6 +1902,92 @@
       ]
     }
   ],
+  "JSON": [
+    {
+      "name": "parse",
+      "signature": "JSON.parse(text: ReadOnly<string>, limits?: ReadOnly<JsonLimits>): JsonValue",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Required strict JSON document. UTF-8 byte length is bounded by maxBytes."
+        },
+        {
+          "label": "limits?: ReadOnly<JsonLimits>",
+          "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 throw invalid-limits."
+        }
+      ],
+      "documentation": "Parses one strict JSON document and returns an independent JsonValue or throws a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Catch errors with try/catch; JsonError retains code, message and byte offset. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){try{JSON.parse(\"null secret\");}catch(error){console.log(error.code,error.offset);}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; the parsed value owns independent storage and can outlive the input.",
+      "examples": [
+        {
+          "source": "function main(){try{JSON.parse(\"null secret\");}catch(error){console.log(error.code,error.offset);}}",
+          "output": "trailing-data 5\n"
+        }
+      ]
+    },
+    {
+      "name": "tryParse",
+      "signature": "JSON.tryParse(text: ReadOnly<string>, limits?: ReadOnly<JsonLimits>): Result<JsonValue, JsonError>",
+      "parameters": [
+        {
+          "label": "text: ReadOnly<string>",
+          "documentation": "Required strict JSON document. UTF-8 byte length is bounded by maxBytes."
+        },
+        {
+          "label": "limits?: ReadOnly<JsonLimits>",
+          "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 return invalid-limits."
+        }
+      ],
+      "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){match(JSON.tryParse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; the parsed value owns independent storage and can outlive the input.",
+      "examples": [
+        {
+          "source": "function main(){match(JSON.tryParse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",
+          "output": "trailing-data 5\n"
+        }
+      ]
+    },
+    {
+      "name": "stringify",
+      "signature": "JSON.stringify(value: ReadOnly<JsonValue>, maxBytes?: int): string",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<JsonValue>",
+          "documentation": "Required JSON value. Its contents are not mutated or consumed."
+        },
+        {
+          "label": "maxBytes?: int",
+          "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values throw invalid-limits."
+        }
+      ],
+      "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns a UTF-8 string or throws JsonError with code output-limit before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value throws invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Catch errors with try/catch; JsonError retains code, message and byte offset. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "examples": [
+        {
+          "source": "function main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}",
+          "output": "{\"a\":2,\"z\":1}\n"
+        }
+      ]
+    },
+    {
+      "name": "tryStringify",
+      "signature": "JSON.tryStringify(value: ReadOnly<JsonValue>, maxBytes?: int): Result<string, JsonError>",
+      "parameters": [
+        {
+          "label": "value: ReadOnly<JsonValue>",
+          "documentation": "Required JSON value. Its contents are not mutated or consumed."
+        },
+        {
+          "label": "maxBytes?: int",
+          "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values return invalid-limits."
+        }
+      ],
+      "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: output-limit. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "examples": [
+        {
+          "source": "function main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
+          "output": "output-limit\n"
+        }
+      ]
+    }
+  ],
   "Math": [
   {
     "name": "E",

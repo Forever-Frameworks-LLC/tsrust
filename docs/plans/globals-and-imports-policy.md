@@ -21,9 +21,16 @@ new limits witness needed a named JsonLimits annotation, then passed in the four
 run. The second run's misplaced test delimiter is retained too. Earlier Result
 and red-contract records remain preserved.
 
-Complete shadowing/invalid-input diagnostics, namespace IntelliSense, executable
-catalog examples and matched workload support remain pending. This implementation
-checkpoint is not a completed built-in gate or consumer release.
+Namespace hover, completion and signature help now document all four methods,
+including arguments, limits, errors, ownership and executable examples. Two focused
+editor tests pass, including local receiver shadowing and public JsonValue display
+without an import. Four catalog examples pass native execution. Evidence:
+`tsrust-json-editor-3.log` and `tsrust-json-catalog-1.log` in SQLite. Earlier editor
+harness failures and the native-name hover failure are retained separately.
+
+Complete shadowing/invalid-input diagnostics, extending the API audit inventory
+for these new entries, and matched workload support remain pending. This
+implementation checkpoint is not a completed built-in gate or consumer release.
 The complete current per-symbol audit is accepted in
 [the closure review](globals-and-imports-audit-closure.md). The family summary below
 is supplemented by 399 explicit reviewed identities; it is not the audit by itself. Existing working imports

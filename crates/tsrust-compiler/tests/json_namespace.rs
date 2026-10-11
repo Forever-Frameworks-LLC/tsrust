@@ -150,3 +150,19 @@ function main(){
 }
 "#);
 }
+
+#[test]
+fn json_namespace_catalog_examples_execute() {
+    let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+    let entries=catalog["JSON"].as_array().unwrap();
+    assert_eq!(entries.len(),4);
+    let directory=support::TempDirectory::new();
+    for entry in entries {
+        for example in entry["examples"].as_array().unwrap() {
+            let path=directory.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+            let output=support::run(support::cli().arg("run").arg(path),90);
+            support::success(&output);
+            assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap(),"{}",entry["name"]);
+        }
+    }
+}

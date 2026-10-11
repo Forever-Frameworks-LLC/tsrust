@@ -534,6 +534,13 @@ impl SourceIndex {
     }
     fn display_type(&self, ty: &str) -> String {
         let mut display = ty.to_owned();
+        // Global JSON calls can introduce native types without a source import
+        // whose alias would otherwise supply their public display names.
+        use tsrust_compiler::native_signatures::NativeTypeId;
+        for id in [NativeTypeId::JsonValue, NativeTypeId::JsonError, NativeTypeId::JsonLimits] {
+            display = display.replace(&tsrust_compiler::native_type_resolution::linked_name(id),
+                tsrust_compiler::native_types::declaration(id).name);
+        }
         let mut names = self.generic_display_names.iter().collect::<Vec<_>>();
         names.sort_by_key(|(identity, _)| std::cmp::Reverse(identity.len()));
         for (identity, label) in names {
@@ -3039,6 +3046,11 @@ impl SourceIndex {
                 "Provides terminal output through log, info and debug (stdout), warn and error (stderr), plus table for structured data. Logging accepts zero or more primitives (including null/undefined), arrays or records. Arguments evaluate left to right and are borrowed; arrays and records have bounded inspection. Nullable values print their present payload, null or undefined; nested nullable fields are inspected recursively. Logging supports format placeholders, quoted inspection of arrays and records, and box-drawn tables. Also provides assertions, groups, counts, timers, dir, clear and native traces; inspector methods are no-ops.\n\n```tsrust\nconsole.log(\"user:\", \"Pat\", 7); // prints user: Pat 7\n```",
                 vec![],
             ),
+            "JSON" => (
+                "namespace JSON",
+                "Parses and encodes bounded JSON values. parse and stringify throw structured JsonError; tryParse and tryStringify return Result. Parsed values use checked JsonValue. Neither path returns dynamically typed objects. Arguments are borrowed and results own their storage.",
+                vec![],
+            ),
             "Math" => (
                 "namespace Math",
                 "Provides mathematical number functions and read-only constants. Angles use radians; arguments and results use native f64 number values. Convert int variables explicitly with Number(value). Transcendental results may vary slightly by platform.\n\n```tsrust\nconsole.log(Math.sqrt(9.0)); // prints 3\n```",
@@ -3072,7 +3084,7 @@ impl SourceIndex {
             _ => return None,
         };
         let mut documentation = docs.to_string();
-        if matches!(self.text(token), "console" | "Math" | "Number" | "Array" | "Object" | "String" | "Map") {
+        if matches!(self.text(token), "console" | "Math" | "Number" | "Array" | "Object" | "String" | "Map" | "JSON") {
             let members = builtins_for(self.text(token))
                 .into_iter()
                 .filter_map(|e| e["name"].as_str().map(str::to_owned))
@@ -3087,8 +3099,8 @@ impl SourceIndex {
         }
         let receiver = if matches!(
             self.text(token - 2),
-            "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map"
-        ) {
+            "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map" | "JSON"
+        ) && (self.text(token - 2) != "JSON" || self.resolve_token(token - 2).is_none()) {
             self.text(token - 2).into()
         } else {
             self.receiver_type(token - 1)
@@ -3154,7 +3166,8 @@ impl SourceIndex {
         if before.is_some_and(|id| member_separator(self.text(id))) {
             let dot = before.unwrap();
             let ty = if dot > 0
-                && matches!(self.text(dot - 1), "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map")
+                && matches!(self.text(dot - 1), "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map" | "JSON")
+                && (self.text(dot - 1) != "JSON" || self.resolve_token(dot - 1).is_none())
             {
                 self.text(dot - 1).into()
             } else {
@@ -3234,6 +3247,7 @@ impl SourceIndex {
             "match",
             "Number",
             "Math",
+            "JSON",
             "console",
             "String",
             "Boolean",
