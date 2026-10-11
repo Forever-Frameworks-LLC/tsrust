@@ -70,7 +70,7 @@ fn separate_processes_publish_and_repair_one_complete_entry() {
             "publication subprocess failed or timed out (damaged={damaged})"
         );
         assert_eq!(std::fs::read(cache.lookup().unwrap()).unwrap(), contents);
-        let entries = std::fs::read_dir(&root)
+        let entries = std::fs::read_dir(root.join("v2"))
             .unwrap()
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
@@ -124,7 +124,7 @@ fn concurrent_publication(damaged: bool) {
             publisher.join().unwrap();
         }
     });
-    let entries = std::fs::read_dir(&root)
+    let entries = std::fs::read_dir(root.join("v2"))
         .unwrap()
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
@@ -232,14 +232,15 @@ fn warm_cli_build_reuses_native_compilation_and_invalidates_changed_inputs() {
         support::success(&output);
         String::from_utf8(output.stdout).unwrap()
     };
+    // Cold profiles compile runtime plus application; edits reuse matching runtime.
     assert_eq!(build(false), "report.txt\n");
     assert_eq!(build(false), "report.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 1);
-    assert_eq!(build(true), "report.txt\n");
     assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 2);
+    assert_eq!(build(true), "report.txt\n");
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 4);
     std::fs::write(&input,"import { basename } from 'std:path';function main(){console.log(basename('/tmp/other.txt'));}").unwrap();
     assert_eq!(build(false), "other.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 3);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 5);
     let dependency = directory.0.join("helper.tsr");
     let original = "import { basename } from 'std:path';export function name():string{return basename('/tmp/report.txt');}";
     std::fs::write(&dependency, original).unwrap();
@@ -250,24 +251,24 @@ fn warm_cli_build_reuses_native_compilation_and_invalidates_changed_inputs() {
     .unwrap();
     assert_eq!(build(false), "report.txt\n");
     assert_eq!(build(false), "report.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 4);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 6);
     let changed = original.replace("report.txt", "changed.txt");
     std::fs::write(&dependency, &changed).unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 5);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 7);
     // Even unchanged generated Rust must not erase source-graph identity.
     std::fs::write(&dependency, format!("// dependency revision\n{changed}")).unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 6);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 8);
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 6);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 8);
     std::fs::write(
         &dependency,
         "export function name():string{return 'changed.txt';}",
     )
     .unwrap();
     assert_eq!(build(false), "changed.txt\n");
-    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 7);
+    assert_eq!(std::fs::read_to_string(&log).unwrap().lines().count(), 10);
     let emitted = support::run(support::cli().arg("emit").arg(&input), 10);
     support::success(&emitted);
     assert!(

@@ -345,3 +345,30 @@ application support and program-specific ABI adapters remain in application code
 Next bound runtime/program artifacts and lock retention, verify extended edit-session
 memory, refresh installed consumers, and run final regression/performance acceptance.
 No speedup is claimed before the matching measurements complete.
+
+## Bounded active cache generation
+
+Program and runtime caches now use a v2 namespace with one persistent advisory lock
+per namespace. Publication, private copying and eviction coordinate on that lock.
+Each namespace retains at most 32 artifacts and 256 MiB including identity/checksum
+metadata. Access refreshes recency; eviction favors the artifact just published.
+Artifacts larger than the byte limit still build but are not retained. Abandoned
+staging directories are removed while holding the namespace lock. Running binaries
+and libraries already copied into private build directories remain unaffected.
+
+The generation boundary deliberately leaves older per-artifact lock inodes intact:
+older compiler processes can still be waiting on them. Limits apply to the active
+v2 generation, not legacy cache directories. Retire obsolete managed legacy outputs
+at final consumer refresh; do not claim existing legacy disk usage is already capped.
+
+Four retention tests, eight existing cache/CLI checks and the runtime-cache witness
+pass. They cover 48 successive builds, oversized artifacts, aggregate byte limits,
+96 concurrent publications with verified private copies, abandoned staging cleanup,
+legacy preservation, multiprocess damaged-entry repair and native reuse/invalidation.
+The subprocess worker remains intentionally ignored as a direct test but is executed
+by its parent contention test. An older compile-count expectation was updated to
+include separate runtime compilation; original failure is retained. Evidence uses
+`tsrust-cache-retention-*` in SQLite.
+
+Extended dev-session memory, installed refresh, Linux execution and final milestone
+regression/performance review remain pending.

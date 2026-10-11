@@ -25,7 +25,7 @@ impl NativeCache {
         let mut hash = DefaultHasher::new();
         identity.hash(&mut hash);
         Self {
-            directory: root.join(format!("{:016x}", hash.finish())),
+            directory: root.join("v2").join(format!("{:016x}", hash.finish())),
             identity,
         }
     }
@@ -38,10 +38,48 @@ impl NativeCache {
                 == checksum(&std::fs::read(&executable).ok()?))
         .then_some(executable)
     }
+    /// Copy under the namespace lock so eviction cannot race a reader.
+    pub fn copy_to(&self,destination:&Path)->bool {
+        let Ok(_lock)=self.lock() else{return false;};
+        let Some(source)=self.lookup() else{return false;};
+        if std::fs::copy(source,destination).is_err(){return false;}
+        let _=std::fs::write(self.directory.join("used"),[]);true
+    }
+    fn lock(&self)->std::io::Result<std::fs::File> {
+        let root=self.directory.parent().unwrap();std::fs::create_dir_all(root)?;
+        let lock=std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(root.join(".cache.lock"))?;
+        lock.lock()?;Ok(lock)
+    }
+    fn prune(&self)->std::io::Result<()> {
+        let root=self.directory.parent().unwrap();let mut entries=Vec::new();let mut total=0u64;
+        for entry in std::fs::read_dir(root)? {
+            let entry=entry?;if !entry.file_type()?.is_dir(){continue;}
+            let name=entry.file_name();let name=name.to_string_lossy();
+            // All staging writers hold the namespace lock. Anything left here
+            // is from a terminated writer, never another active publication.
+            if name.starts_with(".staging-"){std::fs::remove_dir_all(entry.path())?;continue;}
+            if name.len()!=16 || !name.bytes().all(|c|c.is_ascii_hexdigit()){continue;}
+            let path=entry.path();let mut size=0u64;
+            for file in std::fs::read_dir(&path)? {let file=file?;if file.file_type()?.is_file(){size=size.saturating_add(file.metadata()?.len());}}
+            let used=std::fs::metadata(path.join("used")).or_else(|_|std::fs::metadata(&path))?.modified()?;
+            total=total.saturating_add(size);entries.push((path==self.directory,used,path,size));
+        }
+        entries.sort();let mut count=entries.len();
+        for (_,_,path,size) in entries {
+            if count<=32 && total<=256*1024*1024 {break;}
+            std::fs::remove_dir_all(path)?;count-=1;total=total.saturating_sub(size);
+        }
+        Ok(())
+    }
     /// Publish a complete sibling staging directory atomically; serialize repair per cache identity.
     pub fn publish(&self, executable: &Path) -> std::io::Result<()> {
         let root = self.directory.parent().expect("cache directory parent");
-        std::fs::create_dir_all(root)?;
+        // New protocol has a separate namespace: older binaries may still hold
+        // legacy per-artifact lock inodes, which must never be removed under them.
+        let _lock=self.lock()?;
+        self.prune()?;
+        if std::fs::metadata(executable)?.len().saturating_add(self.identity.len() as u64+8)>256*1024*1024{return Ok(());}
+        if self.lookup().is_some(){let _=std::fs::write(self.directory.join("used"),[]);return Ok(());}
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -66,18 +104,7 @@ impl NativeCache {
             staging.join("checksum"),
             checksum(&std::fs::read(&staged_executable)?),
         )?;
-        // Keep the lock file: removing it can let another process lock a different inode.
-        // The OS releases this advisory lock when the file closes, including on process exit.
-        let publication_lock = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(self.directory.with_extension("lock"))?;
-        publication_lock.lock()?;
-        if self.lookup().is_some() {
-            return Ok(());
-        }
+        std::fs::write(staging.join("used"),[])?;
         match std::fs::rename(&staging, &self.directory) {
             Ok(()) => Ok(()),
             Err(_) if self.lookup().is_some() => Ok(()),
@@ -88,6 +115,7 @@ impl NativeCache {
                 std::fs::rename(&staging, &self.directory)
             }
             Err(error) => Err(error),
-        }
+        }?;
+        self.prune()
     }
 }

@@ -290,9 +290,7 @@ fn run() -> Result<u8, String> {
         ],
     );
     let cache_started=std::time::Instant::now();
-    let reused = cache
-        .lookup()
-        .is_some_and(|cached| fs::copy(cached, &executable).is_ok());
+    let reused = cache.copy_to(&executable);
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {

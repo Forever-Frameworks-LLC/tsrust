@@ -13,5 +13,5 @@ fn application_edits_reuse_runtime_but_optimization_changes_do_not() {
    let output=support::run(&mut std::process::Command::new(&binary),20);support::success(&output);assert_eq!(String::from_utf8(output.stdout).unwrap(),format!("{value}\n"));
   }
  }
- assert_eq!(fs::read_dir(cache.join("runtime")).unwrap().filter(|entry|entry.as_ref().unwrap().path().is_dir()).count(),2,"one runtime per optimization profile");
+ assert_eq!(fs::read_dir(cache.join("runtime/v2")).unwrap().filter(|entry|entry.as_ref().unwrap().path().is_dir()).count(),2,"one runtime per optimization profile");
 }

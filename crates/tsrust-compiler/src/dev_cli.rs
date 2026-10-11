@@ -107,7 +107,7 @@ mod platform {
             b"native-cache-abi-2",backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
         ]);
-        let cache_started=Instant::now();let reused=cache.lookup().is_some_and(|cached|std::fs::copy(cached,&binary).is_ok());let cache_elapsed=cache_started.elapsed();
+        let cache_started=Instant::now();let reused=cache.copy_to(&binary);let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {
             let mut prepared=crate::runtime_build::Prepared::new(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
