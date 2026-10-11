@@ -226,3 +226,27 @@ executable succeeds. The stale candidate never runs. Five project CLI checks als
 pass. Original failure and passing evidence use `tsrust-dev-cancel-*` in SQLite.
 Immutable source snapshot acceptance remains next; installed refresh and performance
 measurement are still pending for the retained-state stage.
+
+## Captured dev inputs
+
+Each frontend request now owns shared immutable watcher bytes. Entry/module checking
+and diagnostic excerpts use that provider; configuration is parsed from the same
+captured input. A watched source absent from a request cannot be read later merely
+because it appeared on disk during compilation. The request queue remains bounded,
+and unchanged source buffers are shared rather than copied for each request.
+
+The snapshot witness changes entry and dependency contents after capture and verifies
+identical emitted Rust. It also verifies that errors quote the captured erroneous
+line after the disk file is corrected, and rejects a source created after capture.
+Nine binary unit checks, five session checks, two cancellation checks and five CLI
+checks pass; the CLI checks pass again after switching config parsing to captured
+bytes. Evidence uses `tsrust-dev-snapshot-*` in SQLite, including the initial test
+fixture's missing-config repair.
+
+The existing watch boundary remains: excluded paths and dependencies outside the
+project watch tree use normal filesystem reads. Resolution still checks current
+filesystem identities; deleted/renamed files can invalidate a pending check, whose
+result is guarded against the latest watcher input before publication. These tests
+do not establish an atomic filesystem snapshot or wider dependency watching.
+Installed refresh and the matching retained-state measurements are next, followed
+by separate runtime compilation and bounded native artifact retention.

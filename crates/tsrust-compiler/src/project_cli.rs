@@ -37,9 +37,13 @@ pub fn check_input(path: &Path, source: &str) -> Result<CheckedInput, InputDiagn
 }
 /// Retain module parsing between dev checks while preserving single-file semantics.
 pub fn check_input_cached(path:&Path,source:&str,session:&mut crate::project_session::ProjectSession)->Result<CheckedInput,InputDiagnostic> {
+    check_input_cached_with_provider(path,source,session,&FileSourceProvider)
+}
+/// Check and resolve against one caller-owned source provider.
+pub fn check_input_cached_with_provider(path:&Path,source:&str,session:&mut crate::project_session::ProjectSession,provider:&impl SourceProvider)->Result<CheckedInput,InputDiagnostic> {
     if uses_modules(source).map_err(InputDiagnostic::Single)? || path.to_str().is_some_and(crate::project::is_test_entry) {
         let path=path.to_str().ok_or_else(||InputDiagnostic::Single(Diagnostic::new("module-path","Source path must be valid UTF-8.",Span::default())))?;
-        session.check(&FileSourceProvider,path).map(CheckedInput::Project).map_err(InputDiagnostic::Project)
+        session.check(provider,path).map(CheckedInput::Project).map_err(InputDiagnostic::Project)
     } else {
         *session=crate::project_session::ProjectSession::default();
         check(source).map(CheckedInput::Single).map_err(InputDiagnostic::Single)
@@ -129,10 +133,13 @@ impl CheckedInput {
 }
 impl InputDiagnostic {
     pub fn render(&self, path: &str, source: &str, color: bool) -> String {
+        self.render_with_provider(path,source,color,&FileSourceProvider)
+    }
+    /// Render the same source versions that produced the diagnostic.
+    pub fn render_with_provider(&self,path:&str,source:&str,color:bool,provider:&impl SourceProvider)->String {
         match self {
             Self::Single(diagnostic) => diagnostic.render_terminal(path, source, color),
             Self::Project(diagnostic) => {
-                let provider = FileSourceProvider;
                 let text = provider
                     .read(&diagnostic.location.source)
                     .unwrap_or_default();

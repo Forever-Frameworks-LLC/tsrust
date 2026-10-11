@@ -61,9 +61,11 @@ mod platform {
     }
     fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
         use std::sync::mpsc::{self,TrySendError,TryRecvError};
-        let project=project_config::load(root)?;
+        let inputs=expected.as_ref().map_err(Clone::clone)?;
+        let config=inputs.get(&root.join(project_config::FILE)).ok_or("Missing project configuration in build snapshot")?;
+        let project=project_config::parse(root,std::str::from_utf8(config.bytes()).map_err(|e|e.to_string())?)?;
         let (reply,response)=mpsc::channel();
-        let mut request=crate::dev_frontend::Request{entry:project.entry,reply};
+        let mut request=crate::dev_frontend::Request{entry:project.entry,sources:crate::dev_frontend::Snapshot{root:root.to_owned(),files:expected.as_ref().map_err(Clone::clone)?.clone()},reply};
         loop {
             if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
             match worker.requests.try_send(request) {

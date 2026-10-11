@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, fs, io::Read, os::unix::fs::MetadataExt, path::
 
 #[derive(Clone,Debug)]
 pub(crate) struct Contents(Arc<[u8]>);
+impl Contents {pub(crate) fn bytes(&self)->&[u8]{&self.0}}
 impl PartialEq for Contents {
     fn eq(&self,other:&Self)->bool { Arc::ptr_eq(&self.0,&other.0) || self.0==other.0 }
 }
