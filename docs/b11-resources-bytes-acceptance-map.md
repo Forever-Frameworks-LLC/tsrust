@@ -9,7 +9,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 pending; private loans, return lifetimes, function calls and ordinary arrow invocation integrated; factories, capture/callback/storage completion pending | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array-recursive storage checks; gate 189 pending nullable recursive links and capturing callbacks returning argument views | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented increment; gate 189 still pending views | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -20,6 +20,9 @@ ABI support and harness hooks. Untimed verification is distinct from measurement
 Native thread-transfer metadata is backend eligibility, not source threading acceptance.
 The owner chose consuming close even on Err, static rejection of later use/double
 close, and a nonthrowing destructor fallback. Bytes does not require explicit close.
+
+The progress entries below preserve earlier checkpoint evidence; the table above
+and the final continuation entries describe current status.
 
 ### Gate 189 private storage progress
 
@@ -137,8 +140,9 @@ Consumers remain at `f569190a`.
 
 ### Gate 189 publication status (2026-10-10, later the same day)
 
-Public byte views are published. Gate 189 stays open for recursive view storage
-only; S07 stays open for gate 190 and the family measurements.
+Public byte views are published. Gate 189 stays open for nullable recursive view
+storage and capturing callbacks returning argument views. S07 also needs gate 190,
+the finally-return repair and family measurements.
 
 | Scope | Status | Evidence |
 | --- | --- | --- |
@@ -149,7 +153,7 @@ only; S07 stays open for gate 190 and the family measurements.
 | A callback that returns a view it received as an argument, stored or local | supported when the callback captures no view | fixture `callbacks.tsr`; matrix row `argument-owned-view` |
 | The same, when the callback also captures a view | diagnosed (`native-view-family-emission`) | `native_view_storage_open_forms_are_source_diagnostics` |
 | Matched workload `native_byte_views` (`Uint8Array.subarray`) | registered; native and Node-after-tsc agree untimed; not measured | `native-byte-views-*.mjs`; SQLite `runtime/results/2026-10-10T23-27-13-709Z-verify.json` |
-| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | not supported; plan written, one language decision open | `recursive-view-storage-plan.md` |
+| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | approved; nullable-link implementation pending | `recursive-view-storage-plan.md` |
 
 A stored function value (`const read = length;`) keeps the declared parameter type
 `Bytes`; the alternatives apply to direct calls of the import.
@@ -172,3 +176,21 @@ from `4367f4cc` and smoke-tested. SQLite record:
 `target/editor/consumer-refresh-2026-10-10.json`. No timing ran. Subsequent recursive
 lifetime groundwork is tracked in `recursive-view-storage-plan.md`; it does not
 claim public recursive-storage acceptance.
+
+
+### Recursive array construction checkpoint
+
+Array-recursive readonly/exclusive view records now support source construction,
+replacement, append, extraction, whole-record borrowing, aggregate returns and
+owning callback captures. All contributing owners share the recursive lifetime;
+outer sibling fields remain independent. The public `recursive-arrays.tsr` fixture,
+five owner/escape rejection controls, O0/O3 pointer and write-through checks, and
+focused editor checks pass. Detailed evidence and repair history are recorded in
+`recursive-view-storage-plan.md`.
+
+The matched `native_byte_views_recursive` workload agrees with Node-after-tsc on
+five untimed cases. SQLite result:
+`runtime/results/2026-10-11T00-30-34-645Z-verify.json`. Workload source acceptance is
+true; gate/family acceptance and measured status remain false. Nullable links are
+next, followed by capturing callbacks returning view arguments and the finally fix.
+Consumers remain at `4367f4cc`.

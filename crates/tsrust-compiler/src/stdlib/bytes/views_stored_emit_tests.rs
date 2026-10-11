@@ -277,7 +277,6 @@ fn native_view_storage_invocation_and_replacement_matrix() {
 fn native_view_storage_open_forms_are_source_diagnostics() {
     let cases:&[(&str,&str,&str,&str,&str)]=&[
         ("argument-returned-by-view-owning-callback","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>{const kept=view;return other;},marker:1};","const holder=save(first);return holder.read(second);","native-view-family-emission"),
-        ("recursive-array","view:Window;children:Holder[];","return {view:view,children:[]};","const leaf=save(second);const root:Holder={view:first,children:[leaf]};const child=root.children.pop()!;return child.view;","native-view-shape"),
     ];
     for (label,holder,save,relay,code) in cases {
         for mutable in [false,true] {
@@ -288,6 +287,30 @@ fn native_view_storage_open_forms_are_source_diagnostics() {
             let error=crate::analysis::analyze(parsed).err().unwrap_or_else(||panic!("{label}: expected a diagnostic"));
             assert_eq!(error.code,*code,"{label}: {error:?}");
             assert_ne!(error.span,crate::Span::default(),"{label}");
+        }
+    }
+}
+
+#[test]
+fn native_view_recursive_construction_and_mutation_execute() {
+    for (label, body) in [
+        ("literal", "const leaf=save(second);const root:Holder={view:first,children:[leaf]};const child=root.children.pop()!;return child.view;"),
+        ("replace", "const root=save(first);root.view=second;return root.view;"),
+        ("append", "const root=save(first);root.children.push(save(second));const child=root.children.pop()!;return child.view;"),
+        ("forward", "const leaf=save(second);const root:Holder={view:first,children:[leaf]};const moved=identity(root);const child=moved.children.pop()!;return child.view;"),
+        ("outer-sibling", "const pair:Pair={chain:save(first),other:second};return outside(pair);"),
+        ("borrow-root", "const root=save(second);inspect(root);return root.view;"),
+        ("borrow-nested", "const pair:Pair={chain:save(first),other:second};inspect(pair.chain);return outside(pair);"),
+    ] {
+        for mutable in [false, true] {
+            let source = format!("type Window={{}};type Holder={{view:Window;children:Holder[];}};type Pair={{chain:Holder;other:Window;}};function inspect(input:ReadOnly<Holder>):int{{return input.children.length;}}function outside(pair:Pair):Window{{return pair.other;}}function save(view:Window):Holder{{return {{view:view,children:[]}};}}function identity(input:Holder):Holder{{return input;}}function relay(first:Window,second:Window):Window{{{body}}}function main(){{}}");
+            let formatted = crate::formatting::format(&source).unwrap();
+            assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+            let mut parsed = crate::syntax::parse(&formatted).unwrap();
+            parsed.records[0].native_type = Some(if mutable { NativeTypeId::ByteViewMut } else { NativeTypeId::ByteView });
+            let checked = crate::analysis::analyze(parsed).unwrap_or_else(|error| panic!("{label}/{mutable}: {error:?}"));
+            let relay = checked.functions.iter().position(|function| function.name == "relay").unwrap();
+            assert_record_execution(&checked, relay, &format!("recursive-{label}-{mutable}"));
         }
     }
 }

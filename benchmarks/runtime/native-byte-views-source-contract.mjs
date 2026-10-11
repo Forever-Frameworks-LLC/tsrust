@@ -1,8 +1,15 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || row.id !== 'native_byte_views' || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
+    if (row.id === 'native_byte_views_recursive') {
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One 17-node recursive byte-view construction and consuming traversal' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Recursive byte views denominator');
+        const required = ['const byte = (i + seed) % 256;', 'while (depth < 16)', 'root = { data: byteWindow(owner), children: [root] };', 'while (root.children.length > 0) { sum += first(root); count++; const child = root.children.pop()!; root = child; }', 'sum += first(root);', 'const child = root.children.pop()!;', 'root = child;', 'count++;', 'return output;'];
+        required.push(...(kind === 'native' ? ['import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";', 'match (view(owner, 0, 2))', 'match (at(chunk.data, 0))', 'match (fromArray([byte, 255]))', 'output.push([count, sum, length(root.data)]);'] : ['return owner.subarray(0, 2);', 'return chunk.data[0];', 'const owner = Uint8Array.from([byte, 255]);', 'output.push([count, sum, root.data.length]);']));
+        for (const text of required) if (!containsCodeSnippet(source,text)) throw Error('Recursive byte views scenario: '+text);
+        return;
+    }
     if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One zero-copy byte view read, nested view, write-through and range validation scenario' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Native byte views denominator');
     const shared=['const byte = (i + seed) % 256;', 'const next = (byte + 1) % 256;', 'const written = (byte + 2) % 256;', 'size = length(part);', 'head = first(part);', 'output.push([size, head, tail, inner, copied, success, writeCode, writeOffset, through, rangeCode, rangeOffset, reversedOffset]);', 'return output;'];
     const native=['import { ByteView, fromArray, view, viewMut, at, set, copy, length } from "std:bytes";', 'function first(part: ReadOnly<ByteView>): int', 'match (fromArray([0, byte, next, 255, 7]))', 'match (view(bytes, 1, 4))', 'match (at(part, 2))', 'match (view(part, 1, 2))', 'inner = first(nested);', 'match (copy(part, 0, 2))', 'match (viewMut(bytes, 1, 3))', 'match (set(window, 1, written))', 'match (set(window, 2, written))', 'match (at(bytes, 2))', 'match (view(bytes, 4, 9))', 'match (view(bytes, 3, 1))', 'writeOffset = error.offset ?? -3;', 'rangeOffset = error.offset ?? -3;', 'reversedOffset = error.offset ?? -3;'];

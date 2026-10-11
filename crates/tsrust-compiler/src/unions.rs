@@ -20,6 +20,7 @@ struct ArenaState {
 pub(crate) struct UnionArena(RefCell<ArenaState>);
 
 impl UnionArena {
+    pub(crate) fn len(&self) -> usize { self.0.borrow().types.len() }
     pub(crate) fn from_snapshot(types:Vec<UnionType>)->Self {
         let identities=types.iter().enumerate().map(|(index,union)| {
             (union.members.clone(),UnionId{index:u32::try_from(index).expect("existing union index"),copy:union.members.iter().all(|member|member.is_copy())})

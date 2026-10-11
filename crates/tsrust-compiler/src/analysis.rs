@@ -23,6 +23,8 @@ mod native_view_returns;
 mod native_view_places;
 #[path = "native_view_projections.rs"]
 mod native_view_projections;
+#[path = "native_view_recursive.rs"]
+mod native_view_recursive;
 #[path = "native_view_loans.rs"]
 pub(crate) mod native_view_loans;
 #[path = "native_capabilities.rs"]
@@ -495,6 +497,7 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    native_recursive_shapes: Option<std::rc::Rc<native_view_recursive::Shapes>>,
     /// Locals stored inside a branch, loop or exception region, or replaced as
     /// a whole record. Their nullable callback records keep one carrier type
     /// and their capture loans until the scope ends.
@@ -564,6 +567,7 @@ impl Context {
     fn new(function_name: String) -> Self {
         Self {
             control_stored: HashSet::new(),
+            native_recursive_shapes: None,
             native_view_calls: false,
             native_view_declaration_depths: HashMap::new(),
             native_view_environments: None,
@@ -5161,6 +5165,7 @@ impl Analyzer {
         }
         self.update_local_record_field_type(context,target,actual)?;
         self.update_native_view_field_type(context,target,actual);
+        self.refresh_native_recursive_shapes(context);
         Self::replace_native_view_field(context,target,value)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
@@ -7645,6 +7650,7 @@ impl Analyzer {
                 _ => {},
             }
         }
+        if checked.is_ok() { self.refresh_native_recursive_shapes(context); }
         checked
     }
 

@@ -175,3 +175,21 @@ fn byte_view_conflicts_report_the_owner_and_the_view_location() {
     assert!(diagnostic["message"].as_str().unwrap().contains("bytes"));
     assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related| !related.is_empty()), "{diagnostic}");
 }
+
+#[test]
+fn recursive_byte_views_keep_short_owner_escape_diagnostics() {
+    let fixture = include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-arrays.tsr");
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, fixture.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers = fixture.split("function main()").next().unwrap();
+    let source = tsrust_compiler::format(&format!("{helpers}function main(){{const first=bytes(3);let escaped:Chunk;{{const second=bytes(7);const root=leaf(read(first));root.children.push(leaf(read(second)));escaped=root;}}console.log(length(escaped.data));}}" )).unwrap();
+    workspace.open(id("main"), 2, source);
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code, "native-view-escape");
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["code"], "native-view-escape");
+    assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related| !related.is_empty()));
+}

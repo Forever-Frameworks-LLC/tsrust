@@ -33,12 +33,13 @@ impl Analyzer {
         false
     }
 
-    /// A storage type that reaches itself and holds a byte view. Its native layout
-    /// would need one lifetime shared by every level, which is not planned yet.
+    /// Reject cycles without a planned finite recursive lifetime boundary.
     pub(super) fn reject_recursive_native_view_storage(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
         if !self.native_borrow_types || !self.native_shape_contains_view(ty) {return Ok(());}
+        let recursive = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
         let mut pending=vec![(ty,Vec::<Type>::new())];
         while let Some((ty,mut ancestors))=pending.pop() {
+            if matches!(ty, Type::Record(id) if recursive.access(id).is_some()) { continue; }
             if !self.native_shape_contains_view(ty) {continue;}
             if ancestors.contains(&ty) {
                 return Err(Diagnostic::new("native-view-shape","A type that contains itself cannot hold a byte view yet. Keep the views in a separate array or record.",span));
@@ -51,6 +52,7 @@ impl Analyzer {
 
     pub(super) fn seed_native_parameters(&self, context: &mut Context) -> Result<(), Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
+        self.refresh_native_recursive_shapes(context);
         let recursive = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
         for root in 0..context.bindings.len() {
             let binding=&context.bindings[root];
@@ -143,9 +145,27 @@ mod tests {
     }
 
     #[test]
-    fn recursive_view_carrier_gets_source_diagnostic() {
-        let error=checked("type Window={};type Chain={next:Chain[];view:Window;};function identity(input:Chain):Chain{return input;}function main(){}").err().expect("recursive carrier must be diagnosed");
-        assert_eq!(error.code,"native-view-shape");
+    fn recursive_construction_and_mutation_join_all_owner_origins() {
+        for body in [
+            "const leaf:Chain={view:second,children:[]};const root:Chain={view:first,children:[leaf]};return head(root);",
+            "const root:Chain={view:first,children:[]};root.view=second;return head(root);",
+            "const root:Chain={view:first,children:[]};root.children.push({view:second,children:[]});const child=root.children.pop()!;return head(child);",
+        ] {
+            let source = format!("type Window={{}};type Chain={{view:Window;children:Chain[];}};function head(input:Chain):Window{{return input.view;}}function relay(first:Window,second:Window):Window{{{body}}}function main(){{}}");
+            let checked = checked(&source).unwrap();
+            let function = checked.functions.iter().find(|function| function.name == "relay").unwrap();
+            let origins = function.native_returns.as_ref().unwrap();
+            assert_eq!(origins.iter().map(|loan| loan.root).collect::<HashSet<_>>(), HashSet::from([0, 1]), "{body}: {:?}", function.bindings.iter().map(|binding| (&binding.name, binding.ty, &binding.native_view_loans)).collect::<Vec<_>>());
+            assert!(origins.iter().all(|loan| loan.path.is_empty()), "{body}");
+        }
+    }
+
+    #[test]
+    fn recursive_view_carrier_preserves_shared_origin() {
+        let program=checked("type Window={};type Chain={next:Chain[];view:Window;};function identity(input:Chain):Chain{return input;}function main(){}").unwrap();
+        let loans=program.functions.iter().find(|function|function.name=="identity").unwrap().native_returns.as_ref().unwrap();
+        assert_eq!(loans.len(),1);
+        assert!(loans[0].whole && loans[0].path.is_empty());
     }
     #[test]
     fn unrelated_recursive_types_do_not_trigger_view_diagnostic() {

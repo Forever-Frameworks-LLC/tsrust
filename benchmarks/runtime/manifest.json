@@ -20534,6 +20534,34 @@
       "specification": "Twelve retained scalar observations per iteration: readonly view length, first and last byte, first byte of a nested view, length of an independent copy of the view, write success through an exclusive view, index error code length and offset for a write outside the view, the owner byte changed through the view, range error code length and offset for a view beyond the owner, and the offset of a reversed range. Independent arithmetic oracle; Uint8Array.subarray with explicit range validation.",
       "sourceSha256": "491559d9f3d8be40d08be41e20793d852f7862f7a2df8881d98bf5cd9a6a3684",
       "counterpartSha256": "718247cc468d50e9e6f41c6ca5db27b2f97edd4859415e8bebf04071460dd5cc"
+    },
+    {
+      "id": "native_byte_views_recursive",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_recursive.tsr",
+      "counterpart": "workloads/native_byte_views_recursive.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One 17-node recursive byte-view construction and consuming traversal",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Recursive byte-view array storage. Native and Node-after-tsc agree on five untimed cases. S07 family measurements remain pending.",
+      "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume child arrays during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
+      "sourceSha256": "1d7b5e1747fef68833eeed37854f8a2616c5c7349a4c5a490574b204f2574ca1",
+      "counterpartSha256": "3518a6e4a6d1f0f325ddc984848047aa23fb092317defba807b36b412c06c5fb"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

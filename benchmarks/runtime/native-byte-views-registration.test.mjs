@@ -43,3 +43,25 @@ test('Native byte views retain zero-copy reads, write-through and range errors',
         assert.ok(source.includes("'native-byte-views-oracle.mjs'"));
     }
 });
+
+test('Recursive byte views retain traversal and shared owner observations', () => {
+    const recursive = manifest.workloads.find(value => value.id === 'native_byte_views_recursive');
+    assert.ok(recursive, 'Recursive view workload registered');
+    assert.equal(recursive.measured, false);
+    assert.equal(reportCategory(recursive.id), 'bytes');
+    const emitted = 'fn tsr_result_function2(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError2> { todo!() }\nfn main() {}';
+    assert.equal(assertABI(emitted, recursive, read('./' + recursive.source)).fallible, true);
+    for (const [kind, file] of [['native', recursive.source], ['typescript', recursive.counterpart]]) {
+        const source = read('./' + file);
+        assertNativeByteViewsSource(source, recursive, kind);
+        const changed = replaceCodeSnippet(source, 'sum += first(root);', 'sum += 1;');
+        const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
+        assert.throws(() => assertNativeByteViewsSource(changed, {...recursive, [key]: createHash('sha256').update(changed).digest('hex')}, kind));
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(recursive.id, 3, 255, 'bytes'), [[17,4335,2],[17,0,2],[17,17,2]]);
+    for (const n of [0,1,37,2048]) {
+        const expected = expectedNativeByteViewsObservation(recursive.id,n,7,'bytes');
+        assert.deepEqual(expectedExactResult(recursive.id,n,7,'bytes'), expected);
+        assert.equal(expectedChecksum(recursive.id,n,7,'bytes'), expected.checksum);
+    }
+});

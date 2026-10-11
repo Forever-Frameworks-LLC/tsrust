@@ -110,7 +110,9 @@ impl Analyzer {
         Ok(())
     }
 
-    pub(super) fn set_native_view_loans(context: &mut Context, holder: usize, loans: Vec<Loan>) {
+    pub(super) fn set_native_view_loans(context: &mut Context, holder: usize, mut loans: Vec<Loan>) {
+        native_view_recursive::normalize(context, context.bindings[holder].ty, &mut loans);
+        native_view_projections::normalize(&mut loans);
         if loans.is_empty() {
             context.bindings[holder].native_view_loans = None;
         } else {
@@ -127,6 +129,7 @@ impl Analyzer {
             return Ok(Vec::new());
         }
         enum Task<'a> {
+            Normalize(usize, Type),
             Value(&'a Expr),
             Returned(&'a Expr, &'a Loan),
             Captured(&'a Expr, Option<usize>, Option<usize>, usize, &'a Loan),
@@ -192,7 +195,14 @@ impl Analyzer {
                     }
                     continue;
                 }
-                Task::Value(value) => value,
+                Task::Normalize(start, ty) => {
+                    native_view_recursive::normalize(context, ty, &mut result[start..]);
+                    continue;
+                }
+                Task::Value(value) => {
+                    if let Some(ty) = value.ty { pending.push(Task::Normalize(result.len(), ty)); }
+                    value
+                }
                 Task::Wrapped(value, segment) => {
                     pending.push(Task::Wrap(result.len(), segment));
                     pending.push(Task::Value(value));

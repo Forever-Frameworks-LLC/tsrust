@@ -72,6 +72,7 @@ fn byte_views_read_and_write_through_public_imports() {
         include_str!("fixtures/native-byte-views/read.tsr"),
         include_str!("fixtures/native-byte-views/values.tsr"),
         include_str!("fixtures/native-byte-views/callbacks.tsr"),
+        include_str!("fixtures/native-byte-views/recursive-arrays.tsr"),
     ] {
         let directory = support::TempDirectory::new();
         let path = directory.source(&support::format_round_trip(fixture));
@@ -101,5 +102,26 @@ fn byte_view_ownership_rules_are_source_diagnostics() {
         assert!(!output.status.success(), "{label}");
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(stderr.contains(&format!("error[{code}]")) && stderr.contains(text), "{label}: {stderr}");
+    }
+}
+
+#[test]
+fn recursive_byte_views_reject_owner_conflicts_and_escape() {
+    let helpers = include_str!("fixtures/native-byte-views/recursive-arrays.tsr").split("function main()").next().unwrap();
+    let tree = "const first=bytes(3);const second=bytes(7);const root=leaf(read(first));root.children.push(leaf(read(second)));";
+    for (label, body, expected) in [
+        ("owner move", format!("{tree}const moved=first;console.log(length(root.data));"), "native-view-conflict"),
+        ("owner write", format!("{tree}set(second,0,9);console.log(length(root.data));"), "native-view-conflict"),
+        ("removed child keeps shared origin", format!("{tree}const child=root.children.pop()!;set(second,0,9);console.log(length(root.data));"), "native-view-conflict"),
+        ("short owner", "const first=bytes(3);let escaped:Chunk;{const second=bytes(7);const root=leaf(read(first));root.children.push(leaf(read(second)));escaped=root;}console.log(length(escaped.data));".into(), "native-view-escape"),
+        ("exclusive owner read", "const first=bytes(3);const root=writable(write(first));console.log(length(first));console.log(length(root.data));".into(), "native-view-conflict"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let source = support::format_round_trip(&format!("{helpers}function main(){{{body}}}"));
+        let path = directory.source(&source);
+        let output = support::run(support::cli().arg("check").arg(path), 60);
+        assert!(!output.status.success(), "{label}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(&format!("error[{expected}]")), "{label}: {stderr}");
     }
 }

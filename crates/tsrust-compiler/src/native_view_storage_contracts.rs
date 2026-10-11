@@ -45,6 +45,7 @@ impl Analyzer {
         // The field keeps one native variable, whose type joins every value stored in it.
         let current=self.record_field_type(context.bindings[holder].ty,std::slice::from_ref(name));
         let stored=current.and_then(|current|self.join_native_view_storage(current,actual,target.span).ok().flatten()).unwrap_or(actual);
+        if current == Some(stored) { return; }
         if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),stored) {context.bindings[holder].ty=root;}
     }
     /// A direct field of a local record that owns its storage. Returns the local.

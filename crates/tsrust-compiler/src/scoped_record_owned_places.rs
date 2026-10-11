@@ -47,10 +47,20 @@ impl Emitter<'_> {
         if binding.parameter && id >= fun.parameter_count {
             return None;
         }
+        let callback_storage = self.callback_record_native_parameter(binding.ty)
+            || (self.native_views.contains(binding.ty) && crate::aggregate_callable_facts::inspect(
+                binding.ty,
+                &self.program.records,
+                |id| self.program.unions[id.index()].members.clone(),
+                |_| false,
+            ).retains);
         crate::scoped_record_places::Layout::for_binding(
             binding,
             &self.program.records,
-            self.scoped_record_native_parameter(binding.ty),
+            // Only callback records use the nominal field-borrowing bridges.
+            // Native views alone have ordinary Rust record borrowing, including
+            // recursive records whose fields share one slice lifetime.
+            callback_storage,
         )
     }
     pub(super) fn owned_record_value(

@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: approved plan, not implemented. The owner approved parts A and B in the continuation chat.
+Date: 2026-10-10. Status: array-recursive view storage implemented with focused checks; nullable recursive links pending. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
@@ -11,7 +11,7 @@ type Chunk = {
 };
 ```
 
-Two separate limits stop this today.
+Two separate limits originally stopped this. Progress sections below record the completed increments.
 
 ## Limit 1: a record cannot contain itself directly (language rule)
 
@@ -167,3 +167,50 @@ recursive value must collapse at the recursive boundary before call transport;
 relaxing call transport alone would lose the ownership guarantee. Keep the existing
 aggregate-return diagnostic until construction and replacement preserve all owners.
 This checkpoint does not accept gate 189, refresh consumers or claim measurements.
+
+
+## Source construction and mutation through recursive arrays
+
+Source-created recursive records now collapse carried loans at their recursive
+boundary. Array elements, field replacement, append, consuming extraction and
+aggregate returns retain every contributing owner. Outer sibling fields retain
+independent lifetimes. Replacing a field with the same type no longer creates an
+unnecessary scoped record identity that loses its cycle membership.
+
+Plain native-view records use ordinary native record borrowing. Independent leaf
+storage remains reserved for callback-bearing records, including owned callbacks
+whose environments contain views. This preserves partial-move replacement while
+avoiding nonexistent callback bridge types when borrowing a plain recursive record.
+
+The public `recursive-arrays.tsr` fixture covers readonly/exclusive construction,
+append, extraction, whole-record reads, identity forwarding, owning callback capture,
+write-through and owner reuse after disposal. Five source rejection controls cover
+owner move, write, write after extraction while the remaining root lives, exclusive
+owner read and a shorter-lived nested owner. Private readonly/exclusive O0/O3 cases
+also check pointer identity, independent outer siblings and native owner-escape
+rejection. Editor coverage checks both the public fixture and related-location
+reporting for a shorter-lived owner.
+
+The matched `native_byte_views_recursive` workload constructs and consumes a
+17-node chain of two-byte views. Its TypeScript counterpart uses
+`Uint8Array.subarray`; an independent arithmetic oracle checks node count, byte sum
+and retained view length. Source guards, hashes, fallible native ABI support and
+registration tests are included. Timing remains pending S07 family acceptance.
+
+Nullable recursive links and callbacks that capture views while returning view
+arguments remain open. This increment does not accept gate 189 or S07.
+
+Final checks: the original 115-test adjacent native-view batch passed. The added
+whole-record borrow witness then exposed missing native bridge types; a follow-up
+114-pass/one-failure run caught callback partial-move replacement during the repair.
+The final affected stored-view batch passes all 16 tests, including that regression
+and readonly/exclusive whole/nested borrowing. All 11 CLI byte tests, the normal-stack
+concat-depth test, one focused editor test and two benchmark registration tests pass.
+Whole-project formatting is unchanged and reports no fingerprint updates.
+
+SQLite retains all 26 construction, borrowed-record, CLI/editor, registration and
+formatting logs under `tsrust-recursive-view-*.log`, including original red runs.
+`runtime/results/2026-10-11T00-30-34-645Z-verify.json` records agreement between native
+and Node-after-tsc on five cases, with no execution samples. Exact-byte readback was
+verified before deleting the loose copies. Consumers remain at `4367f4cc` until the
+next planned refresh.
