@@ -51,6 +51,7 @@ mod native_binding_types;
 pub mod native_type_resolution;
 pub mod native_exports;
 pub mod native_cache;
+pub mod native_runtime;
 mod native_emit;
 pub use stdlib::path::runtime as native_path;
 pub use stdlib::path::relative as native_path_relative;

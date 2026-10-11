@@ -5,15 +5,10 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     let bytes = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::Bytes)).expect("checked Bytes identity");
     let mut output = String::new();
     if bindings.iter().any(|binding| binding.name != "length") {
-        output.push_str("mod tsrust_native_bytes {\n");
-        output.push_str(include_str!("runtime.rs"));
-        if bindings.iter().any(|binding| binding.returned_borrow.is_some()) {
-            output.push_str(include_str!("views_runtime.rs"));
-        }
-        if bindings.iter().any(|binding| matches!(binding.name, "fromUtf8" | "toUtf8")) {
-            output.push_str(include_str!("utf8_runtime.rs"));
-        }
-        output.push_str("}\n");
+        output.push_str(&crate::native_runtime::bytes_module(
+            bindings.iter().any(|binding|binding.returned_borrow.is_some()),
+            bindings.iter().any(|binding|matches!(binding.name,"fromUtf8"|"toUtf8")),
+        ));
         output.push_str(&error_bridge(program));
     }
     // Observers and mutators accept every readable or writable byte storage that the

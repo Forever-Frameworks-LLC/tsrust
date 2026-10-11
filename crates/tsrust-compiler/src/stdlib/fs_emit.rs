@@ -4,7 +4,7 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     let file = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::File));
     if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter))) && bindings.is_empty() { return String::new(); }
     let file = file.map(|id|format!("Record{id}")).unwrap_or_default();
-    let mut output = format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n", include_str!("resource.rs"), include_str!("fs.rs"), include_str!("buffered_fs.rs"));
+    let mut output = crate::native_runtime::files_module();
     output.push_str("trait TsrFileRead { fn read_bytes(&mut self,length:i64)->Result<Vec<u8>,tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileWrite { fn write_bytes(&mut self,bytes:&[u8])->Result<i64,tsrust_native_files::fs::FsFailure>; fn write_all_bytes(&mut self,bytes:&[u8])->Result<(),tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileClose { fn close_file(self)->Result<(),tsrust_native_files::fs::FsFailure>; }\n");
     for (index,record) in program.records.iter().enumerate() {
         let Some(id @ (NativeTypeId::File | NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter))=record.native_type else {continue;};

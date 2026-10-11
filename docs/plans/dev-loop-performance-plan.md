@@ -278,3 +278,25 @@ Continue with separate reusable native runtime compilation. Preserve backend
 cancellation while reviewing probe overhead in the final performance pass. The
 required milestone remains open for runtime separation, cache eviction, Linux
 execution evidence and final regression/performance acceptance.
+
+## Separate runtime: initial crate boundary
+
+The compiler can now split selected byte, file and path support into a separate Rust
+library source while retaining program-specific records, unions and borrow adapters
+in application source. The emitter and splitter share exact bundled module builders;
+standalone `emit` remains self-contained. Only modules already selected by emission
+are extracted. This operation recognizes compiler-owned source, not arbitrary Rust.
+
+A focused native witness compiles the runtime as an rlib and links the application
+at both O0 and O3. Byte views, missing-file errors and path output match their
+oracles. Rust rejects returning a borrowed view after its owner dies across the
+crate boundary (E0515). Application-only edits change application emission while
+leaving runtime source identical. A program requiring none of these modules remains
+unchanged. Evidence is `tsrust-runtime-boundary-*` in SQLite, retaining the original
+missing-API witness and corrected file-error oracle.
+
+This is the initial boundary, not completed runtime separation. Next connect reusable
+runtime artifacts to build/dev and extend the boundary to ordinary console/string
+support, which the dev benchmark exercises. Preserve feature selection and generic
+ownership rules; application-specific monomorphization may remain application work.
+Installed reuse, bounded artifact retention and measured acceptance remain required.

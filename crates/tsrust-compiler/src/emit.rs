@@ -2957,10 +2957,8 @@ impl Emitter<'_> {
                 .features
                 .contains(&"path")
         }) {
-            output.push_str("mod tsrust_native_path {\n");
-            output.push_str(include_str!("stdlib/path/runtime.rs"));
-            output.push_str(include_str!("stdlib/path/relative.rs"));
-            output.push_str("\n}\nfn tsrust_std_path_basename(path: &String, suffix: Option<&String>) -> String { String::Owned(tsrust_native_path::basename(path.as_ref(), suffix.map(|value| value.as_ref()), cfg!(windows))) }\n");
+            output.push_str(&crate::native_runtime::path_module());
+            output.push_str("fn tsrust_std_path_basename(path: &String, suffix: Option<&String>) -> String { String::Owned(tsrust_native_path::basename(path.as_ref(), suffix.map(|value| value.as_ref()), cfg!(windows))) }\n");
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"path")) {
             output.push_str("fn tsrust_std_path_dirname(path: &String) -> String { String::Owned(tsrust_native_path::dirname(path.as_ref(), cfg!(windows))) }\nfn tsrust_std_path_extname(path: &String) -> String { String::Owned(tsrust_native_path::extname(path.as_ref(), cfg!(windows))) }\n");
