@@ -1,3 +1,6 @@
+mod dev_cli;
+mod project_config;
+mod new_cli;
 mod format_cli;
 mod check_cli;
 use std::env;
@@ -11,16 +14,20 @@ use tsrust_compiler::RUST_BACKEND_VERSION;
 const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
-  tsrust <command> <input.tsr> [options]
+  tsrust <command> [input.tsr] [options]
+  tsrust new <name-or-path>
+  tsrust dev [--release] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
 
 Commands:
+  dev      Watch, rebuild and restart a configured native program
+  new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
   emit     Emit Rust source
-  build    Build a native executable (requires -o)
+  build    Build a native executable using config output or -o
   run      Build and run a program
   test     Discover and run .test.tsr / .spec.tsr files
 
@@ -30,7 +37,7 @@ Options:
   -o, --output <path>        Output file for emit/build
   --color auto|always|never  Color help, diagnostics and test reports
   --json                    Machine-readable check results
-  --release                 Optimize build/run/test; overflow checks remain enabled
+  --release                 Optimize build/run/test/dev; overflow checks remain enabled
   --write                   Update source with format
   --check                   Check formatting without writing
 
@@ -43,7 +50,7 @@ Examples:
   tsrust format --check
   tsrust format src
 
-check/emit need no external compiler. build/run/test use the pinned Rust backend.";
+check/emit need no external compiler. build/run/test/dev use the pinned Rust backend.";
 
 fn color_enabled(terminal: bool) -> bool {
     let args: Vec<String> = env::args().collect();
@@ -98,11 +105,15 @@ fn run() -> Result<u8, String> {
     let Some(command) = args.next() else {
         return Err("Missing command. Run `tsrust --help` for usage.".into());
     };
-    if command == "--help" || command == "-h" || env::args().skip(2).any(|arg| arg == "--help" || arg == "-h") {
+    if command == "--help" || command == "-h" || env::args().skip(2).take_while(|arg|arg!="--").any(|arg| arg == "--help" || arg == "-h") {
         print_help();
         return Ok(0);
     }
     if command == "--version" || command == "-V" { println!("tsrust {}", env!("CARGO_PKG_VERSION")); return Ok(0); }
+    if command=="dev" {return dev_cli::run(args);}
+    if command=="new" {return new_cli::run(args);}
+    let (arguments,project_root)=project_config::defaults(&command,args.collect())?;
+    let mut args=arguments.into_iter();
     if !["check", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
         return Err(format!("Unknown command: {command}. Run `tsrust --help` for usage."));
     }
@@ -118,6 +129,7 @@ fn run() -> Result<u8, String> {
             } else if arg.starts_with('-') { test_options.push(arg); }
             else { test_paths.push(PathBuf::from(arg)); }
         }
+        if test_paths.is_empty() {test_paths.push(project_config::default_root()?);}
         test_paths = tsrust_compiler::project_cli::discover_test_inputs(&test_paths)?;
         test_paths[0].clone()
     } else { PathBuf::from(args.next().ok_or("Missing input file. Run `tsrust --help` for usage.")?) };
@@ -161,7 +173,7 @@ fn run() -> Result<u8, String> {
         .display()
         .to_string();
     if release && command != "build" && command != "run" && command != "test" {
-        return Err("--release applies only to build/run/test".into());
+        return Err("--release applies only to build/run/test/dev".into());
     }
     if json && command != "check" {
         return Err("--json applies only to check".into());
@@ -303,7 +315,9 @@ fn run() -> Result<u8, String> {
         let _ = cache.publish(&executable);
     }
     if command == "run" || command == "test" {
-        let status = Command::new(&executable)
+        let mut executable_command=Command::new(&executable);
+        if let Some(root)=&project_root {executable_command.current_dir(root);}
+        let status = executable_command
             .env("TSRUST_COLOR", &color_mode)
             .status()
             .map_err(|e| e.to_string())?;

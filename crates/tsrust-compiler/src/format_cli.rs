@@ -32,7 +32,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
     let cwd = env::current_dir().map_err(|error| error.to_string())?;
     let batch = inputs.len() != 1 || inputs.first().is_some_and(|path| path.is_dir());
     if inputs.is_empty() {
-        inputs.push(cwd.clone());
+        inputs.push(super::project_config::default_root()?);
     }
     let files = tsrust_compiler::source_discovery::discover(&inputs)?;
     let color = color == "always"

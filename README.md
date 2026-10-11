@@ -2,7 +2,7 @@
 
 An experimental TypeScript-familiar language with inferred ownership and native compilation through Rust. The name, extension, syntax subset, and ownership rules remain provisional.
 
-Source files use `.tsr`. The compiler is written in Rust. Its reusable analysis library handles parsing, type checking, ownership inference, diagnostics, and Rust generation. The CLI invokes `rustc` only when building native executables. The Rust language server in `crates/tsrust-lsp` shares this library; its [VS Code extension](./editors/vscode/README.md) supplies highlighting and live syntax, type and ownership diagnostics for unsaved single-file source.
+Source files use `.tsr`. The compiler is written in Rust. Its reusable analysis library handles parsing, type checking, ownership inference, diagnostics, and Rust generation. The CLI invokes `rustc` only when building native executables. The Rust language server in `crates/tsrust-lsp` shares this library; its [VS Code extension](./editors/vscode/README.md) supplies highlighting, project-wide diagnostics and IntelliSense, including unsaved source and dependencies.
 
 `main` is optional. Files containing only declarations, and empty files, can be
 checked, built and run. Running without `main` exits successfully without calling
@@ -17,6 +17,19 @@ The compiler, acceptance tests, and handwritten-witness checks are all Rust. Car
 [Call spread](./docs/call-spread.md) expands dense homogeneous arrays into call arguments. Focused compiler, native and editor acceptance covers current callable and built-in targets; array-literal and object spread remain separately scoped.
 
 [Recursive records](./docs/recursive-records.md) support owned array and nullable links, including shared lifetimes for recursive byte-view storage.
+
+## Start a project
+
+```sh
+tsrust new hello
+cd hello
+tsrust dev
+```
+
+Development rebuilds and restarts the native program on source changes. Failed
+builds keep the last working program running. Use `tsrust build`, `run`, `check`,
+`test` and `format` from the project or its subdirectories. See the
+[project CLI guide](docs/guides/project-cli.md) for configuration and supported boundaries.
 
 ## Repository layout
 
