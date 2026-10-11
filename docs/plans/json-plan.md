@@ -12,6 +12,16 @@ The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
 S10 must retain the typed decoder boundary and allocation evidence needed for it.
 
+## Immediate priority: typed imports and aliases
+
+Owner approved JSON/JSONC file imports and project path aliases on 2026-10-11,
+including compiler-derived data types in editor completion, hover and diagnostics.
+Implement shared alias/extension/index resolution, then typed data modules and
+editor/dev integration before further runtime API or benchmark expansion. See
+[the implementation and acceptance plan](typed-data-imports-and-aliases-plan.md).
+Existing JSON support and evidence remain accepted within their documented scope;
+the additions and remaining S10 work are not yet accepted.
+
 ## Implementation sequence
 
 1. Establish strict decoding and resource limits against the locked serde_json
