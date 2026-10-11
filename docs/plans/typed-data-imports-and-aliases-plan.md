@@ -188,3 +188,21 @@ policy excludes symlinks and generated directories, and this captured resolver
 must not claim immutable identities for files outside its captured map. In-root
 uncaptured source candidates are rejected rather than read live. Broader watched
 dependency coverage is not proved by this snapshot slice.
+
+## Live dev and checked editor witnesses
+
+A real `tsrust dev` process now passes an alias-edit lifecycle test: an initial
+program remains alive after a mapping produces a reported build failure; restoring
+a valid mapping builds the new program, stops the previous process, and starts the
+replacement. Interrupting dev reaps the replacement. The test uses isolated
+projects and formatted source, bounded waits, and actual process-liveness checks.
+
+A checked editor witness imports a default function through `@/components`, resolves
+`src/components/index.tsr`, preserves source documentation and the string signature
+in hover, offers the imported local name in completion, and navigates to the real
+dependency URI. This proves symbol completion through an alias, not path-string
+suggestions. Evidence: `tsrust-dev-alias-e2e*`, `tsrust-alias-intelligence*` and
+`tsrust-alias-acceptance-format.log` in SQLite.
+
+Installed-consumer refresh and dependency-boundary review remain outstanding;
+these focused witnesses do not close the complete import feature or S10.

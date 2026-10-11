@@ -1,0 +1,33 @@
+#![cfg(unix)]
+mod support;
+use std::{fs,process::{Child,Stdio},time::{Duration,Instant}};
+unsafe extern "C" {fn kill(pid:i32,signal:i32)->i32;}
+struct Dev(Child);
+impl Drop for Dev {fn drop(&mut self){
+ if self.0.try_wait().ok().flatten().is_none(){unsafe{kill(self.0.id()as i32,2);}
+  let deadline=Instant::now()+Duration::from_secs(5);
+  while self.0.try_wait().ok().flatten().is_none()&&Instant::now()<deadline{std::thread::sleep(Duration::from_millis(20));}
+  if self.0.try_wait().ok().flatten().is_none(){let _=self.0.kill();}let _=self.0.wait();
+ }
+}}
+fn wait(path:&std::path::Path,needle:&str)->String {
+ let deadline=Instant::now()+Duration::from_secs(40);
+ loop {let text=fs::read_to_string(path).unwrap_or_default();if text.contains(needle){return text;}assert!(Instant::now()<deadline,"Missing {needle}: {text}");std::thread::sleep(Duration::from_millis(25));}
+}
+fn config(root:&std::path::Path,target:&str){fs::write(root.join("tsrust.config.json"),format!(r#"{{"schemaVersion":1,"name":"aliases","build":{{"entry":"src/main.tsr","output":"dist/aliases"}},"paths":{{"@/*":"{target}/*"}}}}"#)).unwrap();}
+fn pid(log:&str)->i32 {log.lines().find_map(|line|line.split_once("Started program (pid ").map(|(_,tail)|tail.split(')').next().unwrap().parse().unwrap())).unwrap()}
+#[test]
+fn alias_config_edits_rebuild_and_keep_the_last_program_on_failure(){
+ let dir=support::TempDirectory::new();let root=dir.0.join("project");fs::create_dir_all(root.join("src/one")).unwrap();fs::create_dir(root.join("src/two")).unwrap();
+ fs::write(root.join("src/main.tsr"),support::format_round_trip("import {greeting} from '@/greeting';function main(){console.log(greeting());while(true){}}" )).unwrap();
+ for(name,text)in [("one","first-alias"),("two","second-alias")] {fs::write(root.join(format!("src/{name}/greeting.tsr")),support::format_round_trip(&format!("export function greeting():string{{return '{text}';}}"))).unwrap();}
+ config(&root,"./src/one");let out=dir.0.join("stdout");let err=dir.0.join("stderr");
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose","--color=never"]).stdout(Stdio::from(fs::File::create(&out).unwrap())).stderr(Stdio::from(fs::File::create(&err).unwrap()));
+ let mut dev=Dev(command.spawn().unwrap());wait(&out,"first-alias");let first=pid(&wait(&err,"Started program (pid "));
+ config(&root,"./missing");wait(&err,"absent from this build snapshot");wait(&err,"previous program remains running");assert_eq!(unsafe{kill(first,0)},0,"last working program was stopped after bad mapping");assert!(!fs::read_to_string(&out).unwrap().contains("second-alias"));
+ config(&root,"./src/two");wait(&out,"second-alias");let log=wait(&err,"Rebuilt in");assert!(log.matches("Started program (pid ").count()>=2,"{log}");assert_ne!(unsafe{kill(first,0)},0,"old program survived successful replacement");
+ let second:i32=log.rsplit_once("Started program (pid ").unwrap().1.split(')').next().unwrap().parse().unwrap();
+ unsafe{kill(dev.0.id()as i32,2);}let deadline=Instant::now()+Duration::from_secs(5);
+ loop {if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<deadline,"dev did not stop");std::thread::sleep(Duration::from_millis(20));}
+ assert_ne!(unsafe{kill(second,0)},0,"replacement program survived dev shutdown");
+}

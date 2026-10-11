@@ -1988,3 +1988,18 @@ fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
  let field=ask(&index,entry,"line);","textDocument/hover");assert!(field.to_string().contains("One-based JSON Lines record"),"{field}");
  let help=ask(&index,entry,"'records.jsonl'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3);
 }
+
+#[test]
+fn configured_alias_default_import_has_checked_completion_hover_and_navigation() {
+ let entry=tsrust_compiler::format("import greet from '@/components';function main(){console.log(greet('Pat'));}").unwrap();
+ let dependency=tsrust_compiler::format("/** Builds a greeting. */ function greeting(name:string):string{return 'Hello '+name;} export default greeting;").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";
+ let target="file:///tsrust-intelligence/src/components/index.tsr";
+ let mut workspace=Workspace::default();
+ workspace.open(source_id("file:///tsrust-intelligence/tsrust.config.json").unwrap(),1,r#"{"paths":{"@/*":"./src/*"}}"#.into());
+ workspace.open(source_id(uri).unwrap(),1,entry.clone());workspace.open(source_id(target).unwrap(),1,dependency);
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&entry,"greet(","textDocument/hover");assert!(hover.to_string().contains("string")&&hover.to_string().contains("Builds a greeting"),"{hover}");
+ let definition=ask(&index,&entry,"greet(","textDocument/definition");assert_eq!(definition["uri"],target,"{definition}");
+ let completion=ask(&index,&entry,"greet(","textDocument/completion");assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="greet")),"{completion}");
+}
