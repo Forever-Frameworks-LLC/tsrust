@@ -8,6 +8,9 @@ impl SourceIndex {
     pub(super) fn heap_element<'a>(&self, ty: &'a str) -> Option<&'a str> {
         self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::Heap)
     }
+    pub(super) fn ordered_set_element<'a>(&self,ty:&'a str)->Option<&'a str>{
+        self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::OrderedSet)
+    }
     fn native_collection_element<'a>(&self, ty: &'a str, identity: tsrust_compiler::native_signatures::NativeTypeId) -> Option<&'a str> {
         let ty = ["ReadOnly<", "Mutable<", "Owned<"].into_iter()
             .find_map(|wrapper| ty.strip_prefix(wrapper).and_then(|inner| inner.strip_suffix('>')))
@@ -16,7 +19,7 @@ impl SourceIndex {
         (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
-        let Some((family,element)) = self.deque_element(ty).map(|element|("Deque",element)).or_else(||self.heap_element(ty).map(|element|("Heap",element))) else { return builtins_for(ty); };
+        let Some((family,element)) = self.deque_element(ty).map(|element|("Deque",element)).or_else(||self.heap_element(ty).map(|element|("Heap",element))).or_else(||self.ordered_set_element(ty).map(|element|("OrderedSet",element))) else { return builtins_for(ty); };
         let mut entries = builtins_for(family);
         for entry in &mut entries {
             if let Some(signature) = entry["signature"].as_str() {

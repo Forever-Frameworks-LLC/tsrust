@@ -1833,3 +1833,14 @@ fn native_deque_nested_index_has_element_hover() {
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
  for index in [ProjectIndex::checked(&checked),ProjectIndex::new(&checked.graph)] {let hover=ask(&index,&entry,"first);","textDocument/hover");assert!(hover.to_string().contains("first: int"),"{hover}");}
 }
+
+#[test]
+fn native_ordered_set_alias_has_typed_editor_help() {
+ let entry=tsrust_compiler::format("import {OrderedSet as Tree} from 'std:collections';function main(){const values=new Tree<int>();values.add(7);const found=values.has(7);const count=values.size;for(const item of values){console.log(item);}console.log(count,found);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+ for index in [ProjectIndex::checked(&checked),ProjectIndex::new(&checked.graph)]{
+  for (needle,expected) in [("add(7)","add(value: int): void"),("has(7)","has(value: int): boolean"),("item);","item: int"),("found);","found: boolean"),("count,","count: int")]{let hover=ask(&index,&entry,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{hover}");}
+  let help=ask(&index,&entry,"7);","textDocument/signatureHelp");assert!(help.to_string().contains("value: int"),"{help}");
+  let items=ask(&index,&entry,"has(7)","textDocument/completion");assert!(items.to_string().contains("delete"),"{items}");
+ }
+}

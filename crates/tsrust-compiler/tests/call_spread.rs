@@ -207,7 +207,7 @@ fn call_spread_arity_sources_and_loans_are_checked() {
     rejected("function add(a:int,b:int):int{return a+b;}function main(){add(...[1]);}","arity","statically supplied 1","add(...[1])");
     rejected("function add(a:int,b:int):int{return a+b;}function main(){add(...[1,2,3]);}","arity","statically supplied 3","add(...[1,2,3])");
     rejected("function take(...values:int[]):int{return values.length;}function main(){take(...\"x\");}","type","Expected int","\"x\"");
-    rejected("type Item={n:int;};function take(...values:int[]):int{return values.length;}function main(){const item:Item={n:1};take(...item);}","spread-source","array, string, Set, Map, Deque or Heap","item");
+    rejected("type Item={n:int;};function take(...values:int[]):int{return values.length;}function main(){const item:Item={n:1};take(...item);}","spread-source","array, string, Set, Map, Deque, Heap or OrderedSet","item");
     rejected("function pair(first:string,...values:string[]):int{return first.length+values.length;}function main(){const values:string[]=[\"x\"];pair(values[0],...values);}","conflicting-access","access","values");
 }
 

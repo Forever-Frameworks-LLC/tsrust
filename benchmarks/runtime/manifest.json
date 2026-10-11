@@ -20950,6 +20950,35 @@
       "sourceSha256": "4a9720c5000f2156f8446bdb0a2fd66ddc44824dfb24fe44d05b27aeef06e65e",
       "counterpartSha256": "7c32100093e1dbf60238ba5aba0546698c3ea72d54da2dfc3e407fff5ea88c7b",
       "verificationEvidence": "runtime/results/2026-10-11T12-11-54-547Z-verify.json"
+    },
+    {
+      "id": "native_ordered_set",
+      "family": "native-collections",
+      "source": "workloads/collections/ordered-set.tsr",
+      "counterpart": "workloads/collections/ordered-set.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "Nine unique inserts, duplicate insertion, ordered traversal, clone, lookup and deletion",
+      "inputText": "collections",
+      "category": "collections",
+      "implementationGate": "S08",
+      "measurementStatus": "pending-collections-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Five matched native and Node-after-tsc correctness cases pass. Timing remains pending for the collections family.",
+      "specification": "Insert nine distinct bounded integers and one duplicate. Visit unique keys in ascending numeric order and observe a position-weighted sum, first and last keys. Clone, find and remove the fifth inserted key; observe independent sizes. Node uses Set plus explicit numeric sorting.",
+      "sourceSha256": "025111f9b330f787de9c15c5164715a40f7784184a8280be15ffdb6c50428752",
+      "counterpartSha256": "f1f6eb38c37cd49505c9ecb87598b1ed7c1c372fbe89a48f96e90f023ad21210",
+      "verificationEvidence": "runtime/results/2026-10-11T12-36-23-186Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

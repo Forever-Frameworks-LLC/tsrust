@@ -1,9 +1,14 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {observeSliceTree} from './slice-observation.mjs';
-export const collectionIDs = ['native_deque_clone','native_heap'];
+export const collectionIDs = ['native_deque_clone','native_heap','native_ordered_set'];
 export function expectedCollectionValues(id, n, seed, input) {
   if (!collectionIDs.includes(id) || !Number.isSafeInteger(n) || n < 0 || n > 2048 || !Number.isSafeInteger(seed) || seed < 0 || seed > 1000000 || input !== 'collections') throw Error('Collection case');
+  if(id==='native_ordered_set') return Array.from({length:n},(_,i)=>{
+    const first=(i+seed)%256;const wrap=Math.max(0,first+9-256);let weighted=0;
+    for(let position=0;position<9;position++){const value=position<wrap?position:first+position-wrap;weighted+=value*(position+1);}
+    return [9,wrap?0:first,wrap?255:first+8,weighted,1,1,8,9];
+  });
   if(id==='native_heap') return Array.from({length:n},(_,i)=>{const first=(i+seed)%256;const wrap=Math.max(0,first+9-256);return [9,wrap>0?255:first+8,9*first+36-256*wrap,0,9*first+36-256*wrap,9*first+36-256*wrap,9];});
   return Array.from({length:n}, (_, i) => [2, (i+seed)%256, 3, (i+seed)%256+1, 0, 0, (i+seed)%256]);
 }
@@ -13,6 +18,13 @@ export function expectedCollectionObservation(id, n, seed, input) {
 export function assertCollectionSource(source, row, kind) {
   if (!collectionIDs.includes(row.id) || row.family !== 'native-collections' || !['native','typescript'].includes(kind)) throw Error('Collection family');
   if (createHash('sha256').update(source).digest('hex') !== row[kind === 'native' ? 'sourceSha256' : 'counterpartSha256']) throw Error('Collection fingerprint');
+  if(row.id==='native_ordered_set') {
+    if(row.iterations!==2048 || row.operationsPerIteration!==1 || row.resultEncoding!=='array-shape-scalar-v1' || row.operationUnit!=='Nine unique inserts, duplicate insertion, ordered traversal, clone, lookup and deletion')throw Error('Collection denominator');
+    const required=['for(let i=0;i<n;i++)','for(let j=0;j<9;j++){values.add((i+seed+j)%256);}','values.add((i+seed)%256);','if(count===0){first=value;}count++;weighted+=value*count;last=value;','const key=(i+seed+4)%256;','const found=values.has(key)?1:0;','const removed=values.delete(key)?1:0;','output.push([count,first,last,weighted,found,removed,values.size,copied.size]);','return output;'];
+    required.push(...(kind==='native'?['const values=new OrderedSet<int>();','for(const value of values)','const copied=clone(values);']:['const values=new Set<number>();','for(const value of Array.from(values).sort((a,b)=>a-b))','const copied=new Set(values);']));
+    for(const snippet of required)if(!containsCodeSnippet(source,snippet))throw Error('Collection scenario: '+snippet);
+    return;
+  }
   if (row.id==='native_heap') {
     if(row.iterations!==2048 || row.operationsPerIteration!==1 || row.resultEncoding!=='array-shape-scalar-v1' || row.operationUnit!=='Nine heap inserts, borrowed traversal, peek, independent clone, call/array spread and descending removal')throw Error('Collection denominator');
     const required=['for(let i=0;i<n;i++)','for(let j=0;j<9;j++){values.push((i+seed+j)%256);}','const spread=sumItems(...values);','const flattened=[...values];','let traversed=0;','for(const value of values){traversed+=value;}','let sum=0;','return output;'];

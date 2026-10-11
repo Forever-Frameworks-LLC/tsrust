@@ -166,7 +166,7 @@ representations, comparison transitivity and heap removal order. Six Rust reject
 cases cover borrowed read/iterator invalidation, non-clonable values and escaping
 owners. Evidence is retained as `tsrust-s08-ordered-backend-acceptance.json`.
 
-Public integration remains pending for OrderedMap and OrderedSet. Heap source
+Public integration remains pending for OrderedMap. OrderedSet and Heap source
 integration follows below. Backend checks alone are not family acceptance.
 
 Internal native identities now retain ordered collection type arguments without
@@ -174,8 +174,8 @@ exposing implementation fields. OrderedMap has separate key/value parameters;
 OrderedSet and Heap each have one element parameter. Specialization validates the
 ordered key restriction, including nullable/union and object rejection. Focused
 metadata checks preserve ByteView as a map value and reject wrong arity without
-changing the record arena. OrderedMap and OrderedSet remain internal identities;
-Heap is now a module export.
+changing the record arena. OrderedMap remains an internal identity;
+OrderedSet and Heap are now module exports.
 Metadata evidence: `tsrust-s08-ordered-metadata-acceptance.json` in SQLite.
 
 ## Heap source integration
@@ -230,3 +230,30 @@ borrow, and receiver mutation while computing an index. The matched deep-clone
 workload observes a nested scalar through the readonly front record before cloning.
 Catalog examples exercise this syntax. Evidence:
 `tsrust-s08-deque-index-acceptance.json` in SQLite; timing remains pending.
+
+
+## OrderedSet source integration
+
+`std:collections` exports `OrderedSet<T>` with explicit scalar/enum type arguments,
+no-argument construction, add, has, delete, clear and readonly size. Method results
+match existing Set: add/clear return void, has/delete return boolean. Duplicate
+keys follow the ordered equality contract above. Iteration and spread visit keys
+in ascending order; owned string iteration borrows storage. Deep cloning creates
+independent storage. Mutable key access is rejected.
+
+String queries borrow their arguments through BTreeSet's borrowed str lookup;
+there is no implicit string copy or linear scan. Scalar/enum queries use copied
+comparison keys. Native checks cover aliases, duplicate keys, Unicode scalar order,
+NaNs, signed zero, infinities, booleans, enums, independent clones and invalid
+ownership. Checked/fallback editor help and executable catalog examples agree.
+
+The matched `native_ordered_set` workload compares nine unique inserts plus a
+duplicate, ordered traversal, cloning, lookup and deletion against Node Set with
+explicit numeric sorting. An independent arithmetic oracle observes a position-
+weighted traversal sum and independent sizes, including modulo-wrap boundaries.
+Thirty-five collection tests, ten call-spread tests, three native identity tests,
+typed editor help and twenty executable catalog examples pass. The workload passes
+five correctness cases in each engine. Evidence:
+`tsrust-s08-ordered-set-acceptance.json` in SQLite. No timing run was performed.
+OrderedMap and remaining family integration still precede S08 regression and
+measurement acceptance.

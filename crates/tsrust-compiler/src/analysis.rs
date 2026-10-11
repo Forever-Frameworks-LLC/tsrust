@@ -4966,7 +4966,7 @@ impl Analyzer {
         labels: &[Token],
     ) -> Result<(), Diagnostic> {
         let actual = self.expression(context, iterable, Mode::Read, &Loans::new(), None)?;
-        let element = self.iterable_element(actual).ok_or_else(|| Diagnostic::new("iteration-type", "for...of requires an array, string, Set, Map, Deque or Heap.", iterable.span))?;
+        let element = self.iterable_element(actual).ok_or_else(|| Diagnostic::new("iteration-type", "for...of requires an array, string, Set, Map, Deque, Heap or OrderedSet.", iterable.span))?;
         // Iterable evaluation happens once, even for an empty array. Its moves
         // therefore belong to both the zero-iteration and repeated paths.
         let mut visible = context.names.values().copied().collect::<Vec<_>>();
@@ -10480,6 +10480,7 @@ impl Analyzer {
                         };
                         if result.is_some() { return result; }
                     }
+                    if let Some(Type::Record(id))=receiver_hint && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){return self.ordered_set_method_type(name,expr.span).ok();}
                     if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap) {
                         let result=self.heap_method_type(id,name,expr.span).ok()?;
                         return Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result});
@@ -10906,6 +10907,7 @@ impl Analyzer {
         {
             return Self::numeric_constant_access(mode, span);
         }
+        if self.ordered_set_receiver(context,base).is_some(){return self.ordered_set_size(context,base,name,mode,loans,span);}
         if self.heap_receiver(context, base).is_some() { return self.heap_size(context, base, name, mode, loans, span); }
         if self.deque_receiver(context, base).is_some() { return self.deque_size(context, base, name, mode, loans, span); }
         if self.map_receiver_hint(context, base) { return self.map_size(context, base, name, mode, loans, span); }
@@ -14275,6 +14277,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
             return self.array_from_mapping(context,expr,loans,expected);
         }
+        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
         if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected); }
@@ -17307,3 +17310,6 @@ fn native_callback_graph_retains_selected_generic_method_identity() {
     assert!(calls.iter().any(|call|matches!(call.target,NativeCallbackTarget::Method(found,ordinal) if found==origin && ordinal==method)),"selected method must retain a native callback edge");
     assert_eq!(calls.len(),1,"inactive receiver method must not remain a call edge");
 }
+
+#[path = "stdlib/collections/ordered_set_check.rs"]
+mod ordered_sets;

@@ -5123,6 +5123,18 @@
 ],
   "std:collections": [
     {
+      "name": "OrderedSet",
+      "signature": "type OrderedSet<T>",
+      "parameters": [],
+      "documentation": "An owned set that visits unique values in ascending key order. new OrderedSet<T>() takes no arguments and requires an explicit int, number, boolean, string or enum element type. Numbers compare numerically; signed zeros share one positive-zero key and all NaNs share one key greater than infinity. Strings use Unicode scalar lexicographic order without locale collation or normalization. Booleans place false before true; enums use their backing values. for...of visits each stored value once in ascending order without removing it. Empty sets perform no iterations. clone(set) creates independent storage. Call and array spread follow ascending order; scalar elements copy, readonly call arguments borrow strings, and owning string arguments transfer the set. Mutable key arguments are rejected. Ownership: add transfers owned keys; iteration borrows strings and prevents receiver mutation or transfer. Storage releases when its owner ends.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(3);values.add(1);values.add(3);for(const value of values){console.log(value);}console.log(values.size);}\n```\n\nExpected output: 1\n3\n2.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(3);values.add(1);values.add(3);for(const value of values){console.log(value);}console.log(values.size);}",
+          "output": "1\n3\n2\n"
+        }
+      ]
+    },
+    {
       "name": "Deque",
       "signature": "type Deque<T>",
       "parameters": [],
@@ -5587,6 +5599,74 @@
   ]
 }
 ],
+  "OrderedSet": [
+    {
+      "name": "size",
+      "signature": "size: int",
+      "parameters": [],
+      "documentation": "The number of distinct stored keys, including at most one NaN and one zero key. This read-only property takes no arguments, returns a nonnegative int, and does not change the set. Ownership: reading size borrows the receiver.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.size);}\n```\n\nExpected output: 1.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.size);}",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "add",
+      "signature": "add(value: Element): void",
+      "parameters": [
+        "value: Element"
+      ],
+      "documentation": "Insert value if no equal key is present. value must have the declared element type. A duplicate leaves size unchanged; signed zeros and NaNs follow the set equality rule. Returns void and may change the set. Ownership: an owned argument transfers even when it duplicates an existing key.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.add(2);console.log(values.size);}\n```\n\nExpected output: 1.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.add(2);console.log(values.size);}",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "has",
+      "signature": "has(value: Element): boolean",
+      "parameters": [
+        "value: Element"
+      ],
+      "documentation": "Test whether an equal key is stored. value must have the declared element type; an empty set returns false. Returns boolean without changing the set. Lookup follows the key order. Ownership: the receiver and argument are borrowed; string queries remain reusable and are not copied.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.has(2),values.has(9));}\n```\n\nExpected output: true false.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.has(2),values.has(9));}",
+          "output": "true false\n"
+        }
+      ]
+    },
+    {
+      "name": "delete",
+      "signature": "delete(value: Element): boolean",
+      "parameters": [
+        "value: Element"
+      ],
+      "documentation": "Remove the equal key if present. value must have the declared element type. Returns true after removal, or false when no key matched, including on an empty set. Ownership: the receiver is exclusively borrowed; the query argument is borrowed and remains reusable.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.delete(2),values.delete(2),values.size);}\n```\n\nExpected output: true false 0.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);console.log(values.delete(2),values.delete(2),values.size);}",
+          "output": "true false 0\n"
+        }
+      ]
+    },
+    {
+      "name": "clear",
+      "signature": "clear(): void",
+      "parameters": [],
+      "documentation": "Remove all keys. Takes no arguments, returns void and leaves size zero. Clearing an empty set succeeds. Ownership: exclusively borrows the receiver and releases its stored keys.\n\n```tsrust\nimport {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.clear();console.log(values.size);}\n```\n\nExpected output: 0.",
+      "examples": [
+        {
+          "source": "import {OrderedSet} from \"std:collections\";function main(){const values=new OrderedSet<int>();values.add(2);values.clear();console.log(values.size);}",
+          "output": "0\n"
+        }
+      ]
+    }
+  ],
   "Heap": [
     {
       "name": "size",

@@ -21,3 +21,17 @@ impl<T:TsrOrderedKey> TsrHeap<TsrOrdered<T>> {
     fn into_keys(self) -> impl Iterator<Item=T> { self.values.into_iter().map(|value|value.0) }
     fn key_iter(&self) -> impl Iterator<Item=&T> { self.values.iter().map(|value| &value.0) }
 }
+
+impl<T:TsrOrderedKey> TsrOrderedSet<TsrOrdered<T>> {
+    fn key_iter(&self)->impl Iterator<Item=&T>{self.values.iter().map(|value|&value.0)}
+    fn into_keys(self)->impl Iterator<Item=T>{self.values.into_iter().map(|value|value.0)}
+}
+impl<T:TsrOrderedKey+Copy> TsrOrderedSet<TsrOrdered<T>> {
+    fn contains_copy_key(&self,key:T)->bool{self.values.contains(&TsrOrdered::new(key))}
+    fn remove_copy_key(&mut self,key:T)->bool{self.values.remove(&TsrOrdered::new(key))}
+}
+impl std::borrow::Borrow<str> for TsrOrdered<String> {fn borrow(&self)->&str{self.0.as_ref()}}
+impl TsrOrderedSet<TsrOrdered<String>> {
+    fn contains_string_key(&self,key:&String)->bool{self.values.contains::<str>(key.as_ref())}
+    fn remove_string_key(&mut self,key:&String)->bool{self.values.remove::<str>(key.as_ref())}
+}

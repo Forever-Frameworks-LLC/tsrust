@@ -2357,7 +2357,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record| record.native_element().is_some()) {
             output.push_str(include_str!("stdlib/collections/deque_runtime.rs"));
         }
-        let has_heap=self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Heap));
+        let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)));
         if has_heap { output.push_str(include_str!("stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("stdlib/collections/ordered_key_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
@@ -2386,9 +2386,10 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "struct Record{index} {{ handle: tsrust_native_files::fs::FileHandle }}");
                 continue;
             }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Heap) {
+            if matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)) {
                 let element=self.native_type(record.native_element().unwrap());
-                let _=writeln!(output,"#[derive(Clone)] struct Record{index} {{ values: TsrHeap<TsrOrdered<{element}>> }}");
+                let backend=if record.native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrHeap"};
+                let _=writeln!(output,"#[derive(Clone)] struct Record{index} {{ values: {backend}<TsrOrdered<{element}>> }}");
                 continue;
             }
             if let Some(element) = record.native_element() {
@@ -7362,7 +7363,7 @@ impl Emitter<'_> {
             ExprKind::NativeConstructor(_, _) => {
                 let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
                 let id = self.native_record_declaration(id);
-                let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else{"TsrDeque"};
+                let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};
                 let code = format!("Record{id} {{ values: {backend}::new() }}");
                 match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
             }
@@ -8554,6 +8555,7 @@ impl Emitter<'_> {
                     };
                     format!("{{ let object_keys_value = {value}; let mut object_keys_result = <{}>::from([]); for key in {keys} {{ object_keys_result.push(key); }} object_keys_result }}", self.native_type(expr.ty.expect("checked keys result")))
                 }
+                CallTarget::OrderedSetMethod(method)=>self.ordered_set_method_expression(fun,callee,args,method),
                 CallTarget::HeapMethod(method) => self.heap_method_expression(fun,expr,callee,args,method),
                 CallTarget::DequeMethod(method) => self.deque_method_expression(fun,expr,callee,args,method),
                 CallTarget::MapMethod(method) => self.map_method_expression(fun,expr,callee,args,method),
@@ -10238,3 +10240,6 @@ mod map_cleanup_storage;
 #[cfg(test)]
 #[path = "nullable_recursive_emit.rs"]
 mod nullable_recursive_tests;
+
+#[path = "stdlib/collections/ordered_set_emit.rs"]
+mod ordered_set_emit;

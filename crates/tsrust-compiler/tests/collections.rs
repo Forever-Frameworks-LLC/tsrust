@@ -123,7 +123,6 @@ function main(){
  strictEqual(values.at(1)!,2);strictEqual(values.at(-1),undefined);strictEqual(values.at(3),undefined);
  strictEqual(values.popFront()!,1);strictEqual(values.popBack()!,3);strictEqual(values.popBack()!,2);
  strictEqual(values.popBack(),undefined);values.pushBack(9);values.clear();strictEqual(values.size,0);
- strictEqual(sum(...numbers,change(numbers)),7);strictEqual(numbers.size,3);let caught=false;try{pair(...numbers);}catch(error){caught=true;}strictEqual(caught,true);
  const words=new Deque<string>();words.pushBack('owned');{const word=words.front();
  if(word!==undefined){strictEqual(word.length,5);}}const moved=words.popFront()!;strictEqual(moved,'owned');
 }"#;
@@ -453,6 +452,7 @@ function change(values:Mutable<Deque<int>>):int{values.pushBack(9);return 4;}
 function pair(a:int,b:int):int{return a+b;}
 function main(){
  const numbers=new Deque<int>();numbers.pushBack(2);numbers.pushFront(1);strictEqual(sum(...numbers),3);strictEqual(numbers.size,2);const copied=[...numbers];strictEqual(copied[0],1);strictEqual(numbers.size,2);
+ strictEqual(sum(...numbers,change(numbers)),7);strictEqual(numbers.size,3);let caught=false;try{pair(...numbers);}catch(error){caught=true;}strictEqual(caught,true);
  const words=new Deque<string>();words.pushBack('abc');strictEqual(read(...words),3);strictEqual(words.size,1);strictEqual(take(...words),3);
  const nested=new Deque<int[]>();nested.pushBack([1]);update(...nested);strictEqual(nested.popFront()!.length,2);
  const heap=new Heap<int>();heap.push(2);heap.push(1);strictEqual(sum(...heap),3);strictEqual(heap.size,2);const items=[...heap];strictEqual(sum(...items),3);strictEqual(heap.size,2);
@@ -524,5 +524,28 @@ function main(){const values=new Deque<int[]>();values.pushBack([4,5]);strictEqu
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
  for invalid in [source.replace("strictEqual(values.front()![0],4);","values.front()![0]=9;"),source.replace("strictEqual(words.front()![0].length,4);","consume(words.front()![0]);"),source.replace("strictEqual(values.front()![0],4);","strictEqual(values.front()![change(values)],4);"),source.replace("strictEqual(words.front()![0].length,4);","const borrowed=words.front()![0];words.clear();console.log(borrowed);")] {
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"borrowed index accepted: {invalid}");
+ }
+}
+
+#[test]
+fn ordered_set_public_surface_preserves_order_and_borrowed_queries() {
+ let source=r#"import {OrderedSet as Tree} from 'std:collections';import {strictEqual} from 'std:testing';
+function total(...values:int[]):int{let sum=0;for(const value of values){sum+=value;}return sum;}
+function main(){const values=new Tree<int>();strictEqual(values.size,0);values.add(3);values.add(1);values.add(2);values.add(1);strictEqual(values.size,3);let ordered='';for(const value of values){ordered+=String(value);}strictEqual(ordered,'123');strictEqual(values.has(2),true);strictEqual(values.has(4),false);strictEqual(total(...values),6);const array=[...values];strictEqual(array[0],1);strictEqual(array[2],3);const copied=clone(values);strictEqual(copied.delete(2),true);strictEqual(copied.delete(2),false);strictEqual(values.size,3);copied.clear();strictEqual(copied.size,0);const words=new Tree<string>();const owned='z'.repeat(2);words.add(owned);words.add('a');const query='z'.repeat(2);strictEqual(words.has(query),true);strictEqual(query.length,2);strictEqual(words.delete(query),true);strictEqual(query.length,2);for(const word of words){strictEqual(word,'a');}}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_set_number_enum_and_ownership_boundaries() {
+ let source=r#"import {OrderedSet} from 'std:collections';import {strictEqual} from 'std:testing';
+enum Code{Low=1,High=4}
+enum Label{Last='z',First='a'}
+function take(...words:string[]):int{let size=0;for(const word of words){size+=word.length;}return size;}
+function main(){const numbers=new OrderedSet<number>();numbers.add(-0.0);numbers.add(0.0);numbers.add(NaN);numbers.add(NaN);numbers.add(Infinity);numbers.add(-Infinity);strictEqual(numbers.size,4);strictEqual(numbers.has(NaN),true);strictEqual(numbers.has(-0.0),true);const sorted=[...numbers];strictEqual(sorted[0],-Infinity);strictEqual(1.0/sorted[1],Infinity);strictEqual(sorted[2],Infinity);strictEqual(Number.isNaN(sorted[3]),true);strictEqual(numbers.delete(NaN),true);strictEqual(numbers.has(NaN),false);const codes=new OrderedSet<Code>();codes.add(Code.High);codes.add(Code.Low);strictEqual(codes.has(Code.Low),true);strictEqual(codes.delete(Code.High),true);for(const code of codes){strictEqual(code,Code.Low);}const flags=new OrderedSet<boolean>();flags.add(true);flags.add(false);const ordered=[...flags];strictEqual(ordered[0],false);const labels=new OrderedSet<Label>();labels.add(Label.Last);labels.add(Label.First);strictEqual(labels.has(Label.First),true);strictEqual(labels.delete(Label.Last),true);const unicode=new OrderedSet<string>();unicode.add('😀');unicode.add('\uE000');const sequence=[...unicode];strictEqual(sequence[0],'\uE000');strictEqual(sequence[1],'😀');const words=new OrderedSet<string>();words.add('a');words.add('bb');strictEqual(take(...words),3);}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ for body in ["const values=new OrderedSet<int[]>();","const values=new OrderedSet<int>();values.add('x');","const values=new OrderedSet<int>();values.size=3;","const values=new OrderedSet<int>();values.add(1);for(const item of values){values.clear();}","const values=new OrderedSet<string>();const word='x'.repeat(2);values.add(word);console.log(word);","const values=new OrderedSet<int>();values.has();","function read(values:ReadOnly<OrderedSet<int>>){values.add(1);}","function change(value:Mutable<string>){}const values=new OrderedSet<string>();values.add('x');change(...values);"] {
+  let source=format!("import {{OrderedSet}} from 'std:collections';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid ordered set accepted: {source}");
  }
 }
