@@ -75,6 +75,6 @@ cache lookup and combined native compilation/linking timings.
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite
 its inode. Identical source/toolchain/options reuse an artifact; a new source version
-still needs native compilation. The watcher still polls source contents and checking
+still needs native compilation. The watcher polls directory entries and file metadata, reusing unchanged file contents. Checking
 still starts afresh for each build. Filesystem events, retained compiler state and
 separate runtime compilation remain follow-up performance work.

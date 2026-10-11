@@ -139,3 +139,12 @@ timings; this is not a statistical performance benchmark. Fresh edits still comp
 the whole generated native program. Event-based watching, retained compiler state,
 native runtime separation and cache-retention policy remain follow-up work. Keep
 these items open rather than equating warm artifact reuse with incremental builds.
+
+The follow-up watcher repair caches source bytes behind shared buffers. Unchanged
+polls inspect metadata without rereading file contents or comparing every byte.
+Device/inode, length, modification time and change time detect ordinary edits,
+atomic saves and same-size edits with restored modification times. Exact contents
+still determine whether a rebuild is needed. Added and deleted files and config
+recovery remain supported; directory scans and metadata polling remain.
+Focused watcher tests and project command lifecycle checks cover this change.
+Evidence: `tsrust-dev-watch-*` diagnostic records in SQLite. No throughput claim.

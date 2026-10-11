@@ -1,4 +1,6 @@
 mod dev_cli;
+#[cfg(unix)]
+mod dev_watch;
 mod project_config;
 mod new_cli;
 mod format_cli;

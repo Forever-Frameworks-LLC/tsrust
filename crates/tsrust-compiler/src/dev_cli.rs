@@ -1,9 +1,9 @@
 //! Native development supervisor. Builds never replace a running executable inode.
 #[cfg(unix)]
 mod platform {
-    use std::{collections::BTreeMap,fs,path::{Path,PathBuf},process::{Child,Command},sync::atomic::{AtomicBool,Ordering},time::{Duration,Instant}};
+    use std::{path::{Path,PathBuf},process::{Child,Command},sync::atomic::{AtomicBool,Ordering},time::{Duration,Instant}};
     use std::os::unix::process::CommandExt;
-    use crate::{project_config,TempDirectory};
+    use crate::{dev_watch::{Fingerprint,Watcher},project_config,TempDirectory};
     static STOP:AtomicBool=AtomicBool::new(false);
     unsafe extern "C" {fn signal(number:i32,handler:usize)->usize;fn kill(pid:i32,signal:i32)->i32;}
     extern "C" fn stop(_:i32) {STOP.store(true,Ordering::Relaxed);}
@@ -47,15 +47,7 @@ mod platform {
     }
     impl Drop for Process {fn drop(&mut self){self.stop();}}
     struct Running {process:Process,_files:TempDirectory}
-    type Fingerprint=Result<BTreeMap<PathBuf,Vec<u8>>,String>;
-    fn fingerprint(root:&Path)->Fingerprint {
-        let mut files=tsrust_compiler::source_discovery::discover(&[root.to_owned()])?;
-        files.push(root.join(project_config::FILE));
-        let mut values=BTreeMap::new();
-        for path in files {values.insert(path.clone(),fs::read(&path).map_err(|e|format!("{}: {e}",path.display()))?);}
-        Ok(values)
-    }
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<(TempDirectory,PathBuf)>,String> {
         let project=project_config::load(root)?;
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
         let binary=files.0.join("program");
@@ -69,7 +61,7 @@ mod platform {
         let status=loop {
             if STOP.load(Ordering::Relaxed) {return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
-                if &fingerprint(root)!=expected {return Ok(None);}
+                if &watcher.snapshot(root)!=expected {return Ok(None);}
                 last_input_check=Instant::now();
             }
             if let Some(status)=compiler.child.try_wait().map_err(|e|e.to_string())? {break status;}
@@ -113,20 +105,21 @@ mod platform {
         let _signals=Signals::install()?;
         let root=project.root;
         eprintln!("[dev] Watching {}. Press Ctrl+C to stop.",root.display());
+        let mut watcher=Watcher::default();
         let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
         while !STOP.load(Ordering::Relaxed) {
-            let input=fingerprint(&root);
+            let input=watcher.snapshot(&root);
             if previous.as_ref()!=Some(&input) {
                 // Debounce edits, but initial startup has no preceding edit burst.
                 if previous.is_some() {
                     std::thread::sleep(Duration::from_millis(100));
-                    if fingerprint(&root)!=input {continue;}
+                    if watcher.snapshot(&root)!=input {continue;}
                 }
                 previous=Some(input.clone());
                 let build_started=Instant::now();
-                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input)};
+                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher)};
                 match result {
-                    Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && fingerprint(&root)==input=>{
+                    Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
                         eprintln!("[dev] {} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0);built_once=true;
                         if let Some(mut old)=running.take(){old.process.stop();}
                         let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
