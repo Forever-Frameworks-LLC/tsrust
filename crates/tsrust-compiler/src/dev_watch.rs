@@ -18,10 +18,40 @@ impl From<fs::Metadata> for Stamp {
 #[derive(Default)]
 pub(crate) struct Watcher {
     entries:BTreeMap<PathBuf,(Stamp,Contents)>,
+    initialized:bool,
+    events:Option<crate::dev_events::Events>,
+    previous:Option<Fingerprint>,
+    #[cfg(test)] scans:usize,
     #[cfg(test)] reads:usize,
 }
 impl Watcher {
     pub(crate) fn snapshot(&mut self,root:&Path)->Fingerprint {
+        if !self.initialized {
+            self.initialized=true;
+            if std::env::var("TSRUST_DEV_WATCH").as_deref()==Ok("poll") {
+                eprintln!("[dev] Polling requested by TSRUST_DEV_WATCH=poll.");
+            } else {
+                match crate::dev_events::Events::new(root) {
+                    Ok(events)=>self.events=Some(events),
+                    Err(error)=>eprintln!("[dev] Native watching unavailable ({error}); using polling."),
+                }
+            }
+        }
+        if let Some(events)=&mut self.events {
+            let reconcile=events.changed().and_then(|changed| {
+                if changed || self.previous.as_ref().is_none_or(|value|value.is_err()) {events.refresh(root)?;Ok(true)}else{Ok(false)}
+            });
+            match reconcile {
+                Ok(false)=>return self.previous.as_ref().unwrap().clone(),
+                Ok(true)=>{},
+                Err(error)=>{eprintln!("[dev] Native watching failed ({error}); using polling.");self.events=None;},
+            }
+        }
+        let result=self.read_snapshot(root);
+        self.previous=Some(result.clone());result
+    }
+    fn read_snapshot(&mut self,root:&Path)->Fingerprint {
+        #[cfg(test)] {self.scans+=1;}
         let mut files=tsrust_compiler::source_discovery::discover(&[root.to_owned()])?;
         files.push(root.join(crate::project_config::FILE));
         let mut values=BTreeMap::new();
@@ -58,6 +88,7 @@ mod tests {
         let mut watcher=Watcher::default();let first=watcher.snapshot(root).unwrap();let reads=watcher.reads;
         for _ in 0..20 {assert_eq!(watcher.snapshot(root).unwrap(),first);}
         assert_eq!(watcher.reads,reads);
+        assert_eq!(watcher.scans,1,"idle native watcher must not scan directories");
         let modified=std::fs::metadata(&source).unwrap().modified().unwrap();
         std::fs::write(&source,"other").unwrap();
         std::fs::File::options().write(true).open(&source).unwrap().set_times(std::fs::FileTimes::new().set_modified(modified)).unwrap();
@@ -67,6 +98,18 @@ mod tests {
         let replaced=watcher.snapshot(root).unwrap();assert_eq!(replaced[&source].0.as_ref(),b"third");
         std::fs::remove_file(&source).unwrap();assert!(!watcher.snapshot(root).unwrap().contains_key(&source));
         assert!(!watcher.entries.contains_key(&source));
+    }
+    #[test]
+    fn native_failure_falls_back_and_recovers_after_root_recreation() {
+        let directory=crate::TempDirectory::new().unwrap();let root=&directory.0;
+        std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
+        let mut watcher=Watcher::default();watcher.snapshot(root).unwrap();
+        assert!(watcher.events.is_some());
+        std::fs::remove_file(root.join("tsrust.config.json")).unwrap();std::fs::remove_dir(root).unwrap();
+        assert!(watcher.snapshot(root).is_err());assert!(watcher.events.is_none());
+        std::fs::create_dir(root).unwrap();std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
+        assert_eq!(watcher.snapshot(root).unwrap().len(),1);
+        let scans=watcher.scans;watcher.snapshot(root).unwrap();assert_eq!(watcher.scans,scans+1);
     }
     #[test]
     fn discovers_new_files_and_config_changes_without_reading_unchanged_sources() {

@@ -10,8 +10,8 @@ part of integrated release acceptance, not an optional optimization backlog.
 Quiet default output, verbose phase timings, persistent validated native artifacts,
 private executable copies, shorter supervisor waits and reuse of unchanged source
 bytes are implemented. Last-good-program retention on failed builds is required.
-These improvements do not constitute incremental compilation: the watcher still
-scans directories and metadata, each build starts frontend checking afresh, and a
+At the recorded baseline the watcher scanned directories and metadata. These
+improvements do not constitute incremental compilation: each build starts frontend checking afresh, and a
 fresh source version compiles the whole generated native program.
 
 ## Required implementation order and exit evidence
@@ -73,5 +73,31 @@ stored as `tsrust-dev-baseline-*` in SQLite. Formatted generated projects also p
 idempotence and native output checks. The original long expression hit the existing
 128-depth limit; sequential additions preserve the intended graph and arithmetic.
 
-Implement filesystem-event watching next. Continue through
+Complete filesystem-event loss/race acceptance, installed refresh and baseline
+comparison next. Continue through
 retained frontend state and separate runtime compilation before resuming S09 APIs.
+
+## Filesystem notification implementation checkpoint
+
+Native notifications now drive cached dev snapshots. macOS uses kqueue vnode
+notifications for source files/config/directories; Linux uses recursive directory
+inotify subscriptions. Directory subscriptions are installed before traversal.
+Changes reconcile exact source bytes and refresh subscriptions, including replacement
+inodes and newly discovered directories. Native errors visibly switch to polling;
+`TSRUST_DEV_WATCH=poll` forces the fallback. Queue overflow on Linux requests full
+reconciliation. macOS drains notification bursts in bounded batches. Owned
+close-on-exec descriptors release subscriptions when the watcher is dropped.
+
+Seven focused supervisor/watcher tests pass on macOS. They cover no idle directory
+scans, same-size edits, restored mtime, atomic saves, new directories, deletions,
+config recovery, excluded directories/symlinks, root-loss fallback and event bursts.
+Five project CLI checks pass with native watching; both dev lifecycle checks also
+pass with forced polling. The burst test first caught repeated rescans and retains
+its original failure. Records use `tsrust-dev-events-*` in SQLite.
+
+The CLI now has a pinned Unix-only libc 0.2.183 dependency, resolved offline from
+the existing registry cache. Generated user programs gain no dependency from this
+watcher. Linux code is not yet executed on this macOS host. macOS per-file descriptor
+limits can force polling, which is documented. Installed refresh, matching baseline
+comparison and further loss/race acceptance remain pending. This checkpoint does
+not close the dev-loop milestone or its three required architectural steps.

@@ -75,6 +75,10 @@ cache lookup and combined native compilation/linking timings.
 Dev shares the validated project cache at `target/tsrust-native` across edits and
 sessions. Each running executable remains a private copy, so builds cannot overwrite
 its inode. Identical source/toolchain/options reuse an artifact; a new source version
-still needs native compilation. The watcher polls directory entries and file metadata, reusing unchanged file contents. Checking
-still starts afresh for each build. Filesystem events, retained compiler state and
-separate runtime compilation remain follow-up performance work.
+still needs native compilation. The watcher uses native filesystem notifications on macOS and Linux. Notifications
+trigger reconciliation of source contents; idle polls do not scan the source tree.
+Unchanged file contents remain cached. Native setup/runtime failures print a message
+and fall back to metadata polling. Set `TSRUST_DEV_WATCH=poll` to force that fallback.
+macOS uses one descriptor per watched file/directory, so descriptor exhaustion also
+falls back visibly. Checking still starts afresh for each build; retained compiler
+state and separate runtime compilation remain required performance work.
