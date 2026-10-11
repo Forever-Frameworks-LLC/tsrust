@@ -1,5 +1,5 @@
 import {observeSliceTree} from './slice-observation.mjs';
-export const nativeFileIDs = ['native_file_read_close','native_file_scope_drop'];
+export const nativeFileIDs = ['native_file_read_close','native_file_scope_drop','native_file_write','native_file_write_all'];
 export function expectedNativeFilesValues(id,n,seed,input) {
   if (!nativeFileIDs.includes(id) || !Number.isSafeInteger(n) || n<0 || n>2048 || !Number.isSafeInteger(seed) || seed<0 || seed>1000000 || input!=='native-file-fixture-v1') throw Error('Native file case');
   return Array.from({length:n},(_,i)=>{

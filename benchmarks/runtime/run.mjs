@@ -408,7 +408,7 @@ function prepare(w) {
 function execute(engine, iterations, seed, warmups, samples, inputText, workload) {
  if(workload?.family==='native-files')inputText=nativeFileInput(workload);
  const command=[...engine.command];
- if(workload?.family==='native-files'&&engine.id==='deno')command.splice(2,0,`--allow-read=${inputText}`);
+ if(workload?.family==='native-files'&&engine.id==='deno')command.splice(2,0,`--allow-read=${path.dirname(inputText)}`,`--allow-write=${path.dirname(inputText)}`);
  const result = run(command, [iterations, seed, warmups, samples, ...(inputText === undefined ? [] : [inputText])]);
  const data = JSON.parse(result.stdout);
  if(workload&&isApproximate(workload)){const loaded=approximateReferences.get(workload.id);const accepted=approximateProbes.get(workload.id)?.engines[engine.id];const validation=validateApproximateMeasurement(data,loaded.reference,{iterations,seed,warmups,samples,pointProbeAccepted:!!accepted});return {...data,approximateObservation:validation,processMs:result.ms};}

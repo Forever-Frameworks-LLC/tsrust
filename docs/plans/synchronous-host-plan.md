@@ -16,8 +16,11 @@ pass, including view alternatives and partial-write documentation. The initial p
 witness exposed the required error-effect registration; it was added. A rejection
 witness expected the wrong diagnostic wording and now checks error[transferred].
 Original logs are retained as `tsrust-public-file-writes-*` in SQLite. This slice
-is still in progress: matched benchmark support and installed consumer acceptance
-remain required before its gate closes. No new measurements are claimed.
+has matched native/TypeScript write and writeAll workloads registered with independent
+readback oracles, exact output-file checks, ABI adapters, source guards, current hashes
+and isolated cleanup. Sixteen untimed native/Node-after-tsc cases pass; five registration
+tests pass. Records use `tsrust-file-write-benchmark-*` in SQLite. Installed consumer
+acceptance remains required before this slice closes. Timing remains pending S09.
 
 Continue S09 with bounded full-file access, buffered readers/writers, environment
 and monotonic time foundations, auditing the existing path/fs/os contracts. Define

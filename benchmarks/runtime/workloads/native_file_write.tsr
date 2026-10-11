@@ -1,0 +1,104 @@
+import { File, open, read, close, create, write } from "std:fs";
+import { Bytes, length, at, fromUtf8, view } from "std:bytes";
+
+function observe(file: Mutable<File>, count: int): int[] {
+  match (read(file, count)) {
+    Ok(bytes) => {
+      let sum = 0;
+      let index = 0;
+      while (index < length(bytes)) {
+        match (at(bytes, index)) {
+          Ok(value) => {
+            sum += value;
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+
+        index++;
+      }
+
+      return [length(bytes), sum];
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function sample(input: ReadOnly<string>, count: int): int[] {
+  const destination = input + ".out";
+  match (create(destination)) {
+    Ok(output) => {
+      match (fromUtf8("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")) {
+        Ok(owner) => {
+          match (view(owner, 0, count)) {
+            Ok(bytes) => {
+              match (write(output, bytes)) {
+                Ok(written) => {
+                  if (written !== count) {
+                    throw "short regular-file write";
+                  }
+                },
+                Err(error) => {
+                  throw error.message;
+                }
+              }
+            },
+            Err(error) => {
+              throw error.message;
+            }
+          }
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+
+      match (close(output)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  match (open(destination)) {
+    Ok(file) => {
+      const observed = observe(file, count + 1);
+      match (close(file)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+
+      return observed;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  let output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 64 + 1;
+    output.push(sample(input, count));
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}
