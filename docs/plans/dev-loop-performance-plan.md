@@ -151,3 +151,24 @@ source edit, native notification operation and clean shutdown pass. Retained
 compiler state is the next implementation step. Startup distributions remain part
 of final milestone review rather than prompting repeated standalone retiming.
 Linux execution/overflow validation remains explicit outstanding acceptance.
+
+## Retained frontend state: syntax layer
+
+`ProjectSession` now retains pre-link module syntax. Cache keys include exact source
+text, module position, test-entry mode and dependency generations. Any dependency
+change conservatively invalidates importers. Unrelated modules reuse syntax;
+unreachable entries are evicted, and failed graph loads clear retained entries.
+Linking operates on cloned syntax with fresh identities/source offsets; whole-program
+ownership/type checking still runs. No checked arena or user-value lifetime is reused.
+
+Three session tests compare fresh and retained diagnostics/emission across unchanged
+builds, leaf edits, type changes, default imports, semantic errors and recovery,
+module removal, recursive views, file cleanup and test registration. Two existing
+default-export native tests also pass. Original missing-API failure and passing
+records are stored as `tsrust-project-session-*` in SQLite.
+
+This is a frontend layer, not completed incremental dev compilation. Header graph
+loading still runs afresh; the CLI does not yet keep a ProjectSession alive across
+dev builds. Next integrate retained graph/header inputs and a persistent dev build
+worker, preserve cancellation/last-good behavior, and prove installed reuse. No
+speedup or full retained-state acceptance is claimed from these tests alone.
