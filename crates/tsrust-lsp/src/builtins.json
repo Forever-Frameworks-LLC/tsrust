@@ -6104,4 +6104,102 @@
     ]
   }
 ]
+,
+  "std:json": [
+  {
+    "name": "JsonValue",
+    "signature": "type JsonValue",
+    "parameters": [],
+    "documentation": "An owned strict JSON value: null, boolean, number, string, array or object. Obtain values with parse; inspect their category with kind and encode with stringify. No public fields or direct record construction. Null is a JSON value; undefined is not. Object keys are sorted lexicographically and duplicate keys keep the last value. Signed 64-bit and unsigned 64-bit integers remain exact; other numeric values use finite floating point, including negative zero. Larger integer tokens may round as floating point. Cycles and shared object identity cannot be represented.\n\n```tsrust\nimport {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: null. Ownership: independent owned storage; explicit clone recursively copies the value. No input borrow survives parsing.",
+    "examples": [
+      {
+        "source": "import {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
+        "output": "null\n"
+      }
+    ]
+  },
+  {
+    "name": "JsonError",
+    "signature": "type JsonError = { code: string; message: string; offset: int }",
+    "parameters": [],
+    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit and output-limit. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits use zero. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
+    "examples": [
+      {
+        "source": "import {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",
+        "output": "trailing-data 5\n"
+      }
+    ]
+  },
+  {
+    "name": "JsonLimits",
+    "signature": "type JsonLimits = { maxBytes: int; maxDepth: int; maxEntries: int; maxNodes: int }",
+    "parameters": [],
+    "documentation": "Sets parse budgets. All four fields are required nonnegative integers. maxBytes bounds UTF-8 input bytes, maxDepth bounds nested containers and cannot exceed 64, maxEntries bounds each array/object including duplicate object entries, and maxNodes bounds total JSON values including containers but excluding object keys. Zero is allowed. Scalars have depth zero. When limits are omitted, defaults are 16777216 bytes, 64 levels, 1000000 entries per collection and 1000000 values. Invalid settings return invalid-limits.\n\n```tsrust\nimport {parse,JsonLimits} from \"std:json\"; function main(){const limits:JsonLimits={maxBytes:20,maxDepth:2,maxEntries:1,maxNodes:10};match(parse(\"[1,2]\",limits)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: entry-limit. Ownership: parse reads this record without consuming or mutating it.",
+    "examples": [
+      {
+        "source": "import {parse,JsonLimits} from \"std:json\"; function main(){const limits:JsonLimits={maxBytes:20,maxDepth:2,maxEntries:1,maxNodes:10};match(parse(\"[1,2]\",limits)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
+        "output": "entry-limit\n"
+      }
+    ]
+  },
+  {
+    "name": "parse",
+    "signature": "parse(text: ReadOnly<string>, limits?: ReadOnly<JsonLimits>): Result<JsonValue, JsonError>",
+    "parameters": [
+      {
+        "label": "text: ReadOnly<string>",
+        "documentation": "Required strict JSON document. UTF-8 byte length is bounded by maxBytes."
+      },
+      {
+        "label": "limits?: ReadOnly<JsonLimits>",
+        "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 return invalid-limits."
+      }
+    ],
+    "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes.\n\n```tsrust\nimport {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: null. Ownership: borrows both arguments; the result owns all parsed storage and can outlive the input.",
+    "examples": [
+      {
+        "source": "import {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
+        "output": "null\n"
+      }
+    ]
+  },
+  {
+    "name": "kind",
+    "signature": "kind(value: ReadOnly<JsonValue>): string",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<JsonValue>",
+        "documentation": "Required JSON value to inspect without mutation."
+      }
+    ],
+    "documentation": "Returns the JSON category: null, boolean, number, string, array or object. The value argument is required; there are no optional arguments or validation errors. Does not inspect, convert or mutate child values. JSON null reports \"null\".\n\n```tsrust\nimport {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: null. Ownership: borrows value without consuming it; returns an independent category string.",
+    "examples": [
+      {
+        "source": "import {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
+        "output": "null\n"
+      }
+    ]
+  },
+  {
+    "name": "stringify",
+    "signature": "stringify(value: ReadOnly<JsonValue>, maxBytes?: int): Result<string, JsonError>",
+    "parameters": [
+      {
+        "label": "value: ReadOnly<JsonValue>",
+        "documentation": "Required JSON value. Its contents are not mutated or consumed."
+      },
+      {
+        "label": "maxBytes?: int",
+        "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values return invalid-limits."
+      }
+    ],
+    "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged.\n\n```tsrust\nimport {parse,stringify} from \"std:json\"; function main(){match(parse('{\"z\":1,\"a\":2}')){Ok(value)=>{match(stringify(value)){Ok(text)=>{console.log(text);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value; the output string owns independent storage.",
+    "examples": [
+      {
+        "source": "import {parse,stringify} from \"std:json\"; function main(){match(parse('{\"z\":1,\"a\":2}')){Ok(value)=>{match(stringify(value)){Ok(text)=>{console.log(text);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+        "output": "{\"a\":2,\"z\":1}\n"
+      }
+    ]
+  }
+]
 }

@@ -1,5 +1,6 @@
 //! Separate compiler-owned runtime modules from program-specific ABI bridges.
-//! Standalone `emit` output remains self-contained. This is not a Rust parser:
+//! Emit retains bundled modules; JSON also needs its dependency package.
+//! Self-contained package export is tracked in the JSON plan. This is not a Rust parser:
 //! only exact bundled module definitions produced by our emitter are extracted.
 pub struct Units {
     pub application:String,
@@ -22,7 +23,7 @@ pub(crate) fn path_module()->String {
 }
 /// Compiler-owned JSON support; public language bindings are implemented separately.
 pub fn json_module()->String {
-    format!("mod tsrust_native_json {{\n{}\n}}\n", include_str!("stdlib/json/mod.rs").lines().filter(|line| !line.starts_with("//!")).collect::<Vec<_>>().join("\n"))
+    format!("mod tsrust_native_json {{\n{}\n}}\n", include_str!("stdlib/json/runtime.rs"))
 }
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.

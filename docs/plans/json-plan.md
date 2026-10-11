@@ -1,8 +1,10 @@
 # S10 JSON
 
-Status: private bounded decoding, automatic native dependency linking and artifact
-reuse pass focused checks. No public `std:json` binding is available yet. S09 is
-accepted; S10 remains open.
+Status: the first public dynamic slice (`parse`, `stringify`, `kind`, `JsonValue`,
+`JsonError`, `JsonLimits`) passes focused compiler/native/editor checks in source.
+Matched benchmark support, JSON-aware emit distribution and installed acceptance
+remain open, so this implementation slice is not yet accepted. S09 is accepted;
+S10 remains open.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
@@ -30,23 +32,23 @@ S10 must retain the typed decoder boundary and allocation evidence needed for it
 
 ## Current private backend
 
-`stdlib/json/mod.rs` is currently test-only. It uses a DeserializeSeed visitor so
+`stdlib/json/runtime.rs` supplies both the emitted native runtime and backend tests. It uses a DeserializeSeed visitor so
 input bytes are checked before parsing, values are counted before decoding, and
 array/object entry budgets stop the next value/key before construction. Duplicate
 object entries count against the budget even when replacing an earlier value.
 Container nesting has a maximum of 64; Serde's independent recursion guard stays
-enabled. Scalar values do not add container depth. These limits are internal test
-parameters, not published default settings.
+enabled. Scalar values do not add container depth. The public parse defaults are 16 MiB of UTF-8 input, 64 container levels, one million
+entries per collection and one million total values; a complete JsonLimits record
+can override them.
 
 The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
-These are backend observations; public number conversion and object-order contracts
-must be documented and tested explicitly during binding design. Null is a JSON
+The initial public slice documents these rules; numeric extraction/construction
+and typed conversion remain pending. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
-The private backend now returns structured codes, byte offsets and fixed redacted
-messages. Public error records and their editor documentation remain required before
-publication.
+Errors now cross the public Result boundary as JsonError records containing code,
+message and a byte offset. Their editor documentation and examples are checked.
 
 Reference: [locked serde_json Deserializer](https://docs.rs/serde_json/1.0.151/serde_json/struct.Deserializer.html).
 The decoder checks `end()` after one value and rejects trailing non-whitespace.
@@ -152,3 +154,32 @@ code, and Display/Debug redaction. The generated native runtime also verifies an
 error's code, byte offset and redacted message before and after artifact-cache reuse.
 SQLite retains red, green, boundary, native and formatting evidence under
 `tsrust-s10-errors-*`. This is private backend acceptance, not public API acceptance.
+
+
+## First public dynamic slice: implementation, acceptance still open
+
+The source compiler now exposes parse, stringify and kind, plus JsonValue,
+JsonError and JsonLimits. Parse accepts an optional read-only limits record;
+stringify accepts an optional output-byte cap (16 MiB by default). Both return
+Result rather than throwing validation failures. Kind returns one of six category
+strings. Values own their trees, explicit clone copies them deeply, and opaque
+construction, ordinary field inspection and implicit extraction are unavailable.
+
+Focused native checks cover a returned value outliving its input, a saved parse
+callable, cloning, duplicate-key replacement, sorted encoding, Unicode, errors and
+limits in debug and release. Invalid arity/types and fabricated JsonValue records
+reject. All six catalog examples execute through the CLI. Editor checks cover
+aliased hover, optional parameter help and every module export in completion.
+The native error-effect registry now explicitly classifies these Result-returning
+operations as nonthrowing; the first public witness exposed the missing entry.
+Encoding tests additionally check exact UTF-8/escape byte budgets and numeric
+boundaries. Whole-project formatting and logs use `tsrust-s10-public-*` in SQLite.
+
+Before accepting this slice, finish matched TypeScript sources, independent
+oracles, ABI/driver support, source guards/hashes and quick untimed comparisons.
+The existing benchmark driver compiles emitted Rust directly and therefore needs
+the same automatic dependency packaging as CLI builds. Implement a self-contained
+package export for emitted JSON programs rather than asking users or benchmark
+callers to locate Rust libraries. Then verify installed consumers outside the
+repository. Dynamic child inspection/construction, typed decoding/encoding,
+borrowed/raw fragments, streaming and family measurement acceptance remain open.

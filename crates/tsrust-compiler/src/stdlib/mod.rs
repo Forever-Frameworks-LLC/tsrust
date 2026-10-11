@@ -18,5 +18,4 @@ pub(crate) fn source(module: &str) -> Option<&'static str> {
 pub(crate) mod env;
 pub(crate) mod time;
 
-#[cfg(test)]
-mod json;
+pub(crate) mod json;

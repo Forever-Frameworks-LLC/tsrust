@@ -45,7 +45,7 @@ pub struct NativeParameter {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeBackend {
-    /// Bundled generated Rust code; no external package graph or network access.
+    /// Bundled generated Rust code and compiler-owned dependencies; no user package graph or build-time network access.
     Bundled { symbol: &'static str },
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,6 +96,9 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::json::bindings::PARSE,
+    crate::stdlib::json::bindings::STRINGIFY,
+    crate::stdlib::json::bindings::KIND,
     crate::stdlib::env::bindings::GET,
     crate::stdlib::time::MONOTONIC_NOW,
     crate::stdlib::fs_bindings::BUFFER_READER,
