@@ -1,4 +1,4 @@
-//! Private S10 backend. Public bindings and native dependency packaging follow separately.
+//! Private S10 backend. Public language bindings follow separately.
 use serde_json::Value;
 
 #[derive(Clone, Copy, Debug)]
@@ -9,27 +9,66 @@ pub struct Limits {
     pub nodes: usize,
 }
 
-pub fn parse(input: &[u8], limits: Limits) -> Result<Value, String> {
-    if input.len() > limits.bytes { return Err("JSON input byte limit exceeded".into()); }
+/// Structured private backend failure. No input bytes are retained or formatted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Error {
+    pub code: &'static str,
+    pub message: &'static str,
+    pub offset: usize,
+}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} at byte {}", self.message, self.offset)
+    }
+}
+impl std::error::Error for Error {}
+fn message(code: &str) -> &'static str {
+    match code {
+        "byte-limit" => "JSON input byte limit exceeded",
+        "depth-limit" => "JSON nesting limit exceeded",
+        "entry-limit" => "JSON collection entry limit exceeded",
+        "node-limit" => "JSON value count limit exceeded",
+        "invalid-limits" => "JSON depth limit must not exceed 64",
+        "invalid-utf8" => "JSON input is not valid UTF-8",
+        "unexpected-end" => "JSON input ended before the value was complete",
+        "trailing-data" => "JSON input contains trailing non-whitespace data",
+        _ => "JSON input is invalid",
+    }
+}
+fn failure(code: &'static str, offset: usize) -> Error { Error { code, message: message(code), offset } }
+fn located(input: &[u8], error: serde_json::Error, code: Option<&'static str>) -> Error {
+    let code = code.unwrap_or(if error.is_eof() { "unexpected-end" } else { "invalid-json" });
+    if error.is_eof() && code == "unexpected-end" { return failure(code, input.len()); }
+    let start = if error.line() <= 1 { 0 } else {
+        input.iter().enumerate().filter(|(_, byte)| **byte == b'\n').nth(error.line() - 2).map_or(input.len(), |(index, _)| index + 1)
+    };
+    failure(code, start.saturating_add(error.column().saturating_sub(1)).min(input.len()))
+}
+pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
+    if input.len() > limits.bytes { return Err(failure("byte-limit", limits.bytes)); }
     // Keep Serde's own recursion guard enabled as a second independent bound.
-    if limits.depth > 64 { return Err("JSON depth limit must not exceed 64".into()); }
-    let mut budget = Budget { limits, nodes: 0 };
+    if limits.depth > 64 { return Err(failure("invalid-limits", 0)); }
+    if let Err(error) = std::str::from_utf8(input) { return Err(failure("invalid-utf8", error.valid_up_to())); }
+    let mut budget = Budget { limits, nodes: 0, failed: None };
     let mut decoder = serde_json::Deserializer::from_slice(input);
     let value = serde::de::DeserializeSeed::deserialize(
         Seed { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
-    ).map_err(|error| error.to_string())?;
-    decoder.end().map_err(|error| error.to_string())?;
+    ).map_err(|error| located(input, error, budget.failed))?;
+    decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
     Ok(value)
 }
 
-struct Budget { limits: Limits, nodes: usize }
+struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str> }
+impl Budget {
+    fn fail(&mut self, code: &'static str) -> &'static str { self.failed = Some(code); message(code) }
+}
 struct Seed<'a> { budget: &'a mut Budget, depth: usize, permitted: bool }
 impl<'de> serde::de::DeserializeSeed<'de> for Seed<'_> {
     type Value = Value;
     fn deserialize<D: serde::Deserializer<'de>>(self, decoder: D) -> Result<Value, D::Error> {
         use serde::de::Error;
-        if !self.permitted { return Err(D::Error::custom("JSON collection entry limit exceeded")); }
-        if self.budget.nodes >= self.budget.limits.nodes { return Err(D::Error::custom("JSON value count limit exceeded")); }
+        if !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
+        if self.budget.nodes >= self.budget.limits.nodes { return Err(D::Error::custom(self.budget.fail("node-limit"))); }
         self.budget.nodes += 1;
         decoder.deserialize_any(self)
     }
@@ -48,7 +87,7 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
     fn visit_string<E: serde::de::Error>(self, value: String) -> Result<Value, E> { Ok(Value::String(value)) }
     fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut sequence: A) -> Result<Value, A::Error> {
         use serde::de::Error;
-        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom("JSON nesting limit exceeded")); }
+        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
         let mut values = Vec::new();
         loop {
             let permitted = values.len() < self.budget.limits.entries;
@@ -59,11 +98,11 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
     }
     fn visit_map<A: serde::de::MapAccess<'de>>(self, mut object: A) -> Result<Value, A::Error> {
         use serde::de::Error;
-        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom("JSON nesting limit exceeded")); }
+        if self.depth >= self.budget.limits.depth { return Err(A::Error::custom(self.budget.fail("depth-limit"))); }
         let mut values = serde_json::Map::new();
         let mut entries = 0;
         // Count input entries, including duplicates, rather than the final map size.
-        while let Some(key) = object.next_key_seed(KeySeed(entries < self.budget.limits.entries))? {
+        while let Some(key) = object.next_key_seed(KeySeed { permitted: entries < self.budget.limits.entries, budget: self.budget })? {
             let value = object.next_value_seed(Seed { budget: self.budget, depth: self.depth + 1, permitted: true })?;
             values.insert(key, value);
             entries += 1;
@@ -71,12 +110,12 @@ impl<'de> serde::de::Visitor<'de> for Seed<'_> {
         Ok(Value::Object(values))
     }
 }
-struct KeySeed(bool);
-impl<'de> serde::de::DeserializeSeed<'de> for KeySeed {
+struct KeySeed<'a> { permitted: bool, budget: &'a mut Budget }
+impl<'de> serde::de::DeserializeSeed<'de> for KeySeed<'_> {
     type Value = String;
     fn deserialize<D: serde::Deserializer<'de>>(self, decoder: D) -> Result<String, D::Error> {
         use serde::de::Error;
-        if !self.0 { return Err(D::Error::custom("JSON collection entry limit exceeded")); }
+        if !self.permitted { return Err(D::Error::custom(self.budget.fail("entry-limit"))); }
         serde::Deserialize::deserialize(decoder)
     }
 }
@@ -86,11 +125,33 @@ mod tests {
     use super::*;
     fn limits() -> Limits { Limits { bytes: 1024, depth: 4, entries: 3, nodes: 20 } }
     #[test]
+    fn errors_have_codes_byte_offsets_and_no_input_contents() {
+        for (input,code,offset) in [
+            (b"null secret".as_slice(),"trailing-data",5),
+            (b"[1,".as_slice(),"unexpected-end",3),
+            (b"".as_slice(),"unexpected-end",0),
+            (b" \r\n".as_slice(),"unexpected-end",3),
+            ("\"é".as_bytes(),"unexpected-end",3),
+            (b"[1,\r\n]".as_slice(),"invalid-json",5),
+            ("[\"é\",\nsecret]".as_bytes(),"invalid-json",7),
+            (&[b'"',0xff,b'"'],"invalid-utf8",1),
+        ] {
+            let error=parse(input,limits()).unwrap_err();
+            assert_eq!(error.code,code);assert_eq!(error.offset,offset);
+            assert!(!error.to_string().contains("secret"));assert!(!error.message.contains("secret"));assert!(!format!("{error:?}").contains("secret"));
+        }
+        assert_eq!(parse(b"null",Limits{bytes:3,..limits()}).unwrap_err().code,"byte-limit");
+        assert_eq!(parse(b"[]",Limits{depth:0,..limits()}).unwrap_err().code,"depth-limit");
+        assert_eq!(parse(b"[0,1]",Limits{entries:1,..limits()}).unwrap_err().code,"entry-limit");
+        assert_eq!(parse(b"[0]",Limits{nodes:1,..limits()}).unwrap_err().code,"node-limit");
+        assert_eq!(parse(b"null",Limits{depth:65,..limits()}).unwrap_err().code,"invalid-limits");
+    }
+    #[test]
     fn exhausted_budgets_stop_before_decoding_the_next_value_or_key() {
         let one = Limits { entries: 1, ..limits() };
-        assert!(parse(b"[0,invalid]", one).unwrap_err().contains("entry limit"));
-        assert!(parse(br#"{"a":0,"unterminated"#, one).unwrap_err().contains("entry limit"));
-        assert!(parse(b"[invalid]", Limits { nodes: 1, ..limits() }).unwrap_err().contains("value count"));
+        assert!(parse(b"[0,invalid]", one).unwrap_err().message.contains("entry limit"));
+        assert!(parse(br#"{"a":0,"unterminated"#, one).unwrap_err().message.contains("entry limit"));
+        assert!(parse(b"[invalid]", Limits { nodes: 1, ..limits() }).unwrap_err().message.contains("value count"));
         assert!(parse(b"null", Limits { nodes: 0, ..limits() }).is_err());
         assert!(parse(b"null", Limits { depth: 0, ..limits() }).is_ok());
         assert!(parse(b"{}", Limits { depth: 0, ..limits() }).is_err());

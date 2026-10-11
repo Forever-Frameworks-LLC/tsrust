@@ -12,6 +12,11 @@ fn json_runtime_links_automatically_and_survives_application_edits() {
  for (index,expected) in [(0,"42\n"),(1,"43\n")] {
   let temporary=dir.0.join(format!("build-{index}"));std::fs::create_dir(&temporary).unwrap();
   let source=format!("{}\nfn main() {{ let value=tsrust_native_json::parse(b\"{}\",tsrust_native_json::Limits{{bytes:100,depth:4,entries:4,nodes:10}}).unwrap(); println!(\"{{}}\",value); }}",tsrust_compiler::native_runtime::json_module(),42+index);
+  let source=source.replace("fn main() {",r#"fn main() {
+   let error=tsrust_native_json::parse(b"null secret",tsrust_native_json::Limits{bytes:100,depth:4,entries:4,nodes:10}).unwrap_err();
+   assert_eq!(error.code,"trailing-data");assert_eq!(error.offset,5);
+   assert!(!error.to_string().contains("secret"));
+  "#);
   let mut prepared=(if index==0 {runtime_build::Prepared::new(&source,"test-pinned-backend",&cache,&temporary,false)} else {runtime_build::Prepared::for_dev(&source,"test-pinned-backend",&cache,&temporary,false)}).unwrap();
   assert_eq!(prepared.state,if index==0{"miss"}else{"hit"});
   if let Some(mut command)=prepared.command.take() {

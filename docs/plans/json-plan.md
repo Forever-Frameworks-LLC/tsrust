@@ -44,8 +44,9 @@ remain exact, floating negative zero survives, and nonfinite input numbers fail.
 These are backend observations; public number conversion and object-order contracts
 must be documented and tested explicitly during binding design. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
-Error strings are currently private backend diagnostics; stable public error codes,
-byte offsets and input-redaction guarantees remain required before publication.
+The private backend now returns structured codes, byte offsets and fixed redacted
+messages. Public error records and their editor documentation remain required before
+publication.
 
 Reference: [locked serde_json Deserializer](https://docs.rs/serde_json/1.0.151/serde_json/struct.Deserializer.html).
 The decoder checks `end()` after one value and rejects trailing non-whitespace.
@@ -125,3 +126,29 @@ formatting evidence are retained in SQLite under `tsrust-s10-link-*`.
 This is private backend integration acceptance. Public bindings, editor examples,
 JSON-aware emit distribution, installed JSON execution, matched benchmark support
 and S10 family measurements remain open.
+
+
+## Private structured errors
+
+Decoding failures now carry `code`, `message` and `offset` without retaining input.
+Messages are fixed text; Display and Debug expose no document values or keys.
+Codes distinguish invalid JSON, invalid UTF-8, unexpected end, trailing data,
+invalid limit settings, and byte/depth/entry/node limits. Budget failures set an
+explicit failure code before returning through Serde; no backend-message matching
+or input-dependent strings are used to classify them.
+
+Offsets count UTF-8 bytes from zero. Unexpected end points one past the last byte;
+invalid UTF-8 points to the first invalid sequence. A byte-limit failure points to
+the first excluded byte, and invalid limit settings point to zero. Other failures
+convert the backend's one-based line/byte-column into a bounded input offset. For
+resource limits, this is the parser checkpoint where the budget stopped decoding,
+which may be a delimiter before the next value. Input-size and limit-setting checks
+precede UTF-8 validation; syntax decoding follows. UTF-8 validation currently scans
+the bounded input before decoding; its cost belongs in the S10 measurements.
+
+Focused tests cover empty and whitespace-only input, CRLF, non-ASCII bytes before
+an error, incomplete strings, trailing content, invalid UTF-8, every resource-limit
+code, and Display/Debug redaction. The generated native runtime also verifies an
+error's code, byte offset and redacted message before and after artifact-cache reuse.
+SQLite retains red, green, boundary, native and formatting evidence under
+`tsrust-s10-errors-*`. This is private backend acceptance, not public API acceptance.
