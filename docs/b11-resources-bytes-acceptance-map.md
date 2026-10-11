@@ -434,3 +434,38 @@ formatting changes no file. Running the partial-return witness explicitly still
 fails with `try local survived into finally` (0 observed, 1 expected), as retained
 in `tsrust-finally-lexical-partial-residual.log`. No editor behavior or benchmark
 source changed; family regressions and measurements remain pending.
+
+### Partial-field completion transport and lexical disposal
+
+Ordinary partial returns now transport surviving fields on Normal completion.
+Real body scopes dispose try/catch locals before finally; normal fields are restored
+before cleanup, and cleanup survivors are restored directly in final Normal dispatch.
+Body, Handled and Cleaned ownership snapshots distinguish fields returned or consumed
+by cleanup. Untouched siblings keep their original storage and borrows. Conditional
+and unconditional returns, nested cleanup, eligible catches, default parameters,
+local records, cleanup replacement and normal field continuation are covered.
+No implicit clones, dummy values or manual whole-record drops were added.
+
+The original partial-return disposal witness is enabled. Native O0/O3 checks prove
+returned allocation identity and exact local disposal. Forty-three finally unit
+checks pass; one Map partial-return disposal witness remains ignored and explicitly
+fails when run. Remaining fallback routes include Map carriers, escaping controls,
+catches after body-field transfers and specialized/capture record layouts. Resource
+acceptance remains open until these routes are resolved and verified.
+
+Focused results: 21 exception-handling tests, 18 return-move tests, 4 generic-call
+exception tests, 3 native-region tests, 17 scoped-record finally tests and 6 editor
+exception tests pass. Formatter corpus token preservation/idempotence passes.
+Whole-project formatting changes zero files and fingerprints. The rebuilt release
+passes the public owned-return assertion fixture. Benchmark registration checks
+pass (3); five matched native/Node-after-tsc cases agree in SQLite record
+`runtime/results/2026-10-11T04-04-21-702Z-verify.json`. Its execution list is empty:
+this is untimed verification, not measured acceptance. The workload, independent
+oracle, matched TypeScript and mutation guards include conditional finally returns.
+
+Exact red and repaired logs use SQLite prefix `tsrust-finally-field-transport-`.
+An intermediate integration failure came from emitting a dead catch and checking
+only keyword-sized statement spans for nested transfers; both were repaired, the
+affected target rerun, and the previously unrun targets completed. Installed
+consumers remain `4367f4cc`. Recursive callable storage, gate 190 and S07 acceptance
+remain pending. No full family regression or timing ran at this checkpoint.

@@ -36,6 +36,14 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: number[]): str
   return value.text;
 }
 
+type CleanupChoice = {first: string; second: string;};
+function conditionalCleanup(value: string, early: boolean, replace: boolean): string {
+  const pair: CleanupChoice = {first: value, second: "alternate"};
+  try { if (early) { return pair.first; } }
+  finally { if (replace) { return pair.second; } }
+  return pair.second;
+}
+
 function workload(n: number, seed: number, input: string): string[][] {
  const output:string[][]=[];let i=0;
  while(i<n){
@@ -45,7 +53,8 @@ function workload(n: number, seed: number, input: string): string[][] {
   const owned = retained(input + String(value), value % 2 === 0, trace);
     const field = retainedField({text: owned, stamp: 11}, value % 2 === 0, trace);
     const mapped = retainedMap({text: field, stamp: 1}, value % 2 === 0, trace);
-  output.push([String(result),String(replaced(value)),trace.join(","),mapped]);
+  const selected = conditionalCleanup(mapped, value % 2 === 0, value % 3 === 0);
+  output.push([String(result),String(replaced(value)),trace.join(","),selected]);
   i=i+1;
  }
  return output;

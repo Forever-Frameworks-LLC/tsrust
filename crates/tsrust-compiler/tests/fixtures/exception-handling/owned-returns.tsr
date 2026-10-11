@@ -51,6 +51,20 @@ function takeWithCallbacks(row: Row, early: boolean, trace: int[]): string {
   return row.name;
 }
 
+function selectWithCleanup(row: Row, early: boolean, replace: boolean): string {
+  try {
+    if (early) {
+      return row.name;
+    }
+  } finally {
+    if (replace) {
+      return row.other;
+    }
+  }
+
+  return row.other;
+}
+
 function main() {
   const trace: int[] = [];
   strictEqual(take({
@@ -68,4 +82,16 @@ function main() {
     name: "second", other: "two"
   }, false, callbackTrace), "second");
   strictEqual(callbackTrace.join(","), "3,7");
+  strictEqual(selectWithCleanup({
+    name: "left", other: "right"
+  }, true, false), "left");
+  strictEqual(selectWithCleanup({
+    name: "left", other: "right"
+  }, false, false), "right");
+  strictEqual(selectWithCleanup({
+    name: "left", other: "right"
+  }, true, true), "right");
+  strictEqual(selectWithCleanup({
+    name: "left", other: "right"
+  }, false, true), "right");
 }

@@ -154,3 +154,16 @@ fn map_return_runs_enclosing_plain_cleanup_before_leaving() {
     runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];try{const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{console.log(a.other,handlers.size);}}finally{console.log(\"outer\",a.other);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one 1\nouter one\ntwo 1\nouter two\nx y\n");
 
 }
+
+#[test]
+fn field_transport_restores_default_parameter_and_local_owners() {
+    runs("type Row={name:string;other:string;};function pick(early:boolean,a:Row={name:\"default\",other:\"s\"}):string{try{if(early){return a.name;}}finally{console.log(a.other);}return a.name;}function main(){console.log(pick(true),pick(false),pick(false,{name:\"custom\",other:\"t\"}));}","s\ns\nt\ndefault default custom\n");
+    runs("type Row={name:string;other:string;};function pick(early:boolean):string{const a:Row={name:\"local\",other:\"sibling\"};try{if(early){return a.name;}}finally{console.log(a.other);}return a.name;}function main(){console.log(pick(true),pick(false));}","sibling\nsibling\nlocal local\n");
+}
+
+#[test]
+fn conditional_cleanup_return_keeps_other_field_on_normal_path() {
+    runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean,replace:boolean):string{try{if(early){return a.name;}}finally{if(replace){return a.other;}}return a.other;}function main(){console.log(pick({name:\"left\",other:\"right\"},true,false),pick({name:\"left\",other:\"right\"},false,false),pick({name:\"left\",other:\"right\"},true,true),pick({name:\"left\",other:\"right\"},false,true));}","left right right right\n");
+    runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{a.name=\"new\";const taken=a.name;console.log(taken);}return \"done\";}function main(){console.log(pick({name:\"left\",other:\"right\"},true),pick({name:\"left\",other:\"right\"},false));}","new\nnew\nleft done\n");
+
+}

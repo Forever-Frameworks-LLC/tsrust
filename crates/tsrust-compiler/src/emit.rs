@@ -54,6 +54,8 @@ mod map_block_storage_emit;
 mod restored_capture_slots;
 #[path = "finally_move_slots.rs"]
 mod finally_move_slots;
+#[path = "field_completion_transport.rs"]
+mod field_completion_transport;
 #[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
@@ -1721,6 +1723,12 @@ impl Emitter<'_> {
     }
     fn parameter_initialization(&self, output: &mut String, fun: &CheckedFunction, indent: usize) {
         for id in 0..fun.parameter_count {
+            if self.finally_moves.partial_root(fun,id) && !self.restored_capture(fun,id)
+                && fun.bindings[id].mode==Mode::Consume && self.owned_record_layout(fun,id).is_none() {
+                let _=writeln!(output,"{}let mut value{id}=value{id};","    ".repeat(indent));
+            }
+        }
+        for id in 0..fun.parameter_count {
             if fun.bindings[id].input_ty.is_none(){if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
         }
         for id in 0..fun.bindings.len() {
@@ -3312,6 +3320,9 @@ impl Emitter<'_> {
         let (in_decl,in_name)=if let Some(handler)=&region.catch {
             self.completion_error_layout(&format!("RegionIncoming{first}"),handler.error_contract.as_deref().expect("checked catch contract"),runtime,statement.span)
         }else{(String::new(),out_name.clone())};
+        if let Some(transport)=self.field_completion_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
+            return format!("{{ {in_decl} {out_decl} {transport} }}");
+        }
         let pending=self.completion_handlers(fun,region,(first,first+1,first+2),(&in_name,&out_name),outgoing.clone(),runtime);
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let widened=exception_contract_emit::checked_completion_conversion(&pending,&out_name,&outer_name,&outgoing,&outer_contract,&unions,runtime,statement.span).expect("checked enclosing error contract");
@@ -3351,10 +3362,15 @@ impl Emitter<'_> {
         let partial_return=exception_contract_emit::has_partial_return(fun,&region.body)
             || region.catch.as_ref().is_some_and(|handler|exception_contract_emit::has_partial_return(fun,&handler.body))
             || region.finally.as_ref().is_some_and(|body|exception_contract_emit::has_partial_return(fun,body));
+        let terminal_body=crate::completion::definitely_abrupt(&region.body,0)
+            && region.catch.as_ref().is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body,0))
+            && exception_contract_emit::escaping_controls(&region.body).is_empty()
+            && region.catch.as_ref().is_none_or(|handler|exception_contract_emit::escaping_controls(&handler.body).is_empty())
+            && region.finally.as_ref().is_none_or(|body|exception_contract_emit::escaping_controls(body).is_empty());
         let inline_exit=||{
             // Retain the lexical body boundary whenever initialized root slots
             // suffice. Its locals must drop before cleanup executes.
-            if cleanup.is_some() && !partial_return{return None;}
+            if cleanup.is_some() && (!partial_return || terminal_body){return None;}
             if self.cleanup_replaces_exits.get() || !self.exception_regions.plain_return_destination(){return None;}
             let binding=format!("finally_exit{}",ids.0);
             let pending=binding.clone();
@@ -3675,7 +3691,7 @@ impl Emitter<'_> {
                     if let Some(declaration)=self.owned_record_declaration(fun,index,&initializer){let _=writeln!(output,"{indent}{declaration}");continue;}
                     format!(
                         "let {}value{index}: {} = {};",
-                        if b.mutable { "mut " } else { "" },
+                        if b.mutable || self.finally_moves.partial_root(fun,index) { "mut " } else { "" },
                         if matches!(b.ty, Type::Union(id) if self.program.unions[id.index()].members.iter().any(|member| matches!(member,Type::Callback(_))))
                             && Self::absent_callable_initializer(value)
                         {

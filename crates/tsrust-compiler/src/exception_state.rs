@@ -54,12 +54,14 @@ pub(super) struct CompletionStates {
 }
 impl CompletionStates {
     #[inline(never)]
-    pub(super) fn record_map_payloads(&self,exits:&mut storage_exit_availability::Exits,boundary:usize,phase:map_completion_payloads::Phase) {
+    pub(super) fn record_completion_storage(&self,exits:&mut storage_exit_availability::Exits,boundary:usize,phase:map_completion_payloads::Phase) {
         if let Some(state)=&self.normal {
+            exits.record_completion_owners(boundary,phase,None,&state.owners);
             let payloads=state.capture_loan_owners.map_payload_snapshot();
             if !payloads.is_empty() || exits.has_map_entry_survivors(){exits.record_map_completion_phase(boundary,phase,None,payloads);}
         }
         for (kind,state) in &self.exits {
+            exits.record_completion_owners(boundary,phase,Some(*kind),&state.owners);
             let payloads=state.capture_loan_owners.map_payload_snapshot();
             if !payloads.is_empty() || exits.has_map_entry_survivors(){exits.record_map_completion_phase(boundary,phase,Some(*kind),payloads);}
         }

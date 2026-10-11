@@ -26,70 +26,45 @@ Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
   slots. Partial-field direct cleanup routes landed in `eba57bd2`, preserving
   returned allocations and sibling liveness without cloning or placeholders.
 
-## Current checkpoint: Map callback storage through finally
+## Current checkpoint: lexical disposal through partial returns
 
-The retained `Closure(1) to Closure(0)` emitter panic is repaired. Return projections
-are limited to their body phase. Cleanup does not acquire a source return carrier
-merely because it preserves a pending return. Narrowed Map projections exclude
-impossible callback origins instead of converting their environments.
+Map callback return projections and cleanup carriers were repaired in `4d887f9d`.
+Whole-owner completion scopes were restored in `a26bda43`. This checkpoint extends
+lexical disposal to ordinary partial-field returns: Normal completions carry the
+surviving fields, while Return carries the returned value. Body locals leave their
+real Rust scope before cleanup. Normal fields are restored before cleanup and
+survivors restored again directly in the final Normal dispatch arm.
 
-`map_return_storage.rs` consumes a precise typed Map return payload and runs cleanup
-before direct exit. `map_catch_finally_storage.rs` applies the same route to body and
-catch returns. `exception_contract_emit.rs` preserves direct return/error dispatch
-through enclosing plain cleanup. Cleanup with no source control exit does not emit
-hypothetical break/continue paths. Ordinary, caught, replacement and nested Map
-returns pass, including Map declarations inside an enclosing try.
+Checked ownership snapshots now distinguish Body, Handled and Cleaned phases.
+Separate input/output field sets support conditional cleanup returns and fields
+consumed during cleanup. Original storage retains untouched siblings and their
+borrows. No cloning, dummy values or manual whole-record drops are introduced.
+Parameters and locals receive native mutability only where restoration needs it.
 
-The Map checkpoint passed 44 exception integration tests, 17 scoped-record
-finally tests and 35 finally unit tests. The latest lexical-boundary repair adds
-focused disposal coverage; see below. A partial-return disposal witness remains
-ignored and still fails when explicitly run. The separate Map native
-probe passes allocation identity and exact environment disposal at O0/O3. Formatter
-corpus, public assertion fixture, editor capture diagnostics and three benchmark
-registration checks pass. Whole-project formatting is unchanged. Exact red and
-repaired logs use the SQLite prefix `tsrust-map-finally-`.
+Focused native probes cover conditional/unconditional partial returns, nested
+cleanup, eligible catch returns, local record partial moves, allocation identity
+and exact disposal at O0/O3. Terminal return/throw bodies need no Normal field
+carrier and retain their lexical boundary directly. Escaping break/continue paths
+are excluded from that shortcut. Dead catches are not emitted by field transport;
+catch transfer guards include nested expression spans, not only statement spans
+(which can cover just an if/while keyword).
 
-The matched `exception_completion` workload now invokes the retained Map callback
-on each return path. Its independent expected trace ends in 4 or 8. Source hashes,
-mutation guards and Node-after-tsc support are current. See the acceptance map for
-the final untimed verification record. No timing or complete family regression ran.
+The original partial-return disposal witness is enabled and passes. Remaining
+ignored witness: `map_try_locals_drop_before_partial_return_cleanup` in
+`src/finally_move_slots.rs`. Explicit execution still observes zero disposals where
+one is required. Map carriers need integration with field transport. Escaping
+controls, catches after body-field transfers, capture/specialized record layouts
+also retain fallback routes and need coverage before broader finally acceptance.
+Do not accept resource cleanup yet.
 
-## Latest repair and next step: partial-field completion transport
-
-Regions without partial-field return transfers now keep their lexical completion
-boundary. Existing initialized root slots preserve whole-owner availability without
-inline cleanup. The original try-local disposal test is enabled; ordinary returns,
-conditionally moved local fields and renewed Map callbacks pass at O0/O3. The
-classification uses actual checked transfers within each return expression and
-ignores earlier field moves. The Map return hooks use the same restriction. Final
-focused checks pass: 38 finally unit tests, 44 exception tests, 17 scoped-record
-finally tests and the formatter corpus. Whole-project formatting changes no file;
-no editor behavior or benchmark source changed. No timing ran.
-
-`try_locals_drop_before_partial_field_return_cleanup` in `src/finally_move_slots.rs`
-is the remaining ignored native witness. A local inside try survives into inline
-cleanup on a partial-field return. Resource acceptance remains open. Do not replace
-this with manual drops that fail on conditional/partial local moves.
-
-A proposed replacement has executable native proof in SQLite:
-`tsrust-finally-normal-field-transport.rs` and `.log`. Carry affected outer fields in
-`TsrCompletion::Normal(fields)` as well as return payloads. The original body scope
-then exits normally and Rust disposes its locals. Match each completion before
-cleanup: restore normal fields inside the Normal arm, leave return-transferred
-fields unavailable in the Return arm, and retain untouched siblings in their
-original storage. Emit cleanup for each checked completion state. Transport the
-surviving fields on normal cleanup and restore them inside the final Normal dispatch
-arm. Do not first convert that completion back to Normal(()): doing so loses Rust's
-initialization proof again. The prototype verifies eight early/normal and cleanup
-outcomes at O0/O3, including a borrowed sibling, pointer identity, replacement/error
-and restored-field continuation. This is design evidence only; compiler integration
-must cover catches, nested cleanup, control exits and precise ownership snapshots.
-
-The previous release at `eba57bd2` reproduced the initial disposal defect. Its
-source/native code/log remain under `tsrust-finally-local-drop-`; current root-repair
-and residual partial-return evidence uses `tsrust-finally-lexical-`. The release
-scratch compiler still contains `4d887f9d` source; the debug compiler contains the
-latest repair. Installed consumers remain `4367f4cc`.
+The public owned-return fixture and matched `exception_completion` workload now
+exercise conditional returns from finally as well as normal field continuation.
+Independent oracle, matched TypeScript, mutation guards and source hashes are
+updated. Exact red/repaired evidence uses SQLite prefix
+`tsrust-finally-field-transport-`. No timing or full family regression ran.
+See the acceptance map for final focused counts and untimed verification record.
+Installed CLI/editor consumers remain `4367f4cc`; the scratch release is rebuilt
+from this checkpoint's source before acceptance.
 
 Then finish recursive stored callback fields, gate 190's resource backend and
 synchronous file proof, and S07 family acceptance: complete compiler/editor

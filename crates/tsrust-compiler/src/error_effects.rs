@@ -445,9 +445,15 @@ pub(crate) fn defer_unreferenced_error_definitions(program:&mut CheckedProgram) 
 }
 
 pub(crate) fn checked_expressions(function:&CheckedFunction)->Vec<&Expr> {
-        enum Node<'a>{Statement(&'a Stmt),Expression(&'a Expr)}
+    walk_checked_expressions(&function.body,function.bindings.iter().filter_map(|binding|binding.initializer.as_deref()))
+}
+pub(crate) fn body_expressions(body:&[Stmt])->Vec<&Expr> {
+    walk_checked_expressions(body,std::iter::empty())
+}
+fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=&'a Expr>)->Vec<&'a Expr> {
+        enum Node<'n>{Statement(&'n Stmt),Expression(&'n Expr)}
         let mut output=Vec::new();
-        let mut pending=function.body.iter().map(Node::Statement).chain(function.bindings.iter().filter_map(|binding|binding.initializer.as_deref()).map(Node::Expression)).collect::<Vec<_>>();
+        let mut pending=body.iter().map(Node::Statement).chain(initializers.map(Node::Expression)).collect::<Vec<_>>();
         while let Some(node)=pending.pop() {
             match node {
                 Node::Statement(statement)=>{

@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<discarded_sequence::Sites>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<discarded_sequence::Sites>>, Option<Box<HashMap<usize,Vec<CompletionOwners>>>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     /// Working family includes every reaching iteration origin, even when the
@@ -82,7 +82,33 @@ mod map_entry_tests {
 }
 #[derive(Clone, Debug)]
 struct Unavailable { binding: usize, root: Option<Span>, fields: Vec<(Vec<String>, Span)> }
+#[derive(Clone,Debug)]
+struct CompletionOwners {
+    phase:map_completion_payloads::Phase,
+    kind:Option<crate::completion::CompletionKind>,
+    bindings:usize,
+    unavailable:Vec<Unavailable>,
+}
 impl Exits {
+    pub(super) fn record_completion_owners(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,owners:&[Availability]) {
+        let unavailable=owners.iter().enumerate().filter_map(|(binding,owner)|(owner.transferred.is_some() || !owner.fields.is_empty()).then(||Unavailable{binding,root:owner.transferred,fields:owner.fields.iter().map(|(path,span)|(path.clone(),*span)).collect()})).collect::<Vec<_>>();
+        let states=self.19.get_or_insert_with(Default::default).entry(boundary).or_default();
+        if let Some(previous)=states.iter_mut().find(|state|state.phase==phase && state.kind==kind) {
+            previous.bindings=previous.bindings.min(owners.len());
+            for entry in unavailable {
+                if let Some(old)=previous.unavailable.iter_mut().find(|old|old.binding==entry.binding) {
+                    old.root=old.root.or(entry.root);
+                    for field in entry.fields {if !old.fields.iter().any(|(path,_)|*path==field.0){old.fields.push(field);}}
+                }else{previous.unavailable.push(entry);}
+            }
+        }else{states.push(CompletionOwners{phase,kind,bindings:owners.len(),unavailable});}
+    }
+    pub(crate) fn completion_field_available(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,place:&crate::capture_loan_owners::Place)->Option<bool> {
+        let state=self.19.as_ref()?.get(&boundary)?.iter().find(|state|state.phase==phase && state.kind==kind)?;
+        Some(place.binding<state.bindings && !state.unavailable.iter().any(|owner|owner.binding==place.binding
+            && (owner.root.is_some() || owner.fields.iter().any(|(field,_)|place.fields.starts_with(field) || field.starts_with(&place.fields)))))
+    }
+
     pub(super) fn record_bound_sequence(&mut self, span: Span) { self.18.get_or_insert_with(Default::default).bound_sequences.insert((span.start,span.end)); }
     pub(super) fn bound_sequence(&self, span: Span) -> bool { self.18.as_ref().is_some_and(|sites|sites.bound_sequences.contains(&(span.start,span.end))) }
     pub(super) fn record_sequence_export(&mut self, start: usize, binding: usize) { self.18.get_or_insert_with(Default::default).exports.insert(start,binding); }
@@ -297,6 +323,11 @@ impl Exits {
     pub(crate) fn partial_transfer_within(&self, point: (usize,usize), value: Span) -> bool {
         self.2.get(&point).is_some_and(|entries|entries.iter().any(|entry|entry.root.is_none()
             && entry.fields.iter().any(|(_,span)|span.start>=value.start && span.end<=value.end)))
+    }
+    pub(crate) fn partial_places_within(&self, point:(usize,usize), value:Span) -> Vec<crate::capture_loan_owners::Place> {
+        self.2.get(&point).into_iter().flatten().filter(|entry|entry.root.is_none()).flat_map(|entry|
+            entry.fields.iter().filter(move |(_,span)|span.start>=value.start && span.end<=value.end)
+                .map(move |(fields,_)|crate::capture_loan_owners::Place{binding:entry.binding,fields:fields.clone()})).collect()
     }
     pub(crate) fn transfer_at_exit(&self, body: &[Stmt], binding: usize, path: &[String]) -> Option<Span> {
         let (Some(first),Some(last))=(body.first(),body.last()) else {return None;};
