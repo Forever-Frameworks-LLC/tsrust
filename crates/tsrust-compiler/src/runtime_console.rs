@@ -801,15 +801,15 @@ fn tsr_console_test_capture(error:bool,text:&str)->bool {
         state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
     })
 }
-fn tsr_console_test_end() {
+fn tsr_console_test_end(show_scope:bool) {
     let state=TSR_CONSOLE_TEST.with(|slot|std::mem::take(&mut *slot.borrow_mut()));
     let Some(name)=state.name else{return;};
     use std::io::Write as _;
     for (error,location,text) in state.entries {
         let stream=if error {"stderr"} else {"stdout"};
-        let mut output=format!("     {stream} | {name}\n");
+        let mut output=if show_scope {format!("     {stream} | {name}\n")} else {format!("     {stream}\n")};
         if !location.is_empty(){output.push_str(&format!("       at {location}\n"));}
-        for line in text.lines(){output.push_str(&format!("      {line}\n"));}
+        for line in text.lines(){output.push_str(&format!("         {line}\n"));}
         if error {let _=std::io::stderr().lock().write_all(output.as_bytes());}
         else {let _=std::io::stdout().lock().write_all(output.as_bytes());}
     }

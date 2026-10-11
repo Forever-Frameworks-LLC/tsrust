@@ -58,7 +58,8 @@ compilation. Strict equality failures show expected and received values; object
 comparison still uses identity, even when printed contents look alike. Console output from each test and its per-test hooks appears
 below that test's result, with stdout/stderr labels and the original source file,
 line and column. Imported helpers point to their own source files. Multiline output
-is indented, and suite setup/teardown output is labeled separately. Output remains
+is indented beneath its source location. Test names are not repeated beside stream
+labels; suite setup/teardown output retains its separate scope label. Output remains
 on its original stream; logs are retained when a test fails. Colors follow
 terminal support and `--color auto|always|never`. Set `TSRUST_TEST_REPORTER=plain` for
 the compact line reporter used by older scripts. Direct `runTests()` calls retain
