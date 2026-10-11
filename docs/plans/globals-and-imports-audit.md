@@ -95,3 +95,9 @@ The complete cross-library audit remains open.
 All thirteen path, OS, environment and time exports have a
 [per-symbol review](globals-and-imports-host-audit.md). Explicit imports remain
 preferred; the existing throwing relative-path exception is recorded.
+
+## Storage review slice
+
+The sixteen byte and fifteen file exports have a
+[per-symbol review](globals-and-imports-storage-audit.md). Keep explicit imports,
+real borrowed views and consuming resource operations.
