@@ -48,8 +48,9 @@ Installed CLI/LSP acceptance is complete from `1db46101`. See [environment looku
 The required [dev-loop performance milestone](dev-loop-performance-plan.md) is now
 accepted on macOS, with Linux watcher-module evidence. Resume monotonic time
 foundations and the path/fs/os contract audit. The [monotonic clock slice](monotonic-time-plan.md)
-has focused native/editor/example and matched untimed checks; consumer refresh is
-pending. Define
+has focused native/editor/example and matched untimed checks; installed CLI and fresh
+LSP checks pass. The existing owner-window restart remains unverified and tracked
+in that plan. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.
 

@@ -1,7 +1,8 @@
 # S09 monotonic time
 
 Status: focused compiler/editor/example and matched untimed acceptance complete.
-Installed consumer refresh is pending; family measurements remain pending S09.
+Installed CLI/LSP binary refresh and fresh-process checks pass; family measurements
+remain pending S09. Restart verification in the existing owner editor window is pending.
 
 `std:time` exports `monotonicNow(): number`. It takes no arguments and returns
 nonnegative fractional milliseconds from a process-local origin initialized on
@@ -36,4 +37,16 @@ fingerprint; the formatted workload passes the same checks.
 Three public/feature-selection checks and the expanded O0/O3 runtime-separation
 witness pass. Runtime support is absent for an unused clock import and remains
 reusable after an application-only edit. Records use `tsrust-monotonic-*` in SQLite.
-Refresh consumers next. Timing stays pending the S09 synchronous-host family milestone.
+Eight CLI/LSP consumers are atomically refreshed and hash verified from `3d6af820`.
+The installed CLI passes all ten matched untimed cases. A fresh installed LSP
+process publishes no diagnostics for the clock import and serves its documented
+hover. The first protocol probe requested hover before asynchronous diagnostics
+completed; waiting for publication repairs that harness race. Both attempts are
+preserved. Records use `tsrust-monotonic-installed*` and `tsrust-monotonic-consumers.json`.
+
+The existing `greeting.tsr — tsrust_test` editor window shows checking enabled and
+zero Problems, but restart attempts produced no visible state change; a coordinate
+attempt reported `noWindowsAvailable`. Its active-process refresh is not claimed.
+Revisit `Tsrust: Restart Language Server` and verify the open documents when UI
+automation responds. No owner files were edited. This remains an integrated-release
+follow-up. Timing stays pending the S09 synchronous-host family milestone.
