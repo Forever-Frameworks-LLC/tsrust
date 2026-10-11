@@ -147,8 +147,14 @@ pub struct ModuleImport {
     /// Registry identity for a native standard-library import; never a disk source.
     pub native: Option<&'static str>,
 }
+/// Validated data is distinct from executable source declarations.
+#[derive(Clone, Debug)]
+pub struct DataModule {
+    pub(crate) value: crate::data_module::Value,
+}
 #[derive(Clone, Debug)]
 pub struct ModuleSource {
+    pub data: Option<DataModule>,
     pub source: SourceFile,
     pub imports: Vec<ModuleImport>,
     pub exports: BTreeMap<String, Span>,
@@ -224,6 +230,22 @@ pub(crate) fn lex_tolerant(text: &str) -> Result<Vec<syntax::Token>, Diagnostic>
     }
 }
 fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
+    if let Some(extension) = Path::new(&source.id.0).extension().and_then(|value| value.to_str())
+        && matches!(extension, "json" | "jsonc")
+    {
+        let value = crate::data_module::parse(&source.text, extension == "jsonc").map_err(|failure| {
+            let mut start = failure.offset.min(source.text.len());
+            while !source.text.is_char_boundary(start) { start -= 1; }
+            let end = start + source.text[start..].chars().next().map_or(0, char::len_utf8);
+            error(&source.id, "data-json", format!("{} ({})", failure.message, failure.code), Span::new(start, end))
+        })?;
+        crate::data_shape::infer(&value).map_err(|failure| error(&source.id, "data-type", failure.message, failure.span))?;
+        return Ok(ModuleSource {
+            exports: BTreeMap::from([("default".into(), value.span)]),
+            data: Some(DataModule { value }), source, imports: vec![], default_export: None,
+            declaration_source: String::new(),
+        });
+    }
     let id = &source.id;
     let tokens = if declarations {
         syntax::lex(&source.text).map_err(|e| source_error(id, e))?
@@ -335,7 +357,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             let span = tokens[i].span;
             if crate::stdlib::source(&path).is_none() && !path.starts_with("std:")
                 && (path.is_empty() || path.starts_with('/')
-                    || Path::new(&path).extension().is_some_and(|extension|extension!="tsr")
+                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "json" | "jsonc")))
                     || path.contains(['\\', '\0', '\n', '\r']))
             {
                 return Err(error(
@@ -500,6 +522,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         }
     }
     Ok(ModuleSource {
+        data: None,
         source,
         imports,
         exports,
@@ -686,3 +709,7 @@ fn visit(
     graph.modules.insert(id, module);
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "data_project_tests.rs"]
+mod data_project_tests;

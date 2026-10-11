@@ -25,6 +25,13 @@ must produce a source diagnostic rather than silently discard data or widen to a
 unsafe type. Preserve ordinary ownership and explicit clone rules; imports must
 not introduce hidden shared mutable state or implicit deep copies.
 
+The owner approved the storage contract on 2026-10-11: one immutable value per
+canonical data file, accessed read-only across importing modules and functions.
+Reads do not copy. `clone(data)` explicitly creates an owned copy, which can be
+mutated under ordinary ownership rules. Aliases must share the same stored value.
+Reject mutation and ownership transfer through an imported binding; do not hide
+per-use allocation, deep copying, shared mutable state or lifetime erasure.
+
 Example target behavior:
 
 ```typescript
@@ -295,3 +302,18 @@ fields, mixed unions, nullable values and nested arrays. The fixture source is
 formatted and checked for idempotence before AST insertion. Evidence is retained
 as `tsrust-data-lowering-*` in SQLite. Import storage, module graph integration,
 editor integration and public acceptance remain pending.
+
+
+## Data module graph loading
+
+Module loading now recognizes explicit JSON/JSONC dependencies, validates syntax
+and inferred representability at original source locations, and publishes only a
+default data export. Cached headers compare original data bytes; invalid edits
+fail and corrected edits recover. Data modules retain their parsed values apart
+from executable declaration source.
+
+Focused graph witnesses cover JSONC input, strict JSON rejection, UTF-8 error
+locations, changed cached data, numeric representability and named-export
+rejection. Evidence: `tsrust-data-project-*` in SQLite. Until the approved immutable
+storage is connected, executable checking deliberately reports
+`data-import-storage`; graph acceptance does not claim runnable imports.

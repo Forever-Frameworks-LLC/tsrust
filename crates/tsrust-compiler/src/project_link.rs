@@ -169,6 +169,12 @@ pub(crate) fn check_graph_cached(graph:ProjectGraph,cache:&mut crate::project_se
     check_graph_entry(graph,&entries,None,Some(cache))
 }
 fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Option<&mut Vec<ProjectDiagnostic>>, mut cache:Option<&mut crate::project_session::ProjectSession>) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+    // Keep unfinished data storage out of executable analysis. The module graph
+    // already validates original data and exports; linking lands separately.
+    if let Some((id, module)) = graph.modules.iter().find(|(_, module)| module.data.is_some()) {
+        return Err(ProjectDiagnostic { code: "data-import-storage", message: "Typed data import storage is not implemented yet.".into(),
+            location: SourceLocation { source: id.clone(), span: module.data.as_ref().unwrap().value.span }, related: vec![], fixes: Box::new([]) });
+    }
     let mut programs = BTreeMap::new();
     let mut globals: BTreeMap<SourceId, BTreeMap<String, String>> = BTreeMap::new();
     let mut segments = vec![];
@@ -917,8 +923,8 @@ fn bundled_containment_projection_links_specializes_and_executes() {
     let library="type Probe<T>={contains:Function<void,[expected:ReadOnly<ContainmentValue<T>>]>;};function make<T>(actual:T):Probe<T>{return {contains:(expected:int):void=>{console.log(expected);}};}function exercise(){const probe=make([1,2]);probe.contains(7);}";
     let main="function main(){exercise();}";
     let graph=ProjectGraph {entry:entry.clone(),order:vec![standard.clone(),entry.clone()],modules:BTreeMap::from([
-        (standard.clone(),ModuleSource{source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())]),default_export:None}),
-        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),names:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new(),default_export:None})
+        (standard.clone(),ModuleSource{data:None,source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())]),default_export:None}),
+        (entry.clone(),ModuleSource{data:None,source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),names:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new(),default_export:None})
     ])};
     let checked=check_graph(graph).unwrap();
     crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");
