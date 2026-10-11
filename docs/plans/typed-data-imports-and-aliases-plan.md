@@ -4,7 +4,8 @@ Status: owner approved both additions and their priority on 2026-10-11. This is
 required S10 work, ahead of additional JSON runtime APIs and benchmark expansion.
 Alias/extension/index resolution has focused compiler, editor and dev acceptance.
 Typed data modules, native storage, editor integration and matched benchmark
-support have focused acceptance. Installed-consumer verification remains pending.
+support have focused acceptance. Installed CLI/LSP and the active editor were
+refreshed and verified from `fd213e26`.
 Existing JSON evidence is retained.
 
 ## Public behavior
@@ -425,3 +426,18 @@ completion and navigation from an explicitly cloned record. All three typed-data
 editor tests and the existing Deque/Heap iteration hover tests pass.
 Evidence: `tsrust-data-shapes-*` in SQLite. Installed consumers still require
 refresh and verification; this does not close the S10 family milestone.
+
+
+## Installed consumer verification
+
+Release CLI and LSP binaries and the compiled VS Code extension were atomically
+refreshed from `fd213e26`. Installed checks verify checking, native execution after
+removing the JSONC source, typed field hover, `data-readonly` mutation diagnostics
+and diagnostic recovery. The active VS Code repository window was reloaded;
+its open JSON workload and workspace changed from stale errors to “No Problems,”
+with Tsrust checking enabled. No owner project sources were edited.
+
+Evidence: `tsrust-data-consumer-*` in SQLite, including installed executable hashes.
+This refresh supersedes earlier pending-consumer notes. The complete globals/imports
+audit and remaining JSON runtime work retain their roadmap priority. S10 timing,
+allocation baselines and family acceptance remain open.
