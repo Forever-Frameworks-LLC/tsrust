@@ -185,10 +185,25 @@ its two spread expressions explain the two extra allocations per iteration
 relative to the direct Rust control. Preserve eager snapshot and argument-order
 semantics when investigating a single-spread rest-pack transfer.
 
+## Single scalar spread transfer
+
+When one scalar spread supplies an entire rest parameter, the emitter now creates
+the eager snapshot in the final rest-array representation and transfers that
+array into the call. It does not create and copy a second intermediate array.
+This applies only to matching scalar element types, one spread, no fixed arguments
+and no built-in special handling. Other spread paths retain their existing staging.
+Source copying, argument evaluation order and ownership remain unchanged.
+
+An allocator witness fails on the prior implementation with two allocations and
+passes with one at optimization levels 0 and 3. It verifies all nine returned
+values and that mutating the result leaves the source unchanged. All 99 affected
+spread, rest and collection checks pass, including existing later-argument mutation
+and depth witnesses. Performance reruns remain pending.
+
 ## Remaining acceptance
 
-Investigate a single-spread rest-pack transfer to remove the identified Heap
-intermediate allocations. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
+Measure the single scalar spread transfer on workloads whose emitted code
+changes. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
 after changes. Refresh all installed consumers and verify editor diagnostics.
 Then begin the requested project-wide, multiple-error diagnostics milestone before
 S09. The measurement proof accepts the recorded measurements; it does not declare

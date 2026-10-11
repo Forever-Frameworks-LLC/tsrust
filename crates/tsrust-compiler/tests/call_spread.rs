@@ -253,3 +253,40 @@ function main(){const reader:(ReadOnly<Function<int, [...values:int[]]>>)|null=s
  while(i<2){let action:(Once<Function<string[], [trace:Mutable<Trace>,...values:int[]]>>)|undefined=undefined;if(i!==0){action=make("a");}let result:string[]=["missing"];if(action!==undefined){result=action(calls,...supply(supplied));}console.log(result.join(","),calls.calls,supplied.calls);i=i+1;}}
 "#, "3 0\nmissing 0 0\na,1,2 1 1\n");
 }
+
+#[test]
+fn single_scalar_spread_allocates_only_its_final_rest_pack() {
+    let source = support::format_round_trip("function collect(...items:int[]):int[]{return items;} function snapshot(values:ReadOnly<int[]>):int[]{return collect(...values);} function main(){}");
+    let generated = check(&source).unwrap().emit_rust().replace("fn main()", "fn source_main()");
+    let witness = r#"
+use std::alloc::{GlobalAlloc,Layout,System};
+use std::sync::atomic::{AtomicUsize,Ordering::Relaxed};
+struct Counter;
+static ALLOCS:AtomicUsize=AtomicUsize::new(0);
+// SAFETY: Every allocation request is passed unchanged to System.
+unsafe impl GlobalAlloc for Counter {
+ unsafe fn alloc(&self,l:Layout)->*mut u8 {ALLOCS.fetch_add(1,Relaxed);unsafe{System.alloc(l)}}
+ unsafe fn realloc(&self,p:*mut u8,l:Layout,n:usize)->*mut u8 {unsafe{System.realloc(p,l,n)}}
+ unsafe fn dealloc(&self,p:*mut u8,l:Layout){unsafe{System.dealloc(p,l)}}
+}
+#[global_allocator] static ALLOCATOR:Counter=Counter;
+fn main(){
+ let source=NumericArray::from([1i64,2,3,4,5,6,7,8,9]);
+ let before=ALLOCS.load(Relaxed);
+ let mut result=function1(std::hint::black_box(&source));
+ let allocations=ALLOCS.load(Relaxed)-before;
+ assert_eq!(allocations,1,"single spread must allocate only the final rest pack");
+ assert_eq!(result.iter().copied().collect::<Vec<_>>(),vec![1,2,3,4,5,6,7,8,9]);
+ *result.get_mut(0).unwrap()=99;
+ assert_eq!(*source.get(0).unwrap(),1);
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.0.join("single-spread.rs");
+    std::fs::write(&path, generated + witness).unwrap();
+    for level in ["0", "3"] {
+        let binary = directory.0.join(format!("single-spread-{level}"));
+        support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),60));
+        support::success(&support::run(&mut std::process::Command::new(binary),30));
+    }
+}

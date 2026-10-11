@@ -121,6 +121,13 @@ impl Emitter<'_> {
             let owned=self.spread_call_expression(fun,plan,Mode::Consume);
             return format!("{}({owned})",if mode==Mode::Read {"&"}else{"&mut "});
         }
+        // With no fixed or later arguments, the eager scalar snapshot is already
+        // the complete owned rest pack. Keep its final representation and move it.
+        let transferable_snapshot = if plan.maximum.is_none()
+            && plan.selected_types.is_empty() && plan.parameters.len()==1
+            && plan.segments.len()==1 && inline_copy_snapshot(plan,&plan.segments[0])
+            && matches!(plan.parameters[0].ty,Type::Array(element) if element.ty()==plan.segments[0].element)
+        { Some(self.native_type(plan.parameters[0].ty)) } else { None };
         let mut output=String::from("{ ");
         if let Some(callee)=&plan.callee {
             let name=callee.selection.native_name(plan.slot);
@@ -155,7 +162,8 @@ impl Emitter<'_> {
                 let iterator=if segment.access==Mode::Read && matches!(segment.element,Type::BorrowedUnion(_)) && matches!(segment.value.ty,Some(Type::Array(_))) {format!("{iterator}.map(|item|item.tsr_view())")}else{iterator};
                 let iterator=if matches!(plan.call.kind,ExprKind::SpreadValue(_)) && let Some(Type::Array(element))=plan.call.ty && element.ty()!=segment.element {format!("{iterator}.map(|item|{})",self.element_alternative(segment.element,element.ty(),"item"))}else{iterator};
                 if inline_copy_snapshot(plan,segment) {
-                    write!(output,"let mut {name}: Array<_> = Array::from([]); for spread_snapshot_item in {iterator} {{ {name}.push(spread_snapshot_item); }} ").unwrap();
+                    let storage=transferable_snapshot.as_deref().unwrap_or("Array<_>");
+                    write!(output,"let mut {name}: {storage} = <{storage}>::from([]); for spread_snapshot_item in {iterator} {{ {name}.push(spread_snapshot_item); }} ").unwrap();
                 } else {
                     write!(output,"let {name}: Vec<_> = {iterator}.collect(); ").unwrap();
                 }
@@ -166,7 +174,9 @@ impl Emitter<'_> {
         output.push_str("; ");
         output.push_str(&self.spread_arity_guard(plan));
         let direct_variadic=matches!(plan.builtin,Some(SpreadBuiltinKind::NativeStringRest|SpreadBuiltinKind::MathVariadic|SpreadBuiltinKind::StringConcat|SpreadBuiltinKind::ConsoleVariadic|SpreadBuiltinKind::ObserveVariadic|SpreadBuiltinKind::ArrayUnshift|SpreadBuiltinKind::ArrayConcat));
-        if !direct_variadic {
+        if !direct_variadic && transferable_snapshot.is_some() {
+            write!(output,"let {} = spread_segment{}_0; ",SpreadSelection::Rest.native_name(plan.slot),plan.slot).unwrap();
+        } else if !direct_variadic {
             let fixed=plan.selected_types.len();
             for (position,ty) in plan.selected_types.iter().enumerate() {
                 let slot_type=if let Some(id)=plan.selected_unions[position].filter(|id|self.spread_multiple(*id)){format!("TsrDataSpread{}<'_>",id.index())}else{format!("TsrSpreadSlot<'_,{}>",self.native_type(plan.selected_unions[position].and_then(|id|self.program.unions[id.index()].members.iter().copied().find(|ty|!matches!(ty,Type::Null|Type::Undefined))).unwrap_or(if plan.selected_unions[position].is_some(){Type::Undefined}else{*ty})))};
