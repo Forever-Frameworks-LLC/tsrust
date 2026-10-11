@@ -100,6 +100,27 @@ mod tests {
         assert!(!watcher.entries.contains_key(&source));
     }
     #[test]
+    fn concurrent_atomic_saves_reconcile_to_clean_contents() {
+        let directory=crate::TempDirectory::new().unwrap();let root=directory.0.canonicalize().unwrap();
+        std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();
+        for i in 0..100 {std::fs::write(root.join(format!("file{i}.tsr")),"initial").unwrap();}
+        let mut watcher=Watcher::default();watcher.snapshot(&root).unwrap();
+        let writer_root=root.clone();
+        let writer=std::thread::spawn(move||{
+            for round in 0..20 {for i in 0..100 {
+                let staged=writer_root.join("save.tmp");std::fs::write(&staged,format!("{round}:{i}")).unwrap();
+                std::fs::rename(staged,writer_root.join(format!("file{i}.tsr"))).unwrap();
+            }}
+        });
+        while !writer.is_finished(){let _=watcher.snapshot(&root);std::thread::yield_now();}
+        writer.join().unwrap();
+        let final_snapshot=watcher.snapshot(&root).unwrap();
+        assert!(watcher.events.is_some(),"ordinary save races must not permanently disable native events");
+        let mut clean=Watcher{initialized:true,..Watcher::default()};
+        assert_eq!(final_snapshot,clean.snapshot(&root).unwrap());
+        for i in 0..100 {assert_eq!(final_snapshot[&root.join(format!("file{i}.tsr"))].0.as_ref(),format!("19:{i}").as_bytes());}
+    }
+    #[test]
     fn native_failure_falls_back_and_recovers_after_root_recreation() {
         let directory=crate::TempDirectory::new().unwrap();let root=&directory.0;
         std::fs::write(root.join("tsrust.config.json"),"{}").unwrap();

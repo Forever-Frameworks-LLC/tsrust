@@ -101,3 +101,8 @@ watcher. Linux code is not yet executed on this macOS host. macOS per-file descr
 limits can force polling, which is documented. Installed refresh, matching baseline
 comparison and further loss/race acceptance remain pending. This checkpoint does
 not close the dev-loop milestone or its three required architectural steps.
+
+A concurrent-save witness now performs 2,000 atomic replacements across 100 files
+while snapshots reconcile. Final contents match an independent clean scan and
+native subscriptions remain active. This macOS witness passes; it does not stand
+in for Linux overflow execution. Evidence: `tsrust-dev-event-races.log` in SQLite.
