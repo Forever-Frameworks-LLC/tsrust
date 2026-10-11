@@ -195,7 +195,7 @@ fn walk(
                         annotation_visit(annotation)?;
                         work.push(Work::Expression(value));
                     }
-                    ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) => {
+                    ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) | ExprKind::NativeConstructor(values, element) => {
                         if let Some(element) = element { annotation_visit(element)?; }
                         work.extend(values.iter_mut().map(Work::Expression));
                     }

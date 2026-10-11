@@ -450,7 +450,7 @@ impl Resolver {
             }
             ExprKind::ArrayOf(values, _)
             | ExprKind::SetConstructor(values, _)
-            | ExprKind::MapConstructor(values, _)
+            | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _)
             | ExprKind::Array(values)
             | ExprKind::Template(values)
             | ExprKind::Sequence(values) => {

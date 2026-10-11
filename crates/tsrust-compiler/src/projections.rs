@@ -540,7 +540,7 @@ impl Analysis {
                         }
                         ExprKind::Sequence(values) | ExprKind::Template(values)
                         | ExprKind::Array(values)
-                        | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) => {
+                        | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) => {
                             pending.extend(
                                 values
                                     .iter()

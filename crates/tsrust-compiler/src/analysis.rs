@@ -1269,7 +1269,7 @@ fn callback_calls(
                     nodes.push(Node::Expression(left));
                 }
                 ExprKind::Array(values)
-                | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _)
+                | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _)
                 | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                     nodes.extend(values.iter().rev().map(Node::Expression))
                 }
@@ -1560,7 +1560,7 @@ fn remap_function_closures(
                         nodes.push(Node::Expression(right));
                     }
                     ExprKind::Array(values)
-                    | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _)
+                    | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _)
                     | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                         nodes.extend(values.iter_mut().map(Node::Expression))
                     }
@@ -2147,7 +2147,7 @@ impl Analyzer {
                 Self::expression_escapes(base, names, escaping);
                 Self::expression_escapes(index, names, escaping);
             }
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                 for value in values {
                     Self::expression_escapes(value, names, escaping);
                 }
@@ -8157,6 +8157,16 @@ impl Analyzer {
             ExprKind::ArrayOf(_, _) => self.array_constructor(context, expr, loans, expected),
             ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
             ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
+            ExprKind::NativeConstructor(arguments, annotation) => {
+                if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Deque construction takes no arguments.", expr.span)); }
+                let annotation = annotation.as_ref().expect("native constructor annotation");
+                let ty = self.resolve_value_annotation(annotation, false)?;
+                if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some()) {
+                    return Err(Diagnostic::new("native-constructor", "This type has no supported native constructor.", expr.span));
+                }
+                self.require(ty, expected, expr.span)?;
+                Ok(ty)
+            }
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
             ExprKind::Array(values) => {
                 self.array_literal(context, values, loans, expected, expr.span)
@@ -10367,8 +10377,8 @@ impl Analyzer {
                 }?;
                 if optional{self.unions.intern([result,Type::Undefined],expr.span).ok()}else{Some(result)}
             },
-            ExprKind::SetConstructor(_, Some(annotation)) | ExprKind::MapConstructor(_, Some(annotation)) => self.resolve_value_annotation(annotation, false).ok(),
-            ExprKind::SetConstructor(_, None) | ExprKind::MapConstructor(_, None) => None,
+            ExprKind::SetConstructor(_, Some(annotation)) | ExprKind::MapConstructor(_, Some(annotation)) | ExprKind::NativeConstructor(_, Some(annotation)) => self.resolve_value_annotation(annotation, false).ok(),
+            ExprKind::SetConstructor(_, None) | ExprKind::MapConstructor(_, None) | ExprKind::NativeConstructor(_, None) => None,
             ExprKind::ArrayOf(_, Some(element)) => self
                 .resolve_value_annotation(element, false)
                 .ok()
@@ -15958,7 +15968,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             ExprKind::Boolean(_) => Type::Boolean,
             ExprKind::Null => Type::Null,
             ExprKind::Undefined => Type::Undefined,
-            ExprKind::Sequence(_) | ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
+            ExprKind::Sequence(_) | ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::NativeConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
                 unreachable!("array expressions checked in the small dispatch frame")
             }
             ExprKind::Name(_) => unreachable!("names checked in their own frame"),

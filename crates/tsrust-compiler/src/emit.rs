@@ -2634,7 +2634,7 @@ impl Emitter<'_> {
                     || native_view_signature.as_ref().is_some_and(|signature|!signature.storage_lifetimes.is_empty())
                     // Empty recursive results quantify their output lifetime in
                     // the trait implementation as well as the direct method.
-                    || self.native_view_empty_recursive_result(&closure.function));
+                    || self.native_view_empty_result(&closure.function));
             let mut argument_trait_bounds = String::new();
             let (arguments, native_result) = if argument_views {
                 lifetimes.push("'native_arguments".into());
@@ -7343,6 +7343,11 @@ impl Emitter<'_> {
         match &expr.kind {
             ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
+            ExprKind::NativeConstructor(_, _) => {
+                let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
+                let code = format!("Record{id} {{ values: TsrDeque::new() }}");
+                match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
+            }
             ExprKind::TypeAssertion { value, satisfies, .. } => {
                 let code = self.expr(fun, value, mode);
                 if !satisfies && value.ty == Some(Type::Int) && expr.ty == Some(Type::Number) {
@@ -8397,7 +8402,7 @@ impl Emitter<'_> {
             ExprKind::Boolean(value) => value.to_string(),
             ExprKind::Null => "TsrNull".into(),
             ExprKind::Undefined => "TsrUndefined".into(),
-            ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
+            ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::NativeConstructor(_, _) | ExprKind::Array(_) | ExprKind::ArrayOf(_, _) | ExprKind::Index(_, _) => {
                 unreachable!("arrays emitted in the small dispatch frame")
             }
             ExprKind::Record(_) => unreachable!("records emitted in the small dispatch frame"),

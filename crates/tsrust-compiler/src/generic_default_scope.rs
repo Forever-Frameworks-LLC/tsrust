@@ -71,7 +71,7 @@ fn expression<'a>(value: &'a Expr, names: &HashSet<&'a str>) -> Result<(), Diagn
                 expression(value, names)?;
             }
         }
-        ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Array(values) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
+        ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Array(values) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
             for value in values {
                 expression(value, names)?;
             }

@@ -457,7 +457,7 @@ impl Replay<'_> {
             ExprKind::Array(values)
             | ExprKind::Template(values)
             | ExprKind::ArrayOf(values, _)
-            | ExprKind::MapConstructor(values, _)
+            | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _)
             | ExprKind::SetConstructor(values, _) => {
                 let payload = values
                     .iter()

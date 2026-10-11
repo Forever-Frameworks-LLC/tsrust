@@ -469,7 +469,7 @@ fn plan_temporary_arrays(
                         pending.extend(args.iter().rev().map(|a| (Node::Expression(a), next)));
                         pending.push((Node::Expression(callee), next));
                     }
-                    ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
+                    ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                         pending.extend(values.iter().rev().map(|a| (Node::Expression(a), next)))
                     }
                     ExprKind::Record(fields) => pending.extend(
@@ -846,7 +846,7 @@ impl<'a> Proof<'a> {
             }
             ExprKind::Template(parts) => parts.iter().all(|part| self.expr(id, part, Mode::Read)),
             ExprKind::Sequence(_) => false,
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) => values.iter().all(|v| self.expr(id, v, Mode::Consume)),
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) => values.iter().all(|v| self.expr(id, v, Mode::Consume)),
             ExprKind::Record(fields) => fields.iter().all(|(_, v)| self.expr(id, v, Mode::Consume)),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
@@ -1418,7 +1418,7 @@ fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
                 visit_expression(left, visit);
                 visit_expression(right, visit);
             }
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                 for value in values {
                     visit_expression(value, visit);
                 }

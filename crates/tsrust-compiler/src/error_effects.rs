@@ -49,7 +49,7 @@ impl OperationEffects {
                         ExprKind::Assign{target,value,..}|ExprKind::CompoundAssign{target,value,..}|ExprKind::CoalesceAssign{target,value,..}|ExprKind::LogicalAssign{target,value,..}=>pending.extend([Node::Expression(target),Node::Expression(value)]),
                         ExprKind::Conditional{predicate,consequent,alternate}=>pending.extend([Node::Expression(predicate),Node::Expression(consequent),Node::Expression(alternate)]),
                         ExprKind::Call(callee,args)=>{pending.push(Node::Expression(callee));pending.extend(args.iter().map(Node::Expression));}
-                        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>pending.extend(values.iter().map(Node::Expression)),
+                        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_) | ExprKind::NativeConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>pending.extend(values.iter().map(Node::Expression)),
                         ExprKind::Record(fields)=>pending.extend(fields.iter().map(|(_,value)|Node::Expression(value))),
                         // Source closure bodies execute in their own invocation context.
                         ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>{}
@@ -485,7 +485,7 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                         ExprKind::Assign{target,value,..}|ExprKind::CompoundAssign{target,value,..}|ExprKind::CoalesceAssign{target,value,..}|ExprKind::LogicalAssign{target,value,..}=>pending.extend([Node::Expression(target),Node::Expression(value)]),
                         ExprKind::Conditional{predicate,consequent,alternate}=>pending.extend([Node::Expression(predicate),Node::Expression(consequent),Node::Expression(alternate)]),
                         ExprKind::Call(callee,args)=>{pending.push(Node::Expression(callee));pending.extend(args.iter().map(Node::Expression));}
-                        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>pending.extend(values.iter().map(Node::Expression)),
+                        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_) | ExprKind::NativeConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>pending.extend(values.iter().map(Node::Expression)),
                         ExprKind::Record(fields)=>pending.extend(fields.iter().map(|(_,value)|Node::Expression(value))),
                         // Source closure bodies execute in their own invocation context.
                         ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>{}
@@ -829,7 +829,7 @@ fn expression_effect(value:&mut Expr,effects:&ErrorEffects,depth:usize)->Failure
             let mut found=expression_effect(callee,effects,next);
             for value in args {found |= expression_effect(value,effects,next);}found
         }
-        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>values.iter_mut().fold(FailureSet::default(),|found,value|expression_effect(value,effects,next)|found),
+        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_) | ExprKind::NativeConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>values.iter_mut().fold(FailureSet::default(),|found,value|expression_effect(value,effects,next)|found),
         ExprKind::Record(fields)=>fields.iter_mut().fold(FailureSet::default(),|found,(_,value)|expression_effect(value,effects,next)|found),
         // An environment is created here; its body runs only on invocation.
         ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>FailureSet::default(),

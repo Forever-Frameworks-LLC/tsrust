@@ -62,7 +62,7 @@ pub(super) fn collect(body: &[Stmt]) -> Vec<Write<'_>> {
                     if let Some(write)=assignment(target,value){result.push(write);}
                     work.push(Work::Expression(value));work.push(Work::Expression(target));
                 }
-                ExprKind::Sequence(values)|ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_)|ExprKind::Template(values)=>work.extend(values.iter().rev().map(Work::Expression)),
+                ExprKind::Sequence(values)|ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_) | ExprKind::NativeConstructor(values,_)|ExprKind::Template(values)=>work.extend(values.iter().rev().map(Work::Expression)),
                 ExprKind::Unary{value,..}|ExprKind::OptionalChain(value)|ExprKind::TypeAssertion{value,..}|ExprKind::Project{value,..}|ExprKind::Inject{value,..}|ExprKind::Field(value,_)|ExprKind::Update{target:value,..}=>work.push(Work::Expression(value)),
                 ExprKind::Binary{left,right,..}|ExprKind::Index(left,right)|ExprKind::CompoundAssign{target:left,value:right,..}|ExprKind::CoalesceAssign{target:left,value:right,..}|ExprKind::LogicalAssign{target:left,value:right,..}|ExprKind::Optional{base:left,body:right,..}=>{work.push(Work::Expression(right));work.push(Work::Expression(left));}
                 ExprKind::Conditional{predicate,consequent,alternate}=>{work.push(Work::Expression(alternate));work.push(Work::Expression(consequent));work.push(Work::Expression(predicate));}

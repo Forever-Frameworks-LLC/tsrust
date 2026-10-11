@@ -5006,6 +5006,20 @@
     ]
   }
 ],
+  "std:collections": [
+  {
+    "name": "Deque",
+    "signature": "type Deque<T>",
+    "parameters": [],
+    "documentation": "An owned double-ended queue of values of type T. Construct an empty queue with new Deque<T>(); the constructor takes no arguments and requires an explicit element type. Construction returns independent empty storage. Storage releases automatically when its owner ends. Record literals, comparison, inspection and cloning are currently unsupported. Ownership: passing by value transfers the queue; borrowed element types retain their original owners.\n\n```tsrust\nimport {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}\n```\n\nExpected output: none.",
+    "examples": [
+      {
+        "source": "import {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}",
+        "output": ""
+      }
+    ]
+  }
+],
   "std:fs": [
   {
     "name": "File",

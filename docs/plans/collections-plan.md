@@ -74,33 +74,25 @@ payloads and preservation of borrowed slice addresses. Five Rust rejection cases
 cover mutation during a read or iteration, owner movement, cloning non-clonable
 views and escaping a local byte owner.
 
-This is backend evidence only. Public generic type resolution, construction,
-ownership analysis, code generation, editor documentation and matched benchmarks
-remain pending. The runtime is not yet selected by generated programs; S08 is not
-accepted and no deque timing has been performed.
+The native signature layer represents indexed type parameters, applied native types
+and optional results. Substitution preserves declaration identity, validates arity
+and rejects missing or cyclic arguments. Specializations retain checked element
+identities without exposing implementation fields.
 
-The native signature layer now represents indexed type parameters and optional
-results. Rendering requires explicit parameter names; projection substitutes
-provided signature arguments while retaining native declaration identity. Missing
-arguments fail without retaining partially interned records, and cyclic argument
-substitution is bounded. Borrowed payload detection follows both substitutions and
-optional results. This removes a metadata prerequisite; generic collection storage
-and the source constructor still require integration.
+Deque payloads participate in carried element-owner paths, recursive view
+components, environment lifetime counts and native signature rendering. Generated
+record wrappers contain the backend directly. Native witnesses check ordinary and
+recursive payloads at optimization levels 0 and 3, unchanged borrowed slice
+addresses and rejection of a shorter-lived owner.
 
-Deque now has a private native declaration with one element parameter. Generic
-specialization retains native identity and checked argument identities rather than
-discarding them or representing the element as a public field. Applied native
-signatures validate argument count, render visible aliases, project into generic
-annotations and inspect element borrows. Repeated identical specializations reuse
-one identity; distinct element types remain distinct. The declaration is deliberately
-absent from source exports until constructor, ownership and emission integration is
-complete. Conditional clone and thread-transfer capabilities remain pending.
+The initial public surface exports `Deque<T>` from `std:collections` and supports
+`new Deque<T>()`, including import aliases and generic factories. Construction takes
+no arguments. Empty deques of views can be returned with an independently quantified
+lifetime; no byte owner or static lifetime is fabricated. Non-native record types
+and other opaque native types cannot use this constructor. Constructor documentation,
+its executable example, alias hover, inferred types and signature help have focused
+coverage.
 
-Private deque payloads participate in carried element-owner paths, recursive view
-components, environment lifetime counts and native signature rendering. The native
-record wrapper contains the `VecDeque` backend directly. A compiler-internal
-witness checks source return provenance, generated Rust at optimization levels 0
-and 3, unchanged borrowed slice addresses and rejection of a shorter-lived owner.
-Recursive deque payloads use the same shared-lifetime boundary as recursive arrays
-and Maps. These witnesses inject the private declaration; they do not establish
-public constructor, method or editor acceptance.
+Public methods, iteration, conditional cloning, thread-transfer capabilities and
+matched workloads remain pending. Constructor support does not establish complete
+collection acceptance. S08 remains open and no deque timing has been performed.

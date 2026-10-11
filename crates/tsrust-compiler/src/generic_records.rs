@@ -647,7 +647,7 @@ impl Context<'_> {
                         self.annotation(annotation,&HashMap::new())?;
                         work.push(Work::Expression(value));
                     }
-                    ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) => {
+                    ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) | ExprKind::NativeConstructor(values, element) => {
                         if let Some(element) = element { self.annotation(element, &HashMap::new())?; }
                         work.extend(values.iter_mut().map(Work::Expression));
                     }

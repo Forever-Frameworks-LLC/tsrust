@@ -189,7 +189,7 @@ pub(crate) fn projected_places(expr: &Expr, names: &HashMap<String, usize>, out:
                 projected_places(arg, names, out);
             }
         }
-        ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Template(values) => {
+        ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) => {
             for value in values {
                 projected_places(value, names, out);
             }

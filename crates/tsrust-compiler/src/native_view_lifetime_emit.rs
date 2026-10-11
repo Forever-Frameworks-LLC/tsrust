@@ -12,7 +12,7 @@ pub(super) struct Lifetimes {
     pub(super) bounds: Vec<String>,
 }
 impl Lifetimes {
-    pub(super) fn empty_recursive_output(&mut self) {
+    pub(super) fn empty_output(&mut self) {
         // A checked empty component carries no owner. Quantify its output
         // lifetime independently instead of inventing a borrow or using static.
         debug_assert!(self.outputs.is_empty());
@@ -98,9 +98,9 @@ impl Lifetimes {
     }
 }
 impl Emitter<'_> {
-    pub(super) fn native_view_empty_recursive_result(&self, function: &CheckedFunction) -> bool {
+    pub(super) fn native_view_empty_result(&self, function: &CheckedFunction) -> bool {
         function.native_returns.as_deref().is_none_or(|loans| loans.is_empty())
-            && matches!(function.result, Type::Record(record) if self.native_views.recursive(record))
+            && matches!(function.result, Type::Record(record) if self.native_views.recursive(record) || (self.program.records[record].native_element().is_some() && self.native_views.contains(function.result)))
     }
     pub(super) fn native_view_closure_signature(&self,closure:&crate::analysis::CheckedClosure,method:Option<usize>,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
         if function.native_returns.is_none() && !self.native_views.contains(function.result) && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty))) {return None;}

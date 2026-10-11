@@ -1756,7 +1756,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = matches!(self.text(method), "Set" | "Map") && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || self.native_type_aliases.get(self.text(method)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque)) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         if !(checked_generic || array_constructor || set_constructor || result_constructor) || self.text(next) != "<" {
             return None;
@@ -1904,7 +1904,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if depth > 8 || self.text(id) != "new" || !matches!(self.text(id + 1), "Set" | "Map") { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque)) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -3433,6 +3433,13 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
+            if callee > 0 && self.text(callee - 1) == "new"
+                && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque) {
+                let ty = self.snippet(callee, open);
+                let docs = builtins_for("std:collections").into_iter().find(|entry| entry["name"] == "Deque")
+                    .and_then(|entry| entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
+                return json!({"signatures":[{"label":format!("new {ty}(): {ty}"),"documentation":{"kind":"markdown","value":docs},"parameters":[]}],"activeSignature":0});
+            }
             if callee > 0 && self.text(callee - 1) == "function" {
                 return Value::Null;
             }

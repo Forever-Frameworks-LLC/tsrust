@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(instances[0].application.as_ref().unwrap().resolved_arguments, vec![crate::syntax::Type::Int]);
         assert_eq!(instances[1].application.as_ref().unwrap().resolved_arguments, vec![crate::syntax::Type::String]);
         assert_ne!(instances[0].name.text, instances[1].name.text);
-        assert!(crate::native_exports::lookup("std:collections", "Deque").is_err(), "do not publish incomplete source integration");
+        assert!(matches!(crate::native_exports::lookup("std:collections", "Deque"), Ok(crate::native_exports::Export::Type(_))));
     }
 
     #[test]

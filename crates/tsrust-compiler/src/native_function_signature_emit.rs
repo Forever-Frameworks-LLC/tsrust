@@ -74,8 +74,8 @@ impl Emitter<'_> {
     ) -> NativeSignature {
         let fun = plan.function;
         let mut native_lifetimes = native_view_lifetime_emit::Lifetimes::with_captures(fun, &plan.parameters, &plan.native_capture_lifetimes);
-        if self.native_view_empty_recursive_result(fun) {
-            native_lifetimes.empty_recursive_output();
+        if self.native_view_empty_result(fun) {
+            native_lifetimes.empty_output();
         }
         let borrow_lifetimes = &plan.borrow_lifetimes;
         let params = plan

@@ -108,7 +108,7 @@ pub(super) fn analyze(
             | ExprKind::Binary { .. } | ExprKind::Index(..) | ExprKind::Unary { .. }
             | ExprKind::TypeAssertion { .. } | ExprKind::Field(..) | ExprKind::Array(_)
             | ExprKind::Template(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..)
-            | ExprKind::MapConstructor(..) | ExprKind::Record(_) | ExprKind::Name(_)
+            | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Record(_) | ExprKind::Name(_)
             | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::Number(_)
             | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined | ExprKind::EnumMember { .. } => {}
             _ => supported = false,

@@ -1238,6 +1238,7 @@ pub enum ExprKind {
     ArrayOf(Vec<Expr>, Option<Box<crate::type_syntax::ValueAnnotation>>),
     SetConstructor(Vec<Expr>, Option<Box<crate::type_syntax::ValueAnnotation>>),
     MapConstructor(Vec<Expr>, Option<Box<crate::type_syntax::ValueAnnotation>>),
+    NativeConstructor(Vec<Expr>, Option<Box<crate::type_syntax::ValueAnnotation>>),
     TypeAssertion { value: Box<Expr>, annotation: Box<crate::type_syntax::ValueAnnotation>, satisfies: bool },
     /// Ordered discarded prefixes followed by the selected final value.
     Sequence(Vec<Expr>),
@@ -1366,7 +1367,7 @@ impl Expr {
             } => left.depth.max(right.depth),
             ExprKind::Field(base, _) => base.depth,
             ExprKind::Index(base, index) => base.depth.max(index.depth),
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
                 values.iter().map(|value| value.depth).max().unwrap_or(0)
             }
             ExprKind::Record(fields) => fields

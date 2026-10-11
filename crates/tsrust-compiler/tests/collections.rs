@@ -1,6 +1,43 @@
 mod support;
 
 #[test]
+fn deque_construction_uses_import_identity_and_owned_native_storage() {
+    for source in [
+        "import {Deque as Queue} from 'std:collections';function create<T>():Queue<T>{return new Queue<T>();}function accept(value:Queue<int>){}function main(){const values=create<int>();accept(values);}",
+        "import {Deque} from 'std:collections';function read(value:ReadOnly<Deque<int>>){}function write(value:Mutable<Deque<int>>){}function main(){read(new Deque<int>());write(new Deque<int>());}",
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(source));
+        let output = support::run(support::cli().arg("run").arg(path), 120);
+        support::success(&output);
+        assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn deque_constructor_rejects_arguments_and_unregistered_type_identities() {
+    for (source, code) in [
+        ("import {Deque} from 'std:collections';function main(){const values=new Deque<int>(1);}", "arity"),
+        ("type Deque<T>={};function main(){const values=new Deque<int>();}", "native-constructor"),
+        ("import {Bytes} from 'std:bytes';function main(){const values=new Bytes();}", "native-constructor"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(source));
+        let output = support::run(support::cli().arg("check").arg(path), 30);
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains(code), "{}", String::from_utf8_lossy(&output.stderr));
+    }
+}
+
+#[test]
+fn empty_deque_of_views_returns_without_inventing_an_owner() {
+    let source = "import {Deque} from 'std:collections';import {ByteView} from 'std:bytes';function empty():Deque<ByteView>{return new Deque<ByteView>();}function accept(values:Deque<ByteView>){}function main(){accept(empty());}";
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+}
+
+#[test]
 fn maps_hold_borrowed_native_views_without_copying_and_clones_are_independent() {
     let directory = support::TempDirectory::new();
     let source = support::format_round_trip(include_str!("fixtures/collections/borrowed-values.tsr"));

@@ -203,7 +203,7 @@ pub(super) fn evaluate_with_dispatch(expression: &Expr, state: &mut FlowState, f
                     tasks.extend([Task::Finish(expression, 1), Task::Eval(value)]);
                 }
                 ExprKind::Array(children) | ExprKind::Template(children) | ExprKind::ArrayOf(children, _)
-                | ExprKind::SetConstructor(children, _) | ExprKind::MapConstructor(children, _) => {
+                | ExprKind::SetConstructor(children, _) | ExprKind::MapConstructor(children, _) | ExprKind::NativeConstructor(children, _) => {
                     tasks.push(Task::Finish(expression, children.len()));
                     for child in children.iter().rev() { tasks.push(Task::Eval(child)); }
                 }

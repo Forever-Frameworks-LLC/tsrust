@@ -781,7 +781,7 @@ impl Linker<'_> {
                 self.value_annotation(annotation);
                 self.expr(value,locals);
             }
-            ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) => {
+            ExprKind::ArrayOf(values, element) | ExprKind::SetConstructor(values, element) | ExprKind::MapConstructor(values, element) | ExprKind::NativeConstructor(values, element) => {
                 if let Some(element) = element { self.value_annotation(element); }
                 for value in values { self.expr(value, locals); }
             }

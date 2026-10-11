@@ -308,7 +308,7 @@ fn map_reference(expression: &Expr, binding: usize, path: &[String]) -> bool {
             }
             ExprKind::Sequence(items) | ExprKind::Template(items) | ExprKind::Array(items)
             | ExprKind::ArrayOf(items, _) | ExprKind::SetConstructor(items, _)
-            | ExprKind::MapConstructor(items, _) => {
+            | ExprKind::MapConstructor(items, _) | ExprKind::NativeConstructor(items, _) => {
                 pending.extend(items)
             }
             ExprKind::Record(fields) => pending.extend(fields.iter().map(|(_, value)| value)),

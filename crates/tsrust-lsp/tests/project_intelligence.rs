@@ -1708,3 +1708,21 @@ fn byte_view_factories_types_and_shared_observers_have_editor_help() {
     let labels = completion.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
     assert_eq!(labels, ["view", "viewMut"], "{completion}");
 }
+
+#[test]
+fn native_deque_constructor_alias_has_generic_hover() {
+    let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function accept(value:Queue<int>){}function main(){const values=new Queue<int>();accept(values);}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let hover = ask(&index, &entry, "Queue<int>", "textDocument/hover");
+        let docs = hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains("type Queue<T>") && docs.contains("empty queue"), "{hover}");
+        let help = ask(&index, &entry, ");\n  accept", "textDocument/signatureHelp");
+        assert!(help.to_string().contains("new Queue<int>(): Queue<int>"), "{help}");
+        let value = ask(&index, &entry, "values);", "textDocument/hover");
+        assert!(value.to_string().contains("Queue<int>"), "{value}");
+    }
+}

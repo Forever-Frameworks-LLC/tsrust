@@ -40,9 +40,10 @@ impl SourceIndex {
             signature.render(|id| Some(tsrust_compiler::native_types::declaration(id).name.into())).expect("registered native field signature").into_owned()
         };
         let fields = declaration.fields.iter().map(|field| format!("{}{}: {}", field.name, if field.optional { "?" } else { "" }, render(&field.signature))).collect::<Vec<_>>();
+        let type_name = if declaration.type_parameters.is_empty() { local.to_owned() } else { format!("{local}<{}>", declaration.type_parameters.join(", ")) };
         let symbol = Symbol {
             name: local.into(), kind: 23, span, extent: span, scope: 0, ty: local.into(),
-            signature: if fields.is_empty() { format!("type {local}") } else { format!("type {local} = {{ {}; }}", fields.join("; ")) },
+            signature: if fields.is_empty() { format!("type {type_name}") } else { format!("type {type_name} = {{ {}; }}", fields.join("; ")) },
             docs: catalog["documentation"].as_str().unwrap_or("").into(), parameters: Vec::new(), owner: None,
         };
         if let Some(existing) = self.symbols.iter_mut().find(|symbol| symbol.name == local && symbol.kind == 26 && symbol.owner.is_none()) {
