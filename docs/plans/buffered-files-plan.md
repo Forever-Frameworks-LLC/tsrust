@@ -1,6 +1,8 @@
 # Buffered file I/O: S09 implementation batch
 
-Status: implementation pending. Continue the existing owned-resource contract.
+Status: private backend implemented and tested at native O0/O3. Public bindings,
+type alternatives, IntelliSense, examples and matched workloads remain pending.
+Continue the existing owned-resource contract.
 
 Expose BufferedReader and BufferedWriter in std:fs. Constructors consume a File;
 there is no second handle or shared cursor. Construction errors release the incoming
@@ -28,3 +30,14 @@ no duplicate flush/release, scoped cleanup and native O0/O3 execution. Complete
 signatures, hover/help/completion, executable examples, and matched native/Node
 workloads before marking the batch accepted. Family timing remains deferred until
 buffered streams, environment and monotonic time foundations are complete.
+
+Private backend evidence: `tsrust-buffered-backend-red.log`,
+`tsrust-buffered-backend-green.log`, `tsrust-buffered-backend-native.log`,
+`tsrust-buffered-backend-native-repaired.log` and
+`tsrust-buffered-backend-format.log` in SQLite. The native check compiles the
+resource, file and buffered backends together at both optimization levels. Five
+buffered witnesses cover read-ahead, deferred writes, explicit flush/close,
+interrupted and partial writes, retained bytes after failure, zero progress,
+scope cleanup and descriptor release on constructor/close errors. The first
+integration attempt exposed a missing test-only module guard; the repaired run
+passes. This is backend preparation, not public feature acceptance or timing.

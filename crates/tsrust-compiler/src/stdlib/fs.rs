@@ -18,7 +18,7 @@ pub struct FsFailure {
     pub os_code: Option<i64>,
 }
 impl FsFailure {
-    fn io(operation: &'static str, error: std::io::Error) -> Self {
+    pub(super) fn io(operation: &'static str, error: std::io::Error) -> Self {
         use std::io::ErrorKind;
         let code = match error.kind() {
             ErrorKind::NotFound => "not-found",
@@ -32,12 +32,12 @@ impl FsFailure {
         };
         Self { code, operation, message: error.to_string(), os_code: error.raw_os_error().map(i64::from) }
     }
-    fn read_error(code: &'static str, message: &str) -> Self {
+    pub(super) fn read_error(code: &'static str, message: &str) -> Self {
         Self { code, operation: "read", message: message.into(), os_code: None }
     }
 }
 
-pub struct FileBackend(std::fs::File);
+pub struct FileBackend(pub(super) std::fs::File);
 pub type FileHandle = Resource<FileBackend>;
 impl Backend for FileBackend {
     type Error = FsFailure;
@@ -61,7 +61,7 @@ pub fn write(file:&mut FileHandle,bytes:&[u8])->Result<i64,FsFailure> {
 pub fn write_all(file:&mut FileHandle,bytes:&[u8])->Result<(),FsFailure> {
     write_with(&mut file.get_mut().0,bytes,true).map(|_|())
 }
-fn validate_write_length(length:usize,operation:&'static str)->Result<(),FsFailure> {
+pub(super) fn validate_write_length(length:usize,operation:&'static str)->Result<(),FsFailure> {
     if length>MAX_WRITE_BYTES {
         return Err(FsFailure {code:"length-range",operation,
             message:"Write length must be between 0 and 67108864 bytes.".into(),os_code:None});
