@@ -1,7 +1,7 @@
 # Finite native view callable family planning
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Continue from 973f6542. Gate 189/S07 remain open.
+plans/native-view-callable-storage-plan.md. Continue from 973f6542. Gate 189/S07 remain open.
 
 The candidate family planner now records the original structural signature and
 invocation mode, with distinct carried slots for sorted/deduplicated concrete
@@ -22,7 +22,7 @@ Installed consumers remain at f569190a. Warm CLI rebuilt for project formatting.
 
 ## Continuation prompt
 
-Finish native-view-callable-storage-plan.md step 1 by integrating finite scoped
+Finish plans/native-view-callable-storage-plan.md step 1 by integrating finite scoped
 owning family identity into the registry without conflating it with the existing
 borrowed invocation family. Preserve Owned/OwnedOnce invocation and each
 alternative's candidate slots. Then add actual-callee provenance transport and

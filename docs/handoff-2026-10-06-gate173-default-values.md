@@ -2,7 +2,7 @@ Current continuation: [captured rest checkpoint](handoff-2026-10-06-gate173-rest
 
 # Handoff: captured optional/default function values
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md
 and milestones/173-nested-function-signatures.md first. Inspect Git for this checkpoint
 hash. Gate172 is accepted at d74f34d; named result inference landed at dd43e11.
 Gate173 and the full goal remain incomplete.

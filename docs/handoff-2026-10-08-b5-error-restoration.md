@@ -20,7 +20,7 @@ and aggregate composition, preserving independent field owners and RHS-before-dr
 semantics. Branch/loop joins, function parameters/returns, arbitrary comma final
 values and structural record keys remain open. Family regressions, performance
 review and installed-consumer refresh remain pending. See
-indexed-capture-release-plan.md for the current implementation and dependencies.
+plans/indexed-capture-release-plan.md for the current implementation and dependencies.
 
 
 
@@ -41,7 +41,7 @@ and reaching-environment planning, not removal of the container guard. Arbitrary
 comma final values, expression-valued assignments, function returns, aggregate
 result storage, control-flow joins and structural record keys remain open.
 Family regressions, measurements and installed-consumer refresh remain pending.
-See indexed-capture-release-plan.md for the next nullable-storage dependency.
+See plans/indexed-capture-release-plan.md for the next nullable-storage dependency.
 
 
 
@@ -61,7 +61,7 @@ B5 remains incomplete. Next cover arbitrary final values and direct comma
 reassignment, then aggregate result storage and control-flow composition.
 Function return transport, nullable/outer storage, structural record keys, family
 regressions, performance review and installed-consumer refresh remain pending.
-See indexed-capture-release-plan.md for current implementation details.
+See plans/indexed-capture-release-plan.md for current implementation details.
 
 
 
@@ -79,7 +79,7 @@ Node-after-tsc cases pass untimed. Evidence is byte-verified in SQLite under
 B5 remains incomplete. Next cover returned comma results and aggregate result
 storage, then control-flow joins, nullable/outer storage and structural record
 keys. Full family regressions, timing, optimization review and installed-consumer
-refresh remain pending. See indexed-capture-release-plan.md for current details.
+refresh remain pending. See plans/indexed-capture-release-plan.md for current details.
 
 
 
@@ -92,7 +92,7 @@ inference. Native survivor conversion and empty environments preserve exact
 payload disposal. The affected batch passed 22 tests; two expectation repairs pass
 separately. Thirteen owner-module tests, the focused editor check and all eight
 depth canaries pass. Pop/shift hover examples are verified. All five matched cases
-pass untimed with 115 observations; indexed-capture-release-plan.md records the
+pass untimed with 115 observations; plans/indexed-capture-release-plan.md records the
 SQLite evidence and conversion costs.
 
 B5 remains incomplete. Next implement precise provenance and release for retained
@@ -110,7 +110,7 @@ native carrier epoch. Twenty-two affected array tests, exact disposal at optimiz
 levels 0 and 3, repeated replacement, later element borrowing, array/record moves and two focused editor
 checks and all eight depth canaries pass. The matched composition workload has
 112 observations and passes all five cases untimed on native and Node-after-tsc.
-Evidence and conversion costs are documented in indexed-capture-release-plan.md.
+Evidence and conversion costs are documented in plans/indexed-capture-release-plan.md.
 
 B5 remains incomplete. Next implement precise removal and retained result ownership, indexed arrays
 inside aggregates, and reaching slot states across control flow. Nullable and
@@ -129,7 +129,7 @@ pass, and six related editor checks pass. This is focused acceptance, not B5
 family acceptance.
 
 Next reconcile and implement the remaining aggregate and same-expression capture
-release requirements in scoped-callable-aggregate-plan.md, starting with precise
+release requirements in plans/scoped-callable-aggregate-plan.md, starting with precise
 array-element storage. Structural owned record keys follow the owner's Rust-style
 equality/hash decision. Full compiler/LSP regressions, matched measurements,
 performance review and installed-consumer refresh remain required at the completed
@@ -143,7 +143,7 @@ numbered gate. This checkpoint extends the work after `0a2a5e5`; it is not famil
 acceptance. The active goal remains the full compiler/editor completion plan.
 
 Read `AGENTS.md`, `docs/development-workflow.md`,
-`docs/compiler-completion-plan.md` and `docs/scoped-callable-aggregate-plan.md`.
+`docs/plans/compiler-completion-plan.md` and `docs/plans/scoped-callable-aggregate-plan.md`.
 Only one agent works in this checkout. Preserve the fifteen existing unrelated
 fixture modifications without committing them. Their formatting is allowed;
 changing their semantics is not. Stage explicit paths.
@@ -238,7 +238,7 @@ before a longer handoff; do not create archives or snapshots.
 ## Continuation prompt
 
 Continue Tsrust B5 from docs/handoff-2026-10-08-b5-error-restoration.md. Read
-AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
+AGENTS.md, docs/development-workflow.md and docs/plans/scoped-callable-aggregate-plan.md
 first. Error restoration after prior-statement and within-expression transfers is verified;
 conditional survivor disposal, outside replacement and straight-line finally
 without catch now pass; control exits and nested regions remain next. Keep Rust-style record
@@ -323,7 +323,7 @@ entry release and Rust-style record Set equality/hashing in B5's remaining scope
 B5 is incomplete. Five user consumers remain at gate 181.
 
 Continuation prompt: Continue from this return-through-finally checkpoint. Read
-AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+AGENTS.md, docs/development-workflow.md and docs/plans/scoped-callable-aggregate-plan.md.
 Return/fallthrough and cleanup-return override pass with disposal evidence.
 Finish B5 control exits/nested regions, precise capture release and record keys,
 using red witnesses, native/editor coverage and matched untimed workload support.
@@ -356,7 +356,7 @@ Continuation prompt: Read this handoff, AGENTS.md and development-workflow.md.
 Resume B5 from the loop-local completion-storage checkpoint. Add a red outer-Map
 loop-boundary witness before extending the carrier; preserve exact native
 disposal, editor behavior, matched workload/oracle/guards and SQLite evidence.
-Continue remaining B5 scope from scoped-callable-aggregate-plan.md. Use explicit
+Continue remaining B5 scope from plans/scoped-callable-aggregate-plan.md. Use explicit
 Git paths, preserve unrelated fixtures and format the whole project. Do not
 claim family acceptance or measured performance before completing milestone work.
 
@@ -406,7 +406,7 @@ accepted rejections. Precise entry/element release and Rust-style record Set
 equality/hashing also remain in B5. Full family regressions and timing are pending.
 
 Continuation prompt: Continue B5 from this empty outer-Map iteration checkpoint.
-Read AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md.
+Read AGENTS.md, development-workflow.md and plans/scoped-callable-aggregate-plan.md.
 Add red witnesses for retained/populated owners and outer record-field storage,
 then extend the loop boundary transport while preserving exact disposal,
 source ownership and native lifetime safety. Continue nested regions and the
@@ -466,7 +466,7 @@ Retained/populated root Maps with explicit post-loop clear already pass; do not
 reimplement them or weaken the correct zero-iteration capture-conflict rule.
 
 Continuation prompt: Continue B5 from this constructor repair checkpoint. Read
-AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md. Repair
+AGENTS.md, development-workflow.md and plans/scoped-callable-aggregate-plan.md. Repair
 `outer_record_map_cleanup_releases_captures_across_iterations` (native E0502) by
 extending empty loop epochs to record leaves, with sibling and zero-iteration
 witnesses. Keep compiler/editor parity, matched workloads, independent oracles
@@ -504,7 +504,7 @@ Rust-style record Set equality/hash work and family regressions/timing remain
 pending. Five user consumers still represent gate 181.
 
 Continuation prompt: Continue B5 from this record-leaf loop checkpoint. Read
-AGENTS.md, development-workflow.md and scoped-callable-aggregate-plan.md. Root
+AGENTS.md, development-workflow.md and plans/scoped-callable-aggregate-plan.md. Root
 and record-leaf empty loop epochs now pass disposal, sibling/key-order and
 zero-iteration checks. Add nested exception-region and broader loop witnesses,
 then extend completion storage without premature disposal or implicit cloning.
@@ -550,7 +550,7 @@ clone. Floating-point key policy remains unresolved. Family regressions and
 timing remain pending. Five user executable consumers still represent gate 181.
 
 Continuation prompt: Continue B5 from this nested-finally repair checkpoint. Read
-AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+AGENTS.md, docs/development-workflow.md and docs/plans/scoped-callable-aggregate-plan.md.
 Add a source-valid nested-catch storage witness next; repair completion transport
 without premature disposal, implicit clone or restoring consumed source names.
 Keep compiler/editor behavior, matched workload support and SQLite evidence
@@ -582,7 +582,7 @@ and Rust-style record Set keys remain open, followed by family regressions and
 timing. Five user executable consumers remain at gate 181.
 
 Continuation prompt: Continue B5 after nested catch storage discovery. Read
-AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md.
+AGENTS.md, docs/development-workflow.md and docs/plans/scoped-callable-aggregate-plan.md.
 Add a nested catch-plus-finally witness whose handler throws or returns and whose
 inner cleanup must preserve owners until outer cleanup. Use focused red tests
 before extending carried completion transport. Preserve explicit ownership,
@@ -1074,7 +1074,7 @@ the second entry and its O0/O3 observer specifies separate deletion and clear
 disposal. The independent Node observable reference passes. No compiler source
 has changed in this checkpoint.
 
-Read docs/map-entry-capture-release-plan.md before implementation. Both keyed
+Read docs/plans/map-entry-capture-release-plan.md before implementation. Both keyed
 capture ownership and point-sensitive native environment narrowing are required;
 a source-only loan deletion is insufficient. The existing carrier planner joins
 all insertions for the entire function, and record carrier conversion currently
@@ -1083,7 +1083,7 @@ branch states, moves, lookup loans, order, failures and exact disposal. Avoid
 unconditional survivor scans on ordinary deletion. B5 remains unfinished.
 
 Continuation prompt: Continue precise Map entry release from the new red witness
-and docs/map-entry-capture-release-plan.md. Read AGENTS.md and development workflow.
+and docs/plans/map-entry-capture-release-plan.md. Read AGENTS.md and development workflow.
 Implement keyed ownership plus checked native storage epochs together, then
 negative aliases, O0/O3 disposal, editor, guide and matched benchmark support.
 The whole composition suite now includes one intentionally red entry-release
@@ -1127,7 +1127,7 @@ byte-exact before removal. Source, tests and these progress notes remain
 uncommitted. No benchmark/editor acceptance or new consumer refresh is claimed.
 
 Continuation prompt: Continue the uncommitted keyed Map ownership work from
-map-entry-capture-release-plan.md. HEAD remains 1c48673. The source half works,
+plans/map-entry-capture-release-plan.md. HEAD remains 1c48673. The source half works,
 but deleting_one_map_entry_releases_only_its_capture still fails generated Rust
 with E0502. Complete payload-type state and checked native storage narrowing;
 do not merely weaken the source guard or hide the red witness. Keep unknown
@@ -1176,7 +1176,7 @@ The current source checkpoint adds checked scalar-key Map entry ownership and
 payload alternatives, straight-line native survivor conversion, empty storage,
 replacement/refill, direct Map moves, record-field and nested record storage,
 enclosing record moves, iteration and typed callback failure transport. Read
-docs/map-entry-capture-release-plan.md for the current requirements and chronological
+docs/plans/map-entry-capture-release-plan.md for the current requirements and chronological
 evidence. Parser closure IDs are no longer used to index checked capture origins.
 Nested record moves use the isolated map_storage_edges module.
 

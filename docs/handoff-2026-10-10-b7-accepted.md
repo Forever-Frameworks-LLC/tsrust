@@ -69,4 +69,4 @@ ledger rows after B7 are untouched.
 ## Next
 
 Ledger order after B7 is B8 (generic adapter compile time). Read
-`docs/compiler-completion-plan.md` for the dependency order.
+`docs/plans/compiler-completion-plan.md` for the dependency order.

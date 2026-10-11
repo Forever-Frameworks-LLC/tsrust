@@ -1,6 +1,6 @@
 # Callback adapter integration checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, generic-value-adapters-plan.md and
+Read AGENTS.md, docs/development-workflow.md, plans/generic-value-adapters-plan.md and
 the preceding benchmark handoff. Gate173 and full adapter acceptance remain open.
 Four unrelated owner fixtures remain untouched and uncommitted.
 

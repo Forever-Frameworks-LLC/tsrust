@@ -1,7 +1,7 @@
 # Native view family independent fields
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Continue after cbaee6c6. Gate 189/S07 are open.
+plans/native-view-callable-storage-plan.md. Continue after cbaee6c6. Gate 189/S07 are open.
 
 The private native family backend now proves separate output lifetimes for a record
 containing two views. Both factory alternatives execute at O0/O3 for readonly and

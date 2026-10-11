@@ -1,6 +1,6 @@
 # Handoff: gate 171 red checkpoint
 
-/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-06-gate170.md, docs/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first.
+/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-06-gate170.md, docs/plans/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first.
 
 Gate 170 accepted at bcd7e88. Interface formatting/highlighting repair committed at ba34914 and installed; five consumers refreshed. Gate 171 has focused positive capture and early-readiness red witnesses in nested_function_captures.rs and fixtures/nested-function-captures. Final run: one existing arrow borrowing reference passes, five future-feature witnesses fail genuinely. Four strict Node-after-tsc assertion fixtures pass. No compiler implementation changed for this red checkpoint. Do not reinterpret the positive witnesses as accepted unsupported behavior.
 

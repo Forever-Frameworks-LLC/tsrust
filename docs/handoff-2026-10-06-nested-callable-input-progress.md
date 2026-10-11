@@ -1,6 +1,6 @@
 # Nested callable input implementation progress
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md first. HEAD remains the red checkpoint 01f4c54. Implementation is uncommitted and unaccepted. Preserve all four owner fixture edits.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first. HEAD remains the red checkpoint 01f4c54. Implementation is uncommitted and unaccepted. Preserve all four owner fixture edits.
 
 The retained nested-callable-input witness now passes generated native execution. All 29 generic_value_adapters tests pass. Exact failed diagnostic traces and passing focused logs are stored in benchmarks/records.sqlite under their original /private/tmp paths with verified byte-exact readback. Loose copies are removed.
 

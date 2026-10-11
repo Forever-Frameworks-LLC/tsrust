@@ -60,7 +60,7 @@ after parser/analyzer dispatch changes. Accept only after the native capture wit
 editor facts/diagnostics, guide, whole editor suite, complete matched retained-result
 benchmark support and untimed oracle verification pass, with SQLite evidence and
 consumer refresh. No timing or full regression until the named-declaration family
-milestone described in nested-function-declarations-plan.md.
+milestone described in ../plans/nested-function-declarations-plan.md.
 
 Original logs are SQLite gate-log records under target/editor/nested-capture-*,
 verified byte for byte before loose copies were removed. No archives. Keep all four

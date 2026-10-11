@@ -1,6 +1,6 @@
 # Handoff: expression evaluator in progress
 
-Read AGENTS.md, docs/development-workflow.md, docs/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-expression-flow-red.md first. Red checkpoint is 3a0463c. The following source checkpoint implements iterative expression flow but is not accepted; its required native test remains red. Git HEAD is authoritative.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-expression-flow-red.md first. Red checkpoint is 3a0463c. The following source checkpoint implements iterative expression flow but is not accepted; its required native test remains red. Git HEAD is authoritative.
 
 The new generic_call_expression_flow module evaluates callable snapshots, assignment results, branch joins and per-step exceptional environments with explicit task/value stacks. generic_call_branch_flow integrates those results into the existing control graph. Source checks pass all thirteen rejection cases and nine precision controls. Existing generic values/adapters, exception and loop suites pass, as do eight depth canaries. Whole editor passes 325 tests. No full compiler regression or timing is claimed.
 

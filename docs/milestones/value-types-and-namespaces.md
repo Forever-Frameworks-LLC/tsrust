@@ -1,6 +1,6 @@
 # JavaScript singleton values and static namespaces
 
-Status: Stage 1 and the first three Stage 3 APIs are implemented with focused acceptance. This work follows [the full dependency plan](../javascript-parity-plan.md) alongside the numbered compiler progression. It does not renumber gates or claim complete JavaScript parity.
+Status: Stage 1 and the first three Stage 3 APIs are implemented with focused acceptance. This work follows [the full dependency plan](../plans/javascript-parity-plan.md) alongside the numbered compiler progression. It does not renumber gates or claim complete JavaScript parity.
 
 ## Supported behavior
 

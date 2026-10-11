@@ -1,7 +1,7 @@
 # Direct caller-borrowed callback stores
 
 This is the next implementation slice of B7/gate 183, following `12ffe9d`.
-It is not accepted. The complete B7 scope in caller-borrowed-record-stores-plan.md
+It is not accepted. The complete B7 scope in plans/caller-borrowed-record-stores-plan.md
 remains authoritative.
 
 ## Initial red evidence

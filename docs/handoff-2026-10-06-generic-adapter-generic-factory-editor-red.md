@@ -1,6 +1,6 @@
 # Generic factory repair and editor red checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and plans/generic-value-adapters-plan.md.
 Full adapter and Gate173 acceptance remain open. Preserve four owner fixture edits.
 
 Fresh generic factory origin discovery prepares a cloned call using type hints

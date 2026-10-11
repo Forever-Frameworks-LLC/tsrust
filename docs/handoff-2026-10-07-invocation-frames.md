@@ -1,6 +1,6 @@
 # Handoff: contextual invocation frames WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/captured-call-effects-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/captured-call-effects-plan.md
 and docs/handoff-2026-10-07-summary-completions.md first. This checkpoint adds
 formal parameter metadata and contextual frames around standalone summary flow.
 It does not wire actual call-site dispatch or accept Gate173. Copied consumers

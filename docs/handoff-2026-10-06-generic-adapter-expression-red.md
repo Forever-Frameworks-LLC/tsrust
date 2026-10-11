@@ -1,6 +1,6 @@
 # Fresh generic expression adapter red checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and plans/generic-value-adapters-plan.md.
 Current accepted support is described in the owned-rest handoff. Gate173 and full
 adapter acceptance remain open. Preserve four unrelated owner fixture edits.
 

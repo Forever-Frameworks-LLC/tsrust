@@ -1,7 +1,7 @@
 # Handoff: gate 171 accepted (nested function captures)
 
 Date: 2026-10-06. Read `AGENTS.md`, `docs/development-workflow.md`,
-`docs/nested-function-declarations-plan.md` and
+`docs/plans/nested-function-declarations-plan.md` and
 `docs/milestones/171-nested-function-captures.md` (section "Acceptance") first.
 
 ## State

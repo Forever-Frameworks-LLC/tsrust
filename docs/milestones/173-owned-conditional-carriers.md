@@ -25,6 +25,6 @@ hashes and registration mutation controls pass. Existing ABI and run/profile/rep
 hooks remain applicable. No timing was performed and no old measurement is
 reclassified. Whole-project formatting changes zero files or fingerprints.
 
-Gate173 remains open. Read conditional-callable-carriers-plan.md and the current
+Gate173 remains open. Read ../plans/conditional-callable-carriers-plan.md and the current
 handoff for borrowed lifetime carriers, polymorphic replacement, capture-mode
 integration, unique/merged instances and recursive convergence requirements.

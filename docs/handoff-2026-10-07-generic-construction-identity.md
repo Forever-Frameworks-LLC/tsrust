@@ -1,6 +1,6 @@
 # Generic construction identity checkpoint
 
-Continue from native carrier declarations at 5971bc4. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. The callable replacement family remains open.
+Continue from native carrier declarations at 5971bc4. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. The callable replacement family remains open.
 
 Fresh deferred-generic constructor expressions now retain their concrete environment identity separately from their expression type. This closes an identity loss in the accepted empty-environment reassignment path: reusing the receiver's representation retags the RHS type, but native family injection must still know which fresh environment was constructed. The existing compact origin metadata carries the identity without adding a vector or another field to shared recursive expressions.
 

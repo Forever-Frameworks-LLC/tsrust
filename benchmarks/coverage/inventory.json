@@ -745,7 +745,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "Array holes are excluded by owner decision (2026-10-08)."
     },
@@ -971,7 +971,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "Writing array length is excluded by owner decision (2026-10-08): use push, pop and splice."
     },
@@ -1398,7 +1398,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "Sparse arrays are excluded by owner decision (2026-10-08)."
     },
@@ -11104,7 +11104,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md",
+        "./plans/compiler-completion-plan.md",
         "../crates/tsrust-compiler/tests/switch_statements.rs"
       ],
       "note": "Fallthrough between non-empty switch cases is excluded by owner decision (2026-10-10): end a case with break, return, continue or throw. Empty cases still share the next body."
@@ -11327,7 +11327,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "Loose equality is excluded by owner decision (2026-10-08): use === and !==."
     },
@@ -11340,7 +11340,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "Loose inequality is excluded by owner decision (2026-10-08): use !==."
     },
@@ -11493,7 +11493,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "with is excluded by owner decision (2026-10-08)."
     },
@@ -12492,7 +12492,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "var is excluded by owner decision (2026-10-08): use let or const."
     },
@@ -21387,7 +21387,7 @@
       "implementation": "policy",
       "comparison": "missing",
       "evidence": [
-        "./compiler-completion-plan.md"
+        "./plans/compiler-completion-plan.md"
       ],
       "note": "delete is excluded by owner decision (2026-10-08): optional fields are assigned undefined."
     },
@@ -22396,7 +22396,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22415,7 +22415,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22434,7 +22434,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22472,7 +22472,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22529,7 +22529,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22604,7 +22604,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22623,7 +22623,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
@@ -22642,7 +22642,7 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md",
+        "./plans/resources-bytes-plan.md",
         "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [

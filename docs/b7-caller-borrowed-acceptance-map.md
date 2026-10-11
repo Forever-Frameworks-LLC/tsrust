@@ -1,7 +1,7 @@
 # B7 caller-borrowed record stores: acceptance map
 
-Date: 2026-10-10. Ledger row: B7 (gate 183) in `docs/compiler-completion-plan.md`.
-Plan: `docs/caller-borrowed-record-stores-plan.md`.
+Date: 2026-10-10. Ledger row: B7 (gate 183) in `docs/plans/compiler-completion-plan.md`.
+Plan: `docs/plans/caller-borrowed-record-stores-plan.md`.
 
 A callback installed through a mutable record parameter may borrow an input that the
 caller owns. This map lists every form in the plan's acceptance sequence, its status

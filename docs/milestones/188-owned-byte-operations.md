@@ -70,7 +70,7 @@ Exact SQLite records, verified by byte-for-byte readback:
 - runtime/results/2026-10-10T14-58-10-521Z-verify.json
 
 Earlier operation increments and their original failed/repair evidence remain referenced
-in docs/resources-bytes-plan.md and their handoffs. No full regression or timing was
+in docs/plans/resources-bytes-plan.md and their handoffs. No full regression or timing was
 repeated for this individual gate. Installed consumer publication is recorded separately.
 
 

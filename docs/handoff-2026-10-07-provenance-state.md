@@ -1,6 +1,6 @@
 # Handoff: callable provenance state WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/captured-call-effects-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/captured-call-effects-plan.md
 and docs/handoff-2026-10-07-body-provenance.md first. This checkpoint wires actual
 body origins through source binding and expression states. It does not accept
 Gate173 or execute invocation summaries. Accepted copied consumers remain 399a1c4.

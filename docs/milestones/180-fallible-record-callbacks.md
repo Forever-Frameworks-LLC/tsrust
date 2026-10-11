@@ -1,7 +1,7 @@
 # Gate 180: fallible callback fields behind record parameters
 
 Status: accepted. Requirement B6 of
-[the compiler completion ledger](../compiler-completion-plan.md); first gate of the
+[the compiler completion ledger](../plans/compiler-completion-plan.md); first gate of the
 scoped aggregate family chosen by the owner.
 
 ## Behavior

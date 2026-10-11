@@ -3,7 +3,7 @@ Superseded by [the captured-default value handoff](./handoff-2026-10-06-gate173-
 # Handoff: named result inference checkpoint
 
 Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md,
-docs/nested-function-declarations-plan.md and
+docs/plans/nested-function-declarations-plan.md and
 milestones/173-nested-function-signatures.md first. Inspect Git for the current
 checkpoint hash. Gate172 is accepted at d74f34d. Gate173 and the broader goal remain
 incomplete. This checkpoint implements focused nonrecursive named result inference.

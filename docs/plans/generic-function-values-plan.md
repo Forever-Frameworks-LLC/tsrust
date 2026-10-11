@@ -349,7 +349,7 @@ generic factory value: borrowed then owned concrete contracts, map callback use,
 and typed record/array storage. Their matched strict TypeScript sources pass and
 observe exact shared/independent factory state. Native tests remain red at the
 explicit compatibility guard and missing replay-body boundary. Continue with
-docs/generic-value-adapters-plan.md; do not reconstruct a declaration to replace
+docs/plans/generic-value-adapters-plan.md; do not reconstruct a declaration to replace
 the already existing runtime environment.
 
 An initial implementation now passes those three witnesses through real checked

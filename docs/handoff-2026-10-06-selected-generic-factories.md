@@ -1,6 +1,6 @@
 # Selected generic factories checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md.
 Preserve the four owner fixture edits. Use explicit Git paths. Full Gate173 and
 adapter acceptance remain open.
 
@@ -41,7 +41,7 @@ loose cleanup. Obsolete test/native outputs were pruned; current consumers remai
 
 Continuation prompt: Continue Tsrust from
  docs/handoff-2026-10-06-selected-generic-factories.md. Read AGENTS.md,
-docs/development-workflow.md and docs/generic-value-adapters-plan.md first.
+docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first.
 Preserve four owner fixtures, captured-type specialization, partial parameter
 facts and selected owned factory storage. Continue the missing adapter context
 audit with TDD, std:testing, editor and matched untimed support. Keep exact SQLite

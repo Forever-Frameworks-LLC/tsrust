@@ -169,7 +169,7 @@ byte-for-byte and removed from loose storage. Earlier red evidence remains intac
 ## Reconciliation against the plan (2026-10-07)
 
 Each requirement of gate 172 in
-[the nested function plan](../nested-function-declarations-plan.md) was checked
+[the nested function plan](../plans/nested-function-declarations-plan.md) was checked
 against a current witness. All pass on the sources accepted with the scoped callable
 record gate (commit 5c5cc68).
 

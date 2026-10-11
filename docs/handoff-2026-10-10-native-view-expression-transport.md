@@ -1,7 +1,7 @@
 # Actual expression callee lifetime transport
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Continue from 60ec23c9. Gate 189/S07 remain open.
+plans/native-view-callable-storage-plan.md. Continue from 60ec23c9. Gate 189/S07 remain open.
 
 Concrete expression callbacks now register native summaries, including conditional
 callees and specialized method origins. Captured return loans follow the actual

@@ -2,14 +2,14 @@
 
 Date: 2026-10-09. Source repair checkpoint: `ace0a4bf`. The family publication
 commit contains this handoff. Read AGENTS.md and docs/development-workflow.md first,
-then this handoff, docs/compiler-completion-plan.md,
+then this handoff, docs/plans/compiler-completion-plan.md,
 docs/milestones/182-scoped-aggregate-composition.md and the B5 acceptance map.
 
 ## State and decisions
 
 B5 is accepted for the agreed storage and transport scope. The owner explicitly
 assigned mixed-record unions to a dedicated discriminated-union feature in D2.
-The requirement remains open; docs/discriminated-unions-plan.md records its gates
+The requirement remains open; docs/plans/discriminated-unions-plan.md records its gates
 and validation-library motivation. Do not reopen the choice or claim support.
 
 No implicit clone. Scalar captures copy on creation; local owner captures borrow.

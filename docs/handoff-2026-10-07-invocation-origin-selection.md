@@ -1,6 +1,6 @@
 # Invocation environment selection checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/callable-replacement-plan.md and the checked-invocation-renderer handoff first. This checkpoint continues the open callable replacement family.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/callable-replacement-plan.md and the checked-invocation-renderer handoff first. This checkpoint continues the open callable replacement family.
 
 The storage registry now resolves a source invocation's reachable declaration spans to concrete environment IDs within its assignment family. Multiple environments created from one declaration remain distinct. An unrelated family's environment cannot be selected even when its declaration matches. Empty proofs, missing environment provenance and declarations without a member environment receive source diagnostics. An unregistered receiver is treated as singleton storage, not as a global declaration search.
 

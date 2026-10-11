@@ -1,6 +1,6 @@
 # Nested function declarations: implementation and acceptance plan
 
-Current state: gates 170–173 and the subsequent callable replacement family are accepted. The named-declaration milestone has accepted its contract audit, twelve accumulated workloads and performance review; executable publication and final handoff are complete. See milestones/named-declaration-family.md. Later sections retain historical implementation checkpoints.
+Current state: gates 170–173 and the subsequent callable replacement family are accepted. The named-declaration milestone has accepted its contract audit, twelve accumulated workloads and performance review; executable publication and final handoff are complete. See ../milestones/named-declaration-family.md. Later sections retain historical implementation checkpoints.
 
 This extends the compiler/editor foundation and the callable support needed by the
 standard library. The full feature includes lexical scope, declaration hoisting,
@@ -174,7 +174,7 @@ requires every stage, including captures and escape, rather than only gate 170.
 
 Gate 170 is accepted for lexical capture-free declarations, native execution,
 editor navigation and formatting, with a complete matched untimed benchmark.
-See milestones/170-nested-function-foundation.md for evidence. Borrowed/escaping
+See ../milestones/170-nested-function-foundation.md for evidence. Borrowed/escaping
 captures remain a genuine red witness for gates 171/172. A separate omitted-result
 native witness is red with a passing independent Node reference; the current
 unannotated named result is void, and inference is tracked in gate 173.
@@ -185,7 +185,7 @@ focused checks, complete benchmark support per implemented gate and SQLite recor
 with exact read-back. Refresh five executable consumers only after implementation.
 No archives, routine full regressions or timing during these foundation chunks.
 
-Gate 171 is accepted: see milestones/171-nested-function-captures.md. Captures are
+Gate 171 is accepted: see ../milestones/171-nested-function-captures.md. Captures are
 hidden borrowed arguments of each call, and a nested function used as a value is the
 arrow that calls it. The next stage is gate 172. Its basic witness already passes
 through the arrow form; the stage still owes factory instances, aggregate storage,
@@ -193,7 +193,7 @@ disposal, callback failures, recursive group lifetime and its own matched worklo
 Gate 173 keeps the omitted-result witness red, and adds function values of generic
 functions and of capturing functions with optional or default parameters.
 
-Gate172 is accepted. See milestones/172-nested-function-owned-escape.md for owned
+Gate172 is accepted. See ../milestones/172-nested-function-owned-escape.md for owned
 factory/storage/disposal/failure/recursion evidence and independent matched untimed
 verification. Runtime captures now follow live call/value edges; unused bodies use
 completed lexical contexts without adding outer-call borrows or readiness demands.
@@ -254,7 +254,7 @@ not full generic-value or gate173 acceptance.
 
 
 The source-loop checkpoint and automatic project formatting are documented in
-milestones/project-formatting-and-source-loops.md. Finite callable contract sets
+../milestones/project-formatting-and-source-loops.md. Finite callable contract sets
 now propagate through loops, updates and labeled control. Full Gate173 still needs
 exception/finally flow, expression evaluation order, capture writes, stored fields,
 concrete environment replacement and the remaining lifetime/context audit. Project
@@ -265,7 +265,7 @@ refresh only after token preservation proof. No performance measurement is claim
 
 Gate 173 is accepted for omitted result types and for function values of generic,
 optional, default and rest functions: see
-milestones/173-nested-function-signatures.md. Gates 170 to 173 are complete. The
+../milestones/173-nested-function-signatures.md. Gates 170 to 173 are complete. The
 named-declaration family milestone (requirement audit, complete regressions and
 measurement of the accumulated workloads) is the next step of this plan. Callable
 replacement across distinct polymorphic origins continues as separate work.

@@ -1,6 +1,6 @@
 # Handoff: bounded array provenance and independent factory extraction
 
-This is implementation progress after `54bd1b0`, not family acceptance. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md before continuing. Fifteen protected owner fixtures remain unstaged and must not be committed. Use explicit Git paths.
+This is implementation progress after `54bd1b0`, not family acceptance. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md before continuing. Fifteen protected owner fixtures remain unstaged and must not be committed. Use explicit Git paths.
 
 ## Implementation
 

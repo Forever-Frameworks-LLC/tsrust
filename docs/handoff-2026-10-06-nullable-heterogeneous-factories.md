@@ -1,6 +1,6 @@
 # Nullable and heterogeneous factory checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md first. Nullable destinations and heterogeneous selected factory results are accepted as a focused chunk. Full Gate173 stays open. Preserve the four owner fixtures; use explicit Git paths.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first. Nullable destinations and heterogeneous selected factory results are accepted as a focused chunk. Full Gate173 stays open. Preserve the four owner fixtures; use explicit Git paths.
 
 Current acceptance: 37 adapter tests, repaired bounded generic/default controls, two result-only inference controls, eight depth suites and whole editor (307 tests). Strict TypeScript fixtures match native execution. The matched family retains all older observations and appends five, totaling 93. Five native/Node cases pass untimed. Exact canonical record is SQLite path benchmarks/runtime/results/2026-10-07T01-30-18-635Z-verify.json. Original failed inference, invocation regression and ABI registration checks are retained. Five consumers are atomically refreshed and hash verified. No timing or full Gate173 acceptance is claimed.
 

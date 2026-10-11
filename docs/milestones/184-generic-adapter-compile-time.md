@@ -1,8 +1,8 @@
 # Gate 184: generic adapter compile time
 
-Date: 2026-10-10. Ledger row: B8 in `docs/compiler-completion-plan.md`.
+Date: 2026-10-10. Ledger row: B8 in `docs/plans/compiler-completion-plan.md`.
 Investigation history: `generic-state-join-efficiency.md`,
-`../resumable-callable-summaries-plan.md`.
+`../plans/resumable-callable-summaries-plan.md`.
 
 ## Result
 

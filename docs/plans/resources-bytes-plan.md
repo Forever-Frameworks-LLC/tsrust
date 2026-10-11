@@ -3,7 +3,7 @@
 Status: gates 187–190 native declarations, owned bytes, scoped views, strict UTF-8
 and file resources are accepted in B11/S07 on macOS. Complete regressions, 17 matched
 measurements, direct Rust wrapper review and installed-consumer refresh are accepted;
-see `milestones/s07-resources-bytes.md`. B10/S06 is
+see `../milestones/s07-resources-bytes.md`. B10/S06 is
 accepted at gate 186. Resource close consumes ownership by owner decision.
 See the gate 187 record and current continuation handoff.
 
@@ -625,7 +625,7 @@ loan propagation and safe lifetime-bearing emission; this is not gate acceptance
 ## Gate 189 focused acceptance
 
 The approved byte-view and recursive-storage scope is accepted at source checkpoint
-`bd4b0d02`, with requirement mapping in `milestones/189-native-byte-views.md`.
+`bd4b0d02`, with requirement mapping in `../milestones/189-native-byte-views.md`.
 Earlier pending callback-composition statements describe historical checkpoints.
 Gate 190 and S07 complete regressions, matched timing, performance review and final
 consumer refresh remain open. No measurement acceptance is implied.
@@ -711,7 +711,7 @@ gate 190 scope audit are next, followed by S07 full regressions and measurement.
 ### Gate 190 focused acceptance
 
 The final scope audit and matched file workloads are complete; see
-`milestones/190-file-resources.md`. Both source and scope-drop workloads agree with
+`../milestones/190-file-resources.md`. Both source and scope-drop workloads agree with
 Node-after-tsc on five untimed cases. Inputs are private temporary regular files,
 prepared outside timing and removed at exit. The arithmetic oracle, mutation guards,
 hashes, native ABI, profiler hooks and reporting are ready. Source capability checks

@@ -2,7 +2,7 @@
 
 B7/gate 183 remains in progress. This checkpoint follows red witnesses at `e69c69f`
 and holder capture implementation at `12ffe9d`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and
 docs/b7-direct-callback-stores.md first. No owner question is pending. Discriminated
 unions remain a dedicated D2 feature.
 

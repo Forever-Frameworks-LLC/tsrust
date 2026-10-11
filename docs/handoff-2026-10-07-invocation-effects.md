@@ -1,6 +1,6 @@
 # Checked invocation effects checkpoint
 
-Continue from 2c9620c and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Callable replacement remains open.
+Continue from 2c9620c and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md. Callable replacement remains open.
 
 The new generic_invocation_effects module joins selected environment/method failure contracts into one finite coordinate per checked plan. Registry.entries borrows canonical pair slices without cloning alternative vectors. The existing effect fixed point refreshes these coordinates, including final program annotation, callback inference, discovery and region callers. Attached plan IDs now govern ClosureMethod own-failure lookup; calls without plans retain direct lookup. Missing coordinates remain unknown.
 
@@ -14,4 +14,4 @@ Preserve fifteen owner fixture edits and commit explicit paths. Reuse /private/t
 
 ## Handoff prompt
 
-Continue Tsrust from docs/handoff-2026-10-07-invocation-effects.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Checked alternative plans now propagate their own exact failure contracts independently of receiver storage identity. Update native graph and callback parameter consumers, projection facts and native per-arm conversion. Then implement reachable-declaration selection and independent contract normalization before admitting the retained distinct-origin replacement witnesses. Complete captured layouts, mutable factory state and the full family acceptance plan. Preserve owner fixtures, focused TDD, formatting, benchmark readiness and exact SQLite evidence.
+Continue Tsrust from docs/handoff-2026-10-07-invocation-effects.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md. Checked alternative plans now propagate their own exact failure contracts independently of receiver storage identity. Update native graph and callback parameter consumers, projection facts and native per-arm conversion. Then implement reachable-declaration selection and independent contract normalization before admitting the retained distinct-origin replacement witnesses. Complete captured layouts, mutable factory state and the full family acceptance plan. Preserve owner fixtures, focused TDD, formatting, benchmark readiness and exact SQLite evidence.

@@ -1,6 +1,6 @@
 # Nested callable contract checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md first. Nested callable reconstruction is accepted as a focused chunk; full Gate173 remains open. Preserve the four owner fixtures. Use explicit Git paths.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first. Nested callable reconstruction is accepted as a focused chunk; full Gate173 remains open. Preserve the four owner fixtures. Use explicit Git paths.
 
 See the latest section of docs/milestones/173-nested-function-signatures.md for behavior and evidence. Current matched family has 88 observations; no measurements were run. Canonical verification is in SQLite at benchmarks/runtime/results/2026-10-07T01-20-05-313Z-verify.json. All 34 adapter tests, four shared runtime tests, eight depth canary suites and 305 editor tests pass. A separate contract metadata round trip verifies all six invocation kinds. Five consumers were atomically refreshed and hash checked.
 

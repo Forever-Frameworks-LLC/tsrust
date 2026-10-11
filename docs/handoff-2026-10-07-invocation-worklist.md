@@ -1,7 +1,7 @@
 # Handoff: contextual callable effects and pending return snapshots
 
 Read AGENTS.md, docs/development-workflow.md and
-docs/captured-call-effects-plan.md and docs/callable-environments-plan.md first. Gate173 and the full callable-effects
+docs/plans/captured-call-effects-plan.md and docs/plans/callable-environments-plan.md first. Gate173 and the full callable-effects
 plan remain open. This is a source checkpoint, not family acceptance. Copied
 executable consumers remain at 399a1c4; the warm Cargo target contains newer work.
 
@@ -237,7 +237,7 @@ A new executable std:testing fixture, callable-environments/retained.tsr, expose
 an additional native prerequisite: factory(one) fails generic-inference for A.
 The passing source effect test does not establish native transport of polymorphic
 arguments. The integration test is retained failing and unskipped. Read
-polymorphic-callable-transport-plan.md before lifting mutable environment guards;
+plans/polymorphic-callable-transport-plan.md before lifting mutable environment guards;
 it specifies checked argument identity, capture timing, point-sensitive instance
 state, ownership/disposal controls and acceptance requirements. No compiler source
 changed for this red checkpoint.

@@ -1,7 +1,7 @@
 # Source call cardinality checkpoint
 
 Read AGENTS.md, development workflow, both generic value plans and
-unused-generic-call-validation-plan.md first. This extends 5efcac9 after red b5158e1.
+plans/unused-generic-call-validation-plan.md first. This extends 5efcac9 after red b5158e1.
 Full source validation, Gate173 and the broad objective remain open. Preserve the
 four unrelated owner fixture edits and use explicit Git paths.
 

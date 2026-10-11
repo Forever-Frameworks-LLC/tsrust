@@ -1,7 +1,7 @@
 # Generic callable payload checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/generic-value-adapters-plan.md
-and docs/generic-function-values-plan.md first. This checkpoint accepts focused
+Read AGENTS.md, docs/development-workflow.md, docs/plans/generic-value-adapters-plan.md
+and docs/plans/generic-function-values-plan.md first. This checkpoint accepts focused
 generic callable payload support after red checkpoint cc4b487. Full Gate173 and
 the thread objective remain open.
 

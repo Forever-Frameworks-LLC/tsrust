@@ -1,7 +1,7 @@
 # Function and access-wrapper migration plan
 
 Status: implementation has focused acceptance, 2026-10-04. Checkpoint101 regressions and measurements remain pending.
-Follow [development-workflow.md](development-workflow.md). Preserve current Gate100 work,
+Follow [development-workflow.md](../development-workflow.md). Preserve current Gate100 work,
 existing editor fixes, running checks and deferred feature-family measurements. These phases do
 not allocate or renumber compiler gates.
 

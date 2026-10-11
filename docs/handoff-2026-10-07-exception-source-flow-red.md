@@ -1,6 +1,6 @@
 # Handoff: exception source-flow red checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-source-loops-and-project-format.md first. The accepted generic closer formatter fix is df46aef. This checkpoint adds exception source-flow rejection witnesses and a concrete continuation plan; compiler source is unchanged.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-source-loops-and-project-format.md first. The accepted generic closer formatter fix is df46aef. This checkpoint adds exception source-flow rejection witnesses and a concrete continuation plan; compiler source is unchanged.
 
 The test generic_call_exceptions has eight invalid known-target calls that are still accepted and six valid controls that pass. Its rejection test is intentionally red. The exact output is retained in SQLite as /private/tmp/tsrust-source-exception-red.log. Begin implementation from that evidence, not a new investigation of the same gap. Follow the exception source-flow section of the validation plan, especially incoming state on failed assignment and distinct finally completion destinations.
 

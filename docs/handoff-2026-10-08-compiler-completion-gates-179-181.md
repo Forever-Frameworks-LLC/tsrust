@@ -1,7 +1,7 @@
 # Handoff: compiler completion, gates 179 to 181
 
 Date: 2026-10-08. Previous handoff: `docs/handoff-2026-10-08-compiler-completion-gates-175-178.md`.
-Plan and ledger: `docs/compiler-completion-plan.md`.
+Plan and ledger: `docs/plans/compiler-completion-plan.md`.
 
 ## State of the tree
 

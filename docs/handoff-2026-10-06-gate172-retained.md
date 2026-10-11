@@ -3,7 +3,7 @@ Superseded by [the gate172 accepted handoff](./handoff-2026-10-06-gate172-accept
 # Handoff: retained owned nested callbacks
 
 Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md,
-docs/nested-function-declarations-plan.md and
+docs/plans/nested-function-declarations-plan.md and
 docs/milestones/172-nested-function-owned-escape.md first. Gate171 is accepted at
 1c6dd58. Gate172 remains incomplete; do not mark the full plan complete. Inspect Git
 for the actual checkpoint hash. Preserve four uncommitted owner fixtures under

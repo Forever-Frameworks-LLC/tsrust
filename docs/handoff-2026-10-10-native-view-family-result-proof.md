@@ -1,7 +1,7 @@
 # Native view family Result proof
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md first. This checkpoint follows f439998f.
+plans/native-view-callable-storage-plan.md first. This checkpoint follows f439998f.
 Gate 189/S07 remain open. No public API or source storage admission was added.
 
 The test-only native family backend now has a parsed/formatted Result-returning

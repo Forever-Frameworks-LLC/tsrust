@@ -36,7 +36,7 @@ and runtime/results/2026-10-07T09-15-06-199Z-verify.json.
 ## Remaining work
 
 Gate 173 and the captured-effects plan remain open. Follow
-docs/polymorphic-callable-transport-plan.md for point-sensitive mutable environment
+docs/plans/polymorphic-callable-transport-plan.md for point-sensitive mutable environment
 state, checked capture modes, strong updates for one owned instance, weak updates
 for merged instances, consumption and recursive convergence. Do not remove the
 read-only environment guards before the native/source witnesses prove these cases.
@@ -66,7 +66,7 @@ Continue prompt:
 
 > Continue Tsrust from docs/handoff-2026-10-07-polymorphic-argument-transport.md.
 > Read AGENTS.md, docs/development-workflow.md,
-> docs/polymorphic-callable-transport-plan.md and
+> docs/plans/polymorphic-callable-transport-plan.md and
 > docs/handoff-2026-10-07-invocation-worklist.md first. The polymorphic factory
 > transport prerequisite passes native ownership/disposal and editor checks;
 > gate 173 remains open. Preserve 15 owner fixture edits. Next implement
@@ -86,7 +86,7 @@ cardinalities 1, 2, 1, 2 and results 7, 9, 7, 9. Existing mutation/conflict opac
 controls still pass. No solver behavior changed. The witness is deliberately
 unskipped; broad unit runs will include its known failure until implementation.
 Read the point-sensitive mutable environment section in
-docs/polymorphic-callable-transport-plan.md for the concrete state transport and
+docs/plans/polymorphic-callable-transport-plan.md for the concrete state transport and
 checked capture-mode sequence. This is infrastructure evidence, not native
 acceptance of heterogeneous assignment to an unconstrained generic parameter.
 Exact red, Node, guard and format logs are stored under

@@ -1,7 +1,7 @@
 # Normal scoped owning native family emission
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. This checkpoint follows 6ed192f6.
+plans/native-view-callable-storage-plan.md. This checkpoint follows 6ed192f6.
 Gate 189/S07 remain open. Public byte factories and normal owning source construction
 remain guarded. The original stored-callback positive source witness is still red.
 

@@ -1,6 +1,6 @@
 # Gate 188 append and independent copy continuation
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and this
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and this
 handoff. Gate 187 is accepted. Gate 188 remains in progress. The preceding allocation
 and resize checkpoint is a5080dd5; this increment adds append and copy. No protected
 owner edits remain. One agent works in this tree.
@@ -83,7 +83,7 @@ explicit-path source commits.
 ## Continuation prompt
 
 Continue Tsrust from docs/handoff-2026-10-10-byte-copy-append.md and
- docs/resources-bytes-plan.md. Gate 187 accepted. Gate 188 basic byte operations through
+ docs/plans/resources-bytes-plan.md. Gate 187 accepted. Gate 188 basic byte operations through
 append and independent copy verified. Finish explicit clone and capability/storage/
 capture/evaluation/cleanup acceptance, then gates 189–190. Keep native/editor/catalog
 parity, matched workload support, bounded checks, whole-project formatting and exact

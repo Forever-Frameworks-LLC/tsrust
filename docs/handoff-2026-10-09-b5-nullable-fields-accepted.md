@@ -73,7 +73,7 @@ callback record, a truthiness condition and a unary sign.
 - The workload has no helper for populated starts or returned records. Compiler and
   editor tests cover them.
 - Every row under "Diagnosed, not supported" and "Not started" in the acceptance map.
-- Ledger rows B7 to B13 and D2 to D5 in `docs/compiler-completion-plan.md`.
+- Ledger rows B7 to B13 and D2 to D5 in `docs/plans/compiler-completion-plan.md`.
 
 ## Owner decisions still open
 

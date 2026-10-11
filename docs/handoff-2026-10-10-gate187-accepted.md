@@ -1,6 +1,6 @@
 # Gate 187 accepted: native byte foundation
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
 [the acceptance record](milestones/187-native-byte-foundation.md) first. B11/S07
 remains in progress. Gate 187 is accepted; next is gate 188, not more foundation work.
 

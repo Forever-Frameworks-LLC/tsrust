@@ -1,7 +1,7 @@
 # Handoff: deferred generic data boundary
 
 Continue from 4147395 and this red checkpoint. Read AGENTS.md,
-docs/development-workflow.md, docs/generic-function-values-plan.md and
+docs/development-workflow.md, docs/plans/generic-function-values-plan.md and
 handoff-2026-10-06-gate173-generic-contexts.md. Contextual specialization is verified;
 unannotated polymorphic values, inferred generic factories and gate173 remain open.
 

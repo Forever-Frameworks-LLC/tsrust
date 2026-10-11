@@ -5,7 +5,7 @@ replacement defects below are repaired; holder capture remains a red witness.
 
 B7/gate 183 remains in progress. This continues the array-input checkpoint
 `946e307`; B5 remains accepted at `00214a11`. Read AGENTS.md,
-`docs/development-workflow.md`, `docs/caller-borrowed-record-stores-plan.md` and the
+`docs/development-workflow.md`, `docs/plans/caller-borrowed-record-stores-plan.md` and the
 B5 acceptance handoff first. Discriminated unions remain a dedicated required D2
 feature. There is no pending owner decision for this slice.
 

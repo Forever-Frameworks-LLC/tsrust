@@ -2,7 +2,7 @@
 
 ## Current implementation status
 
-Accepted: see [the acceptance record](milestones/173-scoped-callable-records.md).
+Accepted: see [the acceptance record](../milestones/173-scoped-callable-records.md).
 All eight milestones are complete for records. The sections below keep the diagnostic
 and implementation sequence. Limits and the rejected array, Map, Set, union and
 nullable-replacement shapes are listed in the acceptance record.
@@ -742,7 +742,7 @@ Cargo target are pruned while the newest executable for each test group and all
 current consumers are retained. No cache refill or timing is performed.
 
 Handoff prompt: Continue Tsrust after source checkpoint fc17347. Read AGENTS.md,
-docs/development-workflow.md, docs/scoped-record-field-storage-plan.md and this
+docs/development-workflow.md, docs/plans/scoped-record-field-storage-plan.md and this
 handoff. Local nested stores, direct/multi-hop moves, record-literal construction
 and field-to-field transport are verified: 42 project tests, 64 depth canaries and
 focused editor coverage. Do not reopen those chunks. Start the capture-free

@@ -1,6 +1,6 @@
 # Handoff: nested function declaration plan and red checkpoint
 
-/caveman Continue tsrust in /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-06-gate169.md and docs/nested-function-declarations-plan.md first. Inspect git status and log for the current checkpoint.
+/caveman Continue tsrust in /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-06-gate169.md and docs/plans/nested-function-declarations-plan.md first. Inspect git status and log for the current checkpoint.
 
 Gate 169 remains the latest accepted implementation. Gate 170 is planned and red, not accepted. The owner explicitly selected existing ownership rules for nested named captures: borrow local captures and transfer supported captures when an owned callable escapes. Do not introduce shared JavaScript capture cells or implicit cloning. This decision is settled; do not ask again.
 

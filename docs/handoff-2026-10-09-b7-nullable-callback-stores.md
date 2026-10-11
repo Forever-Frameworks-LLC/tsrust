@@ -1,7 +1,7 @@
 # B7 nullable callback stores and definite clearing
 
 B7/gate 183 remains in progress. This checkpoint follows `666c05d`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and this
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and this
 handoff. No owner question is pending. Discriminated unions remain the dedicated
 D2 feature, including validation-library composition; they are not part of B7.
 

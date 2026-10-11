@@ -1,7 +1,7 @@
 # Scoped owning families in native record fields
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. This checkpoint follows d14caee9.
+plans/native-view-callable-storage-plan.md. This checkpoint follows d14caee9.
 Gate 189/S07 remain open. Public factories and normal owning source construction
 remain guarded. The positive stored-callback source witness remains red.
 

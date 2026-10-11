@@ -1,0 +1,38 @@
+# Implementation plans
+
+Design and implementation plans live here. Their detailed progress sections are historical;
+use the [standard-library roadmap](../standard-library-roadmap.md) and accepted
+[family evidence](../milestones/) for current status. Public behavior belongs in the topic guides.
+
+- [callable environments plan](callable-environments-plan.md)
+- [callable replacement plan](callable-replacement-plan.md)
+- [caller borrowed record stores plan](caller-borrowed-record-stores-plan.md)
+- [captured call effects plan](captured-call-effects-plan.md)
+- [compiler completion plan](compiler-completion-plan.md)
+- [conditional callable carriers plan](conditional-callable-carriers-plan.md)
+- [discriminated unions plan](discriminated-unions-plan.md)
+- [function type migration plan](function-type-migration-plan.md)
+- [generic function values plan](generic-function-values-plan.md)
+- [generic value adapters plan](generic-value-adapters-plan.md)
+- [handoff 2026 10 06 gate170 plan](handoff-2026-10-06-gate170-plan.md)
+- [handoff 2026 10 08 resumable summary plan](handoff-2026-10-08-resumable-summary-plan.md)
+- [indexed capture release plan](indexed-capture-release-plan.md)
+- [javascript parity plan](javascript-parity-plan.md)
+- [map entry capture release plan](map-entry-capture-release-plan.md)
+- [native view callable storage plan](native-view-callable-storage-plan.md)
+- [nested function declarations plan](nested-function-declarations-plan.md)
+- [once callback environment plan](once-callback-environment-plan.md)
+- [parallel os identity plan](parallel-os-identity-plan.md)
+- [parallel path join plan](parallel-path-join-plan.md)
+- [parallel path relative plan](parallel-path-relative-plan.md)
+- [parallel standard library plan](parallel-standard-library-plan.md)
+- [parallel stdlib integration plan](parallel-stdlib-integration-plan.md)
+- [polymorphic callable transport plan](polymorphic-callable-transport-plan.md)
+- [recursive view storage plan](recursive-view-storage-plan.md)
+- [resources bytes plan](resources-bytes-plan.md)
+- [result match plan](result-match-plan.md)
+- [resumable callable summaries plan](resumable-callable-summaries-plan.md)
+- [scoped callable aggregate plan](scoped-callable-aggregate-plan.md)
+- [scoped record field storage plan](scoped-record-field-storage-plan.md)
+- [testing library plan](testing-library-plan.md)
+- [unused generic call validation plan](unused-generic-call-validation-plan.md)

@@ -15,12 +15,12 @@ Direct Rust wrapper review and final consumer refresh are accepted. S08 is next.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 and S07 accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 and S07 accepted | native-byte-views-implementation.md; plans/resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; plans/resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have complete S07 correctness acceptance | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 focused implementation accepted | milestones/190-file-resources.md |
-| Useful synchronous file proof and private instrumented resource backend | Gate 190 focused implementation accepted; S09 broader host scope pending | resources-bytes-plan.md |
-| Complete regressions, matched measurements and optimization review | S07 accepted: correctness, measurements, review and refreshed consumers | resources-bytes-plan.md; standard-library-roadmap.md |
+| Useful synchronous file proof and private instrumented resource backend | Gate 190 focused implementation accepted; S09 broader host scope pending | plans/resources-bytes-plan.md |
+| Complete regressions, matched measurements and optimization review | S07 accepted: correctness, measurements, review and refreshed consumers | plans/resources-bytes-plan.md; standard-library-roadmap.md |
 
 All current byte workloads have matching sources, independent oracles, source hashes,
 ABI support and harness hooks. Untimed verification is distinct from measurement.
@@ -160,7 +160,7 @@ the finally-return repair and family measurements.
 | A callback that returns a view it received as an argument, stored or local | supported, including owned view captures | fixture `callbacks.tsr`; `native_view_capturing_argument_matrix` |
 | The same, when the callback also captures a view | supported with precise argument origins and intersections for mixed returns | `native_view_capturing_callback_returns_its_argument`; `native_view_capturing_argument_matrix` |
 | Matched workload `native_byte_views` (`Uint8Array.subarray`) | registered; native and Node-after-tsc agree untimed; not measured | `native-byte-views-*.mjs`; SQLite `runtime/results/2026-10-10T23-27-13-709Z-verify.json` |
-| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | implemented with focused source/native/editor checks; recursive stored-callable fields remain guarded | `recursive-view-storage-plan.md` |
+| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | implemented with focused source/native/editor checks; recursive stored-callable fields remain guarded | `plans/recursive-view-storage-plan.md` |
 
 A stored function value (`const read = length;`) keeps the declared parameter type
 `Bytes`; the alternatives apply to direct calls of the import.
@@ -181,7 +181,7 @@ repair precedes resource cleanup acceptance.
 The five workspace consumers, global CLI and local VS Code extension were refreshed
 from `4367f4cc` and smoke-tested. SQLite record:
 `target/editor/consumer-refresh-2026-10-10.json`. No timing ran. Subsequent recursive
-lifetime groundwork is tracked in `recursive-view-storage-plan.md`; it does not
+lifetime groundwork is tracked in `plans/recursive-view-storage-plan.md`; it does not
 claim public recursive-storage acceptance.
 
 
@@ -193,7 +193,7 @@ owning callback captures. All contributing owners share the recursive lifetime;
 outer sibling fields remain independent. The public `recursive-arrays.tsr` fixture,
 five owner/escape rejection controls, O0/O3 pointer and write-through checks, and
 focused editor checks pass. Detailed evidence and repair history are recorded in
-`recursive-view-storage-plan.md`.
+`plans/recursive-view-storage-plan.md`.
 
 The matched `native_byte_views_recursive` workload agrees with Node-after-tsc on
 five untimed cases. SQLite result:
@@ -210,7 +210,7 @@ including mutual cycles and byte-view lifetimes. Public fixtures, six ownership
 rejections, editor diagnostics and the source/native matrix pass. The new
 `native_byte_views_linked` workload agrees with Node-after-tsc on five untimed cases;
 SQLite preserves `runtime/results/2026-10-11T01-01-09-264Z-verify.json`.
-See `recursive-records.md` for behavior and `recursive-view-storage-plan.md` for evidence.
+See `recursive-records.md` for behavior and `plans/recursive-view-storage-plan.md` for evidence.
 
 Recursive stored-callable fields still hit the existing `callable-layout` diagnostic;
 this is pending callback integration, alongside capturing callbacks returning argument

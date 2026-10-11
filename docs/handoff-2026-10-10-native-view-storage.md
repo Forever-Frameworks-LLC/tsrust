@@ -1,6 +1,6 @@
 # Gate 189 private native view storage checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
 docs/native-byte-views-implementation.md first. This checkpoint follows 6ca0cb11.
 Gate 189 and S07 remain open. No public byte view factory is implemented yet.
 

@@ -52,8 +52,8 @@ this handoff; resolve its commit with git log for this file.
 
 ## Remaining gates
 
-Gate173 remains open. Read docs/conditional-callable-carriers-plan.md and
-docs/polymorphic-callable-transport-plan.md. Consuming borrowed alternatives need
+Gate173 remains open. Read docs/plans/conditional-callable-carriers-plan.md and
+docs/plans/polymorphic-callable-transport-plan.md. Consuming borrowed alternatives need
 an explicit once contract and lifetime-bearing representation. Nullable/aggregate
 and higher-order builtin transport of scoped sums require focused source/native
 and editor coverage. Do not claim them from direct invocation or callback-parameter
@@ -81,8 +81,8 @@ Already running editor servers must restart to load refreshed executables.
 
 > Continue Tsrust from docs/handoff-2026-10-07-borrowed-conditional-carriers.md.
 > Read AGENTS.md, docs/development-workflow.md,
-> docs/conditional-callable-carriers-plan.md and
-> docs/polymorphic-callable-transport-plan.md first. Scoped monomorphic borrowed
+> docs/plans/conditional-callable-carriers-plan.md and
+> docs/plans/polymorphic-callable-transport-plan.md first. Scoped monomorphic borrowed
 > conditional carriers now work with native disposal, default/cardinality,
 > callback failure and editor checks. Gate173 remains open. Preserve 15 owner
 > fixture edits. Continue consuming borrowed sums and scoped transport coverage,

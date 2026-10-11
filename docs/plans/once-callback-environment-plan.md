@@ -144,7 +144,7 @@ anonymous higher-order retaining boundaries from admitting borrowed environments
 
 Focused source integration is accepted after the bounded compiler checks, all eight
 depth canaries, 334 editor tests, matched native/compiled-TypeScript oracle and durable
-evidence import. See milestones/173-scoped-once-parameters.md. Full Gate173 remains open.
+evidence import. See ../milestones/173-scoped-once-parameters.md. Full Gate173 remains open.
 The matched workload now retains 133 observations, including scoped consumption
 and explicit owned retention. No timing has been performed. Consumers remain at
 the previous accepted source checkpoint until integration acceptance.

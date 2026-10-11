@@ -1,7 +1,7 @@
 # Scoped native callable provenance
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md first. This checkpoint follows 6fbc7d77.
+plans/native-view-callable-storage-plan.md first. This checkpoint follows 6fbc7d77.
 Gate 189/S07 remain open. Public factories and normal owning source construction
 remain guarded; native_view_record_callback_preserves_selected_input is still red.
 

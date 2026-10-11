@@ -1,6 +1,6 @@
 # Handoff: separate callable summary completions WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/captured-call-effects-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/captured-call-effects-plan.md
 and docs/handoff-2026-10-07-provenance-state.md first. This checkpoint implements
 separate completion graphs and standalone ordered state summaries. It does not
 apply them to actual call sites or accept Gate173. Copied consumers remain 399a1c4.

@@ -1,7 +1,7 @@
 # B7 holder capture storage checkpoint
 
 B7/gate 183 remains in progress. This checkpoint follows `1374ccb`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and
 this handoff before continuing. Discriminated unions are a dedicated required D2
 feature, with literal tags, narrowing, exhaustive checks and editor support; schema
 validation builds on that later. No owner decision is pending.

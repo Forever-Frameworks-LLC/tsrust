@@ -1,6 +1,6 @@
 # Handoff: exception and cleanup source flow
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/unused-generic-call-validation-plan.md first. The red checkpoint is 32bf618; the following accepted source checkpoint implements structured exception flow. Git HEAD is authoritative. Full Gate173 remains open.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/plans/unused-generic-call-validation-plan.md first. The red checkpoint is 32bf618; the following accepted source checkpoint implements structured exception flow. Git HEAD is authoritative. Full Gate173 remains open.
 
 ## Implemented scope
 

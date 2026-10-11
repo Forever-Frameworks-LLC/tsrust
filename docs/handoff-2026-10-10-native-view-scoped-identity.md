@@ -1,7 +1,7 @@
 # Scoped owning native view family identity
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. This checkpoint follows 299dd3e1.
+plans/native-view-callable-storage-plan.md. This checkpoint follows 299dd3e1.
 Gate 189/S07 remain open. Public view imports and owning source construction stay
 guarded; the original stored-callback positive witness is still red.
 

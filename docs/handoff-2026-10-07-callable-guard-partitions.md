@@ -1,6 +1,6 @@
 # Callable guard partition checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/callable-replacement-plan.md before continuing. This is a source implementation checkpoint within the open callable replacement family, not a gate acceptance.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/plans/callable-replacement-plan.md before continuing. This is a source implementation checkpoint within the open callable replacement family, not a gate acceptance.
 
 Production summary flow preserves bounded truth-qualified partitions across internal control-flow joins. The repeated unchanged boolean guard cardinality witness passes. Direct writes and captured writes retain conservative rejection. The independent partition module handles permanent widening after 32 alternatives, lexical binding identity, return-value pairing, exceptional completion and coincident branch successors. Written guards are not correlated without versioned proof; this limitation must remain explicit.
 

@@ -1,7 +1,7 @@
 # Handoff: generic alias result contexts
 
-Read AGENTS.md, docs/development-workflow.md, generic-function-values-plan.md and
-nested-function-declarations-plan.md. Red checkpoint: a3bf380. Captured implementation:
+Read AGENTS.md, docs/development-workflow.md, plans/generic-function-values-plan.md and
+plans/nested-function-declarations-plan.md. Red checkpoint: a3bf380. Captured implementation:
 522986e. Gate173, full generic values and the broad language objective remain open.
 
 Expected result types now pass from expression_call through named_call,

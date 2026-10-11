@@ -1,6 +1,6 @@
 # Nested callable input red checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md.
 Compiler source is unchanged from accepted checkpoint 3ccc6dc. Preserve four owner
 fixture edits. New std:testing witness and strict TypeScript counterpart are ready.
 
@@ -39,7 +39,7 @@ were pruned. No timing or broad regression was run for this red-only checkpoint.
 
 Continuation prompt: Continue Tsrust from
  docs/handoff-2026-10-06-nested-callable-input-red.md. Read AGENTS.md,
-docs/development-workflow.md and docs/generic-value-adapters-plan.md first.
+docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first.
 Keep the retained nested callable witness red until full checked contract
 reconstruction is implemented. Preserve owner fixtures, ownership and prior cache/
 editor/selection/inference repairs. Complete TDD, editor, matched support and exact

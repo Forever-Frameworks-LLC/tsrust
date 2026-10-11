@@ -2,7 +2,7 @@
 
 Accepted implementation remains c18b211. No compiler source changed during this
 audit. Read AGENTS.md, workflow, both generic value plans and
-unused-generic-call-validation-plan.md before implementation.
+plans/unused-generic-call-validation-plan.md before implementation.
 
 The new compiler test proves all three invalid unused-alias calls are accepted:
 wrong generic count, explicit application on a monomorphic alias and excess value

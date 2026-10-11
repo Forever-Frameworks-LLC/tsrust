@@ -2,8 +2,8 @@ Current continuation: [deferred data boundary](handoff-2026-10-06-gate173-generi
 
 # Handoff: contextual generic function values
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md,
-docs/generic-function-values-plan.md and the gate173 milestone. Inspect Git for this
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md,
+docs/plans/generic-function-values-plan.md and the gate173 milestone. Inspect Git for this
 checkpoint hash. Gate172 is accepted at d74f34d. Generic red witnesses landed at
 43f8e82 after captured rest support at 2f4ad5d. Gate173 remains incomplete.
 

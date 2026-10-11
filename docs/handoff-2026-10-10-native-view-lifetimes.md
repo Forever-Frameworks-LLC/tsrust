@@ -1,6 +1,6 @@
 # Gate 189 named native function lifetimes
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
 docs/native-byte-views-implementation.md first. This checkpoint follows 5991b8d2.
 Gate 189 and S07 remain open; public view exports remain guarded.
 

@@ -65,7 +65,7 @@ Exact SQLite records:
 - runtime/results/2026-10-10T14-08-14-877Z-verify.json
 - runtime/results/native-byte-construction-2026-10-10-checks.json
 - Earlier native declaration, projection, import, capability and re-export records
-  listed in docs/resources-bytes-plan.md.
+  listed in docs/plans/resources-bytes-plan.md.
 
 The first matched verification precedes the narrow exported-Result-alias repair; its
 inputs are retained unchanged. Final source verification after that repair also passes:

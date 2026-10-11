@@ -1,6 +1,6 @@
 # Source callable proof checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/callable-replacement-plan.md first. This checkpoint continues the open callable replacement family; it does not accept a gate.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/plans/callable-replacement-plan.md first. This checkpoint continues the open callable replacement family; it does not accept a gate.
 
 The source cardinality validator now exports reachable declaration identities through source_callable_proofs.rs. Generic specialization retains them in its cache. Discovery covers nongeneric owners, so the runtime branch selection witness has a point-specific proof even though its enclosing function is not generic. Matching-signature declarations retain separate provenance. Unknown facts and annotation-only contracts cannot authorize an origin.
 

@@ -1,6 +1,6 @@
 # Gate 170: nested function declaration foundation
 
-Status: accepted lexical and capture-free foundation. Captures, escape and comprehensive result inference remain subsequent gates in the [full plan](../nested-function-declarations-plan.md).
+Status: accepted lexical and capture-free foundation. Captures, escape and comprehensive result inference remain subsequent gates in the [full plan](../plans/nested-function-declarations-plan.md).
 
 Nested named declarations are block scoped and hoisted. Capture-free forward calls, self and mutual recursion, inner shadowing and synchronous callable use execute natively. Basic generic, default and rest signatures reuse declared-call support. Real AST declarations retain stable source identities through lifting, specialization and project linking. Local main is an ordinary function.
 

@@ -1,7 +1,7 @@
 # Handoff: B7 captured installer receivers, native
 
 Date: 2026-10-10. Continues `docs/handoff-2026-10-09-b7-captured-receiver-source.md`.
-Plan: `docs/caller-borrowed-record-stores-plan.md`. Method:
+Plan: `docs/plans/caller-borrowed-record-stores-plan.md`. Method:
 `docs/handoff-2026-10-09-b5-continuation.md` section 4.
 
 **B7 (gate 183) is not complete.** This checkpoint makes one form native: an installer

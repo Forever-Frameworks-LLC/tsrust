@@ -18,7 +18,7 @@ A large generic adapter compilation hit the 120-second observation bound in debu
 
 An unrefined caught runtime-error payload passed directly to generic std:testing.strictEqual reports an internal unsupported type. Boolean comparison works. Repair this with a focused witness rather than treating it as named-declaration parity. Scoped aggregate composition, fallible borrowed callback fields and named function expressions remain separate language work.
 
-The parallel stdlib worker has an authorized std:path.relative plan in parallel-path-relative-plan.md. It must finish isolated branch acceptance, then obtain exclusive main ownership, integrate the latest committed main, publish source and SQLite evidence, refresh consumers and return ownership. Branch-only acceptance is insufficient. Do not concurrently edit main or overwrite its SQLite database.
+The parallel stdlib worker has an authorized std:path.relative plan in plans/parallel-path-relative-plan.md. It must finish isolated branch acceptance, then obtain exclusive main ownership, integrate the latest committed main, publish source and SQLite evidence, refresh consumers and return ownership. Branch-only acceptance is insufficient. Do not concurrently edit main or overwrite its SQLite database.
 
 ## Continuation prompt
 

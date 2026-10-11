@@ -1,7 +1,7 @@
 # Handoff: nested function capture lowering
 
 Continue Tsrust at `/Users/seancotter/Desktop/dev/learning/tsrust`. Read `AGENTS.md`,
-`docs/development-workflow.md`, `docs/nested-function-declarations-plan.md`,
+`docs/development-workflow.md`, `docs/plans/nested-function-declarations-plan.md`,
 `docs/milestones/171-nested-function-captures.md` (the last section, "Native lowering
 checkpoint", describes the current model) and this file before edits. Inspect Git
 status and log. One agent works in this tree. `docs/handoff-2026-10-06-gate171-layout.md`

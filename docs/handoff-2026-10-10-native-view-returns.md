@@ -1,6 +1,6 @@
 # Gate 189 returned native view sources
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
  docs/native-byte-views-implementation.md first. This checkpoint follows 008b53d9.
 Gate 189 and S07 remain open. Public native view signatures remain guarded.
 

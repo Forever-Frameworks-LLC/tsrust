@@ -1,6 +1,6 @@
 # Gate 188 allocation and resize continuation
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and this
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and this
 handoff. Gate 187 remains accepted. Gate 188 remains in progress. This checkpoint
 adds allocation and resizing after the checked at/set checkpoint 4305c72d. No other
 agent is working in the tree, and no protected owner edits remain.
@@ -68,7 +68,7 @@ format the whole project before source checkpoints, and use explicit Git paths.
 ## Continuation prompt
 
 Continue Tsrust from docs/handoff-2026-10-10-byte-growth.md and
- docs/resources-bytes-plan.md. Gate 187 accepted; gate 188 at/set/alloc/resize verified.
+ docs/plans/resources-bytes-plan.md. Gate 187 accepted; gate 188 at/set/alloc/resize verified.
 Finish append, independent copy/clone and capability/cleanup acceptance, then gates
 189–190. Keep consuming close, complete editor docs, matched workload support,
 bounded checks, project formatting and exact SQLite records. Do not restart completed

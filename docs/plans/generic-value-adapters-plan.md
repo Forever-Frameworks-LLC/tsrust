@@ -1,7 +1,7 @@
 # Generic value adapters
 
 This implements the remaining callable adaptation portion of gate173 and
-docs/generic-function-values-plan.md. It does not replace the wider context audit
+docs/plans/generic-function-values-plan.md. It does not replace the wider context audit
 or the named-declaration feature-family milestone.
 
 ## Required behavior

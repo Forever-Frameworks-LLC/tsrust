@@ -1,7 +1,7 @@
 # Block and branch call contracts
 
 Read AGENTS.md, docs/development-workflow.md, both generic value plans and
-unused-generic-call-validation-plan.md first. This checkpoint follows 147371e and
+plans/unused-generic-call-validation-plan.md first. This checkpoint follows 147371e and
 red commit 74b5ecd. Full source validation, Gate173 and the broad goal remain open.
 
 ## Implementation

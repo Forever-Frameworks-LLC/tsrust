@@ -1,6 +1,6 @@
 # Checked invocation renderer checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/callable-replacement-plan.md first. This is a component checkpoint inside the open callable replacement family, not gate acceptance.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-gate174-accepted.md and docs/plans/callable-replacement-plan.md first. This is a component checkpoint inside the open callable replacement family, not gate acceptance.
 
 polymorphic_invocation_plans.rs now owns canonical checked environment/method pairs and native invocation rendering. An environment can select only one method per invocation; each environment keeps its own ordinal. Unknown descriptors, symbolic layouts, incompatible prepared arguments/results and malformed storage membership are rejected. The receiver and prepared arguments evaluate once before variant selection.
 

@@ -6,7 +6,7 @@ The owner requested a candid progress assessment and offered to move the work to
 
 Accepted HEAD is `680f120566b2849b3edef9e742e6d0216d00b0b8`. Current nullable-field work is uncommitted and not accepted. There are no live tool sessions or background checks from this agent. The whole-project formatter completed successfully after the latest benchmark edits: one workload formatted, one fingerprint refreshed. No source commit was made for this work.
 
-Read `AGENTS.md`, `docs/development-workflow.md`, `docs/indexed-capture-release-plan.md`, `docs/scoped-callable-aggregate-plan.md`, `docs/map-entry-capture-release-plan.md` and `docs/handoff-2026-10-08-b5-error-restoration.md`. Historical plans contain accepted and pending sections; use current source and explicit tests as authoritative.
+Read `AGENTS.md`, `docs/development-workflow.md`, `docs/plans/indexed-capture-release-plan.md`, `docs/plans/scoped-callable-aggregate-plan.md`, `docs/plans/map-entry-capture-release-plan.md` and `docs/handoff-2026-10-08-b5-error-restoration.md`. Historical plans contain accepted and pending sections; use current source and explicit tests as authoritative.
 
 ## Owner decisions
 

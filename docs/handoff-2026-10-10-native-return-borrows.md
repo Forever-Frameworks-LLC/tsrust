@@ -1,6 +1,6 @@
 # Gate 189 returned-borrow metadata and slice helpers
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
 native-byte-views-implementation.md first. This checkpoint follows 56de6342, the
 strict UTF-8 increment. Gates 187–188 remain accepted. Gate 189 and S07 remain open.
 One agent works in this tree. There are no protected owner fixtures or unrelated

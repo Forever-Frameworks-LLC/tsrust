@@ -10,7 +10,7 @@ All five executable consumers are atomically refreshed from 8af3e12 and pass com
 
 Investigate large generic adapter compiler efficiency using the preserved specialization/worklist/state-join sample from the preceding family handoff. Do not speculate from a stack sample or weaken ownership to reduce work. Create a bounded failing performance or operation-budget witness before changing algorithms; preserve semantic controls and original measurements. Scoped aggregate composition and named function expressions remain separate work.
 
-The std:path.relative worker must integrate this newer source checkpoint before publication. Obtain exclusive main ownership, verify combined effects and editor contracts, import worker evidence without replacing main SQLite, refresh consumers, then return ownership. See parallel-path-relative-plan.md.
+The std:path.relative worker must integrate this newer source checkpoint before publication. Obtain exclusive main ownership, verify combined effects and editor contracts, import worker evidence without replacing main SQLite, refresh consumers, then return ownership. See plans/parallel-path-relative-plan.md.
 
 ## Continuation prompt
 

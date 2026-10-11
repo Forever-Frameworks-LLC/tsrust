@@ -1,7 +1,7 @@
 # Prepared native callable registry
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Continue from e82ab6a7. Gate 189/S07 remain open.
+plans/native-view-callable-storage-plan.md. Continue from e82ab6a7. Gate 189/S07 remain open.
 
 A separate native_view_family_registry arena now gives candidate layouts canonical
 prepared identities. The owning callable registry retains these only for native

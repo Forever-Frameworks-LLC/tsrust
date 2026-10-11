@@ -26,4 +26,4 @@ Preserve old-owner reuse while the holder is live and the new-owner rejection ch
 
 ## Continuation prompt
 
-Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/caller-borrowed-record-stores-plan.md. B7 direct conditional stores pass with selected effects and independent owner lifetimes. Add a focused red for a conditional family saved in a local before storage; preserve precise local representation separately from the final native carrier. Continue closure-caller provenance and the rest of B7 before its family milestone. Keep D2 separate and the full compiler goal active.
+Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/plans/caller-borrowed-record-stores-plan.md. B7 direct conditional stores pass with selected effects and independent owner lifetimes. Add a focused red for a conditional family saved in a local before storage; preserve precise local representation separately from the final native carrier. Continue closure-caller provenance and the rest of B7 before its family milestone. Keep D2 separate and the full compiler goal active.

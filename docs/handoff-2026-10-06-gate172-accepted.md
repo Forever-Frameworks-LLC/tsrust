@@ -1,6 +1,6 @@
 # Handoff: gate 172 accepted, gate 173 next
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md
 and docs/milestones/172-nested-function-owned-escape.md first. Inspect Git for the
 accepted checkpoint hash. Gate171 is accepted at 1c6dd58. Gate172 is now accepted;
 the full nested declaration plan and the active broader goal remain incomplete.

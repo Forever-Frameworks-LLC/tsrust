@@ -33,7 +33,7 @@ readback before loose copies are removed.
 
 ## Remaining work
 
-Read docs/conditional-callable-carriers-plan.md. Borrowed environments need an
+Read docs/plans/conditional-callable-carriers-plan.md. Borrowed environments need an
 actual lifetime-aware carrier; do not force local captures to own their source.
 Polymorphic functions retain their own type parameters and witness-specific
 invocation contracts; do not infer a fabricated fixed signature.
@@ -65,8 +65,8 @@ Continue prompt:
 
 > Continue Tsrust from docs/handoff-2026-10-07-owned-conditional-carriers.md. Read
 > AGENTS.md, docs/development-workflow.md,
-> docs/conditional-callable-carriers-plan.md and
-> docs/polymorphic-callable-transport-plan.md first. Owned monomorphic conditional
+> docs/plans/conditional-callable-carriers-plan.md and
+> docs/plans/polymorphic-callable-transport-plan.md first. Owned monomorphic conditional
 > carriers now pass native disposal and editor checks. Gate173 remains open.
 > Preserve 15 owner fixture edits. Continue borrowed lifetime carriers and
 > polymorphic replacement, then connect checked capture facts to flow-local
@@ -89,7 +89,7 @@ refreshed atomically. Already running editor servers require a restart.
 Owned prerequisite accepted at 30c92f1. The borrowed carrier witness now fails
 at distinct readonly capture origins; its mutable local selection cases remain
 part of the intended behavior. Read the final section of
-docs/conditional-callable-carriers-plan.md before implementation. The red is
+docs/plans/conditional-callable-carriers-plan.md before implementation. The red is
 intentional and does not revoke owned prerequisite acceptance. Its exact failure
 and the zero-change whole-project formatting check are stored in SQLite under
 `runtime/diagnostics/borrowed-conditional-carriers/`.
@@ -100,7 +100,7 @@ The next checkpoint adds borrowed_callable_dispatch.rs as an isolated native sum
 emitter. Its three tests pass, including generated execution at optimization 0/3
 and native lifetime/conflict rejections. It is deliberately not connected to the
 source checker yet, so the retained borrowed conditional source red still fails.
-Read the final section of docs/conditional-callable-carriers-plan.md for the
+Read the final section of docs/plans/conditional-callable-carriers-plan.md for the
 checked-family, call-adapter, capture-loan and escape integration requirements.
 All kernel evidence is in SQLite under
 `runtime/diagnostics/borrowed-dispatch-kernel/`; Node confirms the source oracle.

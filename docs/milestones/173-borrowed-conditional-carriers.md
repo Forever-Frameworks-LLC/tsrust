@@ -28,5 +28,5 @@ pending. Closed evidence is preserved byte for byte in benchmarks/records.sqlite
 
 Consuming borrowed sums, polymorphic selection/replacement, scoped aggregate and
 higher-order builtin transport, recursive environments and point-sensitive mutable
-capture restoration remain open. See docs/conditional-callable-carriers-plan.md
+capture restoration remain open. See docs/plans/conditional-callable-carriers-plan.md
 and the current handoff for the next integration gates.

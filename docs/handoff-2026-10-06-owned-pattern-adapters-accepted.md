@@ -1,7 +1,7 @@
 # Owned parameter-pattern adapters accepted
 
-Read AGENTS.md, docs/development-workflow.md, docs/generic-value-adapters-plan.md,
-docs/generic-function-values-plan.md and the nested function plan first. This accepts
+Read AGENTS.md, docs/development-workflow.md, docs/plans/generic-value-adapters-plan.md,
+docs/plans/generic-function-values-plan.md and the nested function plan first. This accepts
 focused pattern/callable-payload behavior after implementation checkpoint bcf5114.
 Full Gate173 and the broader thread objective remain open.
 

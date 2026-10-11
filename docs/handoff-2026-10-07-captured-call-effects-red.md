@@ -1,6 +1,6 @@
 # Handoff: captured invocation effects red checkpoint
 
-Continue from the current Git HEAD. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-expression-order-and-assignment-invocation.md and docs/captured-call-effects-plan.md first.
+Continue from the current Git HEAD. Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-expression-order-and-assignment-invocation.md and docs/plans/captured-call-effects-plan.md first.
 
 The accepted compiler remains e2f5289. This checkpoint adds three focused tests without compiler changes. Eight invocation-effect cases wrongly pass; eight precision controls pass. The independent nested generic annotation witness fails because the lifted nested function loses its enclosing type environment. Preserve all reds. Implement lexical generic environment transport first, retaining explicit public arity, then the isolated invocation-effect index and ordered normal/exception summaries. Full Gate173 remains open.
 
@@ -12,7 +12,7 @@ The formatter report from the owner was tested against all four current CLI cons
 
 The next checkpoint adds lexical_generic_scopes.rs and registers its module. Two focused formatted-source unit tests pass, covering declaration identity, nearest shadowing, siblings and inheritance without value captures. A native explicit-generic shadowing control passes. The new native enclosing-type integer/string instance witness is red with unknown T. The original capture-effect and nested annotation reds remain unresolved.
 
-The scope module is not wired into generic specialization yet. Continue with contextual declaration instances as detailed in captured-call-effects-plan.md; retain original named capture provenance, explicit arity and recursive peer identity. Do not call this feature accepted or refresh executable consumers as though runtime behavior changed. Closed lexical logs, including the failing stub and native witness, are imported with exact readback into SQLite. Whole-project formatting changes zero sources or fingerprints. No dispatch or editor behavior changes occur in this foundation checkpoint, so no new whole-editor, canary or matched runtime acceptance is claimed.
+The scope module is not wired into generic specialization yet. Continue with contextual declaration instances as detailed in plans/captured-call-effects-plan.md; retain original named capture provenance, explicit arity and recursive peer identity. Do not call this feature accepted or refresh executable consumers as though runtime behavior changed. Closed lexical logs, including the failing stub and native witness, are imported with exact readback into SQLite. Whole-project formatting changes zero sources or fingerprints. No dispatch or editor behavior changes occur in this foundation checkpoint, so no new whole-editor, canary or matched runtime acceptance is claimed.
 
 ## Contextual specialization WIP continuation
 

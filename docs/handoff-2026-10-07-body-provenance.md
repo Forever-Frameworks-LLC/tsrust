@@ -1,6 +1,6 @@
 # Handoff: separate callable body provenance WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/captured-call-effects-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/captured-call-effects-plan.md
 and docs/handoff-2026-10-07-effect-alias-identities.md first. This checkpoint adds
 isolated extraction of actual callable bodies. It does not execute summaries or
 accept Gate173. Accepted executable consumers remain the 399a1c4 image.

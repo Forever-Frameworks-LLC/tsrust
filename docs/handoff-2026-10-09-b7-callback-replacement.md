@@ -1,7 +1,7 @@
 # B7 exact callback replacement
 
 B7/gate 183 remains in progress. This checkpoint follows `62bf6192`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and this
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and this
 handoff. The compiler objective remains active. No owner decision is pending.
 Discriminated unions remain the separate required D2 family.
 
@@ -100,7 +100,7 @@ totaling 793,646 bytes were removed after evidence preservation. No cache refill
 ## Continuation prompt
 
 Continue Tsrust from this handoff. Read AGENTS.md, docs/development-workflow.md and
-docs/caller-borrowed-record-stores-plan.md first. B7/gate 183 remains open. Probe
+docs/plans/caller-borrowed-record-stores-plan.md first. B7/gate 183 remains open. Probe
 same-origin independent callback factories and direct data-input replacement with
 old-input reuse while a holder remains live. Use focused red/native assertions,
 editor checks, matched workload support and SQLite evidence. Preserve the fifteen

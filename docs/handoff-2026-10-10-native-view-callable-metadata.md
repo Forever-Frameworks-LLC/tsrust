@@ -1,7 +1,7 @@
 # Carried-view callable metadata checkpoint
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Start from the stored callback red checkpoint
+plans/native-view-callable-storage-plan.md. Start from the stored callback red checkpoint
 e09b71f5. Gate 189 and S07 remain open.
 
 native_view_callable_storage.rs derives candidate carried-view lifetime slots from
@@ -23,7 +23,7 @@ regression. Warm CLI rebuilt for formatting; installed consumers remain f569190a
 
 ## Continuation prompt
 
-Continue native-view-callable-storage-plan.md step 1: add finite scoped owning family
+Continue plans/native-view-callable-storage-plan.md step 1: add finite scoped owning family
 identity retaining the original Owned/OwnedOnce invocation contract and candidate
 lifetime slots for each concrete alternative. Metadata alone must not bypass the
 current representation guard. Then implement actual-callee source transport and

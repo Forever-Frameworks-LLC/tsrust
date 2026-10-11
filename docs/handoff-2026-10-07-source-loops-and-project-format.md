@@ -1,6 +1,6 @@
 # Handoff: source loops and automatic project formatting
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/unused-generic-call-validation-plan.md first. The compiler source-loop checkpoint is 502457c. The following accepted checkpoint records the automatic project formatting foundation and its evidence; use Git HEAD as the authoritative revision.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/plans/unused-generic-call-validation-plan.md first. The compiler source-loop checkpoint is 502457c. The following accepted checkpoint records the automatic project formatting foundation and its evidence; use Git HEAD as the authoritative revision.
 
 ## Accepted behavior
 

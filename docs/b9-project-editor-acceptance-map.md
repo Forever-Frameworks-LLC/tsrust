@@ -1,6 +1,6 @@
 # B9 project editor (S04): acceptance map
 
-Date: 2026-10-10. Ledger row: B9 in `docs/compiler-completion-plan.md`; gate S04 in
+Date: 2026-10-10. Ledger row: B9 in `docs/plans/compiler-completion-plan.md`; gate S04 in
 `docs/standard-library-roadmap.md`. User guide: `docs/project-editor.md`.
 History of the increments: `docs/milestones/modules-03-workspace-snapshots.md`.
 

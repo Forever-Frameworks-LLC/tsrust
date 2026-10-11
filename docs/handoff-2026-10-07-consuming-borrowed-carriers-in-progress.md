@@ -1,8 +1,8 @@
 # Scoped Once accepted checkpoint
 
 Continue from accepted source commit ceb5dee. Read AGENTS.md,
-docs/development-workflow.md, docs/once-callback-environment-plan.md,
-docs/conditional-callable-carriers-plan.md and docs/polymorphic-callable-transport-plan.md.
+docs/development-workflow.md, docs/plans/once-callback-environment-plan.md,
+docs/plans/conditional-callable-carriers-plan.md and docs/plans/polymorphic-callable-transport-plan.md.
 Gate173 and the broader transport plans remain open. No owner question is pending.
 Use explicit Git paths. Preserve all 15 currently modified owner fixtures; do not
 stage or change their semantics.

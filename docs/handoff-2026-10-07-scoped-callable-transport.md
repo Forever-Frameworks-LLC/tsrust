@@ -1,8 +1,8 @@
 # Scoped callable transport checkpoint
 
 Read AGENTS.md, docs/development-workflow.md,
-docs/conditional-callable-carriers-plan.md and
-docs/polymorphic-callable-transport-plan.md before continuing. This checkpoint accepts
+docs/plans/conditional-callable-carriers-plan.md and
+docs/plans/polymorphic-callable-transport-plan.md before continuing. This checkpoint accepts
 scoped traversal and nullable transport within Gate173. Full Gate173 remains open.
 Accepted implementation HEAD is 70eed7c. The preceding scoped Once acceptance is ceb5dee. No owner question is pending.
 Preserve all 15 currently modified owner fixtures. Use explicit Git paths.
@@ -45,7 +45,7 @@ runtime/diagnostics/scoped-callable-transport/ in benchmarks/records.sqlite.
 ## Next chunks
 
 Start general scoped aggregate storage with focused source/native lifetime witnesses.
-Read docs/scoped-callable-aggregate-plan.md for concrete record, array and composition gates.
+Read docs/plans/scoped-callable-aggregate-plan.md for concrete record, array and composition gates.
 Do not map borrowed families to owned StoredCallable merely to fit record or array
 layout. Native storage must carry actual environments and lifetimes. Cover reads,
 mutation, moving, nullable fields, scope release, escapes and original-owner disposal.
@@ -80,7 +80,7 @@ probe missing a field semicolon is syntax evidence only. Preserve these distinct
 when adding persistent failing tests; do not bypass owning contracts by relabeling
 borrowed families. No aggregate implementation or acceptance is claimed.
 
-Continue with docs/scoped-callable-aggregate-plan.md. Keep the three existing public
+Continue with docs/plans/scoped-callable-aggregate-plan.md. Keep the three existing public
 callback variants. Invocation access and escape lifetime are separate checks; unknown
 retention remains conservative. Full Gate173 and the broader language plan remain open.
 

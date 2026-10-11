@@ -33,7 +33,7 @@ These tests encoded the earlier borrowed default or earlier diagnostics. Each ch
 
 ## Fixtures still assuming borrowed callable defaults
 
-These ten tests still fail. Each passes a bare callable type where the test intends scoped borrowing, so it needs an explicit borrowing annotation. They were left untouched because the callable access spelling is being redesigned in the [function type migration plan](../function-type-migration-plan.md); migrate them there.
+These ten tests still fail. Each passes a bare callable type where the test intends scoped borrowing, so it needs an explicit borrowing annotation. They were left untouched because the callable access spelling is being redesigned in the [function type migration plan](../plans/function-type-migration-plan.md); migrate them there.
 
 | Suite | Test | Symptom |
 |---|---|---|

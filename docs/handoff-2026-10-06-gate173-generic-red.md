@@ -3,8 +3,8 @@ Current continuation: [contextual generic checkpoint](handoff-2026-10-06-gate173
 # Handoff: generic function value red witnesses
 
 Continue from 2f4ad5d and this source checkpoint. Read AGENTS.md,
-docs/development-workflow.md, docs/nested-function-declarations-plan.md and
-docs/generic-function-values-plan.md. Gate172 is accepted; gate173 is open.
+docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and
+docs/plans/generic-function-values-plan.md. Gate172 is accepted; gate173 is open.
 
 Four owner fixtures remain untouched and uncommitted: comma-contexts/guards.tsr,
 interfaces/shapes.tsr, map-for-each/values.tsr and map-group-by/documented.tsr.

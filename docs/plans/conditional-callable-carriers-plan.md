@@ -193,7 +193,7 @@ also needs explicit coverage before claiming parity for those paths.
 ## Scoped consuming parameter acceptance
 
 Consuming borrowed carriers and concrete scoped Once parameter inference now have
-focused acceptance. See milestones/173-scoped-once-parameters.md. Native family
+focused acceptance. See ../milestones/173-scoped-once-parameters.md. Native family
 identity accounting, owned failure adapters and higher-order input compatibility
 are verified. Public syntax remains Once. Scoped nullable/aggregate and builtin
 transport, polymorphic replacement and mutable environment restoration remain open.

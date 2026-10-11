@@ -1,6 +1,6 @@
 # Scoped record layout implementation in progress
 
-Read AGENTS.md, docs/development-workflow.md and docs/scoped-callable-aggregate-plan.md
+Read AGENTS.md, docs/development-workflow.md and docs/plans/scoped-callable-aggregate-plan.md
 first. The preceding accepted aggregate escape safety implementation is f1dd284,
 with consumer refresh recorded at 9f56d4b. This checkpoint implements concrete local
 scoped record layouts but does not accept the complete record gate or Gate173.
@@ -754,7 +754,7 @@ selection to them. It compiles and runs with exact output `3 11` then `11`. The
 probe executable was removed; original emission and native proof are imported and
 verified under runtime/diagnostics/scoped-record-field-storage/ in SQLite.
 
-Read docs/scoped-record-field-storage-plan.md for the concrete milestones and
+Read docs/plans/scoped-record-field-storage-plan.md for the concrete milestones and
 invariants. Next implement an isolated native field-place layout and declaration/
 selected access path, then complete whole-record transport, borrowing bridges,
 assignment, captures and completion. Do not repair this through implicit clone,
@@ -792,7 +792,7 @@ current. Project formatting changes zero files and fingerprints. Native independ
 field disposal remains red; record gate and gate 173 remain open. Consumers remain
 f1dd284. Preserve fifteen owner fixtures.
 
-Continuation prompt: Inspect status and read scoped-record-field-storage-plan.md.
+Continuation prompt: Inspect status and read plans/scoped-record-field-storage-plan.md.
 Continue emitter integration of the field-place module with whole-record transport
 and a borrowing bridge for callback and non-copy data fields. Use original native
 red and live-owner controls. Keep nominal types, three wrappers and no implicit
@@ -856,7 +856,7 @@ lifetime and disposal are implementation obligations beneath those wrappers; no
 fourth public variant has been justified by the current witnesses.
 
 Continuation prompt: Continue Tsrust from this handoff. Read AGENTS.md,
-docs/development-workflow.md and docs/scoped-record-field-storage-plan.md. Connect
+docs/development-workflow.md and docs/plans/scoped-record-field-storage-plan.md. Connect
 the tested field layout and view renderers to nominal borrowing bridges and emitter
 storage paths. Preserve non-copy data borrowing, owning moves, field restoration,
 existing parameter/factory cases and both live-owner rejection controls. Use focused
@@ -1968,7 +1968,7 @@ Cargo target are pruned while the newest executable for each test group and all
 current consumers are retained. No cache refill or timing is performed.
 
 Handoff prompt: Continue Tsrust after source checkpoint fc17347. Read AGENTS.md,
-docs/development-workflow.md, docs/scoped-record-field-storage-plan.md and this
+docs/development-workflow.md, docs/plans/scoped-record-field-storage-plan.md and this
 handoff. Local nested stores, direct/multi-hop moves, record-literal construction
 and field-to-field transport are verified: 42 project tests, 64 depth canaries and
 focused editor coverage. Do not reopen those chunks. Start the capture-free

@@ -1,6 +1,6 @@
 # Gate 189 strict UTF-8 increment; views remain pending
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md,
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md,
 docs/native-byte-views-implementation.md and this handoff. Gates 187–188 are accepted.
 Gate 189 is in progress; strict UTF-8 is implemented, but views are not. S07 is neither
 accepted nor measured. One agent works in this tree; no protected owner edits remain.

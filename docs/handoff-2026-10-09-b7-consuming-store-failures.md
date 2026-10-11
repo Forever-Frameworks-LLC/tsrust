@@ -1,7 +1,7 @@
 # B7 consuming stores and installer failures
 
 B7/gate 183 remains in progress. This checkpoint follows `1ad9589`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and
 docs/b7-direct-callback-stores.md first. D2 discriminated unions remain a dedicated
 feature. No owner question is pending.
 

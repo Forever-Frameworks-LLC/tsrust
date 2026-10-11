@@ -1,7 +1,7 @@
 # Distinct branch callable contracts
 
 Read AGENTS.md, docs/development-workflow.md, the generic function value plans and
-docs/unused-generic-call-validation-plan.md first. The formatter checkpoint is
+docs/plans/unused-generic-call-validation-plan.md first. The formatter checkpoint is
 8698c99; distinct contract red witnesses are checkpoint e0d6413. Full Gate173 and
 the broader language goal remain active and incomplete.
 

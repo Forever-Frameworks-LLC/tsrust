@@ -342,7 +342,7 @@ multiple producer instances. No ownership-model change is introduced.
 A retained focused witness now exercises separate named and arrow factory
 instances carrying different callable contracts. Both lose producer slots in the
 current engine. The independent TypeScript/Node reference passes. The dedicated
-docs/callable-environments-plan.md specifies finite correlated environment handles,
+docs/plans/callable-environments-plan.md specifies finite correlated environment handles,
 capture semantics and native lifetime gates before implementation. All other 36
 focused tests pass with the new red explicitly excluded. No implementation or
 factory acceptance is claimed by this test checkpoint.

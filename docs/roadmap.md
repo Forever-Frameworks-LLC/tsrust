@@ -2,13 +2,13 @@
 
 **Gate 179 accepted:** [Assignment as a value for strings, arrays and records](./milestones/179-owned-assignment-values.md). The value is the target read in place; no copy. Compiler batch 692, editor 365, one matched workload verified untimed.
 
-**Gate 178 (records):** Nineteen language inventory rows that still said pending are reconciled with accepted native behavior, existing workloads and milestone records. Language rows: 314 implemented or native variant, 179 pending, 3 in progress, 3 policy. See the [compiler completion ledger](./compiler-completion-plan.md).
+**Gate 178 (records):** Nineteen language inventory rows that still said pending are reconciled with accepted native behavior, existing workloads and milestone records. Language rows: 314 implemented or native variant, 179 pending, 3 in progress, 3 policy. See the [compiler completion ledger](./plans/compiler-completion-plan.md).
 
 **Gate 177 accepted:** [Unreachable catch bodies](./milestones/177-unreachable-catch-bodies.md). A handler whose try body cannot fail is type checked at the end of analysis and not emitted. The reported caught-error assertion defect does not reproduce; its shapes are now witnesses.
 
 **Gate 176 accepted:** [Recursive result inference](./milestones/176-recursive-result-inference.md). A recursive function without a result annotation takes its type from a return that does not depend on the recursive call. Compiler batch 807, editor 364, one matched workload verified untimed.
 
-**Gate 175 accepted:** [Named function expressions](./milestones/175-named-function-expressions.md). The name is private to the function body; recursion, captures, generic, default and rest forms work as values. Compiler batch 692, editor 363, one matched workload verified untimed. Part of the [compiler completion plan](./compiler-completion-plan.md).
+**Gate 175 accepted:** [Named function expressions](./milestones/175-named-function-expressions.md). The name is private to the function body; recursion, captures, generic, default and rest forms work as values. Compiler batch 692, editor 363, one matched workload verified untimed. Part of the [compiler completion plan](./plans/compiler-completion-plan.md).
 
 **Resumable callable summary acceptance:** [Scheduling milestone](./milestones/resumable-callable-summaries.md). Completed caller prefixes are retained across nested summary updates; ordered pending defaults resume without replaying completed defaults. Bounded eager wrapper completion passes the unchanged operation budgets. Full compiler 2,342 and editor 360 pass; three representative workloads verify untimed with unchanged emitted programs. Five consumers are refreshed and verified; closed artifacts are pruned.
 
@@ -26,9 +26,9 @@
 
 **Gate 172 accepted:** [Owned nested function escape](./milestones/172-nested-function-owned-escape.md). Independent factories, retained records/arrays, inferred callable storage, consuming captures, once invocation, recursive retained owners, callback failures and exact native disposal are verified. Unused inner bodies are checked without runtime captures. Gate173 signature/context coverage and omitted-result inference remain open. No performance measurement is claimed.
 
-**Gate 171 accepted:** [Nested function captures](./milestones/171-nested-function-captures.md). Nested named functions read and change variables of enclosing functions through per-call borrows; nested forwarding, recursive groups, later initialization, per-iteration captures, rest/callback/type parameters and use as a callable value work under the existing ownership rules. Captures 17, affected compiler batch 435 with eight depth canaries, unit 308, editor 276, harness 398 and five matched cases pass untimed. One omitted-result witness stays red for gate 173. Gate 172 (owned escape acceptance) is next; see the [full plan](./nested-function-declarations-plan.md).
+**Gate 171 accepted:** [Nested function captures](./milestones/171-nested-function-captures.md). Nested named functions read and change variables of enclosing functions through per-call borrows; nested forwarding, recursive groups, later initialization, per-iteration captures, rest/callback/type parameters and use as a callable value work under the existing ownership rules. Captures 17, affected compiler batch 435 with eight depth canaries, unit 308, editor 276, harness 398 and five matched cases pass untimed. One omitted-result witness stays red for gate 173. Gate 172 (owned escape acceptance) is next; see the [full plan](./plans/nested-function-declarations-plan.md).
 
-**Gate 170 accepted:** [Nested function foundation](./milestones/170-nested-function-foundation.md). Hoisted block-scoped capture-free declarations, recursion, callable use, checked editor facts and nested outlines. Compiler 5, formatting 16, editor 271, harness/report 17 and five matched cases pass untimed; prior eight depth canaries retained. Future-binding and unbraced-loop editor scopes repaired. Captures and omitted-result inference remain genuine pending witnesses. See the [full plan](./nested-function-declarations-plan.md).
+**Gate 170 accepted:** [Nested function foundation](./milestones/170-nested-function-foundation.md). Hoisted block-scoped capture-free declarations, recursion, callable use, checked editor facts and nested outlines. Compiler 5, formatting 16, editor 271, harness/report 17 and five matched cases pass untimed; prior eight depth canaries retained. Future-binding and unbraced-loop editor scopes repaired. Captures and omitted-result inference remain genuine pending witnesses. See the [full plan](./plans/nested-function-declarations-plan.md).
 
 **Gate 169 accepted:** [Whole numeric string conversion](./milestones/169-numeric-string-conversion.md): shared decimal/radix grammar, exact numeric whitespace and radix rounding across scalars, unions and enums. Exponential member-hint traversal repaired. Compiler 80, editor 267, harness/report 17 and five matched cases pass untimed. SQLite records verified; consumers refreshed; outputs pruned. No timing.
 
@@ -463,7 +463,7 @@ open under gate173.
 
 Existing generic value adapters now support explicit contracts, array transform
 callbacks and typed record/array storage with ownership/disposal controls. The
-full adapter audit and benchmark family remain open; see generic-value-adapters-plan.md.
+full adapter audit and benchmark family remain open; see plans/generic-value-adapters-plan.md.
 
 
 Generic factory parameter help now consumes additive partial call facts when the
@@ -676,7 +676,7 @@ handoff-2026-10-06-mutable-source-contracts-in-progress.md.
 Gate173 source flow now preserves direct replacement through blocks and branches,
 including snapshots, branch-local calls and abrupt completion. Distinct contract
 sets, loop/exception/expression flow and captured effects remain required. See
-unused-generic-call-validation-plan.md.
+plans/unused-generic-call-validation-plan.md.
 
 
 The source-loop checkpoint and automatic project formatting are documented in
@@ -715,7 +715,7 @@ conditional callable alternatives. Native ownership/disposal and editor help pas
 and the matched generic adapter scenario retains 129 values with five untimed
 native/Node-after-tsc cases verified. Borrowed carriers, polymorphic replacement
 and checked mutable source environments remain open. No new timing or complete
-gate173 acceptance is claimed. See conditional-callable-carriers-plan.md.
+gate173 acceptance is claimed. See plans/conditional-callable-carriers-plan.md.
 
 Gate173 now has scoped monomorphic borrowed conditional carriers alongside owned
 carriers. Local capture lifetimes, readonly/mutable callback loans, defaults and

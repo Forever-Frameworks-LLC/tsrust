@@ -1,7 +1,7 @@
 # Handoff: generic alias result-context witness
 
 Previous implementation checkpoint: 522986e. Read its captured-deferred handoff,
-AGENTS.md, docs/development-workflow.md and generic-function-values-plan.md.
+AGENTS.md, docs/development-workflow.md and plans/generic-function-values-plan.md.
 This checkpoint adds a genuine red native witness and strict TypeScript reference.
 No compiler source changed; gate173 and the full objective remain open.
 

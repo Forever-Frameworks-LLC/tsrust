@@ -86,7 +86,7 @@ Focused acceptance includes 11 compiler console tests (common-value stdout/stder
 
 Null/undefined literals and type hover, typeof/void inference, String/Boolean conversion signatures and Array.isArray discovery are implemented. Root/member documentation includes observable behavior, defaults, examples and native limits. Array constructor and instance catalog families remain separate; local undefined declarations take precedence over global hover/inference. All 35 LSP tests pass, including compiler witnesses and native examples. TypeScript/real TextMate checks and installed-VSIX E2E provider/lifecycle tests pass using a temporary profile outside the sandbox. Debug/release builds and focused Clippy/format checks pass; the updated VSIX is installed locally.
 
-Compiler proof, exact limits, checkpoint-pending conversion workloads and the next union/identity/property prerequisites are in [the value milestone](milestones/value-types-and-namespaces.md) and [full plan](javascript-parity-plan.md). The hourly monitor remains read-only and does not reinstall extensions.
+Compiler proof, exact limits, checkpoint-pending conversion workloads and the next union/identity/property prerequisites are in [the value milestone](milestones/value-types-and-namespaces.md) and [full plan](plans/javascript-parity-plan.md). The hourly monitor remains read-only and does not reinstall extensions.
 
 ## Compiler-backed punctuation quick fixes
 

@@ -33,7 +33,7 @@ false rejection and missing write forms. Implement precise assignment flow and
 stored field contracts rather than treating the conservative join as completion.
 Then finish paired source witnesses, whole editor checks, applicable depth canaries,
 documentation, matched untimed verification, SQLite evidence and explicit-path
-checkpoint. Follow docs/unused-generic-call-validation-plan.md and the development
+checkpoint. Follow docs/plans/unused-generic-call-validation-plan.md and the development
 workflow. Reuse the warm target with incremental compilation disabled.
 
 ## Straight-line ordering continuation
@@ -85,7 +85,7 @@ was run. No process remains live.
 ### Continuation prompt
 
 Continue Tsrust from this source checkpoint. Read AGENTS.md, development workflow,
-unused-generic-call-validation-plan.md and both generic value plans. Implement the
+plans/unused-generic-call-validation-plan.md and both generic value plans. Implement the
 next structured-flow checkpoint: lexical write identity, definite block assignments,
 branch-local calls and both-arm replacement, loop fixed points, exceptional exits
 and captured write effects. Preserve snapshot semantics and declaration provenance.

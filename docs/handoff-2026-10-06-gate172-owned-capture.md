@@ -1,7 +1,7 @@
 # Handoff: ownership-taking named captures
 
 Continue Tsrust from this checkpoint. Read AGENTS.md, docs/development-workflow.md,
-docs/nested-function-declarations-plan.md, docs/handoff-2026-10-06-gate171-accepted.md
+docs/plans/nested-function-declarations-plan.md, docs/handoff-2026-10-06-gate171-accepted.md
 and docs/milestones/172-nested-function-owned-escape.md first. Gate171 remains accepted
 at 1c6dd58; gate172 is in progress, not accepted. Inspect Git for this checkpoint hash.
 

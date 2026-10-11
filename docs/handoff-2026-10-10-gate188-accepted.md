@@ -1,6 +1,6 @@
 # Gate 188 accepted: owned bytes
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md,
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md,
 docs/b11-resources-bytes-acceptance-map.md and this handoff. Gates 187 and 188 are
 accepted. S07 remains in progress. One agent works in this tree; no protected owner
 edits remain. The goal remains active.
@@ -85,7 +85,7 @@ Use explicit Git paths, whole-project formatting and exact SQLite readback.
 ## Continuation prompt
 
 Continue Tsrust from docs/handoff-2026-10-10-gate188-accepted.md. Read AGENTS.md,
-docs/development-workflow.md, docs/resources-bytes-plan.md and the B11 acceptance map.
+docs/development-workflow.md, docs/plans/resources-bytes-plan.md and the B11 acceptance map.
 Gates 187–188 accepted; do not redo owned bytes. Implement gate 189 scoped zero-copy
 views/provenance and strict UTF-8, then gate 190 consuming resources/file proof. Keep
 compiler/editor/docs and matched benchmark support current, bounded TDD checks,

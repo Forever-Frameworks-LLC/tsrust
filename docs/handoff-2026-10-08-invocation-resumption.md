@@ -2,7 +2,7 @@
 
 ## State
 
-Cross-call resumption is implemented but the scheduling family is not accepted. The overall language goal remains active. Read AGENTS.md, docs/development-workflow.md and docs/resumable-callable-summaries-plan.md before continuing. Preserve the fifteen owner-edited fixtures listed by Git status; never stage them.
+Cross-call resumption is implemented but the scheduling family is not accepted. The overall language goal remains active. Read AGENTS.md, docs/development-workflow.md and docs/plans/resumable-callable-summaries-plan.md before continuing. Preserve the fifteen owner-edited fixtures listed by Git status; never stage them.
 
 Engine entries retain invocation frames and body drivers. Callee dependencies record parent requests and graph nodes. Summary changes requeue saved pre-node inputs rather than replaying completed statements. Capture-reader changes invalidate cached sessions, with an epoch preventing an invalidated in-flight session from being stored again.
 
@@ -28,4 +28,4 @@ The parallel std:path.relative worker may continue isolated development. Main in
 
 ## Continuation prompt
 
-Continue Tsrust from docs/handoff-2026-10-08-invocation-resumption.md. Read AGENTS.md, docs/development-workflow.md and docs/resumable-callable-summaries-plan.md. Invocation resumption and bounded wrapper completion are implementation checkpoints, not family acceptance. The unchanged nested budget and all 102 focused controls pass. Preserve fifteen owner fixtures and use explicit Git paths. Complete the ordered-entry/capture/recursive acceptance audit and full compiler/editor milestone regressions. Preserve and resume completed evidence, compare emitted programs, retain applicable SQLite runtime measurements, then refresh five consumers and provide an accepted handoff.
+Continue Tsrust from docs/handoff-2026-10-08-invocation-resumption.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/resumable-callable-summaries-plan.md. Invocation resumption and bounded wrapper completion are implementation checkpoints, not family acceptance. The unchanged nested budget and all 102 focused controls pass. Preserve fifteen owner fixtures and use explicit Git paths. Complete the ordered-entry/capture/recursive acceptance audit and full compiler/editor milestone regressions. Preserve and resume completed evidence, compare emitted programs, retain applicable SQLite runtime measurements, then refresh five consumers and provide an accepted handoff.

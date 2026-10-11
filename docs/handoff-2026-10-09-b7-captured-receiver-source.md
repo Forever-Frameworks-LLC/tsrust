@@ -1,6 +1,6 @@
 # B7 captured receiver source checkpoint
 
-B7/gate 183 remains open. This is a source-interface checkpoint, not native feature acceptance. One new executable witness remains red. D2 discriminated unions remain a dedicated future feature. No owner question is pending. Read AGENTS.md, docs/development-workflow.md and docs/caller-borrowed-record-stores-plan.md first.
+B7/gate 183 remains open. This is a source-interface checkpoint, not native feature acceptance. One new executable witness remains red. D2 discriminated unions remain a dedicated future feature. No owner question is pending. Read AGENTS.md, docs/development-workflow.md and docs/plans/caller-borrowed-record-stores-plan.md first.
 
 ## Current interface
 

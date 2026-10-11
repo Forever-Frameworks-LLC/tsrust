@@ -1,8 +1,8 @@
 # Scoped callable records: borrowing callback fields
 
 Status: accepted. This closes the record gate of
-[the scoped callable aggregate plan](../scoped-callable-aggregate-plan.md) and
-milestone 8 of [the field storage plan](../scoped-record-field-storage-plan.md).
+[the scoped callable aggregate plan](../plans/scoped-callable-aggregate-plan.md) and
+milestone 8 of [the field storage plan](../plans/scoped-record-field-storage-plan.md).
 The array and composition gates of that plan stay open and are rejected at source
 level today. The [guide](../callable-fields.md) describes the language behavior.
 

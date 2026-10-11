@@ -1,6 +1,6 @@
 # Gate 188 checkpoint: checked byte access and mutation
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and this
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and this
 handoff. Gate 187 is accepted at source 6e565765/publication e394c088. Gate 188 remains
 in progress. This checkpoint implements at/set; do not repeat that work.
 
@@ -76,7 +76,7 @@ regressions and timing belong to the completed S07 family milestone.
 
 ## Continuation prompt
 
-Continue Tsrust from docs/handoff-2026-10-10-byte-access.md and docs/resources-bytes-plan.md.
+Continue Tsrust from docs/handoff-2026-10-10-byte-access.md and docs/plans/resources-bytes-plan.md.
 Gate 187 is accepted; gate 188 at/set are implemented and verified. Finish allocation,
 growth, independent copy/clone and capability/cleanup acceptance without repeating the
 foundation or access work. Keep editor/catalog and matched workload support current.

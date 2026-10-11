@@ -1,6 +1,6 @@
 # Initial fresh factory adapter checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, generic-value-adapters-plan.md and
+Read AGENTS.md, docs/development-workflow.md, plans/generic-value-adapters-plan.md and
 preceding expression red handoff. Gate173 and full adapter acceptance remain open.
 Four unrelated owner fixture edits remain untouched and uncommitted.
 

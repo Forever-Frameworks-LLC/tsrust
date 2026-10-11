@@ -2,7 +2,7 @@ Current continuation: [generic value red checkpoint](handoff-2026-10-06-gate173-
 
 # Handoff: captured rest function values
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md
 and docs/milestones/173-nested-function-signatures.md. Inspect Git for this checkpoint
 hash. Gate172 is accepted at d74f34d; inferred named results landed at dd43e11 and
 captured optional/default values at 7ef5e3e. Gate173 remains incomplete.

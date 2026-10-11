@@ -1,6 +1,6 @@
 # Handoff: callable effect index WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/captured-call-effects-plan.md first. Accepted lexical transport is 399a1c4. Current Git HEAD adds a tested effect-index prerequisite; it does not accept captured invocation effects or complete Gate173.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/plans/captured-call-effects-plan.md first. Accepted lexical transport is 399a1c4. Current Git HEAD adds a tested effect-index prerequisite; it does not accept captured invocation effects or complete Gate173.
 
 The isolated generic_call_effect_bodies module owns named and arrow body snapshots keyed by source declaration span. It retains declaration BindingId values and resolves uses through capture-plan provenance or lexical ranges. Hoisted named captures work before the binding's textual initializer. Local and parameter shadowing retain different declarations. Planned uses and ordinary declaration records agree on identity.
 

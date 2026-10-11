@@ -131,7 +131,7 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 
 ## Accepted bounded OS identity slice
 
-`std:os.platform()` and `std:os.arch()` are implemented through existing zero-argument string bindings. [The contract](os-identity-contract.md) freezes exact supported target metadata mappings and explicit unsupported-target errors. Native acceptance is macOS ARM64; 16 cross-target metadata cases do not establish native acceptance on those targets. Complete compiler/editor acceptance and untimed matched workload support are required by [the OS identity plan](parallel-os-identity-plan.md). Identity timing remains deferred because the wrappers can constant-fold. Other OS exports remain unimplemented.
+`std:os.platform()` and `std:os.arch()` are implemented through existing zero-argument string bindings. [The contract](os-identity-contract.md) freezes exact supported target metadata mappings and explicit unsupported-target errors. Native acceptance is macOS ARM64; 16 cross-target metadata cases do not establish native acceptance on those targets. Complete compiler/editor acceptance and untimed matched workload support are required by [the OS identity plan](plans/parallel-os-identity-plan.md). Identity timing remains deferred because the wrappers can constant-fold. Other OS exports remain unimplemented.
 
 ## Accepted variadic composition and byte order
 

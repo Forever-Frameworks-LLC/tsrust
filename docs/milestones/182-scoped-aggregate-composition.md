@@ -11,7 +11,7 @@ invalid Set/Map keys under the owner's structural-key policy. No implicit clone.
 
 The owner assigned mixed-record unions containing callbacks to a dedicated D2
 discriminated-union feature on 2026-10-09. That requirement remains open and is
-tracked in docs/discriminated-unions-plan.md. It does not block B5's agreed scope.
+tracked in docs/plans/discriminated-unions-plan.md. It does not block B5's agreed scope.
 
 ## Verification discovered repair
 

@@ -2,7 +2,7 @@
 
 Read AGENTS.md, docs/development-workflow.md, the previous
 handoff-2026-10-06-gate173-deferred-capture-free.md and
-generic-function-values-plan.md. The previous implementation checkpoint is
+plans/generic-function-values-plan.md. The previous implementation checkpoint is
 0704364. Gate173 and the full language objective remain incomplete.
 
 This checkpoint isolates named_capture_context::Contexts::source_context. Given

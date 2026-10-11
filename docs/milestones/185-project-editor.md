@@ -1,6 +1,6 @@
 # Gate 185: project editor (S04)
 
-Date: 2026-10-10. Ledger row: B9 in `docs/compiler-completion-plan.md`; gate S04 in
+Date: 2026-10-10. Ledger row: B9 in `docs/plans/compiler-completion-plan.md`; gate S04 in
 `docs/standard-library-roadmap.md`.
 Acceptance map: `../b9-project-editor-acceptance-map.md`. User guide:
 `../project-editor.md`. Earlier increments: `modules-03-workspace-snapshots.md`.

@@ -1,7 +1,7 @@
 # Handoff: generic value adapter witnesses
 
 Read AGENTS.md, docs/development-workflow.md, both function plans and
-docs/generic-value-adapters-plan.md. Previous checkpoint: 0b11cf4. Gate173 remains
+docs/plans/generic-value-adapters-plan.md. Previous checkpoint: 0b11cf4. Gate173 remains
 open. This checkpoint changes tests and planning only, not compiler implementation.
 
 generic_value_adapters.rs has three genuine red native witnesses with strict
@@ -35,7 +35,7 @@ Four unrelated owner fixtures remain untouched and uncommitted. Five consumers
 remain from 0b11cf4; no implementation refresh is required for this red checkpoint.
 Hourly checks remain paused.
 
-Continuation prompt: Continue Tsrust from this handoff and generic-value-adapters-plan.md.
+Continuation prompt: Continue Tsrust from this handoff and plans/generic-value-adapters-plan.md.
 Implement real adapters from existing generic value environments, preserving
 borrowing, transfer and shared state. Make the three red witnesses pass, add
 ownership/disposal/editor/benchmark evidence, then continue the full gate173 audit.

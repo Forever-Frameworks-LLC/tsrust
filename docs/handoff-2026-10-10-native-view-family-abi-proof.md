@@ -1,7 +1,7 @@
 # Private native owning callable family ABI proof
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. Continue from f6d3e68d. Gate 189/S07 remain open.
+plans/native-view-callable-storage-plan.md. Continue from f6d3e68d. Gate 189/S07 remain open.
 
 The test-only native_view_family_emit.rs backend renders finite enum alternatives
 using typed concrete environment lifetimes. A consuming call joins the required

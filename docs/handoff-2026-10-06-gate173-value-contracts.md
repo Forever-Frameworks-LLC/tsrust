@@ -1,6 +1,6 @@
 # Handoff: solved generic source contracts and default forwarding
 
-Read AGENTS.md, docs/development-workflow.md, docs/generic-function-values-plan.md
+Read AGENTS.md, docs/development-workflow.md, docs/plans/generic-function-values-plan.md
 and this handoff. The prior source checkpoint is 4b958b0. Gate173 and the full
 named-declaration plan remain incomplete.
 

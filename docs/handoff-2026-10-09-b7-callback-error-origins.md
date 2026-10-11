@@ -1,7 +1,7 @@
 # B7 completed caller error origins
 
 B7/gate 183 remains in progress. This checkpoint follows `da3b006`. Read AGENTS.md,
-docs/development-workflow.md, docs/caller-borrowed-record-stores-plan.md and
+docs/development-workflow.md, docs/plans/caller-borrowed-record-stores-plan.md and
 this handoff. D2 discriminated unions remain a dedicated required feature. No owner
 question is pending.
 

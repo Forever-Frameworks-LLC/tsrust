@@ -1,6 +1,6 @@
 # Gate 189 private borrowed identities and representation contracts
 
-Read AGENTS.md, docs/development-workflow.md, docs/resources-bytes-plan.md and
+Read AGENTS.md, docs/development-workflow.md, docs/plans/resources-bytes-plan.md and
 docs/native-byte-views-implementation.md first. This checkpoint follows f569190a,
 the logical-negation formatter repair. Gates 187–188 remain accepted. Gate 189 and
 S07 remain open. One agent works in this tree; no unrelated owner edits remain.

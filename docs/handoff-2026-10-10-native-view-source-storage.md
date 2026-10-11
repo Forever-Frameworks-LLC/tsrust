@@ -1,7 +1,7 @@
 # Native view callbacks through normal source storage
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. This checkpoint follows 9ee2e3a1.
+plans/native-view-callable-storage-plan.md. This checkpoint follows 9ee2e3a1.
 Gate 189/S07 remain open. Public view factories remain guarded.
 
 The original stored-callback positive now passes normal source analysis and complete

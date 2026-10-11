@@ -1,6 +1,6 @@
 # Native generic storage declaration checkpoint
 
-Continue from the invocation-origin-selection checkpoint a83d0b6. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. This remains an implementation checkpoint within the open callable replacement family.
+Continue from the invocation-origin-selection checkpoint a83d0b6. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. This remains an implementation checkpoint within the open callable replacement family.
 
 The storage registry now exposes canonical checked families to production emission. The emitter declares each registered family with a separate generic payload parameter per environment. Each payload can carry its complete native environment type, including independent borrowed lifetimes and captured callable parameters. The carrier imposes no common invocation arity, callback trait, Clone requirement or shared capture cell. Closure declarations and method bodies remain unchanged.
 

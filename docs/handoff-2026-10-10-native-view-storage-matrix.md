@@ -1,7 +1,7 @@
 # Native view source storage matrix
 
 Read AGENTS.md, docs/development-workflow.md and
-native-view-callable-storage-plan.md. This checkpoint follows a48f4f1e.
+plans/native-view-callable-storage-plan.md. This checkpoint follows a48f4f1e.
 Gate 189/S07 and the overall plan remain open. Public view/viewMut are still guarded.
 
 ## Implemented source paths

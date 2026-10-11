@@ -1,6 +1,6 @@
 # B5 scoped aggregates: acceptance map
 
-Date: 2026-10-09. Ledger row: B5 in `docs/compiler-completion-plan.md`.
+Date: 2026-10-09. Ledger row: B5 in `docs/plans/compiler-completion-plan.md`.
 
 This map lists every storage form for records whose callback borrows local variables,
 its status and its evidence. A source diagnostic is not support. Status reflects the
@@ -128,7 +128,7 @@ and timing remain pending. See
 ## Family acceptance: gate 182 (2026-10-09)
 
 The agreed B5 scope is accepted. Mixed-record unions remain required in D2 by the
-owner's dedicated-feature decision; see docs/discriminated-unions-plan.md.
+owner's dedicated-feature decision; see docs/plans/discriminated-unions-plan.md.
 The whole compiler run plus repaired affected suites proves 2,586 passes and three
 intentional ignores. The whole editor run plus repaired intelligence suite proves
 429 passes. All eight depth canaries pass. Defaulted readonly nullable record

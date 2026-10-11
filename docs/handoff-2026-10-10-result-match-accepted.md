@@ -1,7 +1,7 @@
 # Handoff: B10 Result and statement match accepted
 
 B10/S06 is accepted at gate 186. Read AGENTS.md and `docs/development-workflow.md`
-first, then `docs/compiler-completion-plan.md`, `docs/milestones/186-result-match.md`,
+first, then `docs/plans/compiler-completion-plan.md`, `docs/milestones/186-result-match.md`,
 `docs/b10-result-match-acceptance-map.md` and `docs/standard-library-roadmap.md`.
 The larger compiler completion goal remains open. One agent works in this tree.
 No protected owner files or unrelated modifications remain.

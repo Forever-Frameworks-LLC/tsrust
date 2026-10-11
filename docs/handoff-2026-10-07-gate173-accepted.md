@@ -51,7 +51,7 @@ is the only check that finds these.
    without weakening their mutation checks.
 2. **Callable replacement.** The two kept witnesses: replacing a generic callable
    local by a different origin, and point-sensitive mutable factory state.
-3. **Scoped callable arrays and composition** (`docs/scoped-callable-aggregate-plan.md`):
+3. **Scoped callable arrays and composition** (`docs/plans/scoped-callable-aggregate-plan.md`):
    arrays, Maps, Sets and unions of records with borrowing callbacks, replacement of
    nullable borrowing fields, and callbacks stored through a record parameter that
    borrow from the caller.

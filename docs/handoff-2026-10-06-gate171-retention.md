@@ -1,6 +1,6 @@
 # Handoff: retained capture plans at checked-context boundary
 
-/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first; inspect current Git status/checkpoint.
+/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first; inspect current Git status/checkpoint.
 
 Gate171 is not accepted. Prior planner checkpoint1269730; accepted lexical gate170 bcd7e88 and editor repair ba34914 remain. This chunk makes capture syntax survive the parser and lexical normalization. Program.local_capture_plans stores cloned/debuggable graph plans; lifted bodies remain in Program.functions. Declaration now retains function_owner, enclosing_owner and statement_span. IDs are logical source owners, not guaranteed checked-function array positions; use declaration emitted identity to resolve the actual function. The original statement anchor and enclosing owner locate the defining context and environment lifetime.
 

@@ -1,7 +1,7 @@
 # Handoff: initial generic value adapters
 
 Read AGENTS.md, docs/development-workflow.md, both function plans and
-docs/generic-value-adapters-plan.md. Red checkpoint: 1678da5. Gate173 and full
+docs/plans/generic-value-adapters-plan.md. Red checkpoint: 1678da5. Gate173 and full
 adapter acceptance remain open.
 
 generic_value_adapters.rs solves the original declaration using concrete context

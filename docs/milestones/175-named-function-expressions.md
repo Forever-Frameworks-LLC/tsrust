@@ -1,7 +1,7 @@
 # Gate 175: named function expressions
 
 Status: accepted. Requirement B1 of
-[the compiler completion ledger](../compiler-completion-plan.md).
+[the compiler completion ledger](../plans/compiler-completion-plan.md).
 
 ## Behavior
 

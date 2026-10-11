@@ -1,6 +1,6 @@
 # Handoff: gate 171 capture planner checkpoint
 
-/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first. Inspect Git status/current checkpoint.
+/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first. Inspect Git status/current checkpoint.
 
 Gate170 accepted bcd7e88; interface editor repair ba34914; gate171 red witnesses 54f178e. Gate171 is still not accepted. This chunk introduces local_capture_plan.rs and integrates collection into local_functions.rs. Captures use BindingId(owner, declaration_start), preserve source spans and spelling, and are separate from local callable dependency edges. Iterative Kosaraju groups recursion; iterative on-demand requirements follow condensed dependencies. No recursive graph frames, implicit clone, shared cells or access-mode guesses. Capture-free declarations skip graph solving. The no-local-declaration fast path remains. Captured programs still reject explicitly after planning; five native capture/readiness positives remain pending.
 

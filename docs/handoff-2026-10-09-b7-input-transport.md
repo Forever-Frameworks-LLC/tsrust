@@ -2,10 +2,10 @@
 
 B5 remains accepted at `00214a11`. B7/gate 183 is in progress, not accepted.
 Discriminated unions remain a dedicated required D2 feature; see
-`docs/discriminated-unions-plan.md`. There is no new owner decision pending.
+`docs/plans/discriminated-unions-plan.md`. There is no new owner decision pending.
 
 Read AGENTS.md, docs/development-workflow.md, the B5 acceptance handoff and
-`docs/caller-borrowed-record-stores-plan.md` before continuing. Preserve the fifteen
+`docs/plans/caller-borrowed-record-stores-plan.md` before continuing. Preserve the fifteen
 unrelated fixture edits. Use explicit Git paths and the shared Cargo target with
 incremental compilation disabled. Node 24.11.1 is first on PATH.
 

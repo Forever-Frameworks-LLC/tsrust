@@ -1,7 +1,7 @@
 # Handoff: captured deferred generic invocation
 
-Read AGENTS.md, docs/development-workflow.md, generic-function-values-plan.md and
-nested-function-declarations-plan.md. Previous checkpoint: c495ed2. This checkpoint
+Read AGENTS.md, docs/development-workflow.md, plans/generic-function-values-plan.md and
+plans/nested-function-declarations-plan.md. Previous checkpoint: c495ed2. This checkpoint
 implements captured deferred generic values; full generic values, gate173 and the
 named-declaration family milestone remain open.
 

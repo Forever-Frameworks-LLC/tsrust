@@ -38,7 +38,7 @@ not counted as implemented behavior.
 ## Evidence publication
 
 Exact focused records and original benchmark records live in `benchmarks/records.sqlite`;
-`docs/result-match-plan.md` lists their record paths. The initial timing run overlapped
+`docs/plans/result-match-plan.md` lists their record paths. The initial timing run overlapped
 compiler regressions and is excluded from acceptance performance. Final evidence is recorded in `milestones/186-result-match.md`: compiler 2,754
 passes, editor 472 passes, all depth canaries, uncontended timing and five-consumer
 refresh.

@@ -1,6 +1,6 @@
 # Independent declaration preparation checkpoint
 
-Continue from 7cf2b54 and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. The callable replacement family remains open.
+Continue from 7cf2b54 and this checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md. The callable replacement family remains open.
 
 The new deferred_generic_preparation module separates source declaration preparation from receiver/argument ownership access. It returns the concrete checked function, prepared omission/rest arguments, parameter contracts, capture accesses and invocation mode. The original production call path now consumes it. A formatted focused test independently prepares two declarations with equal argument/result types, materializes their separate methods and verifies the second body's return of 10. A reachable two-argument declaration rejects one argument with arity at the call span. Source assignment admission has not changed.
 
@@ -15,4 +15,4 @@ Bounded verification: the independent preparation/method witness passes; planner
 
 ## Handoff prompt
 
-Continue Tsrust from docs/handoff-2026-10-07-independent-declaration-preparation.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Independent generic declaration preparation now returns each checked body and call contract separately from source ownership access. Update native graph, effect/parameter, projection and emission consumers to use checked environment/method alternatives. Then implement reachable declaration selection, independent alternative checking and normalization before admitting the retained distinct-origin replacement witnesses. Finish captured layouts, point-sensitive mutable factory state and full family acceptance. Preserve owner fixtures, focused TDD, formatter execution, benchmark readiness and exact SQLite evidence.
+Continue Tsrust from docs/handoff-2026-10-07-independent-declaration-preparation.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md. Independent generic declaration preparation now returns each checked body and call contract separately from source ownership access. Update native graph, effect/parameter, projection and emission consumers to use checked environment/method alternatives. Then implement reachable declaration selection, independent alternative checking and normalization before admitting the retained distinct-origin replacement witnesses. Finish captured layouts, point-sensitive mutable factory state and full family acceptance. Preserve owner fixtures, focused TDD, formatter execution, benchmark readiness and exact SQLite evidence.

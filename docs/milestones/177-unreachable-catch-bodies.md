@@ -1,7 +1,7 @@
 # Gate 177: unreachable catch bodies and caught-error assertions
 
 Status: accepted. Requirements B3 and B4 of
-[the compiler completion ledger](../compiler-completion-plan.md).
+[the compiler completion ledger](../plans/compiler-completion-plan.md).
 
 ## B3: checking handlers that cannot run
 

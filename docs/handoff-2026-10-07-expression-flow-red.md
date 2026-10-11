@@ -1,6 +1,6 @@
 # Handoff: expression evaluation-order red checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, docs/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-exception-source-flow.md first. Accepted exception flow is fb4ce3e; the nested generic formatting follow-up is cab1e63. This following checkpoint adds expression-flow witnesses and the concrete evaluator plan. Compiler source is unchanged.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/unused-generic-call-validation-plan.md and docs/handoff-2026-10-07-exception-source-flow.md first. Accepted exception flow is fb4ce3e; the nested generic formatting follow-up is cab1e63. This following checkpoint adds expression-flow witnesses and the concrete evaluator plan. Compiler source is unchanged.
 
 The focused generic_call_expression_flow rejection test is intentionally red: thirteen invalid calls are accepted. Nine formatted precision controls pass. Exact original and expanded outputs are retained in SQLite as /private/tmp/tsrust-expression-flow-red.log and /private/tmp/tsrust-expression-flow-expanded-red.log. Begin implementation of the expression evaluator from this evidence. Follow the plan's rules for callee snapshots, lazy branches, assignment commit order and per-step exceptional states.
 

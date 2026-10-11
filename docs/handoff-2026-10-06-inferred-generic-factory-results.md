@@ -1,6 +1,6 @@
 # Inferred generic factory results checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md.
 Preserve four owner fixture edits and stage explicit Git paths. Full Gate173 and
 adapter acceptance remain open.
 
@@ -38,7 +38,7 @@ outputs were pruned while current consumers remain.
 
 Continuation prompt: Continue Tsrust from
  docs/handoff-2026-10-06-inferred-generic-factory-results.md. Read AGENTS.md,
-docs/development-workflow.md and docs/generic-value-adapters-plan.md first.
+docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first.
 Preserve owner fixtures and prior ownership/cache/editor/selection fixes. Continue
 remaining adapter contexts with TDD, std:testing, editor and matched untimed support.
 Keep exact SQLite evidence. Full Gate173 remains open.

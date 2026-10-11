@@ -1,6 +1,6 @@
 # Generic factory parameter help checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md.
 Full Gate173 and adapter acceptance remain open. Preserve the four owner fixture
 edits; stage explicit paths only.
 
@@ -31,7 +31,7 @@ the scoped family is complete. No live processes remain at this checkpoint.
 
 Continuation prompt: Continue Tsrust from
 docs/handoff-2026-10-06-generic-factory-parameter-help.md. Read AGENTS.md,
-docs/development-workflow.md and docs/generic-value-adapters-plan.md first.
+docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first.
 Preserve four owner fixture edits, the captured-type cache repair and additive
 partial parameter metadata. Continue missing adapter contexts with TDD, editor,
 matched untimed checks and exact SQLite evidence. Full Gate173 remains open.

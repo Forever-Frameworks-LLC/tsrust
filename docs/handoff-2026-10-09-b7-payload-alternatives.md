@@ -2,7 +2,7 @@
 
 B7/gate 183 remains in progress. This checkpoint continues `8b96e05`. B5 remains
 accepted at `00214a11`. Read AGENTS.md, docs/development-workflow.md,
-docs/caller-borrowed-record-stores-plan.md and the preceding B7 handoffs first.
+docs/plans/caller-borrowed-record-stores-plan.md and the preceding B7 handoffs first.
 Discriminated unions remain a separate required D2 feature. No owner decision is pending.
 
 ## Implemented in this checkpoint

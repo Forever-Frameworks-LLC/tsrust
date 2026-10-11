@@ -1,6 +1,6 @@
 # Native byte construction checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/resources-bytes-plan.md first.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/resources-bytes-plan.md first.
 B10 is accepted at gate 186. B11/S07 gate 187 remains in progress. This checkpoint
 adds the first working fromArray/length bindings; it does not accept the entire gate.
 
@@ -44,7 +44,7 @@ publication. No other agent or protected owner edits exist in this tree.
 
 ## Continuation prompt
 
-Continue Tsrust from this handoff and docs/resources-bytes-plan.md. Finish gate 187's
+Continue Tsrust from this handoff and docs/plans/resources-bytes-plan.md. Finish gate 187's
 remaining alias/callable/storage witnesses and matched workload support, then proceed
 through gates 188–190 with bounded focused checks. Preserve consuming close semantics.
 Use whole-project formatting before explicit-path source commits, exact SQLite evidence,

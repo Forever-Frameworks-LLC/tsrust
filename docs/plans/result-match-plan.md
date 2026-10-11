@@ -1,7 +1,7 @@
 # B10: tagged Result and exhaustive matching
 
 Status: B10/S06 accepted at gate 186 on 2026-10-10. The owner chose Rust-style
-`Ok`/`Err` and exhaustive statement match. See `milestones/186-result-match.md`
+`Ok`/`Err` and exhaustive statement match. See `../milestones/186-result-match.md`
 for final evidence. Historical increments below retain their original status;
 the current acceptance record supersedes their pending notes.
 

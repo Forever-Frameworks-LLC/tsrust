@@ -1,7 +1,7 @@
 # Gate 176: recursive result inference
 
 Status: accepted. Requirement B2 of
-[the compiler completion ledger](../compiler-completion-plan.md).
+[the compiler completion ledger](../plans/compiler-completion-plan.md).
 
 ## Behavior
 

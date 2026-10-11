@@ -112,7 +112,7 @@ C4 now waits for **compiler-proven** symbol identity, inferred types, ownership 
 
 ## JavaScript value and namespace progression
 
-[The implementation plan](javascript-parity-plan.md) is the compiler/editor dependency contract for null/undefined, optional unions, dynamic values and standard namespaces. Stage 1 and Array.isArray, Boolean and String conversion are accepted in [the value milestone](milestones/value-types-and-namespaces.md). Their catalog witnesses, detailed examples and scoped inference are implemented. Array constructor completion stays separate from array instance methods. Union narrowing, optional results, identity and property metadata must land before the corresponding JSON/Object/optional-array capabilities are advertised. Keep runtime measurements pending until the scheduled checkpoint.
+[The implementation plan](plans/javascript-parity-plan.md) is the compiler/editor dependency contract for null/undefined, optional unions, dynamic values and standard namespaces. Stage 1 and Array.isArray, Boolean and String conversion are accepted in [the value milestone](milestones/value-types-and-namespaces.md). Their catalog witnesses, detailed examples and scoped inference are implemented. Array constructor completion stays separate from array instance methods. Union narrowing, optional results, identity and property metadata must land before the corresponding JSON/Object/optional-array capabilities are advertised. Keep runtime measurements pending until the scheduled checkpoint.
 
 ## Compiler-backed quick fixes
 

@@ -1,6 +1,6 @@
 # Owned rest adapter controls
 
-Read AGENTS.md, docs/development-workflow.md, generic-value-adapters-plan.md and
+Read AGENTS.md, docs/development-workflow.md, plans/generic-value-adapters-plan.md and
 the preceding default/rest handoff. Gate173 and full adapter acceptance remain open.
 Four unrelated owner fixture edits remain untouched. No compiler source changed.
 

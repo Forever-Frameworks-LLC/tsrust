@@ -1,6 +1,6 @@
 # Handoff: source-flow effect identities WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/captured-call-effects-plan.md first. Accepted runtime/compiler behavior remains lexical transport at 399a1c4. The prior index checkpoint is f565a8e. Current Git HEAD wires identity into source flow; it does not accept captured invocation effects.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/plans/captured-call-effects-plan.md first. Accepted runtime/compiler behavior remains lexical transport at 399a1c4. The prior index checkpoint is f565a8e. Current Git HEAD wires identity into source flow; it does not accept captured invocation effects.
 
 Source validation builds the effect index once. Binding carries an optional lexical declaration identity. Parameter and local collection obtains identities from the index. Branch and expression lookup uses identity first, including snapshots and assignment commits. A missing callee-local identity cannot resolve to a same-named caller binding. The new red and repaired test cover a hoisted capture and local shadow. Trusted synthetic named-value forwarding wrappers now select the original callable body; their generated parameter spans must not become independent declaration identities. This additional red is retained and repaired.
 

@@ -1,7 +1,7 @@
 # Handoff: finite named capture layouts
 
 Continue Tsrust at `/Users/seancotter/Desktop/dev/learning/tsrust`. Read `AGENTS.md`,
-`docs/development-workflow.md`, `docs/nested-function-declarations-plan.md`,
+`docs/development-workflow.md`, `docs/plans/nested-function-declarations-plan.md`,
 `docs/milestones/171-nested-function-captures.md` and this file before edits. Inspect
 Git status and log; one agent works in this tree at a time. The user requested this
 handoff at the next checkpoint. The overall plan remains active and incomplete.
@@ -14,7 +14,7 @@ do not redefine completion around capture-free functions or metadata alone. Gate
 is accepted. Gate171 borrowed captures is incomplete; gate172 covers escaping owned
 callables and gate173 covers full signatures, generics and result inference. The
 family milestone follows full scoped acceptance, not a gate-count schedule. Broader
-plans remain in `docs/standard-library-roadmap.md`, `docs/javascript-parity-plan.md`
+plans remain in `docs/standard-library-roadmap.md`, `docs/plans/javascript-parity-plan.md`
 and `docs/editor-foundation.md`.
 
 The owner selected existing ownership rules: borrow local captured owners, transfer

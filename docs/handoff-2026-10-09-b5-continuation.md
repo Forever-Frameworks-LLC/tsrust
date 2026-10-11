@@ -298,7 +298,7 @@ When the rows above are supported or the owner removes them from scope:
 - run both whole crates;
 - run the timing protocol for `scoped_record_composition`, review it against the Node
   counterpart, and only then set `measured: true` (see `AGENTS.md` on milestones);
-- update `docs/compiler-completion-plan.md` row B5 and the roadmap;
+- update `docs/plans/compiler-completion-plan.md` row B5 and the roadmap;
 - refresh consumers, prune obsolete build outputs, and write the acceptance handoff.
 
 ### 5.6 Not part of B5

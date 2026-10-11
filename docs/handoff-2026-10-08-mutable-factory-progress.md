@@ -1,6 +1,6 @@
 # Mutable factory implementation checkpoint
 
-This is a source checkpoint before further array-flow changes, not feature-family acceptance. The callable replacement plan remains active. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md before continuing.
+This is a source checkpoint before further array-flow changes, not feature-family acceptance. The callable replacement plan remains active. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md before continuing.
 
 ## Implemented and verified
 
@@ -28,4 +28,4 @@ Live executable consumers remain on standard-library source `31e367f`; this chec
 
 ## Continue prompt
 
-Continue Tsrust from docs/handoff-2026-10-08-mutable-factory-progress.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. Finish retained mutable factory state through bounded array joins, ownership transfer and distinct runtime instances. Keep the existing red loop witness and all restoration, disposal, nested result and editor contracts. Use one warm Cargo target, disable incremental compilation, use pinned Node and Python for evidence storage, and preserve all fifteen owner fixture edits. This checkpoint is implementation progress, not acceptance. Finish benchmark/guide/evidence support and depth checks before closing the gate; perform broad regressions and measurements at the completed family milestone. Coordinate exclusive main ownership before any parallel-worker integration.
+Continue Tsrust from docs/handoff-2026-10-08-mutable-factory-progress.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. Finish retained mutable factory state through bounded array joins, ownership transfer and distinct runtime instances. Keep the existing red loop witness and all restoration, disposal, nested result and editor contracts. Use one warm Cargo target, disable incremental compilation, use pinned Node and Python for evidence storage, and preserve all fifteen owner fixture edits. This checkpoint is implementation progress, not acceptance. Finish benchmark/guide/evidence support and depth checks before closing the gate; perform broad regressions and measurements at the completed family milestone. Coordinate exclusive main ownership before any parallel-worker integration.

@@ -1,7 +1,7 @@
 # Unused immutable alias validation checkpoint
 
 Read AGENTS.md, workflow, both generic value plans and
-unused-generic-call-validation-plan.md first. This implements the initial known
+plans/unused-generic-call-validation-plan.md first. This implements the initial known
 source-contract portion after red 0a5fd96. The complete validation plan and full
 Gate173 remain open. Preserve the four owner fixture edits and stage explicit paths.
 

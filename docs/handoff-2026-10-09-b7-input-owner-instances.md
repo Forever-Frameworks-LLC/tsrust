@@ -24,4 +24,4 @@ The broader B7 plan also retains branch joins, loops, early exits, disposal, rec
 
 ## Continuation
 
-Read AGENTS.md, docs/development-workflow.md and docs/caller-borrowed-record-stores-plan.md. Continue B7 from the effectful same-origin installer red, then generalize native ownership transport without changing source rules. Keep D2 separate. Preserve existing passing evidence and use bounded affected checks.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/caller-borrowed-record-stores-plan.md. Continue B7 from the effectful same-origin installer red, then generalize native ownership transport without changing source rules. Keep D2 separate. Preserve existing passing evidence and use bounded affected checks.

@@ -1,6 +1,6 @@
 # Nested selected generic factories checkpoint
 
-Read AGENTS.md, docs/development-workflow.md and docs/generic-value-adapters-plan.md.
+Read AGENTS.md, docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md.
 Preserve four owner fixture edits. Stage explicit paths. Full Gate173 and adapter
 acceptance remain open.
 
@@ -34,7 +34,7 @@ loose cleanup; obsolete test/native outputs were pruned while consumers remain.
 
 Continuation prompt: Continue Tsrust from
  docs/handoff-2026-10-06-nested-selected-generic-factories.md. Read AGENTS.md,
-docs/development-workflow.md and docs/generic-value-adapters-plan.md first.
+docs/development-workflow.md and docs/plans/generic-value-adapters-plan.md first.
 Preserve owner fixtures, prior ownership/cache/editor fixes and nested selection
 ordering. Audit remaining adapter contexts with TDD, std:testing, editor and matched
 untimed support. Keep exact SQLite evidence. Full Gate173 remains open.

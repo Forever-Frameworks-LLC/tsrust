@@ -1,6 +1,6 @@
 # Handoff: typed named bodies before capture lowering
 
-/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first; inspect current Git status/checkpoint.
+/caveman Continue tsrust at /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/milestones/171-nested-function-captures.md first; inspect current Git status/checkpoint.
 
 Gate171 remains incomplete. Retention checkpoint542069e preserved capture bodies/plans/logical owners/statement anchors. The source-readiness checkpoint added local_readiness.rs at Analyzer::new. The current environment guard follows typed body checking, with unresolved-context and callable-value guards as described below. Required binding identities propagate once over condensed groups. Plan.owners maps logical owners to function names; Plan.uses maps variable expression starts to BindingId. Project linker qualifies owner names and rebases keys/identities/spans. The definite-assignment adapter recognizes callable aliases for each captured binding and preserves ordinary variable behavior. Only a whole-name assignment to the resolved binding initializes it; shadow/indexed writes do not. Branch/return/loop/catch/finally behavior reuses existing flow.
 

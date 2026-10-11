@@ -697,5 +697,5 @@ witness storing a view-capturing callback in Once<Function<Window>> remains red:
 existing owning callable storage rejects borrowed payload environments. This is a
 representation boundary, not proof that ordinary mixed records fail. The required
 metadata, provenance, native ABI and verification increments are specified in
-native-view-callable-storage-plan.md. Keep the current storage safety guards and
+plans/native-view-callable-storage-plan.md. Keep the current storage safety guards and
 public byte-view publication guards until that dependency is implemented.

@@ -1,7 +1,7 @@
 # Gate 179: assignment as a value for strings, arrays and records
 
 Status: accepted. Requirement B15 of
-[the compiler completion ledger](../compiler-completion-plan.md). The rule was
+[the compiler completion ledger](../plans/compiler-completion-plan.md). The rule was
 stated to the owner in the gate 178 handoff; it was not separately confirmed and is
 the one design choice of this gate to review.
 

@@ -16,7 +16,7 @@ S08 collections, followed by S09–S21 in dependency order. Earlier checkpoint s
 below are historical; this status supersedes their pending S07 statements.
 
 Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
-`docs/resources-bytes-plan.md`, `docs/recursive-view-storage-plan.md` and
+`docs/plans/resources-bytes-plan.md`, `docs/plans/recursive-view-storage-plan.md` and
 `docs/standard-library-roadmap.md`. All decisions below are already approved.
 
 ## Approved scope and completed work
@@ -245,7 +245,7 @@ source capability/transfer diagnostics and editor hover/signature/import help.
 Generated source cleanup now proves exact release and lexical order for eighteen
 owners per run at O0/O3, including captured and partial-record owners and close
 failure. Four editor ownership controls preserve source ranges. Matched benchmark support and gate 190 scope review are complete; next run the
-S07 regression and measurement milestone. See `resources-bytes-plan.md` for the close policy and platform
+S07 regression and measurement milestone. See `plans/resources-bytes-plan.md` for the close policy and platform
 evidence. Do not replace explicit close with File drop or implicit sync.
 
 ## Working environment

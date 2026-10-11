@@ -1,7 +1,7 @@
 # Gate 181 handoff
 
 Truthiness is accepted. Read `AGENTS.md`, `docs/development-workflow.md`,
-`docs/compiler-completion-plan.md` and `docs/scoped-callable-aggregate-plan.md`
+`docs/plans/compiler-completion-plan.md` and `docs/plans/scoped-callable-aggregate-plan.md`
 before continuing. Gates 179 and 180 remain accepted; their prior handoff describes
 the surrounding ownership decisions.
 

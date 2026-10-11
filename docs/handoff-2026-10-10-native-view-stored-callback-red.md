@@ -1,7 +1,7 @@
 # Stored view callback TDD checkpoint
 
 Continue from da2eccb4. Read AGENTS.md, docs/development-workflow.md,
-native-byte-views-implementation.md and native-view-callable-storage-plan.md.
+native-byte-views-implementation.md and plans/native-view-callable-storage-plan.md.
 No production compiler behavior changed in this checkpoint. Gate 189/S07 remain open.
 
 The new isolated views_stored_emit_tests.rs has two complete source/native witnesses.
@@ -23,7 +23,7 @@ SQLite record: runtime/results/native-view-stored-callback-red-2026-10-10.json.
 
 ## Continuation prompt
 
-Implement the stored view callback dependency from native-view-callable-storage-plan.md.
+Implement the stored view callback dependency from plans/native-view-callable-storage-plan.md.
 Start with typed scoped owning family metadata and preserve original invocation
 modes. Make native_view_record_callback_preserves_selected_input pass through normal
 source analysis and O0/O3 emission without weakening physical borrow checks. Keep

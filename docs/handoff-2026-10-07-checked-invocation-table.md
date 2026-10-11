@@ -1,6 +1,6 @@
 # Checked invocation table checkpoint
 
-Continue from generic construction identity at 9d97cb0. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. The callable replacement family remains open.
+Continue from generic construction identity at 9d97cb0. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. The callable replacement family remains open.
 
 Concrete deferred-generic calls now publish canonical environment/method pairs into a separate checked invocation table. Publication occurs both when materializing a new method and when reusing a specialization. Effects-only, result-discovery and template passes do not publish provisional plans. Repeated equivalent calls reuse one plan ID. The table is retained in CheckedProgram and validates against the final checked descriptors.
 
@@ -18,4 +18,4 @@ Preserve fifteen owner fixture edits and use explicit Git paths. Reuse /private/
 
 ## Handoff prompt
 
-Continue Tsrust from docs/handoff-2026-10-07-checked-invocation-table.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. Retained checked invocation plans now publish from concrete deferred calls, survive origin compaction and feed native rendering. Implement source-selected multi-origin method materialization, full native family types and construction injection before admitting replacement. Then complete point-sensitive owned factory state and family acceptance. Preserve fifteen owner fixtures, use explicit Git paths, focused TDD, formatter round trips, bounded checks, matched benchmark support and exact SQLite evidence. Keep the original two replacement witnesses and mutable-factory requirement as acceptance gates; do not declare the family complete from component tests.
+Continue Tsrust from docs/handoff-2026-10-07-checked-invocation-table.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. Retained checked invocation plans now publish from concrete deferred calls, survive origin compaction and feed native rendering. Implement source-selected multi-origin method materialization, full native family types and construction injection before admitting replacement. Then complete point-sensitive owned factory state and family acceptance. Preserve fifteen owner fixtures, use explicit Git paths, focused TDD, formatter round trips, bounded checks, matched benchmark support and exact SQLite evidence. Keep the original two replacement witnesses and mutable-factory requirement as acceptance gates; do not declare the family complete from component tests.

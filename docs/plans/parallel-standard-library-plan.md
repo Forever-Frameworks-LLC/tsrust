@@ -109,7 +109,7 @@ Maintain the following checklist with commit IDs, focused evidence identities, p
 ## Ready-to-copy agent prompt
 
 ```text
-Continue Tsrust standard-library development in a separate worktree from committed HEAD 8fe73b5 or the integration owner's newer approved base. Read AGENTS.md, docs/development-workflow.md, docs/parallel-standard-library-plan.md, the latest gate handoff, and the standard-library roadmap/coverage and S05/S06 records first.
+Continue Tsrust standard-library development in a separate worktree from committed HEAD 8fe73b5 or the integration owner's newer approved base. Read AGENTS.md, docs/development-workflow.md, docs/plans/parallel-standard-library-plan.md, the latest gate handoff, and the standard-library roadmap/coverage and S05/S06 records first.
 
 Goal: finish the bounded lexical std:path family end to end: dirname, extname, isAbsolute, normalize. Existing basename remains compatible. Follow P0–P3 in the plan; audit actual support and freeze Node-compatible platform semantics before implementation. Use official reference sources and Node 24.11.1 differential witnesses. No runtime-version references in IntelliSense.
 

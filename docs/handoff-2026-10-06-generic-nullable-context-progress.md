@@ -1,6 +1,6 @@
 # Nullable and heterogeneous generic factory context audit
 
-Read AGENTS.md, development workflow and generic-value-adapters-plan.md. Accepted HEAD is 863bb0d. Four owner fixtures remain untouched. Current uncommitted changes add nullable-factory and heterogeneous-factories native witnesses and strict TypeScript counterparts, two tests and a StoredCallable case in fresh staging.
+Read AGENTS.md, development workflow and plans/generic-value-adapters-plan.md. Accepted HEAD is 863bb0d. Four owner fixtures remain untouched. Current uncommitted changes add nullable-factory and heterogeneous-factories native witnesses and strict TypeScript counterparts, two tests and a StoredCallable case in fresh staging.
 
 Nullable contexts supply an owning stored family as their payload. stage_generic_expression now obtains that family's declared callback signature instead of rejecting it. Nullable fixture passes native execution with output 1,2, retained state and absent optional invocation. Its assertions explicitly narrow observed nullable values before strictEqual. The earlier assertion form exposed a separate generic strictEqual constraint problem between nullable actual and nonnullable expected; retain that defect for the broader inference audit rather than claim it repaired.
 

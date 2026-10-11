@@ -1,6 +1,6 @@
 # Handoff: expression order and named assignment invocation
 
-Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and docs/unused-generic-call-validation-plan.md first. The prior in-progress checkpoint is fe8d618. This following checkpoint accepts expression source order and named callable assignment invocation within the documented scope. Git HEAD is authoritative; full Gate173 remains open.
+Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and docs/plans/unused-generic-call-validation-plan.md first. The prior in-progress checkpoint is fe8d618. This following checkpoint accepts expression source order and named callable assignment invocation within the documented scope. Git HEAD is authoritative; full Gate173 remains open.
 
 ## Accepted behavior
 

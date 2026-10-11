@@ -1,6 +1,6 @@
 # Handoff: callable alias identities WIP
 
-Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/captured-call-effects-plan.md first. Accepted executable behavior remains 399a1c4. The preceding identity wiring checkpoint is 7a21567. Current Git HEAD adds identity-aware candidate traversal, not invocation summaries or full Gate173 acceptance.
+Read AGENTS.md, docs/development-workflow.md, docs/handoff-2026-10-07-lexical-generic-transport.md and docs/plans/captured-call-effects-plan.md first. Accepted executable behavior remains 399a1c4. The preceding identity wiring checkpoint is 7a21567. Current Git HEAD adds identity-aware candidate traversal, not invocation summaries or full Gate173 acceptance.
 
 All source-name candidate resolution now uses resolve_indexed: expression snapshots, straight-line snapshots and conservative call reconstruction. Known declaration identities missing from a frame remain unknown instead of selecting a same-named global. Conservative write accumulation filters known mismatched declarations. Pure finite contract joins keep resolve_all because they resolve no source names. Empty candidate sets remain unknown rather than claiming a callable exists.
 

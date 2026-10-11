@@ -1,6 +1,6 @@
 # Handoff: nested function lexical implementation, not accepted
 
-/caveman Continue tsrust in /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/nested-function-declarations-plan.md and this file first. Inspect git status and log for the current checkpoint.
+/caveman Continue tsrust in /Users/seancotter/Desktop/dev/learning/tsrust. Read AGENTS.md, docs/development-workflow.md, docs/plans/nested-function-declarations-plan.md and this file first. Inspect git status and log for the current checkpoint.
 
 Gate 169 is the latest accepted feature. Gate 170 now has native lexical implementation but is not accepted. Syntax uses a real StmtKind::LocalFunction(Box<Function>). named_function_syntax.rs shares top-level/local headers, then parses the body separately with boxed function state. This split repairs a new depth failure: LLDB showed header temporaries retained across 115 nested bodies. The original source-depth limit and worker stack are unchanged; normal-depth and over-limit tests pass.
 

@@ -1,6 +1,6 @@
 # Fresh factory alias checkpoint
 
-Read AGENTS.md, docs/development-workflow.md, generic-value-adapters-plan.md and
+Read AGENTS.md, docs/development-workflow.md, plans/generic-value-adapters-plan.md and
 the initial fresh handoff. Full adapter and Gate173 acceptance remain open.
 Four unrelated owner fixture edits remain untouched and uncommitted.
 

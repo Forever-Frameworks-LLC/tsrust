@@ -4,7 +4,7 @@
 
 The scheduling family is accepted. Source checkpoints are 366e0b0 for retained invocation sessions and ordered pending defaults, 974fa8e for bounded eager wrapper completion, and 294af82 for complete source acceptance. The overall language goal remains active; this family does not complete the language or standard-library roadmap.
 
-Fifteen owner fixture edits remain uncommitted and untouched. Inspect Git status and use explicit staging paths. Read AGENTS.md, docs/development-workflow.md, docs/resumable-callable-summaries-plan.md and docs/milestones/resumable-callable-summaries.md before continuing.
+Fifteen owner fixture edits remain uncommitted and untouched. Inspect Git status and use explicit staging paths. Read AGENTS.md, docs/development-workflow.md, docs/plans/resumable-callable-summaries-plan.md and docs/milestones/resumable-callable-summaries.md before continuing.
 
 ## Behavior and verification
 
@@ -26,7 +26,7 @@ Cleanup removes 339 closed files and 6,505,287,564 bytes. Root binaries, install
 
 ## Next work and coordination
 
-The parallel std:path.relative plan remains docs/parallel-path-relative-plan.md. Branch acceptance must include integration into latest main, SQLite evidence and all five consumers. Obtain exclusive main ownership before mutation; do not merge through owner changes or replace main SQLite. Main has no uncommitted compiler source at this family handoff.
+The parallel std:path.relative plan remains docs/plans/parallel-path-relative-plan.md. Branch acceptance must include integration into latest main, SQLite evidence and all five consumers. Obtain exclusive main ownership before mutation; do not merge through owner changes or replace main SQLite. Main has no uncommitted compiler source at this family handoff.
 
 For subsequent compiler work, select a concrete open requirement from the current language/standard-library roadmap and write its bounded milestone plan before implementation. Keep full regressions at meaningful family milestones. Preserve the current scheduling controls, independent reference evaluator and exact analytics.
 

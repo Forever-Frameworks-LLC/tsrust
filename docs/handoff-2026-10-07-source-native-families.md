@@ -1,6 +1,6 @@
 # Source-native generic family checkpoint
 
-Continue from ef2725b and this implementation checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md first. Callable replacement remains an open feature family.
+Continue from ef2725b and this implementation checkpoint. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md first. Callable replacement remains an open feature family.
 
 Native family types, constructor injection and checked alternative dispatch now execute from ordinary source for the admitted fresh, empty, same-declaration families. polymorphic_storage_emit separates concrete environment layout from family storage. Expr retains a stable invocation registry ID rather than copying alternative vectors into recursive nodes. Compaction keeps these IDs stable while remapping their registered origins. Construction uses callable_origin rather than a retagged expr.ty. Saved values remain independent.
 
@@ -10,8 +10,8 @@ Final bounded evidence: adjacent generic values 105 passes; capture-effects 22 p
 
 No assignment admission was relaxed. Differing declarations and captured replacement environments still require independent preparation/body checking and argument/result/error normalization. Explicit captured lifetime and callable-parameter layouts must be verified before expanding family admission. Both distinct-declaration source witnesses and point-sensitive mutable factory state remain required. Complete benchmark readiness and editor/guide support before meaningful family acceptance and measurements.
 
-Preserve fifteen owner fixture edits. Use explicit Git paths, /private/tmp/tsrust-gate100-editor-target, CARGO_INCREMENTAL=0, Node 24.11.1 and /opt/homebrew/bin/python3. Parallel worker coordination remains docs/parallel-path-join-plan.md; its branch integration is pending. Do not refresh main consumers from this unaccepted family component.
+Preserve fifteen owner fixture edits. Use explicit Git paths, /private/tmp/tsrust-gate100-editor-target, CARGO_INCREMENTAL=0, Node 24.11.1 and /opt/homebrew/bin/python3. Parallel worker coordination remains docs/plans/parallel-path-join-plan.md; its branch integration is pending. Do not refresh main consumers from this unaccepted family component.
 
 ## Handoff prompt
 
-Continue Tsrust from docs/handoff-2026-10-07-source-native-families.md. Read AGENTS.md, docs/development-workflow.md and docs/callable-replacement-plan.md. Source-native family construction and checked alternative dispatch now work for fresh, empty, same-declaration environments, including generic compaction and contextual array adapters. Implement independent checking and normalization for differing/captured alternatives, then admit the two retained replacement witnesses. Finish point-sensitive mutable factory state and full family acceptance. Preserve owner fixtures, focused TDD, formatted-source execution, benchmark readiness, explicit commits and exact SQLite evidence.
+Continue Tsrust from docs/handoff-2026-10-07-source-native-families.md. Read AGENTS.md, docs/development-workflow.md and docs/plans/callable-replacement-plan.md. Source-native family construction and checked alternative dispatch now work for fresh, empty, same-declaration environments, including generic compaction and contextual array adapters. Implement independent checking and normalization for differing/captured alternatives, then admit the two retained replacement witnesses. Finish point-sensitive mutable factory state and full family acceptance. Preserve owner fixtures, focused TDD, formatted-source execution, benchmark readiness, explicit commits and exact SQLite evidence.

@@ -1,7 +1,7 @@
 # Handoff: compiler completion run, gates 175 to 178
 
 Date: 2026-10-08. Read `AGENTS.md`, `docs/development-workflow.md` and
-`docs/compiler-completion-plan.md` first. The plan file holds the owner's execution
+`docs/plans/compiler-completion-plan.md` first. The plan file holds the owner's execution
 plan and, below it, the audited requirement ledger with the state of every row.
 
 ## State
@@ -15,7 +15,7 @@ unreachable handler). Evidence is in `benchmarks/records.sqlite`.
 
 | Gate | Requirement | Result |
 | --- | --- | --- |
-| audit | Stage 1 ledger | published in `docs/compiler-completion-plan.md` |
+| audit | Stage 1 ledger | published in `docs/plans/compiler-completion-plan.md` |
 | 175 | B1 named function expressions | accepted; workload `named_function_expressions` |
 | 176 | B2 recursive result inference | accepted; workload `recursive_result_inference` |
 | 177 | B3 unreachable catch bodies; B4 witnesses | accepted |

@@ -1,7 +1,7 @@
 # Handoff: isolated invocation replay
 
 Read AGENTS.md, docs/development-workflow.md,
-docs/generic-function-values-plan.md and
+docs/plans/generic-function-values-plan.md and
 docs/handoff-2026-10-06-gate173-generic-data-boundary.md first. This checkpoint
 extracts the existing method materialization functions into closure_methods.rs.
 The functions are byte-identical to the prior implementation except for visibility.

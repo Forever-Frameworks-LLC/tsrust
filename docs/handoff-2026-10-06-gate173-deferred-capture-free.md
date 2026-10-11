@@ -1,7 +1,7 @@
 # Handoff: capture-free deferred generic methods
 
 Read AGENTS.md, docs/development-workflow.md and
-docs/generic-function-values-plan.md first. Previous checkpoint: 19b3e98.
+docs/plans/generic-function-values-plan.md first. Previous checkpoint: 19b3e98.
 This checkpoint implements capture-free polymorphic values; full generic values,
 gate173 and the named-declaration family milestone remain open.
 

@@ -1,6 +1,6 @@
 # Handoff: method-specific native receivers
 
-Read AGENTS.md, docs/development-workflow.md and generic-function-values-plan.md.
+Read AGENTS.md, docs/development-workflow.md and plans/generic-function-values-plan.md.
 Previous checkpoint: 80b6d9c. Gate173, captured polymorphic functions and the full
 language objective remain open. This checkpoint prepares native representation;
 it does not claim the five captured witnesses now pass.
@@ -56,7 +56,7 @@ substitute for that scope or its meaningful family regression/performance review
 ## Continuation prompt
 
 Continue Tsrust from docs/handoff-2026-10-06-gate173-method-receivers.md.
-Read AGENTS.md, docs/development-workflow.md and generic-function-values-plan.md.
+Read AGENTS.md, docs/development-workflow.md and plans/generic-function-values-plan.md.
 Implement captured deferred generic origins and concrete method replay with one
 environment and sound method-specific ownership. Preserve five red witnesses and
 four owner fixture edits. Use explicit Git paths, bounded checks, the warm target,
