@@ -226,6 +226,14 @@ return-through-finally defect remains ignored; current ignored tests are opt-in
 measurements/diagnostics or a subprocess worker. Installed consumers remain
 `4367f4cc`; no family timing has run. See the acceptance map for exact evidence.
 
+Gate 190 now has a private consuming resource owner and a concrete read-only file
+backend in `stdlib/resource.rs` and `stdlib/fs.rs`. Bounded cursor reads and actual
+OS close have O0/O3 backend witnesses. Both modules are currently test-only; no
+source File API is published. Next integrate handle/error identities, registry
+signatures and emission, then source cleanup/capability/editor checks and matched
+benchmark support. See `resources-bytes-plan.md` for the close policy and platform
+evidence. Do not replace explicit close with File drop or implicit sync.
+
 ## Working environment
 
 One agent in this tree. `CARGO_INCREMENTAL=0`,

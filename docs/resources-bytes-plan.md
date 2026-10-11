@@ -643,3 +643,33 @@ Apple's [close reference](https://developer.apple.com/library/archive/documentat
 documents an interrupted-call error; platform ownership behavior must be established
 before choosing a retry policy. Do not implement fallible close by merely dropping
 a Rust File or silently substituting sync_all.
+
+### Concrete read-only file backend
+
+The private `stdlib/fs.rs` backend opens existing paths read-only, reads at most a
+requested byte count from the current cursor and consumes its resource on close.
+Read lengths are bounded to 0 through 67,108,864 bytes per call. Validation and
+fallible buffer reservation precede I/O; zero length performs no I/O. Short reads
+and empty EOF results succeed. Interrupted reads retry; other read errors retain
+the handle for later close. This is a bounded read operation, not read-to-end.
+
+Errors carry operation, stable category, OS message and optional raw OS code.
+Explicit close transfers the Rust File descriptor and invokes native close once;
+failure does not restore ownership. It does not flush a user-space buffer or sync
+file contents. Fallback uses the same release path and discards reported errors.
+
+Platform analysis supports that policy on macOS and Linux. Apple's current
+[XNU descriptor implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_descrip.c)
+removes the descriptor before returning the file backend's close result.
+The [Linux close manual](https://man7.org/linux/man-pages/man2/close.2.html)
+likewise explains early descriptor release and the danger of retrying close.
+This is a platform-specific policy, not a claim about every POSIX implementation.
+Native execution in this checkpoint is macOS-only; Linux execution remains unverified.
+
+Isolated temporary-file tests cover cursor advancement, limits, NUL/missing paths,
+directory read errors, success/EOF and explicit/fallback close. O0/O3 subprocesses
+observe closed descriptors without attempting to close them again. An injected
+post-release Interrupted error proves a single close attempt and a usable later
+file; it does not claim to reproduce a hardware close failure. Test directories are
+removed. Source exports, registry/ABI integration, editor documentation and matched
+benchmark support remain the next gate 190 work. The backend is still test-only.

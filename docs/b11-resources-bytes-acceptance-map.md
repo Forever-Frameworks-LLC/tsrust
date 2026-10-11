@@ -1000,3 +1000,22 @@ Whole-project formatting changes no files or fingerprints. The token/idempotence
 corpus and formatted recursive-mutation native fixture pass. Six logs were imported
 and read back exactly before removal; SQLite integrity passes. Two completed test
 executables were pruned; current consumers were retained.
+
+### Gate 190 concrete file backend
+
+The private file backend implements read-only open, bounded cursor reads and actual
+consuming OS close through the common resource owner. Three file unit tests pass.
+The three native resource integration tests include the complete private runtime
+matrix at O0/O3, native reuse/capability rejection and isolated real-descriptor
+release observation. Missing/NUL paths, directory read failures, invalid lengths,
+zero/short reads and EOF are covered. A post-release injected Interrupted error
+proves close is not retried. Native execution is verified on macOS only.
+
+Exact red/green/native evidence uses `tsrust-file-backend-*` in SQLite. The modules
+remain test-only pending source identity/ABI integration, cleanup witnesses, editor
+catalog and benchmark support. Gate 190, S07 and measurements remain pending.
+
+Whole-project formatting is unchanged. Token preservation/idempotence and formatted
+native execution pass. Six logs were imported and verified byte for byte before
+removal; SQLite integrity passes. Two completed test executables were pruned while
+retaining current consumers.

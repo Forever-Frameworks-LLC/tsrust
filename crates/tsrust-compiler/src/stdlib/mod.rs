@@ -5,6 +5,8 @@ pub(crate) mod os;
 pub(crate) mod testing;
 #[cfg(test)]
 mod resource;
+#[cfg(test)]
+mod fs;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module { "std:testing" => Some(testing::SOURCE), _ => None }
 }
