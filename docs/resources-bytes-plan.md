@@ -689,3 +689,20 @@ the Err arm, inspection and comparison. Editor help and import completion match.
 This is a focused S09 file increment within gate 190, not synchronous-host family
 acceptance. Generated cleanup instrumentation, remaining editor diagnostics and
 matched benchmark readiness are the next work; S07 remains unmeasured.
+
+### Generated source resource cleanup
+
+`native-files/cleanup.tsr` now has a generated-native instrumented witness at O0/O3.
+Eighteen actual file owners release exactly once per run, in the expected lexical
+order. Eight repeated runs per optimization level cover normal scope exit, early
+return, replacement, Result failure, unused owning closures, a throwing owning
+callback, whole and partial-record returns through finally on both branches,
+explicit close and a post-release injected close error. The error arm opens a
+separate witness file, proving source Result dispatch as well as backend failure.
+
+Instrumentation is added only to emitted test code and tracks each live descriptor;
+no test resource API is exported. Real file open/close remain in the path. The earlier
+isolated descriptor witness independently checks OS release. Four editor controls
+verify use/double-close, error-arm use and inspection diagnostics at the source span.
+No compiler cleanup repair was needed. Matched file benchmark support and the final
+gate 190 scope audit are next, followed by S07 full regressions and measurement.

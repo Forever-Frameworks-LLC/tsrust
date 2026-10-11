@@ -13,7 +13,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
-| Useful synchronous file proof and private instrumented resource backend | Public read/close slice and private backend have focused checks; generated cleanup and benchmark acceptance pending | resources-bytes-plan.md |
+| Useful synchronous file proof and private instrumented resource backend | Public read/close, private backend and generated cleanup have focused checks; benchmark readiness and gate review pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
 
 All current byte workloads have matching sources, independent oracles, source hashes,
@@ -1051,3 +1051,25 @@ formatted fixture executes at O3 with the current debug compiler. Fifteen logs w
 imported and read back exactly before removal; SQLite integrity passes. Five
 completed test executables were pruned (166,910,384 bytes). Installed consumers
 remain `4367f4cc`; scratch release has not been refreshed for this API.
+
+### Gate 190 generated cleanup and editor diagnostics
+
+The emitted `native-files/cleanup.tsr` witness proves 18 real file owners release
+exactly once in lexical order, repeated eight times at O0 and O3 (288 releases).
+It covers normal/early exits, replacement, Result failure, unused owning closures,
+throwing owning callbacks, whole and partial returns through finally on both
+branches, explicit close and a post-release injected Interrupted close error. The
+source error arm opens a separate file, proving Result dispatch. A live-descriptor
+map rejects duplicate release or leakage; event order preserves cleanup timing.
+The earlier standalone descriptor check separately proves actual OS release.
+
+Four editor controls retain precise source ranges for double close, use after
+close, use in the close Err arm and opaque inspection. The focused editor test
+passes. No compiler repair was needed for these source cleanup cases. Exact logs
+use `tsrust-file-cleanup-*` in SQLite. Matched file benchmark readiness and final
+gate 190 review remain before S07 family regressions and timing.
+
+Whole-project formatting changed only the new fixture. Token/idempotence corpus
+and formatted native execution pass. Seven logs were imported, read back exactly
+and removed; SQLite integrity passes. Three completed test executables were pruned,
+retaining current consumers. No full regression or measurement ran.

@@ -1,0 +1,131 @@
+import { File, open, read, close } from "std:fs";
+import { strictEqual } from "std:testing";
+
+function make(path: ReadOnly<string>): File {
+  match (open(path)) {
+    Ok(file) => {
+      return file;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function normal(): void {
+  const file = make("normal.bin");
+  read(file, 0);
+}
+
+function early(): int {
+  const file = make("early.bin");
+  match (read(file, 0)) {
+    Ok(_) => {
+      return 1;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function replace(): void {
+  let file = make("replace-old.bin");
+  file = make("replace-new.bin");
+  read(file, 0);
+}
+
+function failed(): Result<int, string> {
+  const file = make("result.bin");
+  read(file, 0);
+  return Err("expected");
+}
+
+function unused(): void {
+  const file = make("unused.bin");
+  const action = (): void => {
+    close(file);
+  };
+}
+
+function callbackFailure(): void {
+  const file = make("capture.bin");
+  const action = (): void => {
+    const local = make("callback-local.bin");
+    const owned = file;
+    read(owned, 0);
+    read(local, 0);
+    throw "expected";
+  };
+  try {
+    action();
+  } catch (error) {
+    strictEqual(error, "expected");
+  }
+}
+
+function returnFinally(flag: boolean): File {
+  const file = make("return.bin");
+  try {
+    if (flag) {
+      return file;
+    }
+  } finally {
+    const local = make("finally.bin");
+    read(local, 0);
+  }
+
+  return file;
+}
+
+type Pair = {
+  first: File;
+  second: File;
+};
+
+function partialFinally(flag: boolean): File {
+  const pair: Pair = {
+    first: make("partial-first.bin"), second: make("partial-second.bin")
+  };
+  try {
+    if (flag) {
+      return pair.first;
+    }
+  } finally {
+    read(pair.second, 0);
+  }
+
+  return pair.first;
+}
+
+function main() {
+  normal();
+  strictEqual(early(), 1);
+  replace();
+  match (failed()) {
+    Ok(_) => {
+      throw "expected failure";
+    },
+    Err(error) => {
+      strictEqual(error, "expected");
+    }
+  }
+
+  unused();
+  callbackFailure();
+  close(returnFinally(true));
+  close(returnFinally(false));
+  close(partialFinally(true));
+  close(partialFinally(false));
+  const file = make("fail-close.bin");
+  match (close(file)) {
+    Ok(_) => {
+    },
+    Err(error) => {
+      strictEqual(error.operation, "close");
+      strictEqual(error.code, "interrupted");
+      const proof = make("close-error.bin");
+      read(proof, 0);
+    }
+  }
+}

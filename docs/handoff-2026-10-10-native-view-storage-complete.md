@@ -231,7 +231,10 @@ backend in `stdlib/resource.rs` and `stdlib/fs.rs`. Bounded cursor reads and act
 OS close have O0/O3 backend witnesses. The generated runtime now uses both modules. `std:fs` exports
 File, FsError, open, read and consuming close, with executable catalog examples,
 source capability/transfer diagnostics and editor hover/signature/import help.
-Next finish generated source cleanup witnesses and matched benchmark support. See `resources-bytes-plan.md` for the close policy and platform
+Generated source cleanup now proves exact release and lexical order for eighteen
+owners per run at O0/O3, including captured and partial-record owners and close
+failure. Four editor ownership controls preserve source ranges. Next finish matched
+benchmark support and gate 190 scope review. See `resources-bytes-plan.md` for the close policy and platform
 evidence. Do not replace explicit close with File drop or implicit sync.
 
 ## Working environment

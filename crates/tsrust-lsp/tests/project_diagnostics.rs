@@ -146,6 +146,29 @@ fn opaque_native_capability_errors_keep_the_argument_range() {
 }
 
 #[test]
+fn file_close_diagnostics_keep_source_ranges_and_consumed_state() {
+    for (body, code) in [
+        ("close(file);read(file,1);", "transferred"),
+        ("close(file);close(file);", "transferred"),
+        ("match(close(file)){Ok(_)=>{},Err(error)=>{read(file,1);}}", "transferred"),
+        ("console.log(file);", "native-capability"),
+    ] {
+        let source = tsrust_compiler::format(&format!("import {{open,read,close}} from 'std:fs';function main(){{match(open('input.bin')){{Ok(file)=>{{{body}}},Err(error)=>{{}}}}}}")).unwrap();
+        let mut workspace = Workspace::default();
+        workspace.open(id("main"), 1, source.clone());
+        let snapshot = workspace.snapshot();
+        let error = snapshot.check(&id("main")).err().unwrap();
+        assert_eq!(error.code, code);
+        let start = source.rfind("file").unwrap();
+        assert_eq!(error.location.span, Span::new(start, start + 4));
+        let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+        let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+        assert_eq!(diagnostic["code"], code);
+        assert!(!diagnostic["message"].as_str().unwrap().contains("__tsrust"));
+    }
+}
+
+#[test]
 fn native_byte_write_type_errors_keep_the_value_range() {
     let source = tsrust_compiler::format("import {Bytes,set} from 'std:bytes';function change(bytes:Bytes){set(bytes,0,'x');}function main(){}").unwrap();
     let mut workspace = Workspace::default();
