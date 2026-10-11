@@ -59,7 +59,7 @@ impl ProjectIndex {
                 };
                 let dependency = &graph.modules[target];
                 let foreign = &declarations[target];
-                index.import_export_names(import.names, foreign, dependency.exports.keys());
+                index.import_export_names(import.names, foreign, dependency.exports.keys().map(|name|(name.as_str(),dependency.exported_local(name))));
                 let Ok(uri) = file_uri(target) else {
                     continue;
                 };
@@ -76,7 +76,7 @@ impl ProjectIndex {
                         for index in [&mut index, &mut declaration] {
                             index.import_declaration(
                                 foreign,
-                                &binding.exported,
+                                dependency.exported_local(&binding.exported),
                                 &binding.local,
                                 binding.span,
                                 uri.as_str(),

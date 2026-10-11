@@ -1893,3 +1893,19 @@ fn buffered_file_help_documents_transfer_capacity_and_retry() {
  let help=ask(&index,&entry,"writer, bytes","textDocument/signatureHelp");assert!(help.to_string().contains("BufferedWriter"),"{help}");
  let hover=ask(&index,&entry,"flush(writer","textDocument/hover");assert!(hover.to_string().contains("unwritten suffix"),"{hover}");
 }
+
+#[test]
+fn default_function_imports_keep_alias_help_definitions_and_completion() {
+ for dependency in ["/** Adds one. */ export default function add(value:int):int{return value+1;}","/** Adds one. */ export default function(value:int):int{return value+1;}","/** Adds one. */ export function add(value:int):int{return value+1;} export default add;"] {
+  let entry="import hello from './dep.tsr';function main(){hello(3);}";
+  let uri="file:///tsrust-intelligence/main.tsr";let dep="file:///tsrust-intelligence/dep.tsr";
+  let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());workspace.open(source_id(dep).unwrap(),1,dependency.into());
+  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+  let hover=ask(&index,entry,"hello(3)","textDocument/hover");assert!(hover.to_string().contains("hello")&&hover.to_string().contains("Adds one"),"{hover}");assert!(!hover.to_string().contains("__d0"),"{hover}");
+  let definition=ask(&index,entry,"hello(3)","textDocument/definition");assert_eq!(definition["uri"],dep,"{definition}");
+  let help=ask(&index,entry,"3)","textDocument/signatureHelp");assert!(help.to_string().contains("hello"),"{help}");
+  let importing="import { default as hello } from './dep.tsr';function main(){}";
+  workspace.open(source_id(uri).unwrap(),2,importing.into());let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
+  let completion=ask(&ProjectIndex::new(&graph),importing,"default as","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="default"),"{completion}");
+ }
+}

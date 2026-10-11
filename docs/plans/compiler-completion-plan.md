@@ -54,7 +54,7 @@ Use explicit Git paths. Never use git add -A crates, git commit -a, reset, stash
 
 Keep existing ownership rules. Local captures borrow; escaped owned callables transfer their captured owners. ReadOnly, Mutable and Once contracts describe callable use. Do not introduce shared JavaScript capture cells, implicit clone, a fourth callable variant or a new ownership model without an owner decision.
 
-Optional omitted record fields are undefined. Interfaces and extends form separate nominal record types; no implicit structural subtyping. String indexing uses Unicode character positions and out-of-range errors consistently with arrays. Explicit rest/object spread may copy; ordinary assignment does not imply clone. Preserve selected-entry main behavior across modules. Named imports/exports and aliases are an accepted minimum module direction; default import/export policy must be reconciled before expanding it.
+Optional omitted record fields are undefined. Interfaces and extends form separate nominal record types; no implicit structural subtyping. String indexing uses Unicode character positions and out-of-range errors consistently with arrays. Explicit rest/object spread may copy; ordinary assignment does not imply clone. Preserve selected-entry main behavior across modules. Named imports/exports and aliases are supported. Default function declarations (named or anonymous), local-function default exports, default imports and mixed default/named imports are approved and implemented. Arbitrary expression defaults and re-export statements remain outside this batch. See ../guides/modules.md.
 
 The standard-library direction is bundled native modules, Rust package backends, explicit async/await with Tokio and native threads. No custom goroutine scheduler. Node console parity is the approved console reference. Hover documentation explains observable behavior and examples, not runtime reference versions or compiler provenance.
 
@@ -254,3 +254,19 @@ literal discriminants, narrowing and tagged storage together with capture owners
 and failure cleanup. Include typed validation success/error shapes suitable for the
 planned schema validation library. B5 can close after its agreed aggregate forms
 pass complete compiler/editor regressions and matched performance review.
+
+## Default function exports
+
+The approved module extension supports `export default localFunction`, named and
+anonymous default function declarations, `import local from`, mixed default/named
+imports, and `{ default as local }`. Named and default exports can target the same
+function. Default imports resolve directly to that declaration, preserving ownership
+and entrypoint behavior. Arbitrary expression defaults and re-export statements
+remain unsupported; this is documented in `docs/guides/modules.md`.
+
+Acceptance evidence is retained in SQLite as `tsrust-default-exports-*`: formatted
+native execution, ownership and malformed-export diagnostics, module regressions,
+and hover/signature/completion/definition checks. The module regression's import
+completion-range failure is retained alongside its focused repair. This change adds
+no runtime operation or benchmark denominator: imports alias an existing linked
+function, without a forwarding wrapper or allocation. No new timing is claimed.

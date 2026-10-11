@@ -2833,12 +2833,12 @@ impl SourceIndex {
         &mut self,
         names: Span,
         dependency: &SourceIndex,
-        exports: impl Iterator<Item = &'a String>,
+        exports: impl Iterator<Item = (&'a str, &'a str)>,
     ) {
         let items = exports
-            .filter_map(|exported| {
+            .filter_map(|(exported,local)| {
                 let symbol = dependency.symbols.iter().find(|s| {
-                    &s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23 | 26)
+                    s.name == local && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 11 | 12 | 23 | 26)
                 })?;
                 let kind = match symbol.kind {
                     12 => 3,
@@ -2846,7 +2846,7 @@ impl SourceIndex {
                     11 => 8,
                     _ => 22,
                 };
-                Some(json!({"label":symbol.name,"kind":kind,"detail":symbol.signature,"documentation":{"kind":"markdown","value":symbol.docs}}))
+                Some(json!({"label":exported,"kind":kind,"detail":symbol.signature.replacen(local,exported,1),"documentation":{"kind":"markdown","value":symbol.docs}}))
             })
             .collect();
         self.import_exports.push((names, items));

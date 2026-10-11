@@ -279,7 +279,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         for import in &source.imports {
             let Some(target) = import.target.as_ref().and_then(|target| globals.get(target)) else { continue };
             for binding in &import.bindings {
-                if let Some(linked) = target.get(&binding.exported) {
+                if let Some(linked) = target.get(graph.modules[import.target.as_ref().unwrap()].exported_local(&binding.exported)) {
                     visible.insert(binding.local.clone(), linked.clone());
                 }
             }
@@ -347,7 +347,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                             }
                         }
                     } else {
-                        globals[import.target.as_ref().expect("loaded target")][&binding.exported]
+                        globals[import.target.as_ref().expect("loaded target")][graph.modules[import.target.as_ref().unwrap()].exported_local(&binding.exported)]
                             .clone()
                     },
                 );
@@ -911,8 +911,8 @@ fn bundled_containment_projection_links_specializes_and_executes() {
     let library="type Probe<T>={contains:Function<void,[expected:ReadOnly<ContainmentValue<T>>]>;};function make<T>(actual:T):Probe<T>{return {contains:(expected:int):void=>{console.log(expected);}};}function exercise(){const probe=make([1,2]);probe.contains(7);}";
     let main="function main(){exercise();}";
     let graph=ProjectGraph {entry:entry.clone(),order:vec![standard.clone(),entry.clone()],modules:BTreeMap::from([
-        (standard.clone(),ModuleSource{source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())])}),
-        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),names:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new()})
+        (standard.clone(),ModuleSource{source:SourceFile{id:standard.clone(),text:library.into()},declaration_source:library.into(),imports:vec![],exports:BTreeMap::from([("exercise".into(),Span::default())]),default_export:None}),
+        (entry.clone(),ModuleSource{source:SourceFile{id:entry,text:main.into()},declaration_source:main.into(),imports:vec![ModuleImport{path:"std:testing".into(),span:Span::default(),names:Span::default(),bindings:vec![ImportBinding{exported:"exercise".into(),local:"exercise".into(),span:Span::default()}],target:Some(standard),native:None}],exports:BTreeMap::new(),default_export:None})
     ])};
     let checked=check_graph(graph).unwrap();
     crate::callable_dispatch::tests::execute(&checked.emit_rust(),"7\n");

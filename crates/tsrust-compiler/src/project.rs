@@ -134,7 +134,7 @@ pub struct ImportBinding {
 pub struct ModuleImport {
     pub path: String,
     pub span: Span,
-    /// The text between the braces of the import, where names are written.
+    /// The import binding range, including default and named bindings.
     pub names: Span,
     pub bindings: Vec<ImportBinding>,
     pub target: Option<SourceId>,
@@ -146,8 +146,14 @@ pub struct ModuleSource {
     pub source: SourceFile,
     pub imports: Vec<ModuleImport>,
     pub exports: BTreeMap<String, Span>,
+    pub default_export: Option<syntax::Token>,
     /// Import/export markers are replaced with spaces; byte coordinates are unchanged.
     pub declaration_source: String,
+}
+impl ModuleSource {
+    pub fn exported_local<'a>(&'a self, name: &'a str) -> &'a str {
+        if name == "default" { self.default_export.as_ref().map(|token|token.text.as_str()).unwrap_or(name) } else { name }
+    }
 }
 #[derive(Clone, Debug)]
 pub struct ProjectGraph {
@@ -197,6 +203,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
     let mut bytes = source.text.as_bytes().to_vec();
     let mut imports = vec![];
     let mut exports = BTreeMap::new();
+    let mut default_export = None;
     let mut depth = 0usize;
     let mut i = 0;
     'scan: while i < tokens.len() && tokens[i].kind != TokenKind::End {
@@ -233,16 +240,19 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                     tokens[index.min(tokens.len() - 1)].span,
                 )
             };
-            if tokens[i].kind != TokenKind::Symbol || tokens[i].text != "{" {
-                incomplete!(fail(
-                    i,
-                    "Expected named import: import { name } from './file.tsr';",
-                ));
-            }
-            i += 1;
-            let names_start = tokens[i - 1].span.end;
             let mut bindings = vec![];
-            let names_end = loop {
+            let mut names_start = tokens[i].span.start;
+            let has_default = tokens[i].kind == TokenKind::Name;
+            if has_default {
+                bindings.push(ImportBinding { exported: "default".into(), local: tokens[i].text.clone(), span: tokens[i].span });
+                i += 1;
+                if tokens[i].text == "," { i += 1; if tokens[i].text != "{" { incomplete!(fail(i,"Expected named bindings after the default import comma.")); } }
+            }
+            let names_end = if tokens[i].kind == TokenKind::Symbol && tokens[i].text == "{" {
+            if !has_default {names_start=tokens[i].span.end;}
+            i += 1;
+            loop {
+
                 if !declarations && tokens[i].kind == TokenKind::Symbol && tokens[i].text == "}" {
                     // Header loading accepts braces whose names are not written yet.
                     i += 1;
@@ -280,6 +290,9 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                     i += 1;
                     break tokens[i - 1].span.start;
                 }
+            }
+            } else if has_default { tokens[i-1].span.end } else {
+                incomplete!(fail(i,"Expected a default or named import."));
             };
             if tokens[i].kind != TokenKind::Name || tokens[i].text != "from" {
                 incomplete!(fail(i, "Expected 'from' after import bindings."));
@@ -321,6 +334,33 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             });
         } else if (depth == 0 || unfinished_body) && token.kind == TokenKind::Name && token.text == "export" {
             depth = 0;
+            if tokens.get(i+1).is_some_and(|next|next.text=="default") {
+                let marker=tokens[i+1].span;
+                if exports.contains_key("default") {return Err(error(id,"module-duplicate","A module can have only one default export.",marker));}
+                let next=&tokens[i+2];
+                let name;
+                if next.text=="function" {
+                    if tokens[i+3].kind==TokenKind::Name {
+                        name=tokens[i+3].clone();
+                        for byte in &mut bytes[token.span.start..next.span.start] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
+                    } else if matches!(tokens[i+3].text.as_str(),"("|"<") {
+                        let mut serial=0;
+                        let local=loop {let candidate=format!("__d{serial}");if !tokens.iter().any(|token|token.text==candidate){break candidate;}serial+=1;};
+                        let replacement=format!("function {local}");
+                        let start=token.span.start;let end=next.span.end;
+                        // Reuse the removed export prefix without shifting parameter/body spans.
+                        bytes[start..end].fill(b' ');bytes[start..start+replacement.len()].copy_from_slice(replacement.as_bytes());
+                        name=syntax::Token {kind:TokenKind::Name,text:local,span:Span::new(start+9,start+replacement.len())};
+                    } else {return Err(error(id,"module-export","Expected a default function declaration.",next.span));}
+                    i+=2;
+                } else if next.kind==TokenKind::Name && tokens.get(i+3).is_some_and(|end|end.text==";") {
+                    name=next.clone();
+                    for byte in &mut bytes[token.span.start..tokens[i+3].span.end] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
+                    i+=3;
+                } else {return Err(error(id,"module-export","Default exports require a function declaration or a local function name.",next.span));}
+                exports.insert("default".into(),name.span);default_export=Some(name);
+                i+=1;continue;
+            }
             if tokens[i + 1].kind != TokenKind::Name
                 || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface")
                 || tokens[i + 2].kind != TokenKind::Name
@@ -328,7 +368,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                 return Err(error(
                     id,
                     "module-export",
-                    "Only export function, export type, export interface, and export enum declarations are supported.",
+                    "Supported exports are function, type, interface, enum declarations and default functions.",
                     token.span,
                 ));
             }
@@ -358,6 +398,11 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
     let declared = if declarations {
         let parsed = if is_test_entry(&id.0) { syntax::parse_test_entry(&declaration_source) } else { syntax::parse(&declaration_source) };
         let program = parsed.map_err(|e| source_error(id, e))?;
+        if let Some(default)=&default_export {
+            if !program.functions.iter().any(|function|function.name.text==default.text) {
+                return Err(error(id,"module-export","Default export must refer to a local function declaration.",default.span));
+            }
+        }
         program
             .records
             .iter()
@@ -428,6 +473,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         source,
         imports,
         exports,
+        default_export,
         declaration_source,
     })
 }
