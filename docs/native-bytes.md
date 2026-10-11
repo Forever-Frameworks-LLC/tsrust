@@ -203,7 +203,12 @@ capture views and return a view received as an argument; captured and returned
 owners retain their own provenance. Stored callbacks and parameter replacement
 remain subject to the same owner protections.
 
-Records can contain views and recurse through arrays or nullable record links.
+An explicit readonly `view` of a `ByteView` retains the original byte owner lifetime.
+It can outlive the intermediate view or its Map while the byte owner remains live.
+Reborrowing `ByteViewMut` retains a borrow of that exclusive view storage; a view
+borrowed from a local Map of exclusive views cannot escape that Map.
+
+Records can contain views and recurse through arrays, Map values or nullable record links.
 Each present nullable recursive link uses a uniquely owned heap allocation; this
 also applies to nullable links between mutually recursive record types. Layouts
 without a terminating indirection are rejected. Nonrecursive layouts are unchanged.

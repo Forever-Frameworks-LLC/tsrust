@@ -167,3 +167,20 @@ test('Mutable recursive parameters retain replacement captures and the empty lea
         assert.equal(expectedChecksum(row.id,n,seed,'bytes'),expected.checksum);
     }
 });
+
+test('Map view transport has matched sources and an independent arithmetic oracle', () => {
+    const row=manifest.workloads.find(row=>row.id==='native_byte_views_maps');
+    assert.ok(row);
+    assert.equal(row.measured,false);
+    assert.equal(row.measurementStatus,'pending-collections-family');
+    assert.equal(reportCategory(row.id),'bytes');
+    for (const [kind,file] of [['native',row.source],['typescript',row.counterpart]]) {
+        const source=read('./'+file);
+        assertNativeByteViewsSource(source,row,kind);
+        const changed=replaceCodeSnippet(source,'key < 8','key < 7');
+        const field=kind==='native'?'sourceSha256':'counterpartSha256';
+        assert.throws(()=>assertNativeByteViewsSource(changed,{...row,[field]:createHash('sha256').update(changed).digest('hex')},kind));
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(row.id,2,255,'bytes'),[[8,28,2040,255,2],[8,28,0,0,2]]);
+    for(const n of [0,1,37,2048]) assert.deepEqual(expectedExactResult(row.id,n,7,'bytes'),expectedNativeByteViewsObservation(row.id,n,7,'bytes'));
+});

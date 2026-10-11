@@ -56,3 +56,49 @@ fn map_view_transport_rejects_short_owner_escape_and_mutated_parameter_conflicts
         assert!(stderr.contains("native-view"), "{stderr}");
     }
 }
+
+#[test]
+fn projected_and_recursive_map_views_execute_with_real_owner_lifetimes() {
+    for fixture in [include_str!("fixtures/collections/projected-views.tsr"), include_str!("fixtures/collections/recursive-map-views.tsr")] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(fixture));
+        support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    }
+}
+
+#[test]
+fn projected_views_and_recursive_map_children_cannot_escape_short_owners() {
+    let fixture = include_str!("fixtures/collections/projected-views.tsr");
+    let helpers = fixture.split("function main()").next().unwrap();
+    let source = format!("{helpers}function leak():ByteView{{const owner=bytes('short');return expose(owner);}}function main(){{}}");
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(&source));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("native-view-escape"));
+    let fixture = include_str!("fixtures/collections/recursive-map-views.tsr");
+    let helpers = fixture.split("function main()").next().unwrap();
+    let source = format!("{helpers}function leak(owner:ReadOnly<Bytes>):Chunk{{const short=bytes('short');const root=leaf(window(owner));root.children.set(1,leaf(window(short)));return root;}}function main(){{}}");
+    let path = directory.source(&support::format_round_trip(&source));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("native-view-escape"));
+}
+
+#[test]
+fn readonly_reborrow_of_local_exclusive_map_view_cannot_escape_its_storage() {
+    let source = r#"import {Bytes,ByteView,ByteViewMut,view,viewMut} from 'std:bytes';
+function leak(owner:Mutable<Bytes>):ByteView {
+ const values=new Map<int,ByteViewMut>();
+ match(viewMut(owner,0,1)){Ok(part)=>{values.set(1,part);},Err(error)=>{throw error.message;}}
+ const item=values.get(1);
+ if(item!==undefined){match(view(item,0,1)){Ok(part)=>{return part;},Err(error)=>{throw error.message;}}}
+ throw 'missing';
+}
+function main() {}"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("native-view-escape"));
+}

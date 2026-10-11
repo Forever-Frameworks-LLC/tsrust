@@ -27,6 +27,10 @@ impl Emitter<'_> {
                 }).collect::<Vec<_>>();
                 format!("Record{base}{}", lifetime_parameters(&arguments))
             }
+            Type::Map(id) if self.native_views.contains(ty) => {
+                let payload=self.recursive_view_native_type(self.program.records[id].map_definition.as_ref().unwrap().value,lifetime);
+                format!("Map{id}<{payload}>")
+            }
             Type::Array(element) => {
                 let payload = self.recursive_view_native_type(element.ty(), lifetime);
                 match element {

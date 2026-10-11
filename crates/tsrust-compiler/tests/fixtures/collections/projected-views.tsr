@@ -1,0 +1,72 @@
+import { Bytes, ByteView, fromUtf8, view, toUtf8, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function bytes(text: string): Bytes {
+  match (fromUtf8(text)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, length(owner))) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function text(value: ByteView): string {
+  match (toUtf8(value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function fill(values: Mutable<Map<int, ByteView>>, owner: ReadOnly<Bytes>) {
+  values.set(1, window(owner));
+}
+
+function collect(owner: ReadOnly<Bytes>): Map<int, ByteView> {
+  const result = new Map<int, ByteView>();
+  fill(result, owner);
+  return result;
+}
+
+function selected(values: ReadOnly<Map<int, ByteView>>): ByteView {
+  const item = values.get(1);
+  if (item !== undefined) {
+    match (view(item, 0, length(item))) {
+      Ok(result) => {
+        return result;
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+  }
+
+  throw "missing";
+}
+
+function expose(owner: ReadOnly<Bytes>): ByteView {
+  const values = collect(owner);
+  return selected(values);
+}
+
+function main() {
+  const owner = bytes("projection");
+  const part = expose(owner);
+  strictEqual(text(part), "projection");
+}

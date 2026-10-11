@@ -419,7 +419,10 @@ impl Analyzer {
             loan.path.clear();
             loan.guards.clear();
         }
-        for place in places {
+        // A shared slice view can create another view of its original owner.
+        // Owned buffers and exclusive views still require their storage borrow.
+        let carried_readonly = !result.is_empty() && source.ty.is_some_and(|ty| native_view_recursive::readonly_source(context, ty));
+        for place in places.into_iter().filter(|_| !carried_readonly) {
             result.push(Loan { whole: false,
                 root: place.root,
                 owner_fields: place.fields,

@@ -28,6 +28,10 @@ Recursive ownership cleanup and deep cloning use iterative traversal.
 
 ## Records containing byte views
 
+Map value fields can form the same recursive lifetime component as array and nullable
+record fields. The [recursive Map example](../crates/tsrust-compiler/tests/fixtures/collections/recursive-map-views.tsr)
+keeps views from independent owners alive through parent and child records.
+
 A recursive record can contain `ByteView` or `ByteViewMut`. Every view throughout
 that recursive component shares one lifetime. The structure must stay within the
 lifetimes of all contributing byte owners. Removing a child does not grant early

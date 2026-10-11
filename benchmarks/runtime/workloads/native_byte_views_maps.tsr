@@ -1,0 +1,86 @@
+import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+
+function byteWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(part) => {
+      return part;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function first(part: ReadOnly<ByteView>): int {
+  match (at(part, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function fill(values: Mutable<Map<int, ByteView>>, owner: ReadOnly<Bytes>) {
+  let key = 0;
+  while (key < 8) {
+    values.set(key, byteWindow(owner));
+    key++;
+  }
+}
+
+function collect(owner: ReadOnly<Bytes>): Map<int, ByteView> {
+  const values = new Map<int, ByteView>();
+  fill(values, owner);
+  return values;
+}
+
+function exposed(owner: ReadOnly<Bytes>): ByteView {
+  const values = collect(owner);
+  const selected = values.get(0);
+  if (selected !== undefined) {
+    match (view(selected, 0, 2)) {
+      Ok(part) => {
+        return part;
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+  }
+
+  throw "missing";
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    match (fromArray([byte, 255])) {
+      Ok(owner) => {
+        const values = collect(owner);
+        let keys = 0;
+        let sum = 0;
+        for (const [key, part] of values) {
+          keys += key;
+          sum += first(part);
+        }
+
+        const part = exposed(owner);
+        output.push([values.size, keys, sum, first(part), length(part)]);
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

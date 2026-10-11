@@ -26,6 +26,16 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
             if mutable {output.push_str(&format!("impl TsrWritableBytes for Record{view}<'_> {{ fn writable_bytes(&mut self) -> &mut [u8] {{ self.bytes }} }}\n"));}
         }
     }
+    if bindings.iter().any(|binding| binding.name == "view") {
+        output.push_str("trait TsrSharedViewSource<'a> { fn view_bytes(self) -> &'a [u8]; }\n");
+        output.push_str(&format!("impl<'a> TsrSharedViewSource<'a> for &'a Record{bytes} {{ fn view_bytes(self) -> &'a [u8] {{ &self.bytes }} }}\n"));
+        if let Some(view)=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::ByteView)) {
+            output.push_str(&format!("impl<'a> TsrSharedViewSource<'a> for &Record{view}<'a> {{ fn view_bytes(self) -> &'a [u8] {{ self.bytes }} }}\n"));
+        }
+        if let Some(view)=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::ByteViewMut)) {
+            output.push_str(&format!("impl<'a> TsrSharedViewSource<'a> for &'a Record{view}<'_> {{ fn view_bytes(self) -> &'a [u8] {{ self.bytes }} }}\n"));
+        }
+    }
     for binding in bindings {
         match binding.name {
             "view" | "viewMut" => {
@@ -34,9 +44,9 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
                 let mutable=binding.name=="viewMut";
                 let access=if mutable {"mut "} else {""};
                 let operation=if mutable {"view_mut"} else {"view"};
-                let storage=if mutable {"bytes.writable_bytes()"} else {"bytes.readable_bytes()"};
+                let storage=if mutable {"bytes.writable_bytes()"} else {"bytes.view_bytes()"};
                 output.push_str(&result_bridge(program,binding,
-                    &format!("bytes: &'a {access}B, start: i64, end: i64"),
+                    &if mutable {format!("bytes: &'a {access}B, start: i64, end: i64")} else {"bytes: B, start: i64, end: i64".into()},
                     &format!("tsrust_native_bytes::{operation}({storage}, start, end)"),
                     &format!("Record{view} {{ bytes: success }}")));
             }
@@ -64,7 +74,7 @@ fn result_bridge(program: &CheckedProgram, binding: &NativeBinding, parameters: 
     let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
     let fields = if program.records[ok].fields.is_empty() { String::new() } else { format!("field0: {success}") };
     let NativeBackend::Bundled { symbol } = binding.backend;
-    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrReadableBytes>"}} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
+    let lifetime=if binding.returned_borrow.is_some() {if parameters.contains("mut B") {"<'a, B: TsrWritableBytes>"} else {"<'a, B: TsrSharedViewSource<'a>>"}} else if parameters.contains("&mut B") {"<B: TsrWritableBytes>"} else if parameters.contains("&B") {"<B: TsrReadableBytes>"} else {""};
     let result_type=if let Some(contract)=binding.returned_borrow {
         let view=program.records.iter().position(|record|record.native_type==Some(contract.payload)).expect("checked view payload");
         let arguments=members.iter().map(|member|if *member==Type::Record(ok) {format!("Record{ok}<Record{view}<'a>>")} else {format!("Record{err}")}).collect::<Vec<_>>();

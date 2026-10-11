@@ -1,0 +1,62 @@
+import { Bytes, ByteView, fromUtf8, view, toUtf8, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function bytes(text: string): Bytes {
+  match (fromUtf8(text)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function window(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, length(owner))) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function text(value: ByteView): string {
+  match (toUtf8(value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+type Chunk = {
+  data: ByteView;
+  children: Map<int, Chunk>;
+};
+
+function leaf(data: ByteView): Chunk {
+  return {
+    data: data, children: new Map<int, Chunk>()
+  };
+}
+
+function identity(chunk: Chunk, ignored: Chunk): Chunk {
+  return chunk;
+}
+
+function main() {
+  const first = bytes("first");
+  const second = bytes("second");
+  const root = leaf(window(first));
+  root.children.set(1, leaf(window(second)));
+  const restored = identity(root, leaf(window(first)));
+  strictEqual(text(restored.data), "first");
+  for (const [key, child] of restored.children) {
+    strictEqual(text(child.data), "second");
+  }
+}

@@ -38,6 +38,7 @@ impl Index {
                     Type::Record(child) if child < records.len() => edges[id].push(child),
                     Type::Record(_) => incomplete[id] = true,
                     Type::Array(element) => pending.push(element.ty()),
+                    Type::Map(map) => { if let Some(map)=records.get(map).and_then(|record|record.map_definition.as_ref()) { pending.push(map.value); } },
                     Type::Union(union) | Type::BorrowedUnion(union) => pending.extend(members(union)),
                     _ => if let Some(borrow) = leaf(ty) {
                         access[id] = Some(access[id].map_or(borrow, |existing| merge(existing, borrow)));

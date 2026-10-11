@@ -79,6 +79,13 @@ impl Analyzer {
                     };
                     sources.push(source);
                 } else {
+                    if matches!(kind, LifetimeSource::Storage) && matches!(binding.ty, Type::Map(_) | Type::Array(_))
+                        && !binding.capture_reference
+                        && binding.borrowed_place.is_none() && binding.borrowed_element.is_none()
+                    {
+                        return Err(escape(span, binding.declaration_span.unwrap_or(output.creation),
+                            "A native reborrow cannot outlive its local storage."));
+                    }
                     let Some(origins) = &binding.native_view_loans else {
                         return Err(escape(
                             span,

@@ -1,8 +1,15 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_maps','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
+    if (row.id === 'native_byte_views_maps') {
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'Two eight-entry view Maps, borrowed traversal and escaping readonly projection' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Map view denominator');
+        const required=['while(key<8){values.set(key,byteWindow(owner));key++;}', 'fill(values,owner);', 'const selected=values.get(0);', 'const byte=(i+seed)%256;', 'for(const [key,part] of values){keys+=key;sum+=first(part);}', 'const part=exposed(owner);', 'return output;'];
+        required.push(...(kind==='native' ? ['match(fromArray([byte,255]))', 'match(view(selected,0,2))', 'output.push([values.size,keys,sum,first(part),length(part)]);'] : ['const owner=Uint8Array.from([byte,255]);', 'return selected.subarray(0,2);', 'output.push([values.size,keys,sum,first(part),part.length]);']));
+        for (const snippet of required) if (!containsCodeSnippet(source,snippet)) throw Error('Map view scenario: '+snippet);
+        return;
+    }
     if (['native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'].includes(row.id)) {
         const mutation = row.id === 'native_byte_views_parameter_stores';
         if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== (mutation ? 'One 17-node nullable callback chain construction, 16 parameter replacements and consuming traversal' : 'One 17-node nullable callback chain construction and consuming traversal with an empty leaf') || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Nullable callback views denominator');
@@ -31,7 +38,7 @@ export function assertNativeByteViewsSource(source,row,kind) {
         for (const text of required) if (!containsCodeSnippet(source,text)) throw Error('Callback byte views scenario: '+text);
         return;
     }
-    if (['native_byte_views_recursive','native_byte_views_linked'].includes(row.id)) {
+    if (['native_byte_views_maps','native_byte_views_recursive','native_byte_views_linked'].includes(row.id)) {
         const linked = row.id === 'native_byte_views_linked';
         if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== (linked ? 'One 17-node nullable recursive byte-view construction and consuming traversal' : 'One 17-node recursive byte-view construction and consuming traversal') || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Recursive byte views denominator');
         const required = ['const byte = (i + seed) % 256;', 'while (depth < 16)', 'root = { data: byteWindow(owner), children: [root] };', 'while (root.children.length > 0) { sum += first(root); count++; const child = root.children.pop()!; root = child; }', 'sum += first(root);', 'const child = root.children.pop()!;', 'root = child;', 'count++;', 'return output;'];

@@ -47,8 +47,16 @@ views nested in payload records now have focused native and ownership witnesses 
 unselected owner can end before the returned Map is read. Map payloads participate
 in both source provenance and emitted lifetime enumeration.
 
-Still audit escaping projections/reborrowed lookup results, recursive Map payload
-cycles, and precise loan release after deletion/clear before complete S08 acceptance.
+Escaping readonly projections and recursive Map payload cycles now have focused
+positive and negative witnesses. Readonly views forward the original slice lifetime;
+reborrows of exclusive views retain their container borrow and reject local escape.
+The `native_byte_views_maps` workload includes returned Maps, parameter insertion,
+borrowed traversal and a readonly projection that outlives its intermediate Map.
+Its arithmetic oracle and matched Node source are ready for family measurements.
+
+Precise per-key loan release is deferred. The documented conservative scope rule
+preserves ownership guarantees and does not prevent the six required collection
+kinds from proceeding to S08 acceptance.
 The current element-level loan retention is conservative across collection mutation.
 No lifetime erasure or hidden owned copy is permitted to make these cases compile.
 

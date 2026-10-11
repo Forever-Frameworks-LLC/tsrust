@@ -6,11 +6,15 @@ use crate::native_return_borrows::BorrowAccess;
 pub(super) struct Shapes {
     recursive: crate::recursive_view_shapes::Index,
     fields: Vec<Vec<(String, Type)>>,
+    readonly_view: Option<usize>,
+    map_values: Vec<Option<Type>>,
     unions: Vec<crate::unions::UnionType>,
 }
 impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
         Self {
+            map_values: analyzer.program.records.iter().map(|record| record.map_definition.as_ref().map(|map| map.value)).collect(),
+            readonly_view: analyzer.program.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::ByteView)),
             recursive: crate::recursive_view_shapes::Index::with_storage(&analyzer.program.records, &|id| analyzer.unions.members(id), &analyzer.callables.storage),
             fields: analyzer.program.records.iter().map(|record| record.fields.iter()
                 .filter_map(|field| field.ty.map(|ty| (field.name.text.clone(), ty))).collect()).collect(),
@@ -42,6 +46,7 @@ impl Shapes {
                 }
             } else {
                 match ty {
+                    Type::Map(id) if loan.path.get(depth) == Some(&Segment::Element) => { if let Some(Some(value))=self.map_values.get(id) { pending.push((*value, depth+1)); } },
                     Type::Array(element) if loan.path.get(depth) == Some(&Segment::Element) => pending.push((element.ty(), depth + 1)),
                     Type::Union(id) | Type::BorrowedUnion(id) => {
                         if let Some(union) = self.unions.get(id.index()) {
@@ -79,4 +84,8 @@ pub(super) fn normalize(context: &Context, ty: Type, loans: &mut [Loan]) {
     if let Some(shapes) = &context.native_recursive_shapes {
         for loan in loans { shapes.normalize(ty, loan); }
     }
+}
+
+pub(super) fn readonly_source(context: &Context, ty: Type) -> bool {
+    matches!(ty, Type::Record(id) if context.native_recursive_shapes.as_ref().is_some_and(|shapes| shapes.readonly_view == Some(id)))
 }
