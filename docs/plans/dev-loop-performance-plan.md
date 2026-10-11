@@ -463,3 +463,33 @@ A strengthened witness holds both cache locks through compilation, observable
 program output and successful interruption. Original failure and passing evidence
 are stored as `tsrust-dev-cache-contention-*` and `tsrust-dev-both-cache-locks.log`
 in SQLite. These focused checks supplement the completed full regressions.
+
+## Repaired installed checkpoint and performance review
+
+All four CLI consumers are atomically refreshed and hash verified from `5221b1cd`
+(SHA-256 `9e8eda250a9b892ed39ce7e52a7c3dd4b08bc545bb3d4673e173b37b33dbdb5d`).
+Installed scaffold/check/test, `String(7)` execution, private builds with both cache
+locks held, last-good retention after an invalid edit, successful replacement and
+shutdown reaping pass. Records and the exact lifecycle script use
+`tsrust-dev-installed-repairs*`; refresh records use `tsrust-dev-repaired-*`.
+
+The unchanged dev-loop-v1 protocol executes all six samples on this binary, with
+matching original harness/source hashes and output oracles. For 6/130 files,
+median cold starts are 531.14/503.69 ms, warm starts 154.53/123.11 ms, leaf edits
+427.43/484.46 ms, shared edits 445.42/459.72 ms and config edits 276.71/313.83 ms.
+Fresh edits improve over the original 522.89/556.73 and 508.98/537.04 ms baselines.
+Cold starts regress from 368.21/372.52 ms, reflecting separate runtime compilation;
+config and warm latency also remain above some baseline medians. All original
+samples, including outliers, are preserved as `tsrust-dev-final-measured.json`.
+The name identifies this measurement batch, not accepted milestone completion.
+Idle CPU is 0.00 seconds in five three-second samples and 0.01 in the other;
+reported RSS after idle is roughly 12–18 MiB.
+
+Phase inspection shows an avoidable frontend notification delay: the supervisor
+polled its response channel and slept 20 ms even when checking finished sooner.
+Replacing this with a 20 ms receive timeout wakes immediately on completion while
+retaining the same cancellation-check bound. Nine focused lifecycle/project checks pass; a matching
+measurement on the optimized binary is pending. Cache-hit native compilation
+remains zero; backend identity validation and supervisor scheduling still contribute
+to warm/config latency. Cold runtime compilation is retained as an explicit cost,
+not hidden by the fresh-edit improvement.
