@@ -186,9 +186,8 @@ fn validate_inline_layout(
     records: &[Record],
     unions: &crate::unions::UnionArena,
 ) -> Result<(), Diagnostic> {
-    // Publication remains gated until union construction and projection lower
-    // every planned link. The checked-layout walker is shared with its controls.
-    validate_inline_layout_with_indirection(records, unions, &|_, _| false)
+    let links=crate::recursive_links::Index::new(records,|id|unions.members(id));
+    validate_inline_layout_with_indirection(records, unions, &|id,child|links.boxed(id,child))
 }
 
 fn validate_inline_layout_with_indirection(
@@ -221,7 +220,7 @@ fn validate_inline_layout_with_indirection(
                 stack.last_mut().expect("layout frame").1 += 1;
                 match states[child] {
                     0 => { states[child] = 1; stack.push((child, 0)); }
-                    1 => return Err(Diagnostic::new("recursive-layout", "Direct record fields form an infinite layout. Use array indirection to break the cycle.", span).related(records[child].name.span, "The layout returns to this record type.")),
+                    1 => return Err(Diagnostic::new("recursive-layout", "Direct record fields form an infinite layout. Use a nullable link or array indirection to break the cycle.", span).related(records[child].name.span, "The layout returns to this record type.")),
                     _ => (),
                 }
                 continue;
@@ -294,8 +293,7 @@ fn nullable_link_layout_terminates_only_at_planned_indirection() {
     ] {
         let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
         validate_inline_layout_with_indirection(&records,&unions,&|id,child|links.boxed(id,child)).unwrap();
-        // This staging checkpoint must not publish unsupported source emission.
-        assert_eq!(validate_inline_layout(&records,&unions).unwrap_err().code,"recursive-layout");
+        validate_inline_layout(&records,&unions).unwrap();
     }
     let records=[record(&[Type::Record(0),next])];
     let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));

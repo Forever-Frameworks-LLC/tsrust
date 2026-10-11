@@ -1,3 +1,5 @@
+#[path = "nullable_link_emit.rs"]
+mod nullable_link_emit;
 #[path = "native_view_record_parameters.rs"]
 mod native_view_record_parameters;
 #[path = "native_view_family_emit.rs"]
@@ -191,6 +193,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         native_captures,
         native_views,
         native_record_fields,
+        recursive_links:crate::recursive_links::Index::new(&program.records,|id|program.unions[id.index()].members.clone()),
         callback_traits,
         counted_calls,
         program,
@@ -266,6 +269,7 @@ struct Emitter<'a> {
     native_captures: native_capture_storage::Storage,
     native_views: native_view_emit::Shapes,
     native_record_fields: native_view_record_parameters::Index,
+    recursive_links:crate::recursive_links::Index,
     borrowed_capture_alternatives: borrowed_payload_emit::Alternatives,
     callback_traits: bool,
     counted_calls: bool,
@@ -420,7 +424,7 @@ impl Emitter<'_> {
         if let Some(id) = value.union() {
             let payloads = self.program.unions[id.index()].members.iter().copied().filter(|ty| !ty.is_copy()).collect::<Vec<_>>();
             if payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty)) && (payloads.len() == 1 || self.native_views.contains(value)) {
-                let payload = payloads.iter().map(|&ty| self.native_type(ty)).collect::<Vec<_>>().join(", ");
+                let payload = payloads.iter().map(|&ty| {let native=self.native_type(ty);if matches!(value,Type::Union(_)){self.union_stored_type(id,ty,native)}else{native}}).collect::<Vec<_>>().join(", ");
                 return if matches!(value, Type::BorrowedUnion(_)) { format!("ViewUnion{}<'_, {payload}>", id.index()) } else { format!("Union{}<{payload}>", id.index()) };
             }
         }
@@ -677,7 +681,8 @@ impl Emitter<'_> {
             let data_payloads = if !copy && !callable { union.members.iter().copied().filter(|member| !member.is_copy()).collect::<Vec<_>>() } else { Vec::new() };
             let parameter_name = |position: usize| if data_payloads.len() == 1 { "P".to_owned() } else { format!("P{position}") };
             let scoped_data = data_payloads.iter().any(|ty| self.scoped_record_native_parameter(*ty));
-            let data_parameters = data_payloads.iter().enumerate().map(|(position, payload)| if scoped_data {parameter_name(position)} else {format!("{} = {}",parameter_name(position),self.native_type(*payload))}).collect::<Vec<_>>().join(", ");
+            let view_parameters = data_payloads.iter().enumerate().map(|(position, payload)| if scoped_data {parameter_name(position)} else {format!("{} = {}",parameter_name(position),self.native_type(*payload))}).collect::<Vec<_>>().join(", ");
+            let data_parameters = data_payloads.iter().enumerate().map(|(position, payload)| if scoped_data {parameter_name(position)} else {format!("{} = {}",parameter_name(position),self.union_stored_type(id,*payload,self.native_type(*payload)))}).collect::<Vec<_>>().join(", ");
             let data_arguments = (0..data_payloads.len()).map(parameter_name).collect::<Vec<_>>().join(", ");
             let generic_payload = callable || !data_payloads.is_empty();
             let generic = if callable { "<F>".to_owned() } else if generic_payload { format!("<{data_parameters}>") } else { String::new() };
@@ -715,7 +720,7 @@ impl Emitter<'_> {
             if copy {
                 continue;
             }
-            let view_generic = if callable { "<'a,F>".to_owned() } else if generic_payload { format!("<'a,{data_parameters}>") } else { "<'a>".to_owned() };
+            let view_generic = if callable { "<'a,F>".to_owned() } else if generic_payload { format!("<'a,{view_parameters}>") } else { "<'a>".to_owned() };
             let view_type = if callable { format!("ViewUnion{index}<'_,F>") } else if generic_payload { format!("ViewUnion{index}<'_,{data_arguments}>") } else { format!("ViewUnion{index}<'_>") };
             let variants = union
                 .members
@@ -743,7 +748,20 @@ impl Emitter<'_> {
                 output,
                 "{derive}enum ViewUnion{index}{view_generic} {{ {variants} }}\nimpl{impl_generic} Union{index}{type_arguments} {{ fn tsr_view(&self)->{view_type} {{ match self {{ {view} }} }} }}"
             );
-            if scoped_data {
+            if scoped_data && data_payloads.iter().any(|&member|self.boxed_union_member(id,member)) {
+                let mut lifetimes=Vec::new();
+                let logical=data_payloads.iter().enumerate().map(|(position,&payload)| {
+                    let count=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,payload);
+                    let names=(0..count).map(|slot|format!("'link{position}_{slot}")).collect::<Vec<_>>();
+                    let native=self.named_record_environment_type(payload,&names);lifetimes.extend(names);native
+                }).collect::<Vec<_>>();
+                let bounds=logical.iter().enumerate().map(|(position,native)|format!("{}:std::borrow::Borrow<{native}>",parameter_name(position))).collect::<Vec<_>>().join(",");
+                let arms=union.members.iter().enumerate().map(|(variant,member)|{
+                    let payload=if let Some(position)=data_payloads.iter().position(|ty|ty==member){format!("std::borrow::Borrow::<{}>::borrow(payload)",logical[position])}else{"payload".into()};
+                    format!("Union{index}::V{variant}(payload)=>ViewUnion{index}::V{variant}({payload})")
+                }).collect::<Vec<_>>().join(",");
+                let _=writeln!(output,"impl<{data_arguments}> Union{index}<{data_arguments}> {{ fn tsr_data_view{}(&self)->ViewUnion{index}<'_,{}> where {bounds} {{ match self {{{arms}}} }} }}",lifetime_parameters(&lifetimes),logical.join(","));
+            } else if scoped_data {
                 let _ = writeln!(output,"impl<{data_arguments}> Union{index}<{data_arguments}> {{ fn tsr_data_view(&self)->{view_type} {{ self.tsr_view() }} }}");
             } else if !data_payloads.is_empty() {
                 let bounds = data_payloads.iter().enumerate().map(|(position, payload)| format!("{}: std::borrow::Borrow<{}>",parameter_name(position),self.native_type(*payload))).collect::<Vec<_>>().join(", ");
@@ -763,7 +781,7 @@ impl Emitter<'_> {
                 let arguments = if generic_payload { format!("<'a,{data_arguments}>") } else { "<'a>".to_owned() };
                 let owned=union.members.iter().enumerate().map(|(v,member)| {
                     let value=if data_payloads.contains(member) { format!("std::borrow::Borrow::<{}>::borrow(payload)",self.native_type(*member)) } else { "payload".to_owned() };
-                    format!("ViewUnion{index}::V{v}(payload)=>Union{index}::V{v}(Clone::clone({value}))")
+                    format!("ViewUnion{index}::V{v}(payload)=>Union{index}::V{v}({})",self.union_store_payload(id,*member,&format!("Clone::clone({value})")))
                 }).collect::<Vec<_>>().join(", ");
                 let _ = writeln!(output, "impl{generics} ViewUnion{index}{arguments} {{ fn tsr_owned(self)->Union{index} {{ match self {{ {owned} }} }} }}");
             }
@@ -1330,7 +1348,7 @@ impl Emitter<'_> {
             let to_kind = if read_view && !target.copy { "ViewUnion" } else { "Union" };
             let arms = self.program.unions[target.index()].members.iter().enumerate().map(|(to, ty)| {
                 let from = members.iter().position(|member| member == ty).expect("subset narrowing");
-                let payload = if read_view && target.copy { "*payload".to_owned() } else if read_view { self.data_view_payload(*ty,"payload",true) } else { "payload".to_owned() };
+                let payload = if read_view && target.copy { "*payload".to_owned() } else if read_view { self.data_view_payload(*ty,"payload",true) } else { self.union_transfer_payload(union,target,*ty,"payload") };
                 format!("{from_kind}{}::V{from}(payload) => {to_kind}{}::V{to}({payload})",union.index(),target.index())
             }).collect::<Vec<_>>().join(", ");
             return format!("match {source} {{ {arms}, _ => {failed} }}");
@@ -1350,10 +1368,12 @@ impl Emitter<'_> {
             self.conditional_arm(fun, value, access)
         } else { self.expr(fun, value, access) };
         let result = if narrowed.is_copy() && !union.copy {
-            "*payload"
-        } else {
-            "payload"
-        };
+            "*payload".to_owned()
+        } else if access==Mode::Consume {
+            self.union_move_payload(union,narrowed,"payload")
+        } else if access==Mode::Mutate && self.boxed_union_member(union,narrowed) {
+            "&mut **payload".to_owned()
+        } else { "payload".to_owned() };
         format!(
             "match {source} {{ {}{}::V{variant}(payload) => {result}, _ => {failed} }}",
             if !union.copy && access == Mode::Read {
@@ -1486,9 +1506,8 @@ impl Emitter<'_> {
                         })
                         .expect("subset union widening");
                     format!(
-                        "Union{}::V{index}(payload)=>Union{}::V{next}(payload)",
-                        source.index(),
-                        union.index()
+                        "Union{}::V{index}(payload)=>Union{}::V{next}({})",
+                        source.index(),union.index(),self.union_transfer_payload(source,union,*member,"payload")
                     )
                 })
                 .collect::<Vec<_>>()
@@ -1513,7 +1532,7 @@ impl Emitter<'_> {
                     union.index()
                 )
             } else {
-                format!("Union{}::V{variant}({code})", union.index())
+                format!("Union{}::V{variant}({})", union.index(),self.union_store_payload(union,actual,&code))
             }
         }
     }
@@ -3961,16 +3980,19 @@ impl Emitter<'_> {
                         reselected = shared.clone();
                         continue;
                     }
+                    let boxed=self.boxed_union_member(*union,self.program.unions[union.index()].members[*variant]);
+                    let read_payload=if boxed {"&**payload"}else{"payload"};
+                    let write_payload=if boxed {"&mut **payload"}else{"payload"};
                     shared = format!(
-                        "*(match &({shared}) {{ Union{}::V{variant}(payload) => payload, _ => {failed} }})",
+                        "*(match &({shared}) {{ Union{}::V{variant}(payload) => {read_payload}, _ => {failed} }})",
                         union.index()
                     );
                     reselected = format!(
-                        "*(match &({reselected}) {{ Union{}::V{variant}(payload) => payload, _ => {failed} }})",
+                        "*(match &({reselected}) {{ Union{}::V{variant}(payload) => {read_payload}, _ => {failed} }})",
                         union.index()
                     );
                     exclusive = format!(
-                        "*(match &mut ({exclusive}) {{ Union{}::V{variant}(payload) => payload, _ => {failed} }})",
+                        "*(match &mut ({exclusive}) {{ Union{}::V{variant}(payload) => {write_payload}, _ => {failed} }})",
                         union.index()
                     );
                 }
@@ -4126,9 +4148,8 @@ impl Emitter<'_> {
                                     .position(|m| m == ty)
                                     .expect("assignment subset");
                                 format!(
-                                    "Union{}::V{i}(payload)=>Union{}::V{j}(payload)",
-                                    from.index(),
-                                    to.index()
+                                    "Union{}::V{i}(payload)=>Union{}::V{j}({})",
+                                    from.index(),to.index(),self.union_transfer_payload(from,to,*ty,"payload")
                                 )
                             })
                             .collect::<Vec<_>>()
@@ -4145,7 +4166,7 @@ impl Emitter<'_> {
                                     && matches!(actual, Type::Closure(_) | Type::Callback(_))
                         })
                         .expect("assignment member");
-                    format!("Union{}::V{j}({code})", to.index())
+                    format!("Union{}::V{j}({})", to.index(),self.union_store_payload(to,actual,&code))
                 }
             } else {
                 code
@@ -4315,6 +4336,13 @@ impl Emitter<'_> {
                     StorageStep::Discard(prefix) => {
                         let code=self.comma_discard_code(fun,prefix);
                         setup.push_str(&code);
+                    }
+                    StorageStep::Union(union,variant,assertion) => {
+                        let member=self.program.unions[union.index()].members[variant];
+                        let message=assertion.map_or_else(||"checked nullable guard".to_owned(),|span|format!("Non-null assertion failed: value is null or undefined at source bytes {}..{}",span.start,span.end));
+                        let failure=assertion.and_then(|span|self.runtime_failure_exit("TypeError","non-null",&message,span)).unwrap_or_else(||format!("panic!({message:?})"));
+                        let payload=self.union_move_payload(union,member,"payload");
+                        place=format!("(match {place} {{Union{}::V{variant}(payload)=>{payload},_=>{failure}}})",union.index());
                     }
                     _ => unreachable!("indexed storage cannot move"),
                 }
@@ -6348,12 +6376,12 @@ impl Emitter<'_> {
                     .members
                     .iter()
                     .enumerate()
-                    .map(|(index, member)| format!("Union{}::V{index}(payload)=>Union{}::V{}(payload)", source.index(), target.index(), position(member)))
+                    .map(|(index, member)| format!("Union{}::V{index}(payload)=>Union{}::V{}({})", source.index(), target.index(), position(member),self.union_transfer_payload(source,target,*member,"payload")))
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("match {value} {{ {arms} }}")
             }
-            _ => format!("Union{}::V{}({value})", target.index(), position(&from)),
+            _ => format!("Union{}::V{}({})", target.index(), position(&from),self.union_store_payload(target,from,value)),
         }
     }
 
@@ -6763,10 +6791,9 @@ impl Emitter<'_> {
                                 })
                                 .expect("optional subset");
                             format!(
-                                "{}{}::V{i}(value)=>{prefix}{}::V{j}(value)",
+                                "{}{}::V{i}(value)=>{prefix}{}::V{j}({})",
                                 if source_view { "ViewUnion" } else { "Union" },
-                                from.index(),
-                                to.index()
+                                from.index(),to.index(),if !view&&!source_view{self.union_transfer_payload(from,to,*member,"value")}else{"value".into()}
                             )
                         })
                         .collect::<Vec<_>>()
@@ -6794,7 +6821,7 @@ impl Emitter<'_> {
                 } else {
                     code
                 };
-                format!("{prefix}{}::V{i}({code})", to.index())
+                format!("{prefix}{}::V{i}({})", to.index(),if view{code}else{self.union_store_payload(to,logical,&code)})
             }
         } else if actual == Type::Void && result == Type::Undefined {
             format!("{{{code}; TsrUndefined}}")
@@ -6847,6 +6874,9 @@ impl Emitter<'_> {
                     } else {
                         selected.clone()
                     };
+                    let body=if owned && access==Mode::Consume && self.boxed_union_member(id,*ty) {
+                        format!("let mut optional_slot{slot}={};{body}",self.union_move_payload(id,*ty,&format!("optional_slot{slot}")))
+                    }else{body};
                     format!(
                         "{}{}::V{i}({}optional_slot{slot})=>{{{body}}}",
                         if source_view { "ViewUnion" } else { "Union" },
@@ -6952,10 +6982,9 @@ impl Emitter<'_> {
                                 })
                                 .expect("fallback subset");
                             format!(
-                                "{}{}::V{index}(payload)=>{prefix}{}::V{to}(payload)",
+                                "{}{}::V{index}(payload)=>{prefix}{}::V{to}({})",
                                 if source_view { "ViewUnion" } else { "Union" },
-                                from.index(),
-                                target.index()
+                                from.index(),target.index(),if !target_view&&!source_view{self.union_transfer_payload(from,target,*member,"payload")}else{"payload".into()}
                             )
                         })
                         .collect::<Vec<_>>()
@@ -6973,7 +7002,7 @@ impl Emitter<'_> {
                 } else {
                     fallback
                 };
-                format!("{prefix}{}::V{index}({code})", target.index())
+                format!("{prefix}{}::V{index}({})", target.index(),if target_view{code}else{self.union_store_payload(target,actual,&code)})
             }
         } else {
             fallback
@@ -7000,11 +7029,13 @@ impl Emitter<'_> {
                                     && matches!(member, Type::Closure(_) | Type::Callback(_))
                         })
                         .expect("retained payload variant");
-                    let payload = if target_view { self.data_view_payload(*member,"payload",borrowed) } else if borrowed && target.copy { "*payload".to_owned() } else { "payload".to_owned() };
+                    let payload = if target_view { self.data_view_payload(*member,"payload",borrowed) } else if borrowed && target.copy { "*payload".to_owned() } else { self.union_transfer_payload(union,target,*member,"payload") };
                     format!("{}{}::V{to}({payload})",if target_view { "ViewUnion" } else { "Union" },target.index())
-                } else {
-                    "payload".to_owned()
-                };
+                } else if !borrowed && access==Mode::Consume {
+                    self.union_move_payload(union,*member,"payload")
+                } else if access==Mode::Mutate && self.boxed_union_member(union,*member) {
+                    "&mut **payload".to_owned()
+                } else { "payload".to_owned() };
                 format!(
                     "{}{}::V{index}(payload)=>{selected}",
                     if borrowed { "ViewUnion" } else { "Union" },
@@ -10046,3 +10077,7 @@ mod map_control_storage;
 
 #[path="map_cleanup_storage.rs"]
 mod map_cleanup_storage;
+
+#[cfg(test)]
+#[path = "nullable_recursive_emit.rs"]
+mod nullable_recursive_tests;

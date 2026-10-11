@@ -200,7 +200,7 @@ impl Emitter<'_> {
                     let variant=if let Type::Record(record)=member {guards.push(VariantGuard{path:path.clone(),success:record});true}else{false};
                     let rendered=self.native_view_signature_slot(member,input,plan,path,guards);
                     if variant {guards.pop();}
-                    rendered
+                    if matches!(ty,Type::Union(_)){self.union_stored_type(id,member,rendered)}else{rendered}
                 }).collect::<Vec<_>>().join(", ");
                 if matches!(ty,Type::BorrowedUnion(_)){format!("ViewUnion{}<'_,{arguments}>",id.index())}else{format!("Union{}<{arguments}>",id.index())}
             }

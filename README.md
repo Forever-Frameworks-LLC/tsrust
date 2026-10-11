@@ -10,6 +10,8 @@ The compiler, acceptance tests, and handwritten-witness checks are all Rust. Car
 
 [Call spread](./docs/call-spread.md) expands dense homogeneous arrays into call arguments. Focused compiler, native and editor acceptance covers current callable and built-in targets; array-literal and object spread remain separately scoped.
 
+[Recursive records](./docs/recursive-records.md) support owned array and nullable links, including shared lifetimes for recursive byte-view storage.
+
 ## Repository layout
 
 ```text

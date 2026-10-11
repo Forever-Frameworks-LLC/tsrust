@@ -44,8 +44,8 @@ test('Native byte views retain zero-copy reads, write-through and range errors',
     }
 });
 
-test('Recursive byte views retain traversal and shared owner observations', () => {
-    const recursive = manifest.workloads.find(value => value.id === 'native_byte_views_recursive');
+for (const id of ['native_byte_views_recursive', 'native_byte_views_linked']) test(`${id} retains traversal and shared owner observations`, () => {
+    const recursive = manifest.workloads.find(value => value.id === id);
     assert.ok(recursive, 'Recursive view workload registered');
     assert.equal(recursive.measured, false);
     assert.equal(reportCategory(recursive.id), 'bytes');

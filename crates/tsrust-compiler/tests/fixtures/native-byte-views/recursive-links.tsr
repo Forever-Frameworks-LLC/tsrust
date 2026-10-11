@@ -1,0 +1,121 @@
+import { Bytes, ByteView, ByteViewMut, alloc, view, viewMut, at, set, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Chunk = {
+  data: ByteView;
+  next?: Chunk;
+};
+
+type WritableChunk = {
+  data: ByteViewMut;
+  next?: WritableChunk;
+};
+
+function bytes(value: int): Bytes {
+  match (alloc(2, value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function read(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function write(owner: Mutable<Bytes>): ByteViewMut {
+  match (viewMut(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function leaf(data: ByteView): Chunk {
+  return {
+    data: data
+  };
+}
+
+function identity(chunk: Chunk): Chunk {
+  return chunk;
+}
+
+function writable(data: ByteViewMut): WritableChunk {
+  return {
+    data: data
+  };
+}
+
+function size(chunk: ReadOnly<Chunk>): int {
+  return length(chunk.data) + (chunk.next !== undefined ? 1 : 0);
+}
+
+function capture(chunk: Chunk) {
+  return () => chunk;
+}
+
+function main() {
+  const first = bytes(3);
+  const second = bytes(7);
+  {
+    const root = leaf(read(first));
+    root.next = leaf(read(second));
+    strictEqual(size(root), 3);
+    const saved = capture(identity(root));
+    const restored = saved();
+    const child = restored.next!;
+    strictEqual(length(child.data), 2);
+    match (at(child.data, 0)) {
+      Ok(value) => {
+        strictEqual(value, 7);
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+  }
+
+  {
+    const root = writable(write(first));
+    root.next = writable(write(second));
+    const child = root.next!;
+    match (set(child.data, 0, 19)) {
+      Ok(_) => {
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+  }
+
+  match (at(second, 0)) {
+    Ok(value) => {
+      strictEqual(value, 19);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  match (set(first, 0, 11)) {
+    Ok(_) => {
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

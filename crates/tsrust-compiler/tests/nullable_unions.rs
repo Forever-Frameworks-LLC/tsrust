@@ -196,7 +196,7 @@ fn nullable_diagnostics_projections_hidden_consumers_moves_and_depth_are_precise
             "capture-conflict",
         ),
         (
-            "type A={next:A|null;};function main(){}",
+            "type A={next:A;};function main(){}",
             "recursive-layout",
         ),
         (

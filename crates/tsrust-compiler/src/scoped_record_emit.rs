@@ -30,7 +30,7 @@ impl Emitter<'_> {
             }
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 let arguments = self.program.unions[id.index()].members.iter().filter(|ty| !ty.is_copy())
-                    .map(|&ty| self.recursive_view_native_type(ty, lifetime)).collect::<Vec<_>>().join(", ");
+                    .map(|&member| {let native=self.recursive_view_native_type(member,lifetime);if matches!(ty,Type::Union(_)){self.union_stored_type(id,member,native)}else{native}}).collect::<Vec<_>>().join(", ");
                 if matches!(ty, Type::BorrowedUnion(_)) { format!("ViewUnion{}<{lifetime}, {arguments}>", id.index()) }
                 else { format!("Union{}<{arguments}>", id.index()) }
             }
@@ -174,7 +174,7 @@ impl Emitter<'_> {
                 let borrowed=matches!(ty,Type::BorrowedUnion(_));
                 let prefix=if borrowed {let lifetime=lifetimes[*next].clone();*next+=1;format!("{lifetime}, ")}else{String::new()};
                 let arguments=self.program.unions[id.index()].members.iter().filter(|member|!member.is_copy())
-                    .map(|&member|self.record_environment_type(member,lifetimes,next)).collect::<Vec<_>>().join(", ");
+                    .map(|&member|{let native=self.record_environment_type(member,lifetimes,next);if borrowed{native}else{self.union_stored_type(id,member,native)}}).collect::<Vec<_>>().join(", ");
                 format!("{}Union{}<{prefix}{arguments}>",if borrowed {"View"}else{""},id.index())
             }
             Type::Union(id) | Type::BorrowedUnion(id) => {

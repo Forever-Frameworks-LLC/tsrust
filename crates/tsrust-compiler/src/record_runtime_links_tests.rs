@@ -14,6 +14,7 @@ fn nullable_links_clone_move_and_drop_iteratively() {
             record(&[if mutual { Type::Record(0) } else { Type::Int }]),
             record(&[Type::Int]),
             record(&[Type::Array(ArrayElement::Record(3,0)),Type::Union(union)]),
+            record(&[Type::Array(ArrayElement::Record(4,0)),Type::Record(2)]),
         ];
         let unions = [UnionType { members: vec![Type::Record(target), Type::Undefined] }];
         let runtime = RecordRuntime::new(&records, &unions).emit(&records);
@@ -25,14 +26,16 @@ mod {name} {{
 use std::sync::atomic::{{AtomicUsize,Ordering}};
 static CREATED:AtomicUsize=AtomicUsize::new(0);
 static DROPPED:AtomicUsize=AtomicUsize::new(0);
+static DROP_ORDER:[AtomicUsize;20002]=[const{{AtomicUsize::new(0)}};20002];
 struct Record2 {{ value:usize }}
 impl Record2 {{ fn new(value:usize)->Self {{ CREATED.fetch_add(1,Ordering::SeqCst); Self{{value}} }} }}
 impl Clone for Record2 {{ fn clone(&self)->Self {{ Self::new(self.value) }} }}
-impl Drop for Record2 {{ fn drop(&mut self) {{ DROPPED.fetch_add(1,Ordering::SeqCst); }} }}
+impl Drop for Record2 {{ fn drop(&mut self) {{ let slot=DROPPED.fetch_add(1,Ordering::SeqCst);DROP_ORDER[slot].store(self.value,Ordering::SeqCst); }} }}
 #[derive(Clone)] struct TsrUndefined;
 enum Union0 {{ V0(RecordLink{target}), V1(TsrUndefined) }}
 struct Record0 {{ field0:Union0,field1:Record2 }}
 struct Record3 {{ field0:RecordArray3,field1:Union0 }}
+struct Record4 {{ field0:RecordArray4,field1:Record2 }}
 {other}
 {runtime}
 pub fn run() {{
@@ -57,6 +60,17 @@ pub fn run() {{
     assert_eq!(CREATED.load(Ordering::SeqCst),20002);
     assert_eq!(DROPPED.load(Ordering::SeqCst),20002);
     assert_eq!(crate::LIVE.load(Ordering::SeqCst),baseline);
+    // Links retain the existing recursive-array disposal order under the same
+    // partial move, deep clone and root-field mutation sequence.
+    let link_order=DROP_ORDER.iter().map(|slot|slot.load(Ordering::SeqCst)).collect::<Vec<_>>();
+    DROPPED.store(0,Ordering::SeqCst);
+    let mut array_root=Record4{{field0:RecordArray4::from([]),field1:Record2::new(0)}};
+    for value in 1..10001{{array_root=Record4{{field0:RecordArray4::from([array_root]),field1:Record2::new(value)}};}}
+    let mut array_copy=array_root.clone();array_copy.field1.value=99999;
+    let array_child=array_root.field0.pop().unwrap();drop(array_root.field0);drop(array_child);drop(array_root.field1);drop(array_copy);
+    assert_eq!(DROPPED.load(Ordering::SeqCst),20002);
+    assert!(link_order.iter().zip(DROP_ORDER.iter()).all(|(expected,actual)|*expected==actual.load(Ordering::SeqCst)));
+    drop(link_order);assert_eq!(crate::LIVE.load(Ordering::SeqCst),baseline);
 }}
 }}
 "#));

@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: array-recursive view storage implemented with focused checks; nullable recursive links pending. The owner approved parts A and B in the continuation chat.
+Date: 2026-10-10. Status: array and nullable recursive view storage implemented with focused checks; recursive stored-callable fields and callback-return completion remain pending. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
@@ -256,3 +256,54 @@ Checks: five planner tests, four layout tests, three runtime tests and six publi
 recursive-array storage regressions pass. Whole-project formatting is unchanged.
 SQLite preserves all 10 red/green/runtime/layout/formatting logs under
 `tsrust-nullable-links-*.log`; exact-byte readback preceded loose-log removal.
+
+
+## Nullable links through source and union emission
+
+Nullable recursive fields now pass layout analysis with planned indirection. Native
+union payload defaults use the owning link wrapper; borrowed union views expose the
+logical record. Construction, widening/narrowing, consuming projection, field moves,
+nullable replacement, coalescing and owned optional-chain extraction preserve the
+physical representation. Record and function environment types carry real view
+lifetimes through link payloads. Ordinary nullable payloads keep their existing
+representation. Generic recursive record instances and multi-record nullable
+alternatives have native controls.
+
+The source matrix covers construction and consuming traversal, independent clone
+mutation, mutual links, generic int/string chains, coalescing and nullable widening,
+optional-chain moves of owned strings, array storage, readonly nullable inputs,
+replacement and clone of nullable payloads. Readonly and exclusive view controls
+exercise borrowed nullable inputs, owning union forwarding, both owner origins and
+O0/O3 native execution. The public linked-view fixture and six rejection controls
+cover owner moves, writes, extracted-link provenance, shorter-lived owners, exclusive
+owner reads and forbidden clone. Editor checks cover both array and nullable forms.
+
+The native allocation witness also compares exact payload disposal order against
+the existing recursive-array runtime under the same deep-clone, root mutation and
+partial-move sequence. Allocation restoration and small-stack checks still pass.
+
+Checks: three source/native nullable tests, three recursive runtime tests, four
+layout tests, five planner tests, 52 public tests across bytes/nullable/data unions/
+nested records/recursive storage, one editor diagnostic test (both recursion forms)
+and three benchmark registration tests pass. Complete compiler/editor regressions
+and timing remain deferred to the S07 family milestone.
+
+`native_byte_views_linked` is ready with matched TypeScript, an independent arithmetic
+oracle, source guards/hashes and native ABI support. Native and Node-after-tsc agree
+on five untimed cases in SQLite record
+`runtime/results/2026-10-11T01-01-09-264Z-verify.json`; execution samples are empty.
+Workload source acceptance is separate from gate 189 and measured acceptance.
+
+A further source probe of a recursive record with a stored view-capturing callback
+hits the existing `callable-layout` diagnostic before native emission. This boundary
+is still open: the callable layout planner must recognize the new indirection and
+its recursive environment before that combination can be accepted. It does not
+block capturing a complete linked record in a callback, which is covered publicly.
+Keep this item alongside capturing callbacks that return argument views; do not
+accept gate 189 while required callback storage remains unresolved.
+
+SQLite preserves 24 source-emission, CLI/editor, registration and formatting
+logs under `tsrust-nullable-links-*.log`, plus the exact callback probe source
+`tsrust-nullable-view-callback.tsr`. Original failed witnesses remain intact. Exact
+readback was verified before removing loose copies. Whole-project formatting is
+unchanged; consumers remain at `4367f4cc`.

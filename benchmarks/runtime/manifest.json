@@ -20562,6 +20562,34 @@
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume child arrays during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
       "sourceSha256": "1d7b5e1747fef68833eeed37854f8a2616c5c7349a4c5a490574b204f2574ca1",
       "counterpartSha256": "3518a6e4a6d1f0f325ddc984848047aa23fb092317defba807b36b412c06c5fb"
+    },
+    {
+      "id": "native_byte_views_linked",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_linked.tsr",
+      "counterpart": "workloads/native_byte_views_linked.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One 17-node nullable recursive byte-view construction and consuming traversal",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Nullable recursive byte-view storage. Native and Node-after-tsc agree on five untimed cases. S07 family measurements remain pending.",
+      "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume nullable next links during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
+      "sourceSha256": "0a7ad2a11365054cab870c7cc08cfd43934239d979cd014c8c2096dcc24100a2",
+      "counterpartSha256": "2947db1658ec792a0e49c398f6c0e9e06f0a9d21c86faef9b32a1dcafce1ff91"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

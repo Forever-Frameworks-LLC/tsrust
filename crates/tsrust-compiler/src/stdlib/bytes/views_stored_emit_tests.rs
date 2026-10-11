@@ -314,3 +314,11 @@ fn native_view_recursive_construction_and_mutation_execute() {
         }
     }
 }
+
+#[test]
+fn native_view_nullable_recursive_links_preserve_all_owners() {
+    let source="type Window={};type Holder={view:Window;next?:Holder;};function observe(input:ReadOnly<Holder|undefined>):int{return input===undefined?0:1;}function wrap(input:Holder|undefined):Holder|undefined{return input;}function relay(first:Window,second:Window):Window{const root:Holder={view:first,next:{view:second}};const seen=observe(root.next);const child=wrap(root.next)!;return child.view;}function main(){}";
+    for mutable in [false,true] {
+        assert_stored_source_access(source,&format!("nullable-recursive-{mutable}"),mutable);
+    }
+}

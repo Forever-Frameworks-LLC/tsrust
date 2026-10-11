@@ -9,7 +9,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array-recursive storage checks; gate 189 pending nullable recursive links and capturing callbacks returning argument views | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields and capturing callbacks returning argument views | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented increment; gate 189 still pending views | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -140,8 +140,8 @@ Consumers remain at `f569190a`.
 
 ### Gate 189 publication status (2026-10-10, later the same day)
 
-Public byte views are published. Gate 189 stays open for nullable recursive view
-storage and capturing callbacks returning argument views. S07 also needs gate 190,
+Public byte views are published. Gate 189 stays open for recursive stored-callable fields and capturing callbacks
+returning argument views. S07 also needs gate 190,
 the finally-return repair and family measurements.
 
 | Scope | Status | Evidence |
@@ -153,7 +153,7 @@ the finally-return repair and family measurements.
 | A callback that returns a view it received as an argument, stored or local | supported when the callback captures no view | fixture `callbacks.tsr`; matrix row `argument-owned-view` |
 | The same, when the callback also captures a view | diagnosed (`native-view-family-emission`) | `native_view_storage_open_forms_are_source_diagnostics` |
 | Matched workload `native_byte_views` (`Uint8Array.subarray`) | registered; native and Node-after-tsc agree untimed; not measured | `native-byte-views-*.mjs`; SQLite `runtime/results/2026-10-10T23-27-13-709Z-verify.json` |
-| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | approved; nullable-link implementation pending | `recursive-view-storage-plan.md` |
+| A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | implemented with focused source/native/editor checks; recursive stored-callable fields remain guarded | `recursive-view-storage-plan.md` |
 
 A stored function value (`const read = length;`) keeps the declared parameter type
 `Bytes`; the alternatives apply to direct calls of the import.
@@ -194,3 +194,19 @@ five untimed cases. SQLite result:
 true; gate/family acceptance and measured status remain false. Nullable links are
 next, followed by capturing callbacks returning view arguments and the finally fix.
 Consumers remain at `4367f4cc`.
+
+
+### Nullable recursive link checkpoint
+
+Nullable recursive records now use unique owning links with iterative clone/drop,
+including mutual cycles and byte-view lifetimes. Public fixtures, six ownership
+rejections, editor diagnostics and the source/native matrix pass. The new
+`native_byte_views_linked` workload agrees with Node-after-tsc on five untimed cases;
+SQLite preserves `runtime/results/2026-10-11T01-01-09-264Z-verify.json`.
+See `recursive-records.md` for behavior and `recursive-view-storage-plan.md` for evidence.
+
+Recursive stored-callable fields still hit the existing `callable-layout` diagnostic;
+this is pending callback integration, alongside capturing callbacks returning argument
+views. Gate 189 and S07 remain open. Finally-return repair, resources, family
+measurements and the final consumer refresh remain pending. Consumers stay at
+`4367f4cc`.
