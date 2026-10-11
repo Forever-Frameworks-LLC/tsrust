@@ -12,7 +12,7 @@ impl Plan {
     pub(crate) fn function(&self,original:&CheckedFunction)->CheckedFunction {
         let mut bindings=original.bindings.clone();
         for &(binding,ty) in &self.binding_types{bindings[binding].ty=ty;}
-        CheckedFunction{storage_exits:*self.exits.clone(),native_returns:original.native_returns.clone(),template:original.template,specialization:original.specialization,name:original.name.clone(),bindings,parameter_count:original.parameter_count,result:original.result,body:self.body.clone()}
+        CheckedFunction{storage_exits:*self.exits.clone(),native_returns:original.native_returns.clone(), native_mutations:original.native_mutations.clone(),template:original.template,specialization:original.specialization,name:original.name.clone(),bindings,parameter_count:original.parameter_count,result:original.result,body:self.body.clone()}
     }
 }
 impl Plans {

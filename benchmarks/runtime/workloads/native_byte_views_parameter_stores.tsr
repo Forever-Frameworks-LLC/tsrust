@@ -1,0 +1,112 @@
+import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+
+type Chunk = {
+  read?: Once<Function<ByteView>>;
+  next?: Chunk;
+};
+
+function byteWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function node(owner: ReadOnly<Bytes>): Chunk {
+  const captured = byteWindow(owner);
+  return {
+    read: () => captured
+  };
+}
+
+function alternate(owner: ReadOnly<Bytes>): Chunk {
+  const captured = byteWindow(owner);
+  return {
+    read: () => captured
+  };
+}
+
+function first(data: ByteView): int {
+  match (at(data, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function replacementWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 1, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function replace(chunk: Mutable<Chunk>, replacement: ByteView): void {
+  chunk.read = () => replacement;
+}
+
+function empty(): Chunk {
+  return {
+  };
+}
+
+function take(chunk: Chunk) {
+  return chunk.read;
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    const next = (byte + 1) % 256;
+    match (fromArray([byte, next])) {
+      Ok(owner) => {
+        let root = empty();
+        let depth = 0;
+        while (depth < 16) {
+          const parent = depth % 2 === 0 ? node(owner) : alternate(owner);
+          replace(parent, replacementWindow(owner));
+          parent.next = root;
+          root = parent;
+          depth++;
+        }
+
+        let sum = 0;
+        let count = 0;
+        while (root.next !== undefined) {
+          sum += first(root.read!());
+          count++;
+          const child = root.next!;
+          root = child;
+        }
+
+        const tail = take(root);
+        const absent = tail === undefined ? 1 : 0;
+        count++;
+        output.push([count, sum, absent]);
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

@@ -263,7 +263,7 @@ impl Analyzer {
                 depth: context.closure_depth + 1,
                 parameters: (1..bindings.len()).collect(),
                 function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                     template: matches!(actual, Type::Closure(source) if self.closures[source].function.template)
                         || (polymorphic
                             && matches!(actual, Type::Callback(source) if self.callback_needs_context(source))),

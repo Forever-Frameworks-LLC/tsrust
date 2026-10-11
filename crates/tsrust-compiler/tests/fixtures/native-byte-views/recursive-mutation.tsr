@@ -1,0 +1,74 @@
+import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Holder = {
+  data: ByteView;
+  read: Once<Function<ByteView>>;
+  next?: Holder;
+};
+
+function bytes(value: int): Bytes {
+  match (alloc(2, value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function read(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function build(first: ByteView, second: ByteView): Holder {
+  return {
+    data: first, read: () => second
+  };
+}
+
+function replace(holder: Mutable<Holder>, replacement: ByteView): void {
+  holder.read = () => replacement;
+}
+
+function relay(holder: Mutable<Holder>, replacement: ByteView): void {
+  replace(holder, replacement);
+}
+
+function main() {
+  const first = bytes(3);
+  const second = bytes(7);
+  const third = bytes(11);
+  const holder = build(read(first), read(second));
+  holder.next = build(read(second), read(first));
+  relay(holder, read(third));
+  const child = holder.next!;
+  const childResult = child.read();
+  match (at(childResult, 0)) {
+    Ok(value) => {
+      strictEqual(value, 3);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  const result = holder.read();
+  strictEqual(length(result), 2);
+  match (at(result, 0)) {
+    Ok(value) => {
+      strictEqual(value, 11);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

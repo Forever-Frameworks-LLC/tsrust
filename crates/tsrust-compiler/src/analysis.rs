@@ -1,3 +1,5 @@
+#[path = "native_view_mutations.rs"]
+mod native_view_mutations;
 #[path = "native_view_expression_calls.rs"]
 mod native_view_expression_calls;
 #[path = "native_view_family_provenance.rs"]
@@ -252,6 +254,7 @@ pub struct Binding {
 pub struct CheckedFunction {
     pub(crate) storage_exits: storage_exit_availability::Exits,
     pub(crate) native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
+    pub(crate) native_mutations: Option<Box<Vec<(usize, native_view_loans::Loan)>>>,
     pub template: bool,
     pub specialization: bool,
     pub name: String,
@@ -511,6 +514,7 @@ struct Context {
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
+    native_mutations: Option<Box<Vec<(usize, native_view_loans::Loan)>>>,
     capture_restoration:Option<capture_restoration::Tracker>,
     region_loop_depth:Option<usize>,
     region_entry_loans:Option<std::rc::Rc<crate::capture_loan_identity::Boundary>>,
@@ -574,7 +578,7 @@ impl Context {
             native_shadowed_bindings: None,
             native_view_results: None,
             native_view_function_returns: None,
-            storage_exits: Default::default(), native_returns: None,
+            storage_exits: Default::default(), native_returns: None, native_mutations: None,
             capture_restoration:None,
             region_loop_depth:None,
             region_entry_loans:None,
@@ -1420,6 +1424,7 @@ fn remap_function_closures(
     crate::source_walk::body(&mut function.body,&mut |annotation|polymorphic_argument_hints::remap_annotation(annotation,ids),&mut |_|Ok(()))?;
     remap_closure_type(&mut function.result, ids)?;
     for loan in function.native_returns.as_deref_mut().into_iter().flatten() {crate::native_view_origin_remap::loan(loan,ids)?;}
+    for (_,loan) in function.native_mutations.as_deref_mut().into_iter().flatten() {crate::native_view_origin_remap::loan(loan,ids)?;}
     for binding in &mut function.bindings {
         for loan in binding.native_view_loans.as_deref_mut().into_iter().flatten() {crate::native_view_origin_remap::loan(loan,ids)?;}
         remap_closure_type(&mut binding.ty, ids)?;
@@ -2271,6 +2276,7 @@ impl Analyzer {
                     } else {parameter.ty}
                 }),
             };
+            let ty = self.scoped_records.recursive_parameter(ty);
             self.arrow_parameter_contract(param, ty)?;
             let binding = Self::bind(&mut context,&param.name,ty,true)?;
             parameters.push(binding);
@@ -2510,6 +2516,7 @@ impl Analyzer {
             // Emission reuses the first fully checked body and capture layout.
             if !self.discovering_results {
                 self.closures[id].function.native_returns = context.native_returns.clone();
+                self.closures[id].function.native_mutations = context.native_mutations.clone();
                 self.closures[id].function.storage_exits = context.storage_exits.clone();
                 self.closures[id].function.bindings = context.bindings;
                 self.closures[id].function.body = if method_template {
@@ -2563,7 +2570,7 @@ impl Analyzer {
             depth: context.closure_depth,
             parameters,
             function: CheckedFunction {
-                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(),
+                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(), native_mutations: context.native_mutations.clone(),
                 template: outer.template,
                 specialization: false,
                 name: outer.function_name.clone(),
@@ -2675,7 +2682,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..count).collect(),
                 function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                     template: false,
                     specialization: false,
                     name: binding.name.into(),
@@ -2718,7 +2725,7 @@ impl Analyzer {
             return Ok(false);
         }
         self.checked[index] = Some(CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
             template: true,
             specialization: false,
             name: self.program.functions[index].name.text.clone(),
@@ -2869,7 +2876,7 @@ impl Analyzer {
                 depth: 0,
                 parameters: (0..bindings.len()).collect(),
                 function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                     template: false,
                     specialization: false,
                     name: name.into(),
@@ -2886,6 +2893,10 @@ impl Analyzer {
             self.function_values.insert(index, id);
             id
         };
+        if let Some(target) = &self.checked[index] {
+            self.closures[id].function.native_returns = target.native_returns.clone();
+            self.closures[id].function.native_mutations = target.native_mutations.clone();
+        }
         if !self.discovering_results {
             self.validated_closures.insert(id);
         }
@@ -3028,7 +3039,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                 template: true,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -3101,7 +3112,7 @@ impl Analyzer {
             depth: context.closure_depth + 1,
             parameters: (1..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                 template: inner.function.template,
                 specialization: false,
                 name: context.function_name.clone(),
@@ -3757,7 +3768,7 @@ impl Analyzer {
             depth: 1,
             parameters: (0..bindings.len()).collect(),
             function: CheckedFunction {
-                storage_exits: Default::default(), native_returns: None,
+                storage_exits: Default::default(), native_returns: None, native_mutations: None,
                 template: true,
                 specialization: false,
                 name: "result-shape".into(),
@@ -4503,7 +4514,7 @@ impl Analyzer {
         }
         let uncalled = self.prepare_uncalled_capturing_functions(index, &context)?;
         self.checked[index] = Some(CheckedFunction {
-                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(),
+                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(), native_mutations: context.native_mutations.clone(),
             template: context.template,
             specialization: index >= self.original_count,
             name: name.text,
@@ -5179,6 +5190,7 @@ impl Analyzer {
         self.update_native_view_field_type(context,target,actual);
         self.refresh_native_recursive_shapes(context);
         Self::replace_native_view_field(context,target,value)?;
+        self.record_native_parameter_store(context,target,value)?;
         self.replace_target_capture_loans(context, target, value);
         Ok(())
     }
@@ -5227,6 +5239,7 @@ impl Analyzer {
     fn check_source_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
         context.callable_scope_depth = context.lexical_scopes.len();
         context.native_returns=None;
+        context.native_mutations=None;
         self.seed_native_parameters(context)?;
         let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
         self.validate_native_returns(context)?;
@@ -5499,7 +5512,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn region_caller_error_effects(&mut self,context:&Context,body:&[Stmt],result:Type)->crate::error_effects::ErrorEffects {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:"#region".into(),bindings:context.bindings.clone(),parameter_count:0,result,body:body.to_vec()};
         let families=self.callables.storage.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
         let mut fields=crate::error_effects::record_field_origins(&self.unions,&self.program.records,&self.scoped_records);
         fields.extend(self.absent_callback_payloads.values().map(|id|(*id,Type::Undefined)));
@@ -5509,7 +5522,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_pending_region_functions(&mut self,body:&[Stmt],result:Type)->Result<(),Diagnostic> {
-        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
+        let caller=CheckedFunction{storage_exits:Default::default(),native_returns:None, native_mutations:None,template:false,specialization:false,name:String::new(),bindings:vec![],parameter_count:0,result,body:body.to_vec()};
         let targets=crate::error_effects::checked_expressions(&caller).into_iter().filter_map(|expression|match expression.target {Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>Some(id),_=>None}).collect::<HashSet<_>>();
         for id in targets {
             if self.checked[id].is_none() && !self.visiting[id] {self.function(id)?;}
@@ -7662,6 +7675,7 @@ impl Analyzer {
         } else {
             self.expression_other(context, expr, mode, loans, expected)
         };
+        if checked.is_ok() { self.apply_native_call_stores(context, expr)?; }
         if checked.is_ok() && matches!(expr.kind, ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. }) {
             // Failure occurs after operand/argument evaluation. Exact spans
             // distinguish a nested call from a parent starting at the same byte.

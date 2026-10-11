@@ -399,3 +399,55 @@ fn nullable_recursive_callbacks_join_factories() {
         let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
     }
 }
+
+#[test]
+fn mutable_recursive_parameters_replace_captured_view_callbacks() {
+    let helpers=include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let source=format!("{helpers}function replace(holder:Mutable<Holder>,replacement:ByteView):void{{holder.read=()=>replacement;}}function main(){{const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));replace(holder,read(first));const result=holder.read();match(at(result,0)){{Ok(value)=>{{strictEqual(value,3);}},Err(error)=>{{throw error.message;}},}}}}");
+    let only=source.replace("  data: ByteView;\n", "").replace("data: first, read:", "read:");
+    let nullable=source.replace("read: Once<Function<ByteView>>;", "read?:Once<Function<ByteView>>;").replace("const result=holder.read();", "const result=holder.read!();");
+    let relay=source.replace("function main()", "function relay(holder:Mutable<Holder>,replacement:ByteView):void{replace(holder,replacement);}function main()").replace("replace(holder,read(first));", "relay(holder,read(first));");
+    let branch=source.replace("replacement:ByteView):void{holder.read=()=>replacement;}", "replacement:ByteView,flag:boolean):void{if(flag){holder.read=()=>replacement;return;} }").replace("replace(holder,read(first));", "replace(holder,read(first),true);");
+    let cleanup=source.replace("{holder.read=()=>replacement;}", "{try{return;}finally{holder.read=()=>replacement;}}");
+    let borrowed=source.replace("replacement:ByteView):void{holder.read=()=>replacement;}", "owner:ReadOnly<Bytes>):void{const replacement=read(owner);holder.read=()=>replacement;}").replace("replace(holder,read(first));", "replace(holder,first);");
+    let forwarded=source.replace("replace(holder,read(first));", "const action=replace;action(holder,read(first));");
+    let closure=source.replace("function replace(holder:Mutable<Holder>,replacement:ByteView):void{holder.read=()=>replacement;}", "")
+        .replace("replace(holder,read(first));", "const action=(target:Mutable<Holder>,replacement:ByteView):void=>{target.read=()=>replacement;};action(holder,read(first));");
+    let exclusive=source.replace("ByteView", "ByteViewMut").replace("alloc, view,", "alloc, viewMut,").replace("ReadOnly<Bytes>", "Mutable<Bytes>").replace("match (view(", "match (viewMut(")
+        .replace("const holder=build", "const third=bytes(11);const holder=build").replace("replace(holder,read(first));", "replace(holder,read(third));").replace("strictEqual(value,3);", "strictEqual(value,11);");
+    let captured_target=source.replace("replace(holder,read(first));", "{const action=(replacement:ByteView):void=>{holder.read=()=>replacement;};action(read(first));}");
+    let captured_source=source.replace("replace(holder,read(first));", "const replacement=read(first);const action=(target:Mutable<Holder>):void=>{target.read=()=>replacement;};action(holder);");
+    let returned_source=source.replace("function main()", "function installer(replacement:ByteView){return(target:Mutable<Holder>):void=>{target.read=()=>replacement;};}function main()")
+        .replace("replace(holder,read(first));", "const action=installer(read(first));action(holder);");
+    for source in [source,only,nullable,relay,branch,cleanup,borrowed,forwarded,closure,exclusive,captured_target,captured_source,returned_source,include_str!("fixtures/native-byte-views/recursive-mutation.tsr").to_owned()] {
+        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+        for optimized in [false,true] {
+            let mut command=support::cli();command.arg("run").arg(&path);if optimized {command.arg("--release");}
+            support::success(&support::run(&mut command,120));
+        }
+    }
+}
+
+#[test]
+fn mutable_recursive_parameter_stores_preserve_owner_obligations() {
+    let helpers=include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let replace="function replace(holder:Mutable<Holder>,replacement:ByteView):void{holder.read=()=>replacement;}";
+    let leak="function leak(first:ReadOnly<Bytes>):Holder{const holder=build(read(first),read(first));const short=bytes(3);replace(holder,read(short));return holder;}function main(){const owner=bytes(7);const holder=leak(owner);const result=holder.read();console.log(length(result));}";
+    let conflict="function main(){const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(first));replace(holder,read(second));set(second,0,9);const result=holder.read();console.log(length(result));}";
+    let partial="function main(){const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));const old=holder.read();replace(holder,read(first));}";
+    let local="function invalid(holder:Mutable<Holder>):void{const owner=bytes(7);const value=read(owner);holder.read=()=>value;}function main(){const owner=bytes(3);const holder=build(read(owner),read(owner));invalid(holder);const result=holder.read();console.log(length(result));}";
+    let consumed="function invalid(holder:Mutable<Holder>,owner:Bytes):void{const value=read(owner);holder.read=()=>value;const moved=owner;}function main(){const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(first));invalid(holder,second);}";
+    let forwarded=conflict.replace("replace(holder,read(second));", "const action=replace;action(holder,read(second));");
+    let closure=conflict.replace("replace(holder,read(second));", "const action=(target:Mutable<Holder>,replacement:ByteView):void=>{target.read=()=>replacement;};action(holder,read(second));");
+    let captured_target=conflict.replace("replace(holder,read(second));", "{const action=(replacement:ByteView):void=>{holder.read=()=>replacement;};action(read(second));}");
+    let captured_source=conflict.replace("replace(holder,read(second));", "const replacement=read(second);const action=(target:Mutable<Holder>):void=>{target.read=()=>replacement;};action(holder);");
+    let short_target=conflict.replace("replace(holder,read(second));", "{const short=bytes(11);const action=(replacement:ByteView):void=>{holder.read=()=>replacement;};action(read(short));}");
+    for (declarations,body,expected) in [(replace,leak,"native-view-escape"),(replace,conflict,"native-view-conflict"),(replace,partial,"partial-transfer"),("",local,"native-view-escape"),("",consumed,"native-view-conflict"),(replace,forwarded.as_str(),"native-view-conflict"),("",closure.as_str(),"native-view-conflict"),("",captured_target.as_str(),"native-view-conflict"),("",captured_source.as_str(),"native-view-conflict"),("",short_target.as_str(),"native-view-escape")] {
+        let source=format!("import {{set}} from 'std:bytes';{helpers}{declarations}{body}");
+        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),60);
+        assert!(!output.status.success(),"{expected}: {source}");
+        let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains(&format!("error[{expected}]")),"{stderr}");
+        if body==local { assert!(stderr.contains("cannot outlive local owner storage"),"{stderr}"); }
+    }
+}

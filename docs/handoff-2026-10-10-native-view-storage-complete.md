@@ -15,7 +15,7 @@ Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
 - Recursive records containing views share a real borrow lifetime. Array recursion,
   nullable links, provenance, iterative link destruction/clone and public fixtures
   are implemented. Views remain non-clonable. Recursive callback fields and nullable factory joins
-  have focused acceptance; replacement through mutable parameters remains pending.
+  and mutable-parameter replacement have focused acceptance; gate 189 review remains pending.
 - View-capturing callbacks can return argument views or views of borrowed Bytes
   arguments. Terminal-branch provenance and temporary record calls are repaired.
 - The installed CLI/editor consumers were refreshed from `4367f4cc` with executable
@@ -203,12 +203,26 @@ input; a populated callback still cannot outlive its capture. Tests include sour
 order, null/undefined, extracted optional callbacks and filling a returned empty
 record. The native 10,000-link small-stack test also covers nullable callbacks.
 
-Next: complete replacement through mutable recursive parameters. The retained
-`tsrust-storage-composition-replacement.tsr` probe reports `Expected closure, found
-closure` because native field replacement currently excludes parameters. The
-finite-layout guard remains for unsupported specializations. Then finish resource
-gate 190, S07 acceptance and the roadmap. Installed consumers remain `4367f4cc`;
-no family timing has run. See the acceptance map for exact checkpoint evidence.
+Mutable recursive parameters now replace intact callback fields. Nullable and
+callback-only records preserve their existing representation. Checked mutation
+summaries retain incoming owners in the caller and add native lifetime bounds.
+Summaries survive branches, early returns, cleanup, relays, function references,
+closures and tracked capture destinations. Callable compaction remaps their paths.
+Readonly/exclusive inputs, borrowed Bytes, returned installers and captured source
+views have focused execution and owner-rejection coverage.
+
+The original `tsrust-storage-composition-replacement.tsr` probe also consumes
+`holder.read` before passing the whole holder. Its remaining `partial-transfer`
+diagnostic is correct under the existing whole-record availability contract. The
+new executable fixture overwrites an intact field. This does not add uninitialized
+out parameters or placeholders. Captured destinations without caller storage
+provenance retain a source diagnostic; no owner identity is guessed.
+
+Next: reconcile gate 189 acceptance against its documented scope, then implement
+resource gate 190, complete S07 acceptance and continue the roadmap. No known
+return-through-finally defect remains ignored; current ignored tests are opt-in
+measurements/diagnostics or a subprocess worker. Installed consumers remain
+`4367f4cc`; no family timing has run. See the acceptance map for exact evidence.
 
 ## Working environment
 

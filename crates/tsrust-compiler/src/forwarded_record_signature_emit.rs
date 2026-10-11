@@ -26,6 +26,7 @@ impl Emitter<'_> {
                 .get(&target)
                 .is_none_or(Vec::is_empty)
                 && self.program.functions[target].native_returns.is_none()
+                && self.program.functions[target].native_mutations.is_none()
         {
             return None;
         }

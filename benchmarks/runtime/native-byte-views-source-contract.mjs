@@ -1,14 +1,16 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
-    if (row.id === 'native_byte_views_nullable_callbacks') {
-        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One 17-node nullable callback chain construction and consuming traversal with an empty leaf' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Nullable callback views denominator');
+    if (['native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'].includes(row.id)) {
+        const mutation = row.id === 'native_byte_views_parameter_stores';
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== (mutation ? 'One 17-node nullable callback chain construction, 16 parameter replacements and consuming traversal' : 'One 17-node nullable callback chain construction and consuming traversal with an empty leaf') || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Nullable callback views denominator');
         const owner = kind === 'native' ? 'ReadOnly<Bytes>' : 'Uint8Array';
         const required = ['function empty():Chunk{return {};}', 'function take(chunk:Chunk){return chunk.read;}', 'const byte=(i+seed)%256;', 'let root=empty();', 'let depth=0;', 'while(depth<16)', 'depth++;', 'const parent=depth%2===0?node(owner):alternate(owner);', 'parent.next=root;root=parent;', 'while(root.next!==undefined){sum+=first(root.read!());count++;const child=root.next!;root=child;}', 'const tail=take(root);const absent=tail===undefined?1:0;count++;output.push([count,sum,absent]);', 'return output;'];
+        if (mutation) required.push('const next=(byte+1)%256;', 'replace(parent,replacementWindow(owner));', kind==='native' ? 'function replace(chunk:Mutable<Chunk>,replacement:ByteView):void{chunk.read=()=>replacement;}' : 'function replace(chunk:Chunk,replacement:Uint8Array):void{chunk.read=()=>replacement;}', kind==='native' ? 'match(view(owner,1,2))' : 'return owner.subarray(1,2);');
         for (const factory of ['node','alternate']) required.push(`function ${factory}(owner:${owner}):Chunk{const captured=byteWindow(owner);return {read:()=>captured};}`);
-        required.push(...(kind==='native' ? ['read?:Once<Function<ByteView>>;', 'match(view(owner,0,2))', 'match(at(data,0))', 'match(fromArray([byte,255]))'] : ['read?:()=>Uint8Array;', 'return owner.subarray(0,2);', 'return data[0];', 'const owner=Uint8Array.from([byte,255]);']));
+        required.push(...(kind==='native' ? ['read?:Once<Function<ByteView>>;', 'match(view(owner,0,2))', 'match(at(data,0))', mutation ? 'match(fromArray([byte,next]))' : 'match(fromArray([byte,255]))'] : ['read?:()=>Uint8Array;', 'return owner.subarray(0,2);', 'return data[0];', mutation ? 'const owner=Uint8Array.from([byte,next]);' : 'const owner=Uint8Array.from([byte,255]);']));
         for (const text of required) if (!containsCodeSnippet(source,text)) throw Error('Nullable callback views scenario: '+text);
         return;
     }

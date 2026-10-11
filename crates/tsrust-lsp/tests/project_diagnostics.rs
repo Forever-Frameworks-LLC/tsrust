@@ -297,3 +297,14 @@ fn nullable_recursive_callbacks_keep_captured_owner_diagnostics() {
     let diagnostic=serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
     assert_eq!(diagnostic["code"],"native-view-escape");
 }
+
+#[test]
+fn recursive_parameter_mutation_keeps_caller_owner_diagnostics() {
+    let source=include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-mutation.tsr");
+    let mut workspace=Workspace::default();workspace.open(id("main"),1,source.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let invalid=format!("import {{set}} from 'std:bytes';{}",source.replace("const child", "set(third,0,19);const child"));
+    workspace.open(id("main"),2,invalid);
+    let snapshot=workspace.snapshot();let error=snapshot.check(&id("main")).err().unwrap();assert_eq!(error.code,"native-view-conflict");
+    let diagnostics=convert(&snapshot,Some(&error)).unwrap();let diagnostic=serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();assert_eq!(diagnostic["code"],"native-view-conflict");
+}

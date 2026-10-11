@@ -33,6 +33,16 @@ impl Analyzer {
         if direct_view && loans.is_empty() {
             return Err(untracked(value.span));
         }
+        let sources = Self::native_escape_sources(context, loans, value.span)?;
+        if !sources.is_empty() {
+            let retained = context.native_returns.get_or_insert_with(Default::default);
+            retained.extend(sources);
+            native_view_projections::normalize(retained);
+        }
+        Ok(())
+    }
+
+    pub(super) fn native_escape_sources(context: &Context, loans: Vec<native_view_loans::Loan>, span: Span) -> Result<Vec<native_view_loans::Loan>, Diagnostic> {
         let mut sources = Vec::new();
         for output in loans {
             let mut pending = vec![(
@@ -53,9 +63,9 @@ impl Analyzer {
                 if binding.parameter {
                     if binding.mode == Mode::Consume && matches!(kind, LifetimeSource::Storage) {
                         return Err(escape(
-                            value.span,
+                            span,
                             binding.declaration_span.unwrap_or(output.creation),
-                            "A returned native view cannot borrow a consuming owner parameter.",
+                            "A native view cannot outlive a consuming owner parameter.",
                         ));
                     }
                     let mut source = output.clone();
@@ -71,9 +81,9 @@ impl Analyzer {
                 } else {
                     let Some(origins) = &binding.native_view_loans else {
                         return Err(escape(
-                            value.span,
+                            span,
                             binding.declaration_span.unwrap_or(output.creation),
-                            "A returned native view cannot borrow local owner storage.",
+                            "A native view cannot outlive local owner storage.",
                         ));
                     };
                     let mut found = false;
@@ -96,37 +106,32 @@ impl Analyzer {
                     }
                     if !found {
                         return Err(escape(
-                            value.span,
+                            span,
                             output.creation,
-                            "A returned native view has no borrowed parameter source.",
+                            "An escaping native view has no borrowed parameter source.",
                         ));
                     }
                 }
             }
             if sources.len() == start {
                 return Err(escape(
-                    value.span,
+                    span,
                     output.creation,
-                    "A returned native view has cyclic source aliases without a borrowed parameter.",
+                    "An escaping native view has cyclic source aliases without a borrowed parameter.",
                 ));
             }
         }
-        if !sources.is_empty() {
-            let retained = context.native_returns.get_or_insert_with(Default::default);
-            retained.extend(sources);
-            native_view_projections::normalize(retained);
-        }
-        Ok(())
+        Ok(sources)
     }
 
     pub(super) fn validate_native_returns(&self, context: &Context) -> Result<(), Diagnostic> {
-        for source in context.native_returns.as_deref().into_iter().flatten() {
+        for source in context.native_returns.as_deref().into_iter().flatten().chain(context.native_mutations.as_deref().into_iter().flatten().map(|(_,loan)|loan)) {
             let binding = &context.bindings[source.root];
             if binding.mode == Mode::Consume && matches!(source.source, LifetimeSource::Storage) {
                 return Err(escape(
                     source.creation,
                     binding.declaration_span.unwrap_or(source.creation),
-                    "A returned native view cannot borrow a consuming owner parameter.",
+                    "A native view cannot outlive a consuming owner parameter.",
                 ));
             }
         }

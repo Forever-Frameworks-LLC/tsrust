@@ -917,3 +917,51 @@ Mutable recursive parameter replacement remains pending. Gate 189, resource gate
 Forty-three logs/probes and the untimed result were imported and verified before
 removal. SQLite `PRAGMA quick_check` passes. Twenty-six obsolete test/native outputs
 were pruned (369,763,335 bytes); current CLI/editor consumers were retained.
+
+
+### Gate 189 mutable recursive parameter stores
+
+Intact recursive records now accept callback replacement through mutable
+parameters, including nullable and callback-only fields. Source checking retains
+mutation summaries independently of the final control-flow state, so early return
+and cleanup writes remain visible. The native signature requires each incoming
+view source to outlive its destination slot. Callers retain those owners after the
+call. Closure and function-reference adapters keep the same bounds; checked capture
+destinations receive the same caller effects. No byte copy, shared owner, static
+substitution, unsafe lifetime erasure or placeholder is introduced.
+
+The public `recursive-mutation.tsr` fixture and fourteen source variants execute
+at O0/O3. They cover readonly/exclusive views, nullable fields, relays, early return,
+finally, borrowed Bytes, function references, direct closures, captured source and
+destination storage, and returned installers. Ten source controls retain owner
+escape/conflict and partial-transfer diagnostics. The original replacement probe
+consumed its field before borrowing the whole record; its remaining rejection is
+intentional. Captured destinations without caller provenance reject rather than
+using an unrelated binding identity.
+
+A native witness replaces a callback in a 10,000-link chain on a 64 KiB stack,
+checks both retained and replacement slice pointers and rejects a short replacement
+owner or sibling owner at O0/O3. Focused evidence includes 76 integration tests
+(26 bytes, 35 callable fields, six callable results, nine parameter replacements),
+121 native-view tests, six editor diagnostics tests, eight benchmark registration
+and mutation tests, and the formatter corpus. Later capture cases and diagnostic
+wording were checked with focused repairs; unaffected completed evidence is retained.
+
+`native_byte_views_parameter_stores` has matched TypeScript, independent arithmetic
+observations, mutation guards, source hashes and ABI/harness support. It builds an
+empty leaf plus 16 parents, replaces each callback with a second-byte view through
+a mutable parameter, and consumes the chain. Native and Node-after-tsc agree on
+five untimed cases each for this workload, nullable callbacks and callback-only
+records. SQLite record `runtime/results/2026-10-11T07-57-39-054Z-verify.json` is
+correctness-only (`verifiedOnly: true`, zero execution samples). The final follow-up
+changes only diagnostic wording, preserving that successful execution evidence.
+
+Exact logs and probes use the `tsrust-recursive-replacement-*` SQLite prefix.
+Whole-project formatting and formatted release-native execution pass. Gate 189
+final review, resource gate 190 and S07 family acceptance remain pending. Installed
+consumers remain `4367f4cc`.
+
+Thirty-three logs/probes and the untimed result were imported, read back byte for
+byte and removed from loose storage. SQLite `PRAGMA quick_check` passes. Twenty-one
+obsolete test/native outputs were pruned (188,979,411 bytes); current consumers were
+retained.

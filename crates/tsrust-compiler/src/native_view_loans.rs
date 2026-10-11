@@ -125,6 +125,10 @@ impl Analyzer {
         context: &Context,
         expr: &Expr,
     ) -> Result<Vec<Loan>, Diagnostic> {
+        Self::native_view_value_outputs(context, expr, None)
+    }
+
+    pub(super) fn native_view_value_outputs<'a>(context: &'a Context, expr: &'a Expr, outputs: Option<&'a [super::native_view_calls::Returned]>) -> Result<Vec<Loan>, Diagnostic> {
         if !context.native_view_calls {
             return Ok(Vec::new());
         }
@@ -202,7 +206,7 @@ impl Analyzer {
                     continue;
                 }
                 Task::Value(value) => {
-                    if let Some(ty) = value.ty { pending.push(Task::Normalize(result.len(), ty)); }
+                    if let Some(ty) = value.ty && !(outputs.is_some() && std::ptr::eq(value,expr)) { pending.push(Task::Normalize(result.len(), ty)); }
                     value
                 }
                 Task::Wrapped(value, segment) => {
@@ -270,7 +274,7 @@ impl Analyzer {
                         continue;
                     }
                     if let Some(id)=super::native_view_calls::target(value)
-                        && let Some(outputs)=context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)) {
+                        && let Some(outputs)=if std::ptr::eq(value,expr) { outputs.or_else(||context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)).map(Vec::as_slice)) } else { context.native_view_function_returns.as_ref().and_then(|summaries|summaries.get(&id)).map(Vec::as_slice) } {
                         for returned in outputs {
                             let output=&returned.loan;
                             let position=match returned.source {

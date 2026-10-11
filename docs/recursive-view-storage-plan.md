@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: array and nullable recursive view storage and capturing callbacks returning argument/owner views have focused acceptance; recursive stored-callable fields remain pending. The owner approved parts A and B in the continuation chat.
+Date: 2026-10-10. Status: array and nullable recursive view storage and capturing callbacks returning argument/owner views have focused acceptance; recursive callback fields and mutable-parameter replacement have focused acceptance; final gate 189 review remains pending. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
@@ -347,8 +347,14 @@ results expose an independently quantified lifetime; unused inputs do not become
 owners. Returned empty records can be filled with a later view without recursive
 layout conversion. Public, editor and native lifetime witnesses cover these cases.
 
-Before gate 189 acceptance, complete recursive replacement through mutable
-parameters, which still reports a type mismatch. The finite-layout guard
+Recursive replacement through mutable parameters now has focused acceptance for
+intact records. Native field families remain stable; mutation summaries retain
+caller origins and enforce source-outlives-destination bounds. Relays, branches,
+cleanup, function references, closures, returned installers and tracked capture
+destinations transport those effects. Readonly/exclusive native execution and
+source/editor owner rejections are covered. The original probe also moved the
+field before passing the whole record; that use still correctly reports partial
+transfer. Review the completed gate 189 scope before advancing to resource gate 190. The finite-layout guard
 remains for unsupported specializations; multiple incompatible components are not
 resolved by choosing one arbitrarily.
 

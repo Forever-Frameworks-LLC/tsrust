@@ -20702,6 +20702,34 @@
       "specification": "Build an empty leaf and 16 parents alternating two view-capturing factories. Consume present callbacks during traversal, then extract the absent leaf callback through an owning parameter. Observe 17 nodes, the sum of 16 first bytes, and a true absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
       "sourceSha256": "434982172d6d6fd441e6a52b8bb07b5fedc115a8eaa12aad3bbb8b2355815d8c",
       "counterpartSha256": "7a6f58c23892932ebe867c8ee7465823ff5ada79546ca78f505610ec26432fb3"
+    },
+    {
+      "id": "native_byte_views_parameter_stores",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_parameter_stores.tsr",
+      "counterpart": "workloads/native_byte_views_parameter_stores.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One 17-node nullable callback chain construction, 16 parameter replacements and consuming traversal",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Mutable recursive parameters replace optional view-capturing callbacks while retaining caller owner provenance. S07 measurements remain pending.",
+      "specification": "Build an empty leaf and 16 parents alternating two factories. Replace each parent callback through a mutable record parameter with a closure capturing the second byte window. Consume callbacks during traversal, then extract the absent leaf callback. Observe 17 nodes, the sum of 16 second bytes, and an absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
+      "sourceSha256": "9788e0dd2f739c7a834fa41b78e162afda4af904e38c9b8811e29d3b66c00237",
+      "counterpartSha256": "1ae4ffa3af2a3823551326bbb9bf3266645686549346211ed1455e2612a3e586"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

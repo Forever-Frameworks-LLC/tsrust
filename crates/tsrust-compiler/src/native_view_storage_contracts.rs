@@ -19,7 +19,7 @@ impl Analyzer {
 
     pub(super) fn recursive_native_field_value(&mut self, context: &Context, target: &Expr, value: &mut Expr, actual: Type) -> Result<Type, Diagnostic> {
         if !self.native_borrow_types { return Ok(actual); }
-        let Some(holder) = Self::native_view_local_field(context, target) else { return Ok(actual); };
+        let Some(holder) = self.native_view_stable_field(context, target) else { return Ok(actual); };
         let Type::Record(record) = context.bindings[holder].ty else { return Ok(actual); };
         let nominal = self.scoped_records.declaration(record);
         let ExprKind::Field(_, name) = &target.kind else { return Ok(actual); };
@@ -58,7 +58,7 @@ impl Analyzer {
         // The field holds a scoped family directly or as a nullable payload.
         let Type::StoredCallable(family)=self.unions.payload(current).unwrap_or(current) else{return None;};
         self.callables.storage.scoped_native_family(family)?;
-        let holder=Self::native_view_local_field(context,target)?;
+        let holder=self.native_view_stable_field(context,target)?;
         let ExprKind::Field(_,name)=&target.kind else{return None;};
         let Type::Record(record)=context.bindings[holder].ty else{return None;};
         let nominal=self.scoped_records.declaration(record);
@@ -74,6 +74,19 @@ impl Analyzer {
         let stored=current.and_then(|current|self.join_native_view_storage(current,actual,target.span).ok().flatten()).unwrap_or(actual);
         if current == Some(stored) { return; }
         if let Some(root)=self.scoped_array_replace_field(context.bindings[holder].ty,std::slice::from_ref(name),stored) {context.bindings[holder].ty=root;}
+    }
+    /// Recursive parameters already have one concrete family per field; replacing
+    /// that field does not change its native type or its caller's representation.
+    fn native_view_stable_field(&self, context: &Context, target: &Expr) -> Option<usize> {
+        if let Some(root) = Self::native_view_local_field(context, target) { return Some(root); }
+        let ExprKind::Field(base, _) = &target.kind else { return None; };
+        if !matches!(base.kind, ExprKind::Name(_)) { return None; }
+        let root = base.binding?;
+        let binding = &context.bindings[root];
+        let Type::Record(record) = binding.ty else { return None; };
+        (binding.parameter && !binding.capture_reference
+            && self.scoped_records.declaration(record) != record
+            && crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).recursive(record)).then_some(root)
     }
     /// A direct field of a local record that owns its storage. Returns the local.
     pub(super) fn native_view_local_field(context:&Context,target:&Expr)->Option<usize> {

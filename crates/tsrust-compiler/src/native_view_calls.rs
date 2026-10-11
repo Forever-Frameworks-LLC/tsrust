@@ -30,7 +30,7 @@ pub(super) fn validate_closures(closures:&[CheckedClosure])->Result<(),Diagnosti
                 Some(id)=>{let method=&closure.methods[id];(&method.function,&method.parameters,method.invocation)},
                 None=>(&closure.function,&closure.parameters,closure.invocation),
             };
-            for loan in function.native_returns.as_deref().into_iter().flatten() {
+            for loan in function.native_returns.as_deref().into_iter().flatten().chain(function.native_mutations.as_deref().into_iter().flatten().map(|(_,loan)|loan)) {
                 if !matches!(loan.source,LifetimeSource::Storage) || parameters.contains(&loan.root) {continue;}
                 let position=match method {
                     Some(id)=>closure.methods[id].captures.iter().position(|root|*root==loan.root),
@@ -81,14 +81,24 @@ impl Analyzer {
     pub(super) fn remember_native_closure_returns(&self,context:&mut Context,origin:usize,method:Option<usize>,span:Span)->Result<(),Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
         let closure=&self.closures[origin];
-        let (function,parameters,key)=match method {
-            Some(method)=>{let checked=&closure.methods[method];(&checked.function,&checked.parameters,Target::Method(origin,method))},
-            None=>(&closure.function,&closure.parameters,Target::Closure(origin)),
+        let (function,key)=match method {
+            Some(method)=>{let checked=&closure.methods[method];(&checked.function,Target::Method(origin,method))},
+            None=>(&closure.function,Target::Closure(origin)),
         };
         let Some(origins)=&function.native_returns else {
             if let Some(summaries)=context.native_view_function_returns.as_mut() {summaries.remove(&key);}
             return Ok(());
         };
+        let mapped=self.native_closure_outputs(origin,method,origins,span)?;
+        let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
+        if summaries.get(&key)!=Some(&mapped) {summaries.insert(key,mapped);}
+        context.native_view_calls=true;
+        Ok(())
+    }
+
+    pub(super) fn native_closure_outputs(&self, origin: usize, method: Option<usize>, origins: &[Loan], span: Span) -> Result<Vec<Returned>, Diagnostic> {
+        let closure=&self.closures[origin];
+        let parameters=method.map_or(&closure.parameters,|method|&closure.methods[method].parameters);
         let mut mapped=Vec::with_capacity(origins.len());
         for loan in origins.iter() {
             let source=if let Some(position)=parameters.iter().position(|root|*root==loan.root) {
@@ -111,10 +121,7 @@ impl Analyzer {
             };
             mapped.push(Returned{source,loan:loan.clone()});
         }
-        let summaries=context.native_view_function_returns.get_or_insert_with(Default::default);
-        if summaries.get(&key)!=Some(&mapped) {summaries.insert(key,mapped);}
-        context.native_view_calls=true;
-        Ok(())
+        Ok(mapped)
     }
 
 }

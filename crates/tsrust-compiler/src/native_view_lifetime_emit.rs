@@ -28,8 +28,11 @@ impl Lifetimes {
                 if !matches!(loan.source,LifetimeSource::Storage) {plan.inputs.entry((root,loan.source.clone())).or_default();}
             }
         }
-        for loan in function.native_returns.as_deref().into_iter().flatten() {
+        for loan in function.native_returns.as_deref().into_iter().flatten().chain(function.native_mutations.as_deref().into_iter().flatten().map(|(_,loan)|loan)) {
             plan.inputs.entry((loan.root,loan.source.clone())).or_default();
+        }
+        for (destination, loan) in function.native_mutations.as_deref().into_iter().flatten() {
+            plan.inputs.entry((*destination, LifetimeSource::carried(loan.path.clone(), loan.guards.clone()))).or_default();
         }
         let mut slots=BTreeMap::<usize,usize>::new();
         for ((root,source),name) in &mut plan.inputs {
@@ -39,6 +42,15 @@ impl Lifetimes {
             plan.declarations.push(name.clone());
         }
         plan.plan_outputs(function.native_returns.as_deref().map(Vec::as_slice).unwrap_or(&[]));
+        for (destination, loan) in function.native_mutations.as_deref().into_iter().flatten() {
+            if function.bindings[*destination].mode != Mode::Mutate { continue; }
+            let target = plan.slot(Some(*destination), &loan.path, &loan.guards);
+            if let Some(source) = plan.inputs.get(&(loan.root, loan.source.clone()))
+                && target != "'_" && source != target {
+                let bound = format!("{source}: {target}");
+                if !plan.bounds.contains(&bound) { plan.bounds.push(bound); }
+            }
+        }
         plan
     }
 
