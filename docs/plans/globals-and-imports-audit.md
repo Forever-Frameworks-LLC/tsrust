@@ -147,3 +147,9 @@ string conversion, remaining receiver families and type primitives remain pendin
 The [scalar review](globals-and-imports-scalar-audit.md) covers fourteen global
 conversion and scalar receiver APIs. Preserve global/receiver placement and
 explicit rounding, parsing and fixed-locale contracts.
+
+## Array review slice
+
+The [array review](globals-and-imports-array-audit.md) covers 43 receiver/static
+APIs, including ownership and callback exceptions. Preserve placement; corrected
+at hover's stale nullable-element restriction without changing runtime behavior.

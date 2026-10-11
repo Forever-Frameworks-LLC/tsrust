@@ -336,3 +336,10 @@ fn at_copy_bits_owned_pointers_explicit_clone_and_disposal() {
     "#,
     );
 }
+
+#[test]
+fn nullable_elements_preserve_null_and_out_of_bounds_undefined() {
+    let source=support::format_round_trip(r#"import {strictEqual} from 'std:testing';function main(){const values:(int|null)[]=[1,null];strictEqual(values.at(0),1);strictEqual(values.at(1),null);strictEqual(values.at(2),undefined);const words:(string|null)[]=['hello',null];const word=words.at(0);if(word!==null && word!==undefined){strictEqual(word.length,5);}strictEqual(words.at(1),null);strictEqual(words.at(-3),undefined);}"#);
+    let directory=support::TempDirectory::new();let path=directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

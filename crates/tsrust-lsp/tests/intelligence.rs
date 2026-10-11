@@ -9898,3 +9898,13 @@ fn console_count_reset_documents_string_label_requirement() {
     let docs=hover["contents"]["value"].as_str().unwrap_or("");
     assert!(docs.contains("Non-string labels other than undefined warn"),"{hover}");
 }
+
+#[test]
+fn array_at_docs_include_nullable_element_unions() {
+    let source="function main(){const values:(int|null)[]=[1,null];const value=values.at(1);}";
+    tsrust_compiler::check(source).unwrap();
+    let hover=ask(source,"textDocument/hover","at(1)",0);
+    let docs=hover["contents"]["value"].as_str().unwrap_or("");
+    assert!(!docs.contains("nullable element types"),"{hover}");
+    assert!(docs.contains("declared union elements"),"{hover}");
+}
