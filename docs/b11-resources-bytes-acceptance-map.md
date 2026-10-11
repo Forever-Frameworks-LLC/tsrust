@@ -1,11 +1,12 @@
 # B11/S07 resources and bytes acceptance map
 
-This is the current implementation map. S07 is not accepted or measured.
+This is the current implementation map. S07 family acceptance remains open.
 
 Family correctness is accepted: 3,053 compiler and 500 editor tests, complete target
 coverage, VS Code integration and 24 benchmark contract tests. Original failure and
 affected-only repair evidence are retained; see `milestones/s07-resources-bytes.md`.
-The 17-workload timing and performance review and final consumer refresh remain open.
+The 17-workload timing and allocation records are accepted and indexed in SQLite.
+Direct Rust wrapper review and final consumer refresh remain open.
 
 | Scope | Status | Authoritative evidence |
 | --- | --- | --- |

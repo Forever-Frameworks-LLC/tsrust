@@ -2,13 +2,15 @@
 
 Current at the commit carrying this note. The original October 10 handoff is
 superseded; prior checkpoint evidence remains in Git, SQLite and
-`docs/b11-resources-bytes-acceptance-map.md`. S07 is not accepted or measured.
+`docs/b11-resources-bytes-acceptance-map.md`. S07 family acceptance remains open.
 
 Latest acceptance: all 300 workspace test targets and both doctest targets completed.
 Compiler: 3,053 passed. Editor: 500 accepted after an affected-only catalog fixture
 repair. No aborts or missing suites; four intentional ignores. VS Code integration
 and 24 benchmark contract tests pass. See `docs/milestones/s07-resources-bytes.md`.
-Next: measure and review the 17 S07 workloads, then refresh installed consumers.
+All 17 S07 workloads are now measured: 3,162 timing samples, 51 allocation profiles,
+zero final live bytes. Exact records and derived tables are in SQLite. Next: direct
+Rust byte/view wrapper comparison and final review, then refresh installed consumers.
 
 Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
 `docs/resources-bytes-plan.md`, `docs/recursive-view-storage-plan.md` and

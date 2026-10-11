@@ -1,7 +1,7 @@
 # S07 resources and bytes: family acceptance
 
-Status: focused gates 187–190 and family correctness accepted. Performance review
-and final installed-consumer refresh remain pending. No S07 timing is claimed here.
+Status: focused gates 187–190, family correctness and matched measurements accepted.
+Direct Rust wrapper review and final installed-consumer refresh remain pending.
 
 ## Complete regression evidence
 
@@ -58,3 +58,65 @@ wrapper overhead. Preserve original samples before justified optimization.
 After measurement review, update the ledger, coverage, roadmap, acceptance map,
 guide and handoff, then refresh and verify all five installed consumers atomically.
 S08–S21 remain subsequent roadmap work.
+
+## Recorded measurements (October 11, 2026)
+
+The run at `8ebee85c` completed all 17 workloads, 3,162 timing samples and 51
+allocation profiles. Five independent correctness cases per workload passed for both
+engines. Every allocation sample returned to zero live bytes after output disposal.
+All three allocation samples per workload agree. The original protocol and all
+samples, including slow file samples, are retained.
+
+The table reports native mean throughput divided by Node-after-tsc mean throughput.
+Allocation counts are per complete 2,048-iteration native batch, excluding input
+adaptation and result observation. They include retained output construction.
+
+| Workload | Native / Node throughput | Native allocations | Native reallocations |
+| --- | ---: | ---: | ---: |
+| `exception_completion` | 2.889× | 33,703 | 3,915 |
+| `native_bytes` | 3.342× | 4,097 | 8 |
+| `native_byte_access` | 2.466× | 4,097 | 8 |
+| `native_byte_growth` | 7.706× | 4,097 | 2,056 |
+| `native_byte_copy_append` | 2.770× | 6,145 | 2,056 |
+| `native_byte_clone` | 1.878× | 8,193 | 8 |
+| `native_byte_utf8` | 45.911× | 10,241 | 8 |
+| `native_byte_views` | 6.922× | 8,193 | 8 |
+| `native_byte_views_recursive` | 2.222× | 34,817 | 8 |
+| `native_byte_views_linked` | 1.976× | 34,817 | 8 |
+| `native_byte_views_callbacks` | 10.806× | 2,049 | 8 |
+| `native_byte_views_stored_callbacks` | 3.524× | 34,817 | 8 |
+| `native_byte_views_captured_only` | 2.423× | 34,817 | 8 |
+| `native_byte_views_nullable_callbacks` | 2.331× | 34,817 | 8 |
+| `native_byte_views_parameter_stores` | 3.503× | 34,817 | 8 |
+| `native_file_read_close` | 1.046× | 2,049 | 8 |
+| `native_file_scope_drop` | 0.925× | 2,049 | 8 |
+
+Byte workloads favor native in this run. File release results are close and have
+substantial first-process variability: native explicit-close process medians were
+50.402, 20.861 and 20.618 ms; Node medians were 46.284, 21.607 and 21.486 ms.
+Native scope-drop medians were 39.293, 21.824 and 20.810 ms; Node medians were
+27.308, 21.374 and 21.399 ms. The overall 0.925× scope-drop signal is retained,
+but these samples do not establish a stable compiler regression. Both native file
+workloads have identical allocation profiles and disposal counts. No optimization
+or selective retiming is justified by this evidence alone.
+
+There were no previously indexed comparable S07 timing rows. Do not claim a
+historical speedup or combine unrelated workload epochs. Direct Rust comparison
+for byte/view wrapper overhead remains pending, as does the installed-consumer
+refresh. These measurements do not close S07 by themselves.
+
+SQLite records:
+- `runtime/results/2026-10-11T09-03-12-817Z.json`
+- `runtime/diagnostics/2026-10-11T09-03-35-868Z-native-allocations.json`
+- `runtime/results/s07-measurement-proof-2026-10-11.json`
+
+The proof validates sample counts, checksums, current source hashes, matching
+compiler inputs and zero final live bytes. Raw records and proof were imported,
+indexed into throughput/allocation tables, read back byte-for-byte and removed
+from loose storage. SQLite integrity passed.
+
+After the checks closed, 485 obsolete test/catalog outputs totaling 9,945,597,118
+logical bytes were removed. Current executable consumers and the 17 current S07
+benchmark builds remain. The next full regression build will recreate its test
+executables; no rebuild was performed merely to repopulate the cache. Exact cleanup
+inventory is stored as `tsrust-s07-cleanup.json` in SQLite.
