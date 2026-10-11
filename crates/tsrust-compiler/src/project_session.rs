@@ -37,7 +37,7 @@ impl ProjectSession {
         }
         self.stats.parsed+=1;
         self.entries.remove(id);
-        let program=crate::syntax::parse_module(&module.declaration_source,test_entry,imported,records)?;
+        let program=if let Some(data)=&module.data {crate::data_lowering::program(&data.value,&index.to_string())?} else {crate::syntax::parse_module(&module.declaration_source,test_entry,imported,records)?};
         self.generation=self.generation.checked_add(1).expect("project session generation exhausted");
         self.entries.insert(id.clone(),Entry{key,generation:self.generation,program:program.clone()});
         Ok(program)

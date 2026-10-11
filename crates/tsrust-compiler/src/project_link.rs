@@ -201,10 +201,10 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 }
             }
         }
-        let parsed = if let Some(data) = &source.data {
-            crate::data_lowering::program(&data.value, &module.to_string())
-        } else if let Some(cache)=cache.as_deref_mut() {
+        let parsed = if let Some(cache)=cache.as_deref_mut() {
             cache.parse(&graph,id,module,entries.contains(id),imported,imported_records)
+        } else if let Some(data) = &source.data {
+            crate::data_lowering::program(&data.value, &module.to_string())
         } else {crate::syntax::parse_module(&source.declaration_source, entries.contains(id), imported, imported_records)};
         let mut program = parsed.map_err(|value| {
             ProjectDiagnostic {

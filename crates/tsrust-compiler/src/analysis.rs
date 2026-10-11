@@ -11203,6 +11203,16 @@ impl Analyzer {
 
     fn index_expression(&mut self,context:&mut Context,expr:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic> {
         let ExprKind::Index(base,index)=&mut expr.kind else {unreachable!()};
+        if let ExprKind::String(name) = &index.kind
+            && matches!(self.expression_type_hint(context,base), Some(Type::Record(record)) if !self.program.records[record].is_tuple())
+        {
+            let result = self.field_access(context,base,name,mode,loans,expr.span)?;
+            let name = name.clone();
+            let span = base.span;
+            let receiver = std::mem::replace(base,Box::new(Expr::new(ExprKind::Undefined,span)));
+            expr.kind = ExprKind::Field(receiver,name);
+            return Ok(result);
+        }
         if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base)==Some(Type::String) {
             return self.string_index(context,base,index,loans);
         }

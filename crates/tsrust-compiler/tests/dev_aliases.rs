@@ -35,3 +35,20 @@ fn alias_config_edits_rebuild_and_keep_the_last_program_on_failure(){
  loop {if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<deadline,"dev did not stop");std::thread::sleep(Duration::from_millis(20));}
  assert_ne!(unsafe{kill(second,0)},0,"replacement program survived dev shutdown");
 }
+
+#[test]
+fn json_data_edits_rebuild_and_preserve_running_program_on_invalid_input() {
+ let dir=support::TempDirectory::new();let root=dir.0.join("project");fs::create_dir_all(root.join("src")).unwrap();
+ fs::write(root.join("src/main.tsr"),support::format_round_trip("import settings from './settings.jsonc';function main(){console.log(settings.message);while(true){}}" )).unwrap();
+ let data=root.join("src/settings.jsonc");fs::write(&data,r#"{"message":"data-first",}"#).unwrap();config(&root,"./src");
+ let out=dir.0.join("stdout");let err=dir.0.join("stderr");
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose","--color=never"]).stdout(Stdio::from(fs::File::create(&out).unwrap())).stderr(Stdio::from(fs::File::create(&err).unwrap()));
+ let mut dev=Dev(command.spawn().unwrap());wait(&out,"data-first");let first=pid(&wait(&err,"Started program (pid "));
+ fs::write(&data,"{broken").unwrap();wait(&err,"previous program remains running");assert_eq!(unsafe{kill(first,0)},0,"invalid JSON stopped last working program");
+ fs::write(&data,r#"{"message":"data-recovered"}"#).unwrap();wait(&out,"data-recovered");
+ let log=fs::read_to_string(&err).unwrap();let second:i32=log.rsplit_once("Started program (pid ").unwrap().1.split(')').next().unwrap().parse().unwrap();
+ assert_ne!(first,second);assert_ne!(unsafe{kill(first,0)},0,"old program survived successful data rebuild");
+ unsafe{kill(dev.0.id()as i32,2);}let deadline=Instant::now()+Duration::from_secs(5);
+ loop{if let Some(status)=dev.0.try_wait().unwrap(){assert!(status.success());break;}assert!(Instant::now()<deadline);std::thread::sleep(Duration::from_millis(20));}
+ assert_ne!(unsafe{kill(second,0)},0,"data program survived dev shutdown");
+}

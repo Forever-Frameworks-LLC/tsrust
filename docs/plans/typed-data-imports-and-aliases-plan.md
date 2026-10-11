@@ -359,3 +359,23 @@ Incomplete-source assistance, additional data shapes and ownership boundaries,
 all CLI entry modes, dev/package acceptance, public documentation and matched
 benchmark support remain pending. Installed consumers still need a verified
 feature refresh. These focused checks do not close S10.
+
+
+## Dev and package workflow acceptance
+
+A live dev witness exposed a missing retained-cache entry for data modules. Data
+initializers now enter the same generation cache as source declarations, so
+importers invalidate correctly. Native filesystem subscriptions now include JSON
+and JSONC files. The live witness confirms start, invalid-data retention, recovery,
+replacement of the old process and shutdown cleanup; the existing alias dev
+witness still passes.
+
+An exported data-import package builds offline after relocation and deletion of
+original inputs, with an empty Cargo home and the shared Cargo target. It needs
+no vendored JSON parser. Additional native execution covers scalar roots, mixed
+arrays, Unicode and escaped property names. Literal string record indexing now
+uses ordinary checked field access. The module guide documents aliases, data
+ownership, inference and bounds. Evidence: `tsrust-data-workflows-*` in SQLite.
+
+Further ownership and editor boundaries, test-command integration, matched
+benchmark support and installed-consumer verification remain pending.
