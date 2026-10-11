@@ -217,6 +217,11 @@ Evidence: `tsrust-s08-collection-spread-acceptance.json` in SQLite. Timing remai
 pending.
 
 A separate nested payload witness exposed a native emission defect in
-`nested.front()!.length` for `Deque<int[]>`: the generated non-null projection uses
-an owning union pattern on a borrowed union. Repair before S08 acceptance. The
-spread witness uses `popFront()` to independently verify its mutable argument.
+`nested.front()!.length` for `Deque<int[]>`: a scalar observation selected an
+owning union pattern despite borrowing the array payload. Non-null projection now
+uses readonly access for this observation. Focused execution covers front, back,
+indexed reads and readonly parameters; data-union regression coverage is retained.
+Evidence: `tsrust-s08-deque-projection-acceptance.json` in SQLite.
+
+Direct `values.front()![0]` still receives a `borrowed-view` source diagnostic.
+Complete readonly nested-element indexing before S08 acceptance.

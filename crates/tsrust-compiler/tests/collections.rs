@@ -502,3 +502,14 @@ function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();valu
     assert!(String::from_utf8_lossy(&output.stderr).contains("borrow"),"{}",String::from_utf8_lossy(&output.stderr));
 }
 }
+
+#[test]
+fn deque_borrowed_array_reads_support_non_null_projection() {
+    let source=r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+function size(values:ReadOnly<Deque<int[]>>):int{return values.front()!.length;}
+function main(){const values=new Deque<int[]>();values.pushBack([1,2]);strictEqual(values.front()!.length,2);strictEqual(values.back()!.length,2);strictEqual(values.at(0)!.length,2);strictEqual(size(values),2);strictEqual(values.size,1);}
+"#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

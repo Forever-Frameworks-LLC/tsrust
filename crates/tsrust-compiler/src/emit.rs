@@ -1377,7 +1377,9 @@ impl Emitter<'_> {
             .expect("proven payload alternative");
         let access = if union.copy {
             Mode::Copy
-        } else if narrowed.is_copy() {
+        } else if narrowed.is_copy() || matches!(value.ty,Some(Type::BorrowedUnion(_))) {
+            // A temporary observation may request an owning carrier, but a
+            // borrowed optional payload still uses its readonly union form.
             Mode::Read
         } else {
             mode
