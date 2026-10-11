@@ -330,7 +330,7 @@ replacement. Source acceptance is recorded separately from full implementation
 acceptance. Conversion to ordinary Map preserves source keys and independent
 storage; its focused regression exercises owned string keys and values.
 
-Public acceptance remains pending readonly spread and broader parameter/branch
+Public acceptance remains pending broader spread, parameter and branch
 integration. Installed consumers remain at b53e9065 until those paths are accepted.
 No OrderedMap timing or S08 milestone acceptance is claimed. Source integration
 evidence: `tsrust-s08-ordered-map-public-integration-acceptance.json` in SQLite.
@@ -350,5 +350,15 @@ literals and owning rest parameters. The adapter unwraps tree keys and construct
 entry records directly, without cloning keys or payloads. ByteView entries keep
 their real owner lifetimes. Reusing a consumed map or moving a live view owner is
 rejected. Evidence: `tsrust-s08-ordered-map-owned-spread-acceptance.json` in SQLite.
-Readonly spread still needs a carrier that supports borrowed tree entry views and
-mixed ordinary-record sources. It is not included in this acceptance.
+Readonly spread was excluded from the owning-spread checkpoint; subsequent
+carrier work is recorded below.
+
+Readonly spread now stages entry views and transports their borrowed fields through
+fixed argument slots. Slots can hold ordinary owned records, ordinary references,
+or tree entry fields, so calls may mix explicit tuple arguments with OrderedMap
+spread in either order. The shared record bridge reads every form without cloning
+or erased lifetimes. View payloads retain their owners, and ordinary tuple-array
+spread remains supported in the same borrowing family. The collection and
+call-spread regression targets pass. Optional/union parameters, escaping projections
+and broader branch integration still require focused coverage before public
+acceptance. Evidence: `tsrust-s08-ordered-map-read-spread-acceptance.json` in SQLite.

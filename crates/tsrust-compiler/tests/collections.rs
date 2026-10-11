@@ -654,3 +654,21 @@ fn ordered_map_owned_spread_retains_noncloneable_payloads() {
   let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid owning spread accepted");
  }
 }
+
+#[test]
+fn ordered_map_readonly_spread_borrows_mixed_entry_sources() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function read(first:ReadOnly<[string,string]>,second:ReadOnly<[string,string]>):string{return first[0]+first[1]+second[0]+second[1];}function main(){const values=new OrderedMap<string,string>();values.set('b','2');values.set('a','1');strictEqual(read(...values),'a1b2');strictEqual(values.size,2);const one=new OrderedMap<string,string>();one.set('c','3');const pair:[string,string]=['d','4'];strictEqual(read(...one,pair),'c3d4');strictEqual(read(pair,...one),'d4c3');strictEqual(one.size,1);strictEqual(pair[0],'d');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_readonly_spread_keeps_view_owners() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function read(entry:ReadOnly<[int,ByteView]>):int{return entry[0]+length(entry[1]);}function main(){const owner=bytes();const values=new OrderedMap<int,ByteView>();values.set(3,window(owner));strictEqual(read(...values),5);strictEqual(values.size,1);const entries:[int,ByteView][]=[[4,window(owner)]];strictEqual(read(...entries),6);strictEqual(entries.length,1);}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_spread_combines_readonly_and_owning_parameters() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';type Row={text:string;};function mixed(first:ReadOnly<[string,Row]>,second:[string,Row]):string{return first[0]+first[1].text+second[0]+second[1].text;}function read(first:ReadOnly<[string,Row]>,second:ReadOnly<[string,Row]>):string{return first[0]+first[1].text+second[0]+second[1].text;}function main(){const values=new OrderedMap<string,Row>();values.set('b',{text:'2'});values.set('a',{text:'1'});strictEqual(read(...values),'a1b2');strictEqual(mixed(...values),'a1b2');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

@@ -8,6 +8,31 @@ pub(super) struct SupportCache {
     bridges: HashSet<usize>,
 }
 impl Emitter<'_> {
+    pub(super) fn record_spread_slot_type(&self,id:usize)->String {
+        let node=self.program.scoped_records.declaration(id);
+        let native=self.native_type(Type::Record(id));
+        let layout=self.record_borrow_layout(node).expect("borrowed record layout");
+        let fields=layout.leaves.iter().map(|leaf|format!("<{native} as TsrReadRecord{node}>::{}",leaf.path.iter().map(|i|format!("Field{i}")).collect::<String>())).collect::<Vec<_>>().join(",");
+        format!("TsrSpreadSlot<'_,{native},TsrReadRecord{node}Fields<'_,{fields}>>")
+    }
+    fn record_spread_support(&self,node:usize,layout:&crate::scoped_record_places::Layout)->String {
+        let fields=layout.leaves.iter().map(|leaf|(leaf.path.iter().map(|i|format!("Field{i}")).collect::<String>(),leaf.path.iter().map(|i|format!("field{i}")).collect::<Vec<_>>().join("_"))).collect::<Vec<_>>();
+        let types=fields.iter().map(|(associated,_)|format!("T::{associated}")).collect::<Vec<_>>().join(",");
+        let transport=format!("TsrReadRecord{node}Fields<'a,{types}>");
+        let mut output=format!("impl<'a,T:TsrReadRecord{node}> TsrReadRecord{node} for TsrSpreadSlot<'a,T,{transport}>{{");
+        for (associated,method) in &fields {
+            let _=write!(output,"type {associated}=T::{associated};fn tsr_{method}(&self)->&Self::{associated}{{match self{{Self::View(fields)=>fields.{method},_=>self.tsr_read().tsr_{method}()}}}}");
+        }
+        let mut members=fields.iter().map(|(_,method)|format!("{method}:self.tsr_{method}()")).collect::<Vec<_>>();
+        for (path,width) in self.record_order_paths(node) {
+            let member=Self::record_order_member(&path);
+            let _=write!(output,"fn tsr_{member}(&self)->&[usize;{width}]{{match self{{Self::View(fields)=>fields.{member},_=>self.tsr_read().tsr_{member}()}}}}");
+            members.push(format!("{member}:self.tsr_{member}()"));
+        }
+        let _=write!(output,"fn tsr_fields(&self)->TsrReadRecord{node}Fields<'_,{types}>{{TsrReadRecord{node}Fields{{{}}}}}}}",members.join(","));
+        output
+    }
+
     pub(super) fn record_borrow_leaf(&self,record:usize)->bool {
         self.native_views.recursive(record) || self.record_runtime.recursive(record)
     }
@@ -125,6 +150,7 @@ impl Emitter<'_> {
                 let mode=if mutable{"Mutate"}else{"Read"};
                 format!("{prefix}Tsr{mode}Record{node}Fields{{{members}}}")
             };
+            output.push_str(&self.record_spread_support(node,&layout));
             output.push_str(&crate::scoped_record_bridge::declarations_with_transport(&layout,Types{
                 read_trait:&format!("TsrReadRecord{node}"),mutate_trait:&format!("TsrMutateRecord{node}"),owned:&owned,shared:&shared,exclusive:&exclusive,parameters:&view_parameters,
             },|leaf|view_leaf(leaf).0,OwnedParameters{parameters:&owner_parameters,read_bounds:&read_bounds,mutate_bounds:&mutate_bounds},|leaf|{

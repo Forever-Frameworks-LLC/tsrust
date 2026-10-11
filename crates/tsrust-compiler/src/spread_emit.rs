@@ -9,8 +9,8 @@ fn inline_copy_snapshot(plan:&CheckedSpreadCall,segment:&SpreadSegment)->bool {
 }
 
 pub(super) const SPREAD_SLOTS:&str=r#"
-enum TsrSpreadSlot<'a,T> { Owned(T), Read(&'a T), Mutate(&'a mut T), Null, Undefined }
-impl<'a,T> TsrSpreadSlot<'a,T> {
+enum TsrSpreadSlot<'a,T,V=()> { Owned(T), Read(&'a T), Mutate(&'a mut T), View(V), Null, Undefined }
+impl<'a,T,V> TsrSpreadSlot<'a,T,V> {
     fn tsr_read(&self)->&T {match self {Self::Owned(value)=>value,Self::Read(value)=>value,Self::Mutate(value)=>value,_=>unreachable!("checked present spread slot")}}
     fn tsr_mutate(&mut self)->&mut T {match self {Self::Owned(value)=>value,Self::Mutate(value)=>value,_=>unreachable!("checked exclusive spread slot")}}
     fn tsr_owned(self)->T {match self {Self::Owned(value)=>value,_=>unreachable!("checked owning spread slot")}}
@@ -35,6 +35,7 @@ impl Emitter<'_> {
     pub(super) fn spread_selected_expression(&self,expression:&Expr,selected:&SpreadSelected,mode:Mode)->String {
         let name=selected.selection.native_name(selected.slot);
         if selected.carrier {
+            if mode==Mode::Read && selected.normalized_union.is_none() && let Some(Type::Record(id))=expression.ty && self.borrowing_records.contains(&self.program.scoped_records.declaration(id)) {return format!("&{name}");}
             if matches!(expression.ty,Some(Type::BorrowedUnion(_))) && mode==Mode::Read {return format!("*{name}.tsr_read()");}
             if let Some(union)=selected.normalized_union {return self.spread_nullable_slot(&name,union,mode);}
             if expression.ty.is_some_and(Type::is_copy) && mode!=Mode::Mutate {return format!("*{name}.tsr_read()");}
@@ -130,7 +131,13 @@ impl Emitter<'_> {
             if segment.spread {
                 let source=format!("spread_source{}_{index}",plan.slot);
                 write!(output,"let mut {source} = {code}; ").unwrap();
-                let iterator=if let Some(Type::Map(id))=segment.value.ty && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap) && segment.access==Mode::Consume {
+                let ordered_read=matches!(segment.value.ty,Some(Type::Map(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) && segment.access==Mode::Read;
+                let iterator=if ordered_read {
+                    let Type::Map(id)=segment.value.ty.unwrap() else{unreachable!()};
+                    let view=self.ordered_map_entry_view(id,"key","value");
+                    write!(output,"let {name}_views:Vec<_>={source}.source_iter().map(|(key,value)|{view}).collect();").unwrap();
+                    format!("{name}_views.iter().map(|entry|entry.tsr_fields())")
+                }else if let Some(Type::Map(id))=segment.value.ty && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap) && segment.access==Mode::Consume {
                     let Type::Record(pair)=segment.element else {unreachable!("checked ordered map entry")};
                     let pair=format!("Record{}",self.program.scoped_records.declaration(pair));
                     format!("{source}.into_source_entries().map(|(key,value)|{pair}{{field0:key,field1:value}})")
@@ -160,6 +167,7 @@ impl Emitter<'_> {
             let fixed=plan.selected_types.len();
             for (position,ty) in plan.selected_types.iter().enumerate() {
                 let slot_type=if let Some(id)=plan.selected_unions[position].filter(|id|self.spread_multiple(*id)){format!("TsrDataSpread{}<'_>",id.index())}else{format!("TsrSpreadSlot<'_,{}>",self.native_type(plan.selected_unions[position].and_then(|id|self.program.unions[id.index()].members.iter().copied().find(|ty|!matches!(ty,Type::Null|Type::Undefined))).unwrap_or(if plan.selected_unions[position].is_some(){Type::Undefined}else{*ty})))};
+                let slot_type=if plan.selected_unions[position].is_none() && let Type::Record(id)=ty && self.borrowing_records.contains(&self.program.scoped_records.declaration(*id)) {self.record_spread_slot_type(*id)}else{slot_type};
                 write!(output,"let mut {}: Option<{slot_type}> = None; ",SpreadSelection::Argument(position).native_name(plan.slot)).unwrap();
             }
             let rest=plan.maximum.is_none();
@@ -172,7 +180,7 @@ impl Emitter<'_> {
                 if segment.length==Some(0) {continue;}
                 let iterator=if inline_copy_snapshot(plan,segment) {"tsr_owned_items"}else{"into_iter"};
                 write!(output,"for spread_item in spread_segment{}_{index}.{iterator}() {{ match spread_position{} {{ ",plan.slot,plan.slot).unwrap();
-                let carrier=if matches!(segment.element,Type::BorrowedUnion(_)) {"Owned"}else{match segment.access {Mode::Copy|Mode::Consume=>"Owned",Mode::Read=>"Read",Mode::Mutate=>"Mutate"}};
+                let carrier=if segment.access==Mode::Read && matches!(segment.value.ty,Some(Type::Map(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {"View"}else if matches!(segment.element,Type::BorrowedUnion(_)) {"Owned"}else{match segment.access {Mode::Copy|Mode::Consume=>"Owned",Mode::Read=>"Read",Mode::Mutate=>"Mutate"}};
                 let (lower,upper)=crate::analysis::spread_position_range(&plan.segments,index,plan.minimum,plan.maximum);
                 for position in lower..fixed.min(upper.map_or(fixed,|upper|upper+1)) {
                     let value=if let Some(selected_union)=plan.selected_unions[position] {
