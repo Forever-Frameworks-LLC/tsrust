@@ -83,3 +83,9 @@ fallback text but already had a catalog row. The inventory now discovers these
 fallback arms and records their source anchor, producing 399 rows. This is a
 discovery correction, not a public API change. Review of these spellings and the
 remaining receiver/namespace operations is still pending.
+
+## JSON review slice
+
+All twelve current JSON exports have a [per-symbol review](globals-and-imports-json-audit.md),
+including ownership, errors, dependencies and the approved migration disposition.
+The complete cross-library audit remains open.
