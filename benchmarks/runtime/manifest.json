@@ -20979,6 +20979,35 @@
       "sourceSha256": "025111f9b330f787de9c15c5164715a40f7784184a8280be15ffdb6c50428752",
       "counterpartSha256": "f1f6eb38c37cd49505c9ecb87598b1ed7c1c372fbe89a48f96e90f023ad21210",
       "verificationEvidence": "runtime/results/2026-10-11T12-36-23-186Z-verify.json"
+    },
+    {
+      "id": "native_ordered_map",
+      "family": "native-collections",
+      "source": "workloads/collections/ordered-map.tsr",
+      "counterpart": "workloads/collections/ordered-map.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "Nine key/value inserts, replacement, ordered traversal, clone, lookup and deletion",
+      "inputText": "collections",
+      "category": "collections",
+      "implementationGate": "S08",
+      "measurementStatus": "pending-collections-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Five untimed correctness cases pass in native and Node-after-tsc. Public integration acceptance remains pending; no timing run.",
+      "specification": "Insert nine key/value pairs, replace the first inserted value with 999, traverse in ascending key order, clone, read and delete the fifth inserted key. Observe ordered key weighting, value sum, selected value and independent sizes. Node uses Map with explicitly sorted entries.",
+      "sourceSha256": "dcbcf1e6d84f362fd2526961c282fcb8923490345a015f31629f2a79edb6acd6",
+      "counterpartSha256": "661d3d874a80bfce14d2d87b00d5fdedda175c76fe3ced4ac9056bd97cb8c0c3",
+      "verificationEvidence": "runtime/results/2026-10-11T13-33-55-719Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

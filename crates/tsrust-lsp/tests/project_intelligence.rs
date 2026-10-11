@@ -1844,3 +1844,14 @@ fn native_ordered_set_alias_has_typed_editor_help() {
   let items=ask(&index,&entry,"has(7)","textDocument/completion");assert!(items.to_string().contains("delete"),"{items}");
  }
 }
+
+#[test]
+fn native_ordered_map_alias_has_typed_editor_help() {
+ let entry=tsrust_compiler::format("import {OrderedMap as Tree} from 'std:collections';function main(){const values=new Tree<string,int>();values.set('a',7);const found=values.get('a');const count=values.size;for(const item of values){console.log(item[0]);}console.log(count,found);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+ for index in [ProjectIndex::checked(&checked),ProjectIndex::new(&checked.graph)]{
+  for (needle,expected) in [("set('a'","set(key: string, value: int): void"),("get('a'","get(key: string): int | undefined"),("item[0]","item: [string, int]"),("count,","count: int")]{let hover=ask(&index,&entry,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{hover}");}
+  let help=ask(&index,&entry,"7);","textDocument/signatureHelp");assert!(help.to_string().contains("value: int"),"{help}");
+  let items=ask(&index,&entry,"get('a'","textDocument/completion");assert!(items.to_string().contains("delete"),"{items}");
+ }
+}

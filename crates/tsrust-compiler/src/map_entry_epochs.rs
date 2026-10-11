@@ -19,7 +19,7 @@ impl Analyzer {
                     match &value.kind {
                         ExprKind::Unary{op:UnaryOp::RecordCarrier,value,..}=>pending.push((value,path)),
                         ExprKind::Record(fields)=>for (name,value) in fields {let mut nested=path.clone();nested.push(name.text.clone());pending.push((value,nested));},
-                        ExprKind::MapConstructor(arguments,_) if arguments.is_empty()=>{local.insert(crate::capture_loan_owners::Place{binding:*binding,fields:path});},
+                        ExprKind::MapConstructor(arguments,_) | ExprKind::NativeConstructor(arguments,_) if arguments.is_empty() && matches!(value.ty,Some(Type::Map(_)))=>{local.insert(crate::capture_loan_owners::Place{binding:*binding,fields:path});},
                         _=>{},
                     }
                 }

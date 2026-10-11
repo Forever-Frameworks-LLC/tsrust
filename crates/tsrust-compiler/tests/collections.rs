@@ -575,3 +575,47 @@ fn ordered_map_source_queries_reject_borrow_invalidation_and_escape() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn ordered_map_public_constructor_preserves_sorted_owned_storage() {
+    let source=r#"import {OrderedMap as Tree} from 'std:collections';import {strictEqual} from 'std:testing';
+function main(){const values=new Tree<string,int>();values.set('z',3);values.set('a',1);values.set('m',2);let seen='';for(const entry of values){seen+=entry[0];}strictEqual(seen,'amz');strictEqual(values.get('m'),2);const copy=clone(values);strictEqual(copy.delete('a'),true);strictEqual(values.size,3);strictEqual(copy.size,2);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_public_constructor_checks_keys_ownership_and_family() {
+    let directory=support::TempDirectory::new();
+    for body in [
+        "const values=new OrderedMap<int[],int>();",
+        "const values=new OrderedMap<int|string,int>();",
+        "const values=new OrderedMap<int>();",
+        "const values=new OrderedMap<int,int>(1);",
+        "const values=new OrderedMap<int,int>();values.set('bad',1);",
+        "const values=new OrderedMap<int,int>();values.size=2;",
+        "const values=new OrderedMap<string,int>();const key='a';values.set(key,1);console.log(key);",
+        "const values=new OrderedMap<int,string>();values.set(1,'a');const read=values.get(1);values.clear();console.log(read);",
+        "const values=new OrderedMap<int,string>();values.set(1,'a');for(const entry of values){values.delete(1);console.log(entry[1]);}",
+        "const values=new OrderedMap<int,int>();const ordinary:Map<int,int>=values;",
+        "const ordinary=new Map<int,int>();const values:OrderedMap<int,int>=ordinary;",
+    ] {
+        let source=format!("import {{OrderedMap}} from 'std:collections';function main(){{{body}}}");
+        let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"invalid ordered map accepted: {body}");
+    }
+}
+
+#[test]
+fn map_set_copied_key_can_feed_the_value_expression() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const key=2;const ordered=new OrderedMap<int,int>();ordered.set(key,key*3+1);strictEqual(ordered.get(key),7);const ordinary=new Map<int,int>();ordinary.set(key,key*4+1);strictEqual(ordinary.get(key),9);}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_converts_to_independent_ordinary_map() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const ordered=new OrderedMap<string,string>();ordered.set('z','last');ordered.set('a','first');const ordinary=new Map<string,string>(ordered);let keys='';for(const entry of ordinary){keys+=entry[0];}strictEqual(keys,'az');ordinary.delete('a');strictEqual(ordered.size,2);strictEqual(ordinary.size,1);strictEqual(ordinary.get('z'),'last');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

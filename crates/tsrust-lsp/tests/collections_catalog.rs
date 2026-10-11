@@ -15,7 +15,8 @@ fn deque_catalog_examples_check_and_execute() {
     let mut entries = catalog["std:collections"].as_array().unwrap().iter().collect::<Vec<_>>();
     entries.extend(catalog["Heap"].as_array().unwrap());
     entries.extend(catalog["OrderedSet"].as_array().unwrap());
-    assert_eq!(entries.len(), 13);
+    entries.extend(catalog["OrderedMap"].as_array().unwrap());
+    assert_eq!(entries.len(), 24);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();

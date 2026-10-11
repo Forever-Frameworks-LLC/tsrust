@@ -274,7 +274,7 @@ invalidating traversal and escaping a map borrow. Thirty-seven collection tests
 and nine focused library checks pass. Evidence:
 `tsrust-s08-ordered-map-foundation-acceptance.json` in SQLite.
 
-OrderedMap remains internal. Borrowed entries represent keys and values occupying
+At the foundation checkpoint OrderedMap remained internal. Borrowed entries represent keys and values occupying
 separate tree fields, including passing complete entries to functions. They must
 not introduce implicit key copies,
 shared ownership or erased lifetimes. Editor/catalog and matched workloads follow
@@ -317,6 +317,22 @@ nullable view chains, array-recursive view trees, readonly whole-entry helpers,
 and independent clones of both entries and selected owned recursive values.
 Evidence: `tsrust-s08-ordered-map-recursive-acceptance.json` in SQLite.
 
-OrderedMap is still unexported. Public constructor/type-checking integration,
-broader parameter/branch coverage, editor/catalog work and matched benchmark
-support remain before public acceptance and S08 measurements.
+The source now exports OrderedMap with explicit key/value types and no constructor
+arguments. Checked and fallback editor help includes aliases, typed entries and all
+ten members. Thirty-one collection catalog examples execute successfully. Existing
+OrderedMap backend witnesses now run through public imports and project analysis.
+Callback storage epochs recognize native constructors. Copied map keys can also
+appear in the value expression without creating a false ownership conflict.
+
+The matched `native_ordered_map` workload passes five untimed correctness cases in
+each engine, using an independent arithmetic oracle for sorted traversal and
+replacement. Source acceptance is recorded separately from full implementation
+acceptance. Conversion to ordinary Map preserves source keys and independent
+storage; its focused regression exercises owned string keys and values.
+
+Public acceptance remains pending spread, Array.from and broader parameter/branch
+integration. Installed consumers remain at b53e9065 until those paths are accepted.
+No OrderedMap timing or S08 milestone acceptance is claimed. Source integration
+evidence: `tsrust-s08-ordered-map-public-integration-acceptance.json` in SQLite.
+The next milestone after S08 remains project-wide, multiple-error diagnostics;
+see [project diagnostics](project-diagnostics-plan.md).

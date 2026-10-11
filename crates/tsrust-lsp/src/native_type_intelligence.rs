@@ -11,6 +11,10 @@ impl SourceIndex {
     pub(super) fn ordered_set_element<'a>(&self,ty:&'a str)->Option<&'a str>{
         self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::OrderedSet)
     }
+    pub(super) fn ordered_map_types<'a>(&self,ty:&'a str)->Option<(&'a str,&'a str)> {
+        self.native_collection_element(ty,tsrust_compiler::native_signatures::NativeTypeId::OrderedMap)?.split_once(',').map(|(key,value)|(key.trim(),value.trim()))
+    }
+    pub(super) fn ordered_map_entry(&self,ty:&str)->Option<String>{self.ordered_map_types(ty).map(|(key,value)|format!("[{key}, {value}]"))}
     fn native_collection_element<'a>(&self, ty: &'a str, identity: tsrust_compiler::native_signatures::NativeTypeId) -> Option<&'a str> {
         let ty = ["ReadOnly<", "Mutable<", "Owned<"].into_iter()
             .find_map(|wrapper| ty.strip_prefix(wrapper).and_then(|inner| inner.strip_suffix('>')))
@@ -19,6 +23,7 @@ impl SourceIndex {
         (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
+        if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}
         let Some((family,element)) = self.deque_element(ty).map(|element|("Deque",element)).or_else(||self.heap_element(ty).map(|element|("Heap",element))).or_else(||self.ordered_set_element(ty).map(|element|("OrderedSet",element))) else { return builtins_for(ty); };
         let mut entries = builtins_for(family);
         for entry in &mut entries {

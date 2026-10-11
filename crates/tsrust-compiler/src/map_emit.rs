@@ -50,7 +50,8 @@ impl Emitter<'_> {
                     let from=self.program.records[id].map_definition.as_ref().unwrap();
                     let key=self.element_alternative(from.key,map.key,"key.clone()");
                     let value=self.element_alternative(from.value,map.value,"value.clone()");
-                    Some(format!("map_source.iter().map(|(key,value)|({key},{value}))"))
+                    let iterator=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap){"source_iter"}else{"iter"};
+                    Some(format!("map_source.{iterator}().map(|(key,value)|({key},{value}))"))
                 },
                 Type::Array(ArrayElement::Record(pair,0))=>{
                     let fields=&self.program.records[pair].fields;
@@ -128,10 +129,10 @@ mod ordered_tests {
             fn resolve(&self,_:Option<&crate::project::SourceId>,path:&str)->Result<crate::project::SourceId,String>{Ok(crate::project::SourceId(path.into()))}
             fn read(&self,_:&crate::project::SourceId)->Result<String,String>{Ok(self.0.clone())}
         }
-        let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let source=format!("import {{OrderedMap}} from 'std:collections';\n{}",source.replace("Map<","OrderedMap<"));
+        let source=crate::format(&source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
         let graph=crate::project::load_project(&Source(source),"ordered-map.tsr").unwrap();
-        let mut checked=crate::project::check_graph(graph).unwrap();
-        for record in &mut checked.analysis.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
+        let checked=crate::project::check_graph(graph).unwrap();
         checked.emit_rust()
     }
     #[test]
@@ -205,20 +206,12 @@ function main(){
   for(const entry of nested){if(nestedScore(entry)!==9 || entry[1].label!=='test'){throw 'nested entry';}const read=()=>nestedScore(entry);if(read()!==9){throw 'capture';}const copy=clone(entry);copy[1].label='changed';if(entry[1].label!=='test' || copy[1].label!=='changed'){throw 'entry clone';}}
 }
 "#;
-        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
-        let mut checked=crate::check(&formatted).unwrap();
-        for record in &mut checked.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
-        crate::scoped_record_places::tests::native(&super::emit(&checked.program));
+        crate::scoped_record_places::tests::native(&ordered_project(source));
     }
     #[test]
     fn ordered_map_core_emission_uses_tree_queries_and_sorted_snapshots() {
-        // Exercise backend selection while OrderedMap remains unexported. Source
-        // checking still supplies the ordinary map ownership and method plans.
         let source=r#"function owned():Map<int,string>{const map=new Map<int,string>();map.set(1,'moved');return map;}function main(){if(owned().get(1)!=='moved'){throw 'transfer';}const values=new Map<string,int>();values.set('z',9);values.set('a',1);values.set('m',5);values.set('a',2);const query='a';if(values.get(query)!==2 || !values.has(query) || values.size!==3){throw 'lookup';}const keys=values.keys();if(keys.join(',')!=='a,m,z'){throw 'order';}let visited='';values.forEach((value,key)=>{visited+=key;});if(visited!=='amz'){throw 'callback order';}const snapshot=values.values();if(snapshot.join(',')!=='2,5,9'){throw 'values';}const pairs=values.entries();if(pairs[0][0]!=='a' || pairs[2][1]!==9){throw 'entries';}const copy=clone(values);if(!copy.delete(query) || copy.delete(query) || copy.size!==2 || values.size!==3){throw 'clone';}copy.clear();if(copy.size!==0){throw 'clear';}const numbers=new Map<number,string>();numbers.set(-0.0,'zero');numbers.set(NaN,'nan');if(numbers.get(0.0)!=='zero' || numbers.get(NaN)!=='nan'){throw 'number';}}
 "#;
-        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
-        let mut checked=crate::check(&formatted).unwrap();
-        for record in &mut checked.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
-        crate::scoped_record_places::tests::native(&super::emit(&checked.program));
+        crate::scoped_record_places::tests::native(&ordered_project(source));
     }
 }

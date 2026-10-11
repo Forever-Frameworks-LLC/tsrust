@@ -131,7 +131,7 @@ impl Analyzer {
         for (binding, ty) in &roots { context.bindings[*binding].ty = *ty; }
         let mut constructors = HashMap::new();
         for (binding, path, value) in &leaves {
-            if matches!(value.kind, ExprKind::MapConstructor(_, _))
+            if matches!(value.kind, ExprKind::MapConstructor(_, _) | ExprKind::NativeConstructor(_, _))
                 && let Some(ty) = roots.get(binding).and_then(|root| self.scoped_array_field_type(*root, path))
             { constructors.insert((value.span.start, value.span.end), ty); }
         }

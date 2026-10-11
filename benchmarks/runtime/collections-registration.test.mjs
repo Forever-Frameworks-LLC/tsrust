@@ -67,3 +67,15 @@ test('Ordered set compares sorted unique values against arithmetic observations'
  assert.deepEqual(expectedCollectionValues(tree.id,1,255,'collections'),[[9,0,255,2463,1,1,8,9]]);
  for(const seed of [0,7,248,255,1000000])for(const n of [0,1,17,2048]){const expected=expectedCollectionObservation(tree.id,n,seed,'collections');assert.deepEqual(expectedExactResult(tree.id,n,seed,'collections'),expected);assert.equal(expectedChecksum(tree.id,n,seed,'collections'),expected.checksum);}
 });
+
+test('Ordered map compares replacements and ordered entries with arithmetic observations',()=>{
+ const tree=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_ordered_map');
+ assert.ok(tree);assert.equal(tree.measured,false);assert.equal(reportCategory(tree.id),'collections');
+ for(const [kind,file,guard] of [['native',tree.source,'values.set((i+seed)%256,999);'],['typescript',tree.counterpart,'const copied=new Map(values);']]){
+  const source=read('./'+file);assertCollectionSource(source,tree,kind);
+  const changed=replaceCodeSnippet(source,guard,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';assert.throws(()=>assertCollectionSource(changed,{...tree,[key]:createHash('sha256').update(changed).digest('hex')},kind),/Collection scenario/);
+ }
+ assert.deepEqual(expectedCollectionValues(tree.id,1,0,'collections'),[[9,0,8,240,1115,13,1,8,9]]);
+ assert.deepEqual(expectedCollectionValues(tree.id,1,255,'collections'),[[9,0,255,2463,1091,10,1,8,9]]);
+ for(const seed of [0,7,248,255,1000000])for(const n of [0,1,17,2048]){const expected=expectedCollectionObservation(tree.id,n,seed,'collections');assert.deepEqual(expectedExactResult(tree.id,n,seed,'collections'),expected);assert.equal(expectedChecksum(tree.id,n,seed,'collections'),expected.checksum);}
+});

@@ -47,7 +47,7 @@ impl Emitter<'_> {
                 base.as_ref()
             },
             StmtKind::Assign { target, value, operator: None }
-                if matches!(&value.kind, ExprKind::MapConstructor(arguments, _) if arguments.is_empty()) => target,
+                if matches!(&value.kind, ExprKind::MapConstructor(arguments, _) | ExprKind::NativeConstructor(arguments, _) if arguments.is_empty() && matches!(value.ty,Some(Type::Map(_)))) => target,
             _ => return None,
         };
         let mut root = base;

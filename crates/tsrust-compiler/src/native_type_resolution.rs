@@ -144,7 +144,7 @@ mod tests {
             let before=program.records.len();
             assert_eq!(project(&mut program.records,&Signature::Applied(identity,&[]),Span::default()).unwrap_err().code,"native-type-arity");
             assert_eq!(program.records.len(),before);
-            if identity==NativeTypeId::OrderedMap { assert!(crate::native_exports::lookup("std:collections",native_types::declaration(identity).name).is_err()); }
+            assert!(crate::native_exports::lookup("std:collections",native_types::declaration(identity).name).is_ok());
             for key in [Signature::Array(&Signature::Int),Signature::Named(NativeTypeId::Bytes),Signature::Optional(&Signature::Int)] {
                 let mut program=crate::syntax::parse("function main(){}").unwrap();
                 let parameters=if identity==NativeTypeId::OrderedMap {vec![key,Signature::Int]}else{vec![key]};

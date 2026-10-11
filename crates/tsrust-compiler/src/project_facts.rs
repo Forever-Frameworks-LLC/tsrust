@@ -335,6 +335,7 @@ impl ProjectAnalysis {
                 return self.project_type_inner(Type::Callback(declaration), names, active);
             }
             Type::Map(id) => {
+                if self.analysis.program.records[id].native_type.is_some(){return self.project_record(id,names);}
                 let map=self.analysis.program.records[id].map_definition.as_ref()?;
                 return Some(ProjectType::Named {name:"Map".into(),declaration:None,arguments:vec![self.project_type_inner(map.key,names,active)?,self.project_type_inner(map.value,names,active)?]});
             },

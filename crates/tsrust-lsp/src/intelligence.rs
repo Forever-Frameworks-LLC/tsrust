@@ -731,7 +731,7 @@ impl SourceIndex {
                 && let Some(symbol) = self.symbols.iter().position(|s| s.span.start == self.tokens[id + 1].span.start)
             {
                 let iterable = self.infer(id + 3, self.tokens[id].span.start, 0);
-                if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(||iterable_element_type(&iterable)) {
+                if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(||self.ordered_map_entry(&iterable)).or_else(||iterable_element_type(&iterable)) {
                     self.symbols[symbol].signature = format!("{keyword} {}: {element}", self.symbols[symbol].name);
                     self.symbols[symbol].ty = element;
                 }
@@ -1215,7 +1215,7 @@ impl SourceIndex {
                     "=" => self.initializer_type(close + 2, start),
                     "of" => {
                         let iterable = self.infer(close + 2, start, 0);
-                        self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default()
+                        self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(||self.ordered_map_entry(&iterable)).or_else(|| iterable_element_type(&iterable)).unwrap_or_default()
                     }
                     _ => String::new(),
                 };
@@ -1275,7 +1275,7 @@ impl SourceIndex {
                 if ty.is_empty() && self.text(end) == "in" { ty = "string".into(); }
                 if ty.is_empty() && self.text(end) == "of" {
                     let iterable = self.infer(end + 1, self.tokens[id].span.start, 0);
-                    ty = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(|| iterable_element_type(&iterable)).unwrap_or_default();
+                    ty = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(||self.ordered_map_entry(&iterable)).or_else(|| iterable_element_type(&iterable)).unwrap_or_default();
                 }
                 if ty.is_empty() && self.text(end) == "=" {
                     ty = self.initializer_type(end + 1, self.tokens[id].span.start);
@@ -1766,7 +1766,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet))) && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         if !(checked_generic || array_constructor || set_constructor || result_constructor) || self.text(next) != "<" {
             return None;
@@ -1831,7 +1831,7 @@ impl SourceIndex {
         None
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if self.deque_element(&receiver).is_some() || self.heap_element(&receiver).is_some() || self.ordered_set_element(&receiver).is_some() {
+        if self.deque_element(&receiver).is_some() || self.heap_element(&receiver).is_some() || self.ordered_set_element(&receiver).is_some() || self.ordered_map_types(&receiver).is_some() {
             return self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
                 .and_then(|entry| entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): ").map(|(_, result)| result.to_owned())))
                 .unwrap_or_default();
@@ -1872,6 +1872,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}
         if self.ordered_set_element(receiver).is_some(){return matches!(method,"add"|"has"|"delete");}
         if self.heap_element(receiver).is_some() { return method=="push"; }
         if self.deque_element(receiver).is_some() { return matches!(method, "pushFront" | "pushBack" | "at"); }
@@ -1922,7 +1923,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet))) { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -1998,7 +1999,7 @@ impl SourceIndex {
                     "string[]".to_owned()
                 } else if source.ends_with("[]") {
                     source
-                } else if let Some(element)=self.deque_element(&source).or_else(||self.heap_element(&source)).or_else(||self.ordered_set_element(&source)).map(str::to_owned).or_else(|| iterable_element_type(&source)) {
+                } else if let Some(element)=self.deque_element(&source).or_else(||self.heap_element(&source)).or_else(||self.ordered_set_element(&source)).map(str::to_owned).or_else(||self.ordered_map_entry(&source)).or_else(|| iterable_element_type(&source)) {
                     let grouped=tsrust_compiler::type_syntax::parse(&element).is_ok_and(|annotation|matches!(annotation.kind,tsrust_compiler::type_syntax::ValueAnnotationKind::Union(_)));
                     if grouped{format!("({element})[]")}else{format!("{element}[]")}
                 } else {
@@ -2101,7 +2102,7 @@ impl SourceIndex {
             if self.text(end) == "." && name(self.text(end + 1)) && self.text(end + 2) != "(" {
                 let field = end + 1;
                 ty = self.checked_view(field).map(str::to_owned).or_else(|| {
-                    if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some() || self.ordered_set_element(&ty).is_some()) { return Some("int".into()); }
+                    if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some() || self.ordered_set_element(&ty).is_some() || self.ordered_map_types(&ty).is_some()) { return Some("int".into()); }
                     self.symbols
                         .iter()
                         .find(|symbol| {
@@ -2207,7 +2208,7 @@ impl SourceIndex {
             }
             let ty = if self.text(id + 1)=="..." {
                 let source=self.infer(id + 2,offset,depth + 1);
-                self.deque_element(&source).or_else(||self.heap_element(&source)).or_else(||self.ordered_set_element(&source)).map(str::to_owned).or_else(||iterable_element_type(&source)).unwrap_or_default()
+                self.deque_element(&source).or_else(||self.heap_element(&source)).or_else(||self.ordered_set_element(&source)).map(str::to_owned).or_else(||self.ordered_map_entry(&source)).or_else(||iterable_element_type(&source)).unwrap_or_default()
             }else{self.infer(id + 1, offset, depth + 1)};
             let grouped=tsrust_compiler::type_syntax::parse(&ty).is_ok_and(|annotation|matches!(annotation.kind,tsrust_compiler::type_syntax::ValueAnnotationKind::Union(_)));
             return if ty.is_empty() { ty } else if grouped {format!("({ty})[]")}else { format!("{ty}[]") };
@@ -3457,7 +3458,7 @@ impl SourceIndex {
                 continue;
             };
             if callee > 0 && self.text(callee - 1) == "new"
-                && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet)) {
+                && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap)) {
                 let ty = self.snippet(callee, open);
                 let family=tsrust_compiler::native_types::declaration(*self.native_type_aliases.get(self.text(callee)).unwrap()).name;
                 let docs = builtins_for("std:collections").into_iter().find(|entry| entry["name"] == family)
@@ -4075,8 +4076,9 @@ fn builtin_type_substitution(text:&str,types:&[(&str,&str)])->String {
 
 fn builtins_for(ty: &str) -> Vec<Value> {
     let set_key = ty.strip_prefix("Set<").and_then(|text| text.strip_suffix('>'));
-    let map_types = ty.strip_prefix("Map<").and_then(|text| text.strip_suffix('>')).and_then(|text| text.split_once(',')).map(|(key,value)|(key.trim(),value.trim()));
-    let family = if map_types.is_some() { "Map" } else if set_key.is_some() { "Set" } else if array_element_type(ty).is_some() {
+    let ordered_map=ty.starts_with("OrderedMap<");
+    let map_types = ty.strip_prefix("Map<").or_else(||ty.strip_prefix("OrderedMap<")).and_then(|text| text.strip_suffix('>')).and_then(|text| text.split_once(',')).map(|(key,value)|(key.trim(),value.trim()));
+    let family = if ordered_map {"OrderedMap"} else if map_types.is_some() { "Map" } else if set_key.is_some() { "Set" } else if array_element_type(ty).is_some() {
         "Array"
     } else if tsrust_compiler::type_syntax::parse(ty).is_ok_and(|value|matches!(value.kind,tsrust_compiler::type_syntax::ValueAnnotationKind::Tuple(_))) {
         "Tuple"

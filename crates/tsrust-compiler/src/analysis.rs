@@ -8162,7 +8162,8 @@ impl Analyzer {
                 if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Native collection construction takes no arguments.", expr.span)); }
                 let annotation = annotation.as_ref().expect("native constructor annotation");
                 let ty = self.resolve_value_annotation(annotation, false)?;
-                if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some()) {
+                if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some())
+                    && !matches!(ty,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
                     return Err(Diagnostic::new("native-constructor", "This type has no supported native constructor.", expr.span));
                 }
                 self.require(ty, expected, expr.span)?;

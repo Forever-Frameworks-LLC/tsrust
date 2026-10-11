@@ -135,8 +135,8 @@ static DEQUE: Declaration = Declaration {
 static ORDERED_MAP: Declaration = Declaration {
     id: NativeTypeId::OrderedMap, module: "std:collections", name: "OrderedMap",
     type_parameters: &["K", "V"], representation: Representation::Opaque,
-    // Source capabilities remain disabled until checked storage integration lands.
-    independent_clone: false, collection_key: false, thread_transfer: false,
+    // Payload cloneability is checked transitively through the map definition.
+    independent_clone: true, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
 
@@ -175,7 +175,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET].into_iter().find(|item| item.module == module && item.name == name)
+    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

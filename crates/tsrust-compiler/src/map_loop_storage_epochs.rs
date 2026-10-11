@@ -344,5 +344,5 @@ fn empty_map_initializer(mut value: &Expr, path: &[String]) -> bool {
     {
         value = inner;
     }
-    matches!(&value.kind,ExprKind::MapConstructor(arguments,_) if arguments.is_empty())
+    matches!(&value.kind,ExprKind::MapConstructor(arguments,_) | ExprKind::NativeConstructor(arguments,_) if arguments.is_empty() && matches!(value.ty,Some(Type::Map(_))))
 }

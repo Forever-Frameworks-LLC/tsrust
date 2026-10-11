@@ -7363,6 +7363,10 @@ impl Emitter<'_> {
             ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
             ExprKind::NativeConstructor(_, _) => {
+                if let Some(Type::Map(_))=expr.ty {
+                    let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
+                    return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
+                }
                 let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
                 let id = self.native_record_declaration(id);
                 let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};

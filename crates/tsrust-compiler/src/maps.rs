@@ -69,7 +69,7 @@ impl Analyzer {
                 let Type::Record(record) = definition.value else { unreachable!() };
                 Type::Record(self.scoped_records.declaration(record))
             } else { definition.value };
-            let mode = if method == MapMethod::Set { Mode::Consume } else { Mode::Read };
+            let mode = if ty.is_copy() { Mode::Copy } else if method == MapMethod::Set { Mode::Consume } else { Mode::Read };
             let actual = self.expression(context, argument, mode, &active, Some(ty))?;
             self.require(actual, Some(ty), argument.span)?;
             if index == 0 { entry_place = Self::map_entry_capture_place(base, argument); }
@@ -97,7 +97,9 @@ impl Analyzer {
                     }
                 }
             }
-            for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
+            if mode != Mode::Copy {
+                for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
+            }
         }
         if (method==MapMethod::Delete || replaced_environment)
             && self.aggregate_callable_facts(definition.value).scoped

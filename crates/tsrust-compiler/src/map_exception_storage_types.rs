@@ -14,7 +14,7 @@ impl Analyzer {
                 StmtKind::Expr(call) if call.target==Some(CallTarget::MapMethod(MapMethod::Clear))=>{
                     if let ExprKind::Call(callee,_)=&call.kind {if let ExprKind::Field(base,_)=&callee.kind {Some(base.as_ref())}else{None}}else{None}
                 },
-                StmtKind::Assign{target,value,operator:None} if matches!(&value.kind,ExprKind::MapConstructor(arguments,_) if arguments.is_empty())=>Some(target),
+                StmtKind::Assign{target,value,operator:None} if matches!(&value.kind,ExprKind::MapConstructor(arguments,_) | ExprKind::NativeConstructor(arguments,_) if arguments.is_empty() && matches!(value.ty,Some(Type::Map(_))))=>Some(target),
                 _=>None,
             };
             if let Some(base)=cleared && let Some(binding)=Self::root_binding(base) && let Some((_,fields))=Self::direct_fields(base) {
