@@ -250,3 +250,31 @@ result is guarded against the latest watcher input before publication. These tes
 do not establish an atomic filesystem snapshot or wider dependency watching.
 Installed refresh and the matching retained-state measurements are next, followed
 by separate runtime compilation and bounded native artifact retention.
+
+## Installed retained-state comparison
+
+Four CLI consumers were atomically refreshed and hash verified from `f1431c76`.
+The unchanged dev-loop-v1 harness completed three samples each for 6 and 130 files
+using the installed CLI. All output oracles, native watching, syntax reuse after leaf
+edits, full reuse on config-only edits and clean shutdown checks pass. Compiler,
+harness and source hashes are preserved in `tsrust-dev-retained-*` SQLite records.
+The LSP is unchanged at its accepted environment checkpoint.
+
+For 6/130 files, cold-start medians were 411.71/421.72 ms, warm starts 130.40/138.75
+ms, leaf edits 544.46/594.08 ms, shared edits 529.37/566.78 ms and config edits
+266.88/244.36 ms. The preceding watcher checkpoint had leaf medians 528.56/597.42
+ms and shared medians 496.51/534.24 ms. This does not establish a fresh-edit speedup;
+retain the original samples and do not select favorable cases. Median leaf native
+compilation/linking costs were 241.2/263.3 ms; frontend checks were 1.8/12.6 ms.
+The supervised backend probe also costs roughly 49–52 ms in these edit samples.
+
+Idle supervisor RSS was 9,952–10,016 KiB for 6 files and 13,824–14,960 KiB for
+130 files, versus roughly 2–3 MiB with a separate short-lived frontend process.
+This expected retention cost is not peak process-tree memory or a leak test. Idle
+CPU remains 0.00–0.01 seconds per three-second window at ps resolution. Long edit
+sequences and memory/cache bounds still require milestone acceptance.
+
+Continue with separate reusable native runtime compilation. Preserve backend
+cancellation while reviewing probe overhead in the final performance pass. The
+required milestone remains open for runtime separation, cache eviction, Linux
+execution evidence and final regression/performance acceptance.
