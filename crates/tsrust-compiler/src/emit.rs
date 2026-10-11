@@ -3750,7 +3750,10 @@ impl Emitter<'_> {
                         } else if b.mutable_place {
                             "_".into()
                         } else if b.borrowed_place.is_some() {
-                            format!("&{}", self.local_callback_environment_type(b.ty))
+                            if matches!(b.ty,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))) {
+                                // A projection can be a record view rather than its owned layout.
+                                "&_".into()
+                            }else{format!("&{}", self.local_callback_environment_type(b.ty))}
                         } else {
                             self.binding_shape(index).as_ref().map_or_else(
                                 || self.local_borrowed_family_type(fun,b.ty).unwrap_or_else(||self.local_callback_environment_type(b.ty)),
@@ -7363,22 +7366,25 @@ impl Emitter<'_> {
         }
     }
 
+    #[inline(never)]
+    fn native_collection_constructor_expression(&self,expr:&Expr,mode:Mode)->String {
+        if let Some(Type::Map(_))=expr.ty {
+            let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
+            return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
+        }
+        let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
+        let id = self.native_record_declaration(id);
+        let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};
+        let code = format!("Record{id} {{ values: {backend}::new() }}");
+        match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
+    }
+
     fn expr_dispatch(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
         if let Some(value)=self.nullable_record_parameter_field(fun,expr,mode) { return value; }
         match &expr.kind {
             ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
-            ExprKind::NativeConstructor(_, _) => {
-                if let Some(Type::Map(_))=expr.ty {
-                    let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
-                    return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
-                }
-                let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
-                let id = self.native_record_declaration(id);
-                let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};
-                let code = format!("Record{id} {{ values: {backend}::new() }}");
-                match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
-            }
+            ExprKind::NativeConstructor(_, _) => self.native_collection_constructor_expression(expr,mode),
             ExprKind::TypeAssertion { value, satisfies, .. } => {
                 let code = self.expr(fun, value, mode);
                 if !satisfies && value.ty == Some(Type::Int) && expr.ty == Some(Type::Number) {

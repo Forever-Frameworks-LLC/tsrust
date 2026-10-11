@@ -6288,6 +6288,12 @@ impl Analyzer {
             if self.expression_type_hint(context, base).is_some_and(|ty| self.unions.payload(ty).unwrap_or(ty) == Type::String))
     }
 
+    fn borrowed_query_projection_hint(&self, context:&Context, expr:&Expr)->bool {
+        let mut receiver=expr;
+        while let ExprKind::Unary{op:UnaryOp::NonNull,value,..}=&receiver.kind {receiver=value;}
+        matches!(self.expression_type_hint(context,receiver),Some(Type::BorrowedUnion(_)))
+    }
+
     fn borrowed_place_hint(&mut self, context: &Context, expr: &Expr) -> bool {
         if self.string_position(context, expr) {
             return false;
@@ -6298,7 +6304,6 @@ impl Analyzer {
             ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => {
                 arguments.first().is_some_and(|value| self.expression_type_hint(context, value).is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_))) || self.borrowed_place_hint(context, value))
             }
-            ExprKind::Call(_,_) if self.expression_type_hint(context,expr).is_some_and(|ty|matches!(ty,Type::BorrowedUnion(_)))=>true,
             ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=>self.borrowed_place_hint(context,value) || self.indexed_element_hint(context,value),
             ExprKind::Optional { body, .. } => self.borrowed_place_hint(context, body),
             ExprKind::OptionalChain(value) => self.optional_borrowed_hint(context, value),
@@ -6324,7 +6329,8 @@ impl Analyzer {
             ExprKind::Field(value, _) | ExprKind::Index(value, _) => {
                 self.expression_type_hint(context, expr)
                     .is_none_or(|ty| !ty.is_copy())
-                    && self.borrowed_place_hint(context, value)
+                    && (self.borrowed_place_hint(context, value)
+                        || self.borrowed_query_projection_hint(context,value))
             }
             ExprKind::Unary {
                 op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
@@ -8084,6 +8090,20 @@ impl Analyzer {
         }
     }
 
+    #[inline(never)]
+    fn native_collection_constructor(&mut self,expr:&mut Expr,expected:Option<Type>)->Result<Type,Diagnostic> {
+        let ExprKind::NativeConstructor(arguments,annotation)=&expr.kind else {unreachable!("native constructor")};
+        if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Native collection construction takes no arguments.", expr.span)); }
+        let annotation = annotation.as_ref().expect("native constructor annotation");
+        let ty = self.resolve_value_annotation(annotation, false)?;
+        if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some())
+            && !matches!(ty,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
+            return Err(Diagnostic::new("native-constructor", "This type has no supported native constructor.", expr.span));
+        }
+        self.require(ty, expected, expr.span)?;
+        Ok(ty)
+    }
+
     fn expression_kind(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
         // Aggregate nesting must not retain the larger general-expression frame.
         let previous_view = expr.ty;
@@ -8158,17 +8178,7 @@ impl Analyzer {
             ExprKind::ArrayOf(_, _) => self.array_constructor(context, expr, loans, expected),
             ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
             ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
-            ExprKind::NativeConstructor(arguments, annotation) => {
-                if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Native collection construction takes no arguments.", expr.span)); }
-                let annotation = annotation.as_ref().expect("native constructor annotation");
-                let ty = self.resolve_value_annotation(annotation, false)?;
-                if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some())
-                    && !matches!(ty,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
-                    return Err(Diagnostic::new("native-constructor", "This type has no supported native constructor.", expr.span));
-                }
-                self.require(ty, expected, expr.span)?;
-                Ok(ty)
-            }
+            ExprKind::NativeConstructor(_, _) => self.native_collection_constructor(expr,expected),
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
             ExprKind::Array(values) => {
                 self.array_literal(context, values, loans, expected, expr.span)
@@ -10198,6 +10208,21 @@ impl Analyzer {
         }
     }
 
+    #[inline(never)]
+    fn native_collection_method_hint(&self,id:usize,name:&str,span:Span)->Option<Type> {
+        match self.program.records[id].native_type {
+            Some(crate::native_signatures::NativeTypeId::OrderedSet)=>self.ordered_set_method_type(name,span).ok(),
+            Some(crate::native_signatures::NativeTypeId::Heap)=>{
+                let result=self.heap_method_type(id,name,span).ok()?;
+                Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})
+            },
+            _=>{
+                let result=self.deque_method_type(id,name,span).ok()?;
+                Some(if matches!(name,"front"|"back"|"at") && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result})
+            },
+        }
+    }
+
     fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
         if matches!(expr.kind, ExprKind::Selected { .. }) {
             return expr.ty;
@@ -10481,14 +10506,8 @@ impl Analyzer {
                         };
                         if result.is_some() { return result; }
                     }
-                    if let Some(Type::Record(id))=receiver_hint && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){return self.ordered_set_method_type(name,expr.span).ok();}
-                    if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap) {
-                        let result=self.heap_method_type(id,name,expr.span).ok()?;
-                        return Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result});
-                    }
-                    if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_element().is_some() {
-                        let result = self.deque_method_type(id, name, expr.span).ok()?;
-                        return Some(if matches!(name.as_str(), "front" | "back" | "at") && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });
+                    if let Some(Type::Record(id))=receiver_hint && self.program.records[id].native_element().is_some() {
+                        return self.native_collection_method_hint(id,name,expr.span);
                     }
                     if let Some(Type::Map(id)) = receiver_hint {
                         let result = self.map_method_type(id, name, expr.span).ok()?;
@@ -11083,7 +11102,7 @@ impl Analyzer {
         loans: &Loans,
         span: Span,
     ) -> Result<Type, Diagnostic> {
-        let borrowed = self.borrowed_place_hint(context, base);
+        let borrowed = self.borrowed_place_hint(context, base) || self.borrowed_query_projection_hint(context,base);
         if borrowed && mode == Mode::Mutate {
             return Err(Diagnostic::new(
                 "borrowed-place",
@@ -11191,7 +11210,7 @@ impl Analyzer {
         let array_context = expected
             .and_then(ArrayElement::from_value_type)
             .map(Type::Array);
-        let borrowed = self.borrowed_place_hint(context, base);
+        let borrowed = self.borrowed_place_hint(context, base) || self.borrowed_query_projection_hint(context,base);
         let ty = self.expression(
             context,
             base,

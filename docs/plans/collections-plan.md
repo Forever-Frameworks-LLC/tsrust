@@ -383,3 +383,7 @@ The focused OrderedMap implementation is ready for S08 family acceptance. Preser
 the accumulated checks; next run complete compiler/LSP regressions, matched family
 measurements and performance review, then refresh and verify installed consumers.
 The implementation is not yet measured or accepted as a complete S08 milestone.
+
+Complete regression acceptance and repaired failure evidence are recorded in
+[the S08 milestone](../milestones/s08-collections.md). Compiler and editor regressions
+are now accepted; family measurement and installed-consumer acceptance remain open.

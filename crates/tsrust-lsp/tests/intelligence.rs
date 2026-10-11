@@ -832,9 +832,9 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                 }
                 continue;
             }
-            // Matcher families of std:testing are reached through expect();
-            // their complete-program examples are the compiler witnesses.
-            if matches!(family.as_str(), "Expectation" | "NegatedExpectation") {
+            // Matcher and native collection families provide complete-program
+            // examples with their required imports and receiver construction.
+            if matches!(family.as_str(), "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {

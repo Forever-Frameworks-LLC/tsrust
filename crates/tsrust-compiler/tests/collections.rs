@@ -700,3 +700,14 @@ fn ordered_map_parameters_and_branches_preserve_family_and_order() {
  let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function build(flag:boolean):OrderedMap<string,int>{const left=new OrderedMap<string,int>();left.set('b',2);left.set('a',1);const right=new OrderedMap<string,int>();right.set('d',4);right.set('c',3);if(flag){return left;}return right;}function add(values:Mutable<OrderedMap<string,int>>){values.set('e',5);}function text(values:ReadOnly<OrderedMap<string,int>>):string{let result='';for(const entry of values){result+=entry[0]+String(entry[1]);}return result;}function main(){const first=build(true);const second=build(false);strictEqual(text(first),'a1b2');strictEqual(text(second),'c3d4');add(first);strictEqual(text(first),'a1b2e5');strictEqual(text(second),'c3d4');}"#;
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
+
+#[test]
+fn borrowed_collection_queries_reject_owning_conditional_branches() {
+ let directory=support::TempDirectory::new();
+ for query in ["values.front()","values.back()","values.at(0)","mapped.get(1)","ordered.get(1)"] {
+  for selection in [format!("true?{query}:'fresh'.repeat(1)"),format!("{query}||'fresh'.repeat(1)"),format!("{query}!")] {
+  let source=format!("import {{Deque,OrderedMap}} from 'std:collections';function main(){{const values=new Deque<string>();values.pushBack('x');const mapped=new Map<int,string>();mapped.set(1,'x');const ordered=new OrderedMap<int,string>();ordered.set(1,'x');const result={selection};console.log(String(result));}}");
+  let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"mixed borrowed and owning query accepted: {query}");assert!(String::from_utf8_lossy(&output.stderr).contains("borrowed-view"),"{}",String::from_utf8_lossy(&output.stderr));
+ }
+ }
+}
