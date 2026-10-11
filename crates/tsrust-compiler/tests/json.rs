@@ -21,8 +21,8 @@ fn json_dynamic_round_trip_limits_and_owned_values() {
 #[test]
 fn json_rejects_invalid_calls_and_forged_values() {
  let dir=support::TempDirectory::new();let path=dir.0.join("bad.tsr");
- for statement in ["parse()", "parse(1)", "kind('null')", "stringify('null')", "const value:JsonValue={}"] {
-  let source=format!("import {{parse,kind,stringify,JsonValue}} from 'std:json'; function main(){{{statement};}}");
+ for statement in ["parse()", "parse(1)", "parseJsonc('null','true')", "kind('null')", "stringify('null')", "const value:JsonValue={}"] {
+  let source=format!("import {{parse,parseJsonc,kind,stringify,JsonValue}} from 'std:json'; function main(){{{statement};}}");
   std::fs::write(&path,support::format_round_trip(&source)).unwrap();
   let output=support::run(support::cli().arg("check").arg(&path),20);assert!(!output.status.success(),"accepted {statement}");
  }
@@ -31,10 +31,25 @@ fn json_rejects_invalid_calls_and_forged_values() {
 fn json_catalog_examples_execute_through_cli() {
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let dir=support::TempDirectory::new();let path=dir.0.join("example.tsr");
- let entries=catalog["std:json"].as_array().unwrap();assert_eq!(entries.len(),6);
+ let entries=catalog["std:json"].as_array().unwrap();assert_eq!(entries.len(),7);
  for entry in entries {for example in entry["examples"].as_array().unwrap() {
   std::fs::write(&path,support::format_round_trip(example["source"].as_str().unwrap())).unwrap();
   let output=support::run(support::cli().arg("run").arg(&path),90);support::success(&output);
   assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap(),"{}",entry["name"]);
  }}
+}
+
+#[test]
+fn jsonc_is_explicit_and_preserves_original_error_locations() {
+ let dir=support::TempDirectory::new();let path=dir.0.join("comments.tsr");
+ let source=r#"import {parse,parseJsonc,stringify} from 'std:json';import {strictEqual} from 'std:testing';
+ function main(){const input='{/*é*/"a":[1,],}';const decode=parseJsonc;
+ match(parse(input)){Ok(_)=>{throw 'strict accepted';},Err(_)=>{}}
+ match(decode(input)){Ok(_)=>{throw 'default accepted trailing comma';},Err(_)=>{}}
+ match(decode(input,true)){Ok(value)=>{match(stringify(value)){Ok(text)=>{strictEqual(text,'{"a":[1]}');},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}
+ match(parseJsonc('/*x*/null',false,{maxBytes:4,maxDepth:2,maxEntries:2,maxNodes:2})){Ok(_)=>{throw 'comments bypassed byte limit';},Err(error)=>{strictEqual(error.code,'byte-limit');}}
+ match(parseJsonc('null /* secret')){Ok(_)=>{throw 'unterminated comment accepted';},Err(error)=>{strictEqual(error.code,'unterminated-comment');strictEqual(error.offset,5);}}
+ }"#;
+ std::fs::write(&path,support::format_round_trip(source)).unwrap();
+ for release in [false,true] {let mut command=support::cli();command.arg("run").arg(&path);if release {command.arg("--release");}support::success(&support::run(&mut command,90));}
 }

@@ -6122,7 +6122,7 @@
     "name": "JsonError",
     "signature": "type JsonError = { code: string; message: string; offset: int }",
     "parameters": [],
-    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit and output-limit. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits use zero. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
+    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit, output-limit and unterminated-comment. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits use zero. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
     "examples": [
       {
         "source": "import {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",
@@ -6200,6 +6200,31 @@
         "output": "{\"a\":2,\"z\":1}\n"
       }
     ]
-  }
+  },
+{
+  "name": "parseJsonc",
+  "signature": "parseJsonc(text: ReadOnly<string>, allowTrailingComma?: boolean, limits?: ReadOnly<JsonLimits>): Result<JsonValue, JsonError>",
+  "parameters": [
+    {
+      "label": "text: ReadOnly<string>",
+      "documentation": "Required UTF-8 JSONC document. Original input bytes, including comments, count against maxBytes."
+    },
+    {
+      "label": "allowTrailingComma?: boolean",
+      "documentation": "Optional, default false. Set true to accept one comma after the final array element or object property."
+    },
+    {
+      "label": "limits?: ReadOnly<JsonLimits>",
+      "documentation": "Optional complete parse budgets, with the same defaults and ranges as parse."
+    }
+  ],
+  "documentation": "Parses JSON with // line comments and /* block comments */ wherever JSON permits whitespace. Comment delimiters inside strings remain literal. Line comments end at LF or CR; block comments end at the first */ and do not nest. Returns Ok with an owned JsonValue or Err with a JsonError. Unterminated block comments return unterminated-comment at the opening slash. All offsets address original UTF-8 input bytes. Trailing commas reject unless allowTrailingComma is true; empty collections with a comma and repeated commas always reject. Limits default to 16777216 input bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Comment bytes count toward the input limit. Number, Unicode and duplicate-key rules match parse. Comments are discarded; stringify emits strict JSON. Neither argument changes.\n\n```tsrust\nimport {parseJsonc,kind} from \"std:json\"; function main(){match(parseJsonc(\"/* note */ [1,]\",true)){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: array. Ownership: borrows text and limits; allocates bounded scratch storage and an independent owned result.",
+  "examples": [
+    {
+      "source": "import {parseJsonc,kind} from \"std:json\"; function main(){match(parseJsonc(\"/* note */ [1,]\",true)){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
+      "output": "array\n"
+    }
+  ]
+}
 ]
 }

@@ -1946,5 +1946,15 @@ fn json_editor_contract() {
  let help=ask(&index,entry,"'null'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),2,"{help}");
  let importing="import { } from 'std:json';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
  let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
- for name in ["parse","stringify","kind","JsonValue","JsonError","JsonLimits"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+ for name in ["parse","parseJsonc","stringify","kind","JsonValue","JsonError","JsonLimits"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+}
+
+#[test]
+fn jsonc_editor_contract() {
+ let entry="import {parseJsonc as decode} from 'std:json';function main(){const result=decode('null',true);}";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
+ let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"decode('null'","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
+ for text in ["allowTrailingComma","unterminated-comment","original UTF-8","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
+ let help=ask(&index,entry,"'null'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3,"{help}");
 }

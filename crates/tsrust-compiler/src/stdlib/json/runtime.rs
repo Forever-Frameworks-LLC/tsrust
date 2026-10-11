@@ -23,6 +23,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 fn message(code: &str) -> &'static str {
     match code {
+        "unterminated-comment" => "JSONC block comment is not terminated",
         "output-limit" => "JSON output byte limit exceeded",
         "byte-limit" => "JSON input byte limit exceeded",
         "depth-limit" => "JSON nesting limit exceeded",
@@ -56,6 +57,57 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
     ).map_err(|error| located(input, error, budget.failed))?;
     decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
     Ok(value)
+}
+
+/// Replace comments with same-length whitespace so backend offsets still address
+/// the original document. This bounded scratch buffer never mutates caller input.
+pub fn parse_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result<Value, Error> {
+    if input.len()>limits.bytes {return Err(failure("byte-limit",limits.bytes));}
+    if limits.depth>64 {return Err(invalid_limits());}
+    if let Err(error)=std::str::from_utf8(input) {return Err(failure("invalid-utf8",error.valid_up_to()));}
+    let mut normalized=input.to_vec();let mut index=0;let mut quoted=false;
+    while index<input.len() {
+        let byte=input[index];
+        if quoted {
+            if byte==b'\\' {index=(index+2).min(input.len());continue;}
+            if byte==b'"' {quoted=false;}
+            index+=1;continue;
+        }
+        if byte==b'"' {quoted=true;index+=1;continue;}
+        if byte==b'/' && input.get(index+1)==Some(&b'/') {
+            let start=index;index+=2;
+            while index<input.len() && !matches!(input[index],b'\r'|b'\n') {index+=1;}
+            normalized[start..index].fill(b' ');continue;
+        }
+        if byte==b'/' && input.get(index+1)==Some(&b'*') {
+            let start=index;index+=2;
+            while index+1<input.len() && &input[index..index+2]!=b"*/" {index+=1;}
+            if index+1>=input.len() {return Err(failure("unterminated-comment",start));}
+            index+=2;
+            for byte in &mut normalized[start..index] {if !matches!(*byte,b'\r'|b'\n') {*byte=b' ';}}
+            continue;
+        }
+        index+=1;
+    }
+    if trailing_comma {
+        let mut index=0;let mut quoted=false;let mut previous=None;
+        while index<normalized.len() {
+            let byte=normalized[index];
+            if quoted {
+                if byte==b'\\' {index=(index+2).min(normalized.len());continue;}
+                if byte==b'"' {quoted=false;previous=Some(b'"');}
+                index+=1;continue;
+            }
+            if byte==b'"' {quoted=true;index+=1;continue;}
+            if byte==b',' && !matches!(previous,None|Some(b'['|b'{'|b','|b':')) {
+                let next=normalized[index+1..].iter().copied().find(|byte|!matches!(byte,b' '|b'\t'|b'\r'|b'\n'));
+                if matches!(next,Some(b']'|b'}')) {normalized[index]=b' ';}
+            }
+            if !matches!(byte,b' '|b'\t'|b'\r'|b'\n') {previous=Some(byte);}
+            index+=1;
+        }
+    }
+    parse(&normalized,limits)
 }
 
 pub fn stringify(value: &Value, max_bytes: usize) -> Result<std::string::String, Error> {
@@ -144,6 +196,23 @@ impl<'de> serde::de::DeserializeSeed<'de> for KeySeed<'_> {
 mod tests {
     use super::*;
     fn limits() -> Limits { Limits { bytes: 1024, depth: 4, entries: 3, nodes: 20 } }
+    #[test]
+    fn jsonc_comments_trailing_commas_and_offsets() {
+        let input=br#"{/* note */"url":"https://host/*literal*/",// line
+"values":[1,2,],}"#;
+        assert!(parse(input,limits()).is_err());
+        assert!(parse_jsonc(input,limits(),false).is_err());
+        let value=parse_jsonc(input,limits(),true).unwrap();
+        assert_eq!(value["url"],"https://host/*literal*/");assert_eq!(value["values"],serde_json::json!([1,2]));
+        assert_eq!(parse_jsonc(b"// comment\rnull",limits(),false).unwrap(),Value::Null);
+        let bad="/*é*/\n[0,secret]";
+        assert_eq!(parse_jsonc(bad.as_bytes(),limits(),false).unwrap_err().offset,bad.find("secret").unwrap());
+        let error=parse_jsonc(b"null /* secret",limits(),false).unwrap_err();
+        assert_eq!(error.code,"unterminated-comment");assert_eq!(error.offset,5);assert!(!error.to_string().contains("secret"));
+        for bad in ["[,]","{,}","[1,,]","{\"a\":,}","1/*x*/2","/*x*/","[1,] garbage"] {assert!(parse_jsonc(bad.as_bytes(),limits(),true).is_err(),"{bad}");}
+        assert_eq!(parse_jsonc(b"/*long*/null",Limits{bytes:4,..limits()},false).unwrap_err().code,"byte-limit");
+        assert_eq!(parse_jsonc(&[b'/',b'/',0xff,b'\n',b'0'],limits(),false).unwrap_err().code,"invalid-utf8");
+    }
     #[test]
     fn encoding_limits_count_utf8_and_escaped_output_bytes() {
         for (input,expected) in [("\"é\"","\"é\""),("\"\\u0000\"","\"\\u0000\""),("-0.0","-0.0"),("18446744073709551615","18446744073709551615")] {

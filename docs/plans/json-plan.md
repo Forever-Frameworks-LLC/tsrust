@@ -1,6 +1,6 @@
 # S10 JSON
 
-Status: the first public dynamic slice (`parse`, `stringify`, `kind`, `JsonValue`,
+Status: the first public dynamic slice (`parse`, `parseJsonc`, `stringify`, `kind`, `JsonValue`,
 `JsonError`, `JsonLimits`) passes focused compiler/native/editor checks in source.
 Matched benchmark support, JSON-aware emit distribution and installed acceptance
 remain open, so this implementation slice is not yet accepted. S09 is accepted;
@@ -221,3 +221,34 @@ retention. Add compiler ownership/rejection tests, editor documentation, executa
 file examples, matched Node references and streaming allocation evidence as these
 APIs land. Final API names and records must follow the existing std:json/std:fs
 style; the above is the required behavior, not a claim of implemented exports.
+
+
+## JSONC implementation slice
+
+`parseJsonc(text, allowTrailingComma?, limits?)` is now implemented in source.
+The flag defaults to false and the optional limits record shares strict parse's
+budgets and defaults. Comments count toward the original input byte limit.
+Unterminated block comments produce unterminated-comment at the opening slash;
+other decoder offsets continue to address the original document.
+
+The backend validates original UTF-8, then uses one bounded input-sized scratch
+buffer. It masks comments with same-length whitespace while preserving CR/LF,
+leaves string contents untouched, and optionally masks a trailing comma before a
+closing array/object delimiter. It rejects empty collections containing commas,
+repeated commas and malformed syntax. Ordinary parse still receives the original
+bytes and remains strict. Encoding a parsed JSONC value produces strict JSON.
+This is an initial correctness implementation; scratch allocation and repeated
+validation cost must be included in the variant measurements before optimization.
+
+Focused tests cover comment delimiters inside strings, line comments ending at
+CR, block comments, multibyte comment text before an error, original offsets,
+unterminated comments, invalid UTF-8 inside comments, limits and invalid comma
+placements. Native checks cover direct and saved callable use, strict rejection,
+default/explicit comma behavior, explicit limits and debug/release execution.
+The catalog includes a native executable example, aliased hover, three-parameter
+signature help and import completion. Exact logs use `tsrust-s10-jsonc-*` in SQLite.
+
+JSONC implementation is not complete family acceptance: matched JSONC reference
+and benchmark registration remain open alongside package export and installed
+checks. JSONL, bounded file adapters, typed paths and the other S10 requirements
+remain active; none is replaced by this whole-document JSONC decoder.

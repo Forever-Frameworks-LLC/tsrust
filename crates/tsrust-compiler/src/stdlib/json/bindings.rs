@@ -22,3 +22,13 @@ pub(crate) const KIND:NativeBinding=NativeBinding {
  parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false}],
  result:NativeType::String,backend:NativeBackend::Bundled{symbol:"tsrust_std_json_kind"},features:&["json"],
 };
+
+pub(crate) const PARSE_JSONC:NativeBinding=NativeBinding {
+ name:"parseJsonc",
+ parameters:&[
+  NativeParameter{name:"text",ty:NativeType::String,access:Mode::Read,optional:false,rest:false},
+  NativeParameter{name:"allowTrailingComma",ty:NativeType::Boolean,access:Mode::Copy,optional:true,rest:false},
+  NativeParameter{name:"limits",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonLimits)),access:Mode::Read,optional:true,rest:false},
+ ],
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_parse_jsonc"},..PARSE
+};
