@@ -385,6 +385,11 @@ fn verify_backend() -> Result<String, String> {
         .map_err(|error| {
             format!("Cannot invoke pinned Rust {RUST_BACKEND_VERSION}: {error}. {setup}")
         })?;
+    validate_backend_output(result)
+}
+
+fn validate_backend_output(result:std::process::Output)->Result<String,String> {
+    let setup=format!("Install rustup and run `rustup toolchain install {RUST_BACKEND_VERSION} --profile minimal`. check/emit do not require it.");
     if !result.status.success() {
         return Err(format!(
             "Pinned Rust {RUST_BACKEND_VERSION} is unavailable. {setup}\n{}",

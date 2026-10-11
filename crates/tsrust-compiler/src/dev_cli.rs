@@ -47,6 +47,18 @@ mod platform {
     }
     impl Drop for Process {fn drop(&mut self){self.stop();}}
     struct Running {process:Process,_files:TempDirectory}
+    fn wait_for_build(process:&mut Process,root:&Path,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<std::process::ExitStatus>,String> {
+        let mut last_input_check=Instant::now();
+        loop {
+            if STOP.load(Ordering::Relaxed){return Ok(None);}
+            if last_input_check.elapsed()>=Duration::from_millis(100) {
+                if &watcher.snapshot(root)!=expected{return Ok(None);}
+                last_input_check=Instant::now();
+            }
+            if let Some(status)=process.child.try_wait().map_err(|e|e.to_string())? {process.stop();return Ok(Some(status));}
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
     fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
         use std::sync::mpsc::{self,TrySendError,TryRecvError};
         let project=project_config::load(root)?;
@@ -77,8 +89,16 @@ mod platform {
         };
         if &watcher.snapshot(root)!=expected {return Ok(None);}
         if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
-        let backend_started=Instant::now();let backend_identity=crate::verify_backend()?;let backend_elapsed=backend_started.elapsed();
         let files=TempDirectory::new().map_err(|e|e.to_string())?;
+        let backend_started=Instant::now();
+        let probe_out=files.0.join("backend-version.stdout");let probe_err=files.0.join("backend-version.stderr");
+        let mut command=crate::backend_command();command.arg("--version")
+            .stdout(std::fs::File::create(&probe_out).map_err(|e|e.to_string())?)
+            .stderr(std::fs::File::create(&probe_err).map_err(|e|e.to_string())?);
+        let mut probe=Process::spawn(&mut command)?;
+        let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
+        let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
+        let backend_elapsed=backend_started.elapsed();
         let binary=files.0.join("program");let generated=files.0.join("program.rs");
         std::fs::write(&generated,&frontend.rust).map_err(|e|e.to_string())?;
         let features=frontend.features.join(",");
@@ -95,16 +115,7 @@ mod platform {
             command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&generated).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;
-            let status=loop {
-                if STOP.load(Ordering::Relaxed) {return Ok(None);}
-                if last_input_check.elapsed()>=Duration::from_millis(100) {
-                    if &watcher.snapshot(root)!=expected {return Ok(None);}
-                    last_input_check=Instant::now();
-                }
-                if let Some(status)=compiler.child.try_wait().map_err(|e|e.to_string())? {break status;}
-                std::thread::sleep(Duration::from_millis(20));
-            };
-            compiler.stop();
+            let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
             if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
             let _=cache.publish(&binary);
         }

@@ -210,3 +210,19 @@ not preempted; obsolete responses are discarded and queued work is bounded. Next
 verify cancellation during builds and immutable source snapshots, then refresh
 consumers and measure the completed retained-state stage. Separate native runtime
 compilation, artifact eviction and Linux watcher execution remain required.
+
+## Dev build cancellation acceptance
+
+A blocked-backend witness exposed that the retained-worker integration had moved
+backend version probing onto the supervisor thread without cancellation. Version
+probing now runs in a supervised process group, using the same bounded polling and
+cleanup as native compilation. The ordinary CLI and dev share backend version
+validation, preserving the pinned-toolchain contract.
+
+Two focused subprocess witnesses pass: interrupting a blocked version probe reaps
+its wrapper and descendant, and editing during a blocked native build reaps the
+obsolete compiler while preserving the last working program until the newest
+executable succeeds. The stale candidate never runs. Five project CLI checks also
+pass. Original failure and passing evidence use `tsrust-dev-cancel-*` in SQLite.
+Immutable source snapshot acceptance remains next; installed refresh and performance
+measurement are still pending for the retained-state stage.
