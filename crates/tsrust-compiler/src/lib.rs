@@ -30,6 +30,7 @@ mod completion;
 mod match_coverage;
 mod error_effects;
 mod diagnostic;
+mod semantic_diagnostics;
 mod emit;
 mod fixed_storage;
 mod flow;
@@ -245,15 +246,22 @@ pub fn check(source: &str) -> Result<Analysis, Diagnostic> {
 
 /// Collect diagnostics without exposing a recovered tree to code generation.
 /// Syntax recovery currently resumes at statement boundaries inside blocks.
-/// Semantic checking remains strict and reports its first error.
+/// Semantic replay discards invalid statements without exposing an executable tree.
 pub fn diagnostics(source: &str) -> Vec<Diagnostic> {
     match check(source) {
         Ok(_) => Vec::new(),
-        Err(error) if error.code == "syntax" => {
-            let errors = syntax::diagnostics(source);
-            if errors.is_empty() { vec![error] } else { errors }
-        }
-        Err(error) => vec![error],
+        Err(error) => diagnostic_error(source,error),
+    }
+}
+
+pub(crate) fn diagnostic_error(source: &str, error: Diagnostic) -> Vec<Diagnostic> {
+    if error.code=="syntax" {
+        let errors=syntax::diagnostics(source);
+        return if errors.is_empty() {vec![error]} else {errors};
+    }
+    match syntax::parse(source) {
+        Ok(program)=>semantic_diagnostics::collect(program,error),
+        Err(_)=>vec![error],
     }
 }
 

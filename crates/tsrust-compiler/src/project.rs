@@ -440,18 +440,20 @@ pub fn load_project(
     load_graph(provider, entry, true)
 }
 
-/// Check normally, then collect independent module syntax errors if parsing failed.
+/// Check normally, then collect independent semantic errors or module syntax errors.
 /// Header graphs and recovered syntax never produce executable analysis.
 pub fn check_with_diagnostics(
     provider: &impl SourceProvider,
     entry: &str,
 ) -> Result<ProjectAnalysis, Vec<ProjectDiagnostic>> {
-    let original = match load_project(provider, entry).and_then(check_graph) {
-        Ok(analysis) => return Ok(analysis),
-        Err(error) => error,
+    let mut errors = match load_project(provider, entry) {
+        Ok(graph)=>match crate::project_link::check_graph_diagnostics(graph) {
+            Ok(analysis)=>return Ok(analysis),
+            Err(errors)=>errors,
+        },
+        Err(error)=>vec![error],
     };
-    if original.code != "syntax" { return Err(vec![original]); }
-    let mut errors = vec![original];
+    if !errors.iter().any(|error|error.code=="syntax") {return Err(errors);}
     if let Ok(graph) = load_project_headers(provider, entry) {
         for (id, module) in &graph.modules {
             errors.extend(syntax::module_diagnostics(&module.declaration_source, is_test_entry(&id.0))

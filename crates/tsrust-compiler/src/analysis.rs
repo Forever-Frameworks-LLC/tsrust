@@ -5619,6 +5619,13 @@ impl Analyzer {
     }
 
     #[inline(never)]
+    fn skip_diagnostic_statement(&self, statement: &mut Stmt) -> bool {
+        if !self.program.diagnostic_skips.contains(&statement.span) {return false;}
+        statement.kind=StmtKind::Block(Vec::new());
+        true
+    }
+
+    #[inline(never)]
     fn block_with_scope(&mut self, context: &mut Context, body: &mut [Stmt], result_type: Type, keep_names: bool) -> Result<bool, Diagnostic> {
         if self.depth >= 128 {
             return Err(Diagnostic::new(
@@ -5657,6 +5664,11 @@ impl Analyzer {
         let (nested_stores, whole_stores) = nullable_record_fields::control_stores(body);
         let mut declared = first_local;
         for stmt in body.iter_mut() {
+            // Only diagnostic replay sets these keys; executable analysis never does.
+            // Keep declarations in the lexical prepass so shadowed outer names cannot
+            // become visible after an invalid initializer is skipped.
+            if !self.program.diagnostic_skips.is_empty() && self.skip_diagnostic_statement(stmt) {continue;}
+
             if exited {
                 return Err(Diagnostic::new(
                     "unsupported",

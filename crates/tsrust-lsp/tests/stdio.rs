@@ -386,7 +386,7 @@ fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repa
     let directory=directory.canonicalize().unwrap();
     let uri_for=|path: &std::path::Path|tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(path.to_str().unwrap().into())).unwrap().to_string();
     let file=directory.join("unopened.tsr");
-    std::fs::write(&file,"function broken(){const a:int=\"bad\";}").unwrap();
+    std::fs::write(&file,"function broken(){const a:int=\"bad\";const b:boolean=42;}").unwrap();
     let uri=uri_for(&file);
     let root=uri_for(&directory);
     let mut server=Server::start();
@@ -403,11 +403,11 @@ fn workspace_scan_finds_unopened_files_and_tracks_create_delete_and_unsaved_repa
                 && notification.params["diagnostics"].as_array().unwrap().len()==count {break;}
         }
     };
-    expect(&server,&uri,1);
+    expect(&server,&uri,2);
     server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":"function broken(){}"}}));
     expect(&server,&uri,0);
     server.notify("textDocument/didClose",json!({"textDocument":{"uri":uri}}));
-    expect(&server,&uri,1);
+    expect(&server,&uri,2);
     let created=directory.join("created.tsr");let created_uri=uri_for(&created);
     std::fs::write(&created,"function broken(){const a=;const b=;}").unwrap();
     server.notify("workspace/didChangeWatchedFiles",json!({"changes":[{"uri":created_uri,"type":1}]}));

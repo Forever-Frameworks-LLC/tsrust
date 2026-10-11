@@ -48,8 +48,7 @@ pub fn check_input_diagnostics(path: &Path, source: &str) -> Result<CheckedInput
     } else {
         match check(source) {
             Ok(analysis) => Ok(CheckedInput::Single(analysis)),
-            Err(error) if error.code == "syntax" => Err(crate::diagnostics(source).into_iter().map(InputDiagnostic::Single).collect()),
-            Err(error) => Err(vec![InputDiagnostic::Single(error)]),
+            Err(error) => Err(crate::diagnostic_error(source,error).into_iter().map(InputDiagnostic::Single).collect()),
         }
     }
 }

@@ -125,3 +125,18 @@ fn check_recovers_test_registration_bodies_with_original_coordinates() {
         assert_eq!(error.location.span.start,offset+1);
     }
 }
+
+#[test]
+fn check_reports_multiple_semantic_errors_without_allowing_builds() {
+    let directory=support::TempDirectory::new();
+    let source="function main(){const first:int=\"bad\";const dependent=first;console.log(dependent);const second:boolean=42;}";
+    let file=directory.source(source);
+    let output=support::run(support::cli().arg("check").arg(&file).arg("--json"),30);
+    let text=String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(),Some(1));assert_eq!(text.matches("\"code\":").count(),2,"{text}");
+    assert!(!support::run(support::cli().arg("build").arg(&file),30).status.success());
+    fs::write(directory.0.join("library.tsr"),"export function bad(){const first:int=\"bad\";const second:boolean=42;}").unwrap();
+    fs::write(&file,"import {bad} from './library.tsr';function main(){bad();}").unwrap();
+    let errors=tsrust_compiler::project::check_with_diagnostics(&tsrust_compiler::project::FileSourceProvider,file.to_str().unwrap()).err().unwrap();
+    assert_eq!(errors.len(),2,"{errors:?}");assert!(errors.iter().all(|error|error.code=="type" && error.location.source.0.ends_with("library.tsr")));
+}

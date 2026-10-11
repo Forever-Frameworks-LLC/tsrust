@@ -51,3 +51,17 @@ fn module_syntax_errors_use_unsaved_dependency_sources_and_clear_on_repair() {
     assert!(snapshot.check_with_diagnostics(&entry).is_ok());
     assert!(tsrust_lsp::project_diagnostics::convert_all(&snapshot,&[]).unwrap()[&dependency].is_empty());
 }
+
+#[test]
+fn module_semantic_diagnostics_publish_independent_errors_without_name_cascades() {
+    let entry=source_id("file:///semantic-errors/entry.tsr").unwrap();
+    let dependency=source_id("file:///semantic-errors/library.tsr").unwrap();
+    let mut workspace=Workspace::default();
+    workspace.open(entry.clone(),1,"import {bad} from './library.tsr';function main(){bad();}".into());
+    workspace.open(dependency.clone(),1,"export function bad(){const first:int=\"bad\";const dependent=first;console.log(dependent);const second:boolean=42;}".into());
+    let snapshot=workspace.snapshot();
+    let errors=snapshot.check_with_diagnostics(&entry).err().unwrap();
+    assert_eq!(errors.len(),2,"{errors:?}");assert!(errors.iter().all(|error|error.code=="type"));
+    let buckets=tsrust_lsp::project_diagnostics::convert_all(&snapshot,&errors).unwrap();
+    assert_eq!(buckets[&dependency].len(),2);assert!(buckets[&entry].is_empty());
+}

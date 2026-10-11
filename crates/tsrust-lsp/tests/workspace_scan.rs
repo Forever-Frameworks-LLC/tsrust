@@ -5,7 +5,8 @@ use tsrust_compiler::project::SourceId;
 struct Directory(PathBuf);
 impl Directory {
     fn new()->Self {
-        let path=std::env::temp_dir().join(format!("tsrust-scan-unit-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        static NEXT:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(0);
+        let path=std::env::temp_dir().join(format!("tsrust-scan-unit-{}-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),NEXT.fetch_add(1,std::sync::atomic::Ordering::Relaxed)));
         std::fs::create_dir(&path).unwrap();Self(path.canonicalize().unwrap())
     }
     fn uri(&self,name:&str)->String {file_uri(&SourceId(self.0.join(name).to_str().unwrap().into())).unwrap().to_string()}

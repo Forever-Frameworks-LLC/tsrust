@@ -135,3 +135,37 @@ and fingerprints. Closed logs use `tsrust-workspace-scan-*` in SQLite.
 Remaining diagnostic milestone work: semantic/ownership recovery, broader malformed
 syntax boundaries, final combined acceptance and coordinated installed-consumer
 refresh. No benchmark timing or installed-editor acceptance is claimed here.
+
+## Statement semantic recovery checkpoint
+
+Compiler diagnostics now replay semantic analysis from pristine input after an
+invalid nonterminal statement. Valid preceding ownership changes are re-established
+on every pass; partial changes from the failed statement cannot leak forward.
+Invalid declarations remain in lexical scope discovery, so removing an initializer
+does not accidentally expose a shadowed outer name. Follow-on unknown-name errors
+that resolve to skipped declarations are suppressed, including dependent bindings.
+Replay is limited to 128 attempts and 64 reported errors, with deterministic source
+ordering. Recovered checked trees are discarded and never become public Analysis
+or ProjectAnalysis values; strict checking/building still rejects the original input.
+
+The CLI, standalone LSP, module diagnostics and workspace scanner use the collector.
+Focused cases cover independent types, repeated transfers, overlapping access and
+related locations, lexical shadows, nested callbacks, independent functions, module
+coordinates, rejected builds and multiple semantic errors in unopened workspace files.
+The shared rejection helper retains the original strict diagnostic assertion and now
+compares the CLI's complete list against the diagnostic API.
+
+Recovery deliberately stops at a failing return, throw or control jump, including a
+failed enclosing control statement that contains one. It does not create fallthrough
+paths or substitute return values. Continuing beyond these boundaries, declaration
+errors and other unsupported semantic boundaries remains required milestone work.
+
+Validation: 30 compiler tests (nine recovery, ten project diagnostics, eleven control
+flow), seven editor conversion/scanner tests and the workspace protocol witness pass.
+The scanner fixture now uses an atomic suffix after a parallel temporary-name collision.
+The depth canary initially aborted: disassembly showed the new inline AST replacement
+had increased the recursive block frame to 11,216 bytes. A nonrecursive helper reduced
+the final frame to 10,592 bytes and the normal-stack canary passes. Strict checks bypass
+the helper when no diagnostic skips exist. Original failing logs are retained alongside
+repairs under `tsrust-semantic-diagnostics-*` in SQLite. No full milestone regression,
+performance measurement or installed-consumer refresh is claimed yet.

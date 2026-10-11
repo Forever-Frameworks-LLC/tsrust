@@ -146,16 +146,24 @@ fn symbol(module: usize, name: &str) -> String {
 pub fn check_graph(graph: ProjectGraph) -> Result<ProjectAnalysis, ProjectDiagnostic> {
     let test_entry = crate::project::is_test_entry(&graph.entry.0);
     let entries = if test_entry { vec![graph.entry.clone()] } else { Vec::new() };
-    check_graph_entry(graph, &entries)
+    check_graph_entry(graph, &entries, None)
+}
+pub(crate) fn check_graph_diagnostics(graph: ProjectGraph) -> Result<ProjectAnalysis, Vec<ProjectDiagnostic>> {
+    let entries=if crate::project::is_test_entry(&graph.entry.0) {vec![graph.entry.clone()]} else {Vec::new()};
+    let mut errors=Vec::new();
+    match check_graph_entry(graph,&entries,Some(&mut errors)) {
+        Ok(analysis)=>Ok(analysis),
+        Err(error)=>{if errors.is_empty(){errors.push(error);}Err(errors)}
+    }
 }
 pub(crate) fn check_test_graph(graph: ProjectGraph) -> Result<ProjectAnalysis, ProjectDiagnostic> {
     let entry = graph.entry.clone();
-    check_graph_entry(graph, &[entry])
+    check_graph_entry(graph, &[entry], None)
 }
 pub(crate) fn check_test_graph_entries(graph: ProjectGraph, entries: &[SourceId]) -> Result<ProjectAnalysis, ProjectDiagnostic> {
-    check_graph_entry(graph, entries)
+    check_graph_entry(graph, entries, None)
 }
-fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<ProjectAnalysis, ProjectDiagnostic> {
+fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Option<&mut Vec<ProjectDiagnostic>>) -> Result<ProjectAnalysis, ProjectDiagnostic> {
     let mut programs = BTreeMap::new();
     let mut globals: BTreeMap<SourceId, BTreeMap<String, String>> = BTreeMap::new();
     let mut segments = vec![];
@@ -303,6 +311,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
         programs.insert(id.clone(), program);
     }
     let mut linked = Program {
+        diagnostic_skips: Default::default(),
         unresolved_local_function: None,
         local_declarations: Vec::new(),
         local_capture_plans: Vec::new(),
@@ -454,11 +463,19 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId]) -> Result<Projec
     }
     let checked = match crate::analysis::analyze(linked.clone()) {
         Err(value) if value.code == "recursion-inference" => {
-            crate::analysis::analyze_recursive(linked)
+            crate::analysis::analyze_recursive(linked.clone())
         }
         result => result,
-    }
-    .map_err(|value| diagnostic(&graph, &segments, value))?;
+    };
+    let checked=match checked {
+        Ok(checked)=>checked,
+        Err(error)=>{
+            if let Some(errors)=diagnostics {
+                errors.extend(crate::semantic_diagnostics::collect(linked,error.clone()).into_iter().map(|error|diagnostic(&graph,&segments,error)));
+            }
+            return Err(diagnostic(&graph,&segments,error));
+        }
+    };
     Ok(ProjectAnalysis {
         graph,
         analysis: Analysis { program: checked },

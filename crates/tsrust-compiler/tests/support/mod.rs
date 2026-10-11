@@ -114,12 +114,11 @@ pub fn reject(source: &str, code: &str) -> Diagnostic {
     let path = directory.source(source);
     let output = run(cli().arg("check").arg(path).arg("--json"), 10);
     assert_eq!(output.status.code(), Some(1));
+    let diagnostics=tsrust_compiler::diagnostics(source);
+    assert!(diagnostics.iter().any(|error|error.to_json(source)==diagnostic.to_json(source)), "Recovery must retain the strict diagnostic");
     assert_eq!(
         String::from_utf8(output.stdout).unwrap(),
-        format!(
-            "{{\"ok\":false,\"diagnostics\":[{}]}}\n",
-            diagnostic.to_json(source)
-        )
+        format!("{{\"ok\":false,\"diagnostics\":[{}]}}\n",diagnostics.iter().map(|error|error.to_json(source)).collect::<Vec<_>>().join(","))
     );
     assert!(output.stderr.is_empty());
     diagnostic
