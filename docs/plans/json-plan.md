@@ -183,3 +183,41 @@ package export for emitted JSON programs rather than asking users or benchmark
 callers to locate Rust libraries. Then verify installed consumers outside the
 repository. Dynamic child inspection/construction, typed decoding/encoding,
 borrowed/raw fragments, streaming and family measurement acceptance remain open.
+
+## JSONC, JSON Lines and convenient file streams
+
+Owner requested JSONC/JSONL as part of S10, including convenient file streaming.
+These are required before S10 acceptance, not an unspecified later extension.
+Ordinary parse remains strict; format selection is explicit.
+
+- JSONC: support line and block comments outside strings. Preserve original byte
+  offsets and reject unterminated comments. Trailing commas require an explicit
+  option, disabled by default. Decoding produces the same owned JsonValue/typed
+  outputs as strict JSON; encoding produces strict JSON. References:
+  [JSONC draft specification](https://jsonc.org/) and its default trailing-comma rule.
+- JSON Lines (`.jsonl` / newline-delimited JSON): decode one strict JSON value per
+  line. Accept LF/CRLF and a final record without a newline. Blank lines are errors
+  by default; null is a valid record. Reject a BOM. Stream errors identify the
+  record/line and absolute input byte offset without disclosing input. Encoding
+  writes one compact value plus LF per record. Reference:
+  [JSON Lines format](https://jsonlines.org/).
+- File integration: build on the accepted File/BufferedReader/BufferedWriter
+  resource layer. Provide a synchronous pull interface for owned decoded records,
+  plus convenient path-based reading/writing. Distinguish EOF from a JSON null
+  value. Do not require reading an entire file or collecting every record.
+  Typed records must use the direct decoder when that decoder lands.
+- Ownership: a path-based helper owns and deterministically closes its handle on
+  EOF, error or early drop. An adapter over a caller-provided reader borrows it and
+  leaves explicit close to the caller. Writers expose flush/close errors; Drop
+  cleanup cannot report them. Async adapters follow the existing async roadmap.
+- Bounds: enforce maximum record bytes, buffered bytes, depth, collection entries
+  and value count. Pull consumption must not read arbitrarily ahead. Define record
+  failure as terminal by default; do not silently skip malformed records.
+
+Acceptance includes one-byte chunk boundaries through UTF-8, escapes, comments and
+CRLF; oversized unterminated lines; empty files; blank records; missing final LF;
+reader errors; early stop; explicit close and drop; output failures and bounded
+retention. Add compiler ownership/rejection tests, editor documentation, executable
+file examples, matched Node references and streaming allocation evidence as these
+APIs land. Final API names and records must follow the existing std:json/std:fs
+style; the above is the required behavior, not a claim of implemented exports.
