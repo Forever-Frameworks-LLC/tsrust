@@ -916,15 +916,7 @@ impl SourceIndex {
             {
                 break;
             }
-            parts.push(
-                text.trim_start_matches('/')
-                    .trim_start_matches('*')
-                    .trim_end_matches("*/")
-                    .lines()
-                    .map(|line| line.trim().trim_start_matches('*').trim())
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-            );
+            parts.push(crate::documentation::clean(text));
             cursor = span.start;
         }
         parts.reverse();
@@ -2517,7 +2509,7 @@ impl SourceIndex {
             if s.docs.is_empty() {
                 String::new()
             } else {
-                format!("\n\n{}", s.docs)
+                format!("\n\n{}", crate::documentation::render(&s.docs))
             }
         )
     }
@@ -2846,7 +2838,7 @@ impl SourceIndex {
                     11 => 8,
                     _ => 22,
                 };
-                Some(json!({"label":exported,"kind":kind,"detail":symbol.signature.replacen(local,exported,1),"documentation":{"kind":"markdown","value":symbol.docs}}))
+                Some(json!({"label":exported,"kind":kind,"detail":symbol.signature.replacen(local,exported,1),"documentation":{"kind":"markdown","value":crate::documentation::render(&symbol.docs)}}))
             })
             .collect();
         self.import_exports.push((names, items));
@@ -2972,7 +2964,7 @@ impl SourceIndex {
         let s = &self.symbols[symbol];
         match method {
             "textDocument/hover" => Ok(
-                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",s.docs)})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
+                json!({"contents":{"kind":"markdown","value":format!("{}{}",self.checked_generic_signature(token).map_or_else(||self.documentation(s),|(signature,_)|format!("```tsrust\n{signature}\n```{}",if s.docs.is_empty(){String::new()}else{format!("\n\n{}",crate::documentation::render(&s.docs))})),self.checked_view(token).filter(|ty|*ty!=s.ty).map_or(String::new(),|ty|format!("\n\nNarrowed here to `{ty}`.")))},"range":self.range(self.tokens[token].span)}),
             ),
             "textDocument/definition" => Ok(self
                 .foreign_definitions
@@ -3163,7 +3155,7 @@ impl SourceIndex {
                 self.receiver_type(dot)
             };
             let mut items=self.receiver_builtins(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
-            items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}})));
+            items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
             return json!(items);
         }
         let mut items = vec![];
@@ -3195,7 +3187,7 @@ impl SourceIndex {
                 continue;
             }
             if s.name.starts_with(prefix) {
-                items.push(json!({"label":s.name,"kind":match s.kind {12=>3,10=>13,23=>7,_=>6},"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":s.docs},"textEdit":{"range":replace,"newText":s.name}}));
+                items.push(json!({"label":s.name,"kind":match s.kind {12=>3,10=>13,23=>7,_=>6},"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}}));
             }
         }
         for word in [
@@ -3570,7 +3562,7 @@ impl SourceIndex {
                 .and_then(|id| self.native_parameter_docs.get(&id));
             let active = self.call_argument_parameter(open, offset, &parameters);
             let parameters=parameters.iter().enumerate().map(|(index,p)|json!({"label":p,"documentation":{"kind":"markdown","value":native_docs.and_then(|docs|docs.get(index)).cloned().unwrap_or_else(||parameter_doc(&docs,p))}})).collect::<Vec<_>>();
-            let mut help = json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":docs},"parameters":parameters}],"activeSignature":0});
+            let mut help = json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":crate::documentation::render(&docs)},"parameters":parameters}],"activeSignature":0});
             if let Some(active) = active {
                 help["activeParameter"] = json!(active);
             }
@@ -3860,16 +3852,7 @@ fn parameter_doc(docs: &str, label: &str) -> String {
         .unwrap_or("")
         .trim_start_matches("...")
         .trim_end_matches('?');
-    let authored: String = docs
-        .lines()
-        .find_map(|line| {
-            line.trim()
-                .strip_prefix("@param ")
-                .and_then(|tail| tail.strip_prefix(name))
-                .filter(|tail| tail.starts_with(char::is_whitespace))
-                .map(|tail| tail.trim().trim_start_matches('-').trim().into())
-        })
-        .unwrap_or_default();
+    let authored = crate::documentation::parameter_description(docs,name);
     if label.trim_start().starts_with("...") {
         let behavior = "Collects only remaining supplied arguments into a fresh owning array: Copy elements copy and owned elements transfer. Fixed parameters retain their access contracts; omitted/default padding adds no tail elements.";
         if authored.is_empty() {

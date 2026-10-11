@@ -9870,3 +9870,22 @@ fn absent_optional_calls_still_reject_nongeneric_type_arguments() {
     assert!(diagnostics[0]["message"].as_str().unwrap().contains("generic function value"), "{diagnostics}");
     assert_eq!(diagnostics[0]["range"]["start"], json!(at(&source, "action?.", 0)), "{diagnostics}");
 }
+
+#[test]
+fn authored_documentation_preserves_lines_tags_and_inferred_signatures() {
+    let source = tsrust_compiler::format("/**\n * First line.\n * Second line.\n *\n * @param {string} name - Person to greet.\n *   Kept on another line.\n * @returns A greeting.\n * @example\n * ```tsrust\n * greeting(\"Guest\");\n * ```\n */\nfunction greeting(name:string):string{return name.trim();}\nfunction main(){console.log(greeting(\"Pat\"));}").unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    tsrust_compiler::check(&source).unwrap();
+    let hover=ask(&source,"textDocument/hover","greeting(\"Pat\")",0);
+    let docs=hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("First line.  \nSecond line."),"{hover}");
+    assert!(docs.contains("**Returns**") && docs.contains("**Parameter `name`**"),"{hover}");
+    assert!(docs.contains("greeting(name: string): string"),"{hover}");
+    assert!(docs.contains("```tsrust\ngreeting(\"Guest\");\n```"),"{hover}");
+    let help=ask(&source,"textDocument/signatureHelp","\"Pat\"",0);
+    let param=help["signatures"][0]["parameters"][0]["documentation"]["value"].as_str().unwrap();
+    assert!(param.contains("Person to greet.  \n") && param.contains("Kept on another line."),"{help}");
+    let completion=ask(&source,"textDocument/completion","greeting(\"Pat\")",0);
+    let item=completion.as_array().unwrap().iter().find(|item|item["label"]=="greeting").unwrap();
+    assert!(item["documentation"]["value"].as_str().unwrap().contains("**Returns**"),"{item}");
+}

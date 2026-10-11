@@ -217,7 +217,14 @@ exclusion.
 4. **Order:** B15, then scoped aggregates (B5 to B7), then the remaining B rows and
    the section D families.
 
-Still undecided and therefore not in scope: decorators, tagged templates, regular
+Decorator-aware IntelliSense is an explicit future owner request (2026-10-11).
+When decorator semantics are introduced, show checked decorator metadata and any
+resulting signature/type changes in hover, completion and parameter help. Infer
+that information from compiler metadata; do not require duplicate comment tags
+or invent decorator effects from comments. Decorator syntax and runtime semantics
+still require a separate language decision; this request does not approve them.
+
+Still undecided and therefore not in scope: tagged templates, regular
 expression literals, computed property names, object identity equality, and the URI,
 `globalThis`, `JSON` and `Date` globals. `switch` fallthrough (B14) was decided on
 2026-10-10: it stays rejected. The owner

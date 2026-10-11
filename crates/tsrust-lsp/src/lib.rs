@@ -1,4 +1,5 @@
 //! Single-file editor diagnostics. The compiler owns all language semantics.
+mod documentation;
 pub mod workspace_scan;
 pub mod intelligence;
 pub mod project_actions;

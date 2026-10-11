@@ -1958,3 +1958,22 @@ fn jsonc_editor_contract() {
  for text in ["allowTrailingComma","unterminated-comment","original UTF-8","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
  let help=ask(&index,entry,"'null'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3,"{help}");
 }
+
+#[test]
+fn imported_documentation_preserves_multiline_tags_and_parameter_help() {
+    let entry=tsrust_compiler::format("import {greet as greeting} from './greeting.tsr';function main(){console.log(greeting(\"Pat\"));}").unwrap();
+    let dependency=tsrust_compiler::format("/** First line.\n * Second line.\n * @param name - Person to greet.\n *   Continuation.\n * @returns Greeting text.\n */\nexport function greet(name:string):string{return name.trim();}").unwrap();
+    assert_eq!(tsrust_compiler::format(&entry).unwrap(),entry);
+    assert_eq!(tsrust_compiler::format(&dependency).unwrap(),dependency);
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    workspace.open(source_id("file:///tsrust-intelligence/greeting.tsr").unwrap(),1,dependency);
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"greeting(\"Pat\")","textDocument/hover");
+    let docs=hover["contents"]["value"].as_str().unwrap();
+    assert!(docs.contains("First line.  \nSecond line.") && docs.contains("**Returns**"),"{hover}");
+    let help=ask(&index,&entry,"\"Pat\"","textDocument/signatureHelp");
+    assert!(help["signatures"][0]["parameters"][0]["documentation"]["value"].as_str().unwrap().contains("Continuation."),"{help}");
+}
