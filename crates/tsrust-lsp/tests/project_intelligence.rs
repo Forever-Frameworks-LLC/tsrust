@@ -1826,3 +1826,10 @@ fn native_collection_spread_has_element_hover() {
         }
     }
 }
+
+#[test]
+fn native_deque_nested_index_has_element_hover() {
+ let entry=tsrust_compiler::format("import {Deque} from 'std:collections';function main(){const values=new Deque<int[]>();values.pushBack([4]);const first=values.front()![0];console.log(first);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+ for index in [ProjectIndex::checked(&checked),ProjectIndex::new(&checked.graph)] {let hover=ask(&index,&entry,"first);","textDocument/hover");assert!(hover.to_string().contains("first: int"),"{hover}");}
+}

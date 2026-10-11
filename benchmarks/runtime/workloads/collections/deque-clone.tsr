@@ -12,11 +12,12 @@ function workload(n: int, seed: int, input: string): int[][] {
     original.pushBack({
       values: [value, 255]
     });
+    const observed = original.front()!.values[0];
     const copied = clone(original);
     const changed = copied.popFront()!;
     changed.values.push(value + 1);
     const retained = original.popFront()!;
-    output.push([retained.values.length, retained.values[0], changed.values.length, changed.values[2], original.size, copied.size]);
+    output.push([retained.values.length, retained.values[0], changed.values.length, changed.values[2], original.size, copied.size, observed]);
   }
 
   return output;

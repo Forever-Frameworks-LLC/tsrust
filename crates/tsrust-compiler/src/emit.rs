@@ -3872,7 +3872,9 @@ impl Emitter<'_> {
     }
 
     fn borrowed_place_expression(fun: &CheckedFunction, expr: &Expr) -> bool {
+        if matches!(expr.ty,Some(Type::BorrowedUnion(_))) {return true;}
         match &expr.kind {
+            ExprKind::Project{value,..}|ExprKind::Unary{op:UnaryOp::NonNull,value,..}=>Self::borrowed_place_expression(fun,value),
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|Self::borrowed_place_expression(fun,last)),
             ExprKind::TypeAssertion { value, .. } => Self::borrowed_place_expression(fun, value),
             ExprKind::Optional { body, .. } => Self::borrowed_place_expression(fun, body),

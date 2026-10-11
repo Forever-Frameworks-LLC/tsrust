@@ -513,3 +513,16 @@ function main(){const values=new Deque<int[]>();values.pushBack([1,2]);strictEqu
     let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
+
+#[test]
+fn deque_borrowed_nested_indexing_reads_without_transfers() {
+ let source=r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+function consume(value:string):string{return value;}
+function change(values:Mutable<Deque<int[]>>):int{values.clear();return 0;}
+function main(){const values=new Deque<int[]>();values.pushBack([4,5]);strictEqual(values.front()![0],4);strictEqual(values.back()![1],5);strictEqual(values.at(0)![0],4);strictEqual(values.size,1);const words=new Deque<string[]>();words.pushBack(['word']);strictEqual(words.front()![0].length,4);strictEqual(words.size,1);}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ for invalid in [source.replace("strictEqual(values.front()![0],4);","values.front()![0]=9;"),source.replace("strictEqual(words.front()![0].length,4);","consume(words.front()![0]);"),source.replace("strictEqual(values.front()![0],4);","strictEqual(values.front()![change(values)],4);"),source.replace("strictEqual(words.front()![0].length,4);","const borrowed=words.front()![0];words.clear();console.log(borrowed);")] {
+  let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"borrowed index accepted: {invalid}");
+ }
+}

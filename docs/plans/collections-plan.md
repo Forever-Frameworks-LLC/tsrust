@@ -223,5 +223,10 @@ uses readonly access for this observation. Focused execution covers front, back,
 indexed reads and readonly parameters; data-union regression coverage is retained.
 Evidence: `tsrust-s08-deque-projection-acceptance.json` in SQLite.
 
-Direct `values.front()![0]` still receives a `borrowed-view` source diagnostic.
-Complete readonly nested-element indexing before S08 acceptance.
+Readonly nested-element indexing now recognizes that `values.front()![0]` borrows
+the stored array. Scalar elements copy and owned elements remain borrowed. Focused
+checks reject mutation, transfer of owned elements, invalidating a retained element
+borrow, and receiver mutation while computing an index. The matched deep-clone
+workload observes a nested scalar through the readonly front record before cloning.
+Catalog examples exercise this syntax. Evidence:
+`tsrust-s08-deque-index-acceptance.json` in SQLite; timing remains pending.

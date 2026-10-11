@@ -20907,7 +20907,7 @@
       ],
       "iterations": 2048,
       "operationsPerIteration": 1,
-      "operationUnit": "One deep deque clone, independent payload mutation and removal",
+      "operationUnit": "One borrowed nested read, deep deque clone, independent payload mutation and removal",
       "inputText": "collections",
       "category": "collections",
       "implementationGate": "S08",
@@ -20917,10 +20917,10 @@
       "implementationAccepted": true,
       "measured": false,
       "notes": "Five matched native and Node-after-tsc correctness cases pass. Timing remains pending for the collections family.",
-      "specification": "Clone a deque containing a record with an owned numeric array. Mutate and remove the cloned payload independently. Observe both payload lengths, original and appended values, and empty queue sizes.",
-      "sourceSha256": "b2154ee9f9dbf7b3c799431c6d0abedb86a08a935bcd1580b96c982ea8681b44",
-      "counterpartSha256": "dd9930d4ca046b4fc83273a2fefa361b72c8bf75bb404adc971c18807c3ef16b",
-      "verificationEvidence": "runtime/results/2026-10-11T11-40-20-910Z-verify.json"
+      "specification": "Clone a deque containing a record with an owned numeric array. Mutate and remove the cloned payload independently. Observe both payload lengths, original and appended values, and empty queue sizes. Observe a nested scalar through a readonly front view before cloning.",
+      "sourceSha256": "8bee5d00c5cfc39e6a03185078b9e6577726c036c7de4debcce8e8b70495996e",
+      "counterpartSha256": "07106a582d745efdf9b976a5de2f2a49533b1c3ae669a3e5634fea08bb6191a0",
+      "verificationEvidence": "runtime/results/2026-10-11T12-26-30-652Z-verify.json"
     },
     {
       "id": "native_heap",

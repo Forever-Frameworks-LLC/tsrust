@@ -6298,6 +6298,7 @@ impl Analyzer {
             ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => {
                 arguments.first().is_some_and(|value| self.expression_type_hint(context, value).is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_))) || self.borrowed_place_hint(context, value))
             }
+            ExprKind::Call(_,_) if self.expression_type_hint(context,expr).is_some_and(|ty|matches!(ty,Type::BorrowedUnion(_)))=>true,
             ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=>self.borrowed_place_hint(context,value) || self.indexed_element_hint(context,value),
             ExprKind::Optional { body, .. } => self.borrowed_place_hint(context, body),
             ExprKind::OptionalChain(value) => self.optional_borrowed_hint(context, value),
@@ -11206,7 +11207,7 @@ impl Analyzer {
                 base.span,
             ));
         };
-        if borrowed && matches!(mode, Mode::Mutate | Mode::Consume) && !element.ty().is_copy() {
+        if borrowed && (mode==Mode::Mutate || mode==Mode::Consume && !element.ty().is_copy()) {
             return Err(Diagnostic::new(
                 "borrowed-place",
                 "An owned element of an assignment result is borrowed; use clone().",

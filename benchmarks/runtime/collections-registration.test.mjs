@@ -23,7 +23,7 @@ test('Deep deque clone keeps independent nested storage and matched observations
       assert.throws(()=>assertCollectionSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind),/Collection scenario/);
     }
   }
-  assert.deepEqual(expectedCollectionValues(row.id,3,255,'collections'),[[2,255,3,256,0,0],[2,0,3,1,0,0],[2,1,3,2,0,0]]);
+  assert.deepEqual(expectedCollectionValues(row.id,3,255,'collections'),[[2,255,3,256,0,0,255],[2,0,3,1,0,0,0],[2,1,3,2,0,0,1]]);
   for(const n of [0,1,17,2048]) {
     const expected=expectedCollectionObservation(row.id,n,7,'collections');
     assert.deepEqual(expectedExactResult(row.id,n,7,'collections'),expected);

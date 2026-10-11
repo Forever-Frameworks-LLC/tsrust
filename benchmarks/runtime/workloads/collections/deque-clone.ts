@@ -5,11 +5,12 @@ function workload(n: number, seed: number, input: string): number[][] {
     const value = (i + seed) % 256;
     const original: Item[] = [];
     original.push({values: [value, 255]});
+    const observed = original[0].values[0];
     const copied = original.map(item => ({values: item.values.slice()}));
     const changed = copied.shift()!;
     changed.values.push(value + 1);
     const retained = original.shift()!;
-    output.push([retained.values.length, retained.values[0], changed.values.length, changed.values[2], original.length, copied.length]);
+    output.push([retained.values.length, retained.values[0], changed.values.length, changed.values[2], original.length, copied.length, observed]);
   }
   return output;
 }
