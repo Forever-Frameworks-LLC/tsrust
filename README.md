@@ -4,6 +4,12 @@ An experimental TypeScript-familiar language with inferred ownership and native 
 
 Source files use `.tsr`. The compiler is written in Rust. Its reusable analysis library handles parsing, type checking, ownership inference, diagnostics, and Rust generation. The CLI invokes `rustc` only when building native executables. The Rust language server in `crates/tsrust-lsp` shares this library; its [VS Code extension](./editors/vscode/README.md) supplies highlighting and live syntax, type and ownership diagnostics for unsaved single-file source.
 
+`main` is optional. Files containing only declarations, and empty files, can be
+checked, built and run. Running without `main` exits successfully without calling
+any declared functions. When present in the entry file, `function main()` runs
+with no arguments and must return no value. A dependency's `main` is not invoked.
+
+
 The compiler, acceptance tests, and handwritten-witness checks are all Rust. Cargo runs the complete verification suite.
 
 [Rest parameters](./docs/rest-parameters.md) collect remaining arguments into fresh owning arrays. Focused compiler, native and editor acceptance covers current homogeneous data and callable kinds.

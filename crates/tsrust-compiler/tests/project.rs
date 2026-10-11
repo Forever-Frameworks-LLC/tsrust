@@ -331,7 +331,7 @@ fn nullable_imported_types_callbacks_and_recursion_execute() {
     }
 }
 #[test]
-fn private_symbols_reserved_names_and_missing_entry_are_rejected() {
+fn private_symbols_and_reserved_names_are_rejected() {
     for (entry, dependency, code) in [
         (
             "import { visible } from './a.tsr';function main(){hidden();}",
@@ -342,11 +342,6 @@ fn private_symbols_reserved_names_and_missing_entry_are_rejected() {
             "import { visible } from './a.tsr';function main(){}",
             "export function visible(){}function clone(){}",
             "duplicate",
-        ),
-        (
-            "import { visible } from './a.tsr';function other(){}",
-            "export function visible(){}function main(){}",
-            "entry",
         ),
     ] {
         let memory = Memory::new(&[("main.tsr", entry), ("a.tsr", dependency)]);
@@ -364,7 +359,7 @@ fn private_symbols_reserved_names_and_missing_entry_are_rejected() {
 }
 
 #[test]
-fn cli_project_check_lint_emit_build_and_run_preserve_single_file_contracts() {
+fn cli_project_check_emit_build_and_run_preserve_single_file_contracts() {
     let directory = support::TempDirectory::new();
     let entry = directory.0.join("entry file.tsr");
     let dependency = directory.0.join("dependency.tsr");
@@ -382,10 +377,10 @@ fn cli_project_check_lint_emit_build_and_run_preserve_single_file_contracts() {
     support::success(&checked);
     assert!(String::from_utf8_lossy(&checked.stdout).contains("\"ok\":true"));
     assert!(!String::from_utf8_lossy(&checked.stdout).contains("__tsrust_module_"));
-    let lint = support::run(support::cli().arg("lint").arg(&entry), 10);
-    support::success(&lint);
-    assert!(lint.stdout.is_empty());
-    assert!(lint.stderr.is_empty());
+    let checked_text = support::run(support::cli().arg("check").arg(&entry), 10);
+    support::success(&checked_text);
+    assert!(String::from_utf8_lossy(&checked_text.stdout).contains("Check passed."));
+    assert!(checked_text.stderr.is_empty());
     let emitted = support::run(support::cli().arg("emit").arg(&entry), 10);
     support::success(&emitted);
     assert_eq!(

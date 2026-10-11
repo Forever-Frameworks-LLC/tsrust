@@ -6,11 +6,11 @@
 
 Run terminals retain output after the process exits; no acknowledgement is needed to finish the run. Command echo and the terminal-reuse prompt remain hidden. Set `tsrust.run.closeOnSuccess` to true only if automatic terminal closure is desired. Lint uses the Output panel and formatting runs through the editor; neither needs a terminal acknowledgement. Reload the VS Code window after installing the updated extension. The terminal presentation change passed extension type checking and packaging; interactive terminal behavior has not been manually verified in the running window.
 
-Open a saved .tsr file in a trusted workspace. The editor title's play button and **Tsrust: Run File** save the current file and execute it in a dedicated terminal. Stop it with VS Code's task controls. **Tsrust: Check/Lint File** saves and runs syntax/type/ownership checking, showing results in the Tsrust output channel. Live diagnostics continue while typing. **Tsrust: Format Document**, or VS Code's standard Format Document, uses the same formatter as the CLI.
+Open a saved .tsr file in a trusted workspace. The editor title's play button and **Tsrust: Run File** save the current file and execute it in a dedicated terminal. Stop it with VS Code's task controls. **Tsrust: Check File** saves and runs syntax/type/ownership checking, showing results in the Tsrust output channel. Live diagnostics continue while typing. **Tsrust: Format Document**, or VS Code's standard Format Document, uses the same formatter as the CLI.
 
 `tsrust.compiler.path` optionally selects the compiler executable. Otherwise it uses tsrust beside the configured language server. `tsrust.run.release` selects optimized execution. `tsrust.formatOnSave` formats before saving; `tsrust.checkOnSave` checks after saving. Both are enabled for this repository workspace. Other workspaces can opt in. Do not also configure a second format-on-save provider for the same document.
 
-Run uses argument-based ProcessExecution, without shell interpolation, so spaces and shell characters in filenames remain data. The working directory is the source file's directory. Command execution requires workspace trust. Cancelling a save prevents execution. Run requires the existing configured Rust backend; check/lint/format do not build an executable or download tools.
+Run uses argument-based ProcessExecution, without shell interpolation, so spaces and shell characters in filenames remain data. The working directory is the source file's directory. Command execution requires workspace trust. Cancelling a save prevents execution. Run requires the existing configured Rust backend; check/format do not build an executable or download tools.
 
 ## CLI
 
@@ -19,8 +19,10 @@ The local CLI is installed in the user's Cargo bin directory:
 ```sh
 tsrust run path/to/file.tsr
 tsrust run path/to/file.tsr --release
-tsrust lint path/to/file.tsr
-tsrust lint path/to/file.tsr --json
+tsrust check                            # recursively check .tsr files under cwd
+tsrust check src                        # recursively check a directory
+tsrust check path/to/file.tsr
+tsrust check path/to/file.tsr --json
 tsrust format                           # recursively update .tsr files under cwd
 tsrust format src                       # recursively update .tsr files under src
 tsrust format --check                   # report files needing changes; do not write
@@ -31,7 +33,7 @@ tsrust format path/to/file.tsr --check  # exit 1 if formatting differs
 
 Recursive formatting skips `.git`, `node_modules`, `target` and symbolic links. It sorts and deduplicates discovered files, rewrites only changed files, and prints one short write summary. `--check` lists changed files and returns 1 when changes are needed. Lexical or filesystem failures return 1; an invalid source does not prevent other discovered files from being formatted. Explicit single-file printing, `--write` and `--check` retain their existing behavior.
 
-Lint uses compiler syntax, type and ownership checks. Successful CLI lint is silent; check retains detailed contract output and lint --json retains structured results. A manual editor check shows one short result line; successful save-time checks stay silent and never reveal the Output panel. Files with errors return a nonzero exit code. Run preserves the program's exit code and terminal streams. Named project/package scripts remain separate future work.
+Check uses compiler syntax, type and ownership checks. A single-file check retains detailed contract output; `check --json` retains structured results. With no paths it scans the current directory recursively; explicit directories and multiple paths are also supported. A manual editor check shows compiler results; successful save-time checks stay silent and never reveal the Output panel. Files with errors return a nonzero exit code. Run preserves the program's exit code and terminal streams. Named project/package scripts remain separate future work.
 
 ## Formatting contract
 
@@ -55,7 +57,7 @@ Multiple successive supported transfers can be repaired by one clearly labelled 
 
 ## Module execution foundation
 
-The development CLI now checks, emits, builds and runs entry files with explicit named relative imports, for example `import { value } from "./dependency.tsr";` and `export function value(): int { return 7; }`. Only the selected entry's `main()` executes automatically. Dependencies retain private names and defining-module record identity. Aliases are supported; import cycles, private/missing exports and source overwrite targets produce errors. `std:` and package imports remain pending. Compile/runtime failures identify the original imported file. Successful lint remains silent.
+The development CLI now checks, emits, builds and runs entry files with explicit named relative imports, for example `import { value } from "./dependency.tsr";` and `export function value(): int { return 7; }`. Only the selected entry's `main()` executes automatically. Dependencies retain private names and defining-module record identity. Aliases are supported; import cycles, private/missing exports and source overwrite targets produce errors. Bundled `std:` modules are supported; bare package imports remain future work. Compile/runtime failures identify the original imported file. Check reports diagnostics without building an executable.
 
 This compiler increment does not supply project-aware live IntelliSense or unsaved dependency checking yet; those are S04 in the standard-library roadmap. No VSIX installation or installed global CLI refresh was performed for this increment; use the development binary in target/editor/debug after building.
 

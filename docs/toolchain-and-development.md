@@ -38,7 +38,7 @@ lang build
 lang test
 lang check
 lang fmt
-lang lint
+lang check
 lang add
 lang remove
 lang update

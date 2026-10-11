@@ -29,7 +29,7 @@ fn formatting_preserves_literals_comments_templates_and_is_idempotent() {
     }
 }
 #[test]
-fn cli_format_check_write_lint_and_run_work_with_space_paths() {
+fn cli_format_check_write_and_run_work_with_space_paths() {
     let dir = support::TempDirectory::new();
     let path = dir.0.join("hello world.tsr");
     std::fs::write(&path, "function main(){console.log(7);}").unwrap();
@@ -48,7 +48,7 @@ fn cli_format_check_write_lint_and_run_work_with_space_paths() {
         10,
     ));
     support::success(&support::run(
-        support::cli().arg("lint").arg(&path).arg("--json"),
+        support::cli().arg("check").arg(&path).arg("--json"),
         10,
     ));
     let output = support::run(support::cli().arg("run").arg(&path), 60);
@@ -76,20 +76,16 @@ fn blank_lines_and_block_separation_are_preserved_idempotently() {
     assert!(check(&formatted).is_ok());
 }
 #[test]
-fn successful_lint_is_silent_and_check_retains_contract_details() {
+fn check_retains_contract_details_and_lint_is_removed() {
     let dir = support::TempDirectory::new();
     let path = dir.source("function main(){}");
-    let lint = support::run(support::cli().arg("lint").arg(&path), 10);
-    support::success(&lint);
-    assert!(lint.stdout.is_empty());
-    assert!(lint.stderr.is_empty());
-    let check = support::run(support::cli().arg("check").arg(&path), 10);
-    support::success(&check);
-    assert!(
-        String::from_utf8(check.stdout)
-            .unwrap()
-            .contains("Check passed.")
-    );
+    let checked_text = support::run(support::cli().arg("check").arg(&path), 10);
+    support::success(&checked_text);
+    assert!(String::from_utf8_lossy(&checked_text.stdout).contains("Check passed."));
+    assert!(checked_text.stderr.is_empty());
+    let removed=support::run(support::cli().arg("lint").arg(&path),10);
+    assert!(!removed.status.success());
+    assert!(String::from_utf8_lossy(&removed.stderr).contains("Unknown command: lint"));
 }
 
 #[test]

@@ -5,53 +5,6 @@ use std::{
     path::PathBuf,
 };
 
-fn discover(inputs: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
-    let mut pending = inputs.to_vec();
-    let mut files = Vec::new();
-    while let Some(path) = pending.pop() {
-        let metadata =
-            fs::symlink_metadata(&path).map_err(|error| format!("{}: {error}", path.display()))?;
-        if metadata.file_type().is_symlink() {
-            continue;
-        }
-        if metadata.is_dir() {
-            for entry in
-                fs::read_dir(&path).map_err(|error| format!("{}: {error}", path.display()))?
-            {
-                let entry = entry.map_err(|error| error.to_string())?;
-                let kind = entry.file_type().map_err(|error| error.to_string())?;
-                if kind.is_symlink() {
-                    continue;
-                }
-                if kind.is_dir()
-                    && !matches!(
-                        entry.file_name().to_str(),
-                        Some(".git" | "node_modules" | "target")
-                    )
-                {
-                    pending.push(entry.path());
-                } else if kind.is_file()
-                    && entry
-                        .path()
-                        .extension()
-                        .is_some_and(|extension| extension == "tsr")
-                {
-                    files.push(entry.path());
-                }
-            }
-        } else if metadata.is_file() {
-            files.push(path);
-        }
-    }
-    let mut canonical = files
-        .into_iter()
-        .map(|path| fs::canonicalize(&path).map_err(|error| format!("{}: {error}", path.display())))
-        .collect::<Result<Vec<_>, _>>()?;
-    canonical.sort();
-    canonical.dedup();
-    Ok(canonical)
-}
-
 pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> {
     let mut inputs = Vec::new();
     let mut check = false;
@@ -81,7 +34,7 @@ pub(super) fn run(mut args: impl Iterator<Item = String>) -> Result<u8, String> 
     if inputs.is_empty() {
         inputs.push(cwd.clone());
     }
-    let files = discover(&inputs)?;
+    let files = tsrust_compiler::source_discovery::discover(&inputs)?;
     let color = color == "always"
         || (color == "auto"
             && std::io::stderr().is_terminal()

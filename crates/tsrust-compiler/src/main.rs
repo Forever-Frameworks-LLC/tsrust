@@ -1,4 +1,5 @@
 mod format_cli;
+mod check_cli;
 use std::env;
 use std::fs;
 use std::io::IsTerminal;
@@ -13,10 +14,10 @@ Usage:
   tsrust <command> <input.tsr> [options]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
+  tsrust check [files/directories] [--json]
 
 Commands:
-  check    Check types and ownership
-  lint     Check quietly (alias of check)
+  check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
   emit     Emit Rust source
   build    Build a native executable (requires -o)
@@ -102,16 +103,11 @@ fn run() -> Result<u8, String> {
         return Ok(0);
     }
     if command == "--version" || command == "-V" { println!("tsrust {}", env!("CARGO_PKG_VERSION")); return Ok(0); }
-    if !["check", "lint", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
+    if !["check", "format", "emit", "build", "run", "test"].contains(&command.as_str()) {
         return Err(format!("Unknown command: {command}. Run `tsrust --help` for usage."));
     }
     if command == "format" { return format_cli::run(args); }
-    let lint = command == "lint";
-    let command = if command == "lint" {
-        "check".to_owned()
-    } else {
-        command
-    };
+    if command == "check" { return check_cli::run(args); }
     let mut test_paths = Vec::new();
     let mut test_options = Vec::new();
     let source_path = if command == "test" {
@@ -211,43 +207,6 @@ fn run() -> Result<u8, String> {
             .any(|id| Path::new(&id.0) == output)
     {
         return Err("output must not overwrite a project source file".into());
-    }
-    if command == "check" {
-        if json {
-            println!("{}", analysis.to_json());
-        } else if !lint {
-            println!("{}", styled("Check passed.", "1;32", color_enabled(std::io::stdout().is_terminal())));
-            for (name, mode) in analysis.contracts() {
-                println!("  {name}: {}", mode.as_str());
-            }
-            for closure in analysis.closures() {
-                println!(
-                    "  closure {} in {} (depth {}): {}, {}{}",
-                    closure.id,
-                    closure.function,
-                    closure.depth,
-                    closure.invocation.as_str(),
-                    if closure.escapes {
-                        "owned escape"
-                    } else {
-                        "local"
-                    },
-                    if closure.template { ", template" } else { "" }
-                );
-                for param in closure.parameters {
-                    println!("    parameter {}: {}", param.name, param.access.as_str());
-                }
-                for capture in closure.captures {
-                    println!(
-                        "    {}: storage {}, access {}",
-                        capture.name,
-                        capture.storage.as_str(),
-                        capture.access.as_str()
-                    );
-                }
-            }
-        }
-        return Ok(0);
     }
     let (rust, native_features) = analysis.emit_rust_with_native_features();
     if command == "emit" {

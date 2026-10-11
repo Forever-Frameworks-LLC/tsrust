@@ -2842,6 +2842,9 @@ impl Emitter<'_> {
                 output.push_str(&self.result_entry_adapter(index,&symbol,&error_name));
             }
         }
+        if !self.program.functions.iter().any(|function| function.name == "main") {
+            let _ = writeln!(output, "fn main() {{ {} }}", self.entry_setup);
+        }
         self.fixed_records(&mut output);
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") {

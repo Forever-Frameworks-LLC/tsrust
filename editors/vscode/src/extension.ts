@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     try {
       const document = await activeFile(uri);
       const compiler = await compilerPath(document.uri);
-      return await new Promise<number>(resolve => execFile(compiler, ['lint', document.uri.fsPath], {cwd:dirname(document.uri.fsPath)}, (error, stdout, stderr) => {
+      return await new Promise<number>(resolve => execFile(compiler, ['check', document.uri.fsPath], {cwd:dirname(document.uri.fsPath)}, (error, stdout, stderr) => {
         if (error || !automatic) {
           output.clear();
           output.appendLine((stdout + stderr).trim() || `${document.uri.path.split('/').pop()}: no errors.`);

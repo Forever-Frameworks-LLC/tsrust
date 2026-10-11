@@ -58,6 +58,7 @@ mod projections;
 pub use projections::{CheckedTypeFacts, LocalFunctionInfo, GenericCallInfo, GenericParameterCallInfo, GenericParameterInfo, MethodResultInfo, ProjectionInfo};
 pub mod project;
 pub mod project_cli;
+pub mod source_discovery;
 mod project_link;
 mod project_facts;
 mod result_identity;

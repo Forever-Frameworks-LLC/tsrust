@@ -122,7 +122,7 @@ Potential desired experience:
 <cli> check
 <cli> test
 <cli> fmt
-<cli> lint
+<cli> check
 <cli> add postgres
 <cli> remove postgres
 <cli> update

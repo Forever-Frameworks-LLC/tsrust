@@ -72,12 +72,7 @@ fn run(
                         }
                     };
                     let error = result.err();
-                    // Export-only library buffers are checked through importing entries.
-                    let error = error.as_ref().filter(|error| {
-                        error.code != "entry"
-                            || tsrust_compiler::project_cli::declares_main(&snapshot.text)
-                                .unwrap_or(false)
-                    });
+                    let error = error.as_ref();
                     let actions = error
                         .map(|error| {
                             tsrust_lsp::project_actions::ProjectActions::build(

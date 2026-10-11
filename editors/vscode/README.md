@@ -70,7 +70,7 @@ Use the lightbulb or **Cmd+.** on a syntax diagnostic to insert a missing semico
 
 ### Run, check and format
 
-Use the play button on a .tsr editor or **Tsrust: Run File** to save and execute it in a terminal. **Tsrust: Check/Lint File** runs compiler syntax/type/ownership checks. **Tsrust: Format Document** and standard Format Document use the shared Tsrust formatter. Set `tsrust.formatOnSave` and `tsrust.checkOnSave` to enable automatic actions. Set `tsrust.compiler.path` if the compiler is not beside the configured language server. Commands require workspace trust.
+Use the play button on a .tsr editor or **Tsrust: Run File** to save and execute it in a terminal. **Tsrust: Check File** runs compiler syntax/type/ownership checks. **Tsrust: Format Document** and standard Format Document use the shared Tsrust formatter. Set `tsrust.formatOnSave` and `tsrust.checkOnSave` to enable automatic actions. Set `tsrust.compiler.path` if the compiler is not beside the configured language server. Commands require workspace trust.
 
 Transferred strings, arrays and records can offer **Clone before transferring (copies data; may allocate)** via Cmd+.; the earlier transfer is edited only if the complete document then passes checking.
 

@@ -3290,19 +3290,14 @@ impl Analyzer {
     }
 
     fn run(mut self) -> Result<CheckedProgram, Diagnostic> {
-        let main = *self.function_names.get("main").ok_or_else(|| {
-            Diagnostic::new(
-                "entry",
-                "Define function main() with no parameters or return value.",
-                Span::default(),
-            )
-        })?;
-        if !self.signatures[main].params.is_empty() || self.signatures[main].result != Type::Void {
-            return Err(Diagnostic::new(
-                "entry",
-                "main() must have no parameters or return value.",
-                self.program.functions[main].name.span,
-            ));
+        if let Some(&main) = self.function_names.get("main") {
+            if !self.signatures[main].params.is_empty() || self.signatures[main].result != Type::Void {
+                return Err(Diagnostic::new(
+                    "entry",
+                    "main() must have no parameters or return value.",
+                    self.program.functions[main].name.span,
+                ));
+            }
         }
         if self.assumed_modes.is_some() {
             self.discover_results()?;

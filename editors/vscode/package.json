@@ -66,7 +66,7 @@
       },
       {
         "command": "tsrust.checkFile",
-        "title": "Tsrust: Check/Lint File"
+        "title": "Tsrust: Check File"
       },
       {
         "command": "tsrust.formatDocument",
