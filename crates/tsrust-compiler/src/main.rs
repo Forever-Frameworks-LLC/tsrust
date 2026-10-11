@@ -23,7 +23,7 @@ const USAGE: &str = "tsrust — native TypeScript-style programs
 Usage:
   tsrust <command> [input.tsr] [options]
   tsrust new <name-or-path>
-  tsrust dev [--release] [--verbose] [-- program-arguments]
+  tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
   tsrust test [files/directories] [options]
   tsrust format [files/directories] [--check | --write]
   tsrust check [files/directories] [--json]
@@ -42,7 +42,7 @@ Options:
   -h, --help                 Show this help
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
-  --color auto|always|never  Color help, diagnostics and test reports
+  --color auto|always|never  Color help, diagnostics, dev status and test reports
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
   --write                   Update source with format
@@ -63,6 +63,7 @@ fn color_enabled(terminal: bool) -> bool {
     let args: Vec<String> = env::args().collect();
     let mut mode = "auto";
     for (index, arg) in args.iter().enumerate() {
+        if arg == "--" { break; }
         if let Some(value) = arg.strip_prefix("--color=") { mode = value; }
         else if arg == "--color" { mode = args.get(index + 1).map(String::as_str).unwrap_or("auto"); }
     }

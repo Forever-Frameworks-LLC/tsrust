@@ -1,6 +1,14 @@
 //! Native development supervisor. Builds never replace a running executable inode.
+#[derive(Clone, Copy)]
+pub(crate) enum Status { Info, Success, Warning, Error }
+pub(crate) fn report(status:Status,message:impl std::fmt::Display) {
+    use std::io::IsTerminal;
+    let code=match status {Status::Info=>"1;36",Status::Success=>"1;32",Status::Warning=>"1;33",Status::Error=>"1;31"};
+    eprintln!("{}",crate::styled(&format!("[dev] {message}"),code,crate::color_enabled(std::io::stderr().is_terminal())));
+}
 #[cfg(unix)]
 mod platform {
+    use super::{report,Status};
     use std::{path::{Path,PathBuf},process::{Child,Command},sync::atomic::{AtomicBool,Ordering},time::{Duration,Instant}};
     use std::os::unix::process::CommandExt;
     use crate::{dev_watch::{Fingerprint,Watcher},project_config,TempDirectory};
@@ -153,19 +161,22 @@ mod platform {
     }
     pub fn run(args:impl Iterator<Item=String>)->Result<u8,String> {
         let mut release=false;let mut verbose=false;let mut program_args=Vec::new();let mut passthrough=false;
-        for arg in args {
+        let mut args=args.peekable();
+        while let Some(arg)=args.next() {
             if passthrough {program_args.push(arg);continue;}
             match arg.as_str() {
                 "--"=>passthrough=true,
                 "--release" if !release=>release=true,
                 "--verbose" if !verbose=>verbose=true,
-                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [-- program-arguments]")),
+                "--color"=>{let mode=args.next().ok_or("--color requires auto, always or never")?;if !matches!(mode.as_str(),"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
+                _ if arg.starts_with("--color=")=>{if !matches!(&arg[8..],"auto"|"always"|"never"){return Err("--color requires auto, always or never".into());}},
+                _=>return Err(format!("Unknown or repeated dev option: {arg}. Usage: tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]")),
             }
         }
         let project=project_config::discover()?.ok_or("dev needs tsrust.config.json; create a project with `tsrust new <name>`")?;
         let _signals=Signals::install()?;
         let root=project.root;
-        eprintln!("[dev] Watching {}. Press Ctrl+C to stop.",root.display());
+        report(Status::Info,format_args!("Watching {}. Press Ctrl+C to stop.",root.display()));
         let worker=crate::dev_frontend::Worker::new()?;
         let mut watcher=Watcher::default();
         let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
@@ -182,31 +193,31 @@ mod platform {
                 let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
                     Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
-                        eprintln!("[dev] {} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0);built_once=true;
+                        report(Status::Success,format_args!("{} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0));built_once=true;
                         if let Some(mut old)=running.take(){old.process.stop();}
                         let mut command=Command::new(binary);command.current_dir(&root).args(&program_args);
                         match Process::spawn(&mut command) {
                             Ok(process)=>{
-                                if verbose {eprintln!("[dev] Started program (pid {}).",process.child.id());}
+                                if verbose {report(Status::Info,format_args!("Started program (pid {}).",process.child.id()));}
                                 running=Some(Running{process,_files:files});
                             },
-                            Err(error)=>eprintln!("[dev] Cannot start program: {error}"),
+                            Err(error)=>report(Status::Error,format_args!("Cannot start program: {error}")),
                         }
                     },
                     Ok(_)=>{},
-                    Err(error) if error=="Build failed"=>eprintln!("[dev] Build failed; {}.",if running.is_some(){"previous program remains running"}else{"waiting for changes"}),
-                    Err(error)=>eprintln!("[dev] {error}"),
+                    Err(error) if error=="Build failed"=>report(Status::Error,format_args!("Build failed; {}.",if running.is_some(){"previous program remains running"}else{"waiting for changes"})),
+                    Err(error)=>report(Status::Error,error),
                 }
             }
             if let Some(active)=&mut running {
                 if let Some(status)=active.process.child.try_wait().map_err(|e|e.to_string())? {
-                    if verbose || !status.success() {eprintln!("[dev] Program exited with {status}; waiting for changes.");}
+                    if verbose || !status.success() {report(if status.success(){Status::Info}else{Status::Error},format_args!("Program exited with {status}; waiting for changes."));}
                     running.take();
                 }
             }
             std::thread::sleep(Duration::from_millis(100));
         }
-        drop(running);eprintln!("[dev] Stopped.");Ok(0)
+        drop(running);report(Status::Info,"Stopped.");Ok(0)
     }
 }
 #[cfg(unix)] pub use platform::run;

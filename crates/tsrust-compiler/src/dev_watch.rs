@@ -30,11 +30,11 @@ impl Watcher {
         if !self.initialized {
             self.initialized=true;
             if std::env::var("TSRUST_DEV_WATCH").as_deref()==Ok("poll") {
-                eprintln!("[dev] Polling requested by TSRUST_DEV_WATCH=poll.");
+                crate::dev_cli::report(crate::dev_cli::Status::Info,"Polling requested by TSRUST_DEV_WATCH=poll.");
             } else {
                 match crate::dev_events::Events::new(root) {
                     Ok(events)=>self.events=Some(events),
-                    Err(error)=>eprintln!("[dev] Native watching unavailable ({error}); using polling."),
+                    Err(error)=>crate::dev_cli::report(crate::dev_cli::Status::Warning,format_args!("Native watching unavailable ({error}); using polling.")),
                 }
             }
         }
@@ -48,7 +48,7 @@ impl Watcher {
             match reconcile {
                 Ok(false)=>return self.previous.as_ref().unwrap().clone(),
                 Ok(true)=>{},
-                Err(error)=>{eprintln!("[dev] Native watching failed ({error}); using polling.");self.events=None;},
+                Err(error)=>{crate::dev_cli::report(crate::dev_cli::Status::Warning,format_args!("Native watching failed ({error}); using polling."));self.events=None;},
             }
         }
         let result=self.read_snapshot(root);

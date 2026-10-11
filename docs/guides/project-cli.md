@@ -68,7 +68,11 @@ that compact output unless the pretty reporter is selected through the environme
 
 Dev output defaults to one watching message and a build/rebuild duration, followed
 by program output. Successful program exits are silent; failed builds and nonzero
-exits remain visible. `tsrust dev --verbose` adds process IDs, temporary binary
+exits remain visible. Dev status uses cyan for information, green for successful
+builds, red for failures and yellow for watcher fallback warnings. Colors enable
+automatically on a supported stderr terminal; redirected output, `NO_COLOR` and
+`TERM=dumb` stay plain. Override with `--color auto|always|never` before `--`.
+Program output is unchanged. `tsrust dev --verbose` adds process IDs, temporary binary
 paths and successful exit messages, plus checking, emission, backend verification,
 cache lookup and combined native compilation/linking timings.
 
