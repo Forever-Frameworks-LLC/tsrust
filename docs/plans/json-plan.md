@@ -61,3 +61,34 @@ replacement `is_empty()` assertion preserves its behavior. Whole-project formatt
 changes zero files and zero source fingerprints. SQLite retains the original red,
 green, focused-batch and formatting logs under `tsrust-s10-json-*`. No S10 timing,
 public binding, editor catalog or installed JSON acceptance is claimed.
+
+## Native dependency bundle foundation
+
+The compiler build now prepares an embedded file table from the independently
+locked `crates/tsrust-compiler/native-dependencies` package. Cargo vendors exact
+source versions, checksums and license files into the shared build output; no
+registry paths are required when the file table is materialized elsewhere.
+Build dependencies resolve the complete bundled source closure before the build
+script runs, including Serde's optional derive dependencies retained in the lockfile.
+Ordinary Cargo dependency preparation therefore supplies everything needed by the
+vendoring step. Vendoring itself runs with `--offline --locked`; it never silently
+fetches during the build script. Both lockfiles must stay aligned when upgrading
+these compiler-owned dependencies.
+
+The focused integration fixture materializes sources into a fresh private
+directory, runs the pinned Cargo backend outside the repository with an empty
+Cargo home, and executes a JSON assertion. A second check changes a dependency
+package checksum and requires rejection against the lockfile. Cargo treats registry
+sources as immutable after compilation; source edits alone do not invalidate its
+existing artifacts. Future cache integration must preserve private immutable bundles
+and include bundle identity in cache keys. Materialization refuses to replace
+an existing destination. This is packaging infrastructure only: the CLI does not
+yet select this bundle, link JSON, or cache the dependency artifacts. Those steps,
+cancellation handling, application-edit reuse, and installed consumer acceptance
+remain required before publishing JSON. Existing runtime-only builds retain their
+current rustc path.
+
+SQLite retains the focused red/green, cache-assumption failure, corrected lockfile
+integrity check, final build and formatting logs under `tsrust-s10-bundle-*`.
+The final focused test passes; whole-project formatting changes zero files and
+zero fingerprints. No installed JSON capability or S10 measurement is claimed.

@@ -18,3 +18,9 @@ serde_json = "1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.183"
+
+# Resolve the entire bundled source closure before the build script runs.
+# This also makes ordinary online builds prepare a later offline vendor step.
+[build-dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
