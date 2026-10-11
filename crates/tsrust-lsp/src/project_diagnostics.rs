@@ -95,15 +95,19 @@ pub fn convert(
     snapshot: &WorkspaceSnapshot,
     error: Option<&ProjectDiagnostic>,
 ) -> Result<BTreeMap<SourceId, Vec<Diagnostic>>, String> {
+    convert_all(snapshot, error.into_iter())
+}
+
+pub fn convert_all<'a>(
+    snapshot: &WorkspaceSnapshot,
+    errors: impl IntoIterator<Item = &'a ProjectDiagnostic>,
+) -> Result<BTreeMap<SourceId, Vec<Diagnostic>>, String> {
     let sources = snapshot.sources();
     let mut output = sources
         .keys()
         .cloned()
         .map(|id| (id, vec![]))
         .collect::<BTreeMap<_, _>>();
-    let Some(error) = error else {
-        return Ok(output);
-    };
     let location = |location: &SourceLocation| -> Result<Location, String> {
         let source = sources
             .get(&location.source).map(|source| source.as_str())
@@ -114,28 +118,30 @@ pub fn convert(
             LineIndex::new(source).range(source, location.span)?,
         ))
     };
-    let primary = location(&error.location)?;
-    let related = error
-        .related
-        .iter()
-        .map(|(value, message)| {
-            Ok(DiagnosticRelatedInformation {
-                location: location(value)?,
-                message: message.clone(),
+    for error in errors {
+        let primary = location(&error.location)?;
+        let related = error
+            .related
+            .iter()
+            .map(|(value, message)| {
+                Ok(DiagnosticRelatedInformation {
+                    location: location(value)?,
+                    message: message.clone(),
+                })
             })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-    output
-        .entry(error.location.source.clone())
-        .or_default()
-        .push(Diagnostic {
-            range: primary.range,
-            severity: Some(DiagnosticSeverity::ERROR),
-            code: Some(NumberOrString::String(error.code.into())),
-            source: Some("tsrust".into()),
-            message: error.message.clone(),
-            related_information: (!related.is_empty()).then_some(related),
-            ..Diagnostic::default()
-        });
+            .collect::<Result<Vec<_>, String>>()?;
+        output
+            .entry(error.location.source.clone())
+            .or_default()
+            .push(Diagnostic {
+                range: primary.range,
+                severity: Some(DiagnosticSeverity::ERROR),
+                code: Some(NumberOrString::String(error.code.into())),
+                source: Some("tsrust".into()),
+                message: error.message.clone(),
+                related_information: (!related.is_empty()).then_some(related),
+                ..Diagnostic::default()
+            });
+    }
     Ok(output)
 }

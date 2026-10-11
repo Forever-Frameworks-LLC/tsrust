@@ -342,3 +342,39 @@ fn formatting_logical_not_chains_returns_a_stable_edit() {
     assert!(matches!(server.response(), Message::Response(response) if response.error.is_none()));
     server.finish(0);
 }
+
+#[test]
+fn imported_unopened_file_publishes_multiple_syntax_errors_and_repairs() {
+    let directory=std::env::temp_dir().join(format!("tsrust-module-diagnostics-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+    std::fs::create_dir(&directory).unwrap();
+    let directory=directory.canonicalize().unwrap();
+    let dependency=directory.join("library.tsr");
+    std::fs::write(&dependency,"export function value(){const first=;const second=;}").unwrap();
+    let uri=tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(directory.join("entry.tsr").to_str().unwrap().into())).unwrap().to_string();
+    let dep_uri=tsrust_lsp::project_diagnostics::file_uri(&tsrust_compiler::project::SourceId(dependency.to_str().unwrap().into())).unwrap().to_string();
+    let mut server=Server::start();
+    server.request(1,"initialize",json!({"capabilities":{},"initializationOptions":{"debounceMs":20}}));
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
+    server.notify("initialized",json!({}));
+    server.notify("textDocument/didOpen",json!({"textDocument":{"uri":uri,"languageId":"tsrust","version":1,"text":"import {value} from './library.tsr';function main(){value();}"}}));
+    let started=Instant::now();
+    loop {
+        assert!(started.elapsed()<Duration::from_secs(5));
+        if let Message::Notification(notification)=server.receive()
+            && notification.method=="textDocument/publishDiagnostics" && notification.params["uri"]==dep_uri {
+            assert_eq!(notification.params["diagnostics"].as_array().unwrap().len(),2);
+            break;
+        }
+    }
+    server.notify("textDocument/didOpen",json!({"textDocument":{"uri":dep_uri,"languageId":"tsrust","version":1,"text":"export function value(){}"}}));
+    let started=Instant::now();
+    loop {
+        assert!(started.elapsed()<Duration::from_secs(5));
+        if let Message::Notification(notification)=server.receive()
+            && notification.method=="textDocument/publishDiagnostics" && notification.params["uri"]==dep_uri && notification.params["diagnostics"]==json!([]) {break;}
+    }
+    server.request(2,"shutdown",Value::Null);
+    assert!(matches!(server.response(),Message::Response(response) if response.error.is_none()));
+    server.finish(0);
+    std::fs::remove_dir_all(directory).unwrap();
+}

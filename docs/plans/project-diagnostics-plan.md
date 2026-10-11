@@ -83,3 +83,27 @@ checking: single-file diagnostic JSON had gained a `file` field. Single-file JSO
 now preserves its existing shape; directory/multiple-input results retain paths.
 The whole-project formatter changes zero files and fingerprints. No timing run or
 installed-consumer acceptance is claimed.
+
+## Module syntax diagnostics checkpoint
+
+CLI and workspace checks now collect block-statement syntax errors across loaded
+modules after a strict parse fails. They use declaration sources with imports and
+exports blanked without moving source offsets, including test-registration bodies.
+The tolerant header graph is used only to find further diagnostics; only the
+original strict check can return executable analysis. Original errors remain in
+the result even if tolerant discovery cannot load another dependency.
+
+The LSP publishes every returned error, reads unsaved dependency buffers and clears
+repaired dependency buckets. A framed-protocol test verifies two diagnostics in an
+unopened imported file and their removal after an unsaved repair. Its first run
+failed because the fixture compared an uncanonicalized temporary-directory URI;
+the corrected fixture uses canonical paths. Compiler checks cover independent
+broken dependencies and original coordinates in `.test.tsr` registrations.
+
+Validation passes: 13 compiler recovery/project checks; 11 editor optional-entry,
+action and session checks; 16 project-diagnostic conversions; 12 protocol tests.
+The whole-project formatter changes zero files and fingerprints. Closed logs are
+stored under `tsrust-module-diagnostics-*` in SQLite. This does not yet provide
+workspace discovery of unrelated unopened files, multiple semantic/ownership
+errors, or recovery of every malformed declaration/header. Installed-consumer
+refresh remains pending until the coordinated diagnostic update.

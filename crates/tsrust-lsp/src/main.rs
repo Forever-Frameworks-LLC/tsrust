@@ -60,7 +60,7 @@ fn run(
             let result = catch_unwind(AssertUnwindSafe(|| {
                 if let Some(workspace) = &workspace {
                     let entry = tsrust_lsp::project_diagnostics::source_id(&snapshot.uri)?;
-                    let result = workspace.check(&entry);
+                    let result = workspace.check_with_diagnostics(&entry);
                     let index = match &result {
                         Ok(analysis) => Some(tsrust_lsp::project_intelligence::ProjectIndex::checked(analysis)),
                         Err(_) => {
@@ -71,8 +71,8 @@ fn run(
                                 })
                         }
                     };
-                    let error = result.err();
-                    let error = error.as_ref();
+                    let errors = result.err().unwrap_or_default();
+                    let error = errors.first();
                     let actions = error
                         .map(|error| {
                             tsrust_lsp::project_actions::ProjectActions::build(
@@ -80,7 +80,7 @@ fn run(
                             )
                         })
                         .transpose()?;
-                    tsrust_lsp::project_diagnostics::convert(workspace, error)
+                    tsrust_lsp::project_diagnostics::convert_all(workspace, &errors)
                         .map(|buckets| DiagnosticBatch::Project(buckets, index, actions))
                 } else {
                     checker(&snapshot.text, &snapshot.uri).map(DiagnosticBatch::Single)

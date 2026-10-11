@@ -1802,10 +1802,14 @@ pub fn parse(source: &str) -> Result<Program, Diagnostic> {
 
 /// Diagnostic-only parsing. A recovered tree never leaves this function.
 pub(crate) fn diagnostics(source: &str) -> Vec<Diagnostic> {
+    module_diagnostics(source, false)
+}
+
+pub(crate) fn module_diagnostics(source: &str, test_entry: bool) -> Vec<Diagnostic> {
     let errors = std::cell::RefCell::new(Vec::new());
     let result = Parser::new(source, Default::default(), Default::default()).and_then(|mut parser| {
         parser.diagnostics = Some(&errors);
-        parser.program(false).map(|_| ())
+        parser.program(test_entry).map(|_| ())
     });
     if let Err(error) = result { errors.borrow_mut().push(error); }
     let mut errors = errors.into_inner();

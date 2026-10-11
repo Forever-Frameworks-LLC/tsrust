@@ -141,6 +141,9 @@ impl WorkspaceSnapshot {
     pub fn check(&self, entry: &SourceId) -> Result<ProjectAnalysis, ProjectDiagnostic> {
         check_graph(load_project(self, &entry.0)?)
     }
+    pub fn check_with_diagnostics(&self, entry: &SourceId) -> Result<ProjectAnalysis, Vec<ProjectDiagnostic>> {
+        tsrust_compiler::project::check_with_diagnostics(self, &entry.0)
+    }
     /// Exact loaded inputs, including disk fallback, for coordinate conversion after checking.
     pub fn sources(&self) -> BTreeMap<SourceId, Arc<String>> {
         self.read.borrow().clone()

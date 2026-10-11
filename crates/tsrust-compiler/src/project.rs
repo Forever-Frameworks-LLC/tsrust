@@ -440,6 +440,30 @@ pub fn load_project(
     load_graph(provider, entry, true)
 }
 
+/// Check normally, then collect independent module syntax errors if parsing failed.
+/// Header graphs and recovered syntax never produce executable analysis.
+pub fn check_with_diagnostics(
+    provider: &impl SourceProvider,
+    entry: &str,
+) -> Result<ProjectAnalysis, Vec<ProjectDiagnostic>> {
+    let original = match load_project(provider, entry).and_then(check_graph) {
+        Ok(analysis) => return Ok(analysis),
+        Err(error) => error,
+    };
+    if original.code != "syntax" { return Err(vec![original]); }
+    let mut errors = vec![original];
+    if let Ok(graph) = load_project_headers(provider, entry) {
+        for (id, module) in &graph.modules {
+            errors.extend(syntax::module_diagnostics(&module.declaration_source, is_test_entry(&id.0))
+                .into_iter().map(|error| source_error(id, error)));
+        }
+    }
+    errors.sort_by(|a,b| (&a.location.source, a.location.span.start, a.location.span.end, a.code)
+        .cmp(&(&b.location.source, b.location.span.start, b.location.span.end, b.code)));
+    errors.dedup_by(|a,b| a.location == b.location && a.code == b.code && a.message == b.message);
+    Err(errors)
+}
+
 /// Validate module headers and dependencies for tolerant editor assistance.
 /// Bodies need not parse. This is not evidence that a project compiles; use load_project/check_graph for compilation.
 pub fn load_project_headers(

@@ -97,3 +97,31 @@ fn check_reports_multiple_syntax_errors_in_one_file_and_rejects_build() {
     let output=support::run(support::cli().arg("build").arg(&file),30);
     assert_eq!(output.status.code(),Some(1));
 }
+
+#[test]
+fn check_collects_syntax_errors_across_imported_modules() {
+    let directory=support::TempDirectory::new();
+    let entry=directory.source("import {left} from './left.tsr';import {right} from './right.tsr';function main(){left();right();}");
+    for name in ["left","right"] {
+        fs::write(directory.0.join(format!("{name}.tsr")),format!("export function {name}(){{const first=;const second=;}}" )).unwrap();
+    }
+    let output=support::run(support::cli().arg("check").arg(&entry).arg("--json"),30);
+    assert_eq!(output.status.code(),Some(1));
+    let text=String::from_utf8(output.stdout).unwrap();
+    assert_eq!(text.matches("\"code\":").count(),4,"{text}");
+    assert!(text.contains("left.tsr") && text.contains("right.tsr"),"{text}");
+    assert!(!support::run(support::cli().arg("build").arg(&entry),30).status.success());
+}
+
+#[test]
+fn check_recovers_test_registration_bodies_with_original_coordinates() {
+    let directory=support::TempDirectory::new();
+    let file=directory.0.join("entry.test.tsr");
+    let source="import {test} from 'std:testing';test('broken',():void=>{const first=;const second=;});";
+    fs::write(&file,source).unwrap();
+    let errors=tsrust_compiler::project::check_with_diagnostics(&tsrust_compiler::project::FileSourceProvider,file.to_str().unwrap()).err().unwrap();
+    assert_eq!(errors.len(),2,"{errors:?}");
+    for (error,(offset,_)) in errors.iter().zip(source.match_indices("=;")) {
+        assert_eq!(error.location.span.start,offset+1);
+    }
+}

@@ -35,6 +35,25 @@ pub fn check_input(path: &Path, source: &str) -> Result<CheckedInput, InputDiagn
             .map_err(InputDiagnostic::Single)
     }
 }
+/// Diagnostic checking shares strict successful analysis and collects parser errors.
+pub fn check_input_diagnostics(path: &Path, source: &str) -> Result<CheckedInput, Vec<InputDiagnostic>> {
+    let module = uses_modules(source).map_err(|error| vec![InputDiagnostic::Single(error)])?
+        || path.to_str().is_some_and(crate::project::is_test_entry);
+    if module {
+        let path = path.to_str().ok_or_else(|| vec![InputDiagnostic::Single(Diagnostic::new(
+            "module-path", "Source path must be valid UTF-8.", Span::default()))])?;
+        crate::project::check_with_diagnostics(&FileSourceProvider, path)
+            .map(CheckedInput::Project)
+            .map_err(|errors| errors.into_iter().map(InputDiagnostic::Project).collect())
+    } else {
+        match check(source) {
+            Ok(analysis) => Ok(CheckedInput::Single(analysis)),
+            Err(error) if error.code == "syntax" => Err(crate::diagnostics(source).into_iter().map(InputDiagnostic::Single).collect()),
+            Err(error) => Err(vec![InputDiagnostic::Single(error)]),
+        }
+    }
+}
+
 /// Check a test entry through the module graph without rewriting source coordinates.
 pub fn check_test_input(path: &Path) -> Result<CheckedInput, InputDiagnostic> {
     let path = path.to_str().ok_or_else(|| InputDiagnostic::Single(Diagnostic::new("module-path", "Source path must be valid UTF-8.", Span::default())))?;

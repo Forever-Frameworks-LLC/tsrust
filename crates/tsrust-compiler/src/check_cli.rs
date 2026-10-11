@@ -1,6 +1,6 @@
 //! Recursive compiler diagnostics; this path never emits or executes native code.
 use std::{collections::BTreeMap, env, fs, io::IsTerminal, path::PathBuf};
-use tsrust_compiler::{Diagnostic, Span, json_string, project_cli::{InputDiagnostic, check_input}};
+use tsrust_compiler::{Diagnostic, Span, json_string, project_cli::{InputDiagnostic, check_input_diagnostics}};
 
 pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let mut inputs=Vec::new();let mut json=false;let mut color="auto".to_owned();
@@ -21,7 +21,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let mut diagnostics=BTreeMap::new();let mut single_result=None;
     for path in files {
         let (source,errors)=match fs::read_to_string(&path) {
-            Ok(source)=>{let error=match check_input(&path,&source){Ok(analysis)=>{if single{single_result=Some(analysis);}Vec::new()},Err(InputDiagnostic::Single(error)) if error.code == "syntax"=>tsrust_compiler::diagnostics(&source).into_iter().map(InputDiagnostic::Single).collect(),Err(error)=>vec![error]};(source,error)},
+            Ok(source)=>{let error=match check_input_diagnostics(&path,&source){Ok(analysis)=>{if single{single_result=Some(analysis);}Vec::new()},Err(errors)=>errors};(source,error)},
             Err(error)=>(String::new(),vec![InputDiagnostic::Single(Diagnostic::new("source-read",error.to_string(),Span::default()))]),
         };
         for error in errors {
