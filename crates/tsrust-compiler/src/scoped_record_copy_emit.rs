@@ -10,6 +10,7 @@ impl Emitter<'_> {
     }
     pub(super) fn record_parameter_order_access(&self,fun:&CheckedFunction,value:&Expr)->Option<String> {
         let(id,record,path)=self.parameter_record_source(fun,value)?;
+        if self.record_borrow_leaf(record){return None;}
         if !self.record_runtime.ordered.contains(&record){return None;}
         Some(format!("record_fields{id}.{}",Self::record_order_member(&path)))
     }
@@ -17,12 +18,13 @@ impl Emitter<'_> {
         if !matches!(value.ty,Some(Type::Record(_))){return None;}
         let(id,record,mut path)=self.parameter_record_source(fun,value)?;
         if !self.record_runtime.cloneable(record){return None;}
+        if self.record_borrow_leaf(record){return Some(format!("Clone::clone({})",self.expr(fun,value,Mode::Read)));}
         Some(self.record_clone_from_fields(id,record,&mut path))
     }
     fn record_clone_from_fields(&self,id:usize,record:usize,path:&mut Vec<usize>)->String {
         let mut fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)| {
             path.push(index);
-            let copied=if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty(){
+            let copied=if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child){
                 self.record_clone_from_fields(id,child,path)
             }else{
                 let member=path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");

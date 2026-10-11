@@ -23,7 +23,7 @@ impl Emitter<'_> {
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
         let declaration=self.program.scoped_records.declaration(record);
         if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}
-        let mut layout=crate::scoped_record_places::Layout::for_record(declaration,&self.program.records)?;
+        let mut layout=self.record_borrow_layout(declaration)?;
         // The bridge keeps nominal identity, while each nullable leaf binds the
         // callback variables of this particular parameter occurrence.
         for leaf in &mut layout.leaves {
@@ -83,14 +83,14 @@ impl Emitter<'_> {
         if !matches!(mode,Mode::Read|Mode::Mutate){return None;}
         let mut record=self.record_parameter_layout(fun,id)?.record;
         for &field in path {let Type::Record(child)=self.program.records[record].fields.get(field)?.ty? else{return None;};record=child;}
-        if self.program.records[record].fields.is_empty(){return None;}
+        if self.program.records[record].fields.is_empty() || self.record_borrow_leaf(record){return None;}
         let mutable=mode==Mode::Mutate;
         Some(format!("&{}{}",if mutable{"mut "}else{""},self.record_view_from_fields(record,&mut path.to_vec(),mutable,&format!("record_fields{id}"))))
     }
     pub(super) fn record_view_from_fields(&self,record:usize,path:&mut Vec<usize>,mutable:bool,fields_name:&str)->String {
         let mut fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)| {
             path.push(index);
-            let value=if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() {
+            let value=if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) {
                 self.record_view_from_fields(child,path,mutable,fields_name)
             }else{
                 let member=path.iter().map(|index|format!("field{index}")).collect::<Vec<_>>().join("_");

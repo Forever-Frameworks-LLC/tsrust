@@ -37,15 +37,15 @@ impl Layout {
         self.view_declarations_with_metadata(records,symbol,native,mutable,seen,|_|String::new())
     }
     pub(crate) fn view_declarations_with_metadata(&self, records: &[Record], symbol: impl Fn(usize) -> String, native: impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize,Vec<String>>, metadata: impl Fn(usize)->String) -> String {
-        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String, metadata: &impl Fn(usize)->String) -> Vec<String> {
+        fn emit(id: usize, records: &[Record], symbol: &impl Fn(usize) -> String, native: &impl Fn(usize, usize, Type) -> (String, Vec<String>), mutable: bool, seen: &mut std::collections::BTreeMap<usize, Vec<String>>, output: &mut String, metadata: &impl Fn(usize)->String, leaves:&std::collections::HashSet<usize>) -> Vec<String> {
             use std::fmt::Write;
             if let Some(parameters) = seen.get(&id) { return parameters.clone(); }
             let mut parameters = Vec::new();
             let fields = records[id].fields.iter().enumerate().map(|(index, field)| {
                 let ty = field.ty.expect("checked field layout");
                 let (field_type, field_parameters) = if let Type::Record(child) = ty
-                    && !records[child].fields.is_empty() {
-                    let child_parameters = emit(child, records, symbol, native, mutable, seen, output,metadata);
+                    && !records[child].fields.is_empty() && !leaves.contains(&child) {
+                    let child_parameters = emit(child, records, symbol, native, mutable, seen, output,metadata,leaves);
                     // Each child occurrence has its own environment arguments,
                     // even when both occurrences use the same nominal view.
                     let child_parameters=child_parameters.into_iter().map(|parameter| {
@@ -68,7 +68,8 @@ impl Layout {
             parameters
         }
         let mut output = String::new();
-        emit(self.record, records, &symbol, &native, mutable, seen, &mut output,&metadata);
+        let leaves=self.leaves.iter().filter_map(|leaf|if let Type::Record(id)=leaf.ty {Some(id)}else{None}).collect();
+        emit(self.record, records, &symbol, &native, mutable, seen, &mut output,&metadata,&leaves);
         output
     }
 
@@ -129,6 +130,9 @@ impl Layout {
         Self::for_record(record,records)
     }
     pub(crate) fn for_record(record: usize, records: &[Record]) -> Option<Self> {
+        Self::for_record_with_leaf(record,records,|_|false)
+    }
+    pub(crate) fn for_record_with_leaf(record:usize,records:&[Record],leaf:impl Fn(usize)->bool)->Option<Self> {
         let mut pending = vec![(Type::Record(record), Vec::new(), Vec::new())];
         let mut leaves = Vec::new();
         while let Some((ty, path, ancestors)) = pending.pop() {
@@ -136,7 +140,7 @@ impl Layout {
             if let Type::Record(id) = ty {
                 let declaration = records.get(id)?;
                 if ancestors.contains(&id) { return None; }
-                if !declaration.fields.is_empty() {
+                if !declaration.fields.is_empty() && (path.is_empty() || !leaf(id)) {
                     let mut ancestors = ancestors;
                     ancestors.push(id);
                     for (field, item) in declaration.fields.iter().enumerate().rev() {

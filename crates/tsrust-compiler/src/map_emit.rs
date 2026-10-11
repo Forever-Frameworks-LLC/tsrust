@@ -135,6 +135,28 @@ mod ordered_tests {
         checked.emit_rust()
     }
     #[test]
+    fn ordered_map_entries_borrow_recursive_view_records() {
+        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let source=format!("{helpers}\n{}",r#"
+type Chain={data:ByteView;next?:Chain;};
+type Tree={data:ByteView;children:Tree[];};
+type OwnedChain={count:int;next?:OwnedChain;};
+function treeSize(entry:ReadOnly<[int,Tree]>):int{return length(entry[1].data)+length(entry[1].children[0].data);}
+function inspect(entry:ReadOnly<[int,Chain]>):int{return length(entry[1].data)+length(entry[1].next!.data);}
+function main(){
+  const owner=bytes('tree');const tail:Chain={data:window(owner),next:undefined};
+  const values=new Map<int,Chain>();values.set(1,{data:window(owner),next:tail});
+  for(const entry of values){strictEqual(inspect(entry),8);strictEqual(text(entry[1].next!.data),'tree');}
+  values.clear();strictEqual(length(owner),4);
+  const trees=new Map<int,Tree>();trees.set(1,{data:window(owner),children:[{data:window(owner),children:[]}]});
+  for(const entry of trees){strictEqual(treeSize(entry),8);}
+  const owned=new Map<int,OwnedChain>();owned.set(1,{count:1,next:{count:2,next:undefined}});
+  for(const entry of owned){const copy=clone(entry);copy[1].count=7;const child=clone(entry[1]);child.count=9;strictEqual(entry[1].count,1);strictEqual(copy[1].next!.count,2);strictEqual(child.next!.count,2);}
+}
+"#);
+        crate::scoped_record_places::tests::native(&ordered_project(&source));
+    }
+    #[test]
     fn ordered_map_callback_entries_keep_captured_view_owners() {
         let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
         let source=format!("{helpers}\n{}",r#"

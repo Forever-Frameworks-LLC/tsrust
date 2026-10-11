@@ -80,7 +80,7 @@ impl Emitter<'_> {
             let pair=self.program.scoped_records.declaration(pair);
             let _=writeln!(output,"{indent}'loop_{}: for (ordered_key,ordered_value) in ({iterable_code}).source_iter() {{",statement.span.start);
             let payload=self.program.records[map].map_definition.as_ref().unwrap().value;
-            let value=if let Type::Record(child)=payload && !self.program.records[child].fields.is_empty() {
+            let value=if let Type::Record(child)=payload && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) {
                 let child=self.program.scoped_records.declaration(child);
                 let view=self.record_view_from_fields(child,&mut Vec::new(),false,"ordered_fields");
                 format!("{{let ordered_fields=ordered_value.tsr_fields();{view}}}")

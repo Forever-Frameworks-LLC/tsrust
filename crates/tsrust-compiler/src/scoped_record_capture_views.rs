@@ -6,7 +6,7 @@ impl Emitter<'_> {
     }
     pub(super) fn record_capture_view_type(&self,ty:Type,mutable:bool,lifetime:&str,lifetimes:&[String])->String {
         let Type::Record(record)=ty else{unreachable!()};
-        let layout=crate::scoped_record_places::Layout::for_record(record,&self.program.records).expect("validated record capture layout");
+        let layout=self.record_borrow_layout(record).expect("validated record capture layout");
         let mut next=0;let mut args=vec![lifetime.to_owned()];
         for leaf in layout.leaves {
             if !self.scoped_record_native_parameter(leaf.ty){continue;}

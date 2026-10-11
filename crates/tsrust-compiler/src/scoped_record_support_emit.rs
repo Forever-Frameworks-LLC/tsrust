@@ -8,6 +8,12 @@ pub(super) struct SupportCache {
     bridges: HashSet<usize>,
 }
 impl Emitter<'_> {
+    pub(super) fn record_borrow_leaf(&self,record:usize)->bool {
+        self.native_views.recursive(record) || self.record_runtime.recursive(record)
+    }
+    pub(super) fn record_borrow_layout(&self,record:usize)->Option<crate::scoped_record_places::Layout> {
+        crate::scoped_record_places::Layout::for_record_with_leaf(record,&self.program.records,|child|self.record_borrow_leaf(child))
+    }
     /// Compute nominal borrowing families once, including ordinary record children.
     pub(super) fn record_borrowing_family(&self)->HashSet<usize> {
         let mut family=HashSet::new();
@@ -15,11 +21,11 @@ impl Emitter<'_> {
         for id in 0..self.program.records.len() {
             let root=self.program.scoped_records.declaration(id);
             if family.contains(&root) || (!ordered_entries.contains(&root) && !self.callback_record_native_parameter(Type::Record(root))) {continue;}
-            if crate::scoped_record_places::Layout::for_record(root,&self.program.records).is_none(){continue;}
+            if self.record_borrow_layout(root).is_none(){continue;}
             let mut pending=vec![root];
             while let Some(record)=pending.pop() {
                 let record=self.program.scoped_records.declaration(record);
-                if !family.insert(record){continue;}
+                if self.record_borrow_leaf(record) || !family.insert(record){continue;}
                 pending.extend(self.program.records[record].fields.iter().filter_map(|field|if let Some(Type::Record(child))=field.ty{Some(child)}else{None}));
             }
         }
@@ -29,7 +35,7 @@ impl Emitter<'_> {
         let mut result=Vec::new();let mut pending=vec![(root,Vec::new())];
         while let Some((record,path))=pending.pop(){
             if self.record_runtime.ordered.contains(&record) && !self.program.records[record].fields.is_empty(){result.push((path.clone(),self.program.records[record].fields.len()));}
-            for (field,item) in self.program.records[record].fields.iter().enumerate().rev(){if let Some(Type::Record(child))=item.ty && !self.program.records[child].fields.is_empty(){let mut next=path.clone();next.push(field);pending.push((child,next));}}
+            for (field,item) in self.program.records[record].fields.iter().enumerate().rev(){if let Some(Type::Record(child))=item.ty && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child){let mut next=path.clone();next.push(field);pending.push((child,next));}}
         }
         result
     }
@@ -40,10 +46,10 @@ impl Emitter<'_> {
         self.record_borrowing_support_layout(record,cache)
     }
     fn record_borrowing_support_layout(&self, record: usize, cache: &mut SupportCache) -> Option<String> {
-        use crate::{scoped_record_places::{Layout,Leaf},scoped_record_bridge::{Types,OwnedParameters,OwnedAccess}};
+        use crate::{scoped_record_places::Leaf,scoped_record_bridge::{Types,OwnedParameters,OwnedAccess}};
         let record=self.program.scoped_records.declaration(record);
         if cache.read.contains_key(&record) && cache.mutate.contains_key(&record) && cache.bridges.contains(&record){return Some(String::new());}
-        let layout=Layout::for_record(record,&self.program.records)?;
+        let layout=self.record_borrow_layout(record)?;
         if self.program.records[record].fields.is_empty(){return None;}
         let native_field=|node:usize,index:usize,ty:Type| {
             if self.scoped_record_native_parameter(ty) {
@@ -55,15 +61,15 @@ impl Emitter<'_> {
         output.push_str(&layout.view_declarations_with_metadata(&self.program.records,|id|format!("TsrMutateView{id}"),native_field,true,&mut cache.mutate,|id|metadata(id,true)));
         let mut pending=vec![record];
         while let Some(node)=pending.pop(){
-            if !cache.bridges.insert(node){continue;}
+            if self.record_borrow_leaf(node) || !cache.bridges.insert(node){continue;}
             let record=&self.program.records[node];
             if record.fields.is_empty(){continue;}
-            let layout=Layout::for_record(node,&self.program.records)?;
+            let layout=self.record_borrow_layout(node)?;
             for field in record.fields.iter().rev(){if let Some(Type::Record(child))=field.ty{pending.push(child);}}
             let owner_parameters=record.fields.iter().enumerate().filter_map(|(index,field)|self.scoped_record_native_parameter(field.ty.unwrap()).then(||format!("P{index}"))).collect::<Vec<_>>();
             let mut read_bounds=Vec::new();let mut mutate_bounds=Vec::new();
             for (index,field) in record.fields.iter().enumerate(){
-                if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && self.scoped_record_native_parameter(Type::Record(child)){
+                if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) && self.scoped_record_native_parameter(Type::Record(child)){
                     read_bounds.push(format!("P{index}:TsrReadRecord{child}"));
                     mutate_bounds.push(format!("P{index}:TsrMutateRecord{child}"));
                 }
@@ -92,7 +98,7 @@ impl Emitter<'_> {
             let transport_body=|mutable:bool| {
                 let mut prefix=String::new();
                 for (index,field) in record.fields.iter().enumerate() {
-                    if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && self.scoped_record_native_parameter(Type::Record(child)) {
+                    if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) && self.scoped_record_native_parameter(Type::Record(child)) {
                         let method=if mutable{"tsr_fields_mut"}else{"tsr_fields"};
                         prefix.push_str(&format!("let child{index}=self.field{index}.{method}();"));
                     }

@@ -310,6 +310,13 @@ them in key order, reads by key and verifies the surviving callback after deleti
 Callback storage transitions consume and rebuild tree entries without cloning keys
 or payloads. Evidence: `tsrust-s08-ordered-map-payload-acceptance.json` in SQLite.
 
+Recursive records now form whole borrowed fields within entry views. Their
+existing recursive representation and shared lifetime remain intact instead of
+being split into independently typed field parameters. Native witnesses cover
+nullable view chains, array-recursive view trees, readonly whole-entry helpers,
+and independent clones of both entries and selected owned recursive values.
+Evidence: `tsrust-s08-ordered-map-recursive-acceptance.json` in SQLite.
+
 OrderedMap is still unexported. Public constructor/type-checking integration,
-recursive payload and broader parameter/branch coverage, editor/catalog work and
-matched benchmark support remain before public acceptance and S08 measurements.
+broader parameter/branch coverage, editor/catalog work and matched benchmark
+support remain before public acceptance and S08 measurements.
