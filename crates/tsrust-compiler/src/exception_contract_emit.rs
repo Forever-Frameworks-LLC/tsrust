@@ -93,6 +93,7 @@ struct NativeRegion {
     return_passes_through:bool,
     inline_return:Option<InlineExit>,
     inline_abrupt:Option<InlineExit>,
+    inline_carried_return:Option<InlineExit>,
     id:usize,
     locals:Vec<crate::syntax::ControlTarget>,
     storage:Option<Box<Storage>>,
@@ -118,7 +119,7 @@ impl RegionStack {
     pub(crate) fn enter(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>)->RegionScope<'_> {
         let mut regions=self.0.borrow_mut();
         let previous_depth=regions.len();
-        regions.push(NativeRegion{return_passes_through:false,inline_return:None,inline_abrupt:None,id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
+        regions.push(NativeRegion{return_passes_through:false,inline_return:None,inline_abrupt:None,inline_carried_return:None,id,locals,storage:None,return_storage:None,control_storage:vec![],transport:None});
         RegionScope{stack:self,previous_depth,_storage:self.1.scope()}
     }
     pub(crate) fn enter_typed(&self,id:usize,locals:Vec<crate::syntax::ControlTarget>,name:String,contract:crate::error_effects::FailureSet,runtime:Option<crate::syntax::Type>)->RegionScope<'_> {
@@ -156,6 +157,9 @@ impl RegionStack {
         (region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty()).then_some(())?;
         Some(region.inline_abrupt.as_ref()?.render(value))
     }
+    pub(crate) fn set_inline_carried_return(&self,route:InlineExit) {
+        self.0.borrow_mut().last_mut().expect("entered region").inline_carried_return=Some(route);
+    }
     pub(crate) fn native_throw(&self,value:&str)->String {
         let regions=self.0.borrow();let region=regions.last().expect("enclosing throw destination");
         if region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty()
@@ -181,6 +185,7 @@ impl RegionStack {
         }
         let region=regions.last().expect("entered return region");
         let payload=if let Some((name,storage))=region.return_storage.as_deref() {format!("{{let pending_return={value};{name}::Return((pending_return,{}))}}",storage.at(span,&self.1))}else{region.storage.as_ref().filter(|storage|storage.carry_control).map_or_else(||value.to_owned(),|storage|format!("{{let pending_return={value};(TsrStorageExit::Return(pending_return),{})}}",storage.at(span,&self.1)))};
+        if let Some(route)=&region.inline_carried_return {return route.render(&payload);}
         format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }
     pub(crate) fn renew_storage(&self, places:&[String], boundary:usize) {self.1.renew(places,boundary);}
@@ -285,8 +290,12 @@ impl RegionStack {
         control_transfer(target,continuing,Some((region.id,&region.locals)))
     }
     pub(crate) fn dispatch_return(&self,value:&str,span:crate::Span,owner:Option<&str>)->String {
+        // A carried inner return still needs the enclosing plain cleanup's direct
+        // exit; wrapping it in another completion hides partial-move state again.
+        if self.plain_return_destination(){return self.return_value(value,span);}
         let regions=self.0.borrow();let region=regions.last().expect("selected return destination");
         let payload=if let Some((name,storage))=region.return_storage.as_deref(){format!("{name}::Return(({value},{}))",owner.map(str::to_owned).unwrap_or_else(||storage.at(span,&self.1)))}else if let Some(storage)=region.storage.as_ref().filter(|storage|storage.carry_control){format!("(TsrStorageExit::Return({value}),{})",owner.map(str::to_owned).unwrap_or_else(||storage.at(span,&self.1)))}else{value.to_owned()};
+        if let Some(route)=&region.inline_carried_return {return route.render(&payload);}
         format!("break 'exception_region{} TsrCompletion::Return({payload});",region.id)
     }
     /// Forward a completion already selected as Throw with its projected owner.
@@ -294,7 +303,10 @@ impl RegionStack {
         let regions=self.0.borrow();
         let region=regions.last().ok_or_else(||crate::Diagnostic::new("error-effect","Error dispatch requires an enclosing region.",span))?;
         let thrown=if region.storage.as_ref().is_some_and(|storage|storage.carry_error){format!("(error,{owner})")}else{"error".into()};
-        Ok(format!("match {pending} {{TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw({thrown}),_=>unreachable!(\"selected error completion\")}}",region.id))
+        let exit=if region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty() {
+            region.inline_abrupt.as_ref().map(|route|route.render(&format!("TsrCompletion::Throw({thrown})")))
+        }else{None}.unwrap_or_else(||format!("break 'exception_region{} TsrCompletion::Throw({thrown})",region.id));
+        Ok(format!("match {pending} {{TsrCompletion::Throw(error)=>{{{exit}}},_=>unreachable!(\"selected error completion\")}}"))
     }
     pub(crate) fn dispatch(&self,pending:&str,active:&[crate::syntax::ControlTarget],span:crate::Span)->Result<String,crate::Diagnostic> {
         use crate::syntax::ControlTarget;
@@ -313,7 +325,11 @@ impl RegionStack {
         }
         breaks.push(format!("target=>break 'exception_region{} {escaped_break}",region.id));
         continues.push(format!("target=>break 'exception_region{} {escaped_continue}",region.id));
-        Ok(format!("match {pending} {{ TsrCompletion::Normal(())=>{{}}, TsrCompletion::Return(value)=>break 'exception_region{id} TsrCompletion::Return({returned}), TsrCompletion::Throw(error)=>break 'exception_region{id} TsrCompletion::Throw({thrown}), TsrCompletion::Break(target)=>match target {{ {breaks} }}, TsrCompletion::Continue(target)=>match target {{ {continues} }} }}",id=region.id,breaks=breaks.join(","),continues=continues.join(",")))
+        let returned_exit=region.inline_carried_return.as_ref().map_or_else(||format!("break 'exception_region{} TsrCompletion::Return({returned})",region.id),|route|route.render(&returned));
+        let abrupt=if region.storage.is_none() && region.return_storage.is_none() && region.control_storage.is_empty() {
+            region.inline_abrupt.as_ref().map(|route|format!("completion @ (TsrCompletion::Return(_)|TsrCompletion::Throw(_))=>{{{}}}",route.render("completion")))
+        }else{None}.unwrap_or_else(||format!("TsrCompletion::Return(value)=>{{{returned_exit}}}, TsrCompletion::Throw(error)=>break 'exception_region{} TsrCompletion::Throw({thrown})",region.id));
+        Ok(format!("match {pending} {{ TsrCompletion::Normal(())=>{{}}, {abrupt}, TsrCompletion::Break(target)=>match target {{ {breaks} }}, TsrCompletion::Continue(target)=>match target {{ {continues} }} }}",breaks=breaks.join(","),continues=continues.join(",")))
     }
 }
 
@@ -348,6 +364,20 @@ pub(crate) fn local_control_targets(body:&[crate::syntax::Stmt])->Vec<crate::syn
         }
     }
     targets
+}
+
+/// Returns in nested expressions' closure bodies belong to another callable.
+pub(crate) fn has_source_return(body:&[crate::syntax::Stmt])->bool {
+    use crate::syntax::StmtKind;
+    let mut pending=body.iter().collect::<Vec<_>>();
+    while let Some(statement)=pending.pop(){match &statement.kind {
+        StmtKind::Return(_)=>return true,
+        StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+        StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);},
+        StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+        StmtKind::Try(region)=>pending.extend(region.statements()),
+        _=>{}
+    }}false
 }
 
 /// Only control exits targeting an enclosing construct can escape cleanup.

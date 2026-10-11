@@ -132,3 +132,25 @@ fn partial_return_cleanup_restoration_and_control_keep_owner_state() {
  runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{outer:for(let i=0;i<2;i+=1){try{if(early){return a.name;}}finally{if(early){break outer;}}}return a.other;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one two\n");
  runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{for(let i=0;i<2;i+=1){if(i===1){break;}console.log(a.other);}}const run=():string=>a.name;return run();}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one\ntwo\nx y\n");
 }
+
+#[test]
+fn map_cleanup_preserves_return_and_normal_callback_carriers() {
+ runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{console.log(a.other,handlers.size);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one 1\ntwo 1\nx y\n");
+}
+
+#[test]
+fn map_cleanup_invokes_current_callback_on_caught_field_return() {
+ runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){throw 3;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}catch(error){return a.name;}finally{const item=handlers.get(early?\"old\":\"new\");if(item!==undefined){console.log(a.other,item.run());}}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one 3\ntwo 7\nx y\n");
+}
+
+#[test]
+fn map_cleanup_replacement_return_uses_its_new_callback_carrier() {
+ runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{handlers.clear();handlers.set(\"last\",{run:():int=>current[0]+1});const item=handlers.get(\"last\");if(item!==undefined){console.log(item.run());}return a.other;}}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","8\n8\none two\n");
+}
+
+#[test]
+fn map_return_runs_enclosing_plain_cleanup_before_leaving() {
+    runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{console.log(a.other,handlers.size);}return a.name;}finally{console.log(\"outer\",a.other);}}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one 1\nouter one\ntwo 1\nouter two\nx y\n");
+    runs("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];try{const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{console.log(a.other,handlers.size);}}finally{console.log(\"outer\",a.other);}return a.name;}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}","one 1\nouter one\ntwo 1\nouter two\nx y\n");
+
+}

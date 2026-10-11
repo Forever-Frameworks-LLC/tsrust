@@ -3303,3 +3303,8 @@ fn arrays_and_maps_of_capturing_records_cross_function_boundaries() {
     let escaped=support::format_round_trip(&format!("{holder}function make(a:ReadOnly<int[]>):Holder[]{{return [{{run:():int=>a[0]}}];}}function main():void{{const v=[1];const hs=make(v);}}"));
     assert_eq!(tsrust_compiler::check(&escaped).err().expect("an array result cannot borrow the callee").code,"callback-escape");
 }
+
+#[test]
+fn map_replacement_finally_return_disposes_each_callback_once() {
+    verify_disposal(&support::format_round_trip("type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{handlers.clear();handlers.set(\"last\",{run:():int=>current[0]+1});const item=handlers.get(\"last\");if(item!==undefined){console.log(item.run());}return a.other;}}function main(){console.log(pick({name:\"x\",other:\"one\"},true),pick({name:\"y\",other:\"two\"},false));}"),3,"drop 0\n8\ndrop 2\ndrop 0\ndrop 1\n8\ndrop 2\none two\n");
+}

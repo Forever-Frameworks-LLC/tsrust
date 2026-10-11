@@ -28,9 +28,7 @@ impl Emitter<'_> {
         let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let fallback=std::collections::BTreeMap::new();
         let return_carrier=self.map_completion_carrier(fun,format!("MapCatchControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Handled,&fallback);
-        let pending=self.map_return_phase_storage_completion_body(fun,&region.body,declarations,first,&in_name,incoming.clone(),runtime,&storage_type,&places,true,true,None,body_error,return_carrier.as_ref());
         let handler_throws=outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handled=self.map_return_phase_storage_completion_body(fun,&handler.body,declarations,first+1,&out_name,outgoing.clone(),runtime,&storage_type,&places,handler_throws,true,None,handler_error,return_carrier.as_ref());
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
         let setup=if let Some(binding)=handler.binding {
             let caught=exception_contract_emit::checked_catch_value("caught_error",&in_name,incoming,&unions,runtime,statement.span).expect("checked catch payload");
@@ -53,6 +51,14 @@ impl Emitter<'_> {
         let normal_arm="TsrCompletion::Normal(storage)=>(Some(storage),None,None)";
         let return_arm=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
         let handler_throw=if handler_throws{"TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None)"}else{"TsrCompletion::Throw(error)=>match error {}"};
+        let direct_return=return_carrier.as_ref().map(|carrier|{
+            let precise=self.map_precise_return_cleanup(fun,region,declarations,first+4,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
+            self.map_direct_return_route(carrier,&pattern,precise,first)
+        });
+        *self.inline_map_return.borrow_mut()=direct_return.clone();
+        let pending=self.map_return_phase_storage_completion_body(fun,&region.body,declarations,first,&in_name,incoming.clone(),runtime,&storage_type,&places,true,true,None,body_error,return_carrier.as_ref());
+        *self.inline_map_return.borrow_mut()=direct_return;
+        let handled=self.map_return_phase_storage_completion_body(fun,&handler.body,declarations,first+1,&out_name,outgoing.clone(),runtime,&storage_type,&places,handler_throws,true,None,handler_error,return_carrier.as_ref());
         let handler_split=format!("{{let completed={handled};match completed{{{normal_arm},{handler_throw},{return_arm},{impossible}}}}}");
         let body_split=format!("{{let completed={pending};match completed{{{normal_arm},TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{return_arm},{impossible}}}}}");
         let error_storage=handler_error.map(|layout|self.map_error_storage_type(fun,&places,layout)).unwrap_or_else(||storage_type.clone());

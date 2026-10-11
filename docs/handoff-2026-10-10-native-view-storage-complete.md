@@ -1,174 +1,88 @@
-# Handoff: native view source storage matrix
+# Handoff: recursive views and finally cleanup
 
-Date: 2026-10-10. Previous handoff:
-`docs/handoff-2026-10-10-native-view-storage-matrix.md`. Starting checkpoint was
-`b223620f`; this handoff follows `ff481c9c`. The tree is clean.
+Current at the commit carrying this note. The original October 10 handoff is
+superseded; prior checkpoint evidence remains in Git, SQLite and
+`docs/b11-resources-bytes-acceptance-map.md`. S07 is not accepted or measured.
 
-Read `AGENTS.md`, `docs/development-workflow.md`,
-`docs/native-view-callable-storage-plan.md` (the last four sections describe this
-work), `docs/native-byte-views-implementation.md`, `docs/resources-bytes-plan.md` and
-`docs/b11-resources-bytes-acceptance-map.md`.
+Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
+`docs/resources-bytes-plan.md`, `docs/recursive-view-storage-plan.md` and
+`docs/standard-library-roadmap.md`. All decisions below are already approved.
 
-## State
+## Approved scope and completed work
 
-Gate 189 and S07 are open. Public `view`/`viewMut` are still guarded by
-`native_binding_types::prepare`. Consumers remain at `f569190a`.
+- Nullable recursive links, including mutual cycles, use unique heap ownership.
+  Nonrecursive layouts stay unchanged. No shared ownership or implicit byte copies.
+- Recursive records containing views share a real borrow lifetime. Array recursion,
+  nullable links, provenance, iterative link destruction/clone and public fixtures
+  are implemented. Views remain non-clonable. Recursive records storing callback
+  fields still have the explicit callable-layout diagnostic and remain pending.
+- View-capturing callbacks can return argument views or views of borrowed Bytes
+  arguments. Terminal-branch provenance and temporary record calls are repaired.
+- The installed CLI/editor consumers were refreshed from `4367f4cc` with executable
+  fixture and LSP smoke checks. Later source work is not installed yet.
+- Resource close consumes ownership even on Err. Later use and double close are
+  static errors. Drop is a nonthrowing fallback. Bytes and views need no close.
+- Whole-owner finally returns were repaired in `ed469b32` using initialized stack
+  slots. Partial-field direct cleanup routes landed in `eba57bd2`, preserving
+  returned allocations and sibling liveness without cloning or placeholders.
 
-Commits of this session, oldest first:
+## Current checkpoint: Map callback storage through finally
 
-| Commit | Content |
-| --- | --- |
-| `a27a2ef9` | Data arguments, optional/default/rest parameters, ordinary and `void` results, throwing callbacks; replaced origins kept as dormant provenance |
-| `dc9fc468` | Arrays with mixed alternatives; captures of stored families; reusable invocation; untracked returned view diagnostic |
-| `cbdbd701` | Field storage joined by the whole-function carrier planner; absent/present nullable transitions; recursive view storage diagnosed |
-| `43107664` | Unrelated repair: a `return` inside a `try` or `catch` body breaks straight to the enclosing region |
-| `ff481c9c` | Three editor tests follow the gate 188 `clone` catalog entry |
+The retained `Closure(1) to Closure(0)` emitter panic is repaired. Return projections
+are limited to their body phase. Cleanup does not acquire a source return carrier
+merely because it preserves a pending return. Narrowed Map projections exclude
+impossible callback origins instead of converting their environments.
 
-The acceptance map has the row-by-row status.
+`map_return_storage.rs` consumes a precise typed Map return payload and runs cleanup
+before direct exit. `map_catch_finally_storage.rs` applies the same route to body and
+catch returns. `exception_contract_emit.rs` preserves direct return/error dispatch
+through enclosing plain cleanup. Cleanup with no source control exit does not emit
+hypothetical break/continue paths. Ordinary, caught, replacement and nested Map
+returns pass, including Map declarations inside an enclosing try.
 
-## How the pieces fit
+The final focused batch passes 44 exception integration tests, 17 scoped-record
+finally tests and 35 finally unit tests. One newly discovered disposal witness is
+ignored and still fails when explicitly run; see below. The separate Map native
+probe passes allocation identity and exact environment disposal at O0/O3. Formatter
+corpus, public assertion fixture, editor capture diagnostics and three benchmark
+registration checks pass. Whole-project formatting is unchanged. Exact red and
+repaired logs use the SQLite prefix `tsrust-map-finally-`.
 
-- **Provenance.** Rust releases the earlier owner of a reassigned local, so conflict
-  checks stay precise. A lifetime in a function signature is unified over every value
-  a native variable ever holds, so replaced origins stay as dormant loans
-  (`retained: false`, `retain_unified_native_view_loans`, `extend_dormant` in
-  `native_view_places.rs`). They do not block owners and they reach returned values.
-- **Types.** A direct field of a local record, and a local callback array, have one
-  final storage type: the join of every stored alternative
-  (`join_native_view_storage`, `widen_native_view_array_storage` in
-  `native_view_storage_contracts.rs`). `record_sequence_carriers` and
-  `native_view_array_carriers` move earlier values into that type.
-- **Only whole-record replacement in the declaring block redeclares storage**
-  (`native_view_storage_epochs.rs`). Analysis decides this with
-  `native_view_declaration_depths`; the pass decides it by finding the `let` in the
-  same statement list. Keep the two rules equal.
-- **Families.** `native_view_family_emit.rs` emits `self`, `&self` or `&mut self`
-  receivers and the planned error layout. Lifetime slots of a captured scoped family
-  are enumerated in five places that must agree: the `lifetime_count` leaf in
-  `analysis.rs`, `callable_layout.rs`, `native_capture_storage.rs`,
-  `scoped_record_emit.rs::record_environment_type`,
-  `native_view_environment_emit.rs` and
-  `native_view_lifetime_emit.rs::native_view_capture_slots`. Order: alternatives, then
-  slots.
-- **Written families.** The lifetime-free family of a view callback contract has no
-  environment. It is emitted as an uninhabited enum with a generic `call`.
+The matched `exception_completion` workload now invokes the retained Map callback
+on each return path. Its independent expected trace ends in 4 or 8. Source hashes,
+mutation guards and Node-after-tsc support are current. See the acceptance map for
+the final untimed verification record. No timing or complete family regression ran.
 
-## Done after this handoff was first written
+## Next: restore lexical disposal before finally
 
-Later commits on the same day: `4d030008` publishes `view`/`viewMut`, the two view
-types and the shared observers with catalog entries and editor help; `1587ca82`
-switches the formatter to two-space indentation (owner request) and reformats the
-project; `5b237a17` adds the matched `native_byte_views` workload; the commit that
-carries this note lets a callback return a view it received as an argument.
+`try_locals_drop_before_finally_on_both_return_and_normal_paths` in
+`src/finally_move_slots.rs` is the focused failing native test. A record created
+inside try drops before finally on normal exit, but survives into finally on early
+return because cleanup now runs inline inside the try scope. An injected Drop
+counter observes 0 instead of 1 during cleanup. The previous release built from
+`eba57bd2` reproduces it; baseline source/native code/log and current red logs are
+retained under `tsrust-finally-local-drop-` in SQLite.
 
-## Remaining work for gate 189
+Returned-payload and sibling disposal tests pass; they do not establish try-local
+scope-exit ordering. Repair scope disposal, including conditional and partial moves,
+without prematurely dropping siblings, cloning payloads or adding invalid field
+values. Enable this test when fixed. Do not close the broader finally repair or
+resource acceptance while it remains ignored. A local-only explicit drop needs
+care: Rust must still handle partially moved or conditionally initialized owners.
 
-1. **Recursive view storage.** Plan: `docs/recursive-view-storage-plan.md`. Part B
-   (one shared lifetime for a recursive record) needs no language change. Part A
-   (a nullable field that refers to its own record, stored behind one heap allocation)
-   changes the language and waits for the owner's decision. The owner's target type is
-   `Chunk { data: ByteView; next?: Chunk }`, which needs both parts.
-2. **A callback that captures a view and also returns a view argument.** The scoped
-   family `call` needs a named argument lifetime joined with its capture lifetimes.
-   Today it is diagnosed (`native-view-family-emission`).
-3. **S07 acceptance.** Gate 190 (resources) is pending. Then the complete family
-   regressions, measurements of every byte workload including `native_byte_views`,
-   the performance review and the consumer refresh.
+Then finish recursive stored callback fields, gate 190's resource backend and
+synchronous file proof, and S07 family acceptance: complete compiler/editor
+regressions, matched measurements, regression review, justified optimization and
+consumer refresh. Continue through the existing S08–S21 roadmap after S07. Preserve
+completed evidence; rerun affected checks and resume unrun measurement groups.
 
-## Known defect outside this gate
+## Working environment
 
-A `return` of an owned value that must pass through `finally`, with a later use of
-that value, still fails native compilation. The ignored test
-`returned_owned_value_through_finally_remains_usable_on_other_paths` in
-`crates/tsrust-compiler/tests/exception_return_moves.rs` records it. The return has to
-run the cleanup first, so it travels as a completion value and Rust cannot see that
-the later use is on another path. A fix needs the cleanup inlined at the return site.
-
-## Evidence
-
-SQLite gate logs: `tsrust-gate189-invocation-*.log`, `tsrust-gate189-matrix-*.log`,
-`tsrust-gate189-storage-whole-compiler.log`, `tsrust-gate189-storage-whole-editor.log`
-(the editor log holds the three `clone` failures that `ff481c9c` repairs),
-`tsrust-catch-return-whole-compiler.log`, `tsrust-catch-return-whole-editor.log`.
-Final runs: compiler 2,924 passed, 0 failed, 4 ignored; editor 484 passed, 0 failed,
-1 ignored; no aborted target. Project formatting changes no file. No timing ran.
-
-## Continuation prompt
-
-Continue Tsrust at /Users/seancotter/Desktop/dev/learning/tsrust from the commit that
-carries this handoff (tree clean). Read AGENTS.md, docs/development-workflow.md,
-docs/handoff-2026-10-10-native-view-storage-complete.md,
-docs/recursive-view-storage-plan.md, docs/b11-resources-bytes-acceptance-map.md and
-docs/resources-bytes-plan.md. Public byte views are published and documented; do not
-redo that work. Implement part B of the recursive view storage plan (one shared
-lifetime for a record on a recursive cycle, proved first with array recursion). Ask
-the owner to confirm part A (a nullable self-referential field stored behind one heap
-allocation) before implementing it; the target is
-`type Chunk = { data: ByteView; next?: Chunk; }`. Then let a view-capturing callback
-return a view argument, finish gate 190, and run the S07 family acceptance: complete
-compiler and editor regressions, measurements, performance review, consumer refresh.
-Keep real slice lifetimes and exact owner provenance: no implicit clone, hidden shared
-owner, static lifetime, unsafe erasure or integer handle. After every cargo test run
-check for failed tests and for aborted targets. The formatter uses two-space
-indentation. Environment: CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target,
-CARGO_INCREMENTAL=0, cargo --offline --locked, Node 24.11.1 first on PATH,
-/opt/homebrew/bin/python3 for benchmarks/storage/store.py. Consumers remain at
-f569190a.
-
-## Owner-approved continuation and consumer refresh
-
-The owner approved both parts of the recursive storage plan and the proposed
-continuation order. Refresh completed from source checkpoint `4367f4cc`: five
-workspace executable consumers, the global CLI, and the local VS Code extension.
-Debug and release builds succeeded. Three public byte-view fixtures ran through
-the refreshed editor CLI, release CLI, and global CLI; the refreshed LSP passed
-stdio diagnostics and hover checks. Restart/reload existing editor processes to
-load the new binaries and extension contributions. No timing ran. Exact refresh
-evidence is stored in SQLite as `target/editor/consumer-refresh-2026-10-10.json`.
-
-Next: recursive view lifetimes using array recursion, nullable recursive links,
-view-capturing callbacks returning argument views, the owned-value return through
-finally defect, gate 190, and S07 family acceptance. Existing resource close
-semantics remain approved; they do not require closing byte buffers or views.
-
-
-## Current continuation: whole-owner finally return checkpoint
-
-Array and nullable recursive views and callbacks returning argument/owner views
-are implemented; current evidence is in `b11-resources-bytes-acceptance-map.md`.
-The original ignored whole-owner finally return test is enabled and passes.
-`finally_move_slots.rs` indexes actual checked return transfers with later uses and
-emits stack `Option` state through existing initialized-slot access. It preserves
-allocation identity and drop order without cloning. Nine return tests, 27 adjacent
-exception tests, O0/O3 native owner/view checks, editor diagnostics and the matched
-exception workload pass. No timing ran. Consumers remain at `4367f4cc`.
-
-Next fix the adjacent partial-record-field return through finally. Exact red probe
-source/native output/log are in SQLite under `tsrust-finally-partial-owner-probe.*`.
-It passes source analysis but Rust reports the field moved on the normal path.
-Track field initialization independently; do not consume the whole record to
-extract one field, because that would dispose siblings prematurely. Then finish
-recursive stored callable fields, resources gate 190, S07 family measurements and
-consumer refresh before following the remaining roadmap. The broader finally
-repair and S07 remain open.
-
-
-## Latest continuation: direct partial-field cleanup routes
-
-The plain-frame partial-field return failure above is repaired. `InlineExit` in
-`exception_contract_emit.rs` carries typed return/throw continuations. Cleanup runs
-inline before direct exit; shared abrupt routing avoids exponential generated code.
-Only actually escaping cleanup control targets are emitted. Whole-owner slots stay
-for existing ownership transport. The public assertion fixture and native O0/O3
-checks cover siblings, pointer identity and exact disposal; nested cleanup, catch,
-restoration, break, continue and subsequent closure capture pass.
-
-Next investigate the independently reproduced Map callback carrier panic saved as
-`tsrust-finally-fields-map-probe.tsr` in SQLite. Both the prior release compiler and
-the current compiler panic at `record_carrier_emit.rs` while converting Closure(1)
-to Closure(0). The source replaces a Map's old callback family on the normal path,
-but an early field-return path keeps its original entries before finally reads the
-Map. The direct cleanup optimization intentionally excludes storage-carrying frames;
-repair the checked carrier selection instead of erasing environments or cloning
-captures. Then finish recursive stored callback fields, resources, S07 acceptance
-and the remaining roadmap. Consumers remain at `4367f4cc`; no timing run yet.
+One agent in this tree. `CARGO_INCREMENTAL=0`,
+`CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target`, cargo `--offline --locked`.
+Node 24.11.1 is first on PATH; use `/opt/homebrew/bin/python3` for SQLite blob imports.
+Format the whole project before every source checkpoint with
+`TSRUST=/private/tmp/tsrust-gate100-editor-target/debug/tsrust node tools/format-project.mjs`.
+Keep focused TDD and milestone-only heavy checks. Import/read back exact closed
+records before deleting loose copies. Prune obsolete native/test outputs and retain
+current executable consumers. Do not create archive directories or snapshots.

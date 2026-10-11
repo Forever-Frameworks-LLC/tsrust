@@ -18768,10 +18768,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling. Timing remains pending.",
+      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. Timing remains pending.",
       "specification": "Retain return values, cleanup trace and dynamic input text.",
-      "sourceSha256": "d871b14bb7d5c9189bfee954fd1df67ef571dd08f23d47ac4770e28ab8028f0d",
-      "counterpartSha256": "0248785ce9b38129dc05edc83a82a684ed3b2843ed6259c69b255f22a7470d7b"
+      "sourceSha256": "e7bb4e5d42ac3e4aed83d8d0f6c7b6396614a028f2679db9c4d126541214ba43",
+      "counterpartSha256": "22f96d8630c6a1b4997ca0402164d757e3928af020d5cb4b5beeb97c1fe67a4a"
     },
     {
       "id": "type_assertions",

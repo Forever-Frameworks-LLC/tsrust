@@ -21,6 +21,36 @@ function take(row: Row, early: boolean, trace: int[]): string {
   return row.name;
 }
 
+type CleanupHolder = {
+  run: ReadOnly<Function<int>>;
+};
+
+function takeWithCallbacks(row: Row, early: boolean, trace: int[]): string {
+  const old = [3];
+  const current = [7];
+  const handlers = new Map<string, CleanupHolder>();
+  handlers.set("old", {
+    run: (): int => old[0]
+  });
+  try {
+    if (early) {
+      return row.name;
+    }
+
+    handlers.clear();
+    handlers.set("new", {
+      run: (): int => current[0]
+    });
+  } finally {
+    const item = handlers.get(early ? "old" : "new");
+    if (item !== undefined) {
+      trace.push(item.run());
+    }
+  }
+
+  return row.name;
+}
+
 function main() {
   const trace: int[] = [];
   strictEqual(take({
@@ -30,4 +60,12 @@ function main() {
     name: "second", other: "four"
   }, false, trace), "second");
   strictEqual(trace.join(","), "3,9,4,9");
+  const callbackTrace: int[] = [];
+  strictEqual(takeWithCallbacks({
+    name: "first", other: "one"
+  }, true, callbackTrace), "first");
+  strictEqual(takeWithCallbacks({
+    name: "second", other: "two"
+  }, false, callbackTrace), "second");
+  strictEqual(callbackTrace.join(","), "3,7");
 }

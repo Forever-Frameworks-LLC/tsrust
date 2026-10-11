@@ -59,6 +59,12 @@ impl Emitter<'_> {
                 }).collect::<Vec<_>>().join(",");
                 format!("match {value}{{{arms}}}")
             }
+            // A precise exit can exclude a complete concrete origin, just as
+            // the joined-family projection below excludes individual variants.
+            // This is an empty projection, never a conversion between environments.
+            (Type::Closure(source),Type::Closure(target)) if source!=target => {
+                format!("{{let excluded_map_environment={value};drop(excluded_map_environment);unreachable!(\"excluded Map callback environment\")}}")
+            }
             (Type::BorrowedCallable(source),Type::Closure(target)) => {
                 let origins=self.program.stored_contracts.origins(source).unwrap();
                 let arms=origins.iter().enumerate().map(|(index,&origin)|format!("BorrowedCallable{source}::{}(payload)=>{}",crate::borrowed_callable_dispatch::variant(index,origins.len()),if origin==target {"payload"}else{"unreachable!(\"excluded Map callback environment\")"})).collect::<Vec<_>>().join(",");

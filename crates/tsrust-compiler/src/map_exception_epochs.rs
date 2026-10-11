@@ -90,6 +90,7 @@ impl Emitter<'_> {
         if let Some(layout)=error_layout {self.attach_map_error_storage(fun,body,places,layout);}
         if carry_control {self.exception_regions.carry_storage_on_control_exit();}
         if let Some(carrier)=returned{self.attach_map_return_storage(fun,body,places,carrier);self.attach_map_control_storage(fun,body,places,carrier);}
+        if let Some(route)=self.inline_map_return.borrow_mut().take(){self.exception_regions.set_inline_carried_return(route);}
         let mut statements = String::new();
         self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
         let normal_values = format!("({},)", places.iter().map(|place| self.map_phase_completion_exit_value(fun, body, place, normal)).collect::<Vec<_>>().join(","));

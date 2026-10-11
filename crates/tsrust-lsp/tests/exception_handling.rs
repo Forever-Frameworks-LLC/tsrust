@@ -81,3 +81,13 @@ fn partial_return_cleanup_keeps_editor_ownership_checks() {
  let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(invalid,"file:///partial-return.tsr").unwrap()).unwrap();
  assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="partial-transfer"),"{diagnostics}");
 }
+
+#[test]
+fn map_return_cleanup_keeps_live_capture_diagnostics() {
+ let source="type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{console.log(a.other,handlers.size);}old[0]=9;return a.name;}function main(){}";
+ let formatted=tsrust_compiler::format(source).unwrap();assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+ let diagnostics=tsrust_lsp::diagnostics(&formatted,"file:///map-return.tsr").unwrap();assert!(diagnostics.is_empty(),"{diagnostics:?}");
+ let invalid=source.replace("old[0]=9;","current[0]=9;");
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&invalid,"file:///map-return.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="capture-conflict"),"{diagnostics}");
+}

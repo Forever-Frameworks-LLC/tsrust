@@ -53,6 +53,36 @@ function retainedField(value: RetainedOwner, early: boolean, trace: int[]): stri
   return value.text;
 }
 
+type CallbackHolder = {
+  run: ReadOnly<Function<int>>;
+};
+
+function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string {
+  const old = [3];
+  const current = [7];
+  const handlers = new Map<string, CallbackHolder>();
+  handlers.set("old", {
+    run: (): int => old[0]
+  });
+  try {
+    if (early) {
+      return value.text;
+    }
+
+    handlers.clear();
+    handlers.set("new", {
+      run: (): int => current[0]
+    });
+  } finally {
+    const item = handlers.get(early ? "old" : "new");
+    if (item !== undefined) {
+      trace.push(item.run() + value.stamp);
+    }
+  }
+
+  return value.text;
+}
+
 function workload(n: int, seed: int, input: string): string[][] {
   const output: string[][] = [];
   let i = 0;
@@ -64,7 +94,10 @@ function workload(n: int, seed: int, input: string): string[][] {
     const field = retainedField({
       text: owned, stamp: 11
     }, value % 2 === 0, trace);
-    output.push([String(result), String(replaced(value)), trace.join(","), field]);
+    const mapped = retainedMap({
+      text: field, stamp: 1
+    }, value % 2 === 0, trace);
+    output.push([String(result), String(replaced(value)), trace.join(","), mapped]);
     i = i + 1;
   }
 

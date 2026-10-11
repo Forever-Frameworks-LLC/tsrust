@@ -214,6 +214,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         return_passes_through: Cell::new(false),
         inline_return: RefCell::new(None),
         inline_abrupt: RefCell::new(None),
+        inline_map_return: RefCell::new(None),
         cleanup_replaces_exits: Cell::new(false),
         result_functions: RefCell::new(HashMap::new()),
         result_closures: RefCell::new(HashMap::new()),
@@ -295,6 +296,7 @@ struct Emitter<'a> {
     return_passes_through: Cell<bool>,
     inline_return: RefCell<Option<exception_contract_emit::InlineExit>>,
     inline_abrupt: RefCell<Option<exception_contract_emit::InlineExit>>,
+    inline_map_return: RefCell<Option<exception_contract_emit::InlineExit>>,
     /// Inside a `try` whose abrupt `finally` replaces every pending exit.
     cleanup_replaces_exits: Cell<bool>,
     result_functions: RefCell<HashMap<usize,(String,String)>>,

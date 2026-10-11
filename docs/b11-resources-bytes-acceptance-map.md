@@ -11,6 +11,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
 | Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Owned returns through finally, including renewed Map callbacks | Whole/partial returns and Map carriers verified; try-local disposal before cleanup remains defective | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
@@ -361,3 +362,45 @@ acceptance. Recursive stored callbacks, gate 190 and S07 measurements remain ope
 Five native/Node-after-tsc cases agree for the expanded workload: SQLite
 `runtime/results/2026-10-11T02-26-03-593Z-verify.json`. Execution is empty; timing
 remains pending. The rebuilt release compiler also executes the assertion fixture.
+
+
+### Map callback owners across finally: precise direct return transport
+
+The retained Map carrier panic is repaired. Return projections now use only the
+source points belonging to their phase. Cleanup without a source return or escaping
+control no longer manufactures a return carrier from the pending return's layout.
+Disjoint concrete callback origins are excluded in narrowed Map projections, just
+like excluded variants of a joined callback family; environments are never converted
+into another origin. Direct return transport consumes the precise Map owner before
+cleanup and preserves partial-field move state through enclosing plain cleanup.
+Return/error dispatch honors the enclosing cleanup route, and cleanup with no source
+control exit does not emit hypothetical break/continue paths.
+
+The public owned-return fixture now checks callback invocation on early and normal
+paths. Focused tests cover catch returns, a third callback installed by replacement
+cleanup, Map storage declared inside an outer try, allocation identity and exactly
+one disposal per callback environment at O0/O3. The final exception integration
+batch passes 44 tests and the scoped-record finally batch passes 17. The editor
+accepts the valid normal-path capture release and still rejects mutation of the
+current capture. The matched exception workload includes both Map callback paths,
+with independent expected traces ending in 4 or 8; measurement remains pending.
+
+A new native probe exposed an earlier direct-cleanup regression: an owned local
+created inside try is disposed before finally on normal exit, but survives into
+finally on early return. This is separate from returned-payload and sibling liveness,
+which pass. The ignored test
+`try_locals_drop_before_finally_on_both_return_and_normal_paths` records the failing
+native assertion. Preserve scope-exit disposal, including conditional/partial moves,
+before accepting the broader finally repair or resources. Do not replace this with
+an early whole-record drop, implicit clone or uninitialized placeholder. Exact red
+and repaired evidence is stored in SQLite under `tsrust-map-finally-` and
+`tsrust-finally-local-drop-`. Recursive stored callbacks, gate 190 and S07 family
+acceptance remain open; installed consumers remain at `4367f4cc`.
+
+
+Thirty-five finally unit checks pass; the known try-local disposal test is ignored.
+The formatter corpus and rebuilt release CLI assertion fixture pass. Five matched
+native/Node-after-tsc cases agree in SQLite
+`runtime/results/2026-10-11T03-06-13-031Z-verify.json`; `execution` is empty.
+The previous release at `eba57bd2` independently reproduces the try-local failure
+(`tsrust-finally-local-drop-baseline.tsr`, `.rs`, `.log`).
