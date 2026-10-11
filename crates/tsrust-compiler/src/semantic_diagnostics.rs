@@ -39,9 +39,11 @@ fn index(program:&Program)->(Vec<Statement>,HashMap<Span,String>) {
     let mut pending=program.functions.iter().map(|function|(function.body.clone(),function.scope_span)).collect::<Vec<_>>();
     while let Some((body,scope))=pending.pop() {
         for mut statement in body {
-            if !seen.insert(statement.span) {continue;}
-            let range=extent(&statement);
             let declaration=match &statement.kind {StmtKind::Let{name,..}=>Some(name.text.clone()),_=>None};
+            // Pattern lowering can give several distinct declarations one source
+            // span. Retain each binding so all skipped projections are poisoned.
+            if !seen.insert((statement.span,declaration.clone())) {continue;}
+            let range=extent(&statement);
             statements.push(Statement{key:statement.span,extent:range,scope,declaration,terminal:terminal(&statement)});
             let _=crate::source_walk::body(std::slice::from_mut(&mut statement),&mut |_|Ok(()),&mut |expression|{
                 if let ExprKind::Name(name)=&expression.kind {names.insert(expression.span,name.clone());}
@@ -81,14 +83,15 @@ pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
         let cascade=matches!(next.code,"unknown"|"name") && names.get(&next.span).is_some_and(|name|{
             statements.iter().filter(|statement|statement.declaration.as_ref()==Some(name) && contains(statement.scope,next.span))
                 .min_by_key(|statement|statement.scope.end.saturating_sub(statement.scope.start))
-                .is_some_and(|declaration|program.diagnostic_skips.contains(&declaration.key))
+                .is_some_and(|declaration|program.diagnostic_skips.contains(&declaration.key.start))
         });
         if !cascade && !errors.iter().any(|error:&Diagnostic|error.code==next.code && error.span==next.span && error.message==next.message) {errors.push(next.clone());}
         if errors.len()>=64 {break;}
         let statement=statements.iter().filter(|statement|contains(statement.extent,next.span))
             .min_by_key(|statement|statement.extent.end.saturating_sub(statement.extent.start));
         let skipped=recoverable(next.code) && statement.is_some_and(|statement|
-            !statement.terminal && program.diagnostic_skips.insert(statement.key));
+            !statements.iter().any(|other|other.key.start==statement.key.start && other.terminal)
+                && program.diagnostic_skips.insert(statement.key.start));
         if !skipped {
             // Keep failed terminal operations intact. Change only which function
             // is checked first; calls still follow their real bodies and contracts.
@@ -103,7 +106,7 @@ pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
         };
         match result {Ok(_)=>break,Err(error)=>next=error}
     }
-    errors.sort_by_key(|error|(error.span.start,error.span.end));
+    errors.sort_by_key(|error|(error.span.start,error.span.end,error.code));
     errors.dedup_by(|a,b|a.span==b.span && a.code==b.code && a.message==b.message);
     errors
 }

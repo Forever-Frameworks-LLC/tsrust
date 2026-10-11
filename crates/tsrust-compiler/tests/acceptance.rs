@@ -258,7 +258,6 @@ function main() { const x: User = { name: "a" }; console.log(x.other); }"#,
         (r#"/* no end"#, r#"syntax"#),
         (r#"function main() {"#, r#"syntax"#),
         (r#"function main() { console.log("a") }"#, r#"syntax"#),
-        (r#"function other() {}"#, r#"entry"#),
         (r#"function main(value: string) {}"#, r#"entry"#),
         (r#"function main() { main(); }"#, r#"unsupported"#),
         (r#"function clone() {} function main() {}"#, r#"duplicate"#),
@@ -329,10 +328,11 @@ fn check_needs_no_rust_and_rejects_before_backend() {
         assert_eq!(output.status.code(), Some(if valid { 0 } else { 1 }));
         let expected = match tsrust_compiler::check(&source) {
             Ok(analysis) => analysis.to_json(),
-            Err(diagnostic) => format!(
-                "{{\"ok\":false,\"diagnostics\":[{}]}}",
-                diagnostic.to_json(&source)
-            ),
+            Err(diagnostic) => {
+                let diagnostics=tsrust_compiler::diagnostics(&source);
+                assert!(diagnostics.iter().any(|error|error.to_json(&source)==diagnostic.to_json(&source)));
+                format!("{{\"ok\":false,\"diagnostics\":[{}]}}",diagnostics.iter().map(|error|error.to_json(&source)).collect::<Vec<_>>().join(","))
+            },
         };
         assert_eq!(
             String::from_utf8(output.stdout).unwrap(),

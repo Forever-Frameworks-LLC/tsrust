@@ -1782,7 +1782,7 @@ pub struct FunctionApplication {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub(crate) diagnostic_first: Option<Span>,
-    pub(crate) diagnostic_skips: std::collections::HashSet<Span>,
+    pub(crate) diagnostic_skips: std::collections::HashSet<usize>,
     pub(crate) unresolved_local_function: Option<Token>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,

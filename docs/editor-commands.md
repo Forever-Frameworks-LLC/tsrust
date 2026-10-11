@@ -71,7 +71,7 @@ Multiple successive supported transfers can be repaired by one clearly labelled 
 
 The development CLI now checks, emits, builds and runs entry files with explicit named relative imports, for example `import { value } from "./dependency.tsr";` and `export function value(): int { return 7; }`. Only the selected entry's `main()` executes automatically. Dependencies retain private names and defining-module record identity. Aliases are supported; import cycles, private/missing exports and source overwrite targets produce errors. Bundled `std:` modules are supported; bare package imports remain future work. Compile/runtime failures identify the original imported file. Check reports diagnostics without building an executable.
 
-This compiler increment does not supply project-aware live IntelliSense or unsaved dependency checking yet; those are S04 in the standard-library roadmap. No VSIX installation or installed global CLI refresh was performed for this increment; use the development binary in target/editor/debug after building.
+The language server resolves project imports and unsaved dependency buffers for diagnostics and IntelliSense. Rebuild and restart the language server after source updates. See the [extension installation guide](../editors/vscode/README.md) for local setup.
 
 ## Missing native linker
 

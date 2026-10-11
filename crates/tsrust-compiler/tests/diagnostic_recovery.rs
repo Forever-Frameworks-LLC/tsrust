@@ -110,3 +110,11 @@ fn invalid_jumps_and_callback_returns_do_not_hide_unrelated_functions() {
         assert!(errors[1].message.contains("Expected boolean"),"{errors:?}");
     }
 }
+
+#[test]
+fn failed_destructuring_does_not_leak_generated_binding_diagnostics() {
+    let source="function main(){let a=1;let text=\"x\";[a,text]=[text,a];const independent:boolean=42;}";
+    let errors=tsrust_compiler::diagnostics(source);
+    assert_eq!(errors.len(),2,"{errors:?}");
+    assert!(errors.iter().all(|error|error.code=="type" && !error.message.contains("pattern#")),"{errors:?}");
+}

@@ -7,6 +7,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     while let Some(arg)=args.next() {
         match arg.as_str() {
             "--json" if !json => json=true,
+            "--release" => return Err("--release applies only to build/run/test".into()),
             "--color" => color=args.next().ok_or("--color requires auto, always or never")?,
             _ if arg.starts_with("--color=") => color=arg[8..].to_owned(),
             _ if arg.starts_with('-') => return Err(format!("Unknown or repeated check option: {arg}")),

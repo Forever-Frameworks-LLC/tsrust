@@ -197,3 +197,36 @@ possible error after arbitrary invalid syntax. Next run the complete compiler an
 LSP regressions, repair affected failures without restarting completed groups, then
 refresh CLI/LSP/extension together and verify the installed editor. Configuration
 and scaffolding remain future work. S09 has not started.
+
+## Combined regression and repair evidence
+
+The complete workspace regression at `da0e7249` finished: 3,659 passed, four failed
+and four intentionally ignored across 308 targets. The failures were three CLI
+acceptance expectations and one destructuring recovery defect. Optional main made
+the old missing-entry rejection obsolete; multi-error JSON required comparing the
+complete diagnostic list while retaining the strict original diagnostic assertion.
+The check command again explains that `--release` applies only to build/run/test.
+
+Diagnostic replay now skips all lowered pieces of one source statement together.
+It retains every lowered declaration for cascade suppression and never skips a
+group containing terminal control flow. A new witness prevents internal `pattern#`
+names from leaking after invalid destructuring. Equal-span diagnostics use the same
+code ordering as the CLI. All 50 tests in the affected acceptance, destructuring,
+recovery and control-flow batch pass, including all four original failures.
+
+The original full run and repair batch overlapped: Cargo released its build lock
+before the original tests finished, allowing the repair build to replace the shared
+CLI. Original test executables retained the baseline library; later CLI invocations
+used the repair patch. Treat the compiler project target onward as conservatively
+mixed CLI provenance. The full run was not restarted, and no additional failures
+occurred. This evidence is not a claim of a pristine single-commit full run.
+
+Original logs and the provenance record are byte-verified in SQLite as
+`tsrust-diagnostics-regressions-da0e7249.log`,
+`tsrust-diagnostics-repairs-da0e7249.log`, and
+`tsrust-diagnostics-cli-transition-da0e7249.json`. Whole-project formatting changed
+zero files or benchmark fingerprints (`tsrust-diagnostics-repair-format.log`).
+Consumer refresh and installed-editor acceptance remain pending.
+
+The repaired compiler also passes all 19 affected LSP project-diagnostic and
+workspace-scanner tests (`tsrust-diagnostics-editor-repairs.log` in SQLite).

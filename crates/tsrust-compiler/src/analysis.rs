@@ -5623,7 +5623,7 @@ impl Analyzer {
 
     #[inline(never)]
     fn skip_diagnostic_statement(&self, statement: &mut Stmt) -> bool {
-        if !self.program.diagnostic_skips.contains(&statement.span) {return false;}
+        if !self.program.diagnostic_skips.contains(&statement.span.start) {return false;}
         statement.kind=StmtKind::Block(Vec::new());
         true
     }
