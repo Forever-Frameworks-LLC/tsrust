@@ -330,8 +330,8 @@ replacement. Source acceptance is recorded separately from full implementation
 acceptance. Conversion to ordinary Map preserves source keys and independent
 storage; its focused regression exercises owned string keys and values.
 
-Public acceptance remains pending broader spread, parameter and branch
-integration. Installed consumers remain at b53e9065 until those paths are accepted.
+The subsequent checkpoints below complete focused spread, parameter and branch
+integration. Installed consumers remain at b53e9065 pending consumer refresh.
 No OrderedMap timing or S08 milestone acceptance is claimed. Source integration
 evidence: `tsrust-s08-ordered-map-public-integration-acceptance.json` in SQLite.
 The next milestone after S08 remains project-wide, multiple-error diagnostics;
@@ -359,9 +359,8 @@ or tree entry fields, so calls may mix explicit tuple arguments with OrderedMap
 spread in either order. The shared record bridge reads every form without cloning
 or erased lifetimes. View payloads retain their owners, and ordinary tuple-array
 spread remains supported in the same borrowing family. The collection and
-call-spread regression targets pass. Mixed union sources and broader branch integration still require focused coverage
-before public acceptance. Optional parameters and returned subviews are covered by
-the subsequent checkpoint below. Evidence: `tsrust-s08-ordered-map-read-spread-acceptance.json` in SQLite.
+call-spread regression targets pass. Optional parameters, returned subviews, nullable mixed sources and branch integration
+are covered by the subsequent checkpoints below. Evidence: `tsrust-s08-ordered-map-read-spread-acceptance.json` in SQLite.
 
 Optional readonly tuple parameters now accept empty or one-entry OrderedMap spread.
 Nullable record signatures use the existing borrowing family, and absent arguments
@@ -371,3 +370,16 @@ Consequently a returned explicit subview can outlive a local map while retaining
 its original byte owner. The same provenance repair applies to ordinary Map.
 Owner transfer with a live returned view remains rejected. Evidence:
 `tsrust-s08-ordered-map-optional-projection-acceptance.json` in SQLite.
+
+Mixed nullable tuple arrays and OrderedMap spread now share borrowed record slots.
+Absent and present array entries work in either argument order without consuming
+the map. Borrowed array union elements are converted to their view representation
+before extracting their payload. Branch-returned maps preserve their family and
+sorted iteration through readonly and mutable parameters. Fifty-two collection
+tests and ten call-spread tests pass. Evidence:
+`tsrust-s08-ordered-map-union-branch-acceptance.json` in SQLite.
+
+The focused OrderedMap implementation is ready for S08 family acceptance. Preserve
+the accumulated checks; next run complete compiler/LSP regressions, matched family
+measurements and performance review, then refresh and verify installed consumers.
+The implementation is not yet measured or accepted as a complete S08 milestone.

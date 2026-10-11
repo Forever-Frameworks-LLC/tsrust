@@ -95,6 +95,8 @@ impl Emitter<'_> {
                 let variant=if *member==Type::Null {"Null"}else{"Undefined"};
                 let payload=if view {format!("&Tsr{variant}")}else{format!("Tsr{variant}")};
                 arms.push(format!("TsrSpreadSlot::{variant}=>{tag}{}::V{index}({payload})",union.index()));
+            }else if view && !self.spread_multiple(union) && matches!(member,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(*id))) {
+                arms.push(format!("TsrSpreadSlot::Owned(_)|TsrSpreadSlot::Read(_)|TsrSpreadSlot::Mutate(_)|TsrSpreadSlot::View(_)=>{tag}{}::V{index}(&{name})",union.index()));
             }else {
                 for carrier in ["Owned","Read","Mutate"] {
                     let payload=match mode {
@@ -150,6 +152,7 @@ impl Emitter<'_> {
                         Mode::Consume=>format!("{source}.values.{}()",if ordered {"into_keys"}else{"into_items"}),
                     }
                 }else if segment.value.ty==Some(Type::String) {format!("{source}.as_ref().chars().map(|character|String::Owned(character.to_string()))")}else if matches!(segment.value.ty,Some(Type::Map(_))) && segment.access==Mode::Read {format!("{source}.entry_iter()")}else{match segment.access {Mode::Copy=>format!("{source}.iter().copied()"),Mode::Read=>format!("{source}.iter()"),Mode::Mutate=>format!("{source}.tsr_spread_mut_items()"),Mode::Consume=>format!("{source}.tsr_owned_items()")}};
+                let iterator=if segment.access==Mode::Read && matches!(segment.element,Type::BorrowedUnion(_)) && matches!(segment.value.ty,Some(Type::Array(_))) {format!("{iterator}.map(|item|item.tsr_view())")}else{iterator};
                 let iterator=if matches!(plan.call.kind,ExprKind::SpreadValue(_)) && let Some(Type::Array(element))=plan.call.ty && element.ty()!=segment.element {format!("{iterator}.map(|item|{})",self.element_alternative(segment.element,element.ty(),"item"))}else{iterator};
                 if inline_copy_snapshot(plan,segment) {
                     write!(output,"let mut {name}: Array<_> = Array::from([]); for spread_snapshot_item in {iterator} {{ {name}.push(spread_snapshot_item); }} ").unwrap();
@@ -167,7 +170,8 @@ impl Emitter<'_> {
             let fixed=plan.selected_types.len();
             for (position,ty) in plan.selected_types.iter().enumerate() {
                 let slot_type=if let Some(id)=plan.selected_unions[position].filter(|id|self.spread_multiple(*id)){format!("TsrDataSpread{}<'_>",id.index())}else{format!("TsrSpreadSlot<'_,{}>",self.native_type(plan.selected_unions[position].and_then(|id|self.program.unions[id.index()].members.iter().copied().find(|ty|!matches!(ty,Type::Null|Type::Undefined))).unwrap_or(if plan.selected_unions[position].is_some(){Type::Undefined}else{*ty})))};
-                let slot_type=if plan.selected_unions[position].is_none() && let Type::Record(id)=ty && self.borrowing_records.contains(&self.program.scoped_records.declaration(*id)) {self.record_spread_slot_type(*id)}else{slot_type};
+                let payload=plan.selected_unions[position].filter(|id|!self.spread_multiple(*id)).and_then(|id|self.program.unions[id.index()].members.iter().copied().find(|ty|!matches!(ty,Type::Null|Type::Undefined))).unwrap_or(*ty);
+                let slot_type=if let Type::Record(id)=payload && self.borrowing_records.contains(&self.program.scoped_records.declaration(id)) {self.record_spread_slot_type(id)}else{slot_type};
                 write!(output,"let mut {}: Option<{slot_type}> = None; ",SpreadSelection::Argument(position).native_name(plan.slot)).unwrap();
             }
             let rest=plan.maximum.is_none();

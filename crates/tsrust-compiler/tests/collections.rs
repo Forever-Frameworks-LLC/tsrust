@@ -688,3 +688,15 @@ fn ordered_map_spread_returns_original_view_projection() {
  }
  let invalid=source.replace("strictEqual(length(result),2);","const moved=owner;strictEqual(length(result),2);");let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"escaped projection lost owner");
 }
+
+#[test]
+fn ordered_map_spread_mixes_nullable_entry_sources() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function text(entry:ReadOnly<[string,string]|null>):string{if(entry===null){return '-';}return entry[0]+entry[1];}function read(first:ReadOnly<[string,string]|null>,second:ReadOnly<[string,string]|null>):string{return text(first)+text(second);}function main(){const values=new OrderedMap<string,string>();values.set('a','1');const absent:([string,string]|null)[]=[null];strictEqual(read(...values,...absent),'a1-');strictEqual(read(...absent,...values),'-a1');strictEqual(values.size,1);const present:([string,string]|null)[]=[['b','2']];strictEqual(read(...values,...present),'a1b2');strictEqual(read(...present,...values),'b2a1');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_parameters_and_branches_preserve_family_and_order() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function build(flag:boolean):OrderedMap<string,int>{const left=new OrderedMap<string,int>();left.set('b',2);left.set('a',1);const right=new OrderedMap<string,int>();right.set('d',4);right.set('c',3);if(flag){return left;}return right;}function add(values:Mutable<OrderedMap<string,int>>){values.set('e',5);}function text(values:ReadOnly<OrderedMap<string,int>>):string{let result='';for(const entry of values){result+=entry[0]+String(entry[1]);}return result;}function main(){const first=build(true);const second=build(false);strictEqual(text(first),'a1b2');strictEqual(text(second),'c3d4');add(first);strictEqual(text(first),'a1b2e5');strictEqual(text(second),'c3d4');}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
