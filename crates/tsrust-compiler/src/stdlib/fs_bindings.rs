@@ -38,3 +38,16 @@ pub const WRITE_ALL: NativeBinding = NativeBinding {
     name: "writeAll", result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_all" }, ..WRITE
 };
+
+pub const READ_FILE: NativeBinding = NativeBinding {
+    name: "readFile", parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "maxBytes", ty: NativeType::Int, access: Mode::Copy, optional: true, rest: false },
+    ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_read_file" }, ..READ
+};
+pub const WRITE_FILE: NativeBinding = NativeBinding {
+    name: "writeFile", parameters: &[
+        NativeParameter { name: "path", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false },
+    ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_file" }, ..WRITE_ALL
+};

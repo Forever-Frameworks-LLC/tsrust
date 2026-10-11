@@ -1870,3 +1870,15 @@ fn file_write_signature_help_documents_borrowed_views_and_partial_progress() {
     assert!(hover.to_string().contains("not rolled back"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
 }
+
+#[test]
+fn full_file_helpers_document_limits_defaults_and_view_inputs() {
+ let entry=tsrust_compiler::format("import {readFile,writeFile} from 'std:fs';import {ByteView} from 'std:bytes';function save(bytes:ReadOnly<ByteView>){writeFile('output.bin',bytes);readFile('input.bin',4);}function main(){}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();
+ workspace.open(source_id(uri).unwrap(),1,entry.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let help=ask(&index,&entry,"4);","textDocument/signatureHelp");
+ assert!(help.to_string().contains("67108864")&&help.to_string().contains("maxBytes"),"{help}");
+ let hover=ask(&index,&entry,"writeFile(","textDocument/hover");
+ assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("before the destination changes"),"{hover}");
+}

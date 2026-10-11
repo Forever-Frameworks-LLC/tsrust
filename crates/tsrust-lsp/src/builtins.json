@@ -5216,7 +5216,7 @@
     "name": "FsError",
     "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
     "parameters": [],
-    "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation or write-zero. operation names open, create, read, write, writeAll or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined.",
+    "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation or write-zero. operation names open, create, read, write, writeAll, readFile, writeFile or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined.",
     "examples": [
       {
         "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
@@ -5228,7 +5228,7 @@
         "documentation": "Stable failure category, as a string. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
       },
       "operation": {
-        "documentation": "Operation that failed: open, create, read, write, writeAll or close. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+        "documentation": "Operation that failed: open, create, read, write, writeAll, readFile, writeFile or close. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
       },
       "message": {
         "documentation": "Human-readable description. Text may vary by platform. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
@@ -5348,6 +5348,48 @@
   "examples": [
     {
       "source": "import {create,writeAll} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeAll(file,bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+      "output": "written\n"
+    }
+  ]
+},
+{
+  "name": "readFile",
+  "signature": "readFile(path: string, maxBytes?: int): Result<Bytes, FsError>",
+  "parameters": [
+    {
+      "label": "path: string",
+      "documentation": "Required existing file path, resolved from the process working directory when relative."
+    },
+    {
+      "label": "maxBytes?: int",
+      "documentation": "Maximum result size, 0 through 67108864 bytes. Defaults to 67108864. Invalid limits fail before opening the path."
+    }
+  ],
+  "documentation": "Reads a file through EOF into independent owned bytes, then closes it. Returns Ok(Bytes), or Err(FsError). maxBytes defaults to 67108864 (64 MiB) and accepts 0 through 67108864. An empty file succeeds with a zero limit. An oversized file returns length-range; the reader consumes at most one extra byte to detect excess. This bound is enforced during reading, including when a file grows. Interrupted and short reads are handled. Allocation, read, open and close errors are reported. An earlier I/O failure takes precedence over a close error. No text decoding occurs. The example assumes input.bin contains four bytes.\n\n```tsrust\nimport {readFile} from \"std:fs\";import {length} from \"std:bytes\";function main(){match(readFile(\"input.bin\",4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 4.\n\nOwnership: Borrows the path and returns an owned buffer. No file handle escapes; the internal handle is closed on success and failure.",
+  "examples": [
+    {
+      "source": "import {readFile} from \"std:fs\";import {length} from \"std:bytes\";function main(){match(readFile(\"input.bin\",4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}}",
+      "output": "4\n"
+    }
+  ]
+},
+{
+  "name": "writeFile",
+  "signature": "writeFile(path: string, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<void, FsError>",
+  "parameters": [
+    {
+      "label": "path: string",
+      "documentation": "Required output path. Creates a file or truncates an existing file. Parent directories must exist."
+    },
+    {
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Required borrowed byte range, 0 through 67108864 bytes. Length validation happens before creating or truncating the destination."
+    }
+  ],
+  "documentation": "Creates or truncates a file, writes all input bytes, and closes it. Returns Ok(void), or Err(FsError). Accepts owned bytes, readonly views and mutable views; only a view’s selected range is written. Input must contain at most 67108864 bytes (64 MiB); oversized input returns length-range before the destination changes. Empty input creates or truncates an empty file. Short and interrupted writes retry; zero progress returns write-zero. Other I/O failures may leave a partial file. This operation is not an atomic replacement and performs no durability synchronization. Close errors are reported unless an earlier operation already failed. Input bytes are unchanged; no arguments are optional.\n\n```tsrust\nimport {writeFile} from \"std:fs\";import {fromUtf8} from \"std:bytes\";function main(){match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeFile(\"output.bin\",bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: written.\n\nOwnership: Borrows the path and byte storage for this call. No borrowed data or file handle escapes; the internal file is closed on success and failure.",
+  "examples": [
+    {
+      "source": "import {writeFile} from \"std:fs\";import {fromUtf8} from \"std:bytes\";function main(){match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeFile(\"output.bin\",bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
       "output": "written\n"
     }
   ]

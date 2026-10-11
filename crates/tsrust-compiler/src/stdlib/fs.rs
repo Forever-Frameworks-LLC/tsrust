@@ -86,6 +86,46 @@ fn write_with(output:&mut impl Write,bytes:&[u8],all:bool)->Result<i64,FsFailure
     Ok(written as i64)
 }
 
+/// Read through EOF with an explicit ceiling, independent of metadata races.
+pub fn read_file(path:&str,limit:i64)->Result<Vec<u8>,FsFailure> {
+    let limit=usize::try_from(limit).ok().filter(|limit|*limit<=MAX_READ_BYTES)
+        .ok_or_else(||FsFailure {code:"length-range",operation:"readFile",message:"Read limit must be between 0 and 67108864 bytes.".into(),os_code:None})?;
+    let mut file=open(path).map_err(|mut error|{error.operation="readFile";error})?;
+    let result=read_file_with(&mut file.get_mut().0,limit);
+    finish_file(file,result,"readFile")
+}
+fn read_file_with(input:&mut impl Read,limit:usize)->Result<Vec<u8>,FsFailure> {
+    let mut bytes=Vec::new();let mut chunk=[0u8;8192];
+    loop {
+        // One extra byte distinguishes exact-limit EOF from an oversized file.
+        let size=chunk.len().min(limit-bytes.len()+1);
+        let count=match input.read(&mut chunk[..size]) {
+            Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,
+            result=>result.map_err(|error|FsFailure::io("readFile",error))?,
+        };
+        if count==0 {return Ok(bytes);}
+        let length=bytes.len()+count;
+        if length>limit {return Err(FsFailure {code:"length-range",operation:"readFile",message:"File exceeds the requested byte limit.".into(),os_code:None});}
+        if length>bytes.capacity() {
+            let capacity=bytes.capacity().saturating_mul(2).max(length).min(limit);
+            bytes.try_reserve_exact(capacity-bytes.len()).map_err(|_|FsFailure {code:"allocation",operation:"readFile",message:"Unable to allocate file buffer.".into(),os_code:None})?;
+        }
+        bytes.extend_from_slice(&chunk[..count]);
+    }
+}
+/// Validate before truncation. Successful writes do not imply durable storage.
+pub fn write_file(path:&str,bytes:&[u8])->Result<(),FsFailure> {
+    validate_write_length(bytes.len(),"writeFile")?;
+    let mut file=create(path).map_err(|mut error|{error.operation="writeFile";error})?;
+    let result=write_all(&mut file,bytes).map_err(|mut error|{error.operation="writeFile";error});
+    finish_file(file,result,"writeFile")
+}
+fn finish_file<T>(file:FileHandle,result:Result<T,FsFailure>,operation:&'static str)->Result<T,FsFailure> {
+    let closed=file.close().map_err(|mut error|{error.operation=operation;error});
+    // Always attempt close once. An earlier I/O error takes precedence.
+    let value=result?;closed?;Ok(value)
+}
+
 /// Read at most length bytes once, retrying only interrupted reads. Short reads and
 /// EOF are successful. Validation and reservation precede any cursor change.
 pub fn read(file: &mut FileHandle, length: i64) -> Result<Vec<u8>, FsFailure> {
@@ -160,6 +200,43 @@ mod tests {
         assert_eq!(error.operation,"write");assert!(error.os_code.is_some());
         readonly.close().unwrap();
         assert_eq!(std::fs::read(&path).unwrap(),[0,65,255,66,0]);
+    }
+
+    #[test]
+    fn full_file_helpers_handle_empty_exact_limit_errors_and_truncation() {
+        let directory=Directory::new();let path=directory.input();
+        assert_eq!(read_file(&path,4).unwrap(),[0,65,255,66]);
+        assert_eq!(failure(read_file(&path,3)).code,"length-range");
+        assert_eq!(failure(read_file("missing-file",-1)).code,"length-range");
+        assert_eq!(failure(read_file("missing-file",MAX_READ_BYTES as i64+1)).code,"length-range");
+        assert_eq!(failure(read_file("missing-file",4)).operation,"readFile");
+        write_file(&path,&[255,0]).unwrap();assert_eq!(std::fs::read(&path).unwrap(),[255,0]);
+        write_file(&path,&[]).unwrap();assert_eq!(read_file(&path,0).unwrap(),Vec::<u8>::new());
+        assert_eq!(failure(write_file(directory.0.to_str().unwrap(),&[1])).operation,"writeFile");
+        std::fs::write(&path,[7,8]).unwrap();
+        let oversized=vec![0;MAX_WRITE_BYTES+1];
+        assert_eq!(failure(write_file(&path,&oversized)).code,"length-range");
+        assert_eq!(std::fs::read(&path).unwrap(),[7,8],"invalid lengths must not truncate");
+    }
+    struct ShortReader {bytes:std::io::Cursor<Vec<u8>>,interrupted:bool,fail:bool}
+    impl Read for ShortReader {
+        fn read(&mut self,buffer:&mut [u8])->std::io::Result<usize> {
+            if !self.interrupted {self.interrupted=true;return Err(std::io::ErrorKind::Interrupted.into());}
+            if self.fail && self.bytes.position()>0 {return Err(std::io::ErrorKind::PermissionDenied.into());}
+            let length=buffer.len().min(2);self.bytes.read(&mut buffer[..length])
+        }
+    }
+    #[test]
+    fn full_file_reads_retry_interruption_accumulate_short_reads_and_stop_on_error() {
+        for fail in [false,true] {
+            let mut input=ShortReader {bytes:std::io::Cursor::new(vec![1,2,3,4,5]),interrupted:false,fail};
+            let result=read_file_with(&mut input,5);
+            if fail {let error=failure(result);assert_eq!((error.code,error.operation),("permission-denied","readFile"));}
+            else {assert_eq!(result.unwrap(),[1,2,3,4,5]);}
+        }
+        let mut input=std::io::Cursor::new(vec![1,2,3,4]);
+        assert_eq!(failure(read_file_with(&mut input,2)).code,"length-range");
+        assert_eq!(input.position(),3,"read at most one byte beyond the limit");
     }
 
     struct ShortWriter {bytes:Vec<u8>,calls:usize,interrupt:bool,fail_after:Option<usize>,zero:bool}

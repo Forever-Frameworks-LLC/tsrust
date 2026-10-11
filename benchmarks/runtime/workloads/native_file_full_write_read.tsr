@@ -1,0 +1,66 @@
+import { readFile, writeFile } from "std:fs";
+import { fromUtf8, view, length, at } from "std:bytes";
+
+function sample(input: ReadOnly<string>, count: int): int[] {
+  const destination = input + ".out";
+  match (fromUtf8("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")) {
+    Ok(owner) => {
+      match (view(owner, 0, count)) {
+        Ok(bytes) => {
+          match (writeFile(destination, bytes)) {
+            Ok(_) => {
+            },
+            Err(error) => {
+              throw error.message;
+            }
+          }
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  match (readFile(destination, count + 1)) {
+    Ok(bytes) => {
+      let sum = 0;
+      let index = 0;
+      while (index < length(bytes)) {
+        match (at(bytes, index)) {
+          Ok(value) => {
+            sum += value;
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+
+        index++;
+      }
+
+      return [length(bytes), sum];
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  let output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 64 + 1;
+    output.push(sample(input, count));
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

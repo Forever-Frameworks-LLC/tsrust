@@ -2,9 +2,10 @@
 
 Status: read-only file resources are accepted in S07. The owner-prioritized
 `new` and `dev` CLI milestone is accepted on macOS, including installed consumers.
-S09 public file-write integration is next.
+Bounded full-file access is implemented with focused native/editor and matched
+untimed acceptance; installed refresh and the broader S09 family remain pending.
 
-The next file slice is create, write and writeAll. The private backend now has
+The create, write and writeAll slice is implemented. The private backend now has
 focused tests for truncation, exact binary content, read-only descriptor failures,
 64 MiB write limits, interrupted/short writes, write-zero and failure after partial
 progress. Six backend tests and the generated O0/O3 cleanup witness pass. Original
@@ -19,10 +20,24 @@ Original logs are retained as `tsrust-public-file-writes-*` in SQLite. This slic
 has matched native/TypeScript write and writeAll workloads registered with independent
 readback oracles, exact output-file checks, ABI adapters, source guards, current hashes
 and isolated cleanup. Sixteen untimed native/Node-after-tsc cases pass; five registration
-tests pass. Records use `tsrust-file-write-benchmark-*` in SQLite. Installed consumer
-acceptance remains required before this slice closes. Timing remains pending S09.
+tests pass. Records use `tsrust-file-write-benchmark-*` in SQLite. The installed
+CLI passes all sixteen cases at d76217cc; CLI/LSP consumers include the slice.
+The owner-window reload remains tracked in the project CLI plan. Timing remains
+pending S09.
 
-Continue S09 with bounded full-file access, buffered readers/writers, environment
+readFile(path, maxBytes?) and writeFile(path, bytes) now provide bounded whole-file
+access. Reads default to a 64 MiB ceiling, validate limits before opening, detect
+excess with at most one additional byte, and tolerate short/interrupted reads. Writes
+validate the 64 MiB input bound before truncating and accept owners or views. Both
+close their handles and report close errors when no earlier operation failed.
+Eight backend tests, public binary/limit tests and existing write/cleanup witnesses
+pass. Ten catalog examples execute at O0/O3; 85 project IntelliSense tests pass.
+A third matched workload uses readback and an independent byte oracle. All 24
+untimed native/Node cases and six registration tests pass. Full-file bridge emission
+was repaired for programs without an explicit File type. Original records use
+`tsrust-full-files-*` in SQLite. Installed full-file consumer refresh remains pending.
+
+Continue S09 with buffered readers/writers, environment
 and monotonic time foundations, auditing the existing path/fs/os contracts. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.

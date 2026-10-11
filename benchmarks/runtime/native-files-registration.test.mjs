@@ -72,7 +72,7 @@ for (const id of ['native_file_read_close', 'native_file_scope_drop']) test(`${i
     for(const name of ['native-files-oracle.mjs','native-files-input.mjs','native-files-source-contract.mjs'])assert.ok(source.includes("'"+name+"'"));
   }
 });
-for(const id of ['native_file_write','native_file_write_all']) test(`${id} retains write, readback and pending measurement contracts`,()=>{
+for(const id of ['native_file_write','native_file_write_all','native_file_full_write_read']) test(`${id} retains write, readback and pending measurement contracts`,()=>{
   const row=manifest.workloads.find(row=>row.id===id);
   assert.ok(row);
   assert.equal(row.measured,false);
@@ -83,7 +83,7 @@ for(const id of ['native_file_write','native_file_write_all']) test(`${id} retai
   assert.equal(fs.existsSync(fixture.path+'.out'),false);
   for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]) {
     const source=read('./'+file);assertNativeFilesSource(source,row,kind);
-    const needle=kind==='native'?'create(destination)': 'fileSystem.openSync(destination, "w")';
+    const needle=id==='native_file_full_write_read'?(kind==='native'?'writeFile(destination, bytes)':'fileSystem.writeFileSync(destination, bytes)'):(kind==='native'?'create(destination)': 'fileSystem.openSync(destination, "w")');
     const changed=replaceCodeSnippet(source,needle,kind==='native'?'open(destination)':'fileSystem.openSync(destination, "r")');
     const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertNativeFilesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));

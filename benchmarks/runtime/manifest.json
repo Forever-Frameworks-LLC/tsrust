@@ -21087,6 +21087,34 @@
       "specification": "For iteration i, create or truncate a private output file, borrow the first (i+seed)%64+1 bytes of four ASCII hexadecimal blocks, write them, close, reopen, read and observe length and sum. writeAll retries short writes; Node loops writeSync equivalently.",
       "sourceSha256": "3dcf8be7c18e7c083c7c887bf91e5e187417fd026ecca19e58bf4b47964a4dd0",
       "counterpartSha256": "b65df1b86bf2dda3693195115defff10448346a1ea069c0d267370fd1ec1021d"
+    },
+    {
+      "id": "native_file_full_write_read",
+      "family": "native-files",
+      "source": "workloads/native_file_full_write_read.tsr",
+      "counterpart": "workloads/native_file_full_write_read.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One bounded full-file write and readback with byte observation",
+      "inputText": "native-file-fixture-v1",
+      "fixtureSha256": "929b11f47a02202e710632002203f7ea8dd3c1bc51ef818e59b6a3cd1dc2d5dc",
+      "category": "resources",
+      "measurementStatus": "pending-s09-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
+      "specification": "For each iteration, write a borrowed prefix of four ASCII hexadecimal blocks to a private output file, read through EOF with a count+1 ceiling, and return byte length and sum. Both operations close their handles. Node writes the same range and uses a bounded read loop with deterministic close.",
+      "sourceSha256": "805d19c759f96a3bc61646234988c3814d51579ec8ab57d55258dbb9cfdca0b6",
+      "counterpartSha256": "c675a7d59822b372f8fb994af2863901b84130cfacf7ee806bb553ac562db52c"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -2978,7 +2978,7 @@ impl Emitter<'_> {
             }
         }
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
-        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
         let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         output.push_str(&crate::stdlib::fs_emit::bridges(self.program, &file_bindings));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
