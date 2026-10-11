@@ -64,6 +64,7 @@ impl Workspace {
             open: self.open.clone(),
             revisions: self.revisions.clone(),
             read: RefCell::new(BTreeMap::new()),
+            configs: RefCell::new(BTreeMap::new()),
             observed: RefCell::new(BTreeSet::new()),
             resolved: RefCell::new(BTreeMap::new()),
             disk: RefCell::new(BTreeMap::new()),
@@ -105,6 +106,7 @@ pub struct WorkspaceSnapshot {
     open: BTreeMap<SourceId, Buffer>,
     revisions: BTreeMap<SourceId, u64>,
     read: RefCell<BTreeMap<SourceId, Arc<String>>>,
+    configs: RefCell<BTreeMap<SourceId,Result<Option<String>,String>>>,
     observed: RefCell<BTreeSet<SourceId>>,
     resolved: RefCell<Resolutions>,
     disk: RefCell<BTreeMap<SourceId, Option<DiskStamp>>>,
@@ -143,7 +145,7 @@ impl WorkspaceSnapshot {
     /// Start an independent entry analysis against the same immutable buffers.
     pub(crate) fn fresh(&self) -> Self {
         Self {consistent:Cell::new(true),open:self.open.clone(), revisions:self.revisions.clone(),
-            read:RefCell::default(), observed:RefCell::default(),
+            read:RefCell::default(), configs:RefCell::default(), observed:RefCell::default(),
             resolved:RefCell::default(), disk:RefCell::default()}
     }
     pub(crate) fn can_reuse(&self, previous:&Self) -> bool {
@@ -156,10 +158,12 @@ impl WorkspaceSnapshot {
         // a combined result whose dependency versions disagree.
         if !input.consistent.get()
             || input.read.borrow().iter().any(|(id,text)|self.read.borrow().get(id).is_some_and(|old|old!=text))
+            || input.configs.borrow().iter().any(|(id,text)|self.configs.borrow().get(id).is_some_and(|old|old!=text))
             || input.disk.borrow().iter().any(|(id,stamp)|self.disk.borrow().get(id).is_some_and(|old|old!=stamp)) {
             self.consistent.set(false);
         }
         self.read.borrow_mut().extend(input.read.borrow().clone());
+        self.configs.borrow_mut().extend(input.configs.borrow().clone());
         self.observed.borrow_mut().extend(input.observed.borrow().iter().cloned());
         self.disk.borrow_mut().extend(input.disk.borrow().clone());
     }
@@ -232,52 +236,112 @@ impl SourceProvider for WorkspaceSnapshot {
 
 impl WorkspaceSnapshot {
     fn resolve_path(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
-        let path = match importer {
-            Some(id) => Path::new(&id.0)
-                .parent()
-                .unwrap_or(Path::new("/"))
-                .join(path),
-            None => PathBuf::from(path),
-        };
-        let normalized = normalize(&path)?;
-        // A symlink removal/retarget event names its lexical path, not the old target.
-        self.observed.borrow_mut().insert(SourceId(
-            normalized
-                .to_str()
-                .ok_or("Source path must be valid UTF-8.")?
-                .into(),
-        ));
-        let canonical = std::fs::canonicalize(&normalized).unwrap_or(normalized);
-        let id = SourceId(
-            canonical
-                .to_str()
-                .ok_or("Source path must be valid UTF-8.")?
-                .into(),
-        );
-        // Recheck closed paths even when the editor's watch notification is delayed.
-        // Tracking the lexical symlink path detects replacement/retarget as well.
-        if !self.open.contains_key(&id) {
-            let lexical = SourceId(
-                path.to_str()
-                    .ok_or("Source path must be valid UTF-8.")?
-                    .into(),
-            );
-            let stamp = disk_stamp(&lexical);
-            self.disk.borrow_mut().insert(lexical, stamp);
+        let candidates=if let Some(importer)=importer {
+            let aliases=tsrust_compiler::project_resolution::discover(Path::new(&importer.0),|path|self.read_config(path))?;
+            tsrust_compiler::project_resolution::candidates(Path::new(&importer.0),path,aliases.as_ref())?
+        } else {vec![PathBuf::from(path)]};
+        for candidate in &candidates {
+            let id=self.observe_path(candidate)?;
+            if self.open.contains_key(&id) {return Ok(id);}
+            match std::fs::metadata(&id.0) {
+                Ok(metadata) if metadata.is_file()=>return Ok(id),
+                Ok(_)=>{},Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{},
+                Err(error)=>return Err(format!("{}: {error}",id.0)),
+            }
         }
-        // Observe attempted missing imports too: opening a new buffer must invalidate failures.
-        self.observed.borrow_mut().insert(id.clone());
-        if self.open.contains_key(&id) || Path::new(&id.0).is_file() {
-            Ok(id)
-        } else {
-            Err(format!("Missing source {}", id.0))
-        }
+        Err(format!("Cannot resolve {path}; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))
     }
+    // Observe lexical and canonical identities, including absent candidates, so
+    // file creation and symlink retargeting invalidate previously chosen paths.
+    fn observe_path(&self,path:&Path)->Result<SourceId,String> {
+        let normalized=normalize(path)?;
+        let lexical=SourceId(normalized.to_str().ok_or("Source path must be valid UTF-8.")?.into());
+        self.observed.borrow_mut().insert(lexical.clone());
+        let canonical=std::fs::canonicalize(&normalized).unwrap_or(normalized);
+        let id=SourceId(canonical.to_str().ok_or("Source path must be valid UTF-8.")?.into());
+        self.observed.borrow_mut().insert(id.clone());
+        // A changed disk file does not override an open buffer. A lexical
+        // symlink's identity still matters even when its target is open.
+        if !self.open.contains_key(&id)||lexical!=id {
+            let stamp=disk_stamp(&lexical);
+            let mut disk=self.disk.borrow_mut();
+            if disk.get(&lexical).is_some_and(|old|*old!=stamp) {self.consistent.set(false);}
+            disk.insert(lexical,stamp);
+        }
+        Ok(id)
+    }
+    fn read_config(&self,path:&Path)->Result<Option<String>,String> {
+        let id=self.observe_path(path)?;
+        if let Some(value)=self.configs.borrow().get(&id) {return value.clone();}
+        let value=if let Some(buffer)=self.open.get(&id) {Ok(Some((*buffer.text).clone()))} else {
+            let before=disk_stamp(&id);
+            let result=match std::fs::read_to_string(&id.0) {
+                Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),
+                Err(error)=>Err(format!("{}: {error}",id.0)),
+            };
+            if disk_stamp(&id)!=before {self.consistent.set(false);return Err(format!("Configuration changed while reading {}",id.0));}
+            result
+        };
+        self.configs.borrow_mut().insert(id,value.clone());value
+    }
+
 }
 
 #[cfg(test)]
 mod scan_input_tests {
     use super::*;
+    #[test]
+    fn disk_config_creation_and_rewrite_invalidate_without_watch_notifications() {
+        struct Scratch(PathBuf);
+        impl Drop for Scratch {fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
+        let scratch=Scratch(std::env::temp_dir().join(format!("tsrust-alias-snapshot-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())));
+        std::fs::create_dir(&scratch.0).unwrap();
+        let root=std::fs::canonicalize(&scratch.0).unwrap();
+        let entry=SourceId(root.join("main.tsr").to_str().unwrap().into());
+        let dependency=SourceId(root.join("target.tsr").to_str().unwrap().into());
+        let config=root.join("tsrust.config.json");
+        let mut workspace=Workspace::default();workspace.open(dependency.clone(),1,"export function greet(){}".into());
+        let missing=workspace.snapshot();assert!(missing.resolve(Some(&entry),"@/target").is_err());
+        std::fs::write(&config,r#"{"paths":{"@/*":"./*"}}"#).unwrap();
+        assert!(!workspace.current(&missing));
+        let snapshot=workspace.snapshot();assert_eq!(snapshot.resolve(Some(&entry),"@/target").unwrap(),dependency);
+        std::fs::write(&config,r#"{"paths":{"@/*":"./different/*"}}"#).unwrap();
+        assert!(!workspace.current(&snapshot));assert!(!workspace.snapshot().can_reuse(&snapshot));
+        assert!(workspace.snapshot().resolve(Some(&entry),"@/target").is_err());
+    }
+    #[test]
+    fn aliases_use_unsaved_config_and_source_and_invalidate_on_edits() {
+        let mut workspace=Workspace::default();
+        let entry=SourceId("/tsrust-alias-editor-test/src/main.tsr".into());
+        let config=SourceId("/tsrust-alias-editor-test/tsrust.config.json".into());
+        let dependency=SourceId("/tsrust-alias-editor-test/src/components/index.tsr".into());
+        workspace.open(config.clone(),1,r#"{"paths":{"@/*":"./src/*"}}"#.into());
+        workspace.open(entry.clone(),1,"import {greet} from '@/components';function main(){console.log(greet());}".into());
+        workspace.open(dependency.clone(),1,"export function greet():string{return 'hello';}".into());
+        let snapshot=workspace.snapshot();snapshot.check(&entry).unwrap();
+        assert_eq!(snapshot.resolve(Some(&entry),"@/components").unwrap(),dependency);
+        assert!(!snapshot.sources().contains_key(&config));
+        assert!(workspace.register(entry.clone(),&snapshot));
+        assert!(workspace.affected(&config).contains(&entry));
+        workspace.change(&config,2,r#"{"paths":{"@/*":"./missing/*"}}"#.into());
+        assert!(!workspace.current(&snapshot));
+        assert!(workspace.snapshot().check(&entry).is_err());
+    }
+    #[test]
+    fn opening_preferred_extensionless_candidate_invalidates_index_resolution() {
+        let mut workspace=Workspace::default();
+        let entry=SourceId("/tsrust-extension-editor-test/main.tsr".into());
+        let index=SourceId("/tsrust-extension-editor-test/component/index.tsr".into());
+        let file=SourceId("/tsrust-extension-editor-test/component.tsr".into());
+        workspace.open(entry.clone(),1,"function main(){}".into());
+        workspace.open(index.clone(),1,"export function greet(){}".into());
+        let snapshot=workspace.snapshot();
+        assert_eq!(snapshot.resolve(Some(&entry),"./component").unwrap(),index);
+        assert!(workspace.register(entry.clone(),&snapshot));
+        workspace.open(file.clone(),1,"export function greet(){}".into());
+        assert!(!workspace.current(&snapshot));assert!(workspace.affected(&file).contains(&entry));
+        assert_eq!(workspace.snapshot().resolve(Some(&entry),"./component").unwrap(),file);
+    }
     #[test]
     fn combining_different_dependency_contents_never_certifies_a_current_scan() {
         let id=SourceId("/tmp/tsrust-scan-consistency.tsr".into());

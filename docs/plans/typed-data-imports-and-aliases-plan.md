@@ -122,3 +122,23 @@ import diagnostic test passes with resolution errors for unresolved specifiers.
 Evidence: `tsrust-alias-loader-*` in SQLite. Installed consumers have not been
 refreshed; compiler/editor parity and invalidation must land before user-facing
 feature acceptance. No benchmark timing or complete family regression was run.
+
+## Editor snapshot resolution
+
+Workspace snapshots now use the shared alias discovery and candidate rules.
+Configuration reads have a separate immutable cache and do not appear as Tsrust
+source modules. Lexical/canonical identities and missing candidates are observed
+for dependency invalidation. Snapshot merging rejects conflicting configuration
+contents, and disk creation/rewrites invalidate reuse without waiting for watcher
+notifications. Unsaved configuration and source buffers work at the snapshot API.
+
+Four focused snapshot tests cover alias checking, unsaved configuration changes,
+file-before-index changes, absent/new disk configuration, disk rewrites and the
+existing combined-snapshot consistency witness. Existing workspace and workspace
+scan suites pass. Evidence is retained as `tsrust-alias-editor-*` in SQLite.
+
+This is not complete editor acceptance: the protocol currently accepts only
+Tsrust document buffers and the VS Code extension watches only `.tsr` files.
+Wire configuration notifications and supported config overlays, verify actual
+hover/completion/navigation and dev invalidation, then refresh installed consumers.
+The lower-level snapshot tests do not prove protocol delivery or UI behavior.
