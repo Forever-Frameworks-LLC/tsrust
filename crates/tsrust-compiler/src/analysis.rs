@@ -1588,6 +1588,7 @@ fn remap_function_closures(
 
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
+        crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::local_readiness::check(&mut program)?;
         if let Some(base) = program.unresolved_bases.first() {
             return Err(Diagnostic::new(

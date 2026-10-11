@@ -1,5 +1,6 @@
 //! Bundled JSON declarations and native runtime.
 pub(crate) mod bindings;
+pub(crate) mod namespace;
 pub(crate) mod emit;
 include!("runtime.rs");
 #[cfg(test)]

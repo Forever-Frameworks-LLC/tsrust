@@ -720,7 +720,7 @@ impl Linker<'_> {
                         && crate::syntax::global_number_member(name, true).is_none()
                         && !matches!(
                         name.as_str(),
-                        "Object#in" | "console" | "Math" | "Number" | "Array" | "Set" | "Map" | "Result" | "Ok" | "Err" | "Object" | "String" | "Boolean" | "clone" | "undefined"
+                        "Object#in" | "console" | "Math" | "Number" | "JSON" | "Array" | "Set" | "Map" | "Result" | "Ok" | "Err" | "Object" | "String" | "Boolean" | "clone" | "undefined"
                     ) {
                         *name = symbol(self.module, name);
                     }

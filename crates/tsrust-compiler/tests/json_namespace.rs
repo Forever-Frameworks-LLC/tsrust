@@ -77,3 +77,38 @@ function throwingStringify(value:JsonValue,maxBytes:int=16777216):string {
 fn json_namespace_preserves_typed_errors_and_imported_results() {
     run(CONTRACT);
 }
+
+#[test]
+fn result_namespace_operations_need_no_import_and_support_function_values() {
+    run(r#"function main(){
+      const parse=JSON.tryParse;
+      match(parse("null")) {
+        Ok(value)=>{match(JSON.tryStringify(value)) {
+          Ok(text)=>{if(text!=="null"){throw "wrong JSON";}}, Err(error)=>{throw error;}
+        }}, Err(error)=>{throw error;}
+      }
+    }"#);
+}
+
+#[test]
+fn result_namespace_respects_nested_shadowing_and_single_source_analysis() {
+    tsrust_compiler::check("function main(){JSON.tryParse('null');}").unwrap();
+    run(r#"
+type Utility={tryParse:Function<int,[text:ReadOnly<string>]>;};
+function main(){
+  {
+    const JSON:Utility={tryParse:(text:string):int=>text.length};
+    if(JSON.tryParse('local')!==5){throw 'local namespace lost';}
+  }
+  const use=(JSON:Utility):int=>JSON.tryParse('nested');
+  const local:Utility={tryParse:(text:string):int=>text.length};
+  if(use(local)!==6){throw 'closure parameter lost';}
+  const nested=():int=>{
+    const JSON:Utility={tryParse:(text:string):int=>text.length};
+    return JSON.tryParse('body');
+  };
+  if(nested()!==4){throw 'closure binding lost';}
+  match(JSON.tryParse('null')){Ok(_)=>{},Err(error)=>{throw error;}}
+}
+"#);
+}

@@ -1,7 +1,8 @@
 # Globals and imports: inventory and decision
 
 Status: owner approved this placement policy and the throwing `JSON.parse` /
-Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is pending.
+Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is in progress;
+the namespace gate is not accepted.
 
 Implementation witness: `tests/json_namespace.rs` now exercises the approved
 parse/stringify pairs, unchanged imported Results, structured error parity,
@@ -10,6 +11,20 @@ implementation passes native execution; the namespace case currently fails with
 `unsupported` at `JSON.parse`. This is an active failing test, not feature
 acceptance. SQLite evidence: `tsrust-json-namespace-contract-red-2.log`; the earlier
 harness typo and its failed run are retained in `tsrust-json-namespace-contract-red.log`.
+
+The Result entry points now resolve to existing native bindings in both project
+and single-source analysis. Focused native checks cover calls, stored function
+references, nested block/closure shadowing and unchanged imported behavior.
+Seven dependency-selection cases include plain programs, local objects, parameters,
+error-type-only imports and actual JSON operations. These pass without user linking
+flags. Evidence: `tsrust-json-namespace-result-2.log` and
+`tsrust-json-namespace-shadow-1.log` in SQLite. The first Result harness run had an
+unsupported coercive equality operator; its failed record is also preserved.
+
+Throwing adapters, complete shadowing/limits/error checks, namespace IntelliSense,
+examples and matched workload support remain pending. The throwing contract test
+remains active and failing. This implementation checkpoint is not a completed
+built-in gate or consumer release.
 The complete current per-symbol audit is accepted in
 [the closure review](globals-and-imports-audit-closure.md). The family summary below
 is supplemented by 399 explicit reviewed identities; it is not the audit by itself. Existing working imports
