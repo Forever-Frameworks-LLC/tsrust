@@ -1,4 +1,4 @@
-//! Owned deque storage with borrowed reads and moving removals.
+// Owned deque storage with borrowed reads and moving removals.
 #[derive(Clone)]
 struct TsrDeque<T> {
     values: std::collections::VecDeque<T>,

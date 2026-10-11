@@ -95,3 +95,12 @@ annotations and inspect element borrows. Repeated identical specializations reus
 one identity; distinct element types remain distinct. The declaration is deliberately
 absent from source exports until constructor, ownership and emission integration is
 complete. Conditional clone and thread-transfer capabilities remain pending.
+
+Private deque payloads participate in carried element-owner paths, recursive view
+components, environment lifetime counts and native signature rendering. The native
+record wrapper contains the `VecDeque` backend directly. A compiler-internal
+witness checks source return provenance, generated Rust at optimization levels 0
+and 3, unchanged borrowed slice addresses and rejection of a shorter-lived owner.
+Recursive deque payloads use the same shared-lifetime boundary as recursive arrays
+and Maps. These witnesses inject the private declaration; they do not establish
+public constructor, method or editor acceptance.

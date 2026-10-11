@@ -420,6 +420,10 @@ impl Emitter<'_> {
         if let Type::Record(id) = value && (native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id)) {
             return format!("Record{id}<'_>");
         }
+        if let Type::Record(id) = value && let Some(element) = self.program.records[id].native_element()
+            && self.scoped_record_native_parameter(element) {
+            return format!("Record{id}<{}>", self.native_type(element));
+        }
         if let Type::Map(id) = value {
             let payload = self.program.records[id].map_definition.as_ref().unwrap().value;
             if self.scoped_record_native_parameter(payload) { return format!("Map{id}<{}>", self.native_type(payload)); }
@@ -2348,6 +2352,9 @@ impl Emitter<'_> {
             output.push_str("impl<F:ReadCallback<A,R>+?Sized,A,R> ReadCallback<A,R> for &F { fn invoke_read(&self,args:A)->R { (**self).invoke_read(args) } fn invoke_read_with_count(&self,args:A,count:usize)->R { (**self).invoke_read_with_count(args,count) } }\n");
             output.push_str("impl<F:Callback<A,R>+?Sized,A,R> Callback<A,R> for &mut F { fn invoke(&mut self,args:A)->R { (**self).invoke(args) } fn invoke_with_count(&mut self,args:A,count:usize)->R { (**self).invoke_with_count(args,count) } }\n");
         }
+        if self.program.records.iter().any(|record| record.native_element().is_some()) {
+            output.push_str(include_str!("stdlib/collections/deque_runtime.rs"));
+        }
         self.set_types(&mut output);
         self.map_types(&mut output);
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
@@ -2369,6 +2376,15 @@ impl Emitter<'_> {
             }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::File) {
                 let _ = writeln!(output, "struct Record{index} {{ handle: tsrust_native_files::fs::FileHandle }}");
+                continue;
+            }
+            if let Some(element) = record.native_element() {
+                let (parameters, payload) = if self.native_views.recursive(index) {
+                    ("<'view>", self.recursive_view_native_type(element, "'view"))
+                } else if self.scoped_record_native_parameter(element) {
+                    ("<P>", "P".to_owned())
+                } else { ("", self.native_type(element)) };
+                let _ = writeln!(output, "struct Record{index}{parameters} {{ values: TsrDeque<{payload}> }}");
                 continue;
             }
             if let Some(access) = native_view_emit::access(self.program, index) {

@@ -165,6 +165,10 @@ impl Emitter<'_> {
                     }
                 }
             }
+            Type::Record(id) if self.program.records[id].native_element().is_some() => {
+                path.push(Segment::Element);
+                self.native_view_capture_slots(self.program.records[id].native_element().unwrap(),root,path,guards,lifetimes,next,slots);path.pop();
+            }
             Type::Record(id) if self.native_views.contains(ty)=>{
                 for field in &self.program.records[id].fields {
                     path.push(Segment::Field(field.name.text.clone()));
@@ -233,6 +237,11 @@ impl Emitter<'_> {
         if !self.native_views.contains(ty) {return self.native_type(ty);}
         match ty {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id)=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
+            Type::Record(id) if self.program.records[id].native_element().is_some() => {
+                path.push(Segment::Element);
+                let payload=self.native_view_signature_slot(self.program.records[id].native_element().unwrap(),input,plan,path,guards);path.pop();
+                format!("Record{id}<{payload}>")
+            }
             Type::Record(id)=>{
                 let base=self.native_record_declaration(id);
                 let parameters=self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)|{

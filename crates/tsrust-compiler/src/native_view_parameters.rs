@@ -12,6 +12,7 @@ impl Analyzer {
             ).collect(),
             Type::Closure(id) => self.closures[id].captures.iter().map(|capture|
                 (self.closures[id].function.bindings[capture.inner].ty, Some(Segment::Field(format!("capture{}",capture.inner))), None)).collect(),
+            Type::Record(id) if self.program.records[id].native_element().is_some() => vec![(self.program.records[id].native_element().unwrap(), Some(Segment::Element), None)],
             Type::Record(id) => self.program.records[id].fields.iter().map(|field|
                 (field.ty.expect("checked field"), Some(Segment::Field(field.name.text.clone())), None)).collect(),
             Type::Union(id) | Type::BorrowedUnion(id) => self.unions.members(id).into_iter().map(|member|
@@ -92,6 +93,55 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn deque_elements_retain_carried_owner_paths_and_environment_slots() {
+        let source = "type Window={};type Queue<T>={};type Node={data:Window;children:Queue<Node>;};function identity(input:Queue<Window>):Queue<Window>{return input;}function recursive(input:Node):Node{return input;}function main(){}";
+        let formatted = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
+        let mut parsed = crate::syntax::parse(&formatted).unwrap();
+        for record in &mut parsed.records {
+            record.native_type = match record.name.text.as_str() {
+                "Window" => Some(crate::native_signatures::NativeTypeId::ByteView),
+                "Queue" => Some(crate::native_signatures::NativeTypeId::Deque),
+                _ => None,
+            };
+        }
+        let checked = analyze(parsed).unwrap();
+        let function = checked.functions.iter().find(|function| function.name == "identity").unwrap();
+        let loans = function.native_returns.as_ref().expect("deque must retain element loans");
+        assert_eq!(loans.len(), 1);
+        assert_eq!(loans[0].source, LifetimeSource::Carried(vec![Segment::Element]));
+        assert_eq!(loans[0].path, vec![Segment::Element]);
+        assert_eq!(crate::environment_lifetimes::count(function.result, &checked.records, |id| checked.unions[id.index()].members.clone(), |_| 0), 1);
+        let generated = crate::emit::emit(&checked);
+        assert!(generated.contains("values: TsrDeque<P>"), "deque storage must use its native backend");
+        assert!(generated.contains("'native_input"), "deque owner lifetime must be named");
+        let Type::Record(queue) = function.result else { panic!("deque type"); };
+        let window = checked.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::ByteView)).unwrap();
+        let identity = checked.functions.iter().position(|function| function.name == "identity").unwrap();
+        let recursive = checked.functions.iter().position(|function| function.name == "recursive").unwrap();
+        let Type::Record(node) = checked.functions[recursive].result else { panic!("node type"); };
+        let Type::Record(children) = checked.records[node].fields[1].ty.unwrap() else { panic!("child deque type"); };
+        assert_eq!(crate::environment_lifetimes::count(Type::Record(node), &checked.records, |id| checked.unions[id.index()].members.clone(), |_| 0), 1);
+
+        struct Directory(std::path::PathBuf);
+        impl Drop for Directory { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+        let directory = Directory(std::env::temp_dir().join(format!("tsrust-deque-lifetimes-{}", std::process::id())));
+        std::fs::create_dir_all(&directory.0).unwrap();
+        let base = generated.replace("fn main()", "fn unused_source_main()");
+        let source = directory.0.join("deque.rs");
+        std::fs::write(&source, format!("{base}\nfn main(){{let owner=vec![3u8,5];let mut input=Record{queue}{{values:TsrDeque::new()}};input.values.push_back(Record{window}{{bytes:&owner}});let output=function{identity}(input);assert_eq!(output.values.front().unwrap().bytes.as_ptr(),owner.as_ptr());assert_eq!(output.values.front().unwrap().bytes,&[3,5]);let child=Record{node}{{field0:Record{window}{{bytes:&owner[1..]}},field1:Record{children}{{values:TsrDeque::new()}}}};let mut root=Record{node}{{field0:Record{window}{{bytes:&owner}},field1:Record{children}{{values:TsrDeque::new()}}}};root.field1.values.push_back(child);let root=function{recursive}(root);assert_eq!(root.field1.values.front().unwrap().field0.bytes,&[5]);}}" )).unwrap();
+        for level in [0, 3] {
+            let binary = directory.0.join(format!("deque-{level}"));
+            let output = std::process::Command::new("rustup").args(["run", crate::RUST_BACKEND_VERSION, "rustc", "--edition=2024", &format!("-Copt-level={level}")]).arg(&source).arg("-o").arg(&binary).output().unwrap();
+            assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+            assert!(std::process::Command::new(&binary).status().unwrap().success());
+        }
+        std::fs::write(&source, format!("{base}\nfn main(){{let escaped;{{let owner=vec![3u8];let mut input=Record{queue}{{values:TsrDeque::new()}};input.values.push_back(Record{window}{{bytes:&owner}});escaped=function{identity}(input);}}assert_eq!(escaped.values.front().unwrap().bytes[0],3);}}" )).unwrap();
+        let rejected = std::process::Command::new("rustup").args(["run", crate::RUST_BACKEND_VERSION, "rustc", "--edition=2024", "--emit=metadata"]).arg(&source).arg("-o").arg(directory.0.join("reject.rmeta")).output().unwrap();
+        assert!(!rejected.status.success());
+        assert!(String::from_utf8_lossy(&rejected.stderr).contains("E0597"), "{}", String::from_utf8_lossy(&rejected.stderr));
+    }
     fn checked(source:&str)->Result<CheckedProgram,Diagnostic> {
         let formatted=crate::formatting::format(source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);

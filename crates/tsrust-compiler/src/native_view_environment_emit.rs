@@ -59,6 +59,10 @@ impl Emitter<'_> {
                         ));
                     }
                 }
+                Type::Record(id) if self.program.records[id].native_element().is_some() => {
+                    let mut child=path;child.push(Segment::Element);
+                    pending.push((self.program.records[id].native_element().unwrap(),child,guards));
+                }
                 Type::Record(id) => {
                     for field in self.program.records[id].fields.iter().rev() {
                         let mut child = path.clone();

@@ -47,6 +47,7 @@ pub(crate) fn count_with_storage(
                     if total>128 {return 129;}
                     continue;
                 }
+                if let Some(element) = record.native_element() { pending.push((element, false)); }
                 for field in &record.fields {
                     let Some(ty) = field.ty else {
                         return 129;
@@ -77,6 +78,7 @@ pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(
             Type::Record(id)=>{
                 let Some(record)=records.get(id) else {continue;};
                 if record.native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) {return true;}
+                pending.extend(record.native_element());
                 pending.extend(record.fields.iter().filter_map(|field|field.ty));
             }
             Type::StoredCallable(family) if storage.scoped_native_family(family).is_some() => return true,

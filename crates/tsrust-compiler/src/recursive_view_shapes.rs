@@ -27,7 +27,7 @@ impl Index {
         let mut access = vec![None; records.len()];
         for (id, record) in records.iter().enumerate() {
             access[id] = record.native_type.and_then(|native| crate::native_types::declaration(native).borrow_access());
-            let mut pending = Vec::new();
+            let mut pending = record.native_element().into_iter().collect::<Vec<_>>();
             for field in &record.fields {
                 if let Some(ty) = field.ty { pending.push(ty); } else { incomplete[id] = true; }
             }

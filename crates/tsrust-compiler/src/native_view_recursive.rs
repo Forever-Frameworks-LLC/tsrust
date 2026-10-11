@@ -8,11 +8,13 @@ pub(super) struct Shapes {
     fields: Vec<Vec<(String, Type)>>,
     readonly_view: Option<usize>,
     map_values: Vec<Option<Type>>,
+    native_elements: Vec<Option<Type>>,
     unions: Vec<crate::unions::UnionType>,
 }
 impl Shapes {
     fn new(analyzer: &Analyzer) -> Self {
         Self {
+            native_elements: analyzer.program.records.iter().map(|record| record.native_element()).collect(),
             map_values: analyzer.program.records.iter().map(|record| record.map_definition.as_ref().map(|map| map.value)).collect(),
             readonly_view: analyzer.program.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::ByteView)),
             recursive: crate::recursive_view_shapes::Index::with_storage(&analyzer.program.records, &|id| analyzer.unions.members(id), &analyzer.callables.storage),
@@ -38,6 +40,10 @@ impl Shapes {
                         _ => boundary = Some((depth, access)),
                     }
                     continue;
+                }
+                if loan.path.get(depth) == Some(&Segment::Element)
+                    && let Some(Some(element)) = self.native_elements.get(id) {
+                    pending.push((*element, depth + 1));
                 }
                 if let Some(Segment::Field(name)) = loan.path.get(depth)
                     && let Some(fields) = self.fields.get(id)

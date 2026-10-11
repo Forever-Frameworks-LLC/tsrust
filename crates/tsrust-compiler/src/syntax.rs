@@ -1525,6 +1525,11 @@ pub struct Record {
 }
 
 impl Record {
+    /// Native collection payloads are owned storage, not source-visible fields.
+    pub(crate) fn native_element(&self) -> Option<Type> {
+        if self.native_type != Some(crate::native_signatures::NativeTypeId::Deque) { return None; }
+        self.application.as_ref()?.resolved_arguments.first().copied()
+    }
     /// Positional products share the native ownership machinery with records.
     /// Source record names are identifiers, so this marker cannot collide with one.
     pub(crate) fn is_tuple(&self) -> bool { self.name.kind == TokenKind::Symbol && self.name.text.starts_with('[') }

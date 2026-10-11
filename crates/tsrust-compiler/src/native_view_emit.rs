@@ -28,6 +28,7 @@ impl Shapes {
         };
         for (id,record) in program.records.iter().enumerate() {
             for field in &record.fields {edge(id,field.ty.expect("checked field"));}
+            if let Some(element) = record.native_element() { edge(id, element); }
             if let Some(map)=&record.map_definition {edge(id,map.key);edge(id,map.value);}
             if let Some(set)=&record.set_definition {edge(id,set.key);}
         }

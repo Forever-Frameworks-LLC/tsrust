@@ -167,6 +167,7 @@ impl Storage {
                 Type::Record(record) if recursive.as_ref().is_some_and(|index| index.access(record).is_some()) || program.records[record].native_type.is_some_and(|id|crate::native_types::declaration(id).borrow_access().is_some()) => total += 1,
                 Type::Map(id) if crate::environment_lifetimes::contains_native_view(ty,&program.records,&|id|program.unions[id.index()].members.clone(), &program.stored_contracts) => pending.push((program.records[id].map_definition.as_ref().unwrap().value,false)),
                 Type::Array(element) if crate::environment_lifetimes::contains_native_view(element.ty(),&program.records,&|id|program.unions[id.index()].members.clone(), &program.stored_contracts) => pending.push((element.ty(),false)),
+                Type::Record(record) if program.records[record].native_element().is_some() => pending.push((program.records[record].native_element().unwrap(), false)),
                 Type::Record(record) => pending.extend(
                     program.records[record]
                         .fields

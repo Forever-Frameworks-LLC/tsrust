@@ -19,6 +19,10 @@ impl Emitter<'_> {
             Type::Record(id) if native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id) => {
                 format!("Record{id}<{lifetime}>")
             }
+            Type::Record(id) if self.program.records[id].native_element().is_some() => {
+                let payload = self.recursive_view_native_type(self.program.records[id].native_element().unwrap(), lifetime);
+                format!("Record{id}<{payload}>")
+            }
             Type::Record(id) => {
                 let base = self.native_record_declaration(id);
                 let arguments = self.program.records[id].fields.iter().enumerate().filter_map(|(position, field)| {
@@ -169,6 +173,10 @@ impl Emitter<'_> {
                     crate::syntax::ArrayElement::Record(id,0)=>format!("RecordArray{id}<{}>",payload.split_once('<').expect("native view array argument").1),
                     _=>format!("Vec<{payload}>"),
                 }
+            }
+            Type::Record(id) if self.program.records[id].native_element().is_some() && self.native_views.contains(ty) => {
+                let payload=self.record_environment_type(self.program.records[id].native_element().unwrap(),lifetimes,next);
+                format!("Record{id}<{payload}>")
             }
             Type::Record(id) => {
                 let arguments = self.program.records[id]
