@@ -131,6 +131,11 @@ mod tests {
                     assert_eq!(resolved[0],crate::syntax::Type::String);
                     let crate::syntax::Type::Record(value)=resolved[1] else {panic!("native value identity lost")};
                     assert_eq!(program.records[value].native_type,Some(NativeTypeId::ByteView));
+                    let map=instance.map_definition.as_ref().expect("ordered map uses shared map analysis");
+                    assert_eq!(map.key,resolved[0]);assert_eq!(map.value,resolved[1]);
+                    let arena=crate::unions::UnionArena::from_snapshot_with_records(Vec::new(),&program.records);
+                    let index=program.records.iter().position(|record|std::ptr::eq(record,instance)).unwrap();
+                    assert_eq!(arena.named_type(index),crate::syntax::Type::Map(index));
                 }
                 NativeTypeId::OrderedSet => assert_eq!(resolved[0],crate::syntax::Type::Number),
                 NativeTypeId::Heap => assert_eq!(resolved[0],crate::syntax::Type::Int),

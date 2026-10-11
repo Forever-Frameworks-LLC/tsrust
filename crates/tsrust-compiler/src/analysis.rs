@@ -3165,7 +3165,7 @@ impl Analyzer {
                 "closure"
             }
             // A native type shows the name that its module exports.
-            Type::Record(i) if self.program.records[i].native_type.is_some() => {
+            Type::Record(i) | Type::Map(i) if self.program.records[i].native_type.is_some() => {
                 crate::native_types::declaration(self.program.records[i].native_type.expect("native record")).name
             }
             Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => &self.program.records[i].name.text,

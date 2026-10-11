@@ -549,3 +549,29 @@ function main(){const numbers=new OrderedSet<number>();numbers.add(-0.0);numbers
   let source=format!("import {{OrderedSet}} from 'std:collections';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"invalid ordered set accepted: {source}");
  }
 }
+
+#[test]
+fn ordered_map_queries_borrow_noncloneable_keys_and_preserve_values() {
+    let directory=support::TempDirectory::new();
+    let source=format!("{}\n{}\n{}",include_str!("../src/stdlib/collections/ordered_runtime.rs"),include_str!("../src/stdlib/collections/ordered_key_runtime.rs"),include_str!("fixtures/collections/ordered-map-queries.rs"));
+    let path=directory.0.join("ordered-queries.rs");std::fs::write(&path,source).unwrap();
+    for level in ["0","3"] {
+        let binary=directory.0.join(format!("queries-{level}"));support::success(&support::run(support::rustc().arg("--edition=2024").arg("-C").arg(format!("opt-level={level}")).arg(&path).arg("-o").arg(&binary),60));support::success(&support::run(&mut std::process::Command::new(binary),30));
+    }
+}
+
+#[test]
+fn ordered_map_source_queries_reject_borrow_invalidation_and_escape() {
+    for (body,code) in [
+        ("fn main(){let mut map=TsrOrderedMap::new();map.insert(TsrOrdered::new(1_i64),2);let read=map.get_copy_key(1).unwrap();map.remove_copy_key(1);println!(\"{}\",read);}","E0502"),
+        ("fn main(){let mut map=TsrOrderedMap::new();map.insert(TsrOrdered::new(String::from(\"a\")),2);let query=String::from(\"a\");let read=map.get_string_key(&query).unwrap();map.remove_string_key(&query);println!(\"{}\",read);}","E0502"),
+        ("fn main(){let mut map=TsrOrderedMap::new();map.insert(TsrOrdered::new(1_i64),2);let mut read=map.source_iter();map.clear();println!(\"{:?}\",read.next());}","E0502"),
+        ("fn leak()->&'static i64{let mut map=TsrOrderedMap::new();map.insert(TsrOrdered::new(1_i64),2);map.get_copy_key(1).unwrap()}fn main(){}","E0515"),
+    ] {
+        let directory=support::TempDirectory::new();let path=directory.0.join("reject.rs");
+        std::fs::write(&path,format!("{}\n{}\n{body}",include_str!("../src/stdlib/collections/ordered_runtime.rs"),include_str!("../src/stdlib/collections/ordered_key_runtime.rs"))).unwrap();
+        let output=support::run(support::rustc().arg("--edition=2024").arg("--emit=metadata").arg(&path).arg("-o").arg(directory.0.join("reject.rmeta")),30);
+        assert!(!output.status.success(),"invalid ordered map query accepted: {body}");
+        assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));
+    }
+}

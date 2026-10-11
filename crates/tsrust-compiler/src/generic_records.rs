@@ -458,7 +458,9 @@ impl Context<'_> {
         self.instances.insert(key, index);
         *self.counts.entry(name.to_owned()).or_default() += 1;
         self.records.push(Record {
-            native_type: template.native_type, map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: template.native_type,
+            map_definition: (template.native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)).then(||MapDefinition{key:types[0],value:types[1],entry:None}),
+            set_definition: None, enum_definition: None,
             application: Some(Box::new(RecordApplication { resolved_arguments: types, declaration: template.name.clone(), arguments: arguments.to_vec() })),
             name: Token {
                 text: label,
@@ -467,6 +469,7 @@ impl Context<'_> {
             type_parameters: Vec::new(),
             fields: Vec::new(),
         });
+        if self.records[index].map_definition.is_some(){self.unions.register_map_type(index);}
         let bindings = template
             .type_parameters
             .iter()

@@ -4,6 +4,7 @@ use super::*;
 impl Analyzer {
     pub(super) fn join_scoped_map_types(&mut self, left: Type, right: Type, span: Span) -> Result<Option<Type>, Diagnostic> {
         let (Type::Map(left), Type::Map(right)) = (left, right) else { return Ok(None); };
+        if self.program.records[left].native_type!=self.program.records[right].native_type{return Ok(None);}
         let a = self.program.records[left].map_definition.as_ref().unwrap().clone();
         let b = self.program.records[right].map_definition.as_ref().unwrap().clone();
         if a.key != b.key || !self.aggregate_callable_facts(a.value).scoped || !self.aggregate_callable_facts(b.value).scoped { return Ok(None); }
@@ -32,11 +33,13 @@ impl Analyzer {
     }
     pub(super) fn scoped_map_value_instance(&mut self, id: usize, value: Type) -> usize {
         let key = self.program.records[id].map_definition.as_ref().unwrap().key;
-        if let Some(found) = self.program.records.iter().position(|record| record.map_definition.as_ref().is_some_and(|map| map.key == key && map.value == value && map.entry.is_none())) { return found; }
+        let family=self.program.records[id].native_type;
+        if let Some(found) = self.program.records.iter().position(|record| record.native_type==family && record.map_definition.as_ref().is_some_and(|map| map.key == key && map.value == value && map.entry.is_none())) { return found; }
         let mut record = self.program.records[id].clone();
         let map = record.map_definition.as_mut().unwrap();
         map.value = value;
         map.entry = None;
+        if let Some(application)=&mut record.application {application.resolved_arguments=vec![key,value];}
         let instance = self.program.records.len();
         self.program.records.push(record);
         self.fields.push(HashMap::new());
@@ -46,6 +49,7 @@ impl Analyzer {
 
     pub(super) fn scoped_map_contract(&self, actual: Type, expected: Type) -> bool {
         let (Type::Map(actual), Type::Map(expected)) = (actual, expected) else { return false; };
+        if self.program.records[actual].native_type!=self.program.records[expected].native_type{return false;}
         let (Some(actual), Some(expected)) = (self.program.records[actual].map_definition.as_ref(), self.program.records[expected].map_definition.as_ref()) else { return false; };
         let (Type::Record(value), Type::Record(contract)) = (actual.value, expected.value) else { return false; };
         actual.key == expected.key && self.aggregate_callable_facts(actual.value).scoped
@@ -218,5 +222,28 @@ impl Analyzer {
             }
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod ordered_identity_tests {
+    use super::*;
+    #[test]
+    fn ordered_map_value_specialization_keeps_its_family() {
+        use crate::native_signatures::{NativeTypeId,Signature};
+        let mut program=crate::syntax::parse("function main(){const first=new Map<int,int>();const second=new Map<int,string>();}").unwrap();
+        let annotation=crate::native_type_resolution::project_with_parameters(&mut program.records,&Signature::Applied(NativeTypeId::OrderedMap,&[Signature::Parameter(0),Signature::Parameter(1)]),&[Signature::Int,Signature::Int],Span::default()).unwrap();
+        program.type_argument_checks.push(annotation);
+        let mut analyzer=Analyzer::new(program).unwrap();
+        let ordered=analyzer.program.records.iter().position(|record|record.native_type==Some(NativeTypeId::OrderedMap)).unwrap();
+        let ordinary=analyzer.program.records.iter().position(|record|record.native_type.is_none() && record.map_definition.as_ref().is_some_and(|map|map.value==Type::String)).unwrap();
+        let specialized=analyzer.scoped_map_value_instance(ordered,Type::String);
+        assert_ne!(specialized,ordinary);
+        assert_eq!(analyzer.program.records[specialized].native_type,Some(NativeTypeId::OrderedMap));
+        assert_eq!(analyzer.program.records[specialized].map_definition.as_ref().unwrap().value,Type::String);
+        assert_eq!(analyzer.program.records[specialized].application.as_ref().unwrap().resolved_arguments,[Type::Int,Type::String]);
+        assert_eq!(analyzer.scoped_map_value_instance(ordered,Type::String),specialized);
+        assert_eq!(analyzer.unions.named_type(specialized),Type::Map(specialized));
+        assert_eq!(analyzer.type_name(Type::Map(specialized)),"OrderedMap");
     }
 }

@@ -257,3 +257,25 @@ five correctness cases in each engine. Evidence:
 `tsrust-s08-ordered-set-acceptance.json` in SQLite. No timing run was performed.
 OrderedMap and remaining family integration still precede S08 regression and
 measurement acceptance.
+
+## OrderedMap integration foundation
+
+Internal OrderedMap specializations now use shared map analysis while retaining
+their native family identity. Value specialization and scoped map joins cannot
+collapse an ordered map into an ordinary Map with identical key/value types.
+Resolved generic arguments and diagnostic names preserve that identity.
+
+The tree backend supports borrowed string queries without requiring Clone, copied
+scalar queries with canonical number equality, borrowed source traversal and
+consuming entry/value extraction. Native witnesses verify view pointer retention,
+mutable value access, selected-value transfer and exact disposal of other values
+at optimization levels 0 and 3. Four rejection witnesses cover invalidating reads,
+invalidating traversal and escaping a map borrow. Thirty-seven collection tests
+and nine focused library checks pass. Evidence:
+`tsrust-s08-ordered-map-foundation-acceptance.json` in SQLite.
+
+OrderedMap remains internal. Public source integration must still represent
+borrowed entries whose keys and values occupy separate tree fields, including
+passing complete entries to functions. It must not introduce implicit key copies,
+shared ownership or erased lifetimes. Editor/catalog and matched workloads follow
+that integration; no OrderedMap timing or public acceptance is claimed here.
