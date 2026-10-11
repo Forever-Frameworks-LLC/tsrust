@@ -400,3 +400,22 @@ Four focused checks pass, including offline dependency preparation followed by
 separate instrumented native compilation/execution and source-drift rejection.
 Evidence: `tsrust-s10-benchmark-dependencies-{red,green,final,format}.log` in SQLite.
 Matched JSON workloads, allocation integration and family timing remain open.
+
+## First matched JSON workload
+
+`native_json_roundtrip` parses and compactly encodes a fixed ASCII object once per
+iteration. Both implementations compare the entire encoded output to an explicit
+expected literal before accumulating its length. The independent oracle uses the
+literal's 31-byte length; it does not call either JSON implementation. Source
+contracts guard operation placement inside the loop, exact fingerprints, input,
+iteration count and denominator. Sorted keys and small integer values make this a
+scoped common semantic case, not a general encoding-equivalence claim.
+
+Native and Node-after-tsc pass all five correctness cases, including 2,000
+iterations. The original correctness-only record is
+`runtime/results/2026-10-11T21-42-54-126Z-verify.json` in SQLite. It contains zero
+execution/compilation measurement samples and records automatic offline dependency
+identities. The workload remains explicitly unmeasured. Focused registration,
+adapter and report checks are retained under `tsrust-s10-json-benchmark-*`.
+Allocation profiling, direct Rust comparison and the remaining JSON workload
+matrix still need implementation before family measurement acceptance.

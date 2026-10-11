@@ -21185,6 +21185,30 @@
       "notes": "Clock values are intentionally not compared across processes or engines. Includes one setup read, clock calls, validation, loop and result retention. No pure syscall latency or clock-resolution equivalence claim.",
       "sourceSha256": "c69333cef54eead20d3b7427a89dc0b3c7cf7fe7ec1f6fef62a053cf3e6b5d51",
       "counterpartSha256": "f6af8e3cc625573993d8c4b0efcacf769fb3faae0652546e94674c1984b762a2"
+    },
+    {
+      "id": "native_json_roundtrip",
+      "category": "json",
+      "description": "ASCII dynamic JSON parse and compact encoding with exact output validation",
+      "source": "workloads/native_json_roundtrip.tsr",
+      "counterpart": "workloads/native_json_roundtrip.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One parse, compact encode and exact output comparison",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": " { \"a\": [1,true,null], \"b\": \"hello\" } ",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse the fixed input and compactly encode each iteration. Compare the complete encoded text against the independent expected literal before adding its ASCII length to the seeded checksum.",
+      "notes": "Includes parsing, allocation, encoding, exact comparison and cleanup. Fixed lexically sorted keys and ASCII text avoid object-order and UTF-8/UTF-16 differences. Not a general JSON parity claim.",
+      "sourceSha256": "13c89d28d1d4cf9feac35f12fdf2a726d68ab979afd92c2a0eeaadc4e2909d95",
+      "counterpartSha256": "025e24acd97cce7cbfa75ed71e2449240c9293c1b93acaacd40dcaadcd8996e5"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

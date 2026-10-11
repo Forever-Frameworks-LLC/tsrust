@@ -1,0 +1,31 @@
+import { parse, stringify } from 'std:json';
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (parse(input)) {
+      Ok(value) => {
+        match (stringify(value)) {
+          Ok(text) => {
+            if (text !== '{"a":[1,true,null],"b":"hello"}') {
+              throw "Unexpected JSON output";
+            }
+
+            checksum += text.length;
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
