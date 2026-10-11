@@ -49,9 +49,7 @@ impl LineIndex {
 }
 
 pub fn diagnostics(source: &str, uri: &str) -> Result<Vec<Diagnostic>, String> {
-    match tsrust_compiler::check(source) {
-        Ok(_) => Ok(vec![]),
-        Err(error) => {
+    tsrust_compiler::diagnostics(source).into_iter().map(|error| {
             let index = LineIndex::new(source);
             let uri: Uri = uri.parse().map_err(|_| "invalid document URI")?;
             let related = error
@@ -64,7 +62,7 @@ pub fn diagnostics(source: &str, uri: &str) -> Result<Vec<Diagnostic>, String> {
                     })
                 })
                 .collect::<Result<Vec<_>, String>>()?;
-            Ok(vec![Diagnostic {
+            Ok(Diagnostic {
                 range: index.range(source, error.span)?,
                 severity: Some(DiagnosticSeverity::ERROR),
                 code: Some(NumberOrString::String(error.code.into())),
@@ -72,9 +70,8 @@ pub fn diagnostics(source: &str, uri: &str) -> Result<Vec<Diagnostic>, String> {
                 message: error.message,
                 related_information: (!related.is_empty()).then_some(related),
                 ..Diagnostic::default()
-            }])
-        }
-    }
+            })
+    }).collect()
 }
 
 #[derive(Clone, Debug)]

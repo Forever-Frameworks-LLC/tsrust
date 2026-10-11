@@ -16,3 +16,13 @@ fn declaration_only_buffers_report_body_errors_and_clear_after_repair() {
         assert!(convert(&snapshot,None).unwrap()[&entry].is_empty());
     }
 }
+
+#[test]
+fn standalone_syntax_diagnostics_keep_multiple_utf16_ranges() {
+    let source="function main(){console.log(\"😀\");const first=;const second=;}";
+    let errors=tsrust_lsp::diagnostics(source,"file:///optional-main/errors.tsr").unwrap();
+    assert_eq!(errors.len(),2);
+    for (error,(offset,_)) in errors.iter().zip(source.match_indices("=;")) {
+        assert_eq!(error.range.start.character,source[..offset+1].encode_utf16().count() as u32);
+    }
+}

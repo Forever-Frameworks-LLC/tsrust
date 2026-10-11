@@ -85,3 +85,15 @@ fn optional_main_project_does_not_invoke_dependency_main() {
         if command=="run" {assert!(output.stdout.is_empty());}
     }
 }
+
+#[test]
+fn check_reports_multiple_syntax_errors_in_one_file_and_rejects_build() {
+    let directory=support::TempDirectory::new();
+    let file=directory.source("function main(){const first=;const second=;}");
+    let output=support::run(support::cli().arg("check").arg(&file).arg("--json"),30);
+    assert_eq!(output.status.code(),Some(1));
+    let text=String::from_utf8(output.stdout).unwrap();
+    assert_eq!(text.matches("\"code\":").count(),2,"{text}");
+    let output=support::run(support::cli().arg("build").arg(&file),30);
+    assert_eq!(output.status.code(),Some(1));
+}

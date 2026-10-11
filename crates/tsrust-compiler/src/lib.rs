@@ -243,4 +243,18 @@ pub fn check(source: &str) -> Result<Analysis, Diagnostic> {
     Ok(Analysis { program })
 }
 
+/// Collect diagnostics without exposing a recovered tree to code generation.
+/// Syntax recovery currently resumes at statement boundaries inside blocks.
+/// Semantic checking remains strict and reports its first error.
+pub fn diagnostics(source: &str) -> Vec<Diagnostic> {
+    match check(source) {
+        Ok(_) => Vec::new(),
+        Err(error) if error.code == "syntax" => {
+            let errors = syntax::diagnostics(source);
+            if errors.is_empty() { vec![error] } else { errors }
+        }
+        Err(error) => vec![error],
+    }
+}
+
 mod unions;

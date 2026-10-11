@@ -1800,6 +1800,20 @@ pub fn parse(source: &str) -> Result<Program, Diagnostic> {
     parse_entry(source, false, Default::default())
 }
 
+/// Diagnostic-only parsing. A recovered tree never leaves this function.
+pub(crate) fn diagnostics(source: &str) -> Vec<Diagnostic> {
+    let errors = std::cell::RefCell::new(Vec::new());
+    let result = Parser::new(source, Default::default(), Default::default()).and_then(|mut parser| {
+        parser.diagnostics = Some(&errors);
+        parser.program(false).map(|_| ())
+    });
+    if let Err(error) = result { errors.borrow_mut().push(error); }
+    let mut errors = errors.into_inner();
+    errors.sort_by_key(|error| (error.span.start, error.span.end));
+    errors.dedup_by(|a,b| a.span == b.span && a.code == b.code && a.message == b.message);
+    errors
+}
+
 pub(crate) fn parse_test_entry(source: &str) -> Result<Program, Diagnostic> {
     parse_entry(source, true, Default::default())
 }
@@ -1827,6 +1841,7 @@ impl<'a> Parser<'a> {
     fn new(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Self, Diagnostic> {
         Ok(Self {
             source,
+            diagnostics: None,
             tokens: lex(source)?,
             i: 0,
             depth: 0,
@@ -1860,6 +1875,7 @@ fn registration_return(body: &[Stmt]) -> Option<Span> {
 }
 
 struct Parser<'a> {
+    diagnostics: Option<&'a std::cell::RefCell<Vec<Diagnostic>>>,
     unresolved_local_function: Option<Token>,
     source: &'a str,
     tokens: Vec<Token>,
@@ -2521,11 +2537,58 @@ impl Parser<'_> {
             if self.peek().kind == TokenKind::End {
                 self.expect("}")?;
             }
-            body.push(self.block_statement()?);
-            body.append(&mut self.pending);
+            let start = self.i;
+            let depth = self.depth;
+            let pending = self.pending.len();
+            let arguments = self.call_type_arguments.len();
+            let patterns = self.parameter_patterns.len();
+            match self.block_statement() {
+                Ok(statement) => {
+                    body.push(statement);
+                    body.append(&mut self.pending);
+                }
+                Err(error) => {
+                    let Some(errors) = self.diagnostics else { return Err(error); };
+                    if error.code != "syntax" || errors.borrow().len() >= 63 { return Err(error); }
+                    errors.borrow_mut().push(error);
+                    self.depth = depth;
+                    self.pending.truncate(pending);
+                    self.call_type_arguments.truncate(arguments);
+                    self.parameter_patterns.truncate(patterns);
+                    self.recover_statement(start);
+                }
+            }
         }
         self.depth -= 1;
         Ok(body)
+    }
+    // Scan token kinds, so delimiter-looking strings cannot change recovery.
+    // Braces preserve the containing block; a semicolon also bounds malformed
+    // parentheses. A fresh declaration can follow a missing semicolon.
+    fn recover_statement(&mut self, start: usize) {
+        let failed = self.i;
+        let mut braces = 0usize;
+        self.i = start;
+        while self.peek().kind != TokenKind::End {
+            if self.i > start && self.i >= failed && braces == 0
+                && matches!(self.peek().text.as_str(), "const" | "let" | "return" | "throw" | "if" | "while" | "for")
+                && self.peek().kind == TokenKind::Name {
+                return;
+            }
+            if self.peek().kind == TokenKind::Symbol {
+                match self.peek().text.as_str() {
+                    "{" => braces += 1,
+                    "}" if braces == 0 => return,
+                    "}" => {
+                        braces -= 1;
+                        if braces == 0 && self.i >= failed { self.i += 1; return; }
+                    }
+                    ";" if braces == 0 => { self.i += 1; return; }
+                    _ => {}
+                }
+            }
+            self.i += 1;
+        }
     }
     /// `switch (value) { case a: ... default: ... }` becomes an if chain over
     /// strict equality, tested in source order. The discriminant is evaluated

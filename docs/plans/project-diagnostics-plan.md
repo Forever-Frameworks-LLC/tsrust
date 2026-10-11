@@ -58,3 +58,28 @@ execute formatted empty/declaration-only sources, preserve existing entry signat
 rejections, and prove a dependency's `main` is not invoked. The editor no longer
 suppresses entry diagnostics for library buffers. Closed diagnostic logs use the
 `tsrust-optional-main-*` and `tsrust-project-check-*` names in SQLite.
+
+## Statement syntax recovery
+
+The diagnostic-only compiler API now collects syntax errors at block statement
+boundaries. It preserves original byte spans, respects braces and quoted delimiter
+text, handles missing semicolons, and stops after at most 64 diagnostics. Recovered
+syntax trees never leave the parser; strict `check`, emission and native builds
+continue to reject malformed sources. CLI standalone-file checking and standalone
+LSP diagnostics consume the diagnostic list, including UTF-16 range conversion.
+
+This is partial progress: module parsing, declaration/header and lexical recovery,
+multiple semantic/ownership diagnostics, and project-wide LSP publication remain
+pending. Installed consumers are still at the accepted S08 checkpoint; coordinate
+CLI, language-server and extension refreshes because the extension now invokes
+`check` rather than the removed `lint` command. Syntax errors currently suppress
+semantic checking of the malformed file to avoid cascades. Closed focused logs
+use the `tsrust-diagnostic-*` names in SQLite.
+
+Recovery checkpoint validation: four recovery tests, seven CLI/project tests,
+28 formatting tests, one normal-stack depth canary and two editor tests pass.
+The depth canary exposed an unrelated compatibility regression from recursive
+checking: single-file diagnostic JSON had gained a `file` field. Single-file JSON
+now preserves its existing shape; directory/multiple-input results retain paths.
+The whole-project formatter changes zero files and fingerprints. No timing run or
+installed-consumer acceptance is claimed.

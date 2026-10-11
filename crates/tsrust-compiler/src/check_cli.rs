@@ -20,19 +20,20 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     let color=color=="always" || (color=="auto" && std::io::stderr().is_terminal() && env::var_os("NO_COLOR").is_none() && env::var("TERM").as_deref()!=Ok("dumb"));
     let mut diagnostics=BTreeMap::new();let mut single_result=None;
     for path in files {
-        let (source,error)=match fs::read_to_string(&path) {
-            Ok(source)=>{let error=match check_input(&path,&source){Ok(analysis)=>{if single{single_result=Some(analysis);}None},Err(error)=>Some(error)};(source,error)},
-            Err(error)=>(String::new(),Some(InputDiagnostic::Single(Diagnostic::new("source-read",error.to_string(),Span::default())))),
+        let (source,errors)=match fs::read_to_string(&path) {
+            Ok(source)=>{let error=match check_input(&path,&source){Ok(analysis)=>{if single{single_result=Some(analysis);}Vec::new()},Err(InputDiagnostic::Single(error)) if error.code == "syntax"=>tsrust_compiler::diagnostics(&source).into_iter().map(InputDiagnostic::Single).collect(),Err(error)=>vec![error]};(source,error)},
+            Err(error)=>(String::new(),vec![InputDiagnostic::Single(Diagnostic::new("source-read",error.to_string(),Span::default()))]),
         };
-        let Some(error)=error else{continue};
+        for error in errors {
         let (file,span,code)=match &error {
             InputDiagnostic::Single(error)=>(path.to_string_lossy().into_owned(),error.span,error.code),
             InputDiagnostic::Project(error)=>(error.location.source.0.clone(),error.location.span,error.code),
         };
         let encoded=error.to_json(&source);
-        let encoded=format!("{{\"file\":{},{}",json_string(&file),&encoded[1..]);
+        let encoded=if single { encoded } else { format!("{{\"file\":{},{}",json_string(&file),&encoded[1..]) };
         let rendered=error.render(&path.to_string_lossy(),&source,color);
         diagnostics.entry((file,span.start,span.end,code)).or_insert((encoded,rendered));
+        }
     }
     let failed=!diagnostics.is_empty();
     if json {
