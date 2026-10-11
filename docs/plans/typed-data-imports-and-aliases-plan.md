@@ -259,3 +259,23 @@ scalar roots, nested arrays/objects, duplicate keys, numeric boundaries, malform
 input and depth limits. Evidence: `tsrust-data-module-*` in SQLite. This is an
 internal representation checkpoint only: data imports, inferred types, native
 ownership/linking, editor integration and end-to-end acceptance remain pending.
+
+
+## Structural data inference foundation
+
+An internal shape pass now infers scalar, record, array, nullable and heterogeneous
+data-union shapes. Compatible record elements merge their fields; absent fields
+become optional. Nested empty arrays can obtain their element type from nonempty
+siblings. An empty array with no such context receives a source-span error rather
+than an unsafe element type. Mixed data values use the compiler's existing data
+union domain; they are not rejected merely for being heterogeneous.
+
+Integer spellings must fit native signed 64-bit `int`. Decimal/exponent spellings
+and negative zero infer `number`. When a mixed numeric array widens integers to
+`number`, every integer must remain exactly representable; errors retain the
+original numeric span. Native type construction and value lowering must preserve
+these checks, optional fields and union tags in the subsequent integration.
+
+Focused inference witnesses and their failing precursors are retained as
+`tsrust-data-shape-*` in SQLite. This remains internal groundwork, not public
+data-import acceptance or a performance measurement.
