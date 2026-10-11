@@ -104,6 +104,7 @@ errors. Workspace trust remains required. Both CLI and language server were inst
 atomically in ~/.cargo/bin from compiler/LSP checkpoint 5408b3b5, and local consumers
 were refreshed. Three resolver tests, grammar checks and the real VS Code integration
 suite pass with no server-path setting. Original logs are in SQLite under
-`tsrust-editor-discovery-*`. The fixed VSIX is installed. Reload of the owner's already
-open window could not be completed through UI automation and remains a user action;
-do not claim live-window acceptance until it shows checking enabled.
+`tsrust-editor-discovery-*`. The fixed VSIX is installed. The owner's `tsrust_test` window subsequently showed checking enabled. After the
+562a6c00 consumer refresh, the language server was restarted through its status item
+and the same window showed checking enabled and no Problems. Live-window acceptance
+is now verified.

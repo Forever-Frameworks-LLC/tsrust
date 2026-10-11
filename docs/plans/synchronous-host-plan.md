@@ -3,7 +3,7 @@
 Status: read-only file resources are accepted in S07. The owner-prioritized
 `new` and `dev` CLI milestone is accepted on macOS, including installed consumers.
 Bounded full-file access is implemented with focused native/editor and matched
-untimed acceptance; installed refresh and the broader S09 family remain pending.
+untimed and installed acceptance; the broader S09 family remains pending.
 
 The create, write and writeAll slice is implemented. The private backend now has
 focused tests for truncation, exact binary content, read-only descriptor failures,
@@ -35,7 +35,10 @@ pass. Ten catalog examples execute at O0/O3; 85 project IntelliSense tests pass.
 A third matched workload uses readback and an independent byte oracle. All 24
 untimed native/Node cases and six registration tests pass. Full-file bridge emission
 was repaired for programs without an explicit File type. Original records use
-`tsrust-full-files-*` in SQLite. Installed full-file consumer refresh remains pending.
+`tsrust-full-files-*` in SQLite. Eight installed CLI/LSP consumers were refreshed
+from 562a6c00, and the installed CLI passes all 24 untimed cases. The active
+`tsrust_test` editor server was restarted and shows checking enabled with no Problems.
+Buffered file work follows [the implementation batch](buffered-files-plan.md).
 
 Continue S09 with buffered readers/writers, environment
 and monotonic time foundations, auditing the existing path/fs/os contracts. Define
