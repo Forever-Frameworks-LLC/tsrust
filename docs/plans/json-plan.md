@@ -252,3 +252,38 @@ JSONC implementation is not complete family acceptance: matched JSONC reference
 and benchmark registration remain open alongside package export and installed
 checks. JSONL, bounded file adapters, typed paths and the other S10 requirements
 remain active; none is replaced by this whole-document JSONC decoder.
+
+## Private JSONL pull-reader foundation
+
+`stdlib/json/lines.rs` now provides a test-only pull reader over Rust BufRead.
+Each call returns one owned value, EOF, or a terminal structured failure. JSON
+null remains a value distinct from EOF. The reader accepts LF/CRLF and a final
+record without LF; blank records and BOMs reject through strict JSON decoding.
+Errors carry a one-based record line and an absolute zero-based input byte offset.
+I/O failures retain kind/OS code but never retain the backend's message or input.
+Interrupted reads retry. Calls after failure return the same error without more I/O.
+
+Only the current record is accumulated. Its capacity grows geometrically but
+never beyond the record byte limit. Scanning inspects at most one byte beyond the
+remaining budget, even when the underlying buffer is larger. The LF delimiter is
+excluded from the record byte budget; other JSON whitespace, including CR, counts.
+Read-ahead storage belongs to the supplied buffered reader, whose capacity the file
+adapter must bound. EOF/error releases owned readers and scratch storage; early
+drop also releases the reader. A borrowed adapter consumes only the current record,
+so unread buffered bytes remain available to the caller after early drop. A failing
+witness caught the original extra-buffer design discarding those bytes; the BufRead
+implementation repairs it rather than weakening the expected behavior.
+
+The `next_with` decoder boundary accepts direct typed output without creating a
+JsonValue first. Its decoder is responsible for syntax and non-byte limits; the
+stream core enforces record bytes and positions. A scalar test proves this boundary,
+not the still-pending public typed decoder. Position arithmetic is checked.
+
+Focused tests cover every buffer size across UTF-8/escape/CRLF boundaries,
+missing final LF, empty files, null versus EOF, malformed/blank/BOM records,
+absolute offsets, terminal failure, interrupted reads, redacted I/O errors,
+oversized unterminated input, bounded reads/capacity, early stop and exactly-once
+owned cleanup. SQLite evidence uses `tsrust-s10-jsonl-*`, including both original
+failing witnesses. Public native file adapters, explicit close/flush behavior,
+writer support, editor/catalog examples and matched streaming benchmarks remain
+required before JSONL acceptance. This core does not publish a Tsrust export yet.

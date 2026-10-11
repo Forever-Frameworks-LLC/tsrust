@@ -23,6 +23,9 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {}
 fn message(code: &str) -> &'static str {
     match code {
+        "allocation" => "Unable to allocate bounded JSON storage",
+        "io-error" => "JSON Lines input read failed",
+        "position-limit" => "JSON Lines input position limit exceeded",
         "unterminated-comment" => "JSONC block comment is not terminated",
         "output-limit" => "JSON output byte limit exceeded",
         "byte-limit" => "JSON input byte limit exceeded",
