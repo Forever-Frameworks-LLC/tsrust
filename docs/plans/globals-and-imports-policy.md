@@ -6,6 +6,9 @@ The family inventory below is preliminary; the complete per-symbol audit is a
 required acceptance deliverable, not optional follow-up. Existing working imports
 remain supported. Alias and typed-data import work retains its current priority.
 
+The current [audit coverage matrix](globals-and-imports-audit.md) records discovery
+evidence and remaining per-symbol review.
+
 ## Current inventory
 
 Source anchors: `crates/tsrust-lsp/src/builtins.json`, the compiler's
