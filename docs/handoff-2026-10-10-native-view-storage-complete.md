@@ -147,24 +147,28 @@ completed evidence; rerun affected checks and resume unrun measurement groups.
 
 ## Recursive stored callback continuation
 
-Callable layout validation and inline storage budgeting now share the existing
-nullable-link indirection plan. Ordinary nullable chains execute with owned
-stored callback fields and beside unrelated stored callbacks. The boxed payload
-counts as pointer storage; union tags and other inline variants still contribute
-to the conservative size limit. Direct callable cycles remain rejected.
+The same-family stored callback path now executes. Concrete materialization clones
+one finite recursive component and retargets its nullable/array edges. Emitter
+record identity, union aliases, owning-field patterns and captured loan projection
+now agree on that component. Empty array/absent initializers directly use the
+concrete destination; they do not recursively convert a nonexistent payload.
+Nested consuming field extraction uses the existing split local storage.
 
-The saved `Holder` witness now identifies a separate emitter mismatch: its
-materialized callback field uses `NativeViewCallable`, but the nominal recursive
-record emits fixed fields and a single lifetime, while its use supplies generic
-field arguments. Keep the targeted source diagnostic until recursive specialized
-fields and their links have compatible representations. The ignored public native
-fixture is `native-byte-views/recursive-callbacks.tsr`; CLI/editor diagnostic checks
-remain active. Do not remove the diagnostic merely to make analysis pass.
+Public checks cover self-links, mutual links, arrays and mutable view callbacks;
+owner move, short-owner escape, clone and repeated-Once calls are rejected. A native
+probe verifies slice pointers, native short-owner rejection and 10,000-node cleanup
+on a 64 KiB stack at O0/O3. `native_byte_views_stored_callbacks` has a matched
+TypeScript source, closed-form oracle, mutation guards, hashes and harness support.
+See the acceptance map for exact counts and untimed records.
 
-Next: reconcile nominal/concrete recursive record storage, including callback
-family alternatives throughout links and the shared lifetime. Preserve source
-provenance and noncloneable views. Require real linked-chain native execution,
-owner-conflict/escape rejection, and disposal evidence before accepting this scope.
+Next: join different stored callback families across recursive links. The preserved
+`tsrust-recursive-concrete-alternatives.tsr` probe currently fails source checking
+with `Expected Holder | undefined, found Holder` when two factories create nodes.
+Do not treat the same-family implementation as acceptance of this composition.
+Exercise recursive replacement, argument/return transport and callback-only view
+storage too. Keep the finite-layout diagnostic until each representation is supported.
+Then finish resource gate 190, S07 family regressions/measurements and the remaining
+roadmap. Installed consumers remain `4367f4cc`.
 
 ## Working environment
 

@@ -40,6 +40,18 @@ function main() {
   const second = bytes(7);
   const holder = build(read(first), read(second));
   strictEqual(length(holder.data), 2);
+  holder.next = build(read(second), read(first));
+  const child = holder.next!;
+  const childResult = child.read();
+  match (at(childResult, 0)) {
+    Ok(value) => {
+      strictEqual(value, 3);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
   const result = holder.read();
   strictEqual(length(result), 2);
   match (at(result, 0)) {

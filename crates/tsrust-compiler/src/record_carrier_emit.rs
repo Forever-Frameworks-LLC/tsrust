@@ -106,7 +106,7 @@ impl Emitter<'_> {
                 };
                 format!(
                     "Record{}{{{fields}{metadata}}}",
-                    self.program.scoped_records.declaration(target)
+                    self.native_record_declaration(target)
                 )
             }
             // No value of an absent callback environment exists at run time.

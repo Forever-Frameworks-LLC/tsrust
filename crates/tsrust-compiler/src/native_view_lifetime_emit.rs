@@ -196,7 +196,7 @@ impl Emitter<'_> {
         match ty {
             Type::Record(id) if native_view_emit::access(self.program,id).is_some() || self.native_views.recursive(id)=>format!("Record{id}<{}>",plan.slot(input,path,guards)),
             Type::Record(id)=>{
-                let base=self.program.scoped_records.declaration(id);
+                let base=self.native_record_declaration(id);
                 let parameters=self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)|{
                     let ty=field.ty.expect("checked field");
                     if !self.scoped_record_native_field(id,position,ty) {return None;}

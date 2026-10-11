@@ -9,8 +9,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending mixed-family recursive callback storage; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending mixed-family recursive callback storage | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -734,3 +734,33 @@ and `native_byte_views_callbacks`, recorded as untimed verification in
 No full family regression or timing ran; gate 189, gate 190 and S07 remain open.
 Evidence logs use SQLite prefix `tsrust-recursive-stored-callback-`. Installed
 consumers remain `4367f4cc`.
+
+### Concrete recursive callback storage
+
+Stored view-capturing callbacks now execute through self-links, mutual links and
+arrays when the recursive component uses one concrete callback family. Native
+records retain a shared real lifetime and concrete callback fields. The public
+fixture is enabled; no byte integration remains ignored. Mutable callback results
+write through to their owner. Owner conflicts, shortest-owner escape, cloning and
+repeated Once invocation remain rejected.
+
+Focused evidence: 18 byte integrations pass, with the expanded recursive variants
+and corrected exact Once diagnostic rerun afterward; four native family tests,
+113 callable unit tests, two materialization tests, 42 scoped callable record
+integrations, four nullable integrations and two recursive editor tests pass.
+The native chain probe checks slice identity and a 10,000-node drop on a 64 KiB
+stack at O0/O3, plus Rust rejection of a returned short-owner borrow. Whole-project
+formatting, corpus token preservation/idempotence and formatted release fixture
+execution pass. These are focused checks, not the S07 full regression.
+
+`native_byte_views_stored_callbacks` now has matched TypeScript, an independent
+17-node arithmetic oracle, source mutation guards, hashes and harness support.
+Five registration checks pass. Native and Node-after-tsc agree on five untimed
+cases in `runtime/results/2026-10-11T05-57-38-811Z-verify.json` and the final source
+rerun `runtime/results/2026-10-11T06-00-55-478Z-verify.json`; execution samples are
+empty. Logs and reproduction sources use SQLite prefix `tsrust-recursive-concrete-`.
+
+Mixed-family links remain pending: two different factories currently produce a
+source type rejection. The original fixed-layout diagnostic remains for unsupported
+specializations. Gate 189, resource gate 190 and S07 stay open. Installed consumers
+remain `4367f4cc`; no timing ran.

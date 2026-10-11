@@ -173,7 +173,9 @@ impl Analyzer {
                         return Err(Diagnostic::new("native-view-call","The selected callback has no tracked byte-view source lifetime.",span));
                     }
                     if let Some(alternative)=alternative {
-                        if !result[start..].iter().any(|loan|matches!(loan.path.first(),Some(Segment::CallableAlternative(_)))) {
+                        // A whole recursive loan covers every field and alternative.
+                        // Keep all its owners when projecting a captured return.
+                        if !result[start..].iter().any(|loan|(loan.whole && loan.path.is_empty()) || matches!(loan.path.first(),Some(Segment::CallableAlternative(_)))) {
                             return Err(Diagnostic::new("native-view-call","The selected callback has no tracked family alternative lifetime.",span));
                         }
                         let mut index=0;

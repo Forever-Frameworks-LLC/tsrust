@@ -20618,6 +20618,34 @@
       "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Repeat with a callback borrowing the owner and constructing its returned view during invocation. Observe both returned lengths and first bytes. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
       "sourceSha256": "453a9bda6c9ac68e396abebcc37ea4965188755e8b33683fb49dadc2d70314a2",
       "counterpartSha256": "abac2c843b67ea9b47df7eb60f846189bc7c60172cc0a33b588b9ccf846f60e2"
+    },
+    {
+      "id": "native_byte_views_stored_callbacks",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_stored_callbacks.tsr",
+      "counterpart": "workloads/native_byte_views_stored_callbacks.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One 17-node nullable recursive view-capturing callback construction and consuming traversal",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Same-family recursive records retain one view-capturing Once callback at every level. Native and Node-after-tsc agree on five untimed cases. Mixed-family links and S07 measurements remain pending.",
+      "specification": "Build a 17-node nullable chain. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, recording node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
+      "sourceSha256": "04359d128a0eb4b825a88ba34f866796dcb864213d7e1825e13c4db5da03fc37",
+      "counterpartSha256": "75552cc25d34c0c97335945194c21ec10f7522b15f73f7683ebaeefcbae81568"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -453,7 +453,7 @@ impl Emitter<'_> {
         if let Type::Record(id) = value {
             // The declaration decides which fields are generic. An instance
             // whose nullable field owns all captures still fills that position.
-            let base = self.program.scoped_records.declaration(id);
+            let base = self.native_record_declaration(id);
             let parameters = self.program.records[id].fields.iter().enumerate().filter_map(|(position,field)| {
                 let ty = field.ty.expect("checked field");
                 self.scoped_record_native_field(id,position,ty).then(|| self.native_type(ty))
@@ -545,7 +545,7 @@ impl Emitter<'_> {
         let nominal = |members: &[Type]| {
             let mut scoped = 0;
             let shape = members.iter().map(|&member| match member {
-                Type::Record(record) if self.scoped_record_native_parameter(member) => { scoped += 1; Type::Record(self.program.scoped_records.declaration(record)) }
+                Type::Record(record) if self.scoped_record_native_parameter(member) => { scoped += 1; Type::Record(self.native_record_declaration(record)) }
                 other => other,
             }).collect::<Vec<_>>();
             (scoped == 1 && members.iter().filter(|member| !member.is_copy()).count() == 1).then_some(shape)
@@ -2348,7 +2348,7 @@ impl Emitter<'_> {
         self.map_types(&mut output);
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
-            if self.program.scoped_records.declaration(index) != index { continue; }
+            if self.native_record_declaration(index) != index { continue; }
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
                 let arms = definition.members.iter().enumerate().map(|(member, entry)| {
@@ -2857,7 +2857,7 @@ impl Emitter<'_> {
                     "Vec"
                 };
                 // The declaration decides which fields are generic, as for the record itself.
-                let declaration = self.program.scoped_records.declaration(index);
+                let declaration = self.native_record_declaration(index);
                 let parameters = self.program.records[index].fields.iter().enumerate().filter_map(|(field,value)| self.scoped_record_native_field(index,field,value.ty.expect("checked field")).then(||format!("P{field}"))).collect::<Vec<_>>();
                 let arguments = if parameters.is_empty() {String::new()} else {format!("<{}>",parameters.join(", "))};
                 let _ = writeln!(
@@ -4414,16 +4414,25 @@ impl Emitter<'_> {
         }
         if mode == Mode::Consume && !expr.ty.is_some_and(Type::is_copy) {
             let (root, steps) = self.storage_steps(expr);
-            let mut place = format!("value{}", root.binding.expect("owned field root"));
+            let id = root.binding.expect("owned field root");
+            let mut place = format!("value{id}");
+            let mut owned_path = Some(Vec::new());
             let mut setup=String::new();
             for step in steps {
                 match step {
-                    StorageStep::Field(field) => place = format!("({place}).field{field}"),
+                    StorageStep::Field(field) => {
+                        let leaf = owned_path.as_mut().and_then(|path| {
+                            path.push(field);
+                            self.owned_record_leaf_place(fun, id, path)
+                        });
+                        place = leaf.unwrap_or_else(|| format!("({place}).field{field}"));
+                    },
                     StorageStep::Discard(prefix) => {
                         let code=self.comma_discard_code(fun,prefix);
                         setup.push_str(&code);
                     }
                     StorageStep::Union(union,variant,assertion) => {
+                        owned_path = None;
                         let member=self.program.unions[union.index()].members[variant];
                         let message=assertion.map_or_else(||"checked nullable guard".to_owned(),|span|format!("Non-null assertion failed: value is null or undefined at source bytes {}..{}",span.start,span.end));
                         let failure=assertion.and_then(|span|self.runtime_failure_exit("TypeError","non-null",&message,span)).unwrap_or_else(||format!("panic!({message:?})"));
@@ -7822,7 +7831,7 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(", ");
             let values = self.order_values(index, fields, values);
-            format!("Record{} {{ {values} }}", self.program.scoped_records.declaration(index))
+            format!("Record{} {{ {values} }}", self.native_record_declaration(index))
         };
         match mode {
             Mode::Read => format!("&({code})"),

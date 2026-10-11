@@ -88,3 +88,24 @@ test('Capturing callbacks retain argument views and oracle dispatch stays select
     // An unrelated workload must not enter the native-view oracle.
     assert.doesNotThrow(()=>expectedChecksum('native_bytes',1,7,'bytes'));
 });
+
+test('Recursive stored callbacks retain invocation and traversal observations', () => {
+    const row = manifest.workloads.find(value => value.id === 'native_byte_views_stored_callbacks');
+    assert.ok(row);
+    assert.equal(reportCategory(row.id), 'bytes');
+    for (const [kind, file] of [['native', row.source], ['typescript', row.counterpart]]) {
+        const source = read('./' + file);
+        assertNativeByteViewsSource(source, row, kind);
+        for (const from of ['parent.next = root;', 'sum += first(root.read());', 'read: () => captured']) {
+            const changed = replaceCodeSnippet(source, from, '');
+            const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
+            assert.throws(() => assertNativeByteViewsSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind));
+        }
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(row.id,3,255,'bytes'),[[17,4335,2],[17,0,2],[17,17,2]]);
+    for (const n of [0,1,37,2048]) {
+        const expected = expectedNativeByteViewsObservation(row.id,n,7,'bytes');
+        assert.deepEqual(expectedExactResult(row.id,n,7,'bytes'),expected);
+        assert.equal(expectedChecksum(row.id,n,7,'bytes'),expected.checksum);
+    }
+});

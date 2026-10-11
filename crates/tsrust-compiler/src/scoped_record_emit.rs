@@ -2,16 +2,25 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn native_record_declaration(&self, id: usize) -> usize {
+        let base = self.program.scoped_records.declaration(id);
+        if self.native_views.recursive(base) { id } else { base }
+    }
+
     /// A recursive component uses one lifetime for every contained native view.
     /// Acyclic containers outside this component still use their ordinary slots.
     pub(super) fn recursive_view_native_type(&self, ty: Type, lifetime: &str) -> String {
+        if let Type::StoredCallable(family) = ty
+            && let Some(layout) = self.program.stored_contracts.scoped_native_family(family) {
+            return format!("NativeViewCallable{family}<{}>", vec![lifetime; layout.lifetimes()].join(", "));
+        }
         if !self.native_views.contains(ty) { return self.native_type(ty); }
         match ty {
             Type::Record(id) if native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id) => {
                 format!("Record{id}<{lifetime}>")
             }
             Type::Record(id) => {
-                let base = self.program.scoped_records.declaration(id);
+                let base = self.native_record_declaration(id);
                 let arguments = self.program.records[id].fields.iter().enumerate().filter_map(|(position, field)| {
                     let ty = field.ty.expect("checked field");
                     self.scoped_record_native_field(id, position, ty).then(|| self.recursive_view_native_type(ty, lifetime))
@@ -166,7 +175,7 @@ impl Emitter<'_> {
                     .collect::<Vec<_>>();
                 format!(
                     "Record{}{}",
-                    self.program.scoped_records.declaration(id),
+                    self.native_record_declaration(id),
                     lifetime_parameters(&arguments)
                 )
             }

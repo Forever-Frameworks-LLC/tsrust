@@ -258,4 +258,27 @@ mod tests {
         compile_family(&generated,&family,&probe,vec![(negative,"does not live long enough")],if mutable {"record-mut"}else{"record-read"});
     }
 
+    #[test]
+    fn recursive_view_callback_native_chain_keeps_identity_and_bounded_drop() {
+        let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function main(){}";
+        let source = crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&source).unwrap(), source);
+        let mut parsed = crate::syntax::parse(&source).unwrap();
+        parsed.records[0].native_type = Some(crate::native_signatures::NativeTypeId::ByteView);
+        let checked = crate::analysis::analyze(parsed).unwrap();
+        let factory = checked.functions.iter().position(|function| function.name == "build" && !function.template).unwrap();
+        let Type::Record(record) = checked.functions[factory].result else { panic!("concrete recursive record") };
+        let union = checked.records[record].fields[2].ty.unwrap().union().unwrap();
+        let tag = checked.unions[union.index()].members.iter().position(|ty| *ty == Type::Record(record)).unwrap();
+        let union = union.index();
+        let make = format!("function{factory}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
+        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for _ in 0..10000{{let mut parent={make};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());let result=root.field1.call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);drop(root.field2);}}).unwrap().join().unwrap();}}");
+        let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained=holder.field1.call();}}assert_eq!(retained.bytes[0],7);}}");
+        let mut generated = crate::emit::emit(&checked);
+        let main = generated.find("fn main()").unwrap();
+        let opening = main + generated[main..].find('{').unwrap() + 1;
+        generated.insert_str(opening,"family_probe();");
+        compile_family(&generated,"",&probe,vec![(negative,"does not live long enough")],"recursive-chain");
+    }
+
 }

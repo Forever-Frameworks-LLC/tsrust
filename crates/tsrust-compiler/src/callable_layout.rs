@@ -293,14 +293,15 @@ pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), cr
     {
         return Ok(());
     }
-    // Recursive declarations currently have a fixed native field layout. A
-    // specialized callable field cannot use that declaration's generic ABI yet.
+    // Recursive declarations have a fixed native field layout. A specialization
+    // must retarget its recursive component before it can use concrete fields;
+    // an ordinary generic instance cannot reuse the nominal declaration's ABI.
     let views = crate::recursive_view_shapes::Index::new(&program.records, &|id| {
         program.unions[id.index()].members.clone()
     });
     for (id, record) in program.records.iter().enumerate() {
         let base = program.scoped_records.declaration(id);
-        if base != id && views.access(base).is_some() {
+        if base != id && views.access(base).is_some() && views.access(id).is_none() {
             return Err(crate::Diagnostic::new(
                 "callable-layout",
                 "Recursive view records cannot yet store specialized callback environments.",

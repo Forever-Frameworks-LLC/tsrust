@@ -1,8 +1,15 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
+    if (row.id === 'native_byte_views_stored_callbacks') {
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One 17-node nullable recursive view-capturing callback construction and consuming traversal' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Stored callback views denominator');
+        const required = ['const byte = (i + seed) % 256;', 'const captured = byteWindow(owner);', 'return { data: data, read: () => captured };', 'let root = node(owner);', 'while (depth < 16)', 'const parent = node(owner);', 'parent.next = root;', 'root = parent;', 'while (root.next !== undefined) { sum += first(root.read()); count++; const child = root.next!; root = child; }', 'sum += first(root.read());', 'return output;'];
+        required.push(...(kind === 'native' ? ['match (view(owner, 0, 2))', 'match (at(data, 0))', 'match (fromArray([byte, 255]))', 'output.push([count, sum, length(root.data)]);'] : ['return owner.subarray(0, 2);', 'return data[0];', 'const owner = Uint8Array.from([byte, 255]);', 'output.push([count, sum, root.data.length]);']));
+        for (const text of required) if (!containsCodeSnippet(source, text)) throw Error('Stored callback views scenario: '+text);
+        return;
+    }
     if (row.id === 'native_byte_views_callbacks') {
         if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One pair of view-capturing callbacks returning an argument view and a borrowed-owner view' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Callback byte views denominator');
         const required = ['const byte = (i + seed) % 256;', 'const next = (byte + 1) % 256;', 'if (first(kept) !== expected) { throw "capture mismatch"; }', 'return other;', 'const picker = make(window(owner, 0, 1), byte);', 'const selected = picker.pick(window(owner, 1, 3));', 'const borrowed = makeOwner(window(owner, 0, 1), byte).pick(owner);', 'return output;'];

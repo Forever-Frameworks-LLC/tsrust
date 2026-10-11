@@ -294,22 +294,26 @@ on five untimed cases in SQLite record
 `runtime/results/2026-10-11T01-01-09-264Z-verify.json`; execution samples are empty.
 Workload source acceptance is separate from gate 189 and measured acceptance.
 
-A recursive record with a stored view-capturing callback remains unsupported.
-The callable cycle graph and storage budget now honor the shared nullable-link
-plan. Ordinary nullable recursive records execute both beside stored callbacks
-and with stored callbacks as fields. Direct callable-environment cycles still
-require their own terminating indirection.
+Recursive stored view callbacks now have focused native coverage when links use
+the same concrete callback family. Materialization reserves the identities of the
+recursive component, replaces its callback fields, then retargets self/mutual links
+and array leaves to that component. Nonrecursive fields and nominal source type
+identity stay unchanged. Native declarations use the concrete recursive identity
+and one real shared lifetime; no byte copy or shared owner is introduced.
 
-The saved view-capturing callback probe exposed the next boundary: scoped record
-materialization specializes callback fields, but recursive record declarations
-emit fixed fields with one shared lifetime. The specialized return currently
-tries to apply generic type arguments to that fixed declaration. Source analysis
-therefore keeps a targeted `callable-layout` diagnostic instead of allowing a
-native compiler failure. The public `recursive-callbacks.tsr` fixture preserves
-this witness; its native test is explicitly ignored pending implementation, with
-an active CLI/editor rejection test. Capturing a complete linked record in a
-callback remains covered and supported. Do not accept gate 189 until recursive
-stored callback fields have real native execution and ownership evidence.
+The public `recursive-callbacks.tsr` fixture now runs. Its integration checks also
+cover a mutual link, array recursion and an exclusive callback result that mutates
+the original owner. Source checks retain owner-conflict, shortest-owner escape,
+clone and repeated-Once rejection. A native probe verifies slice pointer identity,
+short-owner rejection, and disposal of 10,000 linked callback nodes on a 64 KiB
+stack at O0/O3. Nullable links keep their existing unique allocation cost.
+
+Mixed callback families across links remain pending: constructing a child through
+a different factory currently gives `Expected Holder | undefined, found Holder`.
+This needs recursive family joining and corresponding native conversion; the
+same-family proof does not accept that broader scope. A guard still rejects
+specialized recursive declarations without a finite concrete native layout.
+Keep gate 189 open until this composition and its ownership/native witnesses pass.
 
 SQLite preserves 24 source-emission, CLI/editor, registration and formatting
 logs under `tsrust-nullable-links-*.log`, plus the exact callback probe source

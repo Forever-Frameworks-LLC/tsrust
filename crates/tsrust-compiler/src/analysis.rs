@@ -9952,7 +9952,7 @@ impl Analyzer {
         let mut seen = HashSet::new();
         let mut concrete = self.program.records[index].fields.iter().map(|field| field.ty.expect("checked field")).collect::<Vec<_>>();
         let mut specialized = false;
-        for (key, value) in fields {
+        for (key, value) in fields.iter_mut() {
             if !seen.insert(key.text.clone()) {
                 return Err(Diagnostic::new(
                     "duplicate",
@@ -10008,9 +10008,32 @@ impl Analyzer {
             ));
         }
         if specialized {
-            let instance = self.scoped_records.materialize(index, concrete, &mut self.program.records);
-            if self.fields.len() <= instance {
-                self.fields.push(self.program.records[instance].fields.iter().map(|field| (field.name.text.clone(), field.ty.expect("concrete field"))).collect());
+            let recursive = self.native_borrow_types && crate::recursive_view_shapes::Index::new(
+                &self.program.records, &|id| self.unions.members(id),
+            ).access(self.scoped_records.declaration(index)).is_some();
+            let instance = if recursive {
+                self.scoped_records.materialize_recursive(index, concrete, &mut self.program.records, &self.unions)?
+            } else { self.scoped_records.materialize(index, concrete, &mut self.program.records) };
+            while self.fields.len() < self.program.records.len() {
+                let id = self.fields.len();
+                self.fields.push(self.program.records[id].fields.iter().map(|field| (field.name.text.clone(), field.ty.expect("concrete field"))).collect());
+            }
+            if recursive {
+                for (name, value) in fields.iter_mut() {
+                    let target = self.fields[instance][&name.text];
+                    if value.ty != Some(target) {
+                        if matches!(&value.kind, ExprKind::Array(values) | ExprKind::ArrayOf(values, _) if values.is_empty())
+                            && matches!(target, Type::Array(_)) {
+                            value.ty = Some(target);
+                        } else if let ExprKind::Inject { value: payload, union } = &mut value.kind
+                            && matches!(payload.ty, Some(Type::Null | Type::Undefined))
+                            && let Type::Union(destination) = target {
+                            *union = destination;
+                            value.ty = Some(target);
+                        } else { value.wrap_record_carrier(target); }
+                    }
+                }
+                self.refresh_native_recursive_shapes(context);
             }
             return Ok(Type::Record(instance));
         }

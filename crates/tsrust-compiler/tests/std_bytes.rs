@@ -183,22 +183,50 @@ fn native_view_constructor_inside_stored_callback_keeps_argument_ownership() {
 }
 
 #[test]
-#[ignore = "recursive view record declarations need specialized callback field storage"]
 fn recursive_records_store_view_capturing_once_callbacks() {
-    let directory=support::TempDirectory::new();
-    let source=support::format_round_trip(include_str!("fixtures/native-byte-views/recursive-callbacks.tsr"));
-    let path=directory.source(&source);
-    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let source = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr");
+    let mutual = source.replace("next?: Holder;", "next?: Link;")
+        .replace("function bytes", "type Link={value:Holder;};\nfunction bytes")
+        .replace("holder.next = build(read(second), read(first));", "holder.next = {value:build(read(second),read(first))};")
+        .replace("const child = holder.next!;", "const child = holder.next!.value;");
+    let arrays = source.replace("next?: Holder;", "next: Holder[];")
+        .replace("data: first, read: () => second", "data: first, read: () => second, next: []")
+        .replace("holder.next = build(read(second), read(first));", "holder.next.push(build(read(second),read(first)));")
+        .replace("const child = holder.next!;", "const child = holder.next.pop()!;");
+    let mutable = source.replace("ByteView", "ByteViewMut")
+        .replace("alloc, view,", "alloc, viewMut,")
+        .replace("length, at }", "length, at, set }")
+        .replace("ReadOnly<Bytes>", "Mutable<Bytes>")
+        .replace("match (view(", "match (viewMut(")
+        .replace("const holder =", "const third=bytes(11);const fourth=bytes(13);const holder =")
+        .replace("holder.next = build(read(second), read(first));", "holder.next = build(read(third), read(fourth));")
+        .replace("strictEqual(value, 3);", "strictEqual(value, 13);")
+        .replace("const result = holder.read();", "const result = holder.read();set(result,0,19);")
+        .replace("strictEqual(value, 7);", "strictEqual(value, 19);");
+    for source in [source.to_owned(), mutual, arrays, mutable] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(&source));
+        support::success(&support::run(support::cli().arg("run").arg(path),120));
+    }
 }
 
 #[test]
-fn recursive_view_callback_storage_reports_the_pending_layout_boundary() {
-    let directory = support::TempDirectory::new();
-    let source = support::format_round_trip(include_str!("fixtures/native-byte-views/recursive-callbacks.tsr"));
-    let path = directory.source(&source);
-    let output = support::run(support::cli().arg("check").arg(path), 60);
-    assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("Recursive view records cannot yet store specialized callback environments."));
+fn recursive_view_callbacks_preserve_owner_and_clone_rejections() {
+    let helpers = include_str!("fixtures/native-byte-views/recursive-callbacks.tsr").split("function main()").next().unwrap();
+    let setup = "const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));holder.next=build(read(second),read(first));";
+    for (body, expected) in [
+        (format!("{setup}const moved=first;const result=holder.read();console.log(length(result));"), "native-view-conflict"),
+        (format!("{setup}const copied=clone(holder);"), "clone-type"),
+        (format!("{setup}const a=holder.read();const b=holder.read();console.log(length(a),length(b));"), "partial-transfer"),
+        ("const first=bytes(3);let escaped:Holder;{const second=bytes(7);escaped=build(read(first),read(second));}const result=escaped.read();console.log(length(result));".into(), "native-view-escape"),
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(&format!("{helpers}function main(){{{body}}}")));
+        let output = support::run(support::cli().arg("check").arg(path), 60);
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(&format!("error[{expected}]")), "{stderr}");
+    }
 }
 
 #[test]

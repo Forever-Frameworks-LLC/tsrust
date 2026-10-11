@@ -1,0 +1,80 @@
+import { Bytes, ByteView, fromArray, view, at, length } from "std:bytes";
+
+type Chunk = {
+  data: ByteView;
+  read: Once<Function<ByteView>>;
+  next?: Chunk;
+};
+
+function byteWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function node(owner: ReadOnly<Bytes>): Chunk {
+  const data = byteWindow(owner);
+  const captured = byteWindow(owner);
+  return {
+    data: data, read: () => captured
+  };
+}
+
+function first(data: ByteView): int {
+  match (at(data, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    match (fromArray([byte, 255])) {
+      Ok(owner) => {
+        let root = node(owner);
+        let depth = 0;
+        while (depth < 16) {
+          const parent = node(owner);
+          parent.next = root;
+          root = parent;
+          depth++;
+        }
+
+        let sum = 0;
+        let count = 0;
+        while (root.next !== undefined) {
+          sum += first(root.read());
+          count++;
+          const child = root.next!;
+          root = child;
+        }
+
+        sum += first(root.read());
+        count++;
+        output.push([count, sum, length(root.data)]);
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

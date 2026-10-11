@@ -198,7 +198,7 @@ impl Emitter<'_> {
                 let _ = write!(fields, ",key_order:{value}");
             }
             let symbol = if pattern || !matches!(mode, Mode::Read | Mode::Mutate) {
-                format!("Record{}", self.program.scoped_records.declaration(record))
+                format!("Record{}", self.native_record_declaration(record))
             } else {
                 format!(
                     "Tsr{}View{}",

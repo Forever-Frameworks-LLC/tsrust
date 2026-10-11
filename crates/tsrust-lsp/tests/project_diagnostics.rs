@@ -229,14 +229,18 @@ fn callbacks_borrow_owner_arguments_without_losing_provenance() {
 }
 
 #[test]
-fn recursive_view_callback_storage_reports_its_native_layout_boundary() {
+fn recursive_view_callback_storage_keeps_short_owner_diagnostics() {
     let source = include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-callbacks.tsr");
     let mut workspace = Workspace::default();
     workspace.open(id("main"), 1, source.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers = source.split("function main()").next().unwrap();
+    let invalid = format!("{helpers}function main(){{const first=bytes(3);let escaped:Holder;{{const second=bytes(7);escaped=build(read(first),read(second));}}const result=escaped.read();console.log(length(result));}}");
+    workspace.open(id("main"), 2, invalid);
     let snapshot = workspace.snapshot();
     let error = snapshot.check(&id("main")).err().unwrap();
-    assert_eq!(error.code, "callable-layout");
+    assert_eq!(error.code, "native-view-escape");
     let diagnostics = convert(&snapshot, Some(&error)).unwrap();
     let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
-    assert_eq!(diagnostic["message"], "Recursive view records cannot yet store specialized callback environments.");
+    assert_eq!(diagnostic["code"], "native-view-escape");
 }
