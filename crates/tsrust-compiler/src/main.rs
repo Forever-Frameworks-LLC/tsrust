@@ -316,6 +316,7 @@ fn run() -> Result<u8, String> {
     }
     if command == "run" || command == "test" {
         let mut executable_command=Command::new(&executable);
+        if command == "test" && std::env::var_os("TSRUST_TEST_REPORTER").is_none() { executable_command.env("TSRUST_TEST_REPORTER", "pretty"); }
         if let Some(root)=&project_root {executable_command.current_dir(root);}
         let status = executable_command
             .env("TSRUST_COLOR", &color_mode)

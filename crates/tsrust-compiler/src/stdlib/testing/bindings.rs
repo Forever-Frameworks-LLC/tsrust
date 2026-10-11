@@ -86,3 +86,13 @@ pub(crate) const CONTAINS_VALUE: NativeBinding = NativeBinding { returned_borrow
     ], result: NativeType::Boolean,
     backend: NativeBackend::Bundled { symbol: "@compiler-testing-contains" }, features: &[],
 };
+
+pub(crate) const ASSERTION_DETAILS: NativeBinding = NativeBinding { returned_borrow: None,
+    module: "std:testing-runtime", name: "assertionDetails",
+    parameters: &[
+        NativeParameter { name: "actual", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "expected", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false },
+        NativeParameter { name: "message", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::String, backend: NativeBackend::Bundled { symbol: "@compiler-assertion-details" }, features: &[],
+};

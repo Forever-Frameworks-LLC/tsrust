@@ -1,6 +1,6 @@
 // Checked public declarations for the bundled std:testing module.
 // These declarations are parsed by the compiler; native execution uses Rust backends.
-pub(crate) const SOURCE: &str = r####"import { checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
+pub(crate) const SOURCE: &str = r####"import { assertionDetails, checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
 
 /**
 Fails when value is falsy. Accepts a supported source value and an optional string message. False, numeric zero, NaN, empty strings, null and undefined are falsy; arrays and records are truthy, including empty containers. Returns void on success. Failure stops the current test body; outside a running test it stops native execution with AssertionError followed by the message. No receiver is changed. The default message is "Expected a truthy value". Wrong arity or a non-string message is a compile-time error.
@@ -21,7 +21,7 @@ export function ok<T>(value:T, message:string="Expected a truthy value"):void {
 }
 
 /**
-Fails unless actual and expected compare equal with Object.is semantics. Accepts two values of one inferred concrete type and an optional string message. Number NaN equals itself; positive zero and negative zero differ. Strings compare exact Unicode text, scalars compare values, and arrays and records compare identity rather than contents. Null and undefined are supported as homogeneous concrete types. Data unions compare their active alternatives; callable values are unsupported. Returns void on success without changing either value. Failure stops the current test body; outside a running test it stops native execution with AssertionError followed by the message. The default message is "Expected values to be strictly equal". Wrong arity, incompatible argument types or a non-string message is a compile-time error. Integers preserve their signed 64-bit values without conversion to Number.
+Fails unless actual and expected compare equal with Object.is semantics. Accepts two values of one inferred concrete type and an optional string message. Number NaN equals itself; positive zero and negative zero differ. Strings compare exact Unicode text, scalars compare values, and arrays and records compare identity rather than contents. Null and undefined are supported as homogeneous concrete types. Data unions compare their active alternatives; callable values are unsupported. Returns void on success without changing either value. Failure stops the current test body; outside a running test it stops native execution with AssertionError followed by the message. The default message is "Expected values to be strictly equal". Wrong arity, incompatible argument types or a non-string message is a compile-time error. Integers preserve their signed 64-bit values without conversion to Number. The CLI test report includes expected and received values on failure. Strings are quoted; supported arrays and records are inspected without changing identity comparison. Opaque values are labeled as not expanded.
 
 @param actual - Observed value.
 @param expected - Expected value of the same concrete type.
@@ -36,7 +36,7 @@ function main(){strictEqual(Number.NaN,Number.NaN);strictEqual("é","é");consol
 Ownership: both values and the message are borrowed when they own data; scalars are copied.
 */
 export function strictEqual<T>(actual:T, expected:T, message:string="Expected values to be strictly equal"):void {
-    checkAssertion(Object.is(actual, expected), message);
+    if (!Object.is(actual, expected)) { checkAssertion(false, assertionDetails(actual, expected, message)); }
 }
 
 /**

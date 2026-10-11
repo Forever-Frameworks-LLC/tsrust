@@ -50,3 +50,12 @@ The watcher reads `.tsr` files below the project root and excludes `.git`,
 Development binaries are temporary; `build` writes the named output. A program that
 exits normally runs again on the next change. Restarting does not preserve its
 in-memory state. The template has a `main` function, but the language does not require it.
+
+
+`tsrust test` groups results by file, marks passing and failing tests, shows failure
+sections and reports file/test totals. Durations measure test execution, excluding
+compilation. Strict equality failures show expected and received values; object
+comparison still uses identity, even when printed contents look alike. Colors follow
+terminal support and `--color auto|always|never`. Set `TSRUST_TEST_REPORTER=plain` for
+the compact line reporter used by older scripts. Direct `runTests()` calls retain
+that compact output unless the pretty reporter is selected through the environment.

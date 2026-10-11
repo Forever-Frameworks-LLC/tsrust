@@ -743,7 +743,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         // Sharing does not invoke the environment. Observations read checked values,
         // returning NaN/false for unsupported numeric/length shapes.
         // Allocation failures are outside recoverable checked error transport.
-        Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Target constants have no recoverable runtime failures.
         Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")=>FailureSet::default(),
         Some(binding) if binding.module=="std:path" && binding.name=="relative"=>FailureSet::runtime(),
@@ -875,7 +875,7 @@ mod tests {
         assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
-            let audited=(binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            let audited=(binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }

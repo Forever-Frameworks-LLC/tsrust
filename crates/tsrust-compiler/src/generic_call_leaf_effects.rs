@@ -9,7 +9,7 @@ pub(super) fn native_observer(symbol: &str) -> bool {
             || binding.module == "std:bytes"
                 && matches!(binding.name, "fromArray" | "length" | "at" | "alloc" | "copy" | "fromUtf8" | "toUtf8")
             || binding.module == "std:testing-runtime"
-                && matches!(binding.name, "checkAssertion" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
+                && matches!(binding.name, "checkAssertion" | "assertionDetails" | "numericValue" | "lengthValue" | "hasLength" | "containsValue")
     })
 }
 /// These calls can fail, but cannot invoke source callbacks or change captures.

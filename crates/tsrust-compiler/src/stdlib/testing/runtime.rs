@@ -1,3 +1,4 @@
+fn tsrust_testing_pretty() -> bool { std::env::var("TSRUST_TEST_REPORTER").as_deref() == Ok("pretty") }
 fn tsrust_testing_style(text: &str, code: &str) -> std::string::String {
     let mode = std::env::var("TSRUST_COLOR").unwrap_or_else(|_| "auto".to_owned());
     let color = mode == "always" || (mode == "auto" && std::io::IsTerminal::is_terminal(&std::io::stdout()) && std::env::var_os("NO_COLOR").is_none() && std::env::var("TERM").as_deref() != Ok("dumb"));
@@ -22,7 +23,7 @@ impl Default for TsrTestRegistry {
     fn default() -> Self { Self { suites: vec![TsrTestSuite::new(std::string::String::new(), false)], current: vec![0] } }
 }
 #[derive(Default)]
-struct TsrTestCounts { passed: i64, failed: i64, hook_failures: i64 }
+struct TsrTestCounts { passed: i64, failed: i64, hook_failures: i64, files_passed: i64, files_failed: i64, failures: Vec<(std::string::String,std::string::String)> }
 thread_local! {
     static TSR_TESTS: std::cell::RefCell<TsrTestRegistry> = std::cell::RefCell::new(TsrTestRegistry::default());
     static TSR_TEST_RUNNING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -99,6 +100,15 @@ fn tsrust_testing_has_tests(registry: &TsrTestRegistry, id: usize) -> bool {
 }
 fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mut Vec<std::string::String>, ancestors: &mut Vec<usize>, blocked: Option<&str>, counts: &mut TsrTestCounts) {
     if !tsrust_testing_has_tests(registry, id) { return; }
+    let started = std::time::Instant::now();
+    let previous_failures = counts.failed + counts.hook_failures;
+    let file = id != 0 && !registry.suites[id].displayed;
+    if file && tsrust_testing_pretty() {
+        let name = &registry.suites[id].name;
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let relative = std::path::Path::new(name).strip_prefix(&cwd).unwrap_or(std::path::Path::new(name));
+        println!("\n {}", tsrust_testing_style(&relative.display().to_string(), "1"));
+    }
     let displayed = registry.suites[id].displayed;
     if displayed { path.push(registry.suites[id].name.clone()); }
     ancestors.push(id);
@@ -112,6 +122,7 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
         match entry {
             TsrTestEntry::Suite(child) => tsrust_testing_run_suite(registry, child, path, ancestors, blocked, counts),
             TsrTestEntry::Test { name, mut callback } => {
+                let test_started = std::time::Instant::now();
                 path.push(name); let name = path.join(" > "); path.pop();
                 let mut errors = Vec::new();
                 if let Some(error) = blocked { errors.push(error.to_owned()); }
@@ -125,14 +136,28 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
                         errors.extend(tsrust_testing_hooks(&mut registry.suites[scope], 3, true, false).into_iter().map(|error| format!("afterEach: {error}")));
                     }
                 }
-                if errors.is_empty() { counts.passed += 1; println!("{} {name}", tsrust_testing_style("PASS", "1;32")); }
-                else { counts.failed += 1; println!("{} {name}: {}", tsrust_testing_style("FAIL", "1;31"), errors.join("; ")); }
+                if errors.is_empty() {
+                    counts.passed += 1;
+                    if tsrust_testing_pretty() { println!("   {} {name} {}", tsrust_testing_style("✓", "32"), tsrust_testing_style(&format!("({:.2} ms)",test_started.elapsed().as_secs_f64()*1000.0),"2")); }
+                    else { println!("{} {name}", tsrust_testing_style("PASS", "1;32")); }
+                } else {
+                    counts.failed += 1;
+                    if tsrust_testing_pretty() {
+                        println!("   {} {name}",tsrust_testing_style("×","31"));
+                        let file_name = ancestors.iter().find_map(|&scope| (scope != 0 && !registry.suites[scope].displayed).then(|| registry.suites[scope].name.clone())).unwrap_or_default();
+                        counts.failures.push((format!("{file_name} > {name}"),errors.join("\n")));
+                    } else { println!("{} {name}: {}", tsrust_testing_style("FAIL", "1;31"), errors.join("; ")); }
+                }
             }
         }
     }
     // Teardown belongs to scopes whose setup was attempted, including failed setup.
     if setup_error.is_some() || blocked.is_none() {
         for error in tsrust_testing_hooks(&mut registry.suites[id], 1, true, false) { counts.hook_failures += 1; println!("{} {label} afterAll: {error}", tsrust_testing_style("HOOK FAIL", "1;31")); }
+    }
+    if file {
+        if counts.failed + counts.hook_failures > previous_failures { counts.files_failed += 1; } else { counts.files_passed += 1; }
+        if tsrust_testing_pretty() { println!("   {}",tsrust_testing_style(&format!("{:.2} ms",started.elapsed().as_secs_f64()*1000.0),"2")); }
     }
     ancestors.pop();
     if displayed { path.pop(); }
@@ -158,8 +183,23 @@ fn tsrust_testing_run_tests_result() -> Result<i64, std::string::String> {
         let mut registry = registry.borrow_mut();
         std::mem::take(&mut *registry)
     });
+    let started = std::time::Instant::now();
     let mut counts = TsrTestCounts::default();
     tsrust_testing_run_suite(&mut registry, 0, &mut Vec::new(), &mut Vec::new(), None, &mut counts);
+    if tsrust_testing_pretty() {
+        if !counts.failures.is_empty() {
+            println!("\n {}",tsrust_testing_style("Failed Tests","1;31"));
+            for (index,(name,error)) in counts.failures.iter().enumerate() {
+                println!("\n {} {}",tsrust_testing_style(&format!("{}. {name}",index+1),"1;31"),"");
+                for line in error.lines() { println!("   {}",tsrust_testing_style(line,if line.starts_with("Expected:") {"32"} else if line.starts_with("Received:") {"31"} else {"0"})); }
+            }
+        }
+        println!("\n Test Files  {} passed | {} failed ({})",counts.files_passed,counts.files_failed,counts.files_passed+counts.files_failed);
+        println!("      Tests  {} passed | {} failed ({})",tsrust_testing_style(&counts.passed.to_string(),"32"),tsrust_testing_style(&counts.failed.to_string(),if counts.failed>0 {"31"}else{"2"}),counts.passed+counts.failed);
+        if counts.hook_failures>0 { println!("      Hooks  {} failed",counts.hook_failures); }
+        println!("   Duration  {:.2} ms (tests)\n",started.elapsed().as_secs_f64()*1000.0);
+        return Ok(counts.failed + counts.hook_failures);
+    }
     print!("{} passed, {} failed, 0 skipped", tsrust_testing_style(&counts.passed.to_string(), "1;32"), tsrust_testing_style(&counts.failed.to_string(), if counts.failed == 0 { "1" } else { "1;31" }));
     if counts.hook_failures != 0 { print!(", {} hook failures", counts.hook_failures); }
     println!();

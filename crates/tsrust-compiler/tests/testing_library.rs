@@ -202,7 +202,7 @@ fn testing_imports_reject_compatibility_names_and_private_runtime() {
 fn test_command_runs_top_level_registrations_and_returns_failure_status() {
     let directory = support::TempDirectory::new();
     let path = directory.source("import {test,expect} from 'std:testing';test('pass',():void=>{expect(1).toBe(1);});test('fail',():void=>{expect(1).toBe(2);});test('later',():void=>{console.log('later body');});");
-    let output = support::run(support::cli().arg("test").arg(&path), 60);
+    let output = support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&path), 60);
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("PASS pass"), "{stdout}");
@@ -218,11 +218,11 @@ fn conventional_test_entry_checks_and_runs_with_original_error_locations() {
     let path = directory.0.join("sum.test.tsr");
     std::fs::write(&path, "import {test,expect} from 'std:testing';\ntest('sum',():void=>{expect(2+3).toBe(5);});\n").unwrap();
     support::success(&support::run(support::cli().arg("check").arg(&path), 60));
-    let output = support::run(support::cli().arg("test").arg(&path), 60);
+    let output = support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&path), 60);
     support::success(&output);
     assert_eq!(output.stdout, b"PASS sum\n1 passed, 0 failed, 0 skipped\n");
     std::fs::write(&path, "import {test,expect} from 'std:testing';\ntest('sum',():void=>{expect(2).toBe('wrong');});\n").unwrap();
-    let output = support::run(support::cli().arg("test").arg(&path), 60);
+    let output = support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&path), 60);
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("sum.test.tsr:2:"), "{stderr}");
@@ -237,12 +237,12 @@ fn test_entry_handles_empty_files_helper_functions_and_registration_state() {
         ("import {test,expect} from 'std:testing';function sum(a:int,b:int):int{return a+b;}const seed=3;test('helper',():void=>{expect(sum(seed,4)).toBe(7);});", "PASS helper\n1 passed, 0 failed, 0 skipped\n"),
     ] {
         let path=directory.source(source);
-        let output=support::run(support::cli().arg("test").arg(path),60);
+        let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
         support::success(&output);
         assert_eq!(output.stdout,expected.as_bytes());
     }
     let path=directory.source("function main(){}");
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("Test entry files use top-level registration"));
 }
@@ -254,7 +254,7 @@ fn test_command_discovers_sorted_files_and_runs_one_registry() {
     std::fs::write(directory.0.join("b.spec.tsr"),"import {test} from 'std:testing';console.log('register b');test('b',():void=>{});").unwrap();
     std::fs::write(directory.0.join("nested/a.test.tsr"),"import {test,expect} from 'std:testing';console.log('register a');test('a',():void=>{expect(2).toBe(2);});").unwrap();
     std::fs::write(directory.0.join("helper.tsr"),"not a test file").unwrap();
-    let output=support::run(support::cli().arg("test").current_dir(&directory.0),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").current_dir(&directory.0),60);
     support::success(&output);
     assert_eq!(output.stdout,b"register b\nregister a\nPASS b\nPASS a\n2 passed, 0 failed, 0 skipped\n");
 }
@@ -265,11 +265,11 @@ fn test_command_deduplicates_explicit_files_and_compiles_before_registration() {
     let a=directory.0.join("a.tsr");let b=directory.0.join("b.tsr");
     std::fs::write(&a,"import {test} from 'std:testing';console.log('register a');test('a',():void=>{});").unwrap();
     std::fs::write(&b,"import {test} from 'std:testing';console.log('register b');test('b',():void=>{});").unwrap();
-    let output=support::run(support::cli().arg("test").arg(&b).arg(&a).arg(&b),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&b).arg(&a).arg(&b),60);
     support::success(&output);
     assert_eq!(output.stdout,b"register b\nregister a\nPASS b\nPASS a\n2 passed, 0 failed, 0 skipped\n");
     std::fs::write(&a,"import {test} from 'std:testing';test('broken',():void=>{unknown();});").unwrap();
-    let output=support::run(support::cli().arg("test").arg(&b).arg(&a),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&b).arg(&a),60);
     assert!(!output.status.success());
     assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("a.tsr:1:"));
@@ -284,7 +284,7 @@ fn test_discovery_ignores_build_archives_hidden_directories_and_symlink_cycles()
         std::fs::write(path.join("invalid.test.tsr"),"invalid source").unwrap();
     }
     #[cfg(unix)] std::os::unix::fs::symlink(&directory.0,directory.0.join("cycle")).unwrap();
-    let output=support::run(support::cli().arg("test").arg(&directory.0),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&directory.0),60);
     support::success(&output);
     assert_eq!(output.stdout,b"PASS valid\n1 passed, 0 failed, 0 skipped\n");
 }
@@ -292,14 +292,14 @@ fn test_discovery_ignores_build_archives_hidden_directories_and_symlink_cycles()
 #[test]
 fn test_discovery_reports_empty_selection_and_invalid_options_without_execution() {
     let directory=support::TempDirectory::new();
-    let output=support::run(support::cli().arg("test").arg(&directory.0),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&directory.0),60);
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("No test files found"));
     let path=directory.source("console.log('must not run');");
-    let output=support::run(support::cli().arg("test").arg(&path).arg("--json"),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&path).arg("--json"),60);
     assert!(!output.status.success());assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("--json applies only to check"));
-    let output=support::run(support::cli().arg("test").arg(directory.0.join("missing.tsr")),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(directory.0.join("missing.tsr")),60);
     assert!(!output.status.success());assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("missing.tsr"));
 }
@@ -308,7 +308,7 @@ fn test_discovery_reports_empty_selection_and_invalid_options_without_execution(
 fn describe_registers_nested_suites_before_execution_in_source_order() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {describe,test,expect} from 'std:testing';console.log('top');describe('outer',():void=>{console.log('register outer');test('first',():void=>{expect(1).toBe(1);});describe('inner',():void=>{console.log('register inner');test('second',():void=>{});});test('third',():void=>{});});test('last',():void=>{});");
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     support::success(&output);
     assert_eq!(output.stdout,b"top\nregister outer\nregister inner\nPASS outer > first\nPASS outer > inner > second\nPASS outer > third\nPASS last\n4 passed, 0 failed, 0 skipped\n");
 }
@@ -317,7 +317,7 @@ fn describe_registers_nested_suites_before_execution_in_source_order() {
 fn suite_alias_reuses_borrowed_registration_callbacks_and_preserves_names() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {suite,test} from 'std:testing';const registration=():void=>{test('same',():void=>{});};const name='group'.repeat(1);suite(name,registration);suite(name,registration);console.log(name);");
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     support::success(&output);
     assert_eq!(output.stdout,b"group\nPASS group > same\nPASS group > same\n2 passed, 0 failed, 0 skipped\n");
 }
@@ -326,7 +326,7 @@ fn suite_alias_reuses_borrowed_registration_callbacks_and_preserves_names() {
 fn suites_continue_after_failure_and_reject_registration_during_execution() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {describe,test,expect} from 'std:testing';describe('outer',():void=>{test('fail',():void=>{expect(1).toBe(2);});describe('inner',():void=>{test('later',():void=>{});});});test('invalid',():void=>{describe('nested',():void=>{});});test('last',():void=>{});");
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert_eq!(output.status.code(),Some(1));
     let stdout=String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("FAIL outer > fail: AssertionError:"),"{stdout}");
@@ -340,7 +340,7 @@ fn suites_continue_after_failure_and_reject_registration_during_execution() {
 fn suite_registration_can_mutate_a_reused_callback_environment() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {suite,test} from 'std:testing';let count=0;const registration=():void=>{count+=1;console.log(count);test('same',():void=>{});};suite('first',registration);suite('second',registration);");
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     support::success(&output);
     assert_eq!(output.stdout,b"1\n2\nPASS first > same\nPASS second > same\n2 passed, 0 failed, 0 skipped\n");
 }
@@ -350,12 +350,12 @@ fn test_registration_rejects_top_level_return_without_rejecting_callback_returns
     let directory=support::TempDirectory::new();
     for source in ["return;", "if(true){return;}", "while(false){return;}"] {
         let path=directory.source(source);
-        let output=support::run(support::cli().arg("test").arg(path),60);
+        let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
         assert!(!output.status.success());assert!(output.stdout.is_empty());
         assert!(String::from_utf8_lossy(&output.stderr).contains("return is only valid inside a function or callback"));
     }
     let path=directory.source("import {test} from 'std:testing';test('early return',():void=>{return;});");
-    let output=support::run(support::cli().arg("test").arg(path),60);support::success(&output);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);support::success(&output);
     assert_eq!(output.stdout,b"PASS early return\n1 passed, 0 failed, 0 skipped\n");
 }
 
@@ -383,7 +383,7 @@ describe('suite',():void=>{
  });
 });
 "#);
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     support::success(&output);
     assert_eq!(output.stdout,b"root beforeAll\nsuite beforeAll\nroot beforeEach\nsuite beforeEach first\nsuite beforeEach second\ninner beforeEach\nbody\ninner afterEach\nsuite afterEach second\nsuite afterEach first\nroot afterEach\nPASS suite > inner > body\nsuite afterAll second\nsuite afterAll first\nroot afterAll\n1 passed, 0 failed, 0 skipped\n");
 }
@@ -406,7 +406,7 @@ describe('body fails',():void=>{
 });
 test('later',():void=>{});
 "#);
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert_eq!(output.status.code(),Some(1));let stdout=String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("setup\nteardown second\nteardown first\nFAIL setup fails > blocked: beforeEach: AssertionError:"),"{stdout}");
     assert!(stdout.contains("; afterEach: AssertionError:"),"{stdout}");
@@ -421,7 +421,7 @@ fn top_level_hooks_stay_within_their_selected_file() {
     let directory=support::TempDirectory::new();let a=directory.0.join("a.test.tsr");let b=directory.0.join("b.test.tsr");
     std::fs::write(&a,"import {test,beforeEach,afterAll} from 'std:testing';beforeEach(():void=>{console.log('a hook');});afterAll(():void=>{console.log('a done');});test('a',():void=>{});").unwrap();
     std::fs::write(&b,"import {test,beforeEach,afterAll} from 'std:testing';beforeEach(():void=>{console.log('b hook');});afterAll(():void=>{console.log('b done');});test('b',():void=>{});").unwrap();
-    let output=support::run(support::cli().arg("test").arg(a).arg(b),60);support::success(&output);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(a).arg(b),60);support::success(&output);
     assert_eq!(output.stdout,b"a hook\nPASS a\na done\nb hook\nPASS b\nb done\n2 passed, 0 failed, 0 skipped\n");
 }
 
@@ -429,7 +429,7 @@ fn top_level_hooks_stay_within_their_selected_file() {
 fn reused_each_hook_keeps_owned_mutable_capture_state() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {test,beforeEach} from 'std:testing';let count=0;beforeEach(():void=>{count+=1;console.log(count);});test('first',():void=>{});test('second',():void=>{});");
-    let output=support::run(support::cli().arg("test").arg(path),60);support::success(&output);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);support::success(&output);
     assert_eq!(output.stdout,b"1\nPASS first\n2\nPASS second\n2 passed, 0 failed, 0 skipped\n");
 }
 
@@ -437,7 +437,7 @@ fn reused_each_hook_keeps_owned_mutable_capture_state() {
 fn before_all_failure_blocks_descendants_but_runs_scope_teardown_and_later_suites() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {describe,test,expect,beforeAll,afterAll} from 'std:testing';describe('broken',():void=>{beforeAll(():void=>{console.log('setup');expect(1).toBe(2);});afterAll(():void=>{console.log('teardown');});test('first',():void=>{console.log('unreachable');});describe('child',():void=>{beforeAll(():void=>{console.log('child setup unreachable');});test('second',():void=>{});});});describe('later',():void=>{test('pass',():void=>{});});");
-    let output=support::run(support::cli().arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
     let stdout=String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("HOOK FAIL broken beforeAll: AssertionError:"),"{stdout}");
     assert!(stdout.contains("FAIL broken > first: beforeAll: AssertionError:"),"{stdout}");
@@ -451,7 +451,7 @@ fn before_all_failure_blocks_descendants_but_runs_scope_teardown_and_later_suite
 fn after_all_failures_run_all_remaining_teardown_and_make_command_fail() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {describe,test,expect,afterAll} from 'std:testing';describe('suite',():void=>{afterAll(():void=>{console.log('last teardown');});afterAll(():void=>{expect(1).toBe(2);});afterAll(():void=>{expect(3).toBe(4);});test('pass',():void=>{});});test('later',():void=>{});");
-    let output=support::run(support::cli().arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
     let stdout=String::from_utf8_lossy(&output.stdout);
     assert_eq!(stdout.matches("HOOK FAIL suite afterAll: AssertionError:").count(),2,"{stdout}");
     assert!(stdout.contains("last teardown\n"),"{stdout}");
@@ -463,7 +463,7 @@ fn after_all_failures_run_all_remaining_teardown_and_make_command_fail() {
 fn node_style_before_after_aliases_register_once_for_the_current_scope() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {test,before,after} from 'std:testing';before(():void=>{console.log('before');});after(():void=>{console.log('after');});test('first',():void=>{});test('second',():void=>{});");
-    let output=support::run(support::cli().arg("test").arg(path),60);support::success(&output);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);support::success(&output);
     assert_eq!(output.stdout,b"before\nPASS first\nPASS second\nafter\n2 passed, 0 failed, 0 skipped\n");
 }
 
@@ -471,7 +471,7 @@ fn node_style_before_after_aliases_register_once_for_the_current_scope() {
 fn hook_registration_errors_fail_current_work_and_empty_scopes_do_not_run_hooks() {
     let directory=support::TempDirectory::new();
     let path=directory.source("import {describe,test,beforeAll,beforeEach,afterEach} from 'std:testing';describe('empty',():void=>{beforeAll(():void=>{console.log('empty unreachable');});});beforeEach(():void=>{beforeAll(():void=>{});});afterEach(():void=>{console.log('cleanup');});test('blocked',():void=>{console.log('body unreachable');});");
-    let output=support::run(support::cli().arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert_eq!(output.status.code(),Some(1));
     let stdout=String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("cleanup\nFAIL blocked: beforeEach: Hooks cannot register while tests or hooks are running"),"{stdout}");
     assert!(!stdout.contains("unreachable"));
@@ -489,7 +489,7 @@ fn hook_calls_reject_wrong_arity_callback_results_and_escaped_borrowed_captures(
         "import {beforeEach} from 'std:testing';function install(value:ReadOnly<string>):void{beforeEach(():void=>{console.log(value);});}install('text');",
     ] {
         let path=directory.source(source);
-        let output=support::run(support::cli().arg("test").arg(path),60);
+        let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
         assert!(!output.status.success(),"{source}");assert!(output.stdout.is_empty());
         let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error["),"{source}: {stderr}");assert!(!stderr.contains("Rust rejected"),"{source}: {stderr}");
     }
@@ -529,7 +529,7 @@ fn truthiness_matcher_failure_stops_body_and_later_test_continues() {
     let path=directory.source(r#"import {test,expect} from "std:testing";
 test("falsy",():void=>{expect(0).toBeTruthy();console.log("unreachable");});
 test("truthy",():void=>{expect("x").toBeFalsy();});test("later",():void=>{expect(true).toBeTruthy();});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert!(!output.status.success());
     let stdout=String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("FAIL falsy: AssertionError: Expected a truthy value"));
@@ -554,7 +554,7 @@ fn nullish_failures_are_recoverable_and_zero_argument_signatures_are_enforced() 
     let path=directory.source(r#"import {test,expect} from "std:testing";
 test("null",():void=>{expect(undefined).toBeNull();});test("undefined",():void=>{expect(null).toBeUndefined();});
 test("defined",():void=>{expect(undefined).toBeDefined();});test("later",():void=>{expect(null).toBeDefined();});"#);
-    let output=support::run(support::cli().arg("test").arg(&path),60);assert!(!output.status.success());
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&path),60);assert!(!output.status.success());
     let text=String::from_utf8(output.stdout).unwrap();assert!(text.contains("3 failed"));assert!(text.contains("PASS later"));
     for name in ["toBeNull","toBeUndefined","toBeDefined"] {
         std::fs::write(&path,format!("import {{expect}} from 'std:testing';function main(){{expect(null).{name}(1);}}")).unwrap();
@@ -594,7 +594,7 @@ test('integer',():void=>{expect(0).toBeNaN();});test('text',():void=>{expect('Na
 test('null',():void=>{expect(null).toBeNaN();});
 test('undefined',():void=>{expect(undefined).toBeNaN();});test('infinity',():void=>{expect(Number.POSITIVE_INFINITY).toBeNaN();});
 test('array',():void=>{expect([1]).toBeNaN();});test('record',():void=>{const row:Row={value:1};expect(row).toBeNaN();});test('later',():void=>{expect(Number.NaN).toBeNaN();});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);assert!(!output.status.success());
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert!(!output.status.success());
     let text=String::from_utf8(output.stdout).unwrap();assert!(text.contains("PASS nan"),"{text}");assert!(text.contains("PASS later"),"{text}");assert!(text.contains("2 passed, 7 failed"),"{text}");
 }
 
@@ -622,7 +622,7 @@ test("undefined",():void=>{expect(undefined).not.toBeUndefined();});
 test("defined",():void=>{expect(null).not.toBeDefined();});
 test("nan",():void=>{expect(Number.NaN).not.toBeNaN();});
 test("later",():void=>{expect(0.0).not.toBe(-0.0);});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert!(!output.status.success());
     let stdout=String::from_utf8(output.stdout).unwrap();
     for name in ["identity","truthy","falsy","null","undefined","defined","nan"] {
@@ -669,7 +669,7 @@ fn typeof_matcher_failures_recover_and_invalid_arguments_reject() {
 test('positive',():void=>{expect(null).toBeTypeOf('undefined');console.log('unreachable');});
 test('negative',():void=>{expect(3).not.toBeTypeOf('number');});
 test('later',():void=>{expect(undefined).toBeTypeOf('undefined');});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
     assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("FAIL positive: AssertionError:"),"{stdout}");
     assert!(stdout.contains("FAIL negative: AssertionError:"),"{stdout}");
@@ -695,7 +695,7 @@ fn numeric_comparison_failures_recover_without_coercing_actuals() {
     let directory=support::TempDirectory::new();
     for method in ["toBeGreaterThan","toBeGreaterThanOrEqual","toBeLessThan","toBeLessThanOrEqual"] {
         let source=format!("import {{test,expect}} from 'std:testing';test('nan',():void=>{{expect(Number.NaN).{method}(0.0);console.log('unreachable');}});test('string',():void=>{{expect('42').not.{method}(0.0);}});test('boolean',():void=>{{expect(true).{method}(0.0);}});test('null',():void=>{{expect(null).not.{method}(0.0);}});test('later',():void=>{{expect(Number.NaN).not.{method}(0.0);}});");
-        let path=directory.source(&source);let output=support::run(support::cli().arg("test").arg(path),60);
+        let path=directory.source(&source);let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);
         assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
         for name in ["nan","string","boolean","null"] {assert!(stdout.contains(&format!("FAIL {name}: AssertionError:")),"{method}: {stdout}");}
         assert!(stdout.contains("PASS later"),"{stdout}");assert!(!stdout.contains("unreachable"));
@@ -722,7 +722,7 @@ test('negated',():void=>{expect(0.1+0.2).not.toBeCloseTo(0.3);});
 test('nonnumeric',():void=>{expect('0.3').not.toBeCloseTo(0.3);});
 test('nan',():void=>{expect(Number.NaN).toBeCloseTo(0.0);});
 test('later',():void=>{expect(Number.NaN).not.toBeCloseTo(0.0);});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
     for name in ["boundary","negated","nonnumeric","nan"] {assert!(stdout.contains(&format!("FAIL {name}: AssertionError:")),"{stdout}");}
     assert!(stdout.contains("PASS defaults"),"{stdout}");assert!(stdout.contains("PASS later"),"{stdout}");assert!(!stdout.contains("unreachable"));
     for call in ["expect(1).toBeCloseTo()","expect(1).toBeCloseTo('wrong')","expect(1).not.toBeCloseTo(1.0,'wrong')","expect(1).toBeCloseTo(1.0,2.0,3.0)"] {
@@ -747,7 +747,7 @@ test('scalar',():void=>{expect(3).not.toHaveLength(3.0);});
 test('null',():void=>{expect(null).toHaveLength(0.0);});
 test('record',():void=>{const row:Row={value:1};expect(row).not.toHaveLength(0.0);});
 test('later',():void=>{expect('').toHaveLength(0.0);});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
     for name in ["wrong","negative","scalar","null","record"] {assert!(stdout.contains(&format!("FAIL {name}: AssertionError:")),"{stdout}");}
     assert!(stdout.contains("PASS later"),"{stdout}");assert!(!stdout.contains("unreachable"));
     for call in ["expect('x').toHaveLength()","expect('x').toHaveLength('1')","expect('x').not.toHaveLength(1.0,2.0)"] {
@@ -760,6 +760,6 @@ fn length_matcher_handles_active_union_typed_record_properties() {
     let directory=support::TempDirectory::new();let path=directory.source(r#"import {expect,test} from 'std:testing';type Row={length:number|string|undefined;};
 function inspect(value:number|string|undefined):void{const row:Row={length:value};const assertion=expect(row);assertion.toHaveLength(3.0);assertion.not.toHaveLength(4.0);}
 test('numeric',():void=>{inspect(3.0);});test('string',():void=>{inspect('3');});test('undefined',():void=>{inspect(undefined);});test('later',():void=>{const row:Row={length:Number.NaN};expect(row).not.toHaveLength(3.0);});"#);
-    let output=support::run(support::cli().arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(path),60);assert!(!output.status.success());let stdout=String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("PASS numeric"),"{stdout}");assert!(stdout.contains("FAIL string: AssertionError:"),"{stdout}");assert!(stdout.contains("FAIL undefined: AssertionError:"),"{stdout}");assert!(stdout.contains("PASS later"),"{stdout}");
 }

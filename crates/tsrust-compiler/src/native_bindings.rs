@@ -108,6 +108,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::testing::bindings::LENGTH_VALUE,
     crate::stdlib::testing::bindings::HAS_LENGTH,
     crate::stdlib::testing::bindings::NUMERIC_VALUE,
+    crate::stdlib::testing::bindings::ASSERTION_DETAILS,
     crate::stdlib::testing::bindings::SHARE_CALLBACK,
     crate::stdlib::path::bindings::BASENAME,
     crate::stdlib::path::bindings::DIRNAME,

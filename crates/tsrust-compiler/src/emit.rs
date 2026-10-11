@@ -8457,6 +8457,25 @@ impl Emitter<'_> {
                 CallTarget::NativeBinding(id) => {
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                         let binding = &crate::native_bindings::BINDINGS[id];
+                        if binding.name == "assertionDetails" {
+                            let actual=self.expr(fun,&args[0],Mode::Read);
+                            let expected=self.expr(fun,&args[1],Mode::Read);
+                            let message=self.expr(fun,&args[2],Mode::Read);
+                            let render=|ty:Type,name:&str| match ty {
+                                Type::String=>format!("std::format!(\"{{:?}}\",({name}).as_ref())"),
+                                Type::Int|Type::Boolean=>format!("({name}).to_string()"),
+                                Type::Number=>format!("std::format!(\"{{:?}}\",{name})"),
+                                Type::Null=>"std::string::String::from(\"null\")".into(),
+                                Type::Undefined=>"std::string::String::from(\"undefined\")".into(),
+                                Type::Record(id) if self.record_inspectable(id)=>format!("tsr_console_format(&[{}])",self.console_value(name,ty,"0",false)),
+                                Type::Array(element) if matches!(element.ty(),Type::Int|Type::Number|Type::Boolean|Type::String|Type::Null|Type::Undefined)=>format!("tsr_console_format(&[{}])",self.console_value(name,ty,"0",false)),
+                                _=>"std::string::String::from(\"<value not expanded>\")".into(),
+                            };
+                            let actual_text=render(args[0].ty.unwrap(),"assert_actual");
+                            let expected_text=render(args[1].ty.unwrap(),"assert_expected");
+                            let rendered=format!("{{ let assert_actual={actual}; let assert_expected={expected}; let assert_message={message}; String::Owned(if std::env::var(\"TSRUST_TEST_REPORTER\").as_deref()==Ok(\"pretty\") {{std::format!(\"{{}}\\nExpected: {{}}\\nReceived: {{}}\",assert_message.as_ref(),{expected_text},{actual_text})}} else {{assert_message.as_ref().to_owned()}}) }}");
+                            return if mode == Mode::Read {format!("&({rendered})")} else {rendered};
+                        }
                         if binding.name == "containsValue" {
                             if args[0].ty == Some(Type::String) {
                                 return format!("{{ let actual = {}; let expected = {}; actual.contains(expected.as_ref()) }}", self.expr(fun, &args[0], Mode::Read), self.expr(fun, &args[1], Mode::Read));
