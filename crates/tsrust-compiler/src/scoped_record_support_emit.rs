@@ -63,7 +63,7 @@ impl Emitter<'_> {
             let owner_parameters=record.fields.iter().enumerate().filter_map(|(index,field)|self.scoped_record_native_parameter(field.ty.unwrap()).then(||format!("P{index}"))).collect::<Vec<_>>();
             let mut read_bounds=Vec::new();let mut mutate_bounds=Vec::new();
             for (index,field) in record.fields.iter().enumerate(){
-                if let Some(Type::Record(child))=field.ty && self.scoped_record_native_parameter(Type::Record(child)){
+                if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && self.scoped_record_native_parameter(Type::Record(child)){
                     read_bounds.push(format!("P{index}:TsrReadRecord{child}"));
                     mutate_bounds.push(format!("P{index}:TsrMutateRecord{child}"));
                 }
@@ -92,7 +92,7 @@ impl Emitter<'_> {
             let transport_body=|mutable:bool| {
                 let mut prefix=String::new();
                 for (index,field) in record.fields.iter().enumerate() {
-                    if let Some(Type::Record(child))=field.ty && self.scoped_record_native_parameter(Type::Record(child)) {
+                    if let Some(Type::Record(child))=field.ty && !self.program.records[child].fields.is_empty() && self.scoped_record_native_parameter(Type::Record(child)) {
                         let method=if mutable{"tsr_fields_mut"}else{"tsr_fields"};
                         prefix.push_str(&format!("let child{index}=self.field{index}.{method}();"));
                     }

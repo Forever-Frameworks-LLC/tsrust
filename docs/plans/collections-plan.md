@@ -274,9 +274,9 @@ invalidating traversal and escaping a map borrow. Thirty-seven collection tests
 and nine focused library checks pass. Evidence:
 `tsrust-s08-ordered-map-foundation-acceptance.json` in SQLite.
 
-OrderedMap remains internal. Public source integration must still represent
-borrowed entries whose keys and values occupy separate tree fields, including
-passing complete entries to functions. It must not introduce implicit key copies,
+OrderedMap remains internal. Borrowed entries represent keys and values occupying
+separate tree fields, including passing complete entries to functions. They must
+not introduce implicit key copies,
 shared ownership or erased lifetimes. Editor/catalog and matched workloads follow
 that integration; no OrderedMap timing or public acceptance is claimed here.
 
@@ -300,7 +300,16 @@ views acquire their field borrows inside each loop iteration, not the function
 prologue. Ordinary Map and array entries in a borrowing family use the same field
 transport. No implicit key/value copies or shared owners are introduced.
 
-Evidence: `tsrust-s08-ordered-map-entry-acceptance.json` in SQLite. OrderedMap is
-still unexported. Public constructor/type-checking integration, native view and
-callback payload coverage, editor/catalog work and matched benchmark support remain
-before public acceptance and S08 family measurements.
+Evidence: `tsrust-s08-ordered-map-entry-acceptance.json` in SQLite.
+
+ByteView entry payloads now retain named input lifetimes in readonly record bounds,
+including closure parameters and helpers returning a subview. Opaque native values
+remain leaves of a borrowed record; they do not require nonexistent record-field
+traits. A second native witness stores distinct callbacks capturing a view, visits
+them in key order, reads by key and verifies the surviving callback after deletion.
+Callback storage transitions consume and rebuild tree entries without cloning keys
+or payloads. Evidence: `tsrust-s08-ordered-map-payload-acceptance.json` in SQLite.
+
+OrderedMap is still unexported. Public constructor/type-checking integration,
+recursive payload and broader parameter/branch coverage, editor/catalog work and
+matched benchmark support remain before public acceptance and S08 measurements.

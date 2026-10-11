@@ -46,10 +46,16 @@ impl Emitter<'_> {
     pub(super) fn record_parameter_bound(&self, fun:&CheckedFunction,id:usize,function:usize)->Option<String> {
         self.record_parameter_bound_with(fun, id, |path| self.record_replacement_bounds(function,id,path))
     }
-    pub(super) fn record_parameter_bound_with(&self, fun:&CheckedFunction,id:usize,mut replacements:impl FnMut(&[usize])->Vec<String>)->Option<String> {
+    pub(super) fn record_parameter_bound_with(&self, fun:&CheckedFunction,id:usize,replacements:impl FnMut(&[usize])->Vec<String>)->Option<String> {
+        let lifetimes=native_view_lifetime_emit::Lifetimes::with_captures(fun,&[id],&Default::default());
+        self.record_parameter_bound_with_lifetimes(fun,id,&lifetimes,replacements)
+    }
+    pub(super) fn record_parameter_bound_with_lifetimes(&self, fun:&CheckedFunction,id:usize,lifetimes:&native_view_lifetime_emit::Lifetimes,mut replacements:impl FnMut(&[usize])->Vec<String>)->Option<String> {
         let layout=self.record_parameter_layout(fun,id)?;
         let binding=&fun.bindings[id];
         let record=layout.record;
+        // Use the same per-input lifetime allocation as the function signature.
+        // Opaque native views are leaves, not independently borrowing records.
         let fields=layout.leaves.iter().map(|leaf| {
             let name=leaf.path.iter().map(|index|format!("Field{index}")).collect::<String>();
             if matches!(leaf.ty,Type::Callback(_)) {
@@ -58,7 +64,17 @@ impl Emitter<'_> {
                 let replacements=replacements(&leaf.path);
                 let replacements=if replacements.is_empty(){String::new()}else{format!(" + {}",replacements.join(" + "))};
                 format!("{name}:{bound} + Sized{replacements}")
-            }else{format!("{name}={}",self.native_type(leaf.ty))}
+            }else{
+                let mut parent=record;
+                let mut path=Vec::new();
+                for &index in &leaf.path {
+                    let field=&self.program.records[parent].fields[index];
+                    path.push(crate::analysis::native_view_loans::Segment::Field(field.name.text.clone()));
+                    if let Some(Type::Record(child))=field.ty {parent=child;}
+                }
+                let native=self.native_view_signature_slot(leaf.ty,Some(id),lifetimes,&mut path,&mut Vec::new());
+                format!("{name}={native}")
+            }
         }).collect::<Vec<_>>().join(",");
         let access=if binding.mode==Mode::Mutate{"Mutate"}else{"Read"};
         Some(format!("R{id}:Tsr{access}Record{record}<{fields}>"))

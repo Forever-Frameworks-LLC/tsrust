@@ -37,8 +37,14 @@ impl TsrOrderedSet<TsrOrdered<String>> {
 }
 
 impl<K:TsrOrderedKey,V> TsrOrderedMap<TsrOrdered<K>,V> {
+    fn from_values(values:impl IntoIterator<Item=(K,V)>)->Self {
+        let mut result=Self::new();
+        for (key,value) in values {result.insert(TsrOrdered::new(key),value);}
+        result
+    }
     fn source_iter(&self)->impl Iterator<Item=(&K,&V)>{self.values.iter().map(|(key,value)|(&key.0,value))}
     fn into_source_entries(self)->impl Iterator<Item=(K,V)>{self.values.into_iter().map(|(key,value)|(key.0,value))}
+    fn tsr_owned_items(self)->impl Iterator<Item=(K,V)>{self.into_source_entries()}
 }
 impl<K:TsrOrderedKey+Copy,V> TsrOrderedMap<TsrOrdered<K>,V> {
     fn get_copy_key(&self,key:K)->Option<&V>{self.values.get(&TsrOrdered::new(key))}

@@ -122,6 +122,50 @@ impl Emitter<'_> {
 
 #[cfg(test)]
 mod ordered_tests {
+    fn ordered_project(source:&str)->String {
+        struct Source(String);
+        impl crate::project::SourceProvider for Source {
+            fn resolve(&self,_:Option<&crate::project::SourceId>,path:&str)->Result<crate::project::SourceId,String>{Ok(crate::project::SourceId(path.into()))}
+            fn read(&self,_:&crate::project::SourceId)->Result<String,String>{Ok(self.0.clone())}
+        }
+        let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+        let graph=crate::project::load_project(&Source(source),"ordered-map.tsr").unwrap();
+        let mut checked=crate::project::check_graph(graph).unwrap();
+        for record in &mut checked.analysis.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
+        checked.emit_rust()
+    }
+    #[test]
+    fn ordered_map_callback_entries_keep_captured_view_owners() {
+        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let source=format!("{helpers}\n{}",r#"
+type Reader={read:ReadOnly<Function<int>>;};
+function main(){
+  const owner=bytes('payload');const part=window(owner);const values=new Map<int,Reader>();
+  values.set(2,{read:()=>length(part)});values.set(1,{read:()=>length(part)+1});
+  let sum=0;let keys='';for(const entry of values){sum+=entry[1].read();keys+=String(entry[0]);}
+  strictEqual(sum,15);strictEqual(keys,'12');strictEqual(values.get(1)!.read(),8);
+  strictEqual(values.delete(2),true);for(const entry of values){strictEqual(entry[1].read(),8);}
+}
+"#);
+        crate::scoped_record_places::tests::native(&ordered_project(&source));
+    }
+    #[test]
+    fn ordered_map_entries_preserve_byte_view_payloads() {
+        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let source=format!("{helpers}\n{}",r#"
+function inspect(entry:ReadOnly<[int,ByteView]>):int{return length(entry[1]);}
+function selected(entry:ReadOnly<[int,ByteView]>):ByteView{match(view(entry[1],0,length(entry[1]))){Ok(result)=>{return result;},Err(error)=>{throw error.message;}}}
+function main(){
+  const owner=bytes('payload');const values=new Map<int,ByteView>();
+  values.set(2,window(owner));values.set(1,window(owner));
+  const read=(entry:ReadOnly<[int,ByteView]>):int=>length(entry[1]);
+  let seen='';for(const entry of values){strictEqual(inspect(entry),7);strictEqual(read(entry),7);strictEqual(text(selected(entry)),'payload');seen+=String(entry[0])+text(entry[1]);}
+  strictEqual(seen,'1payload2payload');strictEqual(text(values.get(1)!),'payload');
+  values.clear();strictEqual(length(owner),7);
+}
+"#);
+        crate::scoped_record_places::tests::native(&ordered_project(&source));
+    }
     #[test]
     fn ordered_map_entries_borrow_keys_and_cross_readonly_parameters() {
         let source=r#"

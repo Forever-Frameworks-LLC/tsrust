@@ -118,6 +118,8 @@ impl Emitter<'_> {
             let ty=self.native_captures.ty(&closure.function,capture.inner);
             self.native_view_capture_slots(ty,root,&mut Vec::new(),&mut Vec::new(),&lifetimes,&mut next,&mut captures);
         }
+        let lifetimes=Lifetimes::with_captures(function,parameters,&captures);
+        let record_bounds=parameters.iter().filter_map(|&id|self.record_parameter_bound_with_lifetimes(function,id,&lifetimes,|_|Vec::new())).collect();
         let mut signature=self.native_signature_from_plan(native_function_signature_emit::NativeSignaturePlan {
             native_capture_lifetimes:captures,
             function,
@@ -126,7 +128,7 @@ impl Emitter<'_> {
             borrow_lifetimes:Default::default(),
             owner_inputs:Vec::new(),
             owner_parameters:String::new(),
-            record_bounds:Vec::new(),
+            record_bounds,
             replacement_bounds:Vec::new(),
         },&[]);
         if receiver {
@@ -216,7 +218,7 @@ impl Emitter<'_> {
     pub(super) fn native_view_signature_type(&self,ty:Type,input:Option<usize>,plan:&Lifetimes)->String {
         self.native_view_signature_slot(ty,input,plan,&mut Vec::new(),&mut Vec::new())
     }
-    fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>)->String {
+    pub(super) fn native_view_signature_slot(&self,ty:Type,input:Option<usize>,plan:&Lifetimes,path:&mut Vec<Segment>,guards:&mut Vec<VariantGuard>)->String {
         if let Type::Closure(origin)=ty {
             return self.native_view_environment_type(origin,input,plan,path,guards);
         }
