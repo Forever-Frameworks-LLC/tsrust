@@ -121,3 +121,10 @@ The [Set/Map review](globals-and-imports-set-map-audit.md) covers 29 constructor
 receiver members and static grouping entries. Preserve global placement and
 explicit native ownership/copy contracts. Other namespace and receiver families
 remain pending.
+
+## Numeric namespace review slice
+
+The [Math/Number review](globals-and-imports-math-number-audit.md) covers 58
+namespace members, independently reconciled against compiler targets/constants.
+Keep global placement and explicit numeric contracts. Number conversion, other
+namespaces and remaining receiver/type surfaces are still pending.
