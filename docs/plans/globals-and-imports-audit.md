@@ -135,3 +135,9 @@ The [Object/console review](globals-and-imports-object-console-audit.md) covers 
 members, reflection limits, output effects and console argument exceptions.
 Keep global placement. countReset parameter documentation now matches its existing
 non-string-label exception; runtime behavior is unchanged.
+
+## String review slice
+
+The [string review](globals-and-imports-string-audit.md) covers 50 receiver/static
+members, indexing units, errors and copying costs. Preserve current spellings;
+string conversion, remaining receiver families and type primitives remain pending.
