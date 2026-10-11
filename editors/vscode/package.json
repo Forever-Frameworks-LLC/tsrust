@@ -80,7 +80,7 @@
           "type": "string",
           "default": "",
           "scope": "window",
-          "description": "Absolute path to the locally built tsrust-lsp executable. Restarted automatically when changed."
+          "description": "Optional absolute path to tsrust-lsp. When empty, searches beside the configured compiler, then ~/.cargo/bin and PATH. Changes restart the server."
         },
         "tsrust.analysis.debounceMs": {
           "type": "integer",
@@ -94,7 +94,7 @@
           "type": "string",
           "default": "",
           "scope": "window",
-          "description": "Absolute path to tsrust. When empty, uses the compiler beside the configured language server."
+          "description": "Optional absolute path to tsrust. When empty, searches beside the configured language server, then ~/.cargo/bin and PATH."
         },
         "tsrust.run.release": {
           "type": "boolean",
@@ -157,7 +157,7 @@
     "vscode:prepublish": "npm run compile",
     "test:grammar": "node --test scripts/grammar.test.cjs",
     "test:integration": "npm run compile && tsc -p tsconfig.test.json && node out/test/run.js",
-    "test": "npm run compile && npm run test:grammar",
+    "test": "npm run compile && node --test scripts/executables.test.cjs && npm run test:grammar",
     "package": "vsce package --no-dependencies --allow-missing-repository"
   },
   "dependencies": {

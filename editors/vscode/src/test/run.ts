@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   fs.mkdirSync(path.join(workspace, '.vscode'), { recursive: true });
   const serverPath = process.env.TSRUST_LSP_PATH || path.resolve(developmentPath, '../../target/editor/debug/tsrust-lsp');
   fs.writeFileSync(path.join(workspace, '.vscode/settings.json'), JSON.stringify({
-    'tsrust.server.path': serverPath, 'tsrust.analysis.debounceMs': 20,
+    ...(process.env.TSRUST_TEST_AUTO_DISCOVERY ? {} : {'tsrust.server.path': serverPath}), 'tsrust.analysis.debounceMs': 20,
     'security.workspace.trust.enabled': false,
   }));
   try {

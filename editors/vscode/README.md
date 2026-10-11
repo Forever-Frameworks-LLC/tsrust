@@ -26,9 +26,11 @@ npm --prefix editors/vscode run package
 code --install-extension editors/vscode/tsrust-0.2.0.vsix --force
 ```
 
-The compiler crate remains dependency-free. The new server has protocol/JSON dependencies; `cargo fetch --locked` downloads them once before offline builds. The VSIX bundles its JavaScript dependencies and their license notices, but does not contain the Rust server binary. Nothing is published to the Marketplace.
+The compiler and server have pinned dependencies; `cargo fetch --locked` downloads them once before offline builds. The VSIX bundles its JavaScript dependencies and their license notices, but does not contain the Rust server binary. Nothing is published to the Marketplace.
 
-Open VS Code Settings and set **Tsrust › Server: Path** to the absolute path of `target/editor/release/tsrust-lsp`. For this repository checkout:
+Install both `tsrust` and `tsrust-lsp` in `~/.cargo/bin` or an absolute directory on PATH. New projects need no editor settings. The extension searches beside an explicitly configured companion executable first, then `~/.cargo/bin`, then absolute PATH entries. Explicit overrides must point to executable files and are never silently ignored.
+
+For development builds, optionally set **Tsrust › Server: Path** to an absolute path. For example:
 
 ```json
 {

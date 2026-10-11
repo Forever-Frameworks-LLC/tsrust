@@ -1,6 +1,5 @@
-import { constants } from 'node:fs';
-import { access } from 'node:fs/promises';
-import { dirname, join, isAbsolute } from 'node:path';
+import { dirname } from 'node:path';
+import { resolveExecutable } from './executables';
 import { execFile } from 'node:child_process';
 import * as vscode from 'vscode';
 import { CloseAction, ErrorAction, LanguageClient, State, TransportKind } from 'vscode-languageclient/node';
@@ -27,10 +26,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const settings = vscode.workspace.getConfiguration('tsrust', uri);
     const configured = settings.get<string>('compiler.path', '').trim();
     const server = settings.get<string>('server.path', '').trim();
-    const path = configured || (isAbsolute(server) ? join(dirname(server), process.platform === 'win32' ? 'tsrust.exe' : 'tsrust') : '');
-    if (!isAbsolute(path)) throw new Error('Set tsrust.compiler.path to the compiler executable.');
-    await access(path, constants.X_OK);
-    return path;
+    return resolveExecutable('tsrust', {configured, companion: server});
   };
   const activeFile = async (uri?: vscode.Uri): Promise<vscode.TextDocument> => {
     if (!vscode.workspace.isTrusted) throw new Error('Trust this workspace before running Tsrust commands.');
@@ -97,13 +93,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return;
     }
     const settings = vscode.workspace.getConfiguration('tsrust');
-    const path = settings.get<string>('server.path', '').trim();
+    let path: string;
     try {
-      if (!path || !isAbsolute(path)) throw new Error('Set tsrust.server.path to the absolute path of the built tsrust-lsp executable.');
-      await access(path, constants.X_OK);
+      path = await resolveExecutable('tsrust-lsp', {configured: settings.get<string>('server.path', '').trim(), companion: settings.get<string>('compiler.path', '').trim()});
     } catch (error) {
       status.text = 'Tsrust: configure server';
-      const message = `Tsrust analysis is unavailable. ${error instanceof Error ? error.message : String(error)} Build with cargo build -p tsrust-lsp, then set tsrust.server.path. Highlighting remains available.`;
+      const message = `Tsrust analysis is unavailable. ${error instanceof Error ? error.message : String(error)} Highlighting remains available.`;
       output.appendLine(message);
       void vscode.window.showWarningMessage(message, 'Open Settings').then(choice => {
         if (choice) void vscode.commands.executeCommand('workbench.action.openSettings', 'tsrust.server.path');
@@ -148,7 +143,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('tsrust.restartServer', restart),
     vscode.workspace.onDidChangeConfiguration(event => {
-      if (event.affectsConfiguration('tsrust.server.path') || event.affectsConfiguration('tsrust.analysis.debounceMs')) void restart();
+      if (event.affectsConfiguration('tsrust.server.path') || event.affectsConfiguration('tsrust.compiler.path') || event.affectsConfiguration('tsrust.analysis.debounceMs')) void restart();
     }),
     vscode.workspace.onDidGrantWorkspaceTrust(() => { void restart(); }),
   );

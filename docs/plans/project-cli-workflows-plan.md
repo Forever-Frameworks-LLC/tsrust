@@ -93,3 +93,17 @@ check/format/test/run/build, imported-source dev restart and interrupt shutdown.
 Evidence is retained in SQLite as `tsrust-project-cli-consumer-build.log`,
 `tsrust-project-cli-consumer-refresh.json` and `tsrust-project-cli-installed-smoke.log`.
 Linux process supervision is implemented but was not independently exercised here.
+
+## New-project editor discovery repair
+
+A real newly scaffolded workspace exposed a distribution gap: the extension required
+an explicit server path, while this repository supplied that path only in workspace
+settings. The extension now discovers executable files beside an explicit companion
+path, in ~/.cargo/bin, or in absolute PATH entries. Explicit invalid overrides remain
+errors. Workspace trust remains required. Both CLI and language server were installed
+atomically in ~/.cargo/bin from compiler/LSP checkpoint 5408b3b5, and local consumers
+were refreshed. Three resolver tests, grammar checks and the real VS Code integration
+suite pass with no server-path setting. Original logs are in SQLite under
+`tsrust-editor-discovery-*`. The fixed VSIX is installed. Reload of the owner's already
+open window could not be completed through UI automation and remains a user action;
+do not claim live-window acceptance until it shows checking enabled.
