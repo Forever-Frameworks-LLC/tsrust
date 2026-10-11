@@ -130,3 +130,24 @@ Next: recursive view lifetimes using array recursion, nullable recursive links,
 view-capturing callbacks returning argument views, the owned-value return through
 finally defect, gate 190, and S07 family acceptance. Existing resource close
 semantics remain approved; they do not require closing byte buffers or views.
+
+
+## Current continuation: whole-owner finally return checkpoint
+
+Array and nullable recursive views and callbacks returning argument/owner views
+are implemented; current evidence is in `b11-resources-bytes-acceptance-map.md`.
+The original ignored whole-owner finally return test is enabled and passes.
+`finally_move_slots.rs` indexes actual checked return transfers with later uses and
+emits stack `Option` state through existing initialized-slot access. It preserves
+allocation identity and drop order without cloning. Nine return tests, 27 adjacent
+exception tests, O0/O3 native owner/view checks, editor diagnostics and the matched
+exception workload pass. No timing ran. Consumers remain at `4367f4cc`.
+
+Next fix the adjacent partial-record-field return through finally. Exact red probe
+source/native output/log are in SQLite under `tsrust-finally-partial-owner-probe.*`.
+It passes source analysis but Rust reports the field moved on the normal path.
+Track field initialization independently; do not consume the whole record to
+extract one field, because that would dispose siblings prematurely. Then finish
+recursive stored callable fields, resources gate 190, S07 family measurements and
+consumer refresh before following the remaining roadmap. The broader finally
+repair and S07 remain open.

@@ -52,6 +52,8 @@ mod map_error_storage_emit;
 mod map_block_storage_emit;
 #[path = "restored_capture_slots.rs"]
 mod restored_capture_slots;
+#[path = "finally_move_slots.rs"]
+mod finally_move_slots;
 #[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
@@ -198,6 +200,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         counted_calls,
         program,
         restored_slots:restored_capture_slots::Index::new(program),
+        finally_moves:finally_move_slots::Index::new(program),
         entry_setup,
         source_segments: &[],
         fields,
@@ -275,6 +278,7 @@ struct Emitter<'a> {
     counted_calls: bool,
     program: &'a CheckedProgram,
     restored_slots:restored_capture_slots::Index,
+    finally_moves:finally_move_slots::Index,
     entry_setup: &'a str,
     source_segments: &'a [(crate::project::SourceId,usize,usize)],
     fields: Vec<HashMap<&'a str, usize>>,
@@ -3407,6 +3411,9 @@ impl Emitter<'_> {
         let mut statements=String::new();
         let prefix=if initialize_parameters {
             self.parameter_initialization(&mut statements,fun,1);
+            for slot in self.finally_moves.parameters(fun) {
+                if !self.restored_slots.contains(fun,slot) {let _=writeln!(statements,"let mut value{slot}=Some(value{slot});");}
+            }
             body.iter().take_while(|stmt|fun.bindings.iter().any(|binding|binding.input_ty.is_some() && binding.name.starts_with("pattern#") && binding.declaration_span.is_some_and(|span|stmt.span.start>=span.start && stmt.span.end<=span.end))).count()
         }else{0};
         self.block(&mut statements,fun,&body[prefix..],1);
@@ -3588,6 +3595,11 @@ impl Emitter<'_> {
                 StmtKind::Let { value, binding, .. } => {
                     let index = binding.expect("checked binding");
                     let b = &fun.bindings[index];
+                    if self.finally_moves.contains(fun,index) {
+                        let initialized=if value.is_deferred(){"None".to_owned()}else{format!("Some({})",self.expr(fun,value,Mode::Consume))};
+                        let _=writeln!(output,"{indent}let mut value{index}={initialized};");
+                        continue;
+                    }
                     if value.is_deferred() {
                         if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{indent}{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
@@ -3955,6 +3967,10 @@ impl Emitter<'_> {
         let skipped=entry_leaf.as_ref().map_or(0,|(count,_)|*count);
         let mut shared = entry_leaf.map_or_else(||format!("{}value{id}", if referenced { "*" } else { "" }),|(_,place)|place);
         let mut exclusive = shared.clone();
+        if self.finally_moves.contains(fun,id) {
+            shared=format!("*value{id}.as_ref().expect(\"initialized owned slot\")");
+            exclusive=format!("*value{id}.as_mut().expect(\"initialized owned slot\")");
+        }
         let mut reselected = shared.clone();
         let mut result = StorageSelection {
             reselected_shared: String::new(),
@@ -6552,7 +6568,7 @@ impl Emitter<'_> {
     }
 
     fn restored_capture(&self,fun:&CheckedFunction,index:usize)->bool {
-        self.restored_slots.contains(fun,index)
+        self.restored_slots.contains(fun,index) || self.finally_moves.contains(fun,index)
     }
 
     fn binding(&self, fun: &CheckedFunction, index: usize, mode: Mode) -> String {

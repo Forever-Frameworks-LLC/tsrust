@@ -43,6 +43,7 @@ impl Emitter<'_> {
         fun: &CheckedFunction,
         id: usize,
     ) -> Option<crate::scoped_record_places::Layout> {
+        if self.finally_moves.contains(fun,id) {return None;}
         let binding = fun.bindings.get(id)?;
         if binding.parameter && id >= fun.parameter_count {
             return None;

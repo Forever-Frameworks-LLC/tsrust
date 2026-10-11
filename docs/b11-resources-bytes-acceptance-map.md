@@ -9,8 +9,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields and capturing callbacks returning argument views | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Implemented increment; gate 189 still pending views | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
@@ -273,3 +273,44 @@ untimed cases agree: SQLite
 `runtime/results/2026-10-11T01-38-19-462Z-verify.json`. Original red probes and previous
 result records remain intact. No timing ran. Recursive stored callbacks, finally,
 resources acceptance and S07 measurements remain pending.
+
+
+### Owned returns through finally: whole-owner slots
+
+The original ignored `return a` failure now executes. Checked transfer snapshots
+select owners whose normal path uses them after cleanup. Native stack slots track
+whether those values remain initialized; no implicit clone or heap allocation is
+introduced. Normal field reads, array mutation, local/deferred initialization and
+assignment preserve their original behavior. Calls and record literals may transfer
+owners inside return expressions. Nested cleanup and closure bodies keep their
+return targets, including a normal path that captures the owner after cleanup.
+Borrowed return-call arguments remain ordinary borrowed accesses.
+
+Focused checks cover the original failure, containers, replacement returns, cleanup
+throws, nested regions, closure parameters/captures and a borrowing control. Native
+O0/O3 instrumentation proves returned allocation identity and exact drop ordering:
+cleanup sees a live pending owner; a replacement discards it once. Readonly and
+mutable byte-view returns keep pointer identity, mutable write-through and owner
+escape rejection. Editor hover and transferred-value diagnostics remain consistent.
+The formatter corpus verifies tokens, idempotence and formatted-source contracts.
+
+The matched `exception_completion` workload now also returns an owned string on
+both sides of a conditional return through cleanup. Both paths append an observed
+cleanup marker. Independent oracle/source guards retain complete result checks and
+the original timing protocol; no timing was run during this checkpoint.
+
+One adjacent failure remains: returning an owned record **field** through finally
+and using that field on the normal path still produces native E0382. Whole-owner
+slots deliberately do not move/drop the record's other fields. Exact source, native
+output and diagnostic are in SQLite as `tsrust-finally-partial-owner-probe.tsr`,
+`.rs` and `.log`. Finish precise partial-field state before closing the finally
+repair. Recursive stored callbacks, resources and S07 measurements also remain open.
+Installed consumers remain at `4367f4cc`.
+
+Nine focused return tests pass across retained runs, plus 27 neighboring exception
+tests, four native/source cleanup checks, one editor check and three registration
+checks. Five native/Node-after-tsc cases agree: SQLite record
+`runtime/results/2026-10-11T02-06-29-505Z-verify.json` has an empty execution array.
+Exact focused logs are stored with the `tsrust-finally-slots-` prefix. Historical
+exception workload records remain unchanged; the new source fingerprints identify
+the added owned-return behavior.

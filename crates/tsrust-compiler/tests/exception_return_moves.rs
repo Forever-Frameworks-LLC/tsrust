@@ -2,7 +2,7 @@ mod support;
 
 fn runs(source: &str, expected: &str) {
     let directory = support::TempDirectory::new();
-    let path = directory.source(source);
+    let path = directory.source(&support::format_round_trip(source));
     let output = support::run(support::cli().arg("run").arg(path), 120);
     support::success(&output);
     assert_eq!(
@@ -65,13 +65,46 @@ fn replaced_and_nested_returns_keep_their_targets() {
     );
 }
 
-/// Known defect: a `finally` must run before the return, so the return travels as a
-/// completion value and Rust cannot see that the later use is on another path.
+/// Ownership remains available on paths that do not return through cleanup.
 #[test]
-#[ignore = "return of an owned value through finally, with a later use, still fails native compilation"]
 fn returned_owned_value_through_finally_remains_usable_on_other_paths() {
     runs(
         "function pick(a:string,fail:boolean):string{try{try{if(fail){throw 3;}}catch(error){return a;}}finally{console.log(\"outer\");}return a;}function main(){console.log(pick(\"x\",true));console.log(pick(\"y\",false));}",
         "outer\nx\nouter\ny\n",
     );
+}
+
+#[test]
+fn finally_returns_preserve_owned_containers_locals_and_replacements() {
+    for (source,expected) in [
+        ("type Row={name:string;};function pick(a:Row,early:boolean):Row{try{if(early){return a;}}finally{console.log(\"cleanup\");}console.log(a.name);return a;}function main(){console.log(pick({name:\"x\"},true).name,pick({name:\"y\"},false).name);}","cleanup\ncleanup\ny\nx y\n"),
+        ("function pick(a:int[],early:boolean):int[]{try{if(early){return a;}}finally{console.log(\"cleanup\");}a.push(2);return a;}function main(){console.log(pick([1],true).length,pick([1],false).length);}","cleanup\ncleanup\n1 2\n"),
+        ("function pick(early:boolean):string{let a=\"old\";try{if(early){return a;}}finally{a=\"new\";}return a;}function main(){console.log(pick(true),pick(false));}","old new\n"),
+        ("function pick(early:boolean):string{let a:string;a=\"ready\";try{if(early){return a;}}finally{console.log(\"cleanup\");}return a;}function main(){console.log(pick(true),pick(false));}","cleanup\ncleanup\nready ready\n"),
+        ("function pick(a:string,early:boolean):string{try{if(early){return a;}}finally{if(early){return \"override\";}}return a;}function main(){console.log(pick(\"x\",true),pick(\"y\",false));}","override y\n"),
+        ("function pick(a:string,early:boolean):string{try{if(early){return a;}}finally{if(early){throw 7;}}return a;}function main(){try{console.log(pick(\"x\",true));}catch(error){console.log(error);}console.log(pick(\"y\",false));}","7\ny\n"),
+    ] {runs(source,expected);}
+}
+
+#[test]
+fn finally_returns_keep_owners_moved_inside_result_expressions() {
+    runs("function pass(a:string):string{return a;}function pick(a:string,early:boolean):string{try{if(early){return pass(a);}}finally{console.log(\"cleanup\");}return a;}function main(){console.log(pick(\"x\",true),pick(\"y\",false));}","cleanup\ncleanup\nx y\n");
+    runs("type Row={name:string;};function pick(a:string,early:boolean):Row{try{if(early){return {name:a};}}finally{console.log(\"cleanup\");}return {name:a};}function main(){console.log(pick(\"x\",true).name,pick(\"y\",false).name);}","cleanup\ncleanup\nx y\n");
+}
+
+#[test]
+fn finally_returns_keep_nested_and_closure_owner_paths() {
+    runs("function pick(a:string,early:boolean):string{try{try{if(early){return a;}}finally{console.log(1);}return a;}finally{console.log(2);}}function main(){console.log(pick(\"x\",true),pick(\"y\",false));}","1\n2\n1\n2\nx y\n");
+    runs("function main(){const pick=(a:string,early:boolean):string=>{try{if(early){return a;}}finally{console.log(1);}return a;};console.log(pick(\"x\",true),pick(\"y\",false));}","1\n1\nx y\n");
+    runs("function pick(early:boolean):string{const a=\"x\";const run=():string=>{try{if(early){return a;}}finally{console.log(1);}return a;};return run();}function main(){console.log(pick(true),pick(false));}","1\n1\nx x\n");
+}
+
+#[test]
+fn finally_return_borrow_does_not_transfer_its_argument() {
+    runs("type Row={name:string;};function read(a:ReadOnly<Row>):string{return String(a.name.length);}function pick(a:Row,early:boolean):string{try{if(early){return read(a);}}finally{console.log(1);}return a.name;}function main(){console.log(pick({name:\"xx\"},true),pick({name:\"y\"},false));}","1\n1\n2 y\n");
+}
+
+#[test]
+fn finally_normal_path_can_capture_returned_owner() {
+    runs("function pick(a:string,early:boolean):string{try{if(early){return a;}}finally{console.log(1);}const run=():string=>a;return run();}function main(){console.log(pick(\"x\",true),pick(\"y\",false));}","1\n1\nx y\n");
 }

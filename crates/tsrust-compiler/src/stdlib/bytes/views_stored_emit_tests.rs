@@ -340,3 +340,13 @@ fn native_view_nullable_recursive_links_preserve_all_owners() {
         assert_stored_source_access(source,&format!("nullable-recursive-{mutable}"),mutable);
     }
 }
+
+#[test]
+fn native_view_finally_returns_preserve_owner_and_pointer() {
+    for flag in ["true","false"] {
+        for mutable in [false,true] {
+            let source=format!("type Window={{}};function early():boolean{{return {flag};}}function relay(first:Window,second:Window):Window{{try{{if(early()){{return second;}}}}finally{{const kept=first;}}return second;}}function main(){{}}");
+            assert_stored_source_access(&source,&format!("finally-view-{flag}-{mutable}"),mutable);
+        }
+    }
+}

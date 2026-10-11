@@ -57,3 +57,17 @@ fn checked_array_callback_formats_and_preserves_catch_hover(){
  let hover=SourceIndex::new(source).request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),"file:///callback.tsr").unwrap();
  assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("error"),"{hover}");
 }
+
+#[test]
+fn owned_return_through_finally_keeps_type_and_transfer_diagnostics() {
+ let source="function pick(a:string,early:boolean):string{try{if(early){return a;}}finally{console.log(1);}return a;}function main(){console.log(pick(\"x\",true));}";
+ let formatted=tsrust_compiler::format(source).unwrap();
+ assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+ assert!(tsrust_lsp::diagnostics(&formatted,"file:///finally-owned.tsr").unwrap().is_empty());
+ let offset=source.rfind("return a").unwrap()+7;
+ let hover=SourceIndex::new(source).request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),"file:///finally-owned.tsr").unwrap();
+ assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("string"),"{hover}");
+ let invalid=source.replace("return a;}}finally", "const moved=a;console.log(moved);return a;}}finally");
+ let diagnostics=serde_json::to_value(tsrust_lsp::diagnostics(&invalid,"file:///finally-owned.tsr").unwrap()).unwrap();
+ assert!(diagnostics.as_array().unwrap().iter().any(|item|item["code"]=="transferred"),"{diagnostics}");
+}
