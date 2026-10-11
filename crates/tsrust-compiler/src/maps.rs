@@ -99,7 +99,9 @@ impl Analyzer {
             }
             for root in Self::loan_roots(argument, mode) { active.entry(root).or_default().push((mode, argument.span)); }
         }
-        if (method==MapMethod::Delete || replaced_environment) && let Some(place) = entry_place {
+        if (method==MapMethod::Delete || replaced_environment)
+            && self.aggregate_callable_facts(definition.value).scoped
+            && let Some(place) = entry_place {
             if method == MapMethod::Delete {Self::discard_map_entry_capture_loans(context, &place);}
             if !context.bindings[place.binding].parameter && !context.bindings[place.binding].capture_reference {
                 let mut root=place;
@@ -118,6 +120,9 @@ impl Analyzer {
         {
             context.capture_loan_owners.discard(&crate::capture_loan_owners::Place { binding, fields });
             Self::restore_live_capture_loans(context);
+        }
+        if method == MapMethod::Set {
+            Self::append_native_view_element(context, base, &arguments[1])?;
         }
         let mut result = self.map_method_type(id, name, expression.span)?;
         if method == MapMethod::Get && named && !result.is_copy() { result = Type::BorrowedUnion(result.union().unwrap()); }

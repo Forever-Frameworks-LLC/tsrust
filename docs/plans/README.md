@@ -8,6 +8,7 @@ use the [standard-library roadmap](../standard-library-roadmap.md) and accepted
 - [callable replacement plan](callable-replacement-plan.md)
 - [caller borrowed record stores plan](caller-borrowed-record-stores-plan.md)
 - [captured call effects plan](captured-call-effects-plan.md)
+- [collections plan](collections-plan.md)
 - [compiler completion plan](compiler-completion-plan.md)
 - [conditional callable carriers plan](conditional-callable-carriers-plan.md)
 - [discriminated unions plan](discriminated-unions-plan.md)

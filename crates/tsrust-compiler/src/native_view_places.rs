@@ -138,7 +138,7 @@ impl Analyzer {
         let Some(place) = crate::flow::place(array, &context.names) else {
             return Err(Diagnostic::new(
                 "native-view-source",
-                "A byte view can only be appended to an array held by a named local or its fields.",
+                "A byte view can only be stored in a collection held by a named local or its fields.",
                 array.span,
             ));
         };
