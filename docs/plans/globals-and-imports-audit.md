@@ -89,3 +89,9 @@ remaining receiver/namespace operations is still pending.
 All twelve current JSON exports have a [per-symbol review](globals-and-imports-json-audit.md),
 including ownership, errors, dependencies and the approved migration disposition.
 The complete cross-library audit remains open.
+
+## Host-service review slice
+
+All thirteen path, OS, environment and time exports have a
+[per-symbol review](globals-and-imports-host-audit.md). Explicit imports remain
+preferred; the existing throwing relative-path exception is recorded.
