@@ -1,0 +1,112 @@
+import { Bytes, ByteView, ByteViewMut, fromUtf8, view, viewMut, at, set, length } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Reader = {
+  pick: Once<Function<ByteView, [ReadOnly<Bytes>]>>;
+};
+
+type Writer = {
+  pick: Once<Function<ByteViewMut, [Mutable<Bytes>]>>;
+};
+
+function bytes(text: string): Bytes {
+  match (fromUtf8(text)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function slice(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function saveRead(captured: ByteView): Reader {
+  return {
+    pick: (other: ReadOnly<Bytes>) => {
+      const kept = captured;
+      strictEqual(length(kept), 2);
+      return slice(other);
+    }
+  };
+}
+
+function writable(other: Mutable<Bytes>): ByteViewMut {
+  match (viewMut(other, 1, 3)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function saveWrite(captured: ByteView): Writer {
+  return {
+    pick: (other: Mutable<Bytes>) => {
+      const kept = captured;
+      strictEqual(length(kept), 2);
+      return writable(other);
+    }
+  };
+}
+
+function local(captured: ByteView, owner: ReadOnly<Bytes>): ByteView {
+  const pick: Once<Function<ByteView, [ReadOnly<Bytes>]>> = (other: ReadOnly<Bytes>) => {
+    const kept = captured;
+    strictEqual(length(kept), 2);
+    return slice(other);
+  };
+  return pick(owner);
+}
+
+function main() {
+  const first = bytes("abc");
+  const second = bytes("def");
+  {
+    const picker = saveRead(slice(first));
+    const selected = picker.pick(second);
+    strictEqual(length(selected), 2);
+    match (at(selected, 0)) {
+      Ok(value) => {
+        strictEqual(value, 100);
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+  }
+
+  strictEqual(length(local(slice(first), second)), 2);
+  {
+    const picker = saveWrite(slice(first));
+    const selected = picker.pick(second);
+    match (set(selected, 0, 88)) {
+      Ok(_) => {
+      },
+      Err(error) => {
+        throw error.message;
+      },
+    }
+  }
+
+  match (at(second, 1)) {
+    Ok(value) => {
+      strictEqual(value, 88);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

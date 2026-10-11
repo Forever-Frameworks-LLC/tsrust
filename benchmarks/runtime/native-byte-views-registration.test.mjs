@@ -79,7 +79,7 @@ test('Capturing callbacks retain argument views and oracle dispatch stays select
             assert.throws(()=>assertNativeByteViewsSource(changed,{...callback,[key]:createHash('sha256').update(changed).digest('hex')},kind));
         }
     }
-    assert.deepEqual(expectedNativeByteViewsValues(callback.id,3,255,'bytes'),[[2,0],[2,1],[2,2]]);
+    assert.deepEqual(expectedNativeByteViewsValues(callback.id,3,255,'bytes'),[[2,0,2,0],[2,1,2,1],[2,2,2,2]]);
     for (const n of [0,1,37,2048]) {
         const expected=expectedNativeByteViewsObservation(callback.id,n,7,'bytes');
         assert.deepEqual(expectedExactResult(callback.id,n,7,'bytes'),expected);

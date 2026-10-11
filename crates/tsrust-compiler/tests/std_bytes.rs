@@ -82,6 +82,20 @@ fn byte_views_read_and_write_through_public_imports() {
 }
 
 #[test]
+fn capturing_callbacks_return_views_of_borrowed_owner_arguments() {
+    let directory=support::TempDirectory::new();
+    let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
+    let path=directory.source(&support::format_round_trip(fixture));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let helpers=fixture.split("function main()").next().unwrap();
+    let source=format!("{helpers}function leak(captured:ByteView):ByteView{{const owner=bytes(\"short\");const picker=saveRead(captured);return picker.pick(owner);}}function main(){{}}");
+    let path=directory.source(&support::format_round_trip(&source));
+    let output=support::run(support::cli().arg("check").arg(path),60);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("native-view-escape"));
+}
+
+#[test]
 fn byte_view_ownership_rules_are_source_diagnostics() {
     let imports = "import { Bytes, ByteView, ByteViewMut, alloc, view, viewMut, length, set, resize } from \"std:bytes\";";
     let inside = |body: &str| format!("function main() {{ match (alloc(2, 1)) {{ Ok(bytes) => {{ {body} }}, Err(error) => {{}}, }} }}");

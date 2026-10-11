@@ -214,3 +214,16 @@ fn capturing_callbacks_keep_argument_view_owner_diagnostics() {
     let diagnostic=serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
     assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related|!related.is_empty()));
 }
+
+#[test]
+fn callbacks_borrow_owner_arguments_without_losing_provenance() {
+    let fixture=include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/callback-owners.tsr");
+    let mut workspace=Workspace::default();workspace.open(id("main"),1,fixture.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers=fixture.split("function main()").next().unwrap();
+    let source=tsrust_compiler::format(&format!("{helpers}function leak(captured:ByteView):ByteView{{const owner=bytes(\"short\");const picker=saveRead(captured);return picker.pick(owner);}}function main(){{}}" )).unwrap();
+    workspace.open(id("main"),2,source);let snapshot=workspace.snapshot();
+    let error=snapshot.check(&id("main")).err().unwrap();assert_eq!(error.code,"native-view-escape");
+    let diagnostics=convert(&snapshot,Some(&error)).unwrap();
+    assert!(!diagnostics[&id("main")].is_empty());
+}

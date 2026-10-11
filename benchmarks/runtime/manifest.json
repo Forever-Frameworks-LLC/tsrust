@@ -20605,7 +20605,7 @@
       ],
       "iterations": 2048,
       "operationsPerIteration": 1,
-      "operationUnit": "One view-capturing callback construction and argument-view return",
+      "operationUnit": "One pair of view-capturing callbacks returning an argument view and a borrowed-owner view",
       "inputText": "bytes",
       "category": "bytes",
       "implementationGate": 189,
@@ -20615,9 +20615,9 @@
       "implementationAccepted": false,
       "measured": false,
       "notes": "Capturing callbacks returning argument views. Native and Node-after-tsc agree on five untimed cases. S07 measurements pending.",
-      "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Observe returned length and first byte. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "bbaece69ad7cccc2c5dbf4177d5bf8ef80d36246c872189addb89272e4125399",
-      "counterpartSha256": "0d010548725af924f2e0412a8468c29018a23e628686798ffa0ba021c5b82fed"
+      "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Repeat with a callback borrowing the owner and constructing its returned view during invocation. Observe both returned lengths and first bytes. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
+      "sourceSha256": "6fcfa92266f4b3b0cef6cecfc675907f74c204b5d2a7b8e3bbedfda7b7af8e16",
+      "counterpartSha256": "20df5317e7f41bec8f4b375cb52cad603ad271fa00e80240fb5cf1a4c8b89c7a"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

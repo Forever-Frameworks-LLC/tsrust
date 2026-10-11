@@ -3,6 +3,7 @@ use super::*;
 
 pub(super) struct NativeSignature {
     pub(super) receiver:Option<Mode>,
+    pub(super) storage_lifetimes: std::collections::BTreeMap<usize,String>,
     pub(super) params: String,
     pub(super) result: String,
     pub(super) generics: String,
@@ -239,6 +240,7 @@ impl Emitter<'_> {
         };
         NativeSignature {
             receiver:None,
+            storage_lifetimes:plan.parameters.iter().filter_map(|&root|native_lifetimes.storage(root).map(|name|(root,name.to_owned()))).collect(),
             result:self.native_view_signature_type(fun.result,None,&native_lifetimes),
             params,
             generics,

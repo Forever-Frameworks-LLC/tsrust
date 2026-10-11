@@ -240,3 +240,29 @@ argument lifetime in trait emission. This is distinct from returning a view argu
 Recursive records with stored callbacks, the owned return-through-finally repair,
 resource cleanup acceptance and S07 measurements remain open. Installed consumers
 remain at `4367f4cc` until the next approved refresh.
+
+
+### Callback borrows of owner arguments
+
+A legal equivalent of the earlier borrowed-owner probe, with an explicitly moved
+view capture, reached native emission and exposed an undeclared result lifetime.
+Trait adapters now map returned storage loans to their actual argument borrow
+lifetime. Local and stored callbacks support readonly and mutable `Bytes` arguments
+through named view-producing helpers. `callback-owners.tsr` verifies observed bytes,
+write-through into the original owner and source rejection of a local-owner escape.
+Five focused native view controls and the corresponding editor check pass.
+
+The callback workload now exercises both an existing view argument and a view
+created from a borrowed owner argument during invocation. Both pairs of length/byte
+observations agree with Node-after-tsc on five untimed cases; SQLite record
+`runtime/results/2026-10-11T01-29-57-686Z-verify.json`. The earlier workload record is
+preserved unchanged. No timing ran.
+
+Two adjacent source-diagnostic boundaries remain to investigate. Calling `viewMut`
+directly in the stored callback body reports `callback-escape`, while the named
+`writable` helper passes. Calling through a temporary returned record
+(`saveRead(captured).pick(owner)`) reports `native-view-source`, while binding the
+record first preserves the owner diagnostic. Exact reproductions are SQLite records
+`tsrust-callback-direct-native-probe.tsr` and
+`tsrust-callback-temporary-owner-probe.tsr`. These do not change the previously
+tracked recursive stored-callback, finally, resource or measurement work.

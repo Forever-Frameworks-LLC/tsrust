@@ -10,6 +10,14 @@ function make(captured: Uint8Array, expected: number): Picker {
     return other;
   } };
 }
+type OwnerPicker = { pick: (other: Uint8Array) => Uint8Array; };
+function makeOwner(captured: Uint8Array, expected: number): OwnerPicker {
+  return { pick: (other: Uint8Array) => {
+    const kept = captured;
+    if (first(kept) !== expected) { throw "capture mismatch"; }
+    return window(other, 1, 3);
+  } };
+}
 export function workload(n: number, seed: number, input: string): number[][] {
   const output: number[][] = [];
   let i = 0;
@@ -19,7 +27,9 @@ export function workload(n: number, seed: number, input: string): number[][] {
     const owner = Uint8Array.from([byte, next, 255]);
     const picker = make(window(owner, 0, 1), byte);
     const selected = picker.pick(window(owner, 1, 3));
-    output.push([selected.length, first(selected)]);
+    const ownerPicker = makeOwner(window(owner, 0, 1), byte);
+        const borrowed = ownerPicker.pick(owner);
+        output.push([selected.length, first(selected), borrowed.length, first(borrowed)]);
     i++;
   }
   return output;

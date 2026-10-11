@@ -2582,20 +2582,25 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>();
             let (arguments, mut lifetimes) = self.native_argument_tuple(&params);
             lifetimes.splice(0..0, capture_lifetimes);
-            // A callback that returns a view it received ties
-            // the result to its view arguments. The trait adapters name one lifetime
-            // for those arguments and the result; the call itself stays more precise.
+            // Trait adapters retain the lifetime of a borrowed owner argument.
+            // Carried view arguments share one adapter lifetime; the direct call
+            // keeps its more precise per-slot lifetimes and result intersections.
             let argument_views = self.native_views.contains(closure.function.result)
-                && params.iter().any(|parameter| self.native_views.contains(parameter.ty));
+                && (params.iter().any(|parameter| self.native_views.contains(parameter.ty))
+                    || native_view_signature.as_ref().is_some_and(|signature|!signature.storage_lifetimes.is_empty()));
             let mut argument_trait_bounds = String::new();
             let (arguments, native_result) = if argument_views {
                 lifetimes.push("'native_arguments".into());
                 let mut result = native_result.replace("'_", "'native_arguments");
                 if let Some(signature) = &native_view_signature {
                     argument_trait_bounds = signature.replacement_where.clone();
-                    for name in signature.generics.trim_matches(|c| c == '<' || c == '>').split(',').map(str::trim).filter(|name| name.starts_with('\'')) {
-                        result = result.replace(name, "'native_arguments");
-                        argument_trait_bounds = argument_trait_bounds.replace(name, "'native_arguments");
+                    let mut names=signature.generics.trim_matches(|c| c == '<' || c == '>').split(',').map(str::trim).filter(|name| name.starts_with('\'')).collect::<Vec<_>>();
+                    // Replace longer identifiers first, so slot 1 cannot rewrite slot 10.
+                    names.sort_by_key(|name|std::cmp::Reverse(name.len()));
+                    for name in names {
+                        let replacement=closure.parameters.iter().enumerate().find(|(_,root)|signature.storage_lifetimes.get(root).is_some_and(|storage|storage==name)).map_or_else(||"'native_arguments".to_owned(),|(position,_)|format!("'p{position}"));
+                        result = result.replace(name, &replacement);
+                        argument_trait_bounds = argument_trait_bounds.replace(name, &replacement);
                     }
                 }
                 (arguments.replace("'_", "'native_arguments"), result)
