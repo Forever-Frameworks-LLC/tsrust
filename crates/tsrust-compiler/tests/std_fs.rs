@@ -48,6 +48,9 @@ fn file_type_identity_is_opaque_noncloneable_and_nonshareable() {
     for source in [
         "import {File} from 'std:fs';function main(){const file:File={};}",
         "import {open} from 'std:fs';function main(){match(open('input.bin')){Ok(file)=>{clone(file);},Err(error)=>{}}}",
+        "import {File} from 'std:fs';function main(){const values=new Map<File,int>();}",
+        "import {File,close} from 'std:fs';function bad(file:ReadOnly<File>):void{close(file);}function main(){}",
+        "import {File,read} from 'std:fs';function bad(file:ReadOnly<File>):void{read(file,1);}function main(){}",
     ] {
         let path = directory.source(&support::format_round_trip(source));
         let output = support::run(support::cli().arg("check").arg(path), 60);

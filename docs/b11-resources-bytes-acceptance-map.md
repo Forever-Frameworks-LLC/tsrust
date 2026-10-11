@@ -12,8 +12,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 accepted with focused evidence; family regression/measurement pending | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
-| Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
-| Useful synchronous file proof and private instrumented resource backend | Public read/close, private backend and generated cleanup have focused checks; benchmark readiness and gate review pending | resources-bytes-plan.md |
+| Opaque resource consuming close, drop and failure ownership | Gate 190 focused implementation accepted | milestones/190-file-resources.md |
+| Useful synchronous file proof and private instrumented resource backend | Gate 190 focused implementation accepted; S09 broader host scope pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
 
 All current byte workloads have matching sources, independent oracles, source hashes,
@@ -1073,3 +1073,35 @@ Whole-project formatting changed only the new fixture. Token/idempotence corpus
 and formatted native execution pass. Seven logs were imported, read back exactly
 and removed; SQLite integrity passes. Three completed test executables were pruned,
 retaining current consumers. No full regression or measurement ran.
+
+### Gate 190 matched readiness and focused acceptance
+
+`native_file_read_close` and `native_file_scope_drop` now have matched TypeScript,
+an independent arithmetic oracle, source and input hashes, source mutation guards,
+Result ABI handling, reporting and runtime/profile support. Private 4096-byte inputs
+are prepared outside measured bodies and removed on normal or failed process exit.
+The operation denominator is one complete open/read/observe/release lifecycle.
+The Node counterparts use try/finally; only successful regular-file operations are
+in this performance domain. This is warm-cache work, not durable-write measurement.
+
+Eleven registration/oracle/input-cleanup checks pass, including existing byte-view
+registration controls. Native and Node-after-tsc agree on five untimed cases each
+for both new workloads. SQLite keeps the initial result
+`runtime/results/2026-10-11T08-37-58-302Z-verify.json` and the verification after
+strengthening source guards, `runtime/results/2026-10-11T08-39-16-390Z-verify.json`.
+Both are correctness-only with zero execution samples. File map keys and readonly
+close/read also reject in the focused source capability check.
+
+Gate 190 focused acceptance is recorded in `milestones/190-file-resources.md`.
+The manifest's two implementation flags and current roadmap/map now agree. No
+workload is marked measured. S07 full compiler/editor regressions, measurements,
+comparable performance/allocation review and installed-consumer refresh remain open.
+Exact logs use `tsrust-file-benchmark-*` in SQLite. Scratch release now includes
+the file API; installed consumers remain `4367f4cc`.
+
+Whole-project formatting updated the two new workload sources and proved their
+tokens unchanged; the checkpoint pass is unchanged. The formatter corpus passes,
+and final native–Node verification uses the formatted sources. Eleven logs and both
+untimed results were imported and read back exactly before removal. SQLite integrity
+passes. Twelve obsolete workload/test outputs were pruned (52,111,417 bytes), while
+current executable consumers were retained.

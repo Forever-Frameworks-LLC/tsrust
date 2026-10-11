@@ -220,8 +220,8 @@ out parameters or placeholders. Captured destinations without caller storage
 provenance retain a source diagnostic; no owner identity is guessed.
 
 Gate 189 focused implementation acceptance is recorded in
-`milestones/189-native-byte-views.md`. Next: implement resource gate 190, complete
-S07 acceptance and continue the roadmap. No known
+`milestones/189-native-byte-views.md`. Gate 190 is also focused-accepted; next complete S07 acceptance and continue the
+roadmap. No known
 return-through-finally defect remains ignored; current ignored tests are opt-in
 measurements/diagnostics or a subprocess worker. Installed consumers remain
 `4367f4cc`; no family timing has run. See the acceptance map for exact evidence.
@@ -233,8 +233,8 @@ File, FsError, open, read and consuming close, with executable catalog examples,
 source capability/transfer diagnostics and editor hover/signature/import help.
 Generated source cleanup now proves exact release and lexical order for eighteen
 owners per run at O0/O3, including captured and partial-record owners and close
-failure. Four editor ownership controls preserve source ranges. Next finish matched
-benchmark support and gate 190 scope review. See `resources-bytes-plan.md` for the close policy and platform
+failure. Four editor ownership controls preserve source ranges. Matched benchmark support and gate 190 scope review are complete; next run the
+S07 regression and measurement milestone. See `resources-bytes-plan.md` for the close policy and platform
 evidence. Do not replace explicit close with File drop or implicit sync.
 
 ## Working environment

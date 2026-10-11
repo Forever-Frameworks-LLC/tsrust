@@ -1,8 +1,8 @@
 # B11/S07: resources and bytes
 
-Status: gates 187–189 native declarations, owned bytes, scoped views and strict
-UTF-8 have focused implementation acceptance. B11/S07 remains in progress; gate
-190 resource lifecycle and the S07 family milestone remain pending. No byte workload is measured. B10/S06 is
+Status: gates 187–190 native declarations, owned bytes, scoped views, strict UTF-8
+and file resources have focused implementation acceptance. B11/S07 remains in
+progress pending complete regressions, measurements, review and consumer refresh. No byte workload is measured. B10/S06 is
 accepted at gate 186. Resource close consumes ownership by owner decision.
 See the gate 187 record and current continuation handoff.
 
@@ -706,3 +706,14 @@ isolated descriptor witness independently checks OS release. Four editor control
 verify use/double-close, error-arm use and inspection diagnostics at the source span.
 No compiler cleanup repair was needed. Matched file benchmark support and the final
 gate 190 scope audit are next, followed by S07 full regressions and measurement.
+
+### Gate 190 focused acceptance
+
+The final scope audit and matched file workloads are complete; see
+`milestones/190-file-resources.md`. Both source and scope-drop workloads agree with
+Node-after-tsc on five untimed cases. Inputs are private temporary regular files,
+prepared outside timing and removed at exit. The arithmetic oracle, mutation guards,
+hashes, native ABI, profiler hooks and reporting are ready. Source capability checks
+also reject File map keys and readonly close/read. This supersedes earlier pending
+gate 190 statements; S07 family regressions, timing, performance review and consumer
+refresh remain pending.

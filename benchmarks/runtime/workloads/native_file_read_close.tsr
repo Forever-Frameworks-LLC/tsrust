@@ -1,0 +1,63 @@
+import { File, open, read, close } from "std:fs";
+import { Bytes, length, at } from "std:bytes";
+
+function observe(file: Mutable<File>, count: int): int[] {
+  match (read(file, count)) {
+    Ok(bytes) => {
+      let sum = 0;
+      let index = 0;
+      while (index < length(bytes)) {
+        match (at(bytes, index)) {
+          Ok(value) => {
+            sum += value;
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+
+        index++;
+      }
+
+      return [length(bytes), sum];
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function sample(input: ReadOnly<string>, count: int): int[] {
+  match (open(input)) {
+    Ok(file) => {
+      const observed = observe(file, count);
+      match (close(file)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+
+      return observed;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  let output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 64 + 1;
+    output.push(sample(input, count));
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}
