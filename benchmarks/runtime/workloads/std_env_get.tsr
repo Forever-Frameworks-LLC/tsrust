@@ -1,0 +1,25 @@
+import { get } from "std:env";
+
+function workload(n: int, seed: int): string[] {
+  const names = ["TSRUST_BENCH_ENV_TEXT", "TSRUST_BENCH_ENV_EMPTY", "TSRUST_BENCH_ENV_MISSING"];
+  const values: string[] = [];
+  let i = 0;
+  while (i < n) {
+    match (get(names[(i + seed) % 3])) {
+      Ok(value) => {
+        values.push(value === undefined ? "<missing>" : value);
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i = i + 1;
+  }
+
+  return values;
+}
+
+function main() {
+  console.log(workload(3, 0));
+}

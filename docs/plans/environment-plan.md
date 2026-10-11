@@ -34,6 +34,12 @@ This is focused implementation evidence, not complete environment acceptance.
 
 ## Remaining acceptance
 
-- Register matched Node-after-tsc lookup support with controlled environment inputs,
-  an independent result oracle and source guards; run representative untimed cases.
+Matched workload `std_env_get` now cycles through controlled Unicode, empty and
+missing variables. Each child gets an isolated environment override; every output
+string is retained and compared with the independent exact-shape oracle. Runtime
+and allocation drivers apply the same input and source guards. Ten untimed native /
+Node-after-tsc cases pass, including 20,000 lookups. The initial missing fallible ABI
+registration was repaired; original and repaired evidence use
+`tsrust-env-workload-*` in SQLite. Timing remains pending S09.
+
 - Refresh installed consumers after public acceptance. Keep timing pending S09.

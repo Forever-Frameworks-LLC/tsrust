@@ -21143,6 +21143,27 @@
       "specification": "For each iteration, write an ASCII hexadecimal prefix in 3-byte borrowed chunks through a 16-byte writer, close to flush, then read through a 16-byte reader in at most 3-byte owned chunks until EOF. Return total byte length and sum. Node uses explicit buffers of the same capacities, flush policy, chunk boundaries and deterministic close.",
       "sourceSha256": "66da9bd1c4effb1dc76babd0fe2d091c37051c22750664ceecc713be5ec33dfc",
       "counterpartSha256": "c4414cbf01d31cdc2eadf9d2ac6fbec41d23e744eed90a6c3938b97c6ffd5a5f"
+    },
+    {
+      "id": "std_env_get",
+      "category": "environment",
+      "description": "Environment lookup with present, empty and missing values",
+      "source": "workloads/std_env_get.tsr",
+      "counterpart": "workloads/std_env_get.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "string[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "environment",
+      "resultEncoding": "array-shape-scalar-v1",
+      "measurementStatus": "pending-s09-family",
+      "specification": "Read one controlled variable per iteration, cycling Unicode, empty and missing values by (i+seed)%3. Retain each value or the <missing> sentinel.",
+      "notes": "Environment supplied separately to each child process. Lookup, name selection and result retention included; observer runs outside timing. No isolated lookup latency claim.",
+      "sourceSha256": "ec91bfa3ef092ea9923584ab4e55e1f8c62fb46cbc521d6e0af7aa51ba5b3929",
+      "counterpartSha256": "6a0f731373842386ce8db0c6ab11a3cae275bfc8f407b5878828d50e312302ab"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

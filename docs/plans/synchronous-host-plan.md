@@ -43,8 +43,9 @@ matched buffering/readback support and eight installed native/Node untimed cases
 See [buffered-file acceptance](buffered-files-plan.md).
 
 Environment lookup has a tested read-only backend and public native/editor
-implementation; matched workload support and installed acceptance remain pending. See [environment lookup](environment-plan.md).
-Complete environment workload/installed acceptance, then monotonic time foundations, auditing
+implementation plus matched workload support and ten untimed native/Node cases.
+Installed acceptance remains pending. See [environment lookup](environment-plan.md).
+Complete environment installed acceptance, then monotonic time foundations, auditing
 the existing path/fs/os contracts. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.
