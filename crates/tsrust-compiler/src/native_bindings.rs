@@ -97,6 +97,7 @@ impl NativeBinding {
 }
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::env::bindings::GET,
+    crate::stdlib::time::MONOTONIC_NOW,
     crate::stdlib::fs_bindings::BUFFER_READER,
     crate::stdlib::fs_bindings::BUFFER_WRITER,
     crate::stdlib::fs_bindings::FLUSH,

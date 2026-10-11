@@ -38,6 +38,11 @@ pub fn separate(source:&str)->Units {
         runtime.push_str("pub mod text {\n");runtime.push_str(crate::runtime::STRINGS);runtime.push_str("\n}\n");
     }
     let console=include_str!("runtime_console.rs");
+    let time=crate::stdlib::time::RUNTIME;
+    if application.contains(time) {
+        application=application.replace(time,"use tsrust_runtime::time::tsrust_std_time_monotonic_now;\n");
+        runtime.push_str("pub mod time {\n");runtime.push_str(time);runtime.push_str("\n}\n");
+    }
     if application.contains(console) {
         application=application.replace(console,"use tsrust_runtime::console::*;\n");
         runtime.push_str("pub mod console {\n");

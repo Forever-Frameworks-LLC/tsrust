@@ -2991,6 +2991,7 @@ impl Emitter<'_> {
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
             if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }
+            if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }

@@ -6089,5 +6089,19 @@
       }
     ]
   }
+],
+  "std:time": [
+  {
+    "name": "monotonicNow",
+    "signature": "monotonicNow(): number",
+    "parameters": [],
+    "documentation": "Measures elapsed time using a process-local monotonic clock. Takes no arguments and has no defaults or argument errors. Returns a nonnegative number of milliseconds, including fractional milliseconds, relative to an origin established by the first call. Subtract two readings from the same process to measure a duration; readings are not calendar timestamps and must not be compared across processes. Consecutive readings may be equal because clock resolution varies. System-clock adjustments do not change the origin. Whether suspended time counts is platform dependent, and floating-point precision decreases over long runtimes. No receiver is mutated.\n\n```tsrust\nimport { monotonicNow } from \"std:time\";\nfunction main() { const start = monotonicNow(); const elapsed = monotonicNow() - start; console.log(elapsed >= 0); } // prints true\n```\n\nOwnership: returns an independent number; no handle, borrowing or explicit cleanup is required.",
+    "examples": [
+      {
+        "source": "import { monotonicNow } from \"std:time\";\nfunction main() { const start = monotonicNow(); const elapsed = monotonicNow() - start; console.log(elapsed >= 0); }",
+        "output": "true\n"
+      }
+    ]
+  }
 ]
 }

@@ -21164,6 +21164,27 @@
       "notes": "Environment supplied separately to each child process. Lookup, name selection and result retention included; observer runs outside timing. No isolated lookup latency claim.",
       "sourceSha256": "ec91bfa3ef092ea9923584ab4e55e1f8c62fb46cbc521d6e0af7aa51ba5b3929",
       "counterpartSha256": "6a0f731373842386ce8db0c6ab11a3cae275bfc8f407b5878828d50e312302ab"
+    },
+    {
+      "id": "std_time_monotonic_now",
+      "category": "time",
+      "description": "Monotonic clock reads with retained ordering and finite-value observations",
+      "source": "workloads/std_time_monotonic_now.tsr",
+      "counterpart": "workloads/std_time_monotonic_now.ts",
+      "iterations": 20000,
+      "operationsPerIteration": 1,
+      "result": "boolean[]",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "monotonic-time",
+      "resultEncoding": "array-shape-scalar-v1",
+      "measurementStatus": "pending-s09-family",
+      "specification": "Read one initial timestamp and one per iteration. Retain whether each iteration reading is finite, nonnegative and no earlier than the preceding read. Seed does not affect clock semantics.",
+      "notes": "Clock values are intentionally not compared across processes or engines. Includes one setup read, clock calls, validation, loop and result retention. No pure syscall latency or clock-resolution equivalence claim.",
+      "sourceSha256": "c69333cef54eead20d3b7427a89dc0b3c7cf7fe7ec1f6fef62a053cf3e6b5d51",
+      "counterpartSha256": "f6af8e3cc625573993d8c4b0efcacf769fb3faae0652546e94674c1984b762a2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

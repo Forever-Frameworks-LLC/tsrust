@@ -1922,3 +1922,16 @@ fn environment_lookup_editor_contract() {
  let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
  for name in ["get","EnvError"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
 }
+
+#[test]
+fn monotonic_clock_editor_contract() {
+ let entry="import {monotonicNow as now} from 'std:time';function main(){const value=now();}";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
+ let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"now()","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
+ for text in ["number","milliseconds","process","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
+ let help=ask(&index,entry,");}","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0,"{help}");
+ let importing="import { } from 'std:time';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
+ let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
+ assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="monotonicNow"),"{completion}");
+}

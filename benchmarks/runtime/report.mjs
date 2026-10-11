@@ -203,6 +203,7 @@ function section(data, file) {
 }
 // Add new operations here; deliberately keep unclassified measured IDs in Other.
 export const reportCategories = [
+ {id:'time',label:'Monotonic time',workloads:['std_time_monotonic_now'],probes:[]},
  {id:'environment',label:'Environment',workloads:['std_env_get'],probes:[]},
  {id:'resources',label:'File resources',workloads:['native_file_read_close','native_file_scope_drop','native_file_write','native_file_write_all','native_file_full_write_read','native_file_buffered_write_read'],probes:[]},
  {id:'collections',label:'Owned collections',workloads:['native_deque_clone','native_heap','native_ordered_set','native_ordered_map'],probes:[]},
