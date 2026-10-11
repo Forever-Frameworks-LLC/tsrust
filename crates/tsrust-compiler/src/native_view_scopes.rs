@@ -67,7 +67,7 @@ mod tests {
         analyzer.signatures[0].result = Type::Record(0);
         let function = analyzer.checked[0].as_mut().unwrap();
         function.result = Type::Record(0);
-        function.native_returns = Some(Box::new(vec![Loan {
+        function.native_returns = Some(Box::new(vec![Loan { whole: false,
             root: 0,
             owner_fields: vec![],
             source: LifetimeSource::Storage,

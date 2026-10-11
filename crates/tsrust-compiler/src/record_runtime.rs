@@ -567,7 +567,8 @@ fn recursive_view_arrays_keep_slice_lifetimes_and_iterative_drop() {
         let input = if mutual {
             "type Chain={next:Link[];view:Window;};type Window={};type Link={children:Chain[];};function main(){}"
         } else { "type Chain={next:Chain[];view:Window;};type Window={};function main(){}" };
-        let formatted = crate::formatting::format(input).unwrap();
+        let input = format!("{input} function head(input:Chain):Window{{return input.view;}} function relay(input:Chain):Window{{return head(input);}}");
+        let formatted = crate::formatting::format(&input).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(), formatted);
         let mut parsed = crate::syntax::parse(&formatted).unwrap();
         parsed.records[1].native_type = Some(native);
@@ -575,6 +576,7 @@ fn recursive_view_arrays_keep_slice_lifetimes_and_iterative_drop() {
         assert!(!RecordRuntime::new(&checked.records, &checked.unions).cloneable(0));
         let next = if mutual { "if nodes.is_empty() { RecordArray2::from([]) } else { RecordArray2::from([Record2 { field0: nodes }]) }" } else { "nodes" };
         let child = if mutual { "&cursor.field0[0].field0[0]" } else { "&cursor.field0[0]" };
+        let relay = checked.functions.iter().position(|function| function.name == "relay").unwrap();
         let support = crate::emit::emit(&checked).replace("fn main()", "fn unused_main()");
         let write = if native == crate::native_signatures::NativeTypeId::ByteViewMut { "nodes[0].field1.bytes[0] += 3;" } else { "" };
         let expected = if write.is_empty() { 7 } else { 10 };
@@ -597,6 +599,11 @@ pub fn run() {{
     while !cursor.field0.is_empty() {{ cursor = {child}; depth += 1; }}
     assert_eq!(depth, 10001);
     assert_eq!(cursor.field1.bytes.as_ptr(), pointer);
+    let root = nodes.pop().unwrap();
+    let returned = function{relay}(root);
+    assert_eq!(returned.bytes[0], {expected});
+    assert_eq!(returned.bytes.as_ptr(), pointer.wrapping_add(10000));
+    drop(returned);
     drop(nodes);
     assert_eq!(DROPS.load(std::sync::atomic::Ordering::SeqCst), 10001);
     assert_eq!(owner[10000], {expected});

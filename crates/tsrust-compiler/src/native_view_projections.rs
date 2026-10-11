@@ -11,6 +11,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
             left.access == crate::native_return_borrows::BorrowAccess::Exclusive,
             &left.path,
             &left.guards,
+            left.whole,
         )
             .cmp(&(
                 right.root,
@@ -19,6 +20,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
                 right.access == crate::native_return_borrows::BorrowAccess::Exclusive,
                 &right.path,
                 &right.guards,
+                right.whole,
             ))
     });
     loans.dedup_by(|right, left| {
@@ -28,6 +30,7 @@ pub(super) fn normalize(loans: &mut Vec<Loan>) {
             || right.access != left.access
             || right.path != left.path
             || right.guards != left.guards
+            || right.whole != left.whole
         {
             return false;
         }
@@ -44,6 +47,7 @@ pub(super) fn wrap(loan: &mut Loan, segment: &Segment) {
 }
 
 pub(super) fn select(loan: &mut Loan, segment: &Segment) -> bool {
+    if loan.whole && loan.path.is_empty() { return true; }
     if loan.path.first() != Some(segment) {
         return false;
     }
@@ -91,4 +95,51 @@ pub(super) fn guard(loan: &mut Loan, success: usize) {
     });
     loan.guards.sort();
     loan.guards.dedup();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::native_view_loans::LifetimeSource;
+
+    fn recursive() -> Loan {
+        Loan { whole: true, root: 0, owner_fields: vec![], source: LifetimeSource::Carried(vec![]),
+            access: crate::native_return_borrows::BorrowAccess::ReadOnly, creation: Span::default(),
+            retained: true, path: vec![], guards: vec![] }
+    }
+
+    #[test]
+    fn recursive_loan_survives_deep_projection_without_reaching_outer_siblings() {
+        let mut loan = recursive();
+        wrap(&mut loan, &Segment::Field("chain".into()));
+        assert!(!select(&mut loan.clone(), &Segment::Field("other".into())));
+        assert!(select(&mut loan, &Segment::Field("chain".into())));
+        for _ in 0..256 {
+            assert!(select(&mut loan, &Segment::Field("children".into())));
+            assert!(select(&mut loan, &Segment::Element));
+            assert!(loan.path.is_empty());
+        }
+        assert_eq!(loan.root, 0);
+        assert_eq!(loan.source, LifetimeSource::Carried(vec![]));
+    }
+
+    #[test]
+    fn moving_a_descendant_does_not_release_whole_record_loan() {
+        let mut loans = vec![recursive()];
+        assert!(native_view_places::under(&loans[0], &["children".into()]));
+        native_view_places::consume(&mut loans, &["children".into()]);
+        assert!(loans[0].retained);
+        native_view_places::consume(&mut loans, &[]);
+        assert!(!loans[0].retained);
+    }
+
+    #[test]
+    fn recursive_and_exact_loans_keep_distinct_projection_contracts() {
+        let mut exact = recursive();
+        exact.whole = false;
+        let mut loans = vec![recursive(), exact];
+        normalize(&mut loans);
+        assert_eq!(loans.len(), 2);
+        assert!(!select(loans.iter_mut().find(|loan| !loan.whole).unwrap(), &Segment::Element));
+    }
 }

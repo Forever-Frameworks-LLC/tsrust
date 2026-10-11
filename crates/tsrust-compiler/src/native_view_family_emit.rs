@@ -122,7 +122,7 @@ mod tests {
                 let name=format!("'scope{}",names.len());names.push(name.clone());
                 let mut path=vec![Segment::Field("read".into()),Segment::CallableAlternative(alternative.origin),Segment::Field(format!("capture{}",slot.capture))];path.extend(slot.path.iter().cloned());
                 let source=LifetimeSource::carried(path.clone(),vec![]);inputs.insert((0,source.clone()),name);
-                returns.push(Loan{root:0,owner_fields:vec![],source,access:slot.access,creation:crate::Span::default(),retained:true,path,guards:vec![]});
+                returns.push(Loan{ whole: false,root:0,owner_fields:vec![],source,access:slot.access,creation:crate::Span::default(),retained:true,path,guards:vec![]});
             }
         }
         let plan=native_view_lifetime_emit::Lifetimes::with_named_sources(inputs,&returns).unwrap();

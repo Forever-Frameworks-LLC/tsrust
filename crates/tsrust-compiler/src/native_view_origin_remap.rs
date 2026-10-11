@@ -34,7 +34,7 @@ pub(crate) fn loan(value:&mut Loan,ids:&[Option<usize>])->Result<(),Diagnostic> 
 #[cfg(test)]
 #[test]
 fn native_view_alternative_remap_preserves_roots_and_record_guards_atomically() {
-    let mut value=Loan {
+    let mut value=Loan { whole: false,
         root:9,owner_fields:vec!["owner".into()],source:LifetimeSource::VariantCarried {
             path:vec![Segment::CallableAlternative(0),Segment::Field("capture3".into())],
             guards:vec![VariantGuard{path:vec![Segment::CallableAlternative(1)],success:42}],

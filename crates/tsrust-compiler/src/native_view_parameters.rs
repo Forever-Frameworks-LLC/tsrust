@@ -51,6 +51,7 @@ impl Analyzer {
 
     pub(super) fn seed_native_parameters(&self, context: &mut Context) -> Result<(), Diagnostic> {
         if !self.native_borrow_types {return Ok(());}
+        let recursive = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
         for root in 0..context.bindings.len() {
             let binding=&context.bindings[root];
             if !binding.parameter || !self.native_shape_contains_view(binding.ty) {continue;}
@@ -59,10 +60,10 @@ impl Analyzer {
             let mut loans=Vec::new();
             while let Some((ty,path,guards,mut ancestors))=pending.pop() {
                 if let Type::Record(id)=ty
-                    && let Some(access)=self.program.records[id].native_type.and_then(|id|crate::native_types::declaration(id).borrow_access()) {
+                    && let Some(access)=recursive.access(id).or_else(||self.program.records[id].native_type.and_then(|id|crate::native_types::declaration(id).borrow_access())) {
                     let owner_fields=path.iter().take_while(|segment|matches!(segment,Segment::Field(_)))
                         .map(|segment|match segment {Segment::Field(name)=>name.clone(),_=>unreachable!()}).collect();
-                    loans.push(Loan{root,owner_fields,source:LifetimeSource::carried(path.clone(),guards.clone()),access,creation,retained:false,path,guards});
+                    loans.push(Loan{ whole: recursive.access(id).is_some(),root,owner_fields,source:LifetimeSource::carried(path.clone(),guards.clone()),access,creation,retained:false,path,guards});
                     continue;
                 }
                 if !self.native_shape_contains_view(ty) {continue;}
@@ -113,6 +114,34 @@ mod tests {
         assert!(origins.iter().any(|loan|loan.source==LifetimeSource::Carried(vec![Segment::Field("first".into())])));
         assert!(origins.iter().any(|loan|loan.source==LifetimeSource::Carried(vec![Segment::Field("rows".into()),Segment::Element,Segment::Element])));
     }
+    #[test]
+    fn recursive_parameter_projection_retains_shared_input_origin() {
+        let checked = checked("type Window={};type Chain={children:Chain[];view:Window;};function head(input:Chain):Window{return input.view;}function relay(input:Chain):Window{return head(input);}function main(){}").unwrap();
+        for name in ["head", "relay"] {
+            let function = checked.functions.iter().find(|function| function.name == name).unwrap();
+            let origins = function.native_returns.as_ref().unwrap();
+            assert_eq!(origins.len(), 1);
+            assert_eq!(origins[0].source, LifetimeSource::Carried(vec![]));
+            assert!(origins[0].path.is_empty());
+            let loans = function.bindings[0].native_view_loans.as_ref().unwrap();
+            assert_eq!(loans.len(), 1);
+            assert!(loans[0].whole);
+        }
+    }
+
+    #[test]
+    fn recursive_parameter_projection_keeps_outer_sibling_origins_separate() {
+        let checked = checked("type Window={};type Chain={children:Chain[];view:Window;};type Pair={chain:Chain;other:Window;};function first(input:Pair):Window{return input.chain.view;}function second(input:Pair):Window{return input.other;}function main(){}").unwrap();
+        for (name, field) in [("first", "chain"), ("second", "other")] {
+            let function = checked.functions.iter().find(|function| function.name == name).unwrap();
+            let origins = function.native_returns.as_ref().unwrap();
+            assert_eq!(origins.len(), 1);
+            assert_eq!(origins[0].source, LifetimeSource::Carried(vec![Segment::Field(field.into())]));
+            assert!(origins[0].path.is_empty());
+            assert_eq!(function.bindings[0].native_view_loans.as_ref().unwrap().len(), 2);
+        }
+    }
+
     #[test]
     fn recursive_view_carrier_gets_source_diagnostic() {
         let error=checked("type Window={};type Chain={next:Chain[];view:Window;};function identity(input:Chain):Chain{return input;}function main(){}").err().expect("recursive carrier must be diagnosed");

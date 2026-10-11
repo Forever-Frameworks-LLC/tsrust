@@ -271,7 +271,7 @@ fn main() {{
             assert_eq!(closure.captures[0].storage,if borrowed {crate::Mode::Mutate}else{crate::Mode::Consume});
             closure.invocation=if exclusive || borrowed {crate::Mode::Mutate}else{crate::Mode::Read};
             closure.function.result=Type::Record(0);
-            closure.function.native_returns=Some(Box::new(vec![Loan{
+            closure.function.native_returns=Some(Box::new(vec![Loan{ whole: false,
                 root:capture,owner_fields:vec![],source:LifetimeSource::Storage,
                 access:if exclusive {BorrowAccess::Exclusive}else{BorrowAccess::ReadOnly},
                 creation:crate::Span::default(),retained:true,path:vec![],guards:vec![],
@@ -332,7 +332,7 @@ fn main() {{
         assert_eq!(closure.captures[0].storage,crate::Mode::Read);
         // Inject the private owner-borrow summary. Source factories are still guarded.
         closure.function.result=Type::Record(0);
-        closure.function.native_returns=Some(Box::new(vec![Loan{
+        closure.function.native_returns=Some(Box::new(vec![Loan{ whole: false,
             root:capture,owner_fields:vec![],source:LifetimeSource::Storage,access:BorrowAccess::ReadOnly,
             creation:crate::Span::default(),retained:true,path:vec![],guards:vec![],
         }]));

@@ -4,6 +4,8 @@ use crate::native_return_borrows::{BorrowAccess, ReturnedBorrow};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Loan {
+    /// The path names a recursive record whose descendants share this loan.
+    pub whole: bool,
     pub root: usize,
     pub owner_fields: Vec<String>,
     pub source: LifetimeSource,
@@ -402,7 +404,7 @@ impl Analyzer {
             loan.guards.clear();
         }
         for place in places {
-            result.push(Loan {
+            result.push(Loan { whole: false,
                 root: place.root,
                 owner_fields: place.fields,
                 source: LifetimeSource::Storage,
@@ -442,7 +444,7 @@ mod tests {
         Analyzer::set_native_view_loans(
             context,
             id,
-            vec![Loan {
+            vec![Loan { whole: false,
                 root: owner,
                 owner_fields: Vec::new(),
                 source: LifetimeSource::Storage,
@@ -611,7 +613,7 @@ mod tests {
         Analyzer::set_native_view_loans(
             &mut context,
             view,
-            vec![Loan {
+            vec![Loan { whole: false,
                 root: second,
                 owner_fields: Vec::new(),
                 source: LifetimeSource::Storage,

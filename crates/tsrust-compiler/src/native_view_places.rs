@@ -20,7 +20,7 @@ pub(super) fn overlaps(left: &[String], right: &[String]) -> bool {
 }
 
 pub(super) fn under(loan: &Loan, fields: &[String]) -> bool {
-    loan.path.len() >= fields.len()
+    (loan.whole || loan.path.len() >= fields.len())
         && loan
             .path
             .iter()
@@ -30,7 +30,7 @@ pub(super) fn under(loan: &Loan, fields: &[String]) -> bool {
 
 pub(super) fn consume(loans: &mut [Loan], fields: &[String]) {
     for loan in loans {
-        if under(loan, fields) {
+        if loan.path.len() >= fields.len() && under(loan, fields) {
             loan.retained = false;
         }
     }
@@ -179,8 +179,8 @@ impl Analyzer {
             .as_deref()
             .cloned()
             .unwrap_or_default();
-        let replaced = retained.iter().filter(|loan| under(loan, &place.fields)).cloned().collect::<Vec<_>>();
-        retained.retain(|loan| !under(loan, &place.fields));
+        let replaced = retained.iter().filter(|loan| loan.path.len() >= place.fields.len() && under(loan, &place.fields)).cloned().collect::<Vec<_>>();
+        retained.retain(|loan| loan.path.len() < place.fields.len() || !under(loan, &place.fields));
         // The field keeps one native variable: see retain_unified_native_view_loans.
         Self::extend_dormant(&mut incoming, replaced.iter());
         retained.extend(incoming);

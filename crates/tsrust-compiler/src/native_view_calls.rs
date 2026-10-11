@@ -136,6 +136,7 @@ pub(super) fn transport(actual:&mut Loan,output:&Loan)->bool {
         }
     }
     actual.path=output.path.clone();
+    actual.whole=output.whole;
     actual.guards=output.guards.clone();
     if output.access==crate::native_return_borrows::BorrowAccess::Exclusive {
         actual.access=output.access;
@@ -173,7 +174,7 @@ mod tests {
         assert_eq!(capture.storage,Mode::Read);
         let outer=capture.outer;
         let inner=capture.inner;
-        analyzer.closures[0].function.native_returns=Some(Box::new(vec![Loan{
+        analyzer.closures[0].function.native_returns=Some(Box::new(vec![Loan{ whole: false,
             root:inner,owner_fields:vec![],source:LifetimeSource::Storage,
             access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:Span::default(),
             retained:true,path:vec![],guards:vec![],
@@ -212,7 +213,7 @@ mod receiver_tests {
         let closure=checked.closures.iter_mut().find(|closure|closure.invocation==Mode::Consume && closure.captures.iter().any(|capture|closure.function.bindings[capture.inner].name=="owner")).unwrap();
         let capture=closure.captures.iter().find(|capture|closure.function.bindings[capture.inner].name=="owner").unwrap();
         assert_eq!(capture.storage,Mode::Consume);
-        closure.function.native_returns=Some(Box::new(vec![Loan{
+        closure.function.native_returns=Some(Box::new(vec![Loan{ whole: false,
             root:capture.inner,owner_fields:vec![],source:LifetimeSource::Storage,
             access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:closure.span,
             retained:true,path:vec![],guards:vec![],
@@ -243,7 +244,7 @@ mod receiver_tests {
         let capture=&analyzer.closures[origin].captures[0];
         assert_eq!(capture.storage,Mode::Consume);
         let inner=capture.inner;
-        analyzer.closures[origin].function.native_returns=Some(Box::new(vec![Loan{
+        analyzer.closures[origin].function.native_returns=Some(Box::new(vec![Loan{ whole: false,
             root:inner,owner_fields:vec![],source:LifetimeSource::Storage,
             access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:Span::default(),
             retained:true,path:vec![],guards:vec![],

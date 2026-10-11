@@ -165,7 +165,7 @@ mod tests {
         Analyzer::set_native_view_loans(
             &mut context,
             view,
-            vec![Loan {
+            vec![Loan { whole: false,
                 root: owner,
                 owner_fields: vec![],
                 source: LifetimeSource::Storage,

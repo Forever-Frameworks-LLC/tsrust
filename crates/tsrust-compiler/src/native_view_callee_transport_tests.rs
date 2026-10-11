@@ -18,7 +18,7 @@ fn native_view_callback_field_call_keeps_selected_environment_origin() {
     let second=bind("second",Type::Record(0));
     let holder=bind("holder",Type::Record(1));
     assert_ne!(first,second);
-    Analyzer::set_native_view_loans(&mut context,holder,vec![Loan{
+    Analyzer::set_native_view_loans(&mut context,holder,vec![Loan{ whole: false,
         root:second,owner_fields:vec![],source:LifetimeSource::Carried(vec![]),
         access:crate::native_return_borrows::BorrowAccess::ReadOnly,creation:Span::default(),retained:true,
         path:vec![Segment::Field("read".into()),Segment::Field(format!("capture{capture}"))],guards:vec![],

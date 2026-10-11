@@ -136,3 +136,34 @@ not public source acceptance or measurements. Source parameter seeding, whole-re
 loan projections, assignment/append provenance and source/editor rejection controls
 remain before removing the recursive-storage diagnostic. Nullable links are still
 pending; their separate representation decision is approved.
+
+## Recursive parameter provenance
+
+Recursive record parameters now seed one shared carried origin. Loans explicitly
+mark when their path represents a whole recursive record. Deep field/index
+projections retain that origin; moving or replacing a descendant does not release
+the remaining record's loan. Whole-record moves still release it. Normalization
+keeps whole-record and exact-path loans distinct, and call transport preserves the
+projection contract.
+
+Three focused red projection tests and a red source parameter test preceded these
+changes. Source tests now extract and forward views from recursive parameters and
+preserve independent outer-record siblings. The native deep-chain witness now
+executes the generated source extraction and forwarding functions for readonly and
+exclusive, self-recursive and mutually recursive cases at O0/O3. Pointer identity,
+write-through, exact disposal and bounded-stack cleanup still pass.
+
+Checks: 112 adjacent native-view tests, two recursive parameter tests, the native
+relay witness, and the focused editor byte-view conflict diagnostic pass. Green runs
+have no failed or aborted targets. SQLite preserves `tsrust-recursive-view-projections-red.log`,
+`tsrust-recursive-view-parameter-red.log`, `tsrust-recursive-view-parameter-green.log`,
+`tsrust-recursive-view-projections-green.log`, `tsrust-recursive-view-source-relay.log`,
+`tsrust-recursive-view-provenance-adjacent.log`, `tsrust-recursive-view-editor-diagnostics.log`
+and `tsrust-recursive-view-parameter-siblings.log`.
+
+Local recursive construction, nested assignment/append normalization and aggregate
+returns remain unfinished. In particular, incoming loans from a source-created
+recursive value must collapse at the recursive boundary before call transport;
+relaxing call transport alone would lose the ownership guarantee. Keep the existing
+aggregate-return diagnostic until construction and replacement preserve all owners.
+This checkpoint does not accept gate 189, refresh consumers or claim measurements.
