@@ -5639,7 +5639,10 @@ impl Emitter<'_> {
         let literal =
             self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings);
         debug_assert!(!literal || parameter_count < 3);
-        let iterator = if literal {
+        let ordered_map=match receiver_type {Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)=>Some(id),_=>None};
+        let iterator = if ordered_map.is_some() {
+            "transform_array.source_iter()"
+        } else if literal {
             "transform_array.literal_iter()"
         } else if matches!(receiver_type,Type::Map(_)) {
             "transform_array.entry_iter()"
@@ -5688,10 +5691,13 @@ impl Emitter<'_> {
         } else {
             ""
         };
-        let literal_value = if literal {
-            "let transform_literal = String::Borrowed(transform_value); let transform_value = &transform_literal; "
+        let literal_value = if let Some(id)=ordered_map {
+            let view=self.ordered_map_entry_view(id,"transform_value.0","transform_value.1");
+            format!("let transform_entry={view};let transform_value=&transform_entry;")
+        } else if literal {
+            "let transform_literal = String::Borrowed(transform_value); let transform_value = &transform_literal; ".into()
         } else {
-            ""
+            String::new()
         };
         let checked_call = self.registered_traversal_call(call.clone(), callback);
         if let Type::Map(id)=result {

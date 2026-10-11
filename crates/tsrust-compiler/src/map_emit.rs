@@ -2,6 +2,16 @@
 use super::*;
 #[path="runtime_maps.rs"] mod runtime;
 impl Emitter<'_> {
+    pub(super) fn ordered_map_entry_view(&self,id:usize,key:&str,value:&str)->String {
+        let map=self.program.records[id].map_definition.as_ref().expect("checked ordered map");
+        let pair=self.program.scoped_records.declaration(map.entry.expect("checked entry"));
+        let payload=if let Type::Record(child)=map.value && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) {
+            let child=self.program.scoped_records.declaration(child);
+            let view=self.record_view_from_fields(child,&mut Vec::new(),false,"ordered_fields");
+            format!("{{let ordered_fields=({value}).tsr_fields();{view}}}")
+        }else{value.into()};
+        format!("TsrReadView{pair}{{field0:{key},field1:{payload}}}")
+    }
     pub(super) fn map_types(&self, output: &mut String) {
         if !self.program.records.iter().any(|record| record.map_definition.is_some()) { return; }
         output.push_str(runtime::MAP_RUNTIME);

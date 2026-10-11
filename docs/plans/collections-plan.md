@@ -330,9 +330,17 @@ replacement. Source acceptance is recorded separately from full implementation
 acceptance. Conversion to ordinary Map preserves source keys and independent
 storage; its focused regression exercises owned string keys and values.
 
-Public acceptance remains pending spread, Array.from and broader parameter/branch
+Public acceptance remains pending spread and broader parameter/branch
 integration. Installed consumers remain at b53e9065 until those paths are accepted.
 No OrderedMap timing or S08 milestone acceptance is claimed. Source integration
 evidence: `tsrust-s08-ordered-map-public-integration-acceptance.json` in SQLite.
 The next milestone after S08 remains project-wide, multiple-error diagnostics;
 see [project diagnostics](project-diagnostics-plan.md).
+
+OrderedMap Array.from mapping now constructs borrowed entry views over tree storage.
+Mapping retains key order and zero-based indices, supports records containing
+noncloneable ByteView values, and rejects receiver mutation. The no-mapper form
+creates an independent snapshot only for cloneable entries. Closure signatures
+accept borrowed record transports even when the entry has no native-view payload.
+The same adapter serves for-of traversal. Evidence:
+`tsrust-s08-ordered-map-array-from-acceptance.json` in SQLite.

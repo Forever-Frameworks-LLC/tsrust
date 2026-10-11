@@ -619,3 +619,23 @@ fn ordered_map_converts_to_independent_ordinary_map() {
  let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const ordered=new OrderedMap<string,string>();ordered.set('z','last');ordered.set('a','first');const ordinary=new Map<string,string>(ordered);let keys='';for(const entry of ordinary){keys+=entry[0];}strictEqual(keys,'az');ordinary.delete('a');strictEqual(ordered.size,2);strictEqual(ordinary.size,1);strictEqual(ordinary.get('z'),'last');}"#;
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
+
+#[test]
+fn ordered_map_array_from_borrows_sorted_entries() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function main(){const values=new OrderedMap<string,string>();values.set('z','last');values.set('a','first');const mapped=Array.from(values,(entry:ReadOnly<[string,string]>,index:int):string=>entry[0]+String(index)+entry[1]);strictEqual(mapped[0],'a0first');strictEqual(mapped[1],'z1last');strictEqual(values.size,2);}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_array_from_preserves_view_payloads_and_copy_boundaries() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';
+function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}
+function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}
+type Row={data:ByteView;};
+function main(){const owner=bytes();const values=new OrderedMap<int,Row>();values.set(2,{data:window(owner)});values.set(1,{data:window(owner)});const lengths=Array.from(values,(entry:ReadOnly<[int,Row]>,index:int):int=>length(entry[1].data)+entry[0]+index);strictEqual(lengths[0],3);strictEqual(lengths[1],5);strictEqual(values.size,2);const plain=new OrderedMap<string,string>();plain.set('z','last');plain.set('a','first');const copied=Array.from(plain);plain.clear();strictEqual(copied[0][0],'a');strictEqual(copied[1][1],'last');}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ for invalid in [source.replace("length(entry[1].data)+entry[0]+index","{values.clear();return 0;}"),source.replace("const lengths=Array.from(values,","const forbidden=Array.from(values);const lengths=Array.from(values,")] {
+  let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"unsafe mapping accepted");
+ }
+}

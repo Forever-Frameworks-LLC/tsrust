@@ -76,16 +76,9 @@ impl Emitter<'_> {
         let mutable = if fun.bindings[id].mutable { "mut " } else { "" };
         if let Some(Type::Map(map))=iterable.ty
             && self.program.records[map].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap) {
-            let pair=self.program.records[map].map_definition.as_ref().unwrap().entry.expect("checked map entry");
-            let pair=self.program.scoped_records.declaration(pair);
             let _=writeln!(output,"{indent}'loop_{}: for (ordered_key,ordered_value) in ({iterable_code}).source_iter() {{",statement.span.start);
-            let payload=self.program.records[map].map_definition.as_ref().unwrap().value;
-            let value=if let Type::Record(child)=payload && !self.program.records[child].fields.is_empty() && !self.record_borrow_leaf(child) {
-                let child=self.program.scoped_records.declaration(child);
-                let view=self.record_view_from_fields(child,&mut Vec::new(),false,"ordered_fields");
-                format!("{{let ordered_fields=ordered_value.tsr_fields();{view}}}")
-            }else{"ordered_value".into()};
-            let _=writeln!(output,"{indent}    let {mutable}value{id}=&TsrReadView{pair}{{field0:ordered_key,field1:{value}}};");
+            let view=self.ordered_map_entry_view(map,"ordered_key","ordered_value");
+            let _=writeln!(output,"{indent}    let {mutable}value{id}=&{view};");
             if let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{indent}    {entry}");}
             self.iteration_body(output,fun,body,depth+1,declaring_body,resets,statement);
             let _=writeln!(output,"{indent}}}");
