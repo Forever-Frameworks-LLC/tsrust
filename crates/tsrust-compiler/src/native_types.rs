@@ -127,8 +127,8 @@ static BYTE_VIEW_MUT: Declaration = Declaration {
 static DEQUE: Declaration = Declaration {
     id: NativeTypeId::Deque, module: "std:collections", name: "Deque",
     type_parameters: &["T"], representation: Representation::Opaque,
-    // Conditional element capabilities are resolved during collection integration.
-    independent_clone: false, collection_key: false, thread_transfer: false,
+    // Cloneability also requires every specialized element to support cloning.
+    independent_clone: true, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
 

@@ -46,7 +46,12 @@ remain live after removal, including captured byte views. Consuming callbacks th
 return an owned view can travel through a returned queue while retaining the byte
 owner. A callback borrowing a local view wrapper cannot escape that wrapper.
 
-Broader callback storage integration, explicit conditional cloning and
-thread-transfer capability remain unfinished. These methods do not establish
+`clone(queue)` borrows the source and creates independent queue storage. Each
+stored element is deep-cloned, including owned arrays and records. Changes to the
+copy do not affect the original. Cloning requires a cloneable element type even
+when the queue is empty. Views, callbacks and non-cloneable resources are rejected.
+Cloning costs time and storage proportional to the queue and its owned payloads.
+
+Broader callback storage integration and thread-transfer capability remain unfinished. These methods do not establish
 complete S08 acceptance. [The collection plan](../plans/collections-plan.md)
 tracks remaining implementation and family measurements.

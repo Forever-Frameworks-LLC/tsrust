@@ -20861,7 +20861,7 @@
       "notes": "Five matched native/Node cases verify borrowed traversal and deque operations without timing. S08 family measurements pending.",
       "specification": "Insert eight readonly byte views at the back and one at the front. Read index four, remove from both ends, drain the remainder, then insert and clear. Node uses array deque operations and Uint8Array.subarray. Independent arithmetic oracle observes count, indexed byte, removed byte sum and final size. Borrowed traversal independently observes the stored byte sum before removals.",
       "sourceSha256": "8f5dfb840e2591f41693180a43ee55cd3c7dfc401ac340be81152c0debfae4bb",
-      "counterpartSha256": "6f05e2758ce8a4a8931edde551f5d280a1be25620f7f1abad09b4a5f2aef36e2",
+      "counterpartSha256": "6276e45e3a28ba7cf948036f95a2cd2100e82fa093dd3f1380423cc78095416f",
       "verificationEvidence": "runtime/results/2026-10-11T11-05-09-012Z-verify.json"
     },
     {
@@ -20892,6 +20892,35 @@
       "sourceSha256": "e3f172d3906ad63b6bc0d39263ed36b65d98529bdbe25feafb22b593dc481118",
       "counterpartSha256": "7ce75718f2ac85ddf859d284c9a1560058e219d09b6dbf91d5b08e518c014de1",
       "verificationEvidence": "runtime/results/2026-10-11T11-34-29-577Z-verify.json"
+    },
+    {
+      "id": "native_deque_clone",
+      "family": "native-collections",
+      "source": "workloads/collections/deque-clone.tsr",
+      "counterpart": "workloads/collections/deque-clone.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One deep deque clone, independent payload mutation and removal",
+      "inputText": "collections",
+      "category": "collections",
+      "implementationGate": "S08",
+      "measurementStatus": "pending-collections-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Five matched native and Node-after-tsc correctness cases pass. Timing remains pending for the collections family.",
+      "specification": "Clone a deque containing a record with an owned numeric array. Mutate and remove the cloned payload independently. Observe both payload lengths, original and appended values, and empty queue sizes.",
+      "sourceSha256": "b2154ee9f9dbf7b3c799431c6d0abedb86a08a935bcd1580b96c982ea8681b44",
+      "counterpartSha256": "dd9930d4ca046b4fc83273a2fefa361b72c8bf75bb404adc971c18807c3ef16b",
+      "verificationEvidence": "runtime/results/2026-10-11T11-40-20-910Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

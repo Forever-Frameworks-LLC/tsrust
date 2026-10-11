@@ -53,6 +53,7 @@ impl Cloneability {
                 .map(|field| field.ty.expect("checked field"))
                 .collect::<Vec<_>>();
             if let Some(map) = &record.map_definition { pending.extend([map.key, map.value]); }
+            pending.extend(record.native_element());
             while let Some(ty) = pending.pop() {
                 match ty {
                     Type::Record(child) | Type::Set(child) | Type::Map(child) => reverse[child].push(parent),

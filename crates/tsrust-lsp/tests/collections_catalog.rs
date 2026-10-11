@@ -7,7 +7,7 @@ impl Drop for Directory {
 }
 
 #[test]
-fn deque_callback_example_checks_and_executes() {
+fn deque_catalog_examples_check_and_execute() {
     let path = std::env::temp_dir().join(format!("tsrust-collections-catalog-{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
     std::fs::create_dir(&path).unwrap();
     let directory = Directory(path);
@@ -15,7 +15,7 @@ fn deque_callback_example_checks_and_executes() {
     let entries = catalog["std:collections"].as_array().unwrap();
     assert_eq!(entries.len(), 1);
     for entry in entries {
-        for example in entry["examples"].as_array().unwrap().iter().rev().take(1) {
+        for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
             assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
             let id = SourceId(directory.0.join("example.tsr").to_str().unwrap().into());

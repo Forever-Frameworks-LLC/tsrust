@@ -122,8 +122,9 @@ also retains its result type when selecting native argument alternatives.
 Broader callback storage integration remains pending: nested containers, parameter
 stores, branch joins and direct callback elements need dedicated acceptance.
 A consuming integer callback reading a captured view remains rejected by the
-existing callback capture rules. Conditional cloning and thread-transfer
-capabilities also remain pending. Initial methods do not establish
+existing callback capture rules. Conditional cloning now follows the complete element structure, including nested
+records and recursive view rejection. Native execution verifies independent nested
+array mutation and empty queues. Thread-transfer capabilities remain pending. Initial methods do not establish
 complete collection acceptance. S08 remains open and no deque timing has been
 performed.
 
@@ -132,3 +133,8 @@ origins through indexed reads, traversal, removal and clearing. Five native and
 Node-after-tsc cases pass with an independent oracle; no timing was performed.
 The original diagnostics and focused acceptance are stored in SQLite as
 `tsrust-s08-deque-callback-acceptance.json`.
+
+The `native_deque_clone` workload compares explicit deep deque cloning against
+Node arrays with explicit record/array copies, then mutates the copied payload.
+Its independent arithmetic oracle observes both originals and copies. Acceptance
+evidence is stored as `tsrust-s08-deque-clone-acceptance.json`; timing remains pending.

@@ -2379,6 +2379,7 @@ impl Emitter<'_> {
                 continue;
             }
             if let Some(element) = record.native_element() {
+                if self.record_runtime.cloneable(index) { output.push_str("#[derive(Clone)]\n"); }
                 let (parameters, payload) = if self.native_views.recursive(index) {
                     ("<'view>", self.recursive_view_native_type(element, "'view"))
                 } else if self.native_collection_payload_parameter(element) {

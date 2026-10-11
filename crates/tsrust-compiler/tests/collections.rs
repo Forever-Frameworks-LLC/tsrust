@@ -1,6 +1,25 @@
 mod support;
 
 #[test]
+fn deque_clone_is_deep_and_requires_cloneable_payloads() {
+    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+type Item={values:int[];};
+function main(){const original=new Deque<Item>();original.pushBack({values:[1,2]});const copied=clone(original);const item=copied.popFront()!;item.values.push(3);strictEqual(item.values.length,3);const source=original.popFront()!;strictEqual(source.values.length,2);strictEqual(source.values[0],1);const empty=new Deque<int>();strictEqual(clone(empty).size,0);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    for declaration in ["import {ByteView} from 'std:bytes';type Item=ByteView;", "type Item={read:ReadOnly<Function<int>>;};", "import {ByteView} from 'std:bytes';type Item={next?:Item;data:ByteView;};"] {
+        let source=format!("import {{Deque}} from 'std:collections';{declaration}function main(){{const values=new Deque<Item>();const copied=clone(values);}}");
+        let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(), "non-cloneable deque accepted");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("clone"), "{}",String::from_utf8_lossy(&output.stderr));
+    }
+}
+
+
+#[test]
 fn deque_callback_records_preserve_borrowed_captures() {
     let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
 type Reader={read:ReadOnly<Function<int>>;};

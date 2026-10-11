@@ -1,0 +1,26 @@
+import { Deque } from "std:collections";
+
+type Item = {
+  values: int[];
+};
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  for (let i = 0; i < n; i++) {
+    const value = (i + seed) % 256;
+    const original = new Deque<Item>();
+    original.pushBack({
+      values: [value, 255]
+    });
+    const copied = clone(original);
+    const changed = copied.popFront()!;
+    changed.values.push(value + 1);
+    const retained = original.popFront()!;
+    output.push([retained.values.length, retained.values[0], changed.values.length, changed.values[2], original.size, copied.size]);
+  }
+
+  return output;
+}
+
+function main() {
+}
