@@ -3,7 +3,9 @@
 Status: owner approved both additions and their priority on 2026-10-11. This is
 required S10 work, ahead of additional JSON runtime APIs and benchmark expansion.
 Alias/extension/index resolution has focused compiler, editor and dev acceptance.
-Typed data-module integration remains pending. Existing JSON evidence is retained.
+Typed data modules, native storage, editor integration and matched benchmark
+support have focused acceptance. Installed-consumer verification remains pending.
+Existing JSON evidence is retained.
 
 ## Public behavior
 
@@ -411,3 +413,15 @@ and validates five native/Node-after-tsc cases with zero timing samples. Both
 registration tests pass. Evidence: `tsrust-data-benchmark-*` in SQLite. Timing
 remains deferred to the JSON family milestone; installed-consumer refresh and
 additional editor shape coverage remain open.
+
+
+## Array field editor repair
+
+A focused imported-data witness found missing field help inside `for…of` over a
+member expression such as `settings.rows`. Editor refresh inferred only the root
+binding. It now resolves the full iterable expression before extracting its
+element type. The witness covers optional record fields, heterogeneous elements,
+completion and navigation from an explicitly cloned record. All three typed-data
+editor tests and the existing Deque/Heap iteration hover tests pass.
+Evidence: `tsrust-data-shapes-*` in SQLite. Installed consumers still require
+refresh and verification; this does not close the S10 family milestone.

@@ -2040,3 +2040,24 @@ fn typed_json_import_completion_survives_incomplete_source() {
     let completion=ask(&ProjectIndex::new(&graph),entry,"ho","textDocument/completion");
     assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="host")),"{completion}");
 }
+
+#[test]
+fn typed_json_import_array_optional_union_and_clone_help() {
+    let root="file:///tsrust-intelligence/main.tsr";
+    let target="file:///tsrust-intelligence/settings.json";
+    let entry=tsrust_compiler::format("import settings from './settings.json';function main(){const owned=clone(settings);owned.title='changed';console.log(owned.title);for(const row of settings.rows){console.log(row.label);console.log(row.id);}for(const value of settings.mixed){console.log(value);}}").unwrap();
+    assert_eq!(tsrust_compiler::format(&entry).unwrap(),entry);
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(root).unwrap(),1,entry.clone());
+    workspace.open(source_id(target).unwrap(),1,r#"{"title":"original","rows":[{"id":1,"label":"first"},{"id":2}],"mixed":[1,"two",null]}"#.into());
+    let checked=workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("title);","string"),("label);","undefined"),("id);","int"),("value);","null")] {
+        let hover=ask(&index,&entry,needle,"textDocument/hover");
+        assert!(hover.to_string().contains(expected),"{needle}: {hover}");
+    }
+    let completion=ask(&index,&entry,"id);","textDocument/completion");
+    for name in ["id","label"] {assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]==name)),"{completion}");}
+    let definition=ask(&index,&entry,"title);","textDocument/definition");
+    assert_eq!(definition["uri"],target,"{definition}");
+}

@@ -732,7 +732,8 @@ impl SourceIndex {
                 && self.text(id + 2) == "of"
                 && let Some(symbol) = self.symbols.iter().position(|s| s.span.start == self.tokens[id + 1].span.start)
             {
-                let iterable = self.infer(id + 3, self.tokens[id].span.start, 0);
+                let iterable = self.simple_expression_type(id + 3, self.tokens[id].span.start, 0)
+                    .map(|(ty, _)| ty).unwrap_or_else(|| self.infer(id + 3, self.tokens[id].span.start, 0));
                 if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).or_else(||self.ordered_set_element(&iterable)).map(str::to_owned).or_else(||self.ordered_map_entry(&iterable)).or_else(||iterable_element_type(&iterable)) {
                     self.symbols[symbol].signature = format!("{keyword} {}: {element}", self.symbols[symbol].name);
                     self.symbols[symbol].ty = element;
