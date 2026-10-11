@@ -29,6 +29,10 @@ pub enum Signature {
     Number,
     Void,
     Named(NativeTypeId),
+    /// Index in the binding's explicit type parameter list, never a type name.
+    Parameter(usize),
+    /// Absence uses the ordinary undefined alternative, including borrowed values.
+    Optional(&'static Signature),
     Array(&'static Signature),
     Result(&'static Signature, &'static Signature),
     Intrinsic(Intrinsic),
@@ -37,6 +41,7 @@ pub enum Signature {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderError {
     MissingType(NativeTypeId),
+    MissingParameter(usize),
     Depth,
     Size,
 }
@@ -45,6 +50,10 @@ impl Signature {
     /// Find scoped native storage without rendering names or recursing on the
     /// Rust stack. Signature and declaration-field edges share the same bounds.
     pub fn contains_borrowed_native(&self) -> Result<bool, RenderError> {
+        self.contains_borrowed_native_with_parameters(&[])
+    }
+
+    pub fn contains_borrowed_native_with_parameters(&self, parameters: &[Signature]) -> Result<bool, RenderError> {
         if matches!(
             self,
             Self::String
@@ -67,6 +76,7 @@ impl Signature {
                 return Err(RenderError::Size);
             }
             match signature {
+                Self::Parameter(index) => pending.push((parameters.get(*index).ok_or(RenderError::MissingParameter(*index))?, depth + 1)),
                 Self::Named(id) => {
                     let declaration = crate::native_types::declaration(*id);
                     if declaration.borrow_access().is_some() {
@@ -79,7 +89,7 @@ impl Signature {
                             .map(|field| (&field.signature, depth + 1)),
                     );
                 }
-                Self::Array(element) => pending.push((element, depth + 1)),
+                Self::Array(element) | Self::Optional(element) => pending.push((element, depth + 1)),
                 Self::Result(value, error) => {
                     pending.push((error, depth + 1));
                     pending.push((value, depth + 1));
@@ -92,7 +102,11 @@ impl Signature {
 
     /// Render using the caller's visible native aliases. Unknown names stay an
     /// error instead of being guessed from an unrelated declaration's spelling.
-    pub fn render(&self, mut visible: impl FnMut(NativeTypeId) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
+    pub fn render(&self, visible: impl FnMut(NativeTypeId) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
+        self.render_with_parameters(visible, |_| None)
+    }
+
+    pub fn render_with_parameters(&self, mut visible: impl FnMut(NativeTypeId) -> Option<String>, mut parameter: impl FnMut(usize) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
         let primitive = match self {
             Self::String => Some("string"), Self::Boolean => Some("boolean"),
             Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"),
@@ -120,6 +134,7 @@ impl Signature {
                         Self::Number => output.push_str("number"),
                         Self::Void => output.push_str("void"),
                         Self::Named(id) => output.push_str(&visible(*id).ok_or(RenderError::MissingType(*id))?),
+                        Self::Parameter(index) => output.push_str(&parameter(*index).ok_or(RenderError::MissingParameter(*index))?),
                         Self::Intrinsic(intrinsic) => output.push_str(match intrinsic {
                             Intrinsic::OwnedVoidCallback => "Owned<Function<void>>",
                             Intrinsic::SharedCallback => "Function",
@@ -127,6 +142,11 @@ impl Signature {
                         }),
                         Self::Array(element) => {
                             pending.push(Work::Text("[]"));
+                            pending.push(Work::Type(element, depth + 1));
+                        }
+                        Self::Optional(element) => {
+                            output.push('(');
+                            pending.push(Work::Text(" | undefined)"));
                             pending.push(Work::Type(element, depth + 1));
                         }
                         Self::Result(value, error) => {
@@ -148,6 +168,20 @@ impl Signature {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn generic_native_signatures_require_explicit_type_arguments() {
+        let signature = Signature::Result(&Signature::Array(&Signature::Parameter(0)), &Signature::Parameter(1));
+        assert_eq!(signature.render(|_| None), Err(RenderError::MissingParameter(0)));
+        assert_eq!(signature.render_with_parameters(|_| None, |index| ["T", "E"].get(index).map(|s| s.to_string())).unwrap(), "Result<T[], E>");
+        assert_eq!(Signature::Parameter(0).contains_borrowed_native(), Err(RenderError::MissingParameter(0)));
+        assert_eq!(signature.contains_borrowed_native_with_parameters(&[Signature::Named(NativeTypeId::ByteView), Signature::Int]), Ok(true));
+        assert_eq!(signature.contains_borrowed_native_with_parameters(&[Signature::Int, Signature::Boolean]), Ok(false));
+        assert_eq!(Signature::Parameter(0).contains_borrowed_native_with_parameters(&[Signature::Parameter(0)]), Err(RenderError::Depth));
+        let optional = Signature::Array(&Signature::Optional(&Signature::Parameter(0)));
+        assert_eq!(optional.render_with_parameters(|_| None, |_| Some("T".into())).unwrap(), "(T | undefined)[]");
+        assert_eq!(optional.contains_borrowed_native_with_parameters(&[Signature::Named(NativeTypeId::ByteView)]), Ok(true));
+    }
 
     #[test]
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {

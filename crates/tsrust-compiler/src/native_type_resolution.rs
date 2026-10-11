@@ -13,7 +13,7 @@ pub fn linked_name(id: NativeTypeId) -> String {
 /// removes only declarations created by this operation.
 pub fn intern(records: &mut Vec<Record>, id: NativeTypeId, span: Span) -> Result<usize, Diagnostic> {
     let start = records.len();
-    let result = Resolver { records, nodes: 0 }.declaration(id, span, 0);
+    let result = Resolver { records, nodes: 0, parameters: &[] }.declaration(id, span, 0);
     if result.is_err() { records.truncate(start); }
     result
 }
@@ -21,13 +21,17 @@ pub fn intern(records: &mut Vec<Record>, id: NativeTypeId, span: Span) -> Result
 /// Project recursive signature metadata into structured annotations, interning
 /// referenced native declarations in the same arena. Failure is transactional.
 pub fn project(records: &mut Vec<Record>, signature: &Signature, span: Span) -> Result<ValueAnnotation, Diagnostic> {
+    project_with_parameters(records, signature, &[], span)
+}
+
+pub fn project_with_parameters(records: &mut Vec<Record>, signature: &Signature, parameters: &[Signature], span: Span) -> Result<ValueAnnotation, Diagnostic> {
     let start = records.len();
-    let result = Resolver { records, nodes: 0 }.signature(signature, span, 0);
+    let result = Resolver { records, nodes: 0, parameters }.signature(signature, span, 0);
     if result.is_err() { records.truncate(start); }
     result
 }
 
-struct Resolver<'a> { records: &'a mut Vec<Record>, nodes: usize }
+struct Resolver<'a> { records: &'a mut Vec<Record>, nodes: usize, parameters: &'a [Signature] }
 impl Resolver<'_> {
     fn bound(&mut self, span: Span, depth: usize) -> Result<(), Diagnostic> {
         self.nodes += 1;
@@ -63,6 +67,10 @@ impl Resolver<'_> {
     fn signature(&mut self, signature: &Signature, span: Span, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
         self.bound(span, depth)?;
         let kind = match signature {
+            Signature::Parameter(index) => {
+                let argument = *self.parameters.get(*index).ok_or_else(|| Diagnostic::new("native-type-argument", format!("Missing native type argument at index {index}."), span))?;
+                return self.signature(&argument, span, depth + 1);
+            }
             Signature::String => return Ok(named("string", span)),
             Signature::Boolean => return Ok(named("boolean", span)),
             Signature::Int => return Ok(named("int", span)),
@@ -70,6 +78,7 @@ impl Resolver<'_> {
             Signature::Void => return Ok(named("void", span)),
             Signature::Named(id) => { self.declaration(*id, span, depth + 1)?; return Ok(named(&linked_name(*id), span)); }
             Signature::Array(element) => Kind::Array(Box::new(self.signature(element, span, depth + 1)?)),
+            Signature::Optional(element) => Kind::Union(vec![self.signature(element, span, depth + 1)?, named("undefined", span)]),
             Signature::Result(value, error) => Kind::Applied {
                 name: TypeName { text: "Result".into(), span },
                 arguments: vec![self.signature(value, span, depth + 1)?, self.signature(error, span, depth + 1)?],
@@ -81,4 +90,38 @@ impl Resolver<'_> {
 }
 fn named(text: &str, span: Span) -> ValueAnnotation {
     ValueAnnotation { kind: Kind::Named(TypeName { text: text.into(), span }), span }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generic_projection_preserves_native_identity_and_rolls_back_missing_arguments() {
+        let span = Span::default();
+        let mut records = Vec::new();
+        let original = intern(&mut records, NativeTypeId::Bytes, span).unwrap();
+        let signature = Signature::Result(&Signature::Parameter(0), &Signature::Parameter(1));
+        let arguments = [Signature::Named(NativeTypeId::ByteView), Signature::Int];
+        let projected = project_with_parameters(&mut records, &signature, &arguments, span).unwrap();
+        let Kind::Applied { name, arguments } = projected.kind else { panic!("expected Result"); };
+        assert_eq!(name.text, "Result");
+        let Kind::Named(value) = &arguments[0].kind else { panic!("expected view identity"); };
+        assert_eq!(value.text, linked_name(NativeTypeId::ByteView));
+        assert_eq!(records[original].native_type, Some(NativeTypeId::Bytes));
+        let count = records.len();
+        let failed = project_with_parameters(&mut records, &signature, &[Signature::Named(NativeTypeId::File)], span).unwrap_err();
+        assert_eq!(failed.code, "native-type-argument");
+        assert_eq!(records.len(), count);
+        let optional = project_with_parameters(&mut records, &Signature::Optional(&Signature::Parameter(0)), &[Signature::Named(NativeTypeId::ByteView)], span).unwrap();
+        let Kind::Union(alternatives) = optional.kind else { panic!("expected optional union"); };
+        assert_eq!(alternatives.len(), 2);
+        let Kind::Named(absent) = &alternatives[1].kind else { panic!("expected undefined"); };
+        assert_eq!(absent.text, "undefined");
+        assert_eq!(records.len(), count);
+        assert!(!records.iter().any(|record| record.native_type == Some(NativeTypeId::File)));
+        let cyclic = project_with_parameters(&mut records, &Signature::Parameter(0), &[Signature::Parameter(0)], span).unwrap_err();
+        assert_eq!(cyclic.code, "native-type-limit");
+        assert_eq!(records.len(), count);
+    }
 }

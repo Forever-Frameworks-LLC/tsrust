@@ -78,3 +78,11 @@ This is backend evidence only. Public generic type resolution, construction,
 ownership analysis, code generation, editor documentation and matched benchmarks
 remain pending. The runtime is not yet selected by generated programs; S08 is not
 accepted and no deque timing has been performed.
+
+The native signature layer now represents indexed type parameters and optional
+results. Rendering requires explicit parameter names; projection substitutes
+provided signature arguments while retaining native declaration identity. Missing
+arguments fail without retaining partially interned records, and cyclic argument
+substitution is bounded. Borrowed payload detection follows both substitutions and
+optional results. This removes a metadata prerequisite; generic collection storage
+and the source constructor still require integration.

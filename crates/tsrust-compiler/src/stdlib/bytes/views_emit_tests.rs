@@ -553,9 +553,10 @@ fn native_view_factory_bridges_name_the_source_lifetime() {
             &super::super::bindings::VIEW_MUT,
         ],
     );
-    // The source may be the owner or a view of it; either way the result is tied to
-    // the lifetime of that borrow.
-    assert!(emitted.contains("fn tsrust_std_bytes_view<'a, B: TsrReadableBytes>(bytes: &'a B"));
+    // Readonly projections preserve the original slice lifetime through the
+    // shared-source trait; exclusive projections retain the receiver borrow.
+    assert!(emitted.contains("fn tsrust_std_bytes_view<'a, B: TsrSharedViewSource<'a>>(bytes: B"));
+    assert!(emitted.contains("trait TsrSharedViewSource<'a> { fn view_bytes(self) -> &'a [u8]; }"));
     assert!(emitted.contains("fn tsrust_std_bytes_view_mut<'a, B: TsrWritableBytes>(bytes: &'a mut B"));
     assert!(emitted.contains("views_runtime") || emitted.contains("pub fn view_mut("));
     let bytes = checked
