@@ -22,6 +22,21 @@ impl Registry {
     pub(crate) fn mark_parameter_contract(&mut self, id: usize) { self.parameter_contracts.insert(id); }
     pub(crate) fn parameter_contract(&self, id: usize) -> bool { self.parameter_contracts.contains(&id) }
 
+    pub(crate) fn materialize_native_element(&mut self, base: usize, element: Type, records: &mut Vec<Record>) -> usize {
+        let base = self.declaration(base);
+        if records[base].native_element() == Some(element) { return base; }
+        let key = (base, vec![element]);
+        if let Some(&id) = self.instances.get(&key) { return id; }
+        let mut record = records[base].clone();
+        assert!(record.native_element().is_some());
+        record.application.as_mut().unwrap().resolved_arguments[0] = element;
+        let id = records.len();
+        records.push(record);
+        self.instances.insert(key, id);
+        self.bases.insert(id, base);
+        id
+    }
+
     pub(crate) fn materialize(
         &mut self,
         base: usize,

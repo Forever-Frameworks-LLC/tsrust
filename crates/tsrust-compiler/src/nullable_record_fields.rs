@@ -549,7 +549,7 @@ impl Analyzer {
                     None=>return true,
                 },
                 Type::Callback(_)=>if !self.absent_callable_type(ty) {return true;},
-                Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                Type::Record(id)=>{ pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)); pending.extend(self.program.records[id].native_element()); },
                 Type::Array(element)=>pending.push(element.ty()),
                 Type::Map(id)=>pending.extend(self.program.records[id].map_definition.as_ref().map(|map|map.value)),
                 Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(self.unions.members(id)),

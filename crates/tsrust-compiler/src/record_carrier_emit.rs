@@ -27,6 +27,13 @@ impl Emitter<'_> {
             contextual.ty = Some(target);
             return Some(self.expr(fun, &contextual, Mode::Consume));
         }
+        if matches!(&value.kind, ExprKind::NativeConstructor(arguments, _) if arguments.is_empty())
+            && matches!(target, Type::Record(id) if self.program.records[id].native_element().is_some())
+        {
+            let mut contextual = value.clone();
+            contextual.ty = Some(target);
+            return Some(self.expr(fun, &contextual, Mode::Consume));
+        }
         let (ExprKind::Record(fields), Type::Record(record)) = (&value.kind, target) else {
             return None;
         };

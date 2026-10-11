@@ -1,0 +1,88 @@
+type Reader = {
+  read: ReadOnly<Function<int>>;
+};
+import { Deque } from "std:collections";
+import { Bytes, ByteView, fromArray, view, at } from "std:bytes";
+
+function byteWindow(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(part) => {
+      return part;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function first(part: ReadOnly<ByteView>): int {
+  match (at(part, 0)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const byte = (i + seed) % 256;
+    match (fromArray([byte, 255])) {
+      Ok(owner) => {
+        const captured = byteWindow(owner);
+        const values = new Deque<Reader>();
+        let count = 0;
+        while (count < 8) {
+          values.pushBack({
+            read: () => first(captured)
+          });
+          count++;
+        }
+
+        values.pushFront({
+          read: () => first(captured)
+        });
+        let read = 0;
+        {
+          const selected = values.at(4);
+          if (selected !== undefined) {
+            read = selected.read();
+          }
+        }
+
+        let traversed = 0;
+        for (const part of values) {
+          traversed += part.read();
+        }
+
+        const front = values.popFront()!;
+        const back = values.popBack()!;
+        let sum = front.read() + back.read();
+        while (values.size > 0) {
+          const part = values.popFront()!;
+          sum += part.read();
+        }
+
+        values.pushBack({
+          read: () => first(captured)
+        });
+        values.clear();
+        output.push([count + 1, read, sum, values.size, traversed]);
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

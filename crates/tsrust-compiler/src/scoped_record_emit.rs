@@ -2,6 +2,11 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn native_collection_payload_parameter(&self, ty: Type) -> bool {
+        self.scoped_record_native_parameter(ty) || crate::aggregate_callable_facts::inspect(
+            ty, &self.program.records, |id| self.program.unions[id.index()].members.clone(), |_| false,
+        ).retains
+    }
     pub(super) fn native_record_declaration(&self, id: usize) -> usize {
         let base = self.program.scoped_records.declaration(id);
         if self.native_views.recursive(id) { id } else { base }
@@ -21,7 +26,7 @@ impl Emitter<'_> {
             }
             Type::Record(id) if self.program.records[id].native_element().is_some() => {
                 let payload = self.recursive_view_native_type(self.program.records[id].native_element().unwrap(), lifetime);
-                format!("Record{id}<{payload}>")
+                format!("Record{}<{payload}>", self.native_record_declaration(id))
             }
             Type::Record(id) => {
                 let base = self.native_record_declaration(id);
@@ -176,7 +181,7 @@ impl Emitter<'_> {
             }
             Type::Record(id) if self.program.records[id].native_element().is_some() && self.native_views.contains(ty) => {
                 let payload=self.record_environment_type(self.program.records[id].native_element().unwrap(),lifetimes,next);
-                format!("Record{id}<{payload}>")
+                format!("Record{}<{payload}>", self.native_record_declaration(id))
             }
             Type::Record(id) => {
                 let arguments = self.program.records[id]

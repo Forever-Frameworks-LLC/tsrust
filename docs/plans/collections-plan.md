@@ -113,7 +113,22 @@ rejection, native view payloads and early returns through finally. Checked and
 fallback editor hover resolve the element type through import aliases. The deque
 workload also observes the borrowed traversal sum independently of its pop sum.
 
-Scoped callback payload integration, conditional cloning and
-thread-transfer capabilities remain pending. Initial methods do not establish
+Initial callback-record integration covers borrowed captures, distinct callback
+bodies, view captures, traversal and removal. A returned consuming callback that
+moves a view retains its parameter owner. Escaping callbacks that borrow a local
+view wrapper are rejected before native compilation. Nested callback invocation
+also retains its result type when selecting native argument alternatives.
+
+Broader callback storage integration remains pending: nested containers, parameter
+stores, branch joins and direct callback elements need dedicated acceptance.
+A consuming integer callback reading a captured view remains rejected by the
+existing callback capture rules. Conditional cloning and thread-transfer
+capabilities also remain pending. Initial methods do not establish
 complete collection acceptance. S08 remains open and no deque timing has been
 performed.
+
+The matched `native_byte_views_deque_callbacks` workload keeps three callback
+origins through indexed reads, traversal, removal and clearing. Five native and
+Node-after-tsc cases pass with an independent oracle; no timing was performed.
+The original diagnostics and focused acceptance are stored in SQLite as
+`tsrust-s08-deque-callback-acceptance.json`.

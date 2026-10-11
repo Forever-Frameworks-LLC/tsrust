@@ -207,3 +207,26 @@ test('Deque view workload uses feature paths, real removals and independent obse
         assert.equal(expectedChecksum(row.id, n, 19, 'bytes'), expected.checksum);
     }
 });
+
+test('Deque callbacks retain captures, invocation and independent observations', () => {
+    const row = manifest.workloads.find(value => value.id === 'native_byte_views_deque_callbacks');
+    assert.ok(row);
+    assert.equal(row.measured, false);
+    assert.equal(row.measurementStatus, 'pending-collections-family');
+    assert.equal(row.source, 'workloads/collections/deque-callbacks.tsr');
+    for (const [kind, file] of [['native', row.source], ['typescript', row.counterpart]]) {
+        const source = read('./' + file);
+        assertNativeByteViewsSource(source, row, kind);
+        for (const required of ['const captured=byteWindow(owner);', 'traversed += part.read();', 'sum += part.read();']) {
+            const changed = replaceCodeSnippet(source, required, '');
+            const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
+            assert.throws(() => assertNativeByteViewsSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind), /Deque callback scenario/);
+        }
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(row.id, 3, 255, 'bytes'), [[9,255,2295,0,2295],[9,0,0,0,0],[9,1,9,0,9]]);
+    for (const n of [0,1,17,2048]) {
+        const expected = expectedNativeByteViewsObservation(row.id, n, 19, 'bytes');
+        assert.deepEqual(expectedExactResult(row.id, n, 19, 'bytes'), expected);
+        assert.equal(expectedChecksum(row.id, n, 19, 'bytes'), expected.checksum);
+    }
+});

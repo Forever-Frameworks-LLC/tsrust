@@ -240,7 +240,7 @@ impl Emitter<'_> {
             Type::Record(id) if self.program.records[id].native_element().is_some() => {
                 path.push(Segment::Element);
                 let payload=self.native_view_signature_slot(self.program.records[id].native_element().unwrap(),input,plan,path,guards);path.pop();
-                format!("Record{id}<{payload}>")
+                format!("Record{}<{payload}>", self.native_record_declaration(id))
             }
             Type::Record(id)=>{
                 let base=self.native_record_declaration(id);

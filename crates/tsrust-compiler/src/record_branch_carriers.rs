@@ -149,7 +149,8 @@ impl Analyzer {
         self.scoped_array_storage_epochs(context,body)?;
         self.native_view_storage_epochs(context,body)?;
         let results=context.bindings.iter().enumerate().map(|(id,binding)|(id,binding.ty)).collect();
-        self.scoped_map_entry_epochs(context,body,results)
+        self.scoped_map_entry_epochs(context,body,results)?;
+        self.scoped_deque_carriers(context, body)
     }
     pub(super) fn record_field_type(&self,mut ty:Type,path:&[String])->Option<Type>{
         for name in path{let Type::Record(record)=ty else{return None;};ty=self.program.records[record].fields.iter().find(|field|field.name.text==*name)?.ty?;}

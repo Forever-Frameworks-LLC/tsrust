@@ -10470,6 +10470,15 @@ impl Analyzer {
                 }
                 if let ExprKind::Field(base, name) = &callee.kind {
                     let receiver_hint = self.expression_type_hint(context, base);
+                    if matches!(receiver_hint, Some(Type::Record(_))) {
+                        let result = match self.expression_type_hint(context, callee) {
+                            Some(Type::Closure(id)) => Some(self.closures[id].function.result),
+                            Some(Type::Callback(id)) => Some(self.callables.callbacks[id].result),
+                            Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => self.callables.storage.declaration(id).map(|id| self.callables.callbacks[id].result),
+                            _ => None,
+                        };
+                        if result.is_some() { return result; }
+                    }
                     if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_element().is_some() {
                         let result = self.deque_method_type(id, name, expr.span).ok()?;
                         return Some(if matches!(name.as_str(), "front" | "back" | "at") && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });

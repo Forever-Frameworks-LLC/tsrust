@@ -421,8 +421,8 @@ impl Emitter<'_> {
             return format!("Record{id}<'_>");
         }
         if let Type::Record(id) = value && let Some(element) = self.program.records[id].native_element()
-            && self.scoped_record_native_parameter(element) {
-            return format!("Record{id}<{}>", self.native_type(element));
+            && self.native_collection_payload_parameter(element) {
+            return format!("Record{}<{}>", self.native_record_declaration(id), self.native_type(element));
         }
         if let Type::Map(id) = value {
             let payload = self.program.records[id].map_definition.as_ref().unwrap().value;
@@ -2381,7 +2381,7 @@ impl Emitter<'_> {
             if let Some(element) = record.native_element() {
                 let (parameters, payload) = if self.native_views.recursive(index) {
                     ("<'view>", self.recursive_view_native_type(element, "'view"))
-                } else if self.scoped_record_native_parameter(element) {
+                } else if self.native_collection_payload_parameter(element) {
                     ("<P>", "P".to_owned())
                 } else { ("", self.native_type(element)) };
                 let _ = writeln!(output, "struct Record{index}{parameters} {{ values: TsrDeque<{payload}> }}");
@@ -7345,6 +7345,7 @@ impl Emitter<'_> {
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
             ExprKind::NativeConstructor(_, _) => {
                 let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
+                let id = self.native_record_declaration(id);
                 let code = format!("Record{id} {{ values: TsrDeque::new() }}");
                 match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
             }

@@ -49,6 +49,9 @@ pub(crate) fn inspect(
                 if let Some(set) = &record.set_definition {
                     pending.push(set.key);
                 }
+                if let Some(element) = record.native_element() {
+                    pending.push(element);
+                }
             }
             Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
             _ => {}
@@ -139,6 +142,22 @@ mod tests {
                 unknown: false
             }
         );
+    }
+
+    #[test]
+    fn native_collection_payloads_retain_scoped_and_owned_callback_facts() {
+        let mut deque = crate::cloneability::tests::record(&[]);
+        deque.native_type = Some(crate::native_signatures::NativeTypeId::Deque);
+        deque.application = Some(Box::new(crate::syntax::RecordApplication {
+            declaration: deque.name.clone(), arguments: vec![],
+            resolved_arguments: vec![Type::Record(1)],
+        }));
+        let mut records = vec![deque, crate::cloneability::tests::record(&[Type::BorrowedCallable(0), Type::Record(0)])];
+        let facts = inspect(Type::Record(0), &records, |_| vec![], |ty| matches!(ty, Type::BorrowedCallable(_)));
+        assert_eq!(facts, Facts { retains: true, scoped: true, unknown: false });
+        records[1].fields[0].ty = Some(Type::StoredCallable(0));
+        let facts = inspect(Type::Record(0), &records, |_| vec![], |_| false);
+        assert_eq!(facts, Facts { retains: true, scoped: false, unknown: false });
     }
 
     #[test]

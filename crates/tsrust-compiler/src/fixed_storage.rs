@@ -1325,7 +1325,7 @@ fn affected(expr: &Expr, id: usize) -> bool {
     }
 }
 
-fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
+pub(crate) fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
     for stmt in body {
         visit(stmt);
         match &stmt.kind {

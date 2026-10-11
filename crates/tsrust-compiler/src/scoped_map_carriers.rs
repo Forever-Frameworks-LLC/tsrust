@@ -179,6 +179,15 @@ impl Analyzer {
                 let target = self.program.records[id].map_definition.as_ref().unwrap().value;
                 if matches!(value.target, Some(CallTarget::MapMethod(MapMethod::Set))) && arguments[1].ty != Some(target) { arguments[1].wrap_record_carrier(target); }
             }
+            if matches!(value.target, Some(CallTarget::DequeMethod(DequeMethod::PushFront | DequeMethod::PushBack)))
+                && let ExprKind::Call(callee, arguments) = &mut value.kind
+                && let ExprKind::Field(base, _) = &mut callee.kind
+                && let Some(Type::Record(id)) = self.planned_scoped_map_result(base, results)
+                && let Some(target) = self.program.records[id].native_element()
+            {
+                base.ty = Some(Type::Record(id));
+                if arguments[0].ty != Some(target) { arguments[0].wrap_record_carrier(target); }
+            }
             if matches!(value.kind, ExprKind::Record(_)) { value.ty = Some(self.record_value_carrier_type(context, value, results)?); }
             Ok(())
         })
@@ -186,6 +195,13 @@ impl Analyzer {
     pub(super) fn planned_scoped_map_result(&self, value: &Expr, results: &HashMap<usize, Type>) -> Option<Type> {
         match &value.kind {
             ExprKind::Name(_) => results.get(&value.binding?).copied(),
+            ExprKind::Call(callee, _) if matches!(value.target, Some(CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At | DequeMethod::PopFront | DequeMethod::PopBack))) => {
+                let ExprKind::Field(base, _) = &callee.kind else { return None; };
+                let Type::Record(id) = self.planned_scoped_map_result(base, results)? else { return None; };
+                let payload = self.program.records[id].native_element()?;
+                let result = self.unions.intern([payload, Type::Undefined], value.span).ok()?;
+                if matches!(value.ty, Some(Type::BorrowedUnion(_))) { Some(Type::BorrowedUnion(result.union()?)) } else { Some(result) }
+            }
             ExprKind::Call(callee, _) if matches!(value.target, Some(CallTarget::MapMethod(MapMethod::Get))) => {
                 let ExprKind::Field(base, _) = &callee.kind else { return None; };
                 let Type::Map(id) = self.planned_scoped_map_result(base, results)? else { return None; };
@@ -193,6 +209,7 @@ impl Analyzer {
                 let result = self.unions.intern([payload, Type::Undefined], value.span).ok()?;
                 if matches!(value.ty, Some(Type::BorrowedUnion(_))) { Some(Type::BorrowedUnion(result.union()?)) } else { Some(result) }
             }
+            ExprKind::Unary { op: UnaryOp::RecordCarrier | UnaryOp::NonNull, value: inner, .. } => self.planned_scoped_map_result(inner, results),
             ExprKind::Project { value: inner, narrowed, .. } if matches!(narrowed, Type::Record(_)) => self.unions.payload(self.planned_scoped_map_result(inner, results)?.owning()),
             ExprKind::Index(base, _) => match self.planned_scoped_map_result(base, results)? { Type::Array(element) => Some(element.ty()), _ => None },
             ExprKind::Field(base, name) => {

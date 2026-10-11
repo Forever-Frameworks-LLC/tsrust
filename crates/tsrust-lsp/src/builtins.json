@@ -5122,20 +5122,27 @@
   }
 ],
   "std:collections": [
-  {
-    "name": "Deque",
-    "signature": "type Deque<T>",
-    "parameters": [],
-    "documentation": "An owned double-ended queue of values of type T. Construct an empty queue with new Deque<T>(); the constructor takes no arguments and requires an explicit element type. Construction returns independent empty storage. Storage releases automatically when its owner ends. Record literals, comparison, inspection and cloning are currently unsupported. for...of visits elements from front to back without removing them. Scalar elements copy; owned elements borrow readonly for the iteration. Mutation or transfer of the queue during iteration is rejected. Empty queues perform no loop iterations. Ownership: passing by value transfers the queue; borrowed element types retain their original owners.\n\n```tsrust\nimport {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}\n```\n\nExpected output: none.",
-    "examples": [
-      {
-        "source": "import {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}",
-        "output": ""
-      },
-      {"source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(2);values.pushFront(1);let sum=0;for(const value of values){sum+=value;}console.log(sum,values.size);}", "output": "3 2\n"}
-    ]
-  }
-],
+    {
+      "name": "Deque",
+      "signature": "type Deque<T>",
+      "parameters": [],
+      "documentation": "An owned double-ended queue of values of type T. Construct an empty queue with new Deque<T>(); the constructor takes no arguments and requires an explicit element type. Construction returns independent empty storage. Storage releases automatically when its owner ends. Record literals, comparison, inspection and cloning are currently unsupported. for...of visits elements from front to back without removing them. Scalar elements copy; owned elements borrow readonly for the iteration. Mutation or transfer of the queue during iteration is rejected. Empty queues perform no loop iterations. Ownership: passing by value transfers the queue; borrowed element types retain their original owners.\n\n```tsrust\nimport {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}\n```\n\nExpected output: none.\n\nRecords with readonly callbacks retain captured owners while stored or removed. A removed callback still borrows its captures.\n\n```tsrust\nimport {Deque} from \"std:collections\";type Reader={read:ReadOnly<Function<int>>;};function main(){const text=\"hello\";const values=new Deque<Reader>();values.pushBack({read:()=>text.length});for(const item of values){console.log(item.read());}}\n```\n\nExpected output: 5.",
+      "examples": [
+        {
+          "source": "import {Deque} from \"std:collections\"; function accept(values:Deque<int>):void{} function main(){const values=new Deque<int>();accept(values);}",
+          "output": ""
+        },
+        {
+          "source": "import {Deque} from \"std:collections\";function main(){const values=new Deque<int>();values.pushBack(2);values.pushFront(1);let sum=0;for(const value of values){sum+=value;}console.log(sum,values.size);}",
+          "output": "3 2\n"
+        },
+        {
+          "source": "import {Deque} from \"std:collections\";type Reader={read:ReadOnly<Function<int>>;};function main(){const text=\"hello\";const values=new Deque<Reader>();values.pushBack({read:()=>text.length});for(const item of values){console.log(item.read());}}",
+          "output": "5\n"
+        }
+      ]
+    }
+  ],
   "std:fs": [
   {
     "name": "File",

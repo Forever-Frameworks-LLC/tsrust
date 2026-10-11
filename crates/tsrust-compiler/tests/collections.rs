@@ -1,6 +1,72 @@
 mod support;
 
 #[test]
+fn deque_callback_records_preserve_borrowed_captures() {
+    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+type Reader={read:ReadOnly<Function<int>>;};
+function main(){const text='borrowed';const values=new Deque<Reader>();values.pushBack({read:()=>text.length});for(const item of values){strictEqual(item.read(),8);}const item=values.popFront()!;strictEqual(item.read(),8);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    for source in [
+        source.replace("for(const item of values)", "const moved=text;for(const item of values)"),
+        source.replace("const item=values.popFront()!;strictEqual", "const item=values.popFront()!;const moved=text;strictEqual"),
+    ] {
+        let path = directory.source(&support::format_round_trip(&source));
+        let output = support::run(support::cli().arg("check").arg(path), 30);
+        assert!(!output.status.success(), "captured owner transferred while callback remained live");
+        assert!(String::from_utf8_lossy(&output.stderr).contains("capture-conflict"), "{}", String::from_utf8_lossy(&output.stderr));
+    }
+}
+
+#[test]
+fn deque_callback_records_join_distinct_environments() {
+    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+type Reader={read:ReadOnly<Function<int>>;};
+function main(){const text='one';const other='seven';const values=new Deque<Reader>();values.pushBack({read:()=>text.length});values.pushBack({read:()=>other.length});let sum=0;for(const item of values){sum+=item.read();}strictEqual(sum,8);const first=values.popFront()!;const last=values.popBack()!;strictEqual(first.read(),3);strictEqual(last.read(),5);values.pushBack({read:()=>text.length+other.length});strictEqual(values.popFront()!.read(),8);}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+}
+
+#[test]
+fn deque_callback_records_retain_native_view_captures() {
+    let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+    let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
+type Reader={{read:ReadOnly<Function<int>>;}};
+function main(){{const owner=bytes('ab');const part=window(owner);const values=new Deque<Reader>();values.pushBack({{read:()=>length(part)}});for(const item of values){{strictEqual(item.read(),2);}}const item=values.popFront()!;strictEqual(item.read(),2);}}
+"#);
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+}
+
+#[test]
+fn returned_deque_callback_records_keep_parameter_owners() {
+    let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+    let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
+type Reader={{read:Once<Function<ByteView>>;}};
+function collect(owner:ReadOnly<Bytes>):Deque<Reader>{{const part=window(owner);const values=new Deque<Reader>();values.pushBack({{read:()=>part}});return values;}}
+function main(){{const owner=bytes('ab');const values=collect(owner);const item=values.popFront()!;strictEqual(length(item.read()),2);}}
+"#);
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    let invalid = source.replace("const values=collect(owner);const item", "const values=collect(owner);const moved=owner;const item");
+    let path = directory.source(&support::format_round_trip(&invalid));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success(), "returned callback deque lost its byte owner");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("borrow"), "{}", String::from_utf8_lossy(&output.stderr));
+    let invalid = source.replace("Once<Function<ByteView>>", "ReadOnly<Function<int>>").replace("read:()=>part", "read:()=>length(part)").replace("length(item.read())", "item.read()");
+    let path = directory.source(&support::format_round_trip(&invalid));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("callback-escape"), "{}", String::from_utf8_lossy(&output.stderr));
+}
+
+#[test]
 fn deque_iteration_borrows_in_front_to_back_order() {
     let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
 function main(){const values=new Deque<string>();values.pushBack('b');values.pushFront('a');values.pushBack('c');let joined='';for(const value of values){joined+=value;}strictEqual(joined,'abc');strictEqual(values.size,3);values.clear();for(const value of values){throw 'empty queue visited';}}

@@ -40,7 +40,13 @@ an exclusive view cannot escape the local queue that stores it.
 elements copy; owned elements borrow readonly for each iteration. The queue
 cannot mutate or transfer while traversal borrows it. Empty queues skip the body.
 
-Scoped callback payload integration, explicit conditional cloning and
+Records containing readonly callbacks can be stored, traversed and removed.
+Different callback bodies share a checked payload representation. Borrowed captures
+remain live after removal, including captured byte views. Consuming callbacks that
+return an owned view can travel through a returned queue while retaining the byte
+owner. A callback borrowing a local view wrapper cannot escape that wrapper.
+
+Broader callback storage integration, explicit conditional cloning and
 thread-transfer capability remain unfinished. These methods do not establish
 complete S08 acceptance. [The collection plan](../plans/collections-plan.md)
 tracks remaining implementation and family measurements.

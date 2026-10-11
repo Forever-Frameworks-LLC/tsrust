@@ -20863,6 +20863,35 @@
       "sourceSha256": "8f5dfb840e2591f41693180a43ee55cd3c7dfc401ac340be81152c0debfae4bb",
       "counterpartSha256": "6f05e2758ce8a4a8931edde551f5d280a1be25620f7f1abad09b4a5f2aef36e2",
       "verificationEvidence": "runtime/results/2026-10-11T11-05-09-012Z-verify.json"
+    },
+    {
+      "id": "native_byte_views_deque_callbacks",
+      "family": "native-byte-views",
+      "source": "workloads/collections/deque-callbacks.tsr",
+      "counterpart": "workloads/collections/deque-callbacks.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "Nine view-capturing deque callbacks, borrowed traversal, removal from both ends and clear",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": "S08",
+      "measurementStatus": "pending-collections-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Matched native and Node-after-tsc correctness verified for five cases. Timing remains pending for the collections family.",
+      "specification": "Store nine callback records capturing one readonly byte view, with distinct closure origins at both ends. Invoke through borrowed traversal and after moving removals. Observe count, indexed value, removal sum, empty size and traversal sum using an independent arithmetic oracle.",
+      "sourceSha256": "e3f172d3906ad63b6bc0d39263ed36b65d98529bdbe25feafb22b593dc481118",
+      "counterpartSha256": "7ce75718f2ac85ddf859d284c9a1560058e219d09b6dbf91d5b08e518c014de1",
+      "verificationEvidence": "runtime/results/2026-10-11T11-34-29-577Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
