@@ -672,3 +672,19 @@ fn ordered_map_spread_combines_readonly_and_owning_parameters() {
  let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';type Row={text:string;};function mixed(first:ReadOnly<[string,Row]>,second:[string,Row]):string{return first[0]+first[1].text+second[0]+second[1].text;}function read(first:ReadOnly<[string,Row]>,second:ReadOnly<[string,Row]>):string{return first[0]+first[1].text+second[0]+second[1].text;}function main(){const values=new OrderedMap<string,Row>();values.set('b',{text:'2'});values.set('a',{text:'1'});strictEqual(read(...values),'a1b2');strictEqual(mixed(...values),'a1b2');}"#;
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
+
+#[test]
+fn ordered_map_spread_handles_optional_readonly_entries() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {strictEqual} from 'std:testing';function read(entry?:ReadOnly<[string,string]>):string{if(entry===undefined){return 'empty';}return entry[0]+entry[1];}function main(){const values=new OrderedMap<string,string>();strictEqual(read(...values),'empty');values.set('a','1');strictEqual(read(...values),'a1');strictEqual(values.size,1);}"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn ordered_map_spread_returns_original_view_projection() {
+ let source=r#"import {OrderedMap} from 'std:collections';import {Bytes,ByteView,fromUtf8,view,length} from 'std:bytes';import {strictEqual} from 'std:testing';function bytes():Bytes{match(fromUtf8('ab')){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function window(owner:ReadOnly<Bytes>):ByteView{match(view(owner,0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function project(entry:ReadOnly<[int,ByteView]>):ByteView{match(view(entry[1],0,2)){Ok(value)=>{return value;},Err(error)=>{throw error.message;}}}function select(owner:ReadOnly<Bytes>):ByteView{const values=new OrderedMap<int,ByteView>();values.set(3,window(owner));return project(...values);}function main(){const owner=bytes();const result=select(owner);strictEqual(length(result),2);}"#;
+ let directory=support::TempDirectory::new();
+ for candidate in [source.to_owned(),source.replace("new OrderedMap<int,ByteView>()","new Map<int,ByteView>()")] {
+  let path=directory.source(&support::format_round_trip(&candidate));support::success(&support::run(support::cli().arg("run").arg(path),120));
+ }
+ let invalid=source.replace("strictEqual(length(result),2);","const moved=owner;strictEqual(length(result),2);");let path=directory.source(&support::format_round_trip(&invalid));let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success(),"escaped projection lost owner");
+}

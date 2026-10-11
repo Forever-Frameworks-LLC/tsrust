@@ -1489,7 +1489,7 @@ impl Emitter<'_> {
             }
             if matches!(actual, Type::Null | Type::Undefined)
                 && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
-                && self.scoped_record_native_parameter(payload)
+                && (self.scoped_record_native_parameter(payload) || matches!(payload,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))))
             {
                 return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
             }

@@ -153,7 +153,11 @@ impl Analyzer {
             let value = match task {
                 Task::SpreadArgument(value,spread,rest) => {
                     if rest {pending.push(Task::Wrap(result.len(),Segment::Element));}
-                    if spread {pending.push(Task::Select(result.len(),Segment::Element));}
+                    if spread {
+                        // Map storage retains value loans; spread exposes [key, value].
+                        if matches!(value.ty,Some(Type::Map(_))) {pending.push(Task::Wrap(result.len(),Segment::Field("1".into())));}
+                        pending.push(Task::Select(result.len(),Segment::Element));
+                    }
                     pending.push(Task::Value(value));
                     continue;
                 }

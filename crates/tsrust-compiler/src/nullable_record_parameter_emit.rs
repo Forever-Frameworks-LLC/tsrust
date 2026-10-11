@@ -10,13 +10,13 @@ impl Emitter<'_> {
         let members = &self.program.unions[union.index()].members;
         let record = members.iter().find_map(|ty| if let Type::Record(record) = ty { Some(*record) } else { None })?;
         if members.iter().any(|ty| !matches!(ty, Type::Record(_) | Type::Null | Type::Undefined))
-            || !self.callback_record_native_parameter(Type::Record(record)) { return None; }
+            || !self.borrowing_records.contains(&self.program.scoped_records.declaration(record)) { return None; }
         Some((union, record))
     }
 
     pub(super) fn nullable_record_parameter_bound(&self, fun: &CheckedFunction, id: usize) -> Option<String> {
         let (_, record) = self.nullable_record_parameter(fun, id)?;
-        let layout = crate::scoped_record_places::Layout::for_record(record, &self.program.records)?;
+        let layout = self.record_borrow_layout(record)?;
         let fields = layout.leaves.iter().map(|leaf| {
             let associated = leaf.path.iter().map(|field| format!("Field{field}")).collect::<String>();
             format!("{associated}={}", self.native_type(leaf.ty))
@@ -36,7 +36,7 @@ impl Emitter<'_> {
         let Type::Record(record) = root.ty? else { return None; };
         if !(0..fun.parameter_count).any(|id| self.nullable_record_parameter(fun, id).is_some_and(|(_, payload)| payload == record)) { return None; }
         path.reverse();
-        let layout = crate::scoped_record_places::Layout::for_record(record, &self.program.records)?;
+        let layout = self.record_borrow_layout(record)?;
         if !layout.leaves.iter().any(|leaf| leaf.path == path) { return None; }
         let method = path.iter().map(|field| format!("field{field}")).collect::<Vec<_>>().join("_");
         let receiver = self.expr(fun, root, Mode::Read);

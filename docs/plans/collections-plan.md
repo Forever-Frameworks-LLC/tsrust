@@ -359,6 +359,15 @@ or tree entry fields, so calls may mix explicit tuple arguments with OrderedMap
 spread in either order. The shared record bridge reads every form without cloning
 or erased lifetimes. View payloads retain their owners, and ordinary tuple-array
 spread remains supported in the same borrowing family. The collection and
-call-spread regression targets pass. Optional/union parameters, escaping projections
-and broader branch integration still require focused coverage before public
-acceptance. Evidence: `tsrust-s08-ordered-map-read-spread-acceptance.json` in SQLite.
+call-spread regression targets pass. Mixed union sources and broader branch integration still require focused coverage
+before public acceptance. Optional parameters and returned subviews are covered by
+the subsequent checkpoint below. Evidence: `tsrust-s08-ordered-map-read-spread-acceptance.json` in SQLite.
+
+Optional readonly tuple parameters now accept empty or one-entry OrderedMap spread.
+Nullable record signatures use the existing borrowing family, and absent arguments
+name a concrete payload type when Rust cannot infer it from a value. Spread loan
+transport adds the entry value field after selecting a Map storage element.
+Consequently a returned explicit subview can outlive a local map while retaining
+its original byte owner. The same provenance repair applies to ordinary Map.
+Owner transfer with a live returned view remains rejected. Evidence:
+`tsrust-s08-ordered-map-optional-projection-acceptance.json` in SQLite.
