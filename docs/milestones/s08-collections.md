@@ -1,8 +1,8 @@
 # S08 collections acceptance
 
 Status: implementation, complete regression acceptance and family measurements are
-verified. Performance investigation, native-reference review and installed-consumer
-refresh remain pending.
+verified, including native-reference review. Targeted performance improvements and
+installed-consumer refresh remain pending.
 S08 is not yet accepted as a complete roadmap milestone.
 
 ## Regression evidence
@@ -99,10 +99,52 @@ protocol counts, deterministic profiles and complete disposal. All records were
 read back byte-for-byte before removing their loose copies. Release build and
 runner logs are retained in SQLite under their `tsrust-s08-*-c7dc044e.log` names.
 
+## Native reference review
+
+At `7bdd6947`, handwritten Rust controls exercise VecDeque deep clone, BinaryHeap,
+BTreeSet and BTreeMap with the same observable scenarios. Independent arithmetic
+oracles pass five cases for every control at both optimization levels 0 and 3.
+The measured controls retain three processes, eight warmups and 31 samples, plus
+three allocation profiles each: 372 timing samples and 12 profiles in total.
+Every profile releases all tracked allocations and agrees across its three runs.
+
+| Workload | Generated native / direct Rust throughput | Direct Rust allocations | Direct Rust reallocations |
+| --- | ---: | ---: | ---: |
+| Deque deep clone | 2.370× | 10,241 | 2,057 |
+| Heap | 0.694× | 10,241 | 4,105 |
+| OrderedSet | 1.044× | 6,145 | 9 |
+| OrderedMap | 1.052× | 6,145 | 9 |
+
+These controls use standard containers and Vec results rather than generated
+wrappers and array representations. The result oracle is identical, but this is
+not an isolated backend comparison. Generated fixed numeric arrays avoid heap
+storage used by the Deque control's Vec values. Tree controls have matching
+allocation counts; small timing differences do not justify tree optimization.
+Heap's generated path has 4,096 more allocations per 2,048-iteration batch and
+warrants inspection of borrowed rest/spread materialization.
+
+Source inspection also identifies two costs in the slower existing workloads.
+String iteration allocates an owned string for every scalar and a fresh buffer
+for every binary concatenation. Map/Set stores each hash bucket's slot indices
+in a separate Vec, allocating even when a bucket contains only one key. An inline
+first slot can remove the common-case bucket allocation without changing key
+identity, insertion order or collision behavior. Validate collisions, deletion,
+reinsertion, cloning and allocation changes before accepting that optimization.
+
+Exact reference inputs, commands, binaries' hashes and observations remain in
+SQLite under `runtime/diagnostics/2026-10-11T14-29-47-367Z-direct-rust-collections.json`.
+The `s08-direct-rust-proof-7bdd6947.json` proof binds derived execution/profile
+records to that original. Derived samples use the `direct-rust` engine and
+`direct-rust-reference` scope, separately from generated-native baselines.
+The verified control record is
+`runtime/diagnostics/2026-10-11T14-29-16-118Z-direct-rust-collections-verify.json`;
+an earlier verification record retains a superseded description copied from the
+byte reference runner and is not the accepted scope description.
+
 ## Remaining acceptance
 
-Investigate slower workloads, complete native-reference review and make only
-justified optimizations. Preserve this baseline and rerun only affected workloads
+Complete the identified Map/Set bucket optimization and inspect Heap spread
+allocations. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
 after changes. Refresh all installed consumers and verify editor diagnostics.
 Then begin the requested project-wide, multiple-error diagnostics milestone before
 S09. The measurement proof accepts the recorded measurements; it does not declare
