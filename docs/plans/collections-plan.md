@@ -288,5 +288,19 @@ replacement, independent clone mutation and number-key equality. The witness
 selects internal identities after ordinary Map analysis; it does not establish
 public OrderedMap construction, complete ownership integration or editor support.
 The ordinary collection regression suite remains green. Evidence:
-`tsrust-s08-ordered-map-emission-acceptance.json` in SQLite. Borrowed for-of entries
-and callback/view payload integration remain required before public acceptance.
+`tsrust-s08-ordered-map-emission-acceptance.json` in SQLite. That checkpoint did
+not include borrowed for-of entries or complete callback/view payload integration.
+
+Internal OrderedMap for-of now builds readonly record views over the tree's
+separate key and value references. It reuses record borrowing bridges for complete
+entry parameters, nested record fields, captured reads and explicit deep clones.
+The native witness checks sorted traversal, direct reads, readonly helper calls,
+nested fields, independent cloned data and early return through finally. Iteration
+views acquire their field borrows inside each loop iteration, not the function
+prologue. Ordinary Map and array entries in a borrowing family use the same field
+transport. No implicit key/value copies or shared owners are introduced.
+
+Evidence: `tsrust-s08-ordered-map-entry-acceptance.json` in SQLite. OrderedMap is
+still unexported. Public constructor/type-checking integration, native view and
+callback payload coverage, editor/catalog work and matched benchmark support remain
+before public acceptance and S08 family measurements.

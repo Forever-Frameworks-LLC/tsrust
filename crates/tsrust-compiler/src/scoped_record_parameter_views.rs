@@ -19,7 +19,7 @@ impl Emitter<'_> {
     }
     pub(super) fn record_parameter_layout(&self,fun:&CheckedFunction,id:usize)->Option<crate::scoped_record_places::Layout> {
         let binding=fun.bindings.get(id)?;
-        if !((binding.parameter && self.record_parameter_binding(fun,id)) || binding.capture_reference) || !matches!(binding.mode,Mode::Read|Mode::Mutate) {return None;}
+        if binding.borrowed_element.is_none() && (!((binding.parameter && self.record_parameter_binding(fun,id)) || binding.capture_reference) || !matches!(binding.mode,Mode::Read|Mode::Mutate)) {return None;}
         let Type::Record(record)=binding.input_ty.unwrap_or(binding.ty) else{return None;};
         let declaration=self.program.scoped_records.declaration(record);
         if !self.borrowing_records.contains(&declaration) || self.program.records[declaration].fields.is_empty(){return None;}
@@ -40,7 +40,7 @@ impl Emitter<'_> {
     pub(super) fn record_parameter_entry_view(&self, fun: &CheckedFunction, id: usize) -> Option<String> {
         self.record_parameter_layout(fun,id)?;
         let binding=&fun.bindings[id];
-        let (mutable,method)=if binding.mode==Mode::Mutate{("mut ","tsr_fields_mut")}else{("","tsr_fields")};
+        let (mutable,method)=if binding.borrowed_element.is_none() && binding.mode==Mode::Mutate{("mut ","tsr_fields_mut")}else{("","tsr_fields")};
         Some(format!("let {mutable}record_fields{id}=value{id}.{method}();"))
     }
     pub(super) fn record_parameter_bound(&self, fun:&CheckedFunction,id:usize,function:usize)->Option<String> {

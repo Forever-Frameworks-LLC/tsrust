@@ -1740,7 +1740,7 @@ impl Emitter<'_> {
             if fun.bindings[id].input_ty.is_none(){if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
         }
         for id in 0..fun.bindings.len() {
-            if let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}
+            if fun.bindings[id].borrowed_element.is_none() && let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}
         }
         for (id,binding) in fun.bindings.iter().enumerate().filter(|(_,binding)|binding.input_ty.is_some()) {
             self.parameter_default_initialization(output,fun,id,indent);

@@ -11,9 +11,10 @@ impl Emitter<'_> {
     /// Compute nominal borrowing families once, including ordinary record children.
     pub(super) fn record_borrowing_family(&self)->HashSet<usize> {
         let mut family=HashSet::new();
+        let ordered_entries=self.program.records.iter().filter(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)).filter_map(|record|record.map_definition.as_ref()?.entry).map(|id|self.program.scoped_records.declaration(id)).collect::<HashSet<_>>();
         for id in 0..self.program.records.len() {
             let root=self.program.scoped_records.declaration(id);
-            if family.contains(&root) || !self.callback_record_native_parameter(Type::Record(root)) {continue;}
+            if family.contains(&root) || (!ordered_entries.contains(&root) && !self.callback_record_native_parameter(Type::Record(root))) {continue;}
             if crate::scoped_record_places::Layout::for_record(root,&self.program.records).is_none(){continue;}
             let mut pending=vec![root];
             while let Some(record)=pending.pop() {

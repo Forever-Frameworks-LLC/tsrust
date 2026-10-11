@@ -123,6 +123,28 @@ impl Emitter<'_> {
 #[cfg(test)]
 mod ordered_tests {
     #[test]
+    fn ordered_map_entries_borrow_keys_and_cross_readonly_parameters() {
+        let source=r#"
+function score(entry:ReadOnly<[string,int]>):int{return entry[0].length+entry[1];}
+function first(values:ReadOnly<Map<string,int>>):int{for(const entry of values){try{return score(entry);}finally{if(values.size!==2){throw 'finally';}}}return -1;}
+type Detail={label:string;count:int;};
+function nestedScore(entry:ReadOnly<[string,Detail]>):int{return entry[0].length+entry[1].label.length+entry[1].count;}
+function main(){
+  const values=new Map<string,int>();values.set('z',9);values.set('ab',1);
+  let sum=0;let keys='';
+  for(const entry of values){sum+=score(entry);sum+=entry[1];keys+=entry[0];}
+  if(sum!==23 || keys!=='abz' || values.size!==2){throw 'borrowed entries';}
+  if(first(values)!==3){throw 'completion';}
+  const nested=new Map<string,Detail>();nested.set('a',{label:'test',count:4});
+  for(const entry of nested){if(nestedScore(entry)!==9 || entry[1].label!=='test'){throw 'nested entry';}const read=()=>nestedScore(entry);if(read()!==9){throw 'capture';}const copy=clone(entry);copy[1].label='changed';if(entry[1].label!=='test' || copy[1].label!=='changed'){throw 'entry clone';}}
+}
+"#;
+        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+        let mut checked=crate::check(&formatted).unwrap();
+        for record in &mut checked.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
+        crate::scoped_record_places::tests::native(&super::emit(&checked.program));
+    }
+    #[test]
     fn ordered_map_core_emission_uses_tree_queries_and_sorted_snapshots() {
         // Exercise backend selection while OrderedMap remains unexported. Source
         // checking still supplies the ordinary map ownership and method plans.
