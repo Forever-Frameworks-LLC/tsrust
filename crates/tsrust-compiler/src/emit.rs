@@ -56,6 +56,8 @@ mod restored_capture_slots;
 mod finally_move_slots;
 #[path = "field_completion_transport.rs"]
 mod field_completion_transport;
+#[path = "field_control_transport.rs"]
+mod field_control_transport;
 #[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
 #[path = "callback_family_result_adapters.rs"]
@@ -3320,6 +3322,9 @@ impl Emitter<'_> {
         let (in_decl,in_name)=if let Some(handler)=&region.catch {
             self.completion_error_layout(&format!("RegionIncoming{first}"),handler.error_contract.as_deref().expect("checked catch contract"),runtime,statement.span)
         }else{(String::new(),out_name.clone())};
+        if let Some(transport)=self.field_control_transport(fun,statement,region,first,&out_name,&outgoing,runtime) {
+            return format!("{{ {in_decl} {out_decl} {transport} }}");
+        }
         if let Some(transport)=self.field_completion_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
             return format!("{{ {in_decl} {out_decl} {transport} }}");
         }

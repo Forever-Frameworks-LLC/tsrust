@@ -22,6 +22,7 @@ impl State {
         transferred.is_none_or(|span| self.0.get(place).is_some_and(|boundary|span.end<=*boundary))
     }
     pub fn render(&self, values: &[Value]) -> String {
+        if values.is_empty(){return "()".into();}
         format!("({},)", values.iter().map(|value| if self.available(&value.place,value.transferred) {value.live.as_deref().unwrap_or(value.place.as_str())} else {value.empty.as_str()}).collect::<Vec<_>>().join(","))
     }
 }
@@ -51,6 +52,7 @@ mod tests {
     #[test]
     fn projected_storage_never_revives_a_transferred_source_owner() {
         let mut state=State::default();
+        assert_eq!(state.render(&[]),"()");
         let value=Value{place:"owner".into(),empty:"Empty::new()".into(),live:Some("move_survivors(owner)".into()),transferred:Some(Span::new(10,20)),target:None};
         assert_eq!(state.render(std::slice::from_ref(&value)),"(Empty::new(),)");
         state.renew(&["owner".into()],19);

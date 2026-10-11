@@ -103,6 +103,9 @@ impl Exits {
             }
         }else{states.push(CompletionOwners{phase,kind,bindings:owners.len(),unavailable});}
     }
+    pub(crate) fn has_completion_owners(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>)->bool {
+        self.19.as_ref().and_then(|states|states.get(&boundary)).is_some_and(|states|states.iter().any(|state|state.phase==phase && state.kind==kind))
+    }
     pub(crate) fn completion_field_available(&self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,place:&crate::capture_loan_owners::Place)->Option<bool> {
         let state=self.19.as_ref()?.get(&boundary)?.iter().find(|state|state.phase==phase && state.kind==kind)?;
         Some(place.binding<state.bindings && !state.unavailable.iter().any(|owner|owner.binding==place.binding

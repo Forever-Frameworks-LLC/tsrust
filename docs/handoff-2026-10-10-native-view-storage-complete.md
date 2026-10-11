@@ -63,17 +63,31 @@ A separate callback-environment probe verifies exact disposal and allocation
 identity. Integration cases verify conditional cleanup returns and terminal
 branches with different callback origins. See the acceptance map for final counts.
 
-Still pending: escaping loop controls, catches after body-field transfers and
-capture/specialized record layouts retain fallback routes. A new native loop-control
-disposal witness tracks the next gap. Do not accept resource cleanup yet. Preserve
-lexical disposal without manual drops, dummy owners or clones.
+Ordinary field-return loops now carry a separate field tuple for every escaping
+break/continue destination. Handled ownership snapshots select fields entering
+cleanup; Cleaned snapshots select survivors for the eventual loop exit. Body scopes
+end before cleanup. Cleanup can replace a pending return with break. Normal branches
+that have no checked completion diverge instead of inventing field initialization.
+Nested cleanup, continue/update, labeled exits, normal fallthrough and a Map-backed
+loop disposal probe pass. Empty native ownership payloads now render the valid unit
+tuple. The original loop-control witness is enabled.
 
-The existing public fixture and matched `exception_completion` workload exercise
-Map partial returns and conditional returns from finally. Source hashes, matched
-TypeScript, independent oracle and mutation guards remain current. Exact red and
-repaired records for this checkpoint use SQLite prefix `tsrust-map-field-transport-`.
-No timing or full family regression ran. Installed CLI/editor consumers remain
-`4367f4cc`; scratch release is rebuilt from this checkpoint before acceptance.
+Remaining ignored native witness: `body_field_return_and_catch_keep_lexical_disposal`.
+One body branch returns a field; another throws to an empty catch. The body local
+still survives into cleanup on the return path. Field ownership must travel on the
+throw/error completion and be restored before catch, independently of normal and
+return payloads. `completion_field_plan` currently rejects body-field transfers when
+a reachable catch exists. The new `field_control_transport.rs` also leaves catches
+to existing routes. Specialized/captured record layouts still need coverage. Do not
+accept resource cleanup yet; preserve real scopes without manual drops or clones.
+
+Public fixtures and matched `exception_completion` now exercise loop field returns,
+break, continue and normal fallthrough with cleanup trace. Matched TypeScript,
+independent closed-form oracle, mutation guards and hashes are current. Exact red
+and repaired records for this checkpoint use SQLite prefix `tsrust-field-control-`.
+See the acceptance map for final counts and untimed verification. No timing or full
+family regression ran. Installed CLI/editor remain `4367f4cc`; scratch release is
+rebuilt from this checkpoint before acceptance.
 
 Then finish recursive stored callback fields, gate 190's resource backend and
 synchronous file proof, and S07 family acceptance: complete compiler/editor

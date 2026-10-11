@@ -505,3 +505,48 @@ controls need ownership payloads for their specific destinations. Catches after
 body-field transfers and specialized/captured record layouts also retain fallback
 routes. These are unfinished work, not accepted resource semantics. Exact evidence
 uses SQLite prefix `tsrust-map-field-transport-`. Gate 190 and S07 remain open.
+
+### Partial-field loop control and lexical cleanup
+
+`field_control_transport.rs` gives each escaping break/continue destination an
+independent surviving-field payload. Handled snapshots select input fields; Cleaned
+snapshots select fields restored before the eventual loop exit. Normal fields retain
+their own payload. Body scopes end before cleanup, including when cleanup replaces a
+pending return with break. A completion absent from checked ownership states emits
+an unreachable branch instead of inventing initialized fields. Empty native storage
+payloads now render `()`, with a focused storage regression assertion.
+
+The original ignored loop disposal witness is enabled. Native O0/O3 probes pass for
+break, continue, nested cleanup, cleanup break replacing return, and a Map-backed
+loop with distinct callback origins. These check exact local disposal and returned
+allocation identity where the return survives. Integration cases cover for-loop
+updates, normal fallthrough, labeled continue and conditional cleanup replacement.
+The cleanup-break case previously failed native compilation; it now executes with
+correct disposal. The Map loop probe already passes with the new control route;
+its log retains the initial probe filename ending in `map-residual`.
+
+Focused results: 52 finally unit tests pass, one residual catch witness is ignored;
+21 exception-handling, 22 return-move, 4 generic-call exception, 3 native-region and
+17 scoped-record finally tests pass. Fifteen loop unit tests, the empty-storage
+assertion and formatter corpus also pass. Completed checks are retained. No editor
+behavior changed. The public fixture now executes all loop completion modes.
+
+The matched workload now includes partial-field loop returns, break, continue and
+normal completion; cleanup traces prove iteration/update behavior. Independent
+closed-form expectations, matched TypeScript, source fingerprints and mutation
+guards are updated. Registration passes all three checks. Measurement protocols,
+iterations and operation units remain unchanged; no timing or full family regression
+ran. Exact red/repaired evidence uses SQLite prefix `tsrust-field-control-`.
+
+Next verified failure: `body_field_return_and_catch_keep_lexical_disposal`. One body
+branch returns a field and another throws to an empty catch. Native execution still
+observes zero local disposals where cleanup requires one. This witness is explicitly
+ignored pending an error-field payload restored before catch. Captured/specialized
+layouts and catch/control combinations retain fallback routes and need coverage.
+Resource acceptance, gate 190 and S07 remain open. Installed consumers stay at
+`4367f4cc`; scratch release is rebuilt from current source.
+
+Final release verification: public assertion fixture passes, whole-project formatting
+changes zero files/fingerprints, and five native/Node-after-tsc cases agree in SQLite
+`runtime/results/2026-10-11T04-28-42-759Z-verify.json`. verifiedOnly is true and
+execution is empty. These are untimed correctness checks, not measured acceptance.

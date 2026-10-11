@@ -83,6 +83,28 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
   return value.text;
 }
 
+function retainedLoop(value: RetainedOwner, mode: int, trace: int[]): string {
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      if (mode === 0) {
+        return value.text;
+      }
+
+      if (mode === 1) {
+        break;
+      }
+
+      if (mode === 2) {
+        continue;
+      }
+    } finally {
+      trace.push(20 + i);
+    }
+  }
+
+  return value.text;
+}
+
 type CleanupChoice = {
   first: string;
   second: string;
@@ -119,7 +141,10 @@ function workload(n: int, seed: int, input: string): string[][] {
     const mapped = retainedMap({
       text: field, stamp: 1
     }, value % 2 === 0, trace);
-    const selected = conditionalCleanup(mapped, value % 2 === 0, value % 3 === 0);
+    const looped = retainedLoop({
+      text: mapped, stamp: 0
+    }, value % 4, trace);
+    const selected = conditionalCleanup(looped, value % 2 === 0, value % 3 === 0);
     output.push([String(result), String(replaced(value)), trace.join(","), selected]);
     i = i + 1;
   }

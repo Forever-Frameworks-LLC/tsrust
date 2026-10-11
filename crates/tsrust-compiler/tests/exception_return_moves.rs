@@ -183,3 +183,23 @@ fn map_terminal_branch_returns_preserve_callback_origins() {
         "3\n7\nleft right\n",
     );
 }
+
+#[test]
+fn partial_return_loop_completions_restore_fields_and_run_update() {
+    runs(
+        "type Row={name:string;};function pick(a:Row,mode:int,trace:int[]):string{for(let i=0;i<2;i+=1){try{if(mode===0){return a.name;}if(mode===1){break;}if(mode===2){continue;}}finally{trace.push(i);}trace.push(9);}return a.name;}function main(){for(let mode=0;mode<4;mode+=1){const trace:int[]=[];console.log(pick({name:\"owner\"},mode,trace),trace.join(\",\"));}}",
+        "owner 0\nowner 0\nowner 0,1\nowner 0,9,1,9\n",
+    );
+}
+
+#[test]
+fn partial_return_labeled_control_and_cleanup_override() {
+    runs(
+        "type Row={name:string;};function pick(a:Row,early:boolean,trace:int[]):string{outer:for(let i=0;i<2;i+=1){for(let j=0;j<2;j+=1){try{if(early){return a.name;}continue outer;}finally{trace.push(i);}}}return a.name;}function main(){const first:int[]=[];const second:int[]=[];console.log(pick({name:\"left\"},true,first),first.join(\",\"));console.log(pick({name:\"right\"},false,second),second.join(\",\"));}",
+        "left 0\nright 0,1\n",
+    );
+    runs(
+        "type Row={name:string;other:string;};function pick(a:Row,mode:int):string{for(let i=0;i<1;i+=1){try{if(mode===0){return a.name;}break;}finally{if(mode===1){return a.other;}}}return a.other;}function main(){console.log(pick({name:\"left\",other:\"right\"},0),pick({name:\"left\",other:\"right\"},1),pick({name:\"left\",other:\"right\"},2));}",
+        "left right right\n",
+    );
+}

@@ -87,7 +87,7 @@ impl Emitter<'_> {
         format!("{{let completion:TsrCompletion<_,{},{}>='exception_region{id}:{{{statements}TsrCompletion::Normal({normal})}};completion}}",self.native_type(fun.result),error_name)
     }
 }
-fn normalize(fun:&CheckedFunction,start:usize,places:&mut Vec<Place>) {
+pub(super) fn normalize(fun:&CheckedFunction,start:usize,places:&mut Vec<Place>) {
     places.retain(|place|fun.bindings[place.binding].declaration_span.is_none_or(|span|span.start<start));
     places.sort();places.dedup();
     let all=places.clone();places.retain(|place|!all.iter().any(|parent|parent.binding==place.binding && parent.fields.len()<place.fields.len() && place.fields.starts_with(&parent.fields)));
@@ -98,7 +98,7 @@ pub(super) fn restoration(fields:&[String],prefix:&str)->(String,String) {
 }
 
 pub(super) fn tuple(values:&[String])->String {if values.is_empty(){"()".into()}else{format!("({},)",values.join(","))}}
-fn partial_places(fun:&CheckedFunction,body:&[Stmt])->Vec<Place> {
+pub(super) fn partial_places(fun:&CheckedFunction,body:&[Stmt])->Vec<Place> {
     let mut places=vec![];let mut pending=body.iter().collect::<Vec<_>>();
     while let Some(statement)=pending.pop(){match &statement.kind {
         StmtKind::Try(region)=>pending.extend(region.statements()),
