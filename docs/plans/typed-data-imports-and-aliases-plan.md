@@ -2,8 +2,8 @@
 
 Status: owner approved both additions and their priority on 2026-10-11. This is
 required S10 work, ahead of additional JSON runtime APIs and benchmark expansion.
-Compiler file loading now has focused alias/extension/index acceptance; editor, dev
-invalidation and typed data-module integration remain pending. Existing JSON evidence is retained.
+Alias/extension/index resolution has focused compiler, editor and dev acceptance.
+Typed data-module integration remains pending. Existing JSON evidence is retained.
 
 ## Public behavior
 
@@ -242,3 +242,20 @@ observed status shows no problems; the previous JSON workload error badge clears
 The separate owner project window also shows no problems, but its reload could
 not be confirmed through the UI. No owner source files were edited. Evidence:
 `tsrust-alias-consumer-*` and `tsrust-alias-installed-smoke.py` in SQLite.
+
+
+## Data source representation foundation
+
+The internal data-module parser validates through the existing bounded JSON
+backend, then retains original byte spans for values and decoded property names.
+JSONC accepts comments and trailing commas; strict JSON retains its existing
+syntax rules. Duplicate properties retain the last value and its source location.
+Number lexemes remain exact for subsequent native representability checks instead
+of being rounded before type inference. Limits match the current parser defaults:
+16 MiB, 64 levels, and one million entries per collection and total value nodes.
+
+Focused parser witnesses cover original Unicode offsets, escaped names and strings,
+scalar roots, nested arrays/objects, duplicate keys, numeric boundaries, malformed
+input and depth limits. Evidence: `tsrust-data-module-*` in SQLite. This is an
+internal representation checkpoint only: data imports, inferred types, native
+ownership/linking, editor integration and end-to-end acceptance remain pending.
