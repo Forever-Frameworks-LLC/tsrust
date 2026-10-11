@@ -11,7 +11,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
 | Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
-| Owned returns through finally, including renewed Map callbacks | Whole/partial returns and Map carriers verified; try-local disposal before cleanup remains defective | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
+| Owned returns through finally, including renewed Map callbacks | Whole/partial returns and Map carriers verified; regions without partial returns preserve lexical disposal; partial-return disposal remains defective | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
@@ -404,3 +404,33 @@ native/Node-after-tsc cases agree in SQLite
 `runtime/results/2026-10-11T03-06-13-031Z-verify.json`; `execution` is empty.
 The previous release at `eba57bd2` independently reproduces the try-local failure
 (`tsrust-finally-local-drop-baseline.tsr`, `.rs`, `.log`).
+
+
+### Lexical cleanup for regions without partial returns
+
+Direct cleanup is now limited to regions with an actual partial-field return
+transfer. Whole-root initialized slots already preserve return availability, so
+ordinary and Map completion bodies can retain their lexical scope boundary. The
+original try-local disposal test is enabled and passes at O0/O3. Additional probes
+verify a conditionally moved local record field and a renewed Map callback owner.
+Prior field moves in the body do not falsely classify a later whole-root return as
+a partial return; classification uses the checked return transfer's source span.
+
+Regions containing partial returns still use inline cleanup and retain the disposal
+bug. `try_locals_drop_before_partial_field_return_cleanup` is the replacement ignored
+witness, not an accepted limitation. The next repair must transport the surviving
+outer fields on normal completion while keeping body-local Rust drop scopes intact.
+A standalone Rust prototype passes eight paths at O0/O3: early/normal completion,
+preserved return, replacement return, cleanup error and restored-field continuation.
+It checks exact disposal, cleanup order, a borrowed sibling and returned allocation
+identity. SQLite retains `tsrust-finally-normal-field-transport.rs` and `.log`.
+This is lowering-design evidence, not compiler acceptance of partial-return disposal.
+Focused compiler records use `tsrust-finally-lexical-`. No timing ran.
+
+
+Final focused checks: 38 finally unit tests, 44 exception integration tests and
+17 scoped-record finally tests pass. The formatter corpus passes and whole-project
+formatting changes no file. Running the partial-return witness explicitly still
+fails with `try local survived into finally` (0 observed, 1 expected), as retained
+in `tsrust-finally-lexical-partial-residual.log`. No editor behavior or benchmark
+source changed; family regressions and measurements remain pending.

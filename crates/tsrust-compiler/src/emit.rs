@@ -3348,7 +3348,13 @@ impl Emitter<'_> {
         let cleanup=region.finally.as_ref().map(|body|self.completion_body(fun,body,ids.2,names.1,outgoing.clone(),runtime));
         // Keep partial-move state visible to Rust across cleanup. Storage-carrying
         // frames retain their dedicated transport and cannot use this direct route.
+        let partial_return=exception_contract_emit::has_partial_return(fun,&region.body)
+            || region.catch.as_ref().is_some_and(|handler|exception_contract_emit::has_partial_return(fun,&handler.body))
+            || region.finally.as_ref().is_some_and(|body|exception_contract_emit::has_partial_return(fun,body));
         let inline_exit=||{
+            // Retain the lexical body boundary whenever initialized root slots
+            // suffice. Its locals must drop before cleanup executes.
+            if cleanup.is_some() && !partial_return{return None;}
             if self.cleanup_replaces_exits.get() || !self.exception_regions.plain_return_destination(){return None;}
             let binding=format!("finally_exit{}",ids.0);
             let pending=binding.clone();

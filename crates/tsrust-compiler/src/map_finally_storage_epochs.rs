@@ -102,7 +102,7 @@ impl Emitter<'_> {
             let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
             self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
         }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
-        if let Some(carrier)=&return_carrier {
+        if exception_contract_emit::has_partial_return(fun,&region.body) && let Some(carrier)=&return_carrier {
             let precise=self.map_precise_return_cleanup(fun,region,declarations,first+3,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
             *self.inline_map_return.borrow_mut()=Some(self.map_direct_return_route(carrier,&pattern,precise,first));
         }

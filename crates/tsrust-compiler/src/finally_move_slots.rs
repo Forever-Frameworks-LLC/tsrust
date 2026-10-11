@@ -57,18 +57,43 @@ impl Index {
 #[cfg(test)]
 mod tests {
     #[test]
-    #[ignore = "inline cleanup retains try-local owners until after finally; resource acceptance remains open"]
     fn try_locals_drop_before_finally_on_both_return_and_normal_paths() {
-        let source="type Marker={value:int;};function cleanup():void{}function pick(a:string,early:boolean):string{try{const marker:Marker={value:1};if(early){return a;}}finally{cleanup();}return a;}function main(){}";
+        assert_try_local_drops_before_cleanup(false,false,false);
+    }
+    #[test]
+    #[ignore = "partial-field inline cleanup retains try-local owners; completion field transport remains pending"]
+    fn try_locals_drop_before_partial_field_return_cleanup() {
+        assert_try_local_drops_before_cleanup(true,false,false);
+    }
+    #[test]
+    fn conditionally_partial_try_locals_drop_before_whole_return_cleanup() {
+        assert_try_local_drops_before_cleanup(false,true,false);
+    }
+    #[test]
+    fn map_try_locals_drop_before_whole_return_cleanup() {
+        assert_try_local_drops_before_cleanup(false,false,true);
+    }
+    fn assert_try_local_drops_before_cleanup(partial:bool,local_partial:bool,map:bool) {
+        let source=if map {
+            "type Marker={value:int;};type Holder={run:ReadOnly<Function<int>>;};function cleanup():void{}function pick(a:string,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{const marker:Marker={value:1};if(early){return a;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{cleanup();const item=handlers.get(early?\"old\":\"new\");if(item!==undefined){if(item.run()!==(early?3:7)){throw 99;}}}return a;}function main(){}"
+        }else if local_partial {
+            "type Marker={value:int;};type Pair={left:Marker;right:Marker;};function cleanup():void{}function pick(a:string,early:boolean):string{try{const pair:Pair={left:{value:1},right:{value:2}};if(early){consume(pair.left);return a;}}finally{cleanup();}return a;}function consume(value:Marker):void{}function main(){}"
+        }else if partial {
+            "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const marker:Marker={value:1};if(early){return a.name;}}finally{cleanup();}return a.name;}function main(){}"
+        }else{"type Marker={value:int;};function cleanup():void{}function pick(a:string,early:boolean):string{try{const marker:Marker={value:1};if(early){return a;}}finally{cleanup();}return a;}function main(){}"};
         let formatted=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let checked=crate::analysis::analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();
         let mut native=crate::emit::emit(&checked);
         let cleanup=native.find("fn function0(").unwrap();let opening=cleanup+native[cleanup..].find('{').unwrap()+1;
-        native.insert_str(opening,"assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),1,\"try local survived into finally\");");
+        let expected=if local_partial{2}else{1};
+        native.insert_str(opening,&format!("assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),{expected},\"try local survived into finally\");"));
         let main=native.find("fn main()").unwrap();let opening=main+native[main..].find('{').unwrap()+1;
-        native.insert_str(opening,"for early in [false,true]{LOCAL_DROPS.store(0,std::sync::atomic::Ordering::SeqCst);assert_eq!(function1(String::Owned(\"owner\".into()),early),\"owner\");assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),1);}");
+        let owner=if partial{"Record1{field0:String::Owned(\"owner\".into())}"}else{"String::Owned(\"owner\".into())"};
+        let call=if map{format!("tsr_result_function1({owner},early).unwrap_or_else(|_|panic!(\"unexpected source error\"))")}else{format!("function1({owner},early)")};
+        native.insert_str(opening,&format!("for early in [false,true]{{LOCAL_DROPS.store(0,std::sync::atomic::Ordering::SeqCst);assert_eq!({call},\"owner\");assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),{expected});}}"));
         native.push_str("static LOCAL_DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);impl Drop for Record0{fn drop(&mut self){LOCAL_DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}");
-        let directory=std::env::temp_dir().join(format!("tsrust-finally-local-drops-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
+        let directory=std::env::temp_dir().join(format!("tsrust-finally-local-drops-{}-{partial}-{local_partial}-{map}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
         struct Cleanup(std::path::PathBuf);impl Drop for Cleanup{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.0);}}
         let _cleanup=Cleanup(directory.clone());let input=directory.join("probe.rs");std::fs::write(&input,native).unwrap();
         for level in ["0","3"]{let binary=directory.join(format!("probe-{level}"));let compiled=std::process::Command::new("rustc").args(["--edition=2024","-C",&format!("opt-level={level}")]).arg(&input).arg("-o").arg(&binary).output().unwrap();assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));assert!(std::process::Command::new(binary).status().unwrap().success());}

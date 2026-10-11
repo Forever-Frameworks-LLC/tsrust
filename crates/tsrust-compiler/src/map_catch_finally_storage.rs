@@ -51,7 +51,8 @@ impl Emitter<'_> {
         let normal_arm="TsrCompletion::Normal(storage)=>(Some(storage),None,None)";
         let return_arm=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
         let handler_throw=if handler_throws{"TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None)"}else{"TsrCompletion::Throw(error)=>match error {}"};
-        let direct_return=return_carrier.as_ref().map(|carrier|{
+        let direct_return=return_carrier.as_ref().filter(|_|exception_contract_emit::has_partial_return(fun,&region.body)
+            || exception_contract_emit::has_partial_return(fun,&handler.body)).map(|carrier|{
             let precise=self.map_precise_return_cleanup(fun,region,declarations,first+4,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
             self.map_direct_return_route(carrier,&pattern,precise,first)
         });

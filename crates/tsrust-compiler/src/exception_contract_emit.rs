@@ -380,6 +380,21 @@ pub(crate) fn has_source_return(body:&[crate::syntax::Stmt])->bool {
     }}false
 }
 
+/// Whole-root return slots preserve move state without inlining cleanup. Only
+/// actual partial transfers still require the direct field-return route.
+pub(crate) fn has_partial_return(fun:&crate::analysis::CheckedFunction,body:&[crate::syntax::Stmt])->bool {
+    use crate::syntax::StmtKind;
+    let mut pending=body.iter().collect::<Vec<_>>();
+    while let Some(statement)=pending.pop(){match &statement.kind {
+        StmtKind::Return(Some(value)) if fun.storage_exits.partial_transfer_within((statement.span.start,statement.span.end),value.span)=>return true,
+        StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
+        StmtKind::Loop{body,update,..}=>{pending.extend(body);pending.extend(update);},
+        StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
+        StmtKind::Try(region)=>pending.extend(region.statements()),
+        _=>{}
+    }}false
+}
+
 /// Only control exits targeting an enclosing construct can escape cleanup.
 pub(crate) fn escaping_controls(body:&[crate::syntax::Stmt])->Vec<(crate::syntax::ControlTarget,bool,crate::Span)> {
     use crate::syntax::StmtKind;

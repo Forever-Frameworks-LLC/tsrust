@@ -292,6 +292,12 @@ impl Exits {
     pub(crate) fn transfer_at_expression(&self, point: (usize,usize), binding: usize, path: &[String]) -> Option<Span> {
         Self::transfer(self.2.get(&point),binding,path)
     }
+    /// Actual field transfers performed while evaluating this return, excluding
+    /// prior moves and whole-root transfers already handled by initialized slots.
+    pub(crate) fn partial_transfer_within(&self, point: (usize,usize), value: Span) -> bool {
+        self.2.get(&point).is_some_and(|entries|entries.iter().any(|entry|entry.root.is_none()
+            && entry.fields.iter().any(|(_,span)|span.start>=value.start && span.end<=value.end)))
+    }
     pub(crate) fn transfer_at_exit(&self, body: &[Stmt], binding: usize, path: &[String]) -> Option<Span> {
         let (Some(first),Some(last))=(body.first(),body.last()) else {return None;};
         Self::transfer(self.0.get(&(first.span.start,last.span.end)),binding,path)
