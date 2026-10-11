@@ -18,5 +18,6 @@ impl<T:TsrOrderedKey> PartialOrd for TsrOrdered<T>{fn partial_cmp(&self,other:&S
 impl<T:TsrOrderedKey> Ord for TsrOrdered<T>{fn cmp(&self,other:&Self)->std::cmp::Ordering{self.0.tsr_compare(&other.0)}}
 
 impl<T:TsrOrderedKey> TsrHeap<TsrOrdered<T>> {
+    fn into_keys(self) -> impl Iterator<Item=T> { self.values.into_iter().map(|value|value.0) }
     fn key_iter(&self) -> impl Iterator<Item=&T> { self.values.iter().map(|value| &value.0) }
 }

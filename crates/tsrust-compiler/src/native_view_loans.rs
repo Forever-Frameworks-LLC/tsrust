@@ -140,6 +140,7 @@ impl Analyzer {
             FinishCapture(usize, Option<usize>, usize, &'a Loan, Span),
             FinishReturn(usize, &'a Loan),
             Wrapped(&'a Expr, Segment),
+            SpreadArgument(&'a Expr, bool, bool),
             Wrap(usize, Segment),
             Select(usize, Segment),
             Narrow(usize, Type),
@@ -147,8 +148,15 @@ impl Analyzer {
         }
         let mut pending = vec![Task::Value(expr)];
         let mut result: Vec<Loan> = Vec::new();
+        let mut spread_plans=std::collections::HashMap::new();
         while let Some(task) = pending.pop() {
             let value = match task {
+                Task::SpreadArgument(value,spread,rest) => {
+                    if rest {pending.push(Task::Wrap(result.len(),Segment::Element));}
+                    if spread {pending.push(Task::Select(result.len(),Segment::Element));}
+                    pending.push(Task::Value(value));
+                    continue;
+                }
                 Task::Returned(value, output) => {
                     pending.push(Task::FinishReturn(result.len(), output));
                     pending.push(Task::Value(value));
@@ -387,6 +395,39 @@ impl Analyzer {
                 } => {
                     pending.push(Task::Value(consequent));
                     pending.push(Task::Value(alternate));
+                }
+                ExprKind::SpreadCall(plan) if value.target==Some(CallTarget::ArrayOf) => {
+                    // Collection and array elements use the same retained-loan path.
+                    // A plain argument adds a new element level; a spread preserves it.
+                    for segment in &plan.segments {
+                        if segment.spread {pending.push(Task::Value(&segment.value));}
+                        else {pending.push(Task::Wrapped(&segment.value,Segment::Element));}
+                    }
+                }
+                ExprKind::SpreadCall(plan) => {
+                    spread_plans.insert(plan.slot,plan.as_ref());
+                    for variant in &plan.variants {pending.push(Task::Value(&variant.call));}
+                }
+                ExprKind::SpreadValue(selected) => {
+                    if let Some(plan)=spread_plans.get(&selected.slot) {
+                        match selected.selection {
+                            SpreadSelection::Callee|SpreadSelection::Receiver=>{
+                                if let Some(callee)=&plan.callee {pending.push(Task::Value(&callee.value));}
+                            }
+                            SpreadSelection::Argument(_)|SpreadSelection::Rest=>{
+                                // Keep the owners of every source that can occupy this slot.
+                                for (index,segment) in plan.segments.iter().enumerate() {
+                                    let (lower,upper)=super::spread_calls::spread_position_range(&plan.segments,index,plan.minimum,plan.maximum);
+                                    let contributes=match selected.selection {
+                                        SpreadSelection::Argument(position)=>position>=lower && upper.is_none_or(|upper|position<=upper),
+                                        SpreadSelection::Rest=>upper.is_none_or(|upper|upper>=plan.parameters.len().saturating_sub(1)),
+                                        _=>unreachable!(),
+                                    };
+                                    if contributes && segment.length!=Some(0) {pending.push(Task::SpreadArgument(&segment.value,segment.spread,selected.selection==SpreadSelection::Rest));}
+                                }
+                            }
+                        }
+                    }
                 }
                 ExprKind::Array(values) => {
                     for value in values {

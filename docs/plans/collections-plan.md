@@ -203,7 +203,20 @@ loop element types. The matched heap workload independently observes traversal a
 removal sums. No timing run was performed. Evidence:
 `tsrust-s08-heap-iteration-acceptance.json` in SQLite.
 
-Source review identified an integration gap to address before S08 acceptance:
-call-spread analysis uses the shared iterable classifier, while emission still
-assumes array/Set iterator methods for native collection records. Add focused
-Deque/Heap witnesses and integrate borrowed and moving spread without hidden clones.
+Call and array spread now support Deque and Heap. The previous checker rejected
+these sources with `spread-source`; it did not permit invalid native code. Scalar
+spread copies values, readonly arguments borrow owned elements, and owning arguments
+transfer the collection. Mutable Deque elements use exclusive borrows; mutable Heap
+elements are rejected to preserve ordering. Heap spread order remains unspecified.
+Array and call results preserve byte-view owners, including returned fixed and
+rest arguments. Focused checks cover native output, arity failures, left-to-right
+scalar snapshots, invalid transfers, conflicting borrows, Heap mutation rejection,
+and checked/fallback editor hover. Thirteen catalog examples execute. The matched
+heap workload adds call/array spread observations; five native/Node cases pass.
+Evidence: `tsrust-s08-collection-spread-acceptance.json` in SQLite. Timing remains
+pending.
+
+A separate nested payload witness exposed a native emission defect in
+`nested.front()!.length` for `Deque<int[]>`: the generated non-null projection uses
+an owning union pattern on a borrowed union. Repair before S08 acceptance. The
+spread witness uses `popFront()` to independently verify its mutable argument.

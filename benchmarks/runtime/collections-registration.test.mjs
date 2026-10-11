@@ -48,7 +48,7 @@ test('Heap reference preserves ordering, cloning and independent arithmetic', ()
     const changed=replaceCodeSnippet(source,guard,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
     assert.throws(()=>assertCollectionSource(changed,{...heap,[key]:createHash('sha256').update(changed).digest('hex')},kind),/Collection scenario/);
   }
-  assert.deepEqual(expectedCollectionValues(heap.id,3,255,'collections'),[[9,255,283,0,283],[9,8,36,0,36],[9,9,45,0,45]]);
+  assert.deepEqual(expectedCollectionValues(heap.id,3,255,'collections'),[[9,255,283,0,283,283,9],[9,8,36,0,36,36,9],[9,9,45,0,45,45,9]]);
   for(const seed of [0,7,248,255,1000000])for(const n of [0,1,17,2048]){
     const expected=expectedCollectionObservation(heap.id,n,seed,'collections');
     assert.deepEqual(expectedExactResult(heap.id,n,seed,'collections'),expected);

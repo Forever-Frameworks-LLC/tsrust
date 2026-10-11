@@ -731,7 +731,7 @@ impl SourceIndex {
                 && let Some(symbol) = self.symbols.iter().position(|s| s.span.start == self.tokens[id + 1].span.start)
             {
                 let iterable = self.infer(id + 3, self.tokens[id].span.start, 0);
-                if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).map(str::to_owned) {
+                if let Some(element) = self.deque_element(&iterable).or_else(||self.heap_element(&iterable)).map(str::to_owned).or_else(||iterable_element_type(&iterable)) {
                     self.symbols[symbol].signature = format!("{keyword} {}: {element}", self.symbols[symbol].name);
                     self.symbols[symbol].ty = element;
                 }
@@ -2204,8 +2204,12 @@ impl SourceIndex {
             if self.text(id + 1) == "]" {
                 return "unknown[]".into();
             }
-            let ty = self.infer(id + 1, offset, depth + 1);
-            return if ty.is_empty() { ty } else { format!("{ty}[]") };
+            let ty = if self.text(id + 1)=="..." {
+                let source=self.infer(id + 2,offset,depth + 1);
+                self.deque_element(&source).or_else(||self.heap_element(&source)).map(str::to_owned).or_else(||iterable_element_type(&source)).unwrap_or_default()
+            }else{self.infer(id + 1, offset, depth + 1)};
+            let grouped=tsrust_compiler::type_syntax::parse(&ty).is_ok_and(|annotation|matches!(annotation.kind,tsrust_compiler::type_syntax::ValueAnnotationKind::Union(_)));
+            return if ty.is_empty() { ty } else if grouped {format!("({ty})[]")}else { format!("{ty}[]") };
         }
         if text == "clone" && self.text(id + 1) == "(" {
             return self.infer(id + 2, offset, depth + 1);

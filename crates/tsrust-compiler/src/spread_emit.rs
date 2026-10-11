@@ -130,7 +130,15 @@ impl Emitter<'_> {
             if segment.spread {
                 let source=format!("spread_source{}_{index}",plan.slot);
                 write!(output,"let mut {source} = {code}; ").unwrap();
-                let iterator=if segment.value.ty==Some(Type::String) {format!("{source}.as_ref().chars().map(|character|String::Owned(character.to_string()))")}else if matches!(segment.value.ty,Some(Type::Map(_))) && segment.access==Mode::Read {format!("{source}.entry_iter()")}else{match segment.access {Mode::Copy=>format!("{source}.iter().copied()"),Mode::Read=>format!("{source}.iter()"),Mode::Mutate=>format!("{source}.tsr_spread_mut_items()"),Mode::Consume=>format!("{source}.tsr_owned_items()")}};
+                let iterator=if let Some(Type::Record(id))=segment.value.ty && let Some(native)=self.program.records[id].native_type.filter(|native|matches!(native,crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap)) {
+                    let heap=native==crate::native_signatures::NativeTypeId::Heap;
+                    match segment.access {
+                        Mode::Copy=>format!("{source}.values.{}().copied()",if heap {"key_iter"}else{"iter"}),
+                        Mode::Read=>format!("{source}.values.{}()",if heap {"key_iter"}else{"iter"}),
+                        Mode::Mutate=>{assert!(!heap,"checked immutable heap keys");format!("{source}.values.iter_mut()")},
+                        Mode::Consume=>format!("{source}.values.{}()",if heap {"into_keys"}else{"into_items"}),
+                    }
+                }else if segment.value.ty==Some(Type::String) {format!("{source}.as_ref().chars().map(|character|String::Owned(character.to_string()))")}else if matches!(segment.value.ty,Some(Type::Map(_))) && segment.access==Mode::Read {format!("{source}.entry_iter()")}else{match segment.access {Mode::Copy=>format!("{source}.iter().copied()"),Mode::Read=>format!("{source}.iter()"),Mode::Mutate=>format!("{source}.tsr_spread_mut_items()"),Mode::Consume=>format!("{source}.tsr_owned_items()")}};
                 let iterator=if matches!(plan.call.kind,ExprKind::SpreadValue(_)) && let Some(Type::Array(element))=plan.call.ty && element.ty()!=segment.element {format!("{iterator}.map(|item|{})",self.element_alternative(segment.element,element.ty(),"item"))}else{iterator};
                 if inline_copy_snapshot(plan,segment) {
                     write!(output,"let mut {name}: Array<_> = Array::from([]); for spread_snapshot_item in {iterator} {{ {name}.push(spread_snapshot_item); }} ").unwrap();

@@ -123,6 +123,7 @@ function main(){
  strictEqual(values.at(1)!,2);strictEqual(values.at(-1),undefined);strictEqual(values.at(3),undefined);
  strictEqual(values.popFront()!,1);strictEqual(values.popBack()!,3);strictEqual(values.popBack()!,2);
  strictEqual(values.popBack(),undefined);values.pushBack(9);values.clear();strictEqual(values.size,0);
+ strictEqual(sum(...numbers,change(numbers)),7);strictEqual(numbers.size,3);let caught=false;try{pair(...numbers);}catch(error){caught=true;}strictEqual(caught,true);
  const words=new Deque<string>();words.pushBack('owned');{const word=words.front();
  if(word!==undefined){strictEqual(word.length,5);}}const moved=words.popFront()!;strictEqual(moved,'owned');
 }"#;
@@ -439,4 +440,65 @@ function main(){const values=new Heap<int>();values.push(2);values.push(9);value
         let output=support::run(support::cli().arg("check").arg(path),30);assert!(!output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr).contains("iteration-conflict"),"{}",String::from_utf8_lossy(&output.stderr));
     }
+}
+
+#[test]
+fn native_collection_spread_preserves_copy_borrow_and_move() {
+    let source = r#"import {Deque,Heap} from 'std:collections';import {strictEqual} from 'std:testing';
+function sum(...values:int[]):int{let total=0;for(const value of values){total+=value;}return total;}
+function read(value:ReadOnly<string>):int{return value.length;}
+function take(...values:string[]):int{let total=0;for(const value of values){total+=value.length;}return total;}
+function update(value:Mutable<int[]>){value.push(2);}
+function change(values:Mutable<Deque<int>>):int{values.pushBack(9);return 4;}
+function pair(a:int,b:int):int{return a+b;}
+function main(){
+ const numbers=new Deque<int>();numbers.pushBack(2);numbers.pushFront(1);strictEqual(sum(...numbers),3);strictEqual(numbers.size,2);const copied=[...numbers];strictEqual(copied[0],1);strictEqual(numbers.size,2);
+ const words=new Deque<string>();words.pushBack('abc');strictEqual(read(...words),3);strictEqual(words.size,1);strictEqual(take(...words),3);
+ const nested=new Deque<int[]>();nested.pushBack([1]);update(...nested);strictEqual(nested.popFront()!.length,2);
+ const heap=new Heap<int>();heap.push(2);heap.push(1);strictEqual(sum(...heap),3);strictEqual(heap.size,2);const items=[...heap];strictEqual(sum(...items),3);strictEqual(heap.size,2);
+ const strings=new Heap<string>();strings.push('abc');strictEqual(read(...strings),3);strictEqual(strings.size,1);strictEqual(take(...strings),3);
+ const moving=new Deque<string>();moving.pushBack('a');const owned=[...moving];strictEqual(owned[0],'a');
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn native_collection_spread_rejects_moves_and_heap_mutation() {
+    let directory = support::TempDirectory::new();
+    for source in [
+        "import {Deque} from 'std:collections';function take(...words:string[]){}function main(){const values=new Deque<string>();values.pushBack('x');take(...values);console.log(values.size);}",
+        "import {Heap} from 'std:collections';function take(...words:string[]){}function main(){const values=new Heap<string>();values.push('x');take(...values);console.log(values.size);}",
+        "import {Heap} from 'std:collections';function change(value:Mutable<string>){}function main(){const values=new Heap<string>();values.push('x');change(...values);}",
+        "import {Deque} from 'std:collections';function read(value:ReadOnly<string>,extra:int){}function change(values:Mutable<Deque<string>>):int{values.clear();return 0;}function main(){const values=new Deque<string>();values.pushBack('x');read(...values,change(values));}",
+    ] {
+        let path=directory.source(&support::format_round_trip(source));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"invalid collection spread accepted: {source}");
+        let error=String::from_utf8_lossy(&output.stderr);
+        assert!(error.contains("transferred") || error.contains("collection-key") || error.contains("conflicting-access"),"{error}");
+    }
+}
+
+#[test]
+fn native_collection_spread_retains_view_owners() {
+    let helpers=include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+    let source=format!(r#"import {{Deque}} from 'std:collections';{helpers}
+function read(value:ReadOnly<ByteView>):int{{return length(value);}}
+function take(...values:ByteView[]):ByteView[]{{return values;}}
+function identity(value:ByteView):ByteView{{return value;}}
+function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();values.pushBack(window(owner));strictEqual(read(...values),2);const parts=[...values];strictEqual(length(parts[0]),2);}}
+"#);
+    for source in [source.clone(),source.replace("const parts=[...values];","const parts=take(...values);"),source.replace("const parts=[...values];","const parts=[identity(...values)];")] {
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let invalid=source.replace("strictEqual(length(parts[0]),2);","const moved=owner;strictEqual(length(parts[0]),2);");
+    let path=directory.source(&support::format_round_trip(&invalid));
+    let output=support::run(support::cli().arg("check").arg(path),30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("borrow"),"{}",String::from_utf8_lossy(&output.stderr));
+}
 }

@@ -8,6 +8,13 @@ pub(super) struct SpreadCallableContract {
 }
 
 impl Analyzer {
+    fn native_spread_source(&self, ty:Type)->bool {
+        matches!(ty,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap)))
+    }
+    fn immutable_spread_keys(&self, ty:Type)->bool {
+        matches!(ty,Type::Set(_) | Type::Map(_)) || matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap))
+    }
+
     #[inline(never)]
     pub(super) fn spread_array_construction(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic> {
         let (args,annotation)=match &expr.kind { ExprKind::ArrayOf(args,annotation) => (args,annotation.as_ref()), ExprKind::Array(args) => (args,None), _ => unreachable!() };
@@ -27,10 +34,10 @@ impl Analyzer {
             let length=if spread {if let ExprKind::Array(values)=&value.kind { if values.iter().any(|value|matches!(value.kind,ExprKind::Unary{op:UnaryOp::Spread,..})) {None} else {Some(values.len())} }else{None}}else{Some(1)};
             let guessed=self.expression_type_hint(context,&value);
             let expected=if spread {self.array_spread_context(&value,guessed,element)?}else{element};
-            let copied=if spread {match guessed {Some(Type::Array(element))=>element.ty().is_copy(),Some(Type::Set(id))=>self.program.records[id].set_definition.as_ref().unwrap().key.is_copy(),_=>false}}else{guessed.is_some_and(Type::is_copy)};
+            let copied=if spread {match guessed {Some(Type::Array(element))=>element.ty().is_copy(),Some(Type::Set(id))=>self.program.records[id].set_definition.as_ref().unwrap().key.is_copy(),Some(ty) if self.native_spread_source(ty)=>self.iterable_element(ty).is_some_and(|element|element.ty().is_copy()),_=>false}}else{guessed.is_some_and(Type::is_copy)};
             let access=if spread && guessed==Some(Type::String) {Mode::Read}else if copied {Mode::Copy}else{Mode::Consume};
             let actual=self.expression(context,&mut value,if spread&&copied {Mode::Read}else{access},&active,expected)?;
-            let actual=if spread {match actual {Type::Array(element)=>element.ty(),Type::String=>Type::String,Type::Set(id)=>self.program.records[id].set_definition.as_ref().unwrap().key,Type::Map(id)=>Type::Record(self.map_iteration_entry(id,value.span)?),_=>return Err(Diagnostic::new("spread-source","Array spread requires an array, string, Set or Map.",value.span))}}else{actual};
+            let actual=if spread {match actual {Type::Array(element)=>element.ty(),Type::String=>Type::String,Type::Set(id)=>self.program.records[id].set_definition.as_ref().unwrap().key,Type::Map(id)=>Type::Record(self.map_iteration_entry(id,value.span)?),ty if self.native_spread_source(ty)=>self.iterable_element(ty).unwrap().ty(),_=>return Err(Diagnostic::new("spread-source","Array spread requires an array, string, Set, Map, Deque or Heap.",value.span))}}else{actual};
             if let Some(element)=element {self.require(actual,Some(element),value.span)?;}else{element=Some(actual);}
             segments.push(SpreadSegment{value:Box::new(value),spread,element:actual,access,length});
             let _=&mut active;
@@ -62,7 +69,7 @@ impl Analyzer {
             append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
             return self.resolve_value_annotation(&annotation,false).map(Some);
         }
-        if matches!(guessed,Some(Type::String|Type::Set(_)|Type::Map(_))){Ok(None)}else{self.constructor_array_type(element,value.span).map(Some)}
+        if matches!(guessed,Some(Type::String|Type::Set(_)|Type::Map(_))) || guessed.is_some_and(|ty|self.native_spread_source(ty)){Ok(None)}else{self.constructor_array_type(element,value.span).map(Some)}
     }
 
     #[inline(never)]
@@ -208,7 +215,7 @@ impl Analyzer {
         for index in 0..segments.len() {
             let (lower,upper)=spread_position_range(&segments,index,minimum,maximum);
             let known_hint=self.callback_value_hint(context,&segments[index].value)?.is_some();
-            if segments[index].spread && self.expression_type_hint(context,&segments[index].value).is_some_and(|ty| !matches!(ty,Type::Array(_) | Type::String | Type::Set(_) | Type::Map(_) | Type::Union(_) | Type::BorrowedUnion(_))) {return Err(Diagnostic::new("spread-source","Call spread requires an array, string, Set or Map.",segments[index].value.span));}
+            if segments[index].spread && self.expression_type_hint(context,&segments[index].value).is_some_and(|ty| !self.native_spread_source(ty) && !matches!(ty,Type::Array(_) | Type::String | Type::Set(_) | Type::Map(_) | Type::Union(_) | Type::BorrowedUnion(_))) {return Err(Diagnostic::new("spread-source","Call spread requires an array, string, Set, Map, Deque or Heap.",segments[index].value.span));}
             let mut contracts=Vec::new();
             let last=upper.unwrap_or(fixed.max(lower));
             for position in lower..=last {
@@ -223,13 +230,13 @@ impl Analyzer {
             let segment=&mut segments[index];
             let guessed=self.spread_source_type_hint(context,&segment.value)?;
             let expected_source=if segment.spread {self.array_spread_context(&segment.value,guessed,expected_element)?.or_else(|| (segment.length==Some(0) && matches!(segment.value.kind,ExprKind::Array(_))).then_some(Type::Array(ArrayElement::Undefined(0))))}else{expected_element};
-            if segment.spread && matches!(guessed,Some(Type::Set(_)|Type::Map(_))) && access==Mode::Mutate {
-                return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys or Map entry tuples; explicitly copy to an array first.",segment.value.span));
+            if segment.spread && guessed.is_some_and(|ty|self.immutable_spread_keys(ty)) && access==Mode::Mutate {
+                return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys, Map entry tuples or Heap elements; explicitly copy to an array first.",segment.value.span));
             }
             let source_access=if segment.spread && (access==Mode::Copy || guessed==Some(Type::String)) {Mode::Read}else{access};
             let actual=self.expression(context,&mut segment.value,source_access,&active,expected_source)?;
-            if segment.spread && matches!(actual,Type::Set(_)|Type::Map(_)) && access==Mode::Mutate {return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys or Map entry tuples; explicitly copy to an array first.",segment.value.span));}
-            segment.element=if segment.spread {self.iterable_element(actual).ok_or_else(||Diagnostic::new("spread-source","Call spread requires an array, string, Set or Map.",segment.value.span))?.ty()}else{actual};
+            if segment.spread && self.immutable_spread_keys(actual) && access==Mode::Mutate {return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys, Map entry tuples or Heap elements; explicitly copy to an array first.",segment.value.span));}
+            segment.element=if segment.spread {self.iterable_element(actual).ok_or_else(||Diagnostic::new("spread-source","Call spread requires an array, string, Set, Map, Deque or Heap.",segment.value.span))?.ty()}else{actual};
             // Character strings are new owners, not references into the source.
             segment.access=if segment.spread && actual==Type::String {Mode::Consume}else if segment.element.is_copy()&&access!=Mode::Mutate {Mode::Copy}else{access};
             if segment.access==Mode::Read && let Type::Union(id)=segment.element && !id.copy {segment.element=Type::BorrowedUnion(id);}

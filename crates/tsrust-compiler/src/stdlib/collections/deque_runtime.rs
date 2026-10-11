@@ -16,5 +16,7 @@ impl<T> TsrDeque<T> {
         usize::try_from(index).ok().and_then(|index| self.values.get(index))
     }
     fn clear(&mut self) { self.values.clear(); }
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> { self.values.iter_mut() }
+    fn into_items(self) -> impl Iterator<Item = T> { self.values.into_iter() }
     fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator { self.values.iter() }
 }

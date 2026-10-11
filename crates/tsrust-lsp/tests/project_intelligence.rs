@@ -1811,3 +1811,18 @@ fn native_deque_constructor_alias_has_generic_hover() {
         assert!(value.to_string().contains("Queue<int>"), "{value}");
     }
 }
+
+#[test]
+fn native_collection_spread_has_element_hover() {
+    for (kind,push) in [("Deque","pushBack"),("Heap","push")] {
+        let entry=tsrust_compiler::format(&format!("import {{{kind} as Queue}} from 'std:collections';function sum(...items:int[]):int{{let total=0;for(const item of items){{total+=item;}}return total;}}function main(){{const values=new Queue<int>();values.{push}(1);const copied=[...values];console.log(sum(...values));for(const item of copied){{console.log(item);}}}}" )).unwrap();
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();
+        workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        for (mode,index) in [ProjectIndex::checked(&checked),ProjectIndex::new(&checked.graph)].into_iter().enumerate() {
+            let hover=ask(&index,&entry,"item);","textDocument/hover");
+            assert!(hover.to_string().contains("item: int"),"{kind} index {mode}: {hover}");
+        }
+    }
+}

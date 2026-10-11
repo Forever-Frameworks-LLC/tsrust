@@ -20936,7 +20936,7 @@
       ],
       "iterations": 2048,
       "operationsPerIteration": 1,
-      "operationUnit": "Nine heap inserts, borrowed traversal, peek, independent clone and descending removal",
+      "operationUnit": "Nine heap inserts, borrowed traversal, peek, independent clone, call/array spread and descending removal",
       "inputText": "collections",
       "category": "collections",
       "implementationGate": "S08",
@@ -20946,10 +20946,10 @@
       "implementationAccepted": true,
       "measured": false,
       "notes": "Five matched native and Node-after-tsc correctness cases include borrowed traversal and independent removal observations. Collections family timing remains pending.",
-      "specification": "Insert nine bounded integers into a max heap, borrow every element without removing it, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum, empty clone size and traversal sum. Node uses an explicitly sorted numeric array and independent slice.",
-      "sourceSha256": "88e651158a5769a2032c8a0d59d7d16dac8a599fa0682f0a5454234075df5c05",
-      "counterpartSha256": "909a8f5cf70436a1cd81771c345ddc05df902436deb56d3404dcae78512ffca7",
-      "verificationEvidence": "runtime/results/2026-10-11T12-03-17-524Z-verify.json"
+      "specification": "Insert nine bounded integers into a max heap, borrow every element without removing it, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum, empty clone size and traversal sum. Node uses an explicitly sorted numeric array and independent slice. Call spread observes the sum of copied scalar elements; array spread observes nine copied elements. Both preserve the original collection.",
+      "sourceSha256": "4a9720c5000f2156f8446bdb0a2fd66ddc44824dfb24fe44d05b27aeef06e65e",
+      "counterpartSha256": "7c32100093e1dbf60238ba5aba0546698c3ea72d54da2dfc3e407fff5ea88c7b",
+      "verificationEvidence": "runtime/results/2026-10-11T12-11-54-547Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

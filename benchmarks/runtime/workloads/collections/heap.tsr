@@ -1,4 +1,11 @@
-import { Heap } from "std:collections";
+function sumItems(...items: int[]): int {
+  let total = 0;
+  for (const item of items) {
+    total += item;
+  }
+
+  return total;
+} import { Heap } from "std:collections";
 
 function workload(n: int, seed: int, input: string): int[][] {
   const output: int[][] = [];
@@ -13,6 +20,8 @@ function workload(n: int, seed: int, input: string): int[][] {
       traversed += value;
     }
 
+    const spread = sumItems(...values);
+    const flattened = [...values];
     const top = values.peek()!;
     const copied = clone(values);
     let sum = 0;
@@ -20,7 +29,7 @@ function workload(n: int, seed: int, input: string): int[][] {
       sum += copied.pop()!;
     }
 
-    output.push([values.size, top, sum, copied.size, traversed]);
+    output.push([values.size, top, sum, copied.size, traversed, spread, flattened.length]);
   }
 
   return output;
