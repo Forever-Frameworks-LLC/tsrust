@@ -58,6 +58,21 @@ arrays and unions, passed to generic functions and returned from functions.
 Console inspection displays Map entries; String conversion and array join use
 `[object Map]`. Console inspection requires inspectable key and value types.
 
+## Values containing byte views
+
+A Map can own `ByteView` values or records containing views while borrowing their
+byte owners. Inserting a view transfers that view without copying its bytes.
+The owner must remain live and cannot be moved or incompatibly mutated while the
+Map retains the view. Passing, returning and capturing the Map preserve the owner
+provenance, including insertion through a mutable Map parameter. Unrelated Map
+arguments do not shorten the returned Map's lifetime.
+
+Views remain non-clonable. `clone(map)`, `values()` and `entries()` require cloneable
+values, while `keys()` can copy keys without copying the views. Ordinary `get` and
+iteration borrow stored values. View-owner loans are currently retained conservatively
+until the Map's scope ends, including after deletion or clearing; use a nested scope
+when the owner must become independently usable afterward.
+
 ## Independent snapshots
 
 `keys()` returns Key[], `values()` returns Value[], and `entries()` returns

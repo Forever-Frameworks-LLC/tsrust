@@ -267,7 +267,7 @@ impl Analyzer {
                     }
                 }
                 ExprKind::Call(callee, args) => {
-                    if matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift))
+                    if matches!(value.target,Some(CallTarget::ArrayPop|CallTarget::ArrayShift|CallTarget::MapMethod(MapMethod::Get)))
                         && let ExprKind::Field(base,_) = &callee.kind {
                         pending.push(Task::Select(result.len(),Segment::Element));
                         pending.push(Task::Value(base));

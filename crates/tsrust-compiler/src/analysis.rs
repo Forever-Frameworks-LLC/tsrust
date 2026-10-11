@@ -4983,6 +4983,14 @@ impl Analyzer {
         let (name, rebindable, binding) = variable;
         let id = Self::bind(context, name, element.ty(), false)?;
         context.bindings[id].rebindable = rebindable;
+        let mut native_loans = Self::native_view_value_loans(context, iterable)?;
+        native_loans.retain_mut(|loan| native_view_projections::select(loan, &native_view_loans::Segment::Element));
+        if let Type::Map(_) = actual {
+            let Type::Record(pair) = element.ty() else { unreachable!("checked Map entry") };
+            let field = self.program.records[pair].fields[1].name.text.clone();
+            for loan in &mut native_loans { native_view_projections::wrap(loan, &native_view_loans::Segment::Field(field.clone())); }
+        }
+        Self::set_native_view_loans(context, id, native_loans);
         if !element.ty().is_copy() {
             context.bindings[id].borrowed_element = Some(iterable.span);
         }

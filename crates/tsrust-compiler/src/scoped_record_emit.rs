@@ -87,6 +87,10 @@ impl Emitter<'_> {
 
     fn record_environment_type(&self, ty: Type, lifetimes: &[String], next: &mut usize) -> String {
         match ty {
+            Type::Map(id) if self.native_views.contains(ty) => {
+                let payload=self.record_environment_type(self.program.records[id].map_definition.as_ref().unwrap().value,lifetimes,next);
+                format!("Map{id}<{payload}>")
+            }
             Type::Closure(id) => {
                 let count = self.native_captures.lifetimes[id];
                 let mut arguments = lifetimes[*next..*next + count].to_vec();

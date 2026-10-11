@@ -30,7 +30,7 @@ pub(crate) fn count_with_storage(
         }
         if matches!(
             ty,
-            Type::Record(_) | Type::Union(_) | Type::BorrowedUnion(_)
+            Type::Record(_) | Type::Map(_) | Type::Union(_) | Type::BorrowedUnion(_)
         ) {
             if !active.insert(ty) {
                 return 129;
@@ -54,6 +54,7 @@ pub(crate) fn count_with_storage(
                     pending.push((ty, false));
                 }
             }
+            Type::Map(id) if contains_native_view(ty,records,&members,storage) => pending.push((records[id].map_definition.as_ref().unwrap().value,false)),
             Type::Array(element) if contains_native_view(element.ty(), records, &members, storage) => pending.push((element.ty(),false)),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 pending.extend(members(id).into_iter().map(|ty| (ty, false)))
@@ -79,6 +80,7 @@ pub(crate) fn contains_native_view(root:Type,records:&[Record],members:&impl Fn(
                 pending.extend(record.fields.iter().filter_map(|field|field.ty));
             }
             Type::StoredCallable(family) if storage.scoped_native_family(family).is_some() => return true,
+            Type::Map(id)=>pending.push(records[id].map_definition.as_ref().unwrap().value),
             Type::Array(element)=>pending.push(element.ty()),
             Type::Union(id)|Type::BorrowedUnion(id)=>pending.extend(members(id)),
             _=>{}

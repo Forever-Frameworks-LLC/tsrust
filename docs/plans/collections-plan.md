@@ -41,8 +41,14 @@ view records, deep cloning and independent Set order. It exposed three defects:
   in the collection just as array insertion does, so owner transfer is rejected.
 
 These are focused repairs, not complete generic Map/view transport acceptance.
-Still audit returned Maps, parameter mutation, Map.get view provenance, loop-binding
-provenance, views nested in payload records, and loan release after deletion/clear.
+Returned Maps, parameter mutation, borrowed lookup, iteration, captured Maps and
+views nested in payload records now have focused native and ownership witnesses in
+`returned-views.tsr`. Multiple-input selection preserves independent lifetimes: the
+unselected owner can end before the returned Map is read. Map payloads participate
+in both source provenance and emitted lifetime enumeration.
+
+Still audit escaping projections/reborrowed lookup results, recursive Map payload
+cycles, and precise loan release after deletion/clear before complete S08 acceptance.
 The current element-level loan retention is conservative across collection mutation.
 No lifetime erasure or hidden owned copy is permitted to make these cases compile.
 

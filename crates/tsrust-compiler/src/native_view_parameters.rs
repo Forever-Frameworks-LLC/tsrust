@@ -5,6 +5,7 @@ use super::native_view_loans::{LifetimeSource, Loan, Segment, VariantGuard};
 impl Analyzer {
     fn native_shape_children(&self, ty: Type) -> Vec<(Type, Option<Segment>, Option<usize>)> {
         match ty {
+            Type::Map(id) => vec![(self.program.records[id].map_definition.as_ref().unwrap().value, Some(Segment::Element), None)],
             Type::Array(element) => vec![(element.ty(), Some(Segment::Element), None)],
             Type::StoredCallable(family)=>self.callables.storage.scoped_native_family(family).into_iter().flat_map(|layout|
                 layout.alternatives.iter().map(|alternative|(Type::Closure(alternative.origin),Some(Segment::CallableAlternative(alternative.origin)),None))

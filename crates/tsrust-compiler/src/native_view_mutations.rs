@@ -31,6 +31,19 @@ impl Analyzer {
         self.remember_native_parameter_store(context, place.root, incoming, value.span)
     }
 
+    pub(super) fn record_native_element_store(&self, context: &mut Context, target: &Expr, value: &Expr) -> Result<(), Diagnostic> {
+        if !self.native_borrow_types || context.effects_only { return Ok(()); }
+        let Some(place) = crate::flow::place(target, &context.names) else { return Ok(()); };
+        if !context.bindings[place.root].parameter { return Ok(()); }
+        let mut incoming = Self::native_view_value_loans(context, value)?;
+        for loan in &mut incoming {
+            native_view_projections::wrap(loan, &Segment::Element);
+            for field in place.fields.iter().rev() { native_view_projections::wrap(loan, &Segment::Field(field.clone())); }
+        }
+        native_view_recursive::normalize(context, context.bindings[place.root].ty, &mut incoming);
+        self.remember_native_parameter_store(context, place.root, incoming, value.span)
+    }
+
     pub(super) fn apply_native_call_stores(&self, context: &mut Context, expression: &Expr) -> Result<(), Diagnostic> {
         if !self.native_borrow_types || context.effects_only { return Ok(()); }
         let mut call = expression;

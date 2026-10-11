@@ -171,6 +171,10 @@ impl Emitter<'_> {
                     self.native_view_capture_slots(field.ty.expect("checked field"),root,path,guards,lifetimes,next,slots);path.pop();
                 }
             }
+            Type::Map(id) if self.native_views.contains(ty)=>{
+                path.push(Segment::Element);
+                self.native_view_capture_slots(self.program.records[id].map_definition.as_ref().unwrap().value,root,path,guards,lifetimes,next,slots);path.pop();
+            }
             Type::Array(element) if self.native_views.contains(ty)=>{
                 path.push(Segment::Element);self.native_view_capture_slots(element.ty(),root,path,guards,lifetimes,next,slots);path.pop();
             }
@@ -238,6 +242,11 @@ impl Emitter<'_> {
                     let result=self.native_view_signature_slot(ty,input,plan,path,guards);path.pop();Some(result)
                 }).collect::<Vec<_>>();
                 if parameters.is_empty(){self.native_type(ty)}else{format!("Record{base}<{}>",parameters.join(", "))}
+            }
+            Type::Map(id)=>{
+                path.push(Segment::Element);
+                let payload=self.native_view_signature_slot(self.program.records[id].map_definition.as_ref().unwrap().value,input,plan,path,guards);path.pop();
+                format!("Map{id}<{payload}>")
             }
             Type::Array(element)=>{
                 path.push(Segment::Element);

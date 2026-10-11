@@ -66,6 +66,10 @@ impl Emitter<'_> {
                         pending.push((field.ty.expect("checked field"), child, guards.clone()));
                     }
                 }
+                Type::Map(id) => {
+                    let mut child=path;child.push(Segment::Element);
+                    pending.push((self.program.records[id].map_definition.as_ref().unwrap().value,child,guards));
+                }
                 Type::Array(element) => {
                     let mut child = path;
                     child.push(Segment::Element);

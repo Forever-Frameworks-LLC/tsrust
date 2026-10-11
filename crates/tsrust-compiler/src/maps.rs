@@ -123,6 +123,7 @@ impl Analyzer {
         }
         if method == MapMethod::Set {
             Self::append_native_view_element(context, base, &arguments[1])?;
+            self.record_native_element_store(context, base, &arguments[1])?;
         }
         let mut result = self.map_method_type(id, name, expression.span)?;
         if method == MapMethod::Get && named && !result.is_copy() { result = Type::BorrowedUnion(result.union().unwrap()); }
