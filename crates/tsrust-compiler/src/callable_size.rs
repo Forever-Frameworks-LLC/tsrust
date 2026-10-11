@@ -31,6 +31,9 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     {
         return Ok(());
     }
+    let links = crate::recursive_links::Index::new(&program.records, |id| {
+        program.unions[id.index()].members.clone()
+    });
     let mut sizes = HashMap::new();
     let mut active = HashSet::new();
     let roots = (0..program.records.len()).map(Type::Record).chain(
@@ -57,7 +60,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     span,
                 )
             };
-            let dependencies = dependencies(program, ty, span)?;
+            let dependencies = dependencies(program, &links, ty, span)?;
             if !finish {
                 if !active.insert(ty) {
                     return Err(Diagnostic::new(
@@ -104,12 +107,22 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     total
                 }
                 Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Union(_) => {
-                    let largest = dependencies
+                    let mut largest = dependencies
                         .iter()
                         .map(|child| sizes[child])
                         .max()
                         .unwrap_or(0);
-                    let tag = if dependencies.len() > 1 { alignment } else { 0 };
+                    let alternatives = if let Type::Union(id) = ty {
+                        let members = &program.unions[id.index()].members;
+                        if members.iter().any(|member| matches!(member, Type::Record(record) if links.boxed(id, *record))) {
+                            // The payload is an owned link pointer, not its inline record.
+                            largest = largest.max(std::mem::size_of::<usize>());
+                        }
+                        members.len()
+                    } else {
+                        dependencies.len()
+                    };
+                    let tag = if alternatives > 1 { alignment } else { 0 };
                     padded(largest)?.checked_add(tag).ok_or_else(failure)?
                 }
                 Type::Int => std::mem::size_of::<i64>(),
@@ -144,7 +157,12 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     Ok(())
 }
 
-fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Type>, Diagnostic> {
+fn dependencies(
+    program: &CheckedProgram,
+    links: &crate::recursive_links::Index,
+    ty: Type,
+    span: Span,
+) -> Result<Vec<Type>, Diagnostic> {
     Ok(match ty {
         Type::Record(id) => program.records[id]
             .fields
@@ -177,7 +195,9 @@ fn dependencies(program: &CheckedProgram, ty: Type, span: Span) -> Result<Vec<Ty
             .copied()
             .map(Type::Closure)
             .collect(),
-        Type::Union(id) => program.unions[id.index()].members.clone(),
+        Type::Union(id) => program.unions[id.index()].members.iter().copied().filter(|member| {
+            !matches!(member, Type::Record(record) if links.boxed(id, *record))
+        }).collect(),
         _ => Vec::new(),
     })
 }

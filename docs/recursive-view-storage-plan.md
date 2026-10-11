@@ -294,13 +294,22 @@ on five untimed cases in SQLite record
 `runtime/results/2026-10-11T01-01-09-264Z-verify.json`; execution samples are empty.
 Workload source acceptance is separate from gate 189 and measured acceptance.
 
-A further source probe of a recursive record with a stored view-capturing callback
-hits the existing `callable-layout` diagnostic before native emission. This boundary
-is still open: the callable layout planner must recognize the new indirection and
-its recursive environment before that combination can be accepted. It does not
-block capturing a complete linked record in a callback, which is covered publicly.
-Keep this item alongside capturing callbacks that return argument views; do not
-accept gate 189 while required callback storage remains unresolved.
+A recursive record with a stored view-capturing callback remains unsupported.
+The callable cycle graph and storage budget now honor the shared nullable-link
+plan. Ordinary nullable recursive records execute both beside stored callbacks
+and with stored callbacks as fields. Direct callable-environment cycles still
+require their own terminating indirection.
+
+The saved view-capturing callback probe exposed the next boundary: scoped record
+materialization specializes callback fields, but recursive record declarations
+emit fixed fields with one shared lifetime. The specialized return currently
+tries to apply generic type arguments to that fixed declaration. Source analysis
+therefore keeps a targeted `callable-layout` diagnostic instead of allowing a
+native compiler failure. The public `recursive-callbacks.tsr` fixture preserves
+this witness; its native test is explicitly ignored pending implementation, with
+an active CLI/editor rejection test. Capturing a complete linked record in a
+callback remains covered and supported. Do not accept gate 189 until recursive
+stored callback fields have real native execution and ownership evidence.
 
 SQLite preserves 24 source-emission, CLI/editor, registration and formatting
 logs under `tsrust-nullable-links-*.log`, plus the exact callback probe source

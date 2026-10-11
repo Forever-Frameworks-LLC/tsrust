@@ -145,6 +145,27 @@ regressions, matched measurements, regression review, justified optimization and
 consumer refresh. Continue through the existing S08–S21 roadmap after S07. Preserve
 completed evidence; rerun affected checks and resume unrun measurement groups.
 
+## Recursive stored callback continuation
+
+Callable layout validation and inline storage budgeting now share the existing
+nullable-link indirection plan. Ordinary nullable chains execute with owned
+stored callback fields and beside unrelated stored callbacks. The boxed payload
+counts as pointer storage; union tags and other inline variants still contribute
+to the conservative size limit. Direct callable cycles remain rejected.
+
+The saved `Holder` witness now identifies a separate emitter mismatch: its
+materialized callback field uses `NativeViewCallable`, but the nominal recursive
+record emits fixed fields and a single lifetime, while its use supplies generic
+field arguments. Keep the targeted source diagnostic until recursive specialized
+fields and their links have compatible representations. The ignored public native
+fixture is `native-byte-views/recursive-callbacks.tsr`; CLI/editor diagnostic checks
+remain active. Do not remove the diagnostic merely to make analysis pass.
+
+Next: reconcile nominal/concrete recursive record storage, including callback
+family alternatives throughout links and the shared lifetime. Preserve source
+provenance and noncloneable views. Require real linked-chain native execution,
+owner-conflict/escape rejection, and disposal evidence before accepting this scope.
+
 ## Working environment
 
 One agent in this tree. `CARGO_INCREMENTAL=0`,

@@ -181,3 +181,39 @@ fn native_view_constructor_inside_stored_callback_keeps_argument_ownership() {
     let path=directory.source(&support::format_round_trip(&source));
     support::success(&support::run(support::cli().arg("run").arg(path),120));
 }
+
+#[test]
+#[ignore = "recursive view record declarations need specialized callback field storage"]
+fn recursive_records_store_view_capturing_once_callbacks() {
+    let directory=support::TempDirectory::new();
+    let source=support::format_round_trip(include_str!("fixtures/native-byte-views/recursive-callbacks.tsr"));
+    let path=directory.source(&source);
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn recursive_view_callback_storage_reports_the_pending_layout_boundary() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip(include_str!("fixtures/native-byte-views/recursive-callbacks.tsr"));
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("check").arg(path), 60);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Recursive view records cannot yet store specialized callback environments."));
+}
+
+#[test]
+fn nullable_recursive_records_execute_beside_and_with_owned_callbacks() {
+    for source in [
+        "import {strictEqual} from 'std:testing';type Link={value:int;next?:Link;};type Holder={read:Function<int>;};function main(){const link:Link={value:7,next:{value:11}};const holder:Holder={read:():int=>3};strictEqual(link.next!.value,11);strictEqual(holder.read(),3);}",
+        "import {strictEqual} from 'std:testing';type Link={value:int;read:Function<int>;next?:Link;};function main(){const link:Link={value:7,read:():int=>3,next:{value:11,read:():int=>5}};strictEqual(link.read(),3);const child=link.next!;strictEqual(child.read(),5);}",
+    ] {
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&support::format_round_trip(source));
+        for optimized in [false, true] {
+            let mut command = support::cli();
+            command.arg("run").arg(&path);
+            if optimized { command.arg("--release"); }
+            support::success(&support::run(&mut command, 120));
+        }
+    }
+}

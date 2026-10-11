@@ -227,3 +227,16 @@ fn callbacks_borrow_owner_arguments_without_losing_provenance() {
     let diagnostics=convert(&snapshot,Some(&error)).unwrap();
     assert!(!diagnostics[&id("main")].is_empty());
 }
+
+#[test]
+fn recursive_view_callback_storage_reports_its_native_layout_boundary() {
+    let source = include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/recursive-callbacks.tsr");
+    let mut workspace = Workspace::default();
+    workspace.open(id("main"), 1, source.into());
+    let snapshot = workspace.snapshot();
+    let error = snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code, "callable-layout");
+    let diagnostics = convert(&snapshot, Some(&error)).unwrap();
+    let diagnostic = serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert_eq!(diagnostic["message"], "Recursive view records cannot yet store specialized callback environments.");
+}

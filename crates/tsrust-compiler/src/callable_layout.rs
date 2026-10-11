@@ -265,7 +265,8 @@ mod tests {
 }
 
 /// Validate by-value edges only. Arrays and captured references provide native
-/// indirection; boxing/iterative cleanup for callable cycles is a later gate.
+/// indirection, as do the nullable record variants selected by the shared link plan.
+/// Cycles through callable environments still require their own finite layout.
 pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), crate::Diagnostic> {
     let families = program.stored_contracts.families().collect::<Vec<_>>();
     if !families.iter().any(|(_, _, origins)| !origins.is_empty())
@@ -291,6 +292,21 @@ pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), cr
             })
     {
         return Ok(());
+    }
+    // Recursive declarations currently have a fixed native field layout. A
+    // specialized callable field cannot use that declaration's generic ABI yet.
+    let views = crate::recursive_view_shapes::Index::new(&program.records, &|id| {
+        program.unions[id.index()].members.clone()
+    });
+    for (id, record) in program.records.iter().enumerate() {
+        let base = program.scoped_records.declaration(id);
+        if base != id && views.access(base).is_some() {
+            return Err(crate::Diagnostic::new(
+                "callable-layout",
+                "Recursive view records cannot yet store specialized callback environments.",
+                record.name.span,
+            ));
+        }
     }
     let records = program.records.len();
     let closures = program.closures.len();
@@ -335,8 +351,17 @@ pub(crate) fn validate_storage_layout(program: &CheckedProgram) -> Result<(), cr
     for (id, _, origins) in families {
         graph[family_offset + id].extend(origins.iter().copied().map(Type::Closure));
     }
+    let links = crate::recursive_links::Index::new(&program.records, |id| {
+        program.unions[id.index()].members.clone()
+    });
     for (id, union) in program.unions.iter().enumerate() {
-        graph[union_offset + id].extend(union.members.iter().copied());
+        let union_id = crate::syntax::UnionId {
+            index: u32::try_from(id).expect("checked union index"),
+            copy: false,
+        };
+        graph[union_offset + id].extend(union.members.iter().copied().filter(|member| {
+            !matches!(member, Type::Record(record) if links.boxed(union_id, *record))
+        }));
     }
     let mut colors = vec![0u8; graph.len()];
     // Unreferenced symbolic unions are not emitted storage roots.
@@ -481,4 +506,15 @@ fn recursive_callable_layout_is_rejected_while_array_indirection_remains_finite(
         validate_storage_layout(program).unwrap_err().code,
         "callable-layout"
     );
+}
+
+#[cfg(test)]
+#[test]
+fn nullable_record_links_break_layout_cycles_beside_stored_callables() {
+    for source in [
+        "type Link={value:int;next?:Link;};type Holder={read:Function<int>;};function main(){const link:Link={value:7};const holder:Holder={read:():int=>3};console.log(link.value,holder.read());}",
+        "type Link={value:int;read:Function<int>;next?:Link;};function main(){const link:Link={value:7,read:():int=>3};console.log(link.value,link.read());}",
+    ] {
+        crate::check(source).unwrap_or_else(|error| panic!("{error:?}"));
+    }
 }

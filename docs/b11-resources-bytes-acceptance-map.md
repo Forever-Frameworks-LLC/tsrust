@@ -709,3 +709,28 @@ Five native/Node-after-tsc cases agree in SQLite
 `runtime/results/2026-10-11T05-33-30-740Z-verify.json`; `verifiedOnly` is true and
 `execution` is empty. Whole-project formatting finishes with zero changes. No timing
 or full family regression ran.
+
+### Nullable links in callable layout validation
+
+The callable cycle graph and inline-size budget now honor the shared nullable-link
+plan. Ordinary recursive records execute beside stored callbacks and with owned
+stored callbacks at both native optimization levels. Direct callable-environment
+cycles remain rejected. This fixes an unrelated stored callback making otherwise
+valid nullable record declarations fail analysis.
+
+Recursive records with specialized view-capturing callback fields remain pending.
+The saved source reaches a nominal/concrete native field mismatch after removing
+the stale graph rejection. A targeted source diagnostic keeps that combination
+from reaching malformed native code. One ignored native fixture preserves the
+unfinished behavior; active compiler/editor tests verify its current diagnostic.
+
+Focused checks: 113 callable unit tests, 17 byte integrations (one pending native
+fixture ignored), two recursive editor diagnostics, formatter corpus and formatted
+release linked-view execution pass. The ordinary callback-chain integration also
+passes with and without native optimization. Whole-project formatting is idempotent.
+Native and Node-after-tsc agree on five cases each for `native_byte_views_linked`
+and `native_byte_views_callbacks`, recorded as untimed verification in
+`runtime/results/2026-10-11T05-44-49-657Z-verify.json`. Execution samples are empty.
+No full family regression or timing ran; gate 189, gate 190 and S07 remain open.
+Evidence logs use SQLite prefix `tsrust-recursive-stored-callback-`. Installed
+consumers remain `4367f4cc`.
