@@ -52,7 +52,7 @@ export async function run(): Promise<void> {
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'clone clears ownership diagnostic');
   await replace(editor, 'function main(){console.log("😀");}');
   await vscode.commands.executeCommand('tsrust.formatDocument');
-  assert.ok(document.getText().includes('\n    console.log'), 'format command expands and indents block');
+  assert.ok(document.getText().includes('\n  console.log'), 'format command expands block with two-space indentation');
   assert.equal(await vscode.commands.executeCommand('tsrust.checkFile',uri),0, 'file checks from command');
   const taskEnd = new Promise<number | undefined>(resolve => {
     const subscription=vscode.tasks.onDidEndTaskProcess(event => { if(event.execution.task.source === 'Tsrust') {subscription.dispose();resolve(event.exitCode);} });
@@ -64,7 +64,7 @@ export async function run(): Promise<void> {
   await configuration.update('formatOnSave',true,vscode.ConfigurationTarget.Workspace);
   await replace(editor,'function main(){console.log(8);}');
   assert.ok(await document.save());
-  assert.ok(document.getText().includes('\n    console.log'), 'format-on-save edits before writing');
+  assert.ok(document.getText().includes('\n  console.log'), 'format-on-save applies two-space indentation before writing');
   await configuration.update('formatOnSave',false,vscode.ConfigurationTarget.Workspace);
   const unicode = 'function main() { const text = "😀é"; const x: int = true; }';
   await replace(editor, unicode);

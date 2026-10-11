@@ -1670,6 +1670,17 @@ impl CatalogExampleSource {
 
 #[test]
 fn documented_builtin_examples_match_native_output() {
+    // File examples document a four-byte input; keep it outside the owner workspace.
+    struct ExampleDirectory(std::path::PathBuf);
+    impl Drop for ExampleDirectory {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+    let directory = ExampleDirectory(std::env::temp_dir().join(format!(
+        "tsrust-catalog-input-{}-{}", std::process::id(),
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+    )));
+    std::fs::create_dir(&directory.0).unwrap();
+    std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let catalog: Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let mut source = CatalogExampleSource::default();
     let mut expected = String::new();
@@ -1710,8 +1721,8 @@ fn documented_builtin_examples_match_native_output() {
                         "{}",
                         String::from_utf8_lossy(&compilation.stderr)
                     );
-                    let output = std::process::Command::new(&binary).output().unwrap();
-                    assert!(output.status.success());
+                    let output = std::process::Command::new(&binary).current_dir(&directory.0).output().unwrap();
+                    assert!(output.status.success(), "{family}.{} example failed: {}", entry["name"], String::from_utf8_lossy(&output.stderr));
                     assert_eq!(
                         String::from_utf8(output.stdout).unwrap(),
                         example["output"].as_str().unwrap()

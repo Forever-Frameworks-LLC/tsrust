@@ -2,6 +2,11 @@
 
 This is the current implementation map. S07 is not accepted or measured.
 
+Family correctness is accepted: 3,053 compiler and 500 editor tests, complete target
+coverage, VS Code integration and 24 benchmark contract tests. Original failure and
+affected-only repair evidence are retained; see `milestones/s07-resources-bytes.md`.
+The 17-workload timing and performance review and final consumer refresh remain open.
+
 | Scope | Status | Authoritative evidence |
 | --- | --- | --- |
 | Typed native declarations, signatures, imports, aliases and Result payloads | Gate 187 accepted | milestones/187-native-byte-foundation.md |

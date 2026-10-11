@@ -78,7 +78,7 @@ export async function testModules(folder: vscode.Uri): Promise<void> {
   assert.equal(stdHelp?.signatures[0].parameters?.[1].label,'suffix?: string');
   const storedPosition=document.positionAt(stdSource.lastIndexOf('stored(')+1);
   const storedHover=await vscode.commands.executeCommand<vscode.Hover[]>('vscode.executeHoverProvider',entryUri,storedPosition);
-  assert.ok(storedHover?.some(hover=>hover.contents.some(content=>typeof content!=='string' && 'value' in content && content.value.includes('const stored: Function<string, [path: string, suffix?: string]>') && content.value.includes('without reading the filesystem'))));
+  assert.ok(storedHover?.some(hover=>hover.contents.some(content=>typeof content!=='string' && 'value' in content && content.value.includes('const stored: (path: string, suffix?: string) => string') && content.value.includes('without reading the filesystem'))));
   const storedHelp=await vscode.commands.executeCommand<vscode.SignatureHelp>('vscode.executeSignatureHelpProvider',entryUri,document.positionAt(stdSource.indexOf('".txt"',stdSource.lastIndexOf('stored('))));
   assert.equal(storedHelp?.activeParameter,1);
   assert.equal(storedHelp?.signatures[0].parameters?.[1].label,'suffix?: string');
