@@ -87,6 +87,29 @@ function takeThroughLoop(row: Row, mode: int, trace: int[]): string {
   return row.name;
 }
 
+function takeThroughCatch(row: Row, mode: int, trace: int[]): string {
+  try {
+    if (mode === 0) {
+      return row.name;
+    }
+
+    if (mode === 1) {
+      throw 31;
+    }
+
+    trace.push(29);
+  } catch (error) {
+    trace.push(30);
+    if (mode === 1) {
+      return row.name;
+    }
+  } finally {
+    trace.push(31);
+  }
+
+  return row.name;
+}
+
 function main() {
   const trace: int[] = [];
   strictEqual(take({
@@ -122,5 +145,13 @@ function main() {
       name: "owner", other: "sibling"
     }, mode, loopTrace), "owner");
     strictEqual(loopTrace.join(","), mode < 2 ? "0" : "0,1");
+  }
+
+  for (let mode = 0; mode < 3; mode += 1) {
+    const catchTrace: int[] = [];
+    strictEqual(takeThroughCatch({
+      name: "owner", other: "sibling"
+    }, mode, catchTrace), "owner");
+    strictEqual(catchTrace.join(","), mode === 0 ? "31" : mode === 1 ? "30,31" : "29,31");
   }
 }

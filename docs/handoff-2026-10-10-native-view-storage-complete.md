@@ -72,19 +72,34 @@ Nested cleanup, continue/update, labeled exits, normal fallthrough and a Map-bac
 loop disposal probe pass. Empty native ownership payloads now render the valid unit
 tuple. The original loop-control witness is enabled.
 
-Remaining ignored native witness: `body_field_return_and_catch_keep_lexical_disposal`.
-One body branch returns a field; another throws to an empty catch. The body local
-still survives into cleanup on the return path. Field ownership must travel on the
-throw/error completion and be restored before catch, independently of normal and
-return payloads. `completion_field_plan` currently rejects body-field transfers when
-a reachable catch exists. The new `field_control_transport.rs` also leaves catches
-to existing routes. Specialized/captured record layouts still need coverage. Do not
-accept resource cleanup yet; preserve real scopes without manual drops or clones.
+Ordinary body-field returns with a reachable catch now retain lexical disposal.
+The throwing body carries surviving fields with its error and restores them before
+the handler. Normal fields have a separate payload. Nested cleanup forwards these
+error fields; loop completion frames preserve them independently of control owners.
+When a field moves on the throw path but survives a return, it accompanies the
+pending return too. Normal/control paths carry those same surviving fields where
+needed, preventing loss of initialization proof across alternatives. Impossible
+normal completion arms diverge. Body/handler returns, nested cleanup replacement
+and caught loop exits now pass focused native/integration checks.
 
-Public fixtures and matched `exception_completion` now exercise loop field returns,
-break, continue and normal fallthrough with cleanup trace. Matched TypeScript,
-independent closed-form oracle, mutation guards and hashes are current. Exact red
-and repaired records for this checkpoint use SQLite prefix `tsrust-field-control-`.
+Remaining ignored native witness:
+`map_body_field_return_and_catch_keep_lexical_disposal`. It returns a field on one
+body path, renews a Map callback and throws on another, then catches before cleanup.
+The return path still disposes the body local too late. Map completion carriers need
+surviving fields on their error and normal paths while preserving concrete callback
+owners. `completion_field_plan` still keeps the body-transfer/catch guard for Map
+callers; ordinary field emission uses the new opt-in path. Do not just remove the
+Map guard without extending its payloads. Same-region catch/control combinations
+and specialized/captured layouts still need coverage. Do not accept resources yet.
+
+Public fixtures and matched `exception_completion` now exercise body field returns,
+caught throws, handler field returns and normal continuation, in addition to loops
+and Map cleanup. Matched TypeScript, independent closed-form oracle, mutation guards
+and hashes are current. Exact red/repaired records use SQLite prefix
+`tsrust-field-catch-`. A discarded test variant correctly failed ownership checking:
+fallible logging in inner cleanup could throw after the field had already moved.
+The final replacement tests keep that inner cleanup infallible.
+
 See the acceptance map for final counts and untimed verification. No timing or full
 family regression ran. Installed CLI/editor remain `4367f4cc`; scratch release is
 rebuilt from this checkpoint before acceptance.

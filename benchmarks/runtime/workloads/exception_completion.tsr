@@ -105,6 +105,29 @@ function retainedLoop(value: RetainedOwner, mode: int, trace: int[]): string {
   return value.text;
 }
 
+function retainedCatch(value: RetainedOwner, mode: int, trace: int[]): string {
+  try {
+    if (mode === 0) {
+      return value.text;
+    }
+
+    if (mode === 1) {
+      throw 31;
+    }
+
+    trace.push(29);
+  } catch (error) {
+    trace.push(30);
+    if (mode === 1) {
+      return value.text;
+    }
+  } finally {
+    trace.push(31);
+  }
+
+  return value.text;
+}
+
 type CleanupChoice = {
   first: string;
   second: string;
@@ -144,7 +167,10 @@ function workload(n: int, seed: int, input: string): string[][] {
     const looped = retainedLoop({
       text: mapped, stamp: 0
     }, value % 4, trace);
-    const selected = conditionalCleanup(looped, value % 2 === 0, value % 3 === 0);
+    const caught = retainedCatch({
+      text: looped, stamp: 0
+    }, value % 3, trace);
+    const selected = conditionalCleanup(caught, value % 2 === 0, value % 3 === 0);
     output.push([String(result), String(replaced(value)), trace.join(","), selected]);
     i = i + 1;
   }

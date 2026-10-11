@@ -203,3 +203,27 @@ fn partial_return_labeled_control_and_cleanup_override() {
         "left right right\n",
     );
 }
+
+#[test]
+fn body_field_return_catch_and_normal_paths_preserve_owners() {
+    runs(
+        "type Row={name:string;other:string;};function pick(a:Row,mode:int,trace:int[]):string{try{if(mode===0){return a.name;}if(mode===1){throw 7;}trace.push(3);}catch(error){trace.push(4);if(mode===1){return a.name;}}finally{trace.push(9);}return a.name;}function main(){for(let mode=0;mode<3;mode+=1){const trace:int[]=[];console.log(pick({name:\"owner\",other:\"sibling\"},mode,trace),trace.join(\",\"));}}",
+        "owner 9\nowner 4,9\nowner 3,9\n",
+    );
+}
+
+#[test]
+fn nested_field_error_payload_survives_cleanup_replacement() {
+    runs(
+        "type Row={name:string;other:string;};function pick(a:Row,mode:int):string{try{try{if(mode===0){return a.name;}throw 7;}finally{if(mode===1){return a.other;}}}catch(error){console.log(2);if(mode===2){return a.name;}}finally{console.log(3);}return a.name;}function main(){for(let mode=0;mode<3;mode+=1){console.log(pick({name:\"left\",other:\"right\"},mode));}}",
+        "3\nleft\n3\nright\n2\n3\nleft\n",
+    );
+}
+
+#[test]
+fn caught_loop_error_payload_survives_field_return_replacement() {
+    runs(
+        "type Row={name:string;other:string;};function fail():void{throw 7;}function pick(a:Row,mode:int):string{try{for(let i=0;i<1;i+=1){try{if(mode===0){return a.name;}fail();break;}finally{if(mode===1){return a.other;}}}}catch(error){if(mode===2){return a.name;}}finally{}return a.name;}function main(){console.log(pick({name:\"left\",other:\"right\"},0),pick({name:\"left\",other:\"right\"},1),pick({name:\"left\",other:\"right\"},2));}",
+        "left right left\n",
+    );
+}

@@ -6,37 +6,98 @@ pub(super) struct FieldPlan {pub(super) input_fields:Vec<String>,pub(super) outp
 impl Emitter<'_> {
     pub(super) fn field_completion_transport(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,first:usize,incoming_name:&str,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>)->Option<String> {
         let cleanup=region.finally.as_ref()?;
+        let inherited_errors=self.exception_regions.field_error_fields();
         let catch=region.catch.as_ref().filter(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty()));
-        let FieldPlan{input_fields,output_fields}=self.completion_field_plan(fun,statement,region)?;
+        let FieldPlan{mut input_fields,mut output_fields}=self.completion_field_plan_inner(fun,statement,region,true)?;
+        let boundary=region.body.first().or_else(||cleanup.first())?.span.start;
+        if let Some(fields)=&inherited_errors {
+            for (name,_) in fields {
+                let place=self.field_native_place(fun,name).expect("checked inherited field owner");
+                for (phase,names) in [(crate::analysis::MapCompletionPhase::Handled,&mut input_fields),(crate::analysis::MapCompletionPhase::Cleaned,&mut output_fields)] {
+                    if fun.storage_exits.completion_field_available(boundary,phase,None,&place)==Some(true) && !names.contains(name){names.push(name.clone());}
+                }
+            }
+        }
+        let return_fields=inherited_errors.as_ref().map_or_else(Vec::new,|fields|fields.iter().filter(|(name,_)|{
+            fun.storage_exits.completion_field_available(boundary,crate::analysis::MapCompletionPhase::Handled,Some(crate::completion::CompletionKind::Return),&self.field_native_place(fun,name).expect("checked native field owner"))==Some(true)
+        }).cloned().collect::<Vec<_>>());
+        let return_names=return_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>();
+        let (return_pattern,return_restore)=restoration(&return_names,&format!("pending_return_field{first}"));
+        let returned_pattern=if return_fields.is_empty(){"pending_return".into()}else{format!("(pending_return,{return_pattern})")};
+        let body_return=if return_fields.is_empty(){"value".into()}else{format!("(value,{})",tuple(&return_names))};
         self.completion_next.set(self.completion_next.get().max(first+4));
         let values=tuple(&input_fields);
         let (pattern,restore)=restoration(&input_fields,&format!("input_field{first}"));
         let output_values=tuple(&output_fields);
         let (output_pattern,output_restore)=restoration(&output_fields,&format!("normal_field{first}"));
+        let has_normal=fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Handled,None);
+        let output_restore=if fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Cleaned,None){output_restore}else{"unreachable!(\"no normal field cleanup completion\")".into()};
         let pending=if let Some(handler)=catch {
             let incoming=handler.error_contract.as_deref().expect("checked catch contract");
-            let body=self.field_completion_body(fun,&region.body,first,incoming_name,incoming,runtime,"()");
-            let handled=self.field_completion_body(fun,&handler.body,first+1,error_name,contract,runtime,&values);
+            let boundary=region.body.first().or_else(||cleanup.first())?.span.start;
+            let mut places=partial_places(fun,&region.body);normalize(fun,statement.span.start,&mut places);
+            use crate::analysis::MapCompletionPhase::Body;
+            let normal=self.control_completion_fields(fun,boundary,Body,None,&places)?;
+            let errors=self.control_completion_fields(fun,boundary,Body,Some(crate::completion::CompletionKind::Throw),&places)?;
+            let names=|fields:&Vec<(String,Type)>|fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>();
+            let (body_pattern,body_restore)=restoration(&names(&normal),&format!("body_field{first}"));
+            let (error_pattern,error_restore)=restoration(&names(&errors),&format!("caught_field{first}"));
+            let has_normal=fun.storage_exits.has_completion_owners(boundary,Body,None);
+            let body=self.field_error_completion_body(fun,&region.body,first,incoming_name,incoming,runtime,&normal,&errors,has_normal);
+            let normal_result=if has_normal{format!("{{{body_restore}TsrCompletion::Normal({values})}}") }else{"unreachable!(\"no normal throwing body completion\")".into()};
+            let handled=self.field_completion_return_body(fun,&handler.body,first+1,error_name,contract,runtime,&values,&return_fields);
             let setup=if let Some(binding)=handler.binding {
                 let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
                 let value=exception_contract_emit::checked_catch_value("caught_error",incoming_name,incoming,&unions,runtime,statement.span).expect("checked field catch value");
                 format!("let {}value{binding}={value};",if fun.bindings[binding].mutable{"mut "}else{""})
             }else{"drop(caught_error);".into()};
-            format!("match {body}{{TsrCompletion::Normal(())=>TsrCompletion::Normal({values}),TsrCompletion::Throw(caught_error)=>{{{setup}{handled}}},TsrCompletion::Return(value)=>TsrCompletion::Return(value),_=>unreachable!(\"checked field catch control\")}}")
-        }else{self.field_completion_body(fun,&region.body,first,error_name,contract,runtime,&values)};
-        let normal_cleanup=self.field_completion_body(fun,cleanup,first+2,error_name,contract,runtime,&output_values);
+            format!("match {body}{{TsrCompletion::Normal({body_pattern})=>{normal_result},TsrCompletion::Throw((caught_error,{error_pattern}))=>{{{error_restore}{setup}{handled}}},TsrCompletion::Return(value)=>TsrCompletion::Return({body_return}),_=>unreachable!(\"checked field catch control\")}}")
+        }else{self.field_completion_return_body(fun,&region.body,first,error_name,contract,runtime,&values,&return_fields)};
+        let normal_cleanup=if has_normal{self.field_completion_body(fun,cleanup,first+2,error_name,contract,runtime,&output_values)}else{"unreachable!(\"no normal handled field completion\")".into()};
         let returned_cleanup=self.field_completion_body(fun,cleanup,first+3,error_name,contract,runtime,"()");
         let returned=exception_emit::finally_region("TsrCompletion::Return(pending_return)",&returned_cleanup);
-        let thrown=exception_emit::finally_region("TsrCompletion::Throw(pending_error)",&returned_cleanup);
-        let joined=format!("match {pending}{{TsrCompletion::Normal({pattern})=>{{{restore}{normal_cleanup}}},TsrCompletion::Return(pending_return)=>{returned},TsrCompletion::Throw(pending_error)=>{thrown},_=>unreachable!(\"checked field completion control\")}}");
+        let (error_pattern,error_restore,error_values)=inherited_errors.as_ref().map_or_else(||("pending_error".to_owned(),String::new(),String::new()),|fields|{
+            let names=fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>();
+            let (pattern,restore)=restoration(&names,&format!("pending_error_field{first}"));
+            (format!("(pending_error,{pattern})"),restore,tuple(&names))
+        });
+        let thrown=if inherited_errors.is_some(){
+            let id=self.completion_next.get();self.completion_next.set(id+1);
+            let cleanup=self.field_completion_body(fun,cleanup,id,error_name,contract,runtime,&error_values);
+            format!("{{{error_restore}match {cleanup}{{TsrCompletion::Normal(fields)=>TsrCompletion::Throw((pending_error,fields)),TsrCompletion::Return(value)=>TsrCompletion::Return(value),TsrCompletion::Throw(error)=>TsrCompletion::Throw(error),_=>unreachable!(\"checked error cleanup\")}}}}")
+        }else{exception_emit::finally_region("TsrCompletion::Throw(pending_error)",&returned_cleanup)};
+        let joined=format!("match {pending}{{TsrCompletion::Normal({pattern})=>{{{restore}{normal_cleanup}}},TsrCompletion::Return({returned_pattern})=>{{{return_restore}{returned}}},TsrCompletion::Throw({error_pattern})=>{thrown},_=>unreachable!(\"checked field completion control\")}}");
         let (outer_name,outer_contract,_)=self.exception_regions.current_transport().expect("outer field completion");
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
+        if let Some(errors)=&inherited_errors {
+            let names=errors.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>();
+            let (error_pattern,error_restore)=restoration(&names,&format!("outgoing_error_field{first}"));
+            let pending=format!("TsrCompletion::<(),{},{}>::Throw(error)",self.native_type(fun.result),error_name);
+            let widened=exception_contract_emit::checked_completion_conversion(&pending,error_name,&outer_name,contract,&outer_contract,&unions,runtime,statement.span).expect("checked field error forwarding");
+            let returned=self.exception_regions.return_value("value",statement.span);
+            let thrown=self.exception_regions.native_throw("error");
+            return Some(format!("match {joined}{{TsrCompletion::Normal({output_pattern})=>{{{output_restore}}},TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw((error,{error_pattern}))=>{{{error_restore}match {widened}{{TsrCompletion::Throw(error)=>{{{thrown}}},_=>unreachable!(\"selected field error\")}}}},_=>unreachable!(\"checked field completion\")}}"));
+        }
         let widened=exception_contract_emit::checked_completion_conversion(&joined,error_name,&outer_name,contract,&outer_contract,&unions,runtime,statement.span).expect("checked field error conversion");
         let returned=self.exception_regions.return_value("value",statement.span);
         let thrown=self.exception_regions.native_throw("error");
         Some(format!("match {widened}{{TsrCompletion::Normal({output_pattern})=>{{{output_restore}}},TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}},_=>unreachable!(\"checked field cleanup control\")}}"))
     }
+    pub(super) fn field_native_place(&self,fun:&CheckedFunction,native:&str)->Option<Place> {
+        let mut parts=native.split('.');
+        let binding=parts.next()?.strip_prefix("value")?.parse::<usize>().ok()?;
+        let mut ty=fun.bindings.get(binding)?.ty;let mut fields=vec![];
+        for part in parts {
+            let index=part.strip_prefix("field")?.parse::<usize>().ok()?;
+            let Type::Record(record)=ty else{return None;};
+            let field=self.program.records.get(record)?.fields.get(index)?;
+            fields.push(field.name.text.clone());ty=field.ty?;
+        }Some(Place{binding,fields})
+    }
     pub(super) fn completion_field_plan(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion)->Option<FieldPlan> {
+        self.completion_field_plan_inner(fun,statement,region,false)
+    }
+    fn completion_field_plan_inner(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,allow_catch_transfers:bool)->Option<FieldPlan> {
         let cleanup=region.finally.as_ref()?;
         let catch=region.catch.as_ref().filter(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty()));
         // Control exits need their own surviving-field payloads.
@@ -49,7 +110,7 @@ impl Emitter<'_> {
         if places.is_empty(){return None;}
         // With no field transfer in the throwing body, original storage remains
         // initialized at catch entry. Body transfers need precise error payloads.
-        if catch.is_some() && let Some(start)=region.body.first() {
+        if !allow_catch_transfers && catch.is_some() && let Some(start)=region.body.first() {
             let end=crate::error_effects::body_expressions(&region.body).iter().map(|value|value.span.end).chain(region.body.iter().map(|statement|statement.span.end)).max().unwrap_or(start.span.end);
             if fun.storage_exits.expression_points().filter(|point|point.0>=start.span.start && point.1<=end).any(|point|
                 body_places.iter().any(|place|fun.storage_exits.transfer_at_expression(point,place.binding,&place.fields).is_some())) {return None;}
@@ -80,7 +141,36 @@ impl Emitter<'_> {
         }
         Some(FieldPlan{input_fields,output_fields})
     }
+    fn field_error_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,normal:&[(String,Type)],errors:&[(String,Type)],has_normal:bool)->String {
+        let normal_type=tuple(&normal.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>());
+        let normal_value=if has_normal{format!("TsrCompletion::Normal({})",tuple(&normal.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>()))}else{"unreachable!(\"checked abrupt throwing body\")".into()};
+        self.field_carried_error_body(fun,body,id,error_name,contract,runtime,&normal_type,&normal_value,errors,&[])
+    }
+    fn field_carried_error_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,normal_type:&str,normal_value:&str,errors:&[(String,Type)],returns:&[(String,Type)])->String {
+        self.completion_next.set(self.completion_next.get().max(id+1));
+        let _region=self.exception_regions.enter_typed(id,exception_contract_emit::local_control_targets(body),error_name.into(),contract.clone(),runtime);
+        let storage=errors.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect();
+        self.exception_regions.attach_storage(storage,Default::default(),Default::default(),true,body.first().map_or(0,|statement|statement.span.start));
+        self.exception_regions.mark_field_error_storage(errors);
+        let mut result=self.native_type(fun.result);
+        if !returns.is_empty(){
+            let storage=returns.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect();
+            self.exception_regions.attach_field_return_storage(storage);
+            result=format!("({result},{})",tuple(&returns.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>()));
+        }
+        let error_type=tuple(&errors.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>());
+        let mut statements=String::new();self.block(&mut statements,fun,body,1);
+        format!("{{let completion:TsrCompletion<{normal_type},{result},({error_name},{error_type})>='exception_region{id}:{{{statements}{normal_value}}};completion}}")
+    }
+    fn field_completion_return_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,normal:&str,returns:&[(String,Type)])->String {
+        if returns.is_empty(){return self.field_completion_body(fun,body,id,error_name,contract,runtime,normal);}
+        let errors=self.exception_regions.field_error_fields().expect("return companions accompany error fields");
+        self.field_carried_error_body(fun,body,id,error_name,contract,runtime,"_",&format!("TsrCompletion::Normal({normal})"),&errors,returns)
+    }
     fn field_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,normal:&str)->String {
+        if let Some(errors)=self.exception_regions.field_error_fields(){
+            return self.field_carried_error_body(fun,body,id,error_name,contract,runtime,"_",&format!("TsrCompletion::Normal({normal})"),&errors,&[]);
+        }
         self.completion_next.set(self.completion_next.get().max(id+1));
         let _region=self.exception_regions.enter_typed(id,exception_contract_emit::local_control_targets(body),error_name.into(),contract.clone(),runtime);
         let mut statements=String::new();self.block(&mut statements,fun,body,1);

@@ -550,3 +550,44 @@ Final release verification: public assertion fixture passes, whole-project forma
 changes zero files/fingerprints, and five native/Node-after-tsc cases agree in SQLite
 `runtime/results/2026-10-11T04-28-42-759Z-verify.json`. verifiedOnly is true and
 execution is empty. These are untimed correctness checks, not measured acceptance.
+
+### Body field returns through catch and nested cleanup
+
+Ordinary throwing bodies now carry surviving fields with their error payload and
+restore them before catch. Normal completion carries its own fields. Nested plain
+and loop cleanup frames inherit the error-field contract and forward it without
+cloning. Fields moved by error transport but retained on a return travel beside the
+pending return; normal/control alternatives also preserve these fields where needed.
+This keeps initialization visible when cleanup replaces a pending return with a
+different field. Checked-absent normal completions diverge instead of emitting a
+phantom cleanup branch that reads moved storage.
+
+The original body-return/catch disposal witness is enabled. Additional native O0/O3
+probes cover handler field returns, nested cleanup and caught loop exits, with exact
+local disposal and returned allocation identity. Integration checks include normal
+fallthrough, error forwarding, and nested/loop cleanup replacing pending returns.
+An initial replacement test used fallible inner logging; its ownership rejection
+was correct because logging could throw after the field moved. The final source
+keeps inner cleanup infallible. Native field-owner lookup was separated from the
+Map split-record lookup so ordinary inline record paths select the right owners.
+
+Focused checks: 56 finally unit tests pass with one Map catch residual ignored;
+21 exception-handling, 25 return-move, 4 generic-call exception, 3 native-region and
+17 scoped-record finally tests pass. The existing Map callback cases remain green.
+New public fixture assertions and matched workload cases cover body return, caught
+throw, handler return and normal continuation. Independent closed-form expectations,
+TypeScript counterpart, mutation guards and fingerprints are ready; all 3 registration
+checks pass. Measurement protocols, iteration counts and operation units are retained.
+No editor behavior changed. No full family regression or timing ran.
+
+Remaining explicit failure: `map_body_field_return_and_catch_keep_lexical_disposal`
+observes zero body-local disposals where cleanup requires one. Map error/normal
+carriers still need the field payload integration; the existing guard remains.
+Same-region catch/control and captured/specialized layouts also need coverage.
+Resource acceptance, gate 190 and S07 remain open. Exact evidence uses SQLite prefix
+`tsrust-field-catch-`. Installed consumers remain `4367f4cc`.
+
+Final formatter corpus and rebuilt release assertion fixture pass. Whole-project
+formatting changes zero files/fingerprints. Five native/Node-after-tsc cases agree
+in SQLite `runtime/results/2026-10-11T04-57-25-403Z-verify.json`; verifiedOnly is true
+and execution is empty. This remains untimed correctness evidence.

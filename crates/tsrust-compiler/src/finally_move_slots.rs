@@ -132,17 +132,35 @@ mod tests {
         assert_try_local_drops_before_cleanup(LocalCleanup::MapControlPartialReturn);
     }
     #[test]
-    #[ignore = "Body field returns with a reachable catch still extend local disposal past cleanup"]
     fn body_field_return_and_catch_keep_lexical_disposal() {
         assert_try_local_drops_before_cleanup(LocalCleanup::BodyCatchPartialReturn);
     }
+    #[test]
+    fn body_and_handler_field_returns_keep_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::BodyCatchFieldReturn);
+    }
+    #[test]
+    fn nested_body_field_return_and_catch_keep_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::NestedBodyCatchPartialReturn);
+    }
+    #[test]
+    fn caught_loop_field_returns_keep_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::CaughtControlPartialReturn);
+    }
+    #[test]
+    #[ignore = "Map error transport still needs surviving fields for body partial returns"]
+    fn map_body_field_return_and_catch_keep_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::MapBodyCatchPartialReturn);
+    }
     #[derive(Debug)]
-    enum LocalCleanup {WholeReturn,PartialReturn,PartialLocal,MapReturn,NestedPartialReturn,CatchPartialReturn,LocalPartialReturn,MapPartialReturn,AlwaysPartialReturn,MapCatchPartialReturn,MapTerminalPartialReturn,MapReplacementPartialReturn,ControlPartialReturn,ControlContinuePartialReturn,ControlNestedPartialReturn,ControlCleanupBreak,MapControlPartialReturn,BodyCatchPartialReturn}
+    enum LocalCleanup {WholeReturn,PartialReturn,PartialLocal,MapReturn,NestedPartialReturn,CatchPartialReturn,LocalPartialReturn,MapPartialReturn,AlwaysPartialReturn,MapCatchPartialReturn,MapTerminalPartialReturn,MapReplacementPartialReturn,ControlPartialReturn,ControlContinuePartialReturn,ControlNestedPartialReturn,ControlCleanupBreak,MapControlPartialReturn,BodyCatchPartialReturn,BodyCatchFieldReturn,NestedBodyCatchPartialReturn,CaughtControlPartialReturn,MapBodyCatchPartialReturn}
     fn assert_try_local_drops_before_cleanup(case:LocalCleanup) {
-        let partial=matches!(case,LocalCleanup::PartialReturn|LocalCleanup::NestedPartialReturn|LocalCleanup::CatchPartialReturn|LocalCleanup::LocalPartialReturn|LocalCleanup::MapPartialReturn|LocalCleanup::AlwaysPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::ControlPartialReturn|LocalCleanup::ControlContinuePartialReturn|LocalCleanup::ControlNestedPartialReturn|LocalCleanup::ControlCleanupBreak|LocalCleanup::MapControlPartialReturn|LocalCleanup::BodyCatchPartialReturn);
+        let partial=matches!(case,LocalCleanup::PartialReturn|LocalCleanup::NestedPartialReturn|LocalCleanup::CatchPartialReturn|LocalCleanup::LocalPartialReturn|LocalCleanup::MapPartialReturn|LocalCleanup::AlwaysPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::ControlPartialReturn|LocalCleanup::ControlContinuePartialReturn|LocalCleanup::ControlNestedPartialReturn|LocalCleanup::ControlCleanupBreak|LocalCleanup::MapControlPartialReturn|LocalCleanup::BodyCatchPartialReturn|LocalCleanup::BodyCatchFieldReturn|LocalCleanup::NestedBodyCatchPartialReturn|LocalCleanup::CaughtControlPartialReturn|LocalCleanup::MapBodyCatchPartialReturn);
         let local_partial=matches!(case,LocalCleanup::PartialLocal);
-        let map=matches!(case,LocalCleanup::MapReturn|LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::MapControlPartialReturn);
-        let source=if matches!(case,LocalCleanup::BodyCatchPartialReturn) {
+        let map=matches!(case,LocalCleanup::MapReturn|LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::MapControlPartialReturn|LocalCleanup::MapBodyCatchPartialReturn);
+        let source=if matches!(case,LocalCleanup::CaughtControlPartialReturn) {
+            "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{for(let i=0;i<1;i+=1){const marker:Marker={value:1};try{if(early){return a.name;}fail();break;}finally{}}}catch(error){}finally{cleanup();}return a.name;}function fail():void{throw 7;}function main(){}"
+        }else if matches!(case,LocalCleanup::BodyCatchPartialReturn|LocalCleanup::BodyCatchFieldReturn|LocalCleanup::NestedBodyCatchPartialReturn) {
             "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const marker:Marker={value:1};if(early){return a.name;}throw 7;}catch(error){}finally{cleanup();}return a.name;}function main(){}"
         }else if matches!(case,LocalCleanup::ControlPartialReturn|LocalCleanup::ControlContinuePartialReturn|LocalCleanup::ControlNestedPartialReturn|LocalCleanup::ControlCleanupBreak) {
             "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{for(let i=0;i<1;i+=1){try{const marker:Marker={value:1};if(early){return a.name;}break;}finally{cleanup();}}return a.name;}function main(){}"
@@ -161,7 +179,7 @@ mod tests {
         }else if partial {
             "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const marker:Marker={value:1};if(early){return a.name;}}finally{cleanup();}return a.name;}function main(){}"
         }else{"type Marker={value:int;};function cleanup():void{}function pick(a:string,early:boolean):string{try{const marker:Marker={value:1};if(early){return a;}}finally{cleanup();}return a;}function main(){}"};
-        let source=if matches!(case,LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::MapControlPartialReturn){source.replace("type Holder", "type Row={name:string;};type Holder").replace("a:string", "a:Row").replace("return a;", "return a.name;")}else{source.to_owned()};
+        let source=if matches!(case,LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::MapControlPartialReturn|LocalCleanup::MapBodyCatchPartialReturn){source.replace("type Holder", "type Row={name:string;};type Holder").replace("a:string", "a:Row").replace("return a;", "return a.name;")}else{source.to_owned()};
         let source=if matches!(case,LocalCleanup::MapCatchPartialReturn){source.replace("try{const marker", "try{throw 7;}catch(error){const marker")}else{source};
         let source=if matches!(case,LocalCleanup::MapTerminalPartialReturn){source.replace(";}finally{cleanup();", ";return a.name;}finally{cleanup();").replace("}return a.name;}function main", "}}function main")}else{source};
         let source=if matches!(case,LocalCleanup::MapReplacementPartialReturn){source.replace("}return a.name;}", "return \"owner\";}}") }else{source};
@@ -169,6 +187,9 @@ mod tests {
         let source=if matches!(case,LocalCleanup::ControlNestedPartialReturn){source.replace("if(early){return a.name;}break;", "try{if(early){return a.name;}break;}finally{}") }else{source};
         let source=if matches!(case,LocalCleanup::ControlCleanupBreak){source.replace("}break;}finally{cleanup();}}return a.name;", "}}finally{cleanup();break;}}return \"owner\";")}else{source};
         let source=if matches!(case,LocalCleanup::MapControlPartialReturn){source.replace("try{const marker", "for(let i=0;i<1;i+=1){try{const marker").replace(";}finally{cleanup();", ";break;}finally{cleanup();").replace("}return a.name;", "}}return a.name;")}else{source};
+        let source=if matches!(case,LocalCleanup::BodyCatchFieldReturn){source.replace("catch(error){}", "catch(error){if(!early){return a.name;}}") }else{source};
+        let source=if matches!(case,LocalCleanup::NestedBodyCatchPartialReturn){source.replace("if(early){return a.name;}throw 7;", "try{if(early){return a.name;}throw 7;}finally{}") }else{source};
+        let source=if matches!(case,LocalCleanup::MapBodyCatchPartialReturn){source.replace(";}finally{cleanup();", ";throw 7;}catch(error){}finally{cleanup();")}else{source};
         let formatted=crate::formatting::format(&source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let checked=crate::analysis::analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();

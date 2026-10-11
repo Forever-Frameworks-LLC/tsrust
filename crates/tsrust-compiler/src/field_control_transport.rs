@@ -10,6 +10,7 @@ fn values(fields:&Fields)->Vec<String>{fields.iter().map(|(name,_)|name.clone())
 impl Emitter<'_> {
     pub(super) fn field_control_transport(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,first:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>)->Option<String> {
         let cleanup=region.finally.as_ref()?;
+        let inherited_errors=self.exception_regions.field_error_fields();
         if region.catch.as_ref().is_some_and(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty())){return None;}
         let mut destinations=exception_contract_emit::escaping_controls(&region.body);
         destinations.extend(exception_contract_emit::escaping_controls(cleanup));
@@ -18,6 +19,12 @@ impl Emitter<'_> {
         let mut body_places=partial_places(fun,&region.body);
         let mut places=body_places.clone();places.extend(partial_places(fun,cleanup));
         if places.is_empty(){return None;}
+        if let Some(fields)=&inherited_errors {
+            for (name,_) in fields {
+                let place=self.field_native_place(fun,name).expect("checked inherited field owner");
+                body_places.push(place.clone());places.push(place);
+            }
+        }
         normalize(fun,statement.span.start,&mut body_places);normalize(fun,statement.span.start,&mut places);
         let boundary=region.body.first()?.span.start;
         let mut controls=vec![];
@@ -28,6 +35,11 @@ impl Emitter<'_> {
             let output=self.control_completion_fields(fun,boundary,Cleaned,Some(kind),&places)?;
             controls.push(ControlFields{target,continuing,span,input,output});
         }
+        let return_fields=[Handled,Cleaned].map(|phase|inherited_errors.as_ref().map_or_else(Vec::new,|fields|fields.iter().filter(|(name,_)|{
+            fun.storage_exits.completion_field_available(boundary,phase,Some(CompletionKind::Return),&self.field_native_place(fun,name).expect("checked native field owner"))==Some(true)
+        }).cloned().collect::<Fields>()));
+        let (return_pattern,return_restore)=restoration(&values(&return_fields[0]),&format!("control_return_input{first}"));
+        let (returned_pattern,returned_restore)=restoration(&values(&return_fields[1]),&format!("control_return_output{first}"));
         let normal_input=self.control_completion_fields(fun,boundary,Handled,None,&body_places)?;
         let normal_output=self.control_completion_fields(fun,boundary,Cleaned,None,&places)?;
         let body_normal=fun.storage_exits.has_completion_owners(boundary,Handled,None);
@@ -35,36 +47,50 @@ impl Emitter<'_> {
         let name=format!("FieldControl{first}");
         let generics=(0..controls.len()).map(|index|format!(",C{index}")).collect::<String>();
         let variants=(0..controls.len()).map(|index|format!(",Exit{index}(C{index})")).collect::<String>();
-        let declaration=format!("enum {name}<R{generics}>{{Return((R,())),Common((TsrStorageExit<R>,())){variants}}}");
+        let declaration=format!("enum {name}<R,F{generics}>{{Return((R,F)),Common((TsrStorageExit<R>,())){variants}}}");
         self.completion_next.set(self.completion_next.get().max(first+3+controls.len()));
-        let pending=self.field_control_body(fun,&region.body,first,error_name,contract,runtime,&name,&controls,false,&normal_input,body_normal);
+        let pending=self.field_control_body(fun,&region.body,first,error_name,contract,runtime,&name,&controls,&return_fields,false,&normal_input,body_normal);
         let (input_pattern,input_restore)=restoration(&values(&normal_input),&format!("control_normal_input{first}"));
         let (output_pattern,output_restore)=restoration(&values(&normal_output),&format!("control_normal_output{first}"));
-        let normal_cleanup=if body_normal{self.field_control_body(fun,cleanup,first+1,error_name,contract,runtime,&name,&controls,true,&normal_output,cleaned_normal)}else{"unreachable!(\"no normal body completion\")".into()};
-        let returned_cleanup=self.field_control_body(fun,cleanup,first+2,error_name,contract,runtime,&name,&controls,true,&vec![],true);
-        let returned=exception_emit::finally_region(&format!("TsrCompletion::Return({name}::Return((pending_return,())))"),&returned_cleanup);
-        let thrown=exception_emit::finally_region("TsrCompletion::Throw(pending_error)",&returned_cleanup);
+        let normal_cleanup=if body_normal{self.field_control_body(fun,cleanup,first+1,error_name,contract,runtime,&name,&controls,&return_fields,true,&normal_output,cleaned_normal)}else{"unreachable!(\"no normal body completion\")".into()};
+        let returned_cleanup=self.field_control_body(fun,cleanup,first+2,error_name,contract,runtime,&name,&controls,&return_fields,true,&return_fields[1],!crate::completion::definitely_abrupt(cleanup,0));
+        let returned=format!("{{{return_restore}match {returned_cleanup}{{TsrCompletion::Normal(fields)=>TsrCompletion::Return({name}::Return((pending_return,fields))),TsrCompletion::Return(value)=>TsrCompletion::Return(value),TsrCompletion::Throw(error)=>TsrCompletion::Throw(error),_=>unreachable!(\"checked carried return cleanup\")}}}}");
+        let (error_pattern,thrown)=if let Some(fields)=&inherited_errors {
+            let (pattern,restore)=restoration(&values(fields),&format!("pending_control_error{first}"));
+            let id=self.completion_next.get();self.completion_next.set(id+1);
+            let survives=fun.storage_exits.has_completion_owners(boundary,Cleaned,Some(CompletionKind::Throw));
+            let cleanup=self.field_control_body(fun,cleanup,id,error_name,contract,runtime,&name,&controls,&return_fields,true,fields,survives);
+            (format!("(pending_error,{pattern})"),format!("{{{restore}match {cleanup}{{TsrCompletion::Normal(fields)=>TsrCompletion::Throw((pending_error,fields)),TsrCompletion::Return(value)=>TsrCompletion::Return(value),TsrCompletion::Throw(error)=>TsrCompletion::Throw(error),_=>unreachable!(\"checked carried control error\")}}}}"))
+        }else{("pending_error".into(),exception_emit::finally_region("TsrCompletion::Throw(pending_error)",&returned_cleanup))};
         let mut arms=String::new();let mut dispatch=String::new();
         for (index,control) in controls.iter().enumerate() {
             let (pattern,restore)=restoration(&values(&control.input),&format!("control_input{first}_{index}"));
             let (out_pattern,out_restore)=restoration(&values(&control.output),&format!("control_output{first}_{index}"));
             let kind=if control.continuing{CompletionKind::Continue(Some(control.target))}else{CompletionKind::Break(Some(control.target))};
             let survives=fun.storage_exits.has_completion_owners(boundary,Cleaned,Some(kind));
-            let completed=self.field_control_body(fun,cleanup,first+3+index,error_name,contract,runtime,&name,&controls,true,&control.output,survives);
+            let completed=self.field_control_body(fun,cleanup,first+3+index,error_name,contract,runtime,&name,&controls,&return_fields,true,&control.output,survives);
             let _=write!(arms,"TsrCompletion::Return({name}::Exit{index}({pattern}))=>{{{restore}match {completed}{{TsrCompletion::Normal(fields)=>TsrCompletion::Return({name}::Exit{index}(fields)),TsrCompletion::Return(value)=>TsrCompletion::Return(value),TsrCompletion::Throw(error)=>TsrCompletion::Throw(error),_=>unreachable!(\"carried cleanup control\")}}}},");
             let route=self.exception_regions.control_at(control.target,control.continuing,control.span);
             let _=write!(dispatch,"TsrCompletion::Return({name}::Exit{index}({out_pattern}))=>{{{out_restore}{route}}},");
         }
         let normal=if body_normal{format!("{{{input_restore}{normal_cleanup}}}")}else{normal_cleanup};
-        let joined=format!("match {pending}{{TsrCompletion::Normal({input_pattern})=>{normal},TsrCompletion::Return({name}::Return((pending_return,())))=>{returned},TsrCompletion::Throw(pending_error)=>{thrown},{arms}_=>unreachable!(\"checked field control\")}}");
+        let joined=format!("match {pending}{{TsrCompletion::Normal({input_pattern})=>{normal},TsrCompletion::Return({name}::Return((pending_return,{return_pattern})))=>{returned},TsrCompletion::Throw({error_pattern})=>{thrown},{arms}_=>unreachable!(\"checked field control\")}}");
         let (outer_name,outer_contract,_)=self.exception_regions.current_transport().expect("outer field control");
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
+        if let Some(errors)=&inherited_errors {
+            let (error_pattern,error_restore)=restoration(&values(errors),&format!("outgoing_control_error{first}"));
+            let pending=format!("TsrCompletion::<(),{},{}>::Throw(error)",self.native_type(fun.result),error_name);
+            let widened=exception_contract_emit::checked_completion_conversion(&pending,error_name,&outer_name,contract,&outer_contract,&unions,runtime,statement.span).expect("checked control field error forwarding");
+            let returned=self.exception_regions.return_value("value",statement.span);let thrown=self.exception_regions.native_throw("error");
+            let normal=if cleaned_normal{output_restore}else{"unreachable!(\"no normal cleanup completion\")".into()};
+            return Some(format!("{{{declaration}match {joined}{{TsrCompletion::Normal({output_pattern})=>{{{normal}}},TsrCompletion::Return({name}::Return((value,{returned_pattern})))=>{{{returned_restore}{returned}}},TsrCompletion::Throw((error,{error_pattern}))=>{{{error_restore}match {widened}{{TsrCompletion::Throw(error)=>{{{thrown}}},_=>unreachable!(\"selected control field error\")}}}},{dispatch}_=>unreachable!(\"checked field control dispatch\")}}}}"));
+        }
         let widened=exception_contract_emit::checked_completion_conversion(&joined,error_name,&outer_name,contract,&outer_contract,&unions,runtime,statement.span).expect("checked field control errors");
         let returned=self.exception_regions.return_value("value",statement.span);let thrown=self.exception_regions.native_throw("error");
         let normal=if cleaned_normal{output_restore}else{"unreachable!(\"no normal cleanup completion\")".into()};
-        Some(format!("{{{declaration}match {widened}{{TsrCompletion::Normal({output_pattern})=>{{{normal}}},TsrCompletion::Return({name}::Return((value,())))=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}},{dispatch}_=>unreachable!(\"checked field control dispatch\")}}}}"))
+        Some(format!("{{{declaration}match {widened}{{TsrCompletion::Normal({output_pattern})=>{{{normal}}},TsrCompletion::Return({name}::Return((value,{returned_pattern})))=>{{{returned_restore}{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}},{dispatch}_=>unreachable!(\"checked field control dispatch\")}}}}"))
     }
-    fn control_completion_fields(&self,fun:&CheckedFunction,boundary:usize,phase:crate::analysis::MapCompletionPhase,kind:Option<CompletionKind>,places:&[Place])->Option<Fields> {
+    pub(super) fn control_completion_fields(&self,fun:&CheckedFunction,boundary:usize,phase:crate::analysis::MapCompletionPhase,kind:Option<CompletionKind>,places:&[Place])->Option<Fields> {
         let mut fields=vec![];
         for place in places {
             let binding=&fun.bindings[place.binding];
@@ -81,12 +107,21 @@ impl Emitter<'_> {
             fields.push((native,ty));
         }Some(fields)
     }
-    fn field_control_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,name:&str,controls:&[ControlFields],cleaned:bool,normal:&Fields,has_normal:bool)->String {
+    fn field_control_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,name:&str,controls:&[ControlFields],returns:&[Fields;2],cleaned:bool,normal:&Fields,has_normal:bool)->String {
+        let inherited_errors=self.exception_regions.field_error_fields();
         let _region=self.exception_regions.enter_typed(id,exception_contract_emit::local_control_targets(body),error_name.into(),contract.clone(),runtime);
-        self.exception_regions.attach_storage(vec![],Default::default(),Default::default(),false,body.first().map_or(0,|statement|statement.span.start));
+        self.exception_regions.attach_storage(vec![],Default::default(),Default::default(),inherited_errors.is_some(),body.first().map_or(0,|statement|statement.span.start));
+        let error_type=if let Some(errors)=&inherited_errors {
+            let storage=errors.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect();
+            self.exception_regions.attach_error_storage(storage,Default::default(),Default::default());
+            self.exception_regions.mark_field_error_storage(errors);
+            format!("({error_name},{})",tuple(&errors.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>()))
+        }else{error_name.to_owned()};
         self.exception_regions.carry_storage_on_control_exit();
-        self.exception_regions.attach_return_storage(name.into(),vec![],Default::default(),Default::default());
-        let mut arguments=vec![self.native_type(fun.result)];
+        let returned=if cleaned{&returns[1]}else{&returns[0]};
+        let storage=returned.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect();
+        self.exception_regions.attach_return_storage(name.into(),storage,Default::default(),Default::default());
+        let mut arguments=vec![self.native_type(fun.result),tuple(&returned.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>())];
         for (index,control) in controls.iter().enumerate() {
             let fields=if cleaned{&control.output}else{&control.input};
             arguments.push(tuple(&fields.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>()));
@@ -96,6 +131,6 @@ impl Emitter<'_> {
         let normal_type=tuple(&normal.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>());
         let normal_value=if has_normal{format!("TsrCompletion::Normal({})",tuple(&values(normal)))}else{"unreachable!(\"checked abrupt field body\")".into()};
         let mut statements=String::new();self.block(&mut statements,fun,body,1);
-        format!("{{let completion:TsrCompletion<{normal_type},{name}<{}>,{error_name}>='exception_region{id}:{{{statements}{normal_value}}};completion}}",arguments.join(","))
+        format!("{{let completion:TsrCompletion<{normal_type},{name}<{}>,{error_type}>='exception_region{id}:{{{statements}{normal_value}}};completion}}",arguments.join(","))
     }
 }
