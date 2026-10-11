@@ -14,8 +14,6 @@ use the [standard-library roadmap](../standard-library-roadmap.md) and accepted
 - [function type migration plan](function-type-migration-plan.md)
 - [generic function values plan](generic-function-values-plan.md)
 - [generic value adapters plan](generic-value-adapters-plan.md)
-- [handoff 2026 10 06 gate170 plan](handoff-2026-10-06-gate170-plan.md)
-- [handoff 2026 10 08 resumable summary plan](handoff-2026-10-08-resumable-summary-plan.md)
 - [indexed capture release plan](indexed-capture-release-plan.md)
 - [javascript parity plan](javascript-parity-plan.md)
 - [map entry capture release plan](map-entry-capture-release-plan.md)

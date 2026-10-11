@@ -44,4 +44,4 @@ All nine shape/size combinations meet the linear visit budget afterward: 8/32/64
 
 Aggregate/literal scheduling publication is accepted at 74eeaa0: all five consumers pass combined CLI/native/LSP smoke checks. Exact evidence is verified in SQLite; closed loose records and test executables are removed. Wider compilation-efficiency work remains open.
 
-The wider investigation now has a resumable-summary plan and an intentionally red nested-call witness. See ../plans/resumable-callable-summaries-plan.md and ../plans/handoff-2026-10-08-resumable-summary-plan.md. Sparse test-only traces isolate the actual workload root; production behavior is unchanged at this planning checkpoint.
+The wider investigation now has a resumable-summary plan and an intentionally red nested-call witness. See ../plans/resumable-callable-summaries-plan.md and ../handoff-2026-10-08-resumable-summary-plan.md. Sparse test-only traces isolate the actual workload root; production behavior is unchanged at this planning checkpoint.

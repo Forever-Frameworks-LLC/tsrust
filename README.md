@@ -270,7 +270,7 @@ Local integer and boolean array literals use ordinary Rust `[i64; N]` and `[bool
 Pass files or directories to select tests. Test files register tests at the top level
 and do not declare `main`. Import assertions, matchers, suites and hooks from
 `std:testing`; see `examples/testing/basic.test.tsr` and
-`docs/testing-library-plan.md` for the current parity and prerequisite ledger.
+`docs/plans/testing-library-plan.md` for the current parity and prerequisite ledger.
 
 Use `tsrust --help` or `tsrust test --help` for command and option help.
 Color defaults to terminal detection and respects `NO_COLOR` and `TERM=dumb`.
