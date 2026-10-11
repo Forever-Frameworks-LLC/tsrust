@@ -203,7 +203,7 @@ function section(data, file) {
 }
 // Add new operations here; deliberately keep unclassified measured IDs in Other.
 export const reportCategories = [
- {id:'resources',label:'File resources',workloads:['native_file_read_close','native_file_scope_drop','native_file_write','native_file_write_all','native_file_full_write_read'],probes:[]},
+ {id:'resources',label:'File resources',workloads:['native_file_read_close','native_file_scope_drop','native_file_write','native_file_write_all','native_file_full_write_read','native_file_buffered_write_read'],probes:[]},
  {id:'collections',label:'Owned collections',workloads:['native_deque_clone','native_heap','native_ordered_set','native_ordered_map'],probes:[]},
  {id:'bytes',label:'Owned bytes',workloads:['native_bytes','native_byte_access','native_byte_growth','native_byte_copy_append','native_byte_clone','native_byte_utf8','native_byte_views','native_byte_views_maps','native_byte_views_recursive','native_byte_views_linked', 'native_byte_views_callbacks', 'native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks','native_byte_views_parameter_stores'],probes:[]},
  {id:'paths',label:'Lexical paths',workloads:['std_path_relative','std_path_dirname_ascii','std_path_extname_ascii','std_path_is_absolute_ascii','std_path_normalize_ascii'],probes:[]},

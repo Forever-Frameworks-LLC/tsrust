@@ -16,7 +16,7 @@ if(!compiler)throw Error('Set TSRUST to the current verified compiler');
 function run(command,args){const p=spawnSync(command,args,{encoding:'utf8',timeout:60000,maxBuffer:16*1024*1024});assert.equal(p.status,0,p.stderr||String(p.error));return p.stdout;}
 const directory=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-write-acceptance-'));
 try {
- for(const id of ['native_file_write','native_file_write_all','native_file_full_write_read']) {
+ for(const id of ['native_file_write','native_file_write_all','native_file_full_write_read','native_file_buffered_write_read']) {
   const row=manifest.workloads.find(row=>row.id===id);
   const source=fs.readFileSync(path.join(here,row.source),'utf8'),ts=fs.readFileSync(path.join(here,row.counterpart),'utf8');
   assertNativeFilesSource(source,row,'native');assertNativeFilesSource(ts,row,'typescript');

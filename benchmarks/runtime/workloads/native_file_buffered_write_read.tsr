@@ -1,0 +1,139 @@
+import { create, open, bufferWriter, bufferReader, BufferedWriter, BufferedReader, read, writeAll, close } from "std:fs";
+import { fromUtf8, view, length, at } from "std:bytes";
+
+function writer(path: ReadOnly<string>): BufferedWriter {
+  match (create(path)) {
+    Ok(file) => {
+      match (bufferWriter(file, 16)) {
+        Ok(value) => {
+          return value;
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function reader(path: ReadOnly<string>): BufferedReader {
+  match (open(path)) {
+    Ok(file) => {
+      match (bufferReader(file, 16)) {
+        Ok(value) => {
+          return value;
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function sample(input: ReadOnly<string>, count: int): int[] {
+  const destination = input + ".out";
+  const output = writer(destination);
+  match (fromUtf8("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")) {
+    Ok(owner) => {
+      let offset = 0;
+      while (offset < count) {
+        let end = offset + 3;
+        if (end > count) {
+          end = count;
+        }
+
+        match (view(owner, offset, end)) {
+          Ok(bytes) => {
+            match (writeAll(output, bytes)) {
+              Ok(_) => {
+              },
+              Err(error) => {
+                throw error.message;
+              }
+            }
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+
+        offset = end;
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  match (close(output)) {
+    Ok(_) => {
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  const file = reader(destination);
+  let total = 0;
+  let sum = 0;
+  while (true) {
+    match (read(file, 3)) {
+      Ok(bytes) => {
+        const size = length(bytes);
+        if (size === 0) {
+          break;
+        }
+
+        total += size;
+        let index = 0;
+        while (index < size) {
+          match (at(bytes, index)) {
+            Ok(value) => {
+              sum += value;
+            },
+            Err(error) => {
+              throw error.message;
+            }
+          }
+
+          index++;
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+  }
+
+  match (close(file)) {
+    Ok(_) => {
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+
+  return [total, sum];
+}
+
+function workload(n: int, seed: int, input: string): int[][] {
+  let output: int[][] = [];
+  let i = 0;
+  while (i < n) {
+    const count = (i + seed) % 64 + 1;
+    output.push(sample(input, count));
+    i++;
+  }
+
+  return output;
+}
+
+function main() {
+}

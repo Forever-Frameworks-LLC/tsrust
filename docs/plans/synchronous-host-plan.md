@@ -38,9 +38,11 @@ was repaired for programs without an explicit File type. Original records use
 `tsrust-full-files-*` in SQLite. Eight installed CLI/LSP consumers were refreshed
 from 562a6c00, and the installed CLI passes all 24 untimed cases. The active
 `tsrust_test` editor server was restarted and shows checking enabled with no Problems.
-Buffered file work follows [the implementation batch](buffered-files-plan.md).
+Buffered files now have focused implementation acceptance, executable examples,
+matched buffering/readback support and eight installed native/Node untimed cases.
+See [buffered-file acceptance](buffered-files-plan.md).
 
-Continue S09 with buffered readers/writers, environment
+Continue S09 with environment
 and monotonic time foundations, auditing the existing path/fs/os contracts. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.

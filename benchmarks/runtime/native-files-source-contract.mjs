@@ -4,6 +4,14 @@ import {nativeFileIDs} from './native-files-oracle.mjs';
 export function assertNativeFilesSource(source,row,kind) {
   if(!nativeFileIDs.includes(row.id)||row.family!=='native-files'||!['native','typescript'].includes(kind))throw Error('Native file family');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Native file fingerprint');
+  if(row.id==='native_file_buffered_write_read') {
+    if(row.iterations!==2048||row.operationsPerIteration!==1||row.operationUnit!=='One buffered write and readback with 16-byte buffers and 3-byte chunks'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='native-file-fixture-v1')throw Error('Buffered file denominator');
+    const required=['const count=(i+seed)%64+1;','while(i<n)','output.push(sample(input,count));','const destination=input+".out";','let end=offset+3;','if(end>count){end=count;}','total+=size;','if(size===0){break;}','return [total,sum];'];
+    if(kind==='native')required.push('create(path)','open(path)','bufferWriter(file,16)','bufferReader(file,16)','view(owner,offset,end)','writeAll(output,bytes)','read(file,3)','close(output)','close(file)','sum+=value;','fromUtf8("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")');
+    else required.push('const buffer=new Uint8Array(16);let used=0;','const buffer=new Uint8Array(16);let start=0;let end=0;','fileSystem.openSync(destination,"w")','fileSystem.openSync(destination,"r")','owner.subarray(offset,end)','if(bytes.length>buffer.length-used)','flush(output,buffer,used);','buffer.set(bytes,used);','fileSystem.writeSync(file,buffer,written,used-written,null)','fileSystem.readSync(file,buffer,0,buffer.length,null)','Math.min(3,end-start)','buffer.slice(start,start+size)','sum+=bytes[index];','fileSystem.closeSync(output)','fileSystem.closeSync(file)','new TextEncoder().encode("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")');
+    for(const snippet of required)if(!containsCodeSnippet(source,snippet))throw Error(`Buffered file source contract: ${snippet}`);
+    return;
+  }
   if(row.id==='native_file_full_write_read') {
     if(row.iterations!==2048||row.operationsPerIteration!==1||row.operationUnit!=='One bounded full-file write and readback with byte observation'||row.resultEncoding!=='array-shape-scalar-v1'||row.inputText!=='native-file-fixture-v1')throw Error('Full file denominator');
     const required=['const count=(i+seed)%64+1;','while(i<n)','output.push(sample(input,count));','const destination=input+".out";'];

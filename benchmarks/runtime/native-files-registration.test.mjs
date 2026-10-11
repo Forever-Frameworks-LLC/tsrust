@@ -92,3 +92,28 @@ for(const id of ['native_file_write','native_file_write_all','native_file_full_w
   const emitted='fn tsr_result_function2(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError2> { todo!() }\nfn main() {}';
   assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,true);
 });
+
+test('buffered file workload retains capacity, chunking, release and readback contracts',()=>{
+ const row=manifest.workloads.find(row=>row.id==='native_file_buffered_write_read');assert.ok(row);
+ assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'resources');
+ assert.deepEqual(expectedNativeFilesValues(row.id,3,0,row.inputText),[[1,48],[2,97],[3,147]]);
+ for(const n of [0,1,37,2048]) for(const seed of [0,7,1000000]) {
+  const expected=expectedNativeFilesObservation(row.id,n,seed,row.inputText);
+  assert.deepEqual(expectedExactResult(row.id,n,seed,row.inputText),expected);
+  assert.equal(expectedChecksum(row.id,n,seed,row.inputText),expected.checksum);
+ }
+ const fixture=createNativeFileFixture(row);
+ try {assert.equal(fs.statSync(fixture.path+'.out').size,4096);}finally{fixture.cleanup();}
+ assert.equal(fs.existsSync(fixture.path+'.out'),false);
+
+ for(const [kind,file,needle,replacement] of [
+  ['native',row.source,'bufferWriter(file,16)','bufferWriter(file,32)'],
+  ['typescript',row.counterpart,'new Uint8Array(16)','new Uint8Array(32)']
+ ]) {
+  const source=read('./'+file);assertNativeFilesSource(source,row,kind);
+  const changed=replaceCodeSnippet(source,needle,replacement);
+  const key=kind==='native'?'sourceSha256':'counterpartSha256';
+  assert.throws(()=>assertNativeFilesSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
+  assert.throws(()=>assertNativeFilesSource(source,{...row,operationsPerIteration:2},kind));
+ }
+});

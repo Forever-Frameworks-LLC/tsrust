@@ -21115,6 +21115,34 @@
       "specification": "For each iteration, write a borrowed prefix of four ASCII hexadecimal blocks to a private output file, read through EOF with a count+1 ceiling, and return byte length and sum. Both operations close their handles. Node writes the same range and uses a bounded read loop with deterministic close.",
       "sourceSha256": "805d19c759f96a3bc61646234988c3814d51579ec8ab57d55258dbb9cfdca0b6",
       "counterpartSha256": "c675a7d59822b372f8fb994af2863901b84130cfacf7ee806bb553ac562db52c"
+    },
+    {
+      "id": "native_file_buffered_write_read",
+      "family": "native-files",
+      "source": "workloads/native_file_buffered_write_read.tsr",
+      "counterpart": "workloads/native_file_buffered_write_read.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One buffered write and readback with 16-byte buffers and 3-byte chunks",
+      "inputText": "native-file-fixture-v1",
+      "fixtureSha256": "929b11f47a02202e710632002203f7ea8dd3c1bc51ef818e59b6a3cd1dc2d5dc",
+      "category": "resources",
+      "measurementStatus": "pending-s09-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Matched successful regular-file buffered I/O. Buffer preparation is inside each sample; temporary directory and initial fixture preparation are outside measured bodies. No timing yet; pending S09 milestone.",
+      "specification": "For each iteration, write an ASCII hexadecimal prefix in 3-byte borrowed chunks through a 16-byte writer, close to flush, then read through a 16-byte reader in at most 3-byte owned chunks until EOF. Return total byte length and sum. Node uses explicit buffers of the same capacities, flush policy, chunk boundaries and deterministic close.",
+      "sourceSha256": "66da9bd1c4effb1dc76babd0fe2d091c37051c22750664ceecc713be5ec33dfc",
+      "counterpartSha256": "c4414cbf01d31cdc2eadf9d2ac6fbec41d23e744eed90a6c3938b97c6ffd5a5f"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

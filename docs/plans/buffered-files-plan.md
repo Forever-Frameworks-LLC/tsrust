@@ -1,8 +1,8 @@
 # Buffered file I/O: S09 implementation batch
 
-Status: backend, public bindings, type alternatives, IntelliSense and executable
-examples implemented. Matched workloads and installed-consumer acceptance remain
-pending; this batch is not yet accepted as a complete feature.
+Status: focused implementation acceptance complete on macOS, including backend,
+public bindings, IntelliSense, examples, matched workloads and installed CLI checks.
+Timing remains pending the S09 family milestone.
 Continue the existing owned-resource contract.
 
 Expose BufferedReader and BufferedWriter in std:fs. Constructors consume a File;
@@ -56,6 +56,21 @@ and a focused repair of an obsolete unbuffered-only signature expectation.
 Public evidence is stored in SQLite under `tsrust-buffered-public-*`,
 `tsrust-buffered-editor*` and `tsrust-buffered-signatures.log`. Failed test attempts
 are retained: initial missing exports, then two assertions using outdated diagnostic
-wording. No timing measurements or installed buffered-file consumer refresh are
-claimed. Next complete matched native/Node buffering workloads and registration
-guards, then refresh and smoke-test consumers before accepting this batch.
+wording. This source checkpoint preceded the matched-workload and installed acceptance
+below. No timing measurements were taken.
+
+
+Matched workload acceptance uses `native_file_buffered_write_read`: both engines
+write the same ASCII prefix in three-byte chunks through a 16-byte buffer, close to
+flush, then read through a 16-byte buffer in owned chunks of at most three bytes
+until EOF. Node implements the matching buffer policy explicitly. An independent
+arithmetic oracle checks byte length/sum, and the verifier checks exact output files.
+ABI adapters, source fingerprints, token guards, resource classification and isolated
+cleanup are registered. Seven registration tests pass. The installed CLI at c9b84ad6
+and Node-after-tsc pass eight new cases (32 cases across the four write workloads).
+Original failure evidence includes a missing report category, repaired before
+acceptance. Records use `tsrust-buffered-workload-*` in SQLite. No timing was run.
+Installed CLI/LSP consumers already contain the public API through the subsequent
+user-priority refreshes; the editor server was restarted after the 927499c9 refresh.
+The remaining S09 work is environment/time foundations, contract auditing and the
+family regression/performance milestone.

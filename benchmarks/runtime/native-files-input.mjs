@@ -8,7 +8,7 @@ export function createNativeFileFixture(row) {
   if(createHash('sha256').update(bytes).digest('hex')!==row.fixtureSha256) throw Error('Native file fixture fingerprint');
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-file-workload-'));
   const file=path.join(directory,'input.bin');
-  try { fs.writeFileSync(file,bytes,{flag:'wx',mode:0o600}); if(['native_file_write','native_file_write_all','native_file_full_write_read'].includes(row.id))fs.writeFileSync(file+'.out',bytes,{flag:'wx',mode:0o600}); }
+  try { fs.writeFileSync(file,bytes,{flag:'wx',mode:0o600}); if(['native_file_write','native_file_write_all','native_file_full_write_read','native_file_buffered_write_read'].includes(row.id))fs.writeFileSync(file+'.out',bytes,{flag:'wx',mode:0o600}); }
   catch(error) { fs.rmSync(directory,{recursive:true,force:true});throw error; }
   return {path:file,cleanup:()=>fs.rmSync(directory,{recursive:true,force:true})};
 }
