@@ -141,9 +141,22 @@ The verified control record is
 an earlier verification record retains a superseded description copied from the
 byte reference runner and is not the accepted scope description.
 
+## Inline hash bucket optimization
+
+Map/Set now retain a single slot index inline and allocate a vector only for
+colliding hashes. Deletion collapses a one-element collision vector back to inline
+storage. Key storage, equality, insertion order and explicit cloning are unchanged.
+A focused allocator witness originally observed 256 bucket allocations for 128
+distinct keys in each container; it now observes zero after reserving the outer
+storage. The same witness runs 2,048 forced-collision operations against an
+independent sequence model and checks deletion, replacement, reinsertion and
+independent clones at optimization levels 0 and 3. All 74 focused collection,
+Map/Set, iteration, relation and algebra checks pass. Matched performance reruns
+remain pending; the original baseline stays immutable in SQLite.
+
 ## Remaining acceptance
 
-Complete the identified Map/Set bucket optimization and inspect Heap spread
+Measure the implemented Map/Set bucket optimization and inspect Heap spread
 allocations. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
 after changes. Refresh all installed consumers and verify editor diagnostics.
 Then begin the requested project-wide, multiple-error diagnostics milestone before

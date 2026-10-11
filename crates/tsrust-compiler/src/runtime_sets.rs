@@ -1,5 +1,44 @@
 //! Ordered key storage. Hash buckets retain indices rather than cloning keys.
 pub(crate) const SET_RUNTIME: &str = r#"
+// Hash collisions need a vector; the usual single-key bucket stays inline.
+#[derive(Clone, Default)]
+enum TsrSetBucket {
+    #[default]
+    Empty,
+    One(usize),
+    Many(Vec<usize>),
+}
+impl TsrSetBucket {
+    fn iter(&self) -> std::slice::Iter<'_, usize> {
+        match self {
+            Self::Empty => [].iter(),
+            Self::One(index) => std::slice::from_ref(index).iter(),
+            Self::Many(indices) => indices.iter(),
+        }
+    }
+    fn push(&mut self, index: usize) {
+        match self {
+            Self::Empty => *self = Self::One(index),
+            Self::One(first) => *self = Self::Many(vec![*first, index]),
+            Self::Many(indices) => indices.push(index),
+        }
+    }
+    fn retain(&mut self, mut keep: impl FnMut(&usize) -> bool) {
+        match self {
+            Self::Empty => {},
+            Self::One(index) => { if !keep(index) { *self = Self::Empty; } },
+            Self::Many(indices) => {
+                indices.retain(keep);
+                match indices.as_slice() {
+                    [] => *self = Self::Empty,
+                    [index] => *self = Self::One(*index),
+                    _ => {},
+                }
+            }
+        }
+    }
+    fn is_empty(&self) -> bool { matches!(self, Self::Empty) }
+}
 trait TsrSetKey: Clone {
     fn tsr_hash(&self) -> u64;
     fn tsr_same(&self, other: &Self) -> bool;
@@ -54,7 +93,7 @@ impl TsrSetKey for TsrUndefined {
 #[derive(Clone)]
 struct TsrSet<T: TsrSetKey> {
     slots: Vec<Option<T>>,
-    buckets: std::collections::HashMap<u64, Vec<usize>>,
+    buckets: std::collections::HashMap<u64, TsrSetBucket>,
     length: usize,
 }
 impl<T: TsrSetKey> TsrSet<T> {
@@ -86,7 +125,7 @@ impl<T: TsrSetKey> TsrSet<T> {
     fn delete(&mut self, value: impl TsrSetQuery<T>) -> bool {
         let hash=value.tsr_query_hash(); let Some(index)=self.query_location(&value,hash) else { return false; };
         if let Some(indices)=self.buckets.get_mut(&hash) { indices.retain(|&stored|stored!=index); }
-        if self.buckets.get(&hash).is_some_and(Vec::is_empty) { self.buckets.remove(&hash); }
+        if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty) { self.buckets.remove(&hash); }
         self.slots[index].take(); self.length-=1; true
     }
     fn clear(&mut self) { self.slots.clear(); self.buckets.clear(); self.length=0; }

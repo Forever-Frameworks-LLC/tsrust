@@ -17,7 +17,7 @@ impl<K,V> TsrMapEntry<K,V> for (K,V) {
 #[derive(Clone)]
 struct TsrMap<K:TsrSetKey,V,P:TsrMapEntry<K,V>=(K,V)> {
     slots:Vec<Option<P>>,
-    buckets:std::collections::HashMap<u64,Vec<usize>>,
+    buckets:std::collections::HashMap<u64,TsrSetBucket>,
     length:usize,
     marker:std::marker::PhantomData<(K,V)>,
 }
@@ -50,7 +50,7 @@ impl<K:TsrSetKey,V,P:TsrMapEntry<K,V>> TsrMap<K,V,P> {
     fn delete(&mut self,key:impl TsrSetQuery<K>)->bool{
         let hash=key.tsr_query_hash();let Some(index)=self.query_location(&key,hash)else{return false;};
         if let Some(indices)=self.buckets.get_mut(&hash){indices.retain(|&stored|stored!=index);}
-        if self.buckets.get(&hash).is_some_and(Vec::is_empty){self.buckets.remove(&hash);}
+        if self.buckets.get(&hash).is_some_and(TsrSetBucket::is_empty){self.buckets.remove(&hash);}
         self.slots[index].take();self.length-=1;true
     }
     fn clear(&mut self){self.slots.clear();self.buckets.clear();self.length=0;}
