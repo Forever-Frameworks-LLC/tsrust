@@ -6225,6 +6225,109 @@
       "output": "array\n"
     }
   ]
-}
-]
+},
+    {
+      "name": "JsonlReader",
+      "signature": "type JsonlReader",
+      "parameters": [],
+      "documentation": "A uniquely owned, bounded JSON Lines file reader. Open with openJsonl, pull one value with readJsonl and consume with closeJsonl. JSON null is distinct from EOF (undefined). No public fields, construction or clone. Owned records survive subsequent reads and reader closure. Scope exit releases the file; explicit close reports close failures.\n\n```tsrust\nimport {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}\n```\n\nExpected output: null.\n\nOwnership: one file owner; reads require mutable access and close consumes the reader.",
+      "examples": [
+        {
+          "source": "import {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
+          "output": "null\n"
+        }
+      ]
+    },
+    {
+      "name": "JsonlError",
+      "signature": "type JsonlError = { code: string; message: string; operation: string; line: int; offset: int; osCode?: int }",
+      "parameters": [],
+      "documentation": "A structured JSON Lines failure. code distinguishes JSON syntax/limit failures, capacity-range and file errors. message never includes record contents or paths. operation is open, read or close. Read line counts records from one and offset is the absolute zero-based UTF-8 byte offset. Open uses line 1 and offset 0; close uses 0 for both because it has no input location. osCode is present only when supplied by the operating system. A read failure is terminal and repeats without further I/O.\n\n```tsrust\nimport {openJsonl} from \"std:json\";function main(){match(openJsonl(\"unused.jsonl\",{maxBytes:64,maxDepth:4,maxEntries:8,maxNodes:16},0)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.operation);}}}\n```\n\nExpected output: capacity-range open.\n\nOwnership: an independent owned record; explicit clone copies it.",
+      "fields": {
+        "code": {
+          "documentation": "Stable failure category, including JSON syntax/limit errors, capacity-range and file errors. Does not contain input."
+        },
+        "message": {
+          "documentation": "Fixed explanatory message. Never includes record contents or file paths."
+        },
+        "operation": {
+          "documentation": "Operation that failed: open, read or close."
+        },
+        "line": {
+          "documentation": "One-based JSON Lines record for read errors. Open errors use 1; close errors use 0 because no input location applies."
+        },
+        "offset": {
+          "documentation": "Absolute zero-based UTF-8 input byte offset for read errors. Open and close errors use 0."
+        },
+        "osCode": {
+          "documentation": "Optional native operating-system error code. Undefined when the failure has no OS code."
+        }
+      },
+      "examples": [
+        {
+          "source": "import {openJsonl} from \"std:json\";function main(){match(openJsonl(\"unused.jsonl\",{maxBytes:64,maxDepth:4,maxEntries:8,maxNodes:16},0)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.operation);}}}",
+          "output": "capacity-range open\n"
+        }
+      ]
+    },
+    {
+      "name": "openJsonl",
+      "signature": "openJsonl(path: ReadOnly<string>, limits?: ReadOnly<JsonLimits>, capacity?: int): Result<JsonlReader, JsonlError>",
+      "parameters": [
+        {
+          "label": "path: ReadOnly<string>",
+          "documentation": "Required local file path, borrowed unchanged. Opened read-only; no whole-file load."
+        },
+        {
+          "label": "limits?: ReadOnly<JsonLimits>",
+          "documentation": "Per-record limits; defaults: maxBytes 16777216, maxDepth 64, maxEntries/maxNodes 1000000. Nonnegative; depth at most 64. LF is excluded; CR and other whitespace count."
+        },
+        {
+          "label": "capacity?: int",
+          "documentation": "Read-ahead buffer bytes, 1 through 1048576; defaults to 8192. Invalid capacity or limits reject before opening."
+        }
+      ],
+      "documentation": "Opens a file for bounded synchronous JSON Lines reading. path is a required local path. Optional limits default to maxBytes 16777216, maxDepth 64, maxEntries/maxNodes 1000000 per record; values must be nonnegative and depth at most 64. LF is excluded from maxBytes, while CR and other whitespace count. Optional capacity defaults to 8192 bytes and must be 1 through 1048576. Optional arguments can be omitted at the end; provide limits when specifying capacity. Validates capacity and limits before opening. Returns an owned reader or a structured open/capacity/limit error. Does not decode a record yet. Each pull retains only one bounded record plus the selected read-ahead buffer. The file is read-only; path is unchanged.\n\n```tsrust\nimport {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}\n```\n\nExpected output: null.\n\nOwnership: the returned reader owns the file and releases it on EOF, read error, early scope exit or consuming close.",
+      "examples": [
+        {
+          "source": "import {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
+          "output": "null\n"
+        }
+      ]
+    },
+    {
+      "name": "readJsonl",
+      "signature": "readJsonl(reader: Mutable<JsonlReader>): Result<JsonValue | undefined, JsonlError>",
+      "parameters": [
+        {
+          "label": "reader: Mutable<JsonlReader>",
+          "documentation": "Required live reader. Advances by one strict JSON record; retained read-ahead stays in the reader."
+        }
+      ],
+      "documentation": "Decodes the next strict JSON value into independent owned storage. Ok(undefined) means EOF; a JSON null is a JsonValue whose kind is null. Accepts LF, CRLF and a final record without LF. Blank lines and BOMs fail. Per-record limits come from openJsonl. Returns an absolute byte offset and record line on error; subsequent reads repeat that terminal error without I/O. EOF and read error release the file; repeated EOF returns undefined. Each successful read advances the reader.\n\n```tsrust\nimport {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}\n```\n\nExpected output: null.\n\nOwnership: mutably borrows the reader during the call. The returned value owns its data and can outlive the reader.",
+      "examples": [
+        {
+          "source": "import {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
+          "output": "null\n"
+        }
+      ]
+    },
+    {
+      "name": "closeJsonl",
+      "signature": "closeJsonl(reader: JsonlReader): Result<void, JsonlError>",
+      "parameters": [
+        {
+          "label": "reader: JsonlReader",
+          "documentation": "Required owned reader, consumed even if close fails. Cannot be reused afterward."
+        }
+      ],
+      "documentation": "Closes a JSON Lines reader early and releases its buffer. Returns Ok on successful close or JsonlError for a close failure. If EOF/error already released the file, close succeeds without closing another descriptor. A prior read error was already returned by readJsonl and is not repeated by close. No implicit sync occurs.\n\n```tsrust\nimport {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}\n```\n\nExpected output: null.\n\nOwnership: consumes the reader. Scope exit also releases it, but cannot report close errors.",
+      "examples": [
+        {
+          "source": "import {openJsonl,readJsonl,closeJsonl,kind} from \"std:json\"; import {writeFile} from \"std:fs\"; import {fromUtf8} from \"std:bytes\";\nfunction main(){match(fromUtf8(\"null\\n\")){Ok(bytes)=>{match(writeFile(\"jsonl-example.jsonl\",bytes)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}match(openJsonl(\"jsonl-example.jsonl\")){Ok(reader)=>{match(readJsonl(reader)){Ok(value)=>{if(value===undefined){throw \"unexpected EOF\";}console.log(kind(value));},Err(e)=>{throw e.message;}}match(closeJsonl(reader)){Ok(_)=>{},Err(e)=>{throw e.message;}}},Err(e)=>{throw e.message;}}}",
+          "output": "null\n"
+        }
+      ]
+    }
+  ]
 }

@@ -16,6 +16,8 @@ pub enum NativeTypeId {
     JsonValue,
     JsonError,
     JsonLimits,
+    JsonlReader,
+    JsonlError,
     Deque,
     OrderedMap,
     OrderedSet,
@@ -229,7 +231,7 @@ mod tests {
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {
         static ARRAY: Signature = Signature::Array(&Signature::Named(NativeTypeId::Bytes));
         let result = Signature::Result(&ARRAY, &Signature::Named(NativeTypeId::ByteError));
-        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::BufferedReader => "Reader".into(), NativeTypeId::BufferedWriter => "Writer".into(), NativeTypeId::FsError => "FileFailure".into(), NativeTypeId::EnvError => "EnvironmentFailure".into(), NativeTypeId::JsonValue => "JsonValue".into(), NativeTypeId::JsonError => "JsonError".into(), NativeTypeId::JsonLimits => "JsonLimits".into(), NativeTypeId::Deque => "Queue".into(), NativeTypeId::OrderedMap => "TreeMap".into(), NativeTypeId::OrderedSet => "TreeSet".into(), NativeTypeId::Heap => "PriorityQueue".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
+        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::BufferedReader => "Reader".into(), NativeTypeId::BufferedWriter => "Writer".into(), NativeTypeId::FsError => "FileFailure".into(), NativeTypeId::EnvError => "EnvironmentFailure".into(), NativeTypeId::JsonValue => "JsonValue".into(), NativeTypeId::JsonError => "JsonError".into(), NativeTypeId::JsonLimits => "JsonLimits".into(), NativeTypeId::JsonlReader => "JsonlReader".into(), NativeTypeId::JsonlError => "JsonlError".into(), NativeTypeId::Deque => "Queue".into(), NativeTypeId::OrderedMap => "TreeMap".into(), NativeTypeId::OrderedSet => "TreeSet".into(), NativeTypeId::Heap => "PriorityQueue".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| None), Err(RenderError::MissingType(NativeTypeId::Bytes)));
     }
 

@@ -31,10 +31,10 @@ fn json_rejects_invalid_calls_and_forged_values() {
 fn json_catalog_examples_execute_through_cli() {
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let dir=support::TempDirectory::new();let path=dir.0.join("example.tsr");
- let entries=catalog["std:json"].as_array().unwrap();assert_eq!(entries.len(),7);
+ let entries=catalog["std:json"].as_array().unwrap();assert_eq!(entries.len(),12);
  for entry in entries {for example in entry["examples"].as_array().unwrap() {
   std::fs::write(&path,support::format_round_trip(example["source"].as_str().unwrap())).unwrap();
-  let output=support::run(support::cli().arg("run").arg(&path),90);support::success(&output);
+  let output=support::run(support::cli().arg("run").arg(&path).current_dir(&dir.0),90);support::success(&output);
   assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap(),"{}",entry["name"]);
  }}
 }

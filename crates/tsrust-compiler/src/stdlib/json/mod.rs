@@ -7,3 +7,4 @@ include!("runtime.rs");
 mod lines;
 #[cfg(test)]
 mod writer;
+pub(crate) mod lines_emit;

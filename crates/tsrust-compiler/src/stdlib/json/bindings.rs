@@ -32,3 +32,24 @@ pub(crate) const PARSE_JSONC:NativeBinding=NativeBinding {
  ],
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_parse_jsonc"},..PARSE
 };
+
+pub(crate) const OPEN_JSONL:NativeBinding=NativeBinding {
+ module:"std:json",name:"openJsonl",returned_borrow:None,
+ parameters:&[
+  NativeParameter{name:"path",ty:NativeType::String,access:Mode::Read,optional:false,rest:false},
+  NativeParameter{name:"limits",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonLimits)),access:Mode::Read,optional:true,rest:false},
+  NativeParameter{name:"capacity",ty:NativeType::Int,access:Mode::Copy,optional:true,rest:false},
+ ],
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::JsonlReader),&Signature::Named(NativeTypeId::JsonlError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_open_jsonl"},features:&["json","fs"],
+};
+pub(crate) const READ_JSONL:NativeBinding=NativeBinding {
+ name:"readJsonl",parameters:&[NativeParameter{name:"reader",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonlReader)),access:Mode::Mutate,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Optional(&Signature::Named(NativeTypeId::JsonValue)),&Signature::Named(NativeTypeId::JsonlError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_read_jsonl"},..OPEN_JSONL
+};
+pub(crate) const CLOSE_JSONL:NativeBinding=NativeBinding {
+ name:"closeJsonl",parameters:&[NativeParameter{name:"reader",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonlReader)),access:Mode::Consume,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::JsonlError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_close_jsonl"},..OPEN_JSONL
+};

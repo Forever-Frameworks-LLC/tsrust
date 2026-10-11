@@ -322,3 +322,29 @@ caused a flush failure.
 This remains a private test-only backend. Public native bindings, compiler
 ownership checks, editor examples and matched streaming benchmarks are still
 required. Writer evidence is retained under `tsrust-s10-jsonl-writer-*`.
+
+## Public owned JSONL reader
+
+`std:json` now declares `JsonlReader`, `JsonlError`, `openJsonl(path, limits?,
+capacity?)`, `readJsonl(reader)` and consuming `closeJsonl(reader)`. The reader
+owns an existing bounded file buffer. Open validates limits and buffer capacity
+before opening; defaults match JSON parsing and the buffered file API. Native
+optional parameters currently permit trailing omission, so callers supply limits
+when selecting capacity instead of passing explicit undefined.
+
+Read returns `Result<JsonValue | undefined, JsonlError>`: undefined is EOF,
+whereas JSON null is an owned JsonValue. Records survive subsequent reads and
+reader disposal. Failures are terminal and redact input/path/backend messages.
+Error fields document operation, record line, absolute input offset and optional
+OS code. Open uses line 1/offset 0; close uses 0/0 because it has no input location.
+Close consumes the wrapper even after EOF/error already released its file, and
+reports an explicit early-close failure without retrying a released descriptor.
+The type cannot be forged, cloned or used after close. Stream positions stop at
+the public integer limit with position-limit rather than wrapping or clamping.
+
+Focused compiler/native checks, editor help and executable catalog examples use
+`tsrust-s10-jsonl-public-*` evidence in SQLite. The initial fixture corrections are
+retained alongside the repaired evidence. This is source implementation progress,
+not S10 acceptance or timing evidence. Borrowed-reader public adapters, public
+writer APIs, direct typed streaming, matched benchmark registration and installed
+CLI acceptance remain pending, along with the other S10 requirements above.

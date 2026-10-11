@@ -1946,7 +1946,7 @@ fn json_editor_contract() {
  let help=ask(&index,entry,"'null'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),2,"{help}");
  let importing="import { } from 'std:json';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
  let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
- for name in ["parse","parseJsonc","stringify","kind","JsonValue","JsonError","JsonLimits"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+ for name in ["parse","parseJsonc","stringify","kind","JsonValue","JsonError","JsonLimits","openJsonl","readJsonl","closeJsonl","JsonlReader","JsonlError"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
 }
 
 #[test]
@@ -1976,4 +1976,15 @@ fn imported_documentation_preserves_multiline_tags_and_parameter_help() {
     assert!(docs.contains("First line.  \nSecond line.") && docs.contains("**Returns**"),"{hover}");
     let help=ask(&index,&entry,"\"Pat\"","textDocument/signatureHelp");
     assert!(help["signatures"][0]["parameters"][0]["documentation"]["value"].as_str().unwrap().contains("Continuation."),"{help}");
+}
+
+#[test]
+fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
+ let entry="import {openJsonl as open,JsonlReader,readJsonl,closeJsonl} from 'std:json';function main(){const result=open('records.jsonl');match(result){Ok(reader)=>{closeJsonl(reader);},Err(error)=>{console.log(error.line);}}}";
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"open('records","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
+ for text in ["JsonlReader","JsonlError","1048576","Ownership:","```tsrust"]{assert!(docs.contains(text),"{hover}");}
+ let field=ask(&index,entry,"line);","textDocument/hover");assert!(field.to_string().contains("One-based JSON Lines record"),"{field}");
+ let help=ask(&index,entry,"'records.jsonl'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),3);
 }

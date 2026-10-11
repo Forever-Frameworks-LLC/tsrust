@@ -1,5 +1,6 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeType},native_signatures::NativeTypeId,syntax::Type};
 pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
+ if matches!(binding.name,"openJsonl"|"readJsonl"|"closeJsonl"){return super::lines_emit::bridge(program,binding);}
  let record=|id|program.records.iter().position(|r|r.native_type==Some(id)).unwrap();
  let value=record(NativeTypeId::JsonValue);
  if binding.name=="kind" {return format!("fn tsrust_std_json_kind(value:&Record{value})->String {{String::Borrowed(tsrust_native_json::kind(&value.value))}}\n");}

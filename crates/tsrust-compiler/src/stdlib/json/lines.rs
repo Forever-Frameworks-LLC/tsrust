@@ -1,6 +1,7 @@
 //! Private bounded JSON Lines reader; public file adapters follow separately.
 use super::{Error,Limits,Value,failure,parse};
 use std::io::BufRead;
+const MAX_POSITION:usize=if usize::BITS<64{usize::MAX}else{i64::MAX as usize};
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct LineError {
@@ -19,12 +20,15 @@ impl<R:BufRead> Lines<R> {
   if limits.depth>64 {return Err(LineError{error:failure("invalid-limits",0),line:1,io_kind:None,os_code:None});}
   Ok(Self{reader:Some(reader),limits,record:Vec::new(),offset:0,line:1,terminal:None})
  }
+ pub fn close_with<E>(mut self,close:impl FnOnce(R)->Result<(),E>)->Result<(),E> {
+  match self.reader.take(){Some(reader)=>close(reader),None=>Ok(())}
+ }
  fn finish(&mut self) {self.reader.take();self.record=Vec::new();}
  fn stop<T>(&mut self,error:LineError)->Result<Option<T>,LineError> {
   self.finish();self.terminal=Some(error.clone());Err(error)
  }
  fn error(&self,code:&'static str,relative:usize)->LineError {
-  let error=match self.offset.checked_add(relative) {Some(offset)=>failure(code,offset),None=>failure("position-limit",self.offset)};
+  let error=match self.offset.checked_add(relative).filter(|value|*value<=MAX_POSITION) {Some(offset)=>failure(code,offset),None=>failure("position-limit",self.offset)};
   LineError{error,line:self.line,io_kind:None,os_code:None}
  }
  fn value<T>(&mut self,decode:impl FnOnce(&[u8],Limits)->Result<T,Error>)->Result<Option<T>,LineError> {
@@ -53,7 +57,7 @@ impl<R:BufRead> Lines<R> {
    let newline=remaining.iter().position(|byte|*byte==b'\n');let count=newline.unwrap_or(remaining.len());
    if count>self.limits.bytes-self.record.len() {return self.stop(self.error("byte-limit",self.limits.bytes));}
    let needed=self.record.len()+count;
-   if self.offset.checked_add(needed).is_none(){return self.stop(self.error("position-limit",0));}
+   if self.offset.checked_add(needed).is_none_or(|value|value>MAX_POSITION){return self.stop(self.error("position-limit",0));}
    if needed>self.record.capacity() {
     let capacity=self.record.capacity().max(128).saturating_mul(2).min(self.limits.bytes).max(needed);
     if self.record.try_reserve_exact(capacity-self.record.len()).is_err(){return self.stop(self.error("allocation",self.record.len()));}
@@ -62,8 +66,8 @@ impl<R:BufRead> Lines<R> {
    self.reader.as_mut().unwrap().consume(count+usize::from(newline.is_some()));
    if newline.is_some() {
     let value=self.value(decode)?;
-    let Some(offset)=self.offset.checked_add(self.record.len()).and_then(|offset|offset.checked_add(1)) else {return self.stop(self.error("position-limit",0));};
-    let Some(line)=self.line.checked_add(1) else {return self.stop(self.error("position-limit",0));};
+    let Some(offset)=self.offset.checked_add(self.record.len()).and_then(|offset|offset.checked_add(1)).filter(|value|*value<=MAX_POSITION) else {return self.stop(self.error("position-limit",0));};
+    let Some(line)=self.line.checked_add(1).filter(|value|*value<=MAX_POSITION) else {return self.stop(self.error("position-limit",0));};
     self.offset=offset;self.line=line;return Ok(value);
    }
   }
@@ -78,6 +82,24 @@ mod tests {
  use crate::stdlib::json::{Limits,Value};
  use std::io::{self,Read};
  fn limits()->Limits {Limits{bytes:64,depth:4,entries:8,nodes:16}}
+ #[test]
+ fn public_integer_position_bounds_reject_without_wrapping() {
+  let mut reader=Lines::new(b"0\n".as_slice(),limits()).unwrap();reader.offset=MAX_POSITION;
+  let error=reader.next().unwrap_err();assert_eq!(error.error.code,"position-limit");assert_eq!(error.error.offset,MAX_POSITION);
+  let mut reader=Lines::new(b"0\n".as_slice(),limits()).unwrap();reader.offset=MAX_POSITION-2;
+  assert_eq!(reader.next().unwrap(),Some(Value::from(0)));assert_eq!(reader.offset,MAX_POSITION);assert_eq!(reader.next().unwrap(),None);
+ }
+ #[test]
+ fn explicit_close_reports_failure_once_and_skips_already_released_readers() {
+  let closes=std::cell::Cell::new(0);
+  let reader=Lines::new(b"null\n".as_slice(),limits()).unwrap();
+  assert_eq!(reader.close_with(|_|{closes.set(closes.get()+1);Err("close failed")}),Err("close failed"));
+  let mut reader=Lines::new(b"".as_slice(),limits()).unwrap();assert_eq!(reader.next().unwrap(),None);
+  assert_eq!(reader.close_with(|_|{closes.set(closes.get()+1);Err("closed twice")}),Ok(()));
+  let mut reader=Lines::new(b"bad\n".as_slice(),limits()).unwrap();assert!(reader.next().is_err());
+  assert_eq!(reader.close_with(|_|{closes.set(closes.get()+1);Err("closed twice")}),Ok(()));
+  assert_eq!(closes.get(),1);
+ }
  #[test]
  fn records_survive_every_chunk_boundary_and_eof_is_not_null() {
   let input="null\r\n{\"text\":\"é🦀\\n\\uD83E\\uDD80\"}\n42";
