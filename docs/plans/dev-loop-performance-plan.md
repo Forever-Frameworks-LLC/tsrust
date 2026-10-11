@@ -63,5 +63,15 @@ owner decision only if the resolution materially changes the approved contract.
 
 ## Current next action
 
-Capture the baseline and implement filesystem-event watching first. Continue through
+The initial baseline is captured using `benchmarks/dev/baseline.py`: three samples
+each for 6-file and 130-file projects. Median leaf edits were 522.89 ms and
+556.73 ms; shared-dependency edits were 508.98 ms and 537.04 ms. Idle supervisor
+CPU was 0.02 seconds per three-second window for 6 files and 0.16–0.17 seconds
+for 130 files. These are diagnostic samples, not final performance acceptance.
+Exact samples, source hashes, phase logs and original failed fixture attempts are
+stored as `tsrust-dev-baseline-*` in SQLite. Formatted generated projects also pass
+idempotence and native output checks. The original long expression hit the existing
+128-depth limit; sequential additions preserve the intended graph and arithmetic.
+
+Implement filesystem-event watching next. Continue through
 retained frontend state and separate runtime compilation before resuming S09 APIs.
