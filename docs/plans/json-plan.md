@@ -298,3 +298,27 @@ EOF, malformed input and early drop. Existing file lifecycle/partial-I/O tests
 also execute at native optimization levels 0 and 3. Evidence is stored under
 `tsrust-s10-jsonl-file-*`. This is private backend integration; public JSONL
 bindings, explicit close and writer APIs remain pending.
+
+## Private JSONL writer foundation
+
+The JSONL writer stages one compact record through the bounded encoder, then
+writes its bytes and LF to the existing buffered file resource. The record byte
+limit excludes LF, matching the reader. Encoding rejection writes none of that
+record; a failed output operation can have written a prefix and provides no
+rollback guarantee. Any record or flush failure is terminal for subsequent
+write/flush calls. The writer never silently skips or retries a failed record.
+Interrupted/partial writes use the existing buffered-file behavior.
+
+Owned output is flushed and consumed by explicit close or fallback Drop. A
+borrowed adapter flushes when closed/dropped but leaves the caller's file owner
+usable. Explicit close attempts cleanup even after a prior failure; a cleanup
+failure takes precedence, otherwise the earlier terminal failure is returned.
+Drop cannot report errors. Error records contain a stable code, operation,
+record counter and optional OS code, with a fixed message and no input/output
+contents. The counter denotes the current record during write and the next
+record during flush/close; it does not falsely identify which buffered record
+caused a flush failure.
+
+This remains a private test-only backend. Public native bindings, compiler
+ownership checks, editor examples and matched streaming benchmarks are still
+required. Writer evidence is retained under `tsrust-s10-jsonl-writer-*`.
