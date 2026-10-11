@@ -2,7 +2,8 @@
 
 Status: owner approved both additions and their priority on 2026-10-11. This is
 required S10 work, ahead of additional JSON runtime APIs and benchmark expansion.
-Neither capability is implemented yet. Existing focused JSON evidence is retained.
+Compiler file loading now has focused alias/extension/index acceptance; editor, dev
+invalidation and typed data-module integration remain pending. Existing JSON evidence is retained.
 
 ## Public behavior
 
@@ -96,8 +97,28 @@ malformed mappings, explicit data extensions and `.tsr` before `index.tsr`.
 A more specific wildcard wins even if less specific mappings would be ambiguous.
 Providers remain responsible for canonical identities and snapshot ownership.
 
-This foundation is not yet connected to configuration loading, compiler source
-providers or editor snapshots. Public import behavior is unchanged. Next work
-must connect those consumers and test graph/overlay/invalidation behavior before
-claiming alias or extensionless import acceptance. Focused evidence is retained
+The initial foundation checkpoint did not connect source providers. The compiler
+file-loader integration below now consumes it; editor snapshot and dev
+invalidation acceptance remain pending. Focused evidence is retained
 as `tsrust-import-resolution-*` in SQLite.
+
+
+## Compiler file-loader integration
+
+The file provider discovers the nearest `tsrust.config.json` from each importing
+file, validates its paths mapping, expands aliases and resolves shared candidates.
+Canonical identities keep explicit and aliased paths to one file identical.
+Missing candidates report attempted paths. Unreadable or malformed configuration
+fails instead of silently searching farther up. CLI project configuration accepts
+and validates `paths`. Source headers now defer alias existence and extensionless
+resolution to the provider; unsupported data imports remain rejected until their
+checked representation is implemented.
+
+Two focused integration tests cover graph checking, canonical identity,
+file-before-index precedence, missing-path diagnostics, malformed configuration,
+unmapped package rejection and native CLI execution through project defaults.
+The executable fixtures also pass formatter idempotence. The existing malformed
+import diagnostic test passes with resolution errors for unresolved specifiers.
+Evidence: `tsrust-alias-loader-*` in SQLite. Installed consumers have not been
+refreshed; compiler/editor parity and invalidation must land before user-facing
+feature acceptance. No benchmark timing or complete family regression was run.

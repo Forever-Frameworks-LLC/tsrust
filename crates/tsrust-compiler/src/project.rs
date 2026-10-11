@@ -30,15 +30,21 @@ pub trait SourceProvider {
 pub struct FileSourceProvider;
 impl SourceProvider for FileSourceProvider {
     fn resolve(&self, importer: Option<&SourceId>, path: &str) -> Result<SourceId, String> {
-        let path = match importer {
-            Some(id) => Path::new(&id.0)
-                .parent()
-                .unwrap_or(Path::new("."))
-                .join(path),
-            None => PathBuf::from(path),
-        };
-        let canonical =
-            std::fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let candidates = if let Some(id)=importer {
+            let aliases=crate::project_resolution::discover(Path::new(&id.0),|path|match std::fs::read_to_string(path) {
+                Ok(text)=>Ok(Some(text)),Err(error) if error.kind()==std::io::ErrorKind::NotFound=>Ok(None),Err(error)=>Err(format!("{}: {error}",path.display()))
+            })?;
+            crate::project_resolution::candidates(Path::new(&id.0),path,aliases.as_ref())?
+        } else {vec![PathBuf::from(path)]};
+        let mut canonical=None;
+        for candidate in &candidates {
+            match std::fs::metadata(candidate) {
+                Ok(metadata) if metadata.is_file()=>{canonical=Some(std::fs::canonicalize(candidate).map_err(|error|format!("{}: {error}",candidate.display()))?);break;},
+                Ok(_)=>{},Err(error) if error.kind()==std::io::ErrorKind::NotFound=>{},
+                Err(error)=>return Err(format!("{}: {error}",candidate.display())),
+            }
+        }
+        let canonical=canonical.ok_or_else(||format!("Cannot resolve {path}; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))?;
         let identity = canonical
             .to_str()
             .ok_or("Source path must be valid UTF-8.")?;
@@ -328,14 +334,14 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             let path = tokens[i].text.clone();
             let span = tokens[i].span;
             if crate::stdlib::source(&path).is_none() && !path.starts_with("std:")
-                && (!(path.starts_with("./") || path.starts_with("../"))
-                    || !path.ends_with(".tsr")
+                && (path.is_empty() || path.starts_with('/')
+                    || Path::new(&path).extension().is_some_and(|extension|extension!="tsr")
                     || path.contains(['\\', '\0', '\n', '\r']))
             {
                 return Err(error(
                     id,
                     "module-path",
-                    "Imports require an explicit relative .tsr path or a registered std: module.",
+                    "Imports require a relative source path, configured alias, or registered std: module.",
                     span,
                 ));
             }

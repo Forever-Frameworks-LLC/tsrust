@@ -44,6 +44,19 @@ impl Aliases {
   Ok(chosen.map(|(_,path)|path))
  }
 }
+/// Discover the nearest project configuration through the provider's read view.
+/// `None` means missing; malformed or unreadable configurations must not fall back.
+pub fn discover(importer:&Path,mut read:impl FnMut(&Path)->Result<Option<String>,String>)->Result<Option<Aliases>,String> {
+ for root in importer.parent().unwrap_or(Path::new(".")).ancestors() {
+  let path=root.join("tsrust.config.json");
+  if let Some(text)=read(&path)? {
+   let value:Value=serde_json::from_str(&text).map_err(|error|format!("{}: {error}",path.display()))?;
+   let object=value.as_object().ok_or_else(||format!("{}: configuration must be an object",path.display()))?;
+   return Aliases::parse(root,object.get("paths")).map(Some).map_err(|error|format!("{}: {error}",path.display()));
+  }
+ }
+ Ok(None)
+}
 /// Data extensions remain explicit. No package search or filesystem access occurs.
 pub fn candidates(importer:&Path,specifier:&str,aliases:Option<&Aliases>)->Result<Vec<PathBuf>,String> {
  if !clean(specifier)||Path::new(specifier).is_absolute()||specifier.starts_with("std:") {return Err(format!("Invalid file import: {specifier}"));}

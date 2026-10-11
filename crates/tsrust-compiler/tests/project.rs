@@ -142,8 +142,8 @@ fn cycles_missing_sources_private_names_and_duplicate_bindings() {
 fn unsupported_forms_and_malformed_imports_are_source_errors() {
     for (source, code) in [
         ("import x, from './dep.tsr';", "module-syntax"),
-        ("import { x } from 'dep';", "module-path"),
-        ("import { x } from './dep';", "module-path"),
+        ("import { x } from 'dep';", "module-load"),
+        ("import { x } from './dep';", "module-load"),
         ("import { x } from 'std:path';", "module-native"),
         ("export const x = 1;", "module-export"),
         ("export { x };", "module-export"),
