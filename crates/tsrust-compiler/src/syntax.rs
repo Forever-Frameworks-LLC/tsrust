@@ -1781,6 +1781,7 @@ pub struct FunctionApplication {
 
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub(crate) diagnostic_first: Option<Span>,
     pub(crate) diagnostic_skips: std::collections::HashSet<Span>,
     pub(crate) unresolved_local_function: Option<Token>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
@@ -2251,6 +2252,7 @@ impl Parser<'_> {
     fn program(mut self, test_entry: bool) -> Result<Program, Diagnostic> {
         let mut registration = Vec::new();
         let mut program = Program {
+            diagnostic_first: None,
             diagnostic_skips: Default::default(),
             unresolved_local_function: None,
             local_declarations: Vec::new(),

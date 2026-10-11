@@ -65,3 +65,17 @@ fn module_semantic_diagnostics_publish_independent_errors_without_name_cascades(
     let buckets=tsrust_lsp::project_diagnostics::convert_all(&snapshot,&errors).unwrap();
     assert_eq!(buckets[&dependency].len(),2);assert!(buckets[&entry].is_empty());
 }
+
+#[test]
+fn invalid_return_in_dependency_does_not_mask_independent_entry_error() {
+    let entry=source_id("file:///return-errors/entry.tsr").unwrap();
+    let dependency=source_id("file:///return-errors/library.tsr").unwrap();
+    let mut workspace=Workspace::default();
+    workspace.open(entry.clone(),1,"import {bad} from './library.tsr';function main(){const independent:boolean=42;bad();}".into());
+    workspace.open(dependency.clone(),1,"export function bad():int{return \"bad\";}".into());
+    let snapshot=workspace.snapshot();
+    let errors=snapshot.check_with_diagnostics(&entry).err().unwrap();
+    assert_eq!(errors.len(),2,"{errors:?}");
+    let buckets=tsrust_lsp::project_diagnostics::convert_all(&snapshot,&errors).unwrap();
+    assert_eq!(buckets[&entry].len(),1);assert_eq!(buckets[&dependency].len(),1);
+}

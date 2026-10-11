@@ -70,8 +70,12 @@ fn recoverable(code:&str)->bool {
 }
 
 pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
-    if !recoverable(first.code) {return vec![first];}
+    if !recoverable(first.code) && !matches!(first.code,"loop-control"|"error-effect") {return vec![first];}
     let (statements,names)=index(&program);
+    let mut roots=program.functions.iter().map(|function|function.name.span).collect::<Vec<_>>();
+    // Later declarations are the useful next candidates after an earlier failure.
+    roots.sort_by_key(|span|(span.start<first.span.start,span.start));
+    let mut roots=roots.into_iter();
     let mut errors=Vec::new();let mut next=first;
     for _ in 0..128 {
         let cascade=matches!(next.code,"unknown"|"name") && names.get(&next.span).is_some_and(|name|{
@@ -79,12 +83,18 @@ pub(crate) fn collect(mut program:Program, first:Diagnostic)->Vec<Diagnostic> {
                 .min_by_key(|statement|statement.scope.end.saturating_sub(statement.scope.start))
                 .is_some_and(|declaration|program.diagnostic_skips.contains(&declaration.key))
         });
-        if !cascade {errors.push(next.clone());}
-        if errors.len()>=64 || !recoverable(next.code) {break;}
-        let Some(statement)=statements.iter().filter(|statement|contains(statement.extent,next.span))
-            .min_by_key(|statement|statement.extent.end.saturating_sub(statement.extent.start)) else {break;};
-        // Do not invent a fallthrough path by dropping a return, throw, or jump.
-        if statement.terminal || !program.diagnostic_skips.insert(statement.key) {break;}
+        if !cascade && !errors.iter().any(|error:&Diagnostic|error.code==next.code && error.span==next.span && error.message==next.message) {errors.push(next.clone());}
+        if errors.len()>=64 {break;}
+        let statement=statements.iter().filter(|statement|contains(statement.extent,next.span))
+            .min_by_key(|statement|statement.extent.end.saturating_sub(statement.extent.start));
+        let skipped=recoverable(next.code) && statement.is_some_and(|statement|
+            !statement.terminal && program.diagnostic_skips.insert(statement.key));
+        if !skipped {
+            // Keep failed terminal operations intact. Change only which function
+            // is checked first; calls still follow their real bodies and contracts.
+            let Some(root)=roots.next() else {break;};
+            program.diagnostic_first=Some(root);
+        }
         // Replay from pristine state: valid earlier moves and loans survive, while
         // partial mutations made by the failing statement cannot leak forward.
         let result=match crate::analysis::analyze(program.clone()) {

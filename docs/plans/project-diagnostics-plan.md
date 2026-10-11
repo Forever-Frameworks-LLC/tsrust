@@ -169,3 +169,31 @@ the final frame to 10,592 bytes and the normal-stack canary passes. Strict check
 the helper when no diagnostic skips exist. Original failing logs are retained alongside
 repairs under `tsrust-semantic-diagnostics-*` in SQLite. No full milestone regression,
 performance measurement or installed-consumer refresh is claimed yet.
+
+## Independent-function recovery checkpoint
+
+An invalid return, throw or jump no longer prevents diagnostics from independent
+functions in the same file or module graph. Diagnostic replay prioritizes another
+source function without reordering declarations or changing function identities.
+Normal call checking still follows the original bodies and contracts. Invalid
+terminal operations remain intact; no return placeholder or artificial fallthrough
+is introduced. Repeated discoveries are deduplicated within the existing replay
+budget. Strict executable checking does not enable diagnostic priority.
+
+Focused validation passes 32 compiler tests (eleven recovery, ten project, eleven
+control-flow) and five editor tests. Witnesses include invalid ordinary/callback
+returns, jumps, try/finally, independent declarations and a failed dependency return
+with an unrelated entry error. The initial location expectation was corrected to
+match the existing diagnostic at the `return` keyword, without changing compiler
+locations. Original red and repaired logs use `tsrust-diagnostic-boundaries-*` in
+SQLite.
+
+The requested diagnostic behavior is ready for combined milestone acceptance:
+recursive CLI checking, optional main, multiple statement syntax/type/ownership
+errors, independent function recovery, workspace discovery, unsaved inputs and
+stale-publication handling. Recovery is deliberately bounded and may stop inside
+malformed declaration/control regions; this is not a promise to enumerate every
+possible error after arbitrary invalid syntax. Next run the complete compiler and
+LSP regressions, repair affected failures without restarting completed groups, then
+refresh CLI/LSP/extension together and verify the installed editor. Configuration
+and scaffolding remain future work. S09 has not started.

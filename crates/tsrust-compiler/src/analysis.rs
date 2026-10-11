@@ -3303,7 +3303,9 @@ impl Analyzer {
             self.discover_results()?;
         }
         self.discover_record_callbacks();
-        let mut index = 0;
+        let mut sequence = 0;
+        let mut priority = self.program.diagnostic_first.and_then(|span|
+            self.program.functions.iter().position(|function|function.name.span==span));
         // A function that catches the failure of a callback field of a record
         // parameter needs the records that later functions construct. Check
         // the rest first, then that function again.
@@ -3316,9 +3318,11 @@ impl Analyzer {
             .collect::<Vec<_>>();
         // The number of known record callbacks when each function was checked.
         let mut field_origins = vec![usize::MAX; sources.len()];
-        while index < self.program.functions.len() {
+        while priority.is_some() || sequence < self.program.functions.len() {
+            let index = if let Some(index)=priority.take() {index} else {
+                let index=sequence;sequence+=1;index
+            };
             if self.checked[index].is_none() && self.capturing_function_is_unused(index)? {
-                index += 1;
                 continue;
             }
             if let Some(known) = field_origins.get_mut(index) {
@@ -3338,7 +3342,6 @@ impl Analyzer {
                 self.depth = 0;
                 postponed.push(index);
             }
-            index += 1;
         }
         for index in postponed {
             if self.checked[index].is_none() {

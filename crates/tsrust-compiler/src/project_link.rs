@@ -311,6 +311,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         programs.insert(id.clone(), program);
     }
     let mut linked = Program {
+        diagnostic_first: None,
         diagnostic_skips: Default::default(),
         unresolved_local_function: None,
         local_declarations: Vec::new(),

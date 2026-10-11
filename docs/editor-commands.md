@@ -9,7 +9,9 @@ and workspace folder changes schedule a fresh scan; deleted files and removed
 folders have their old diagnostics cleared. Opening a file outside the workspace
 still checks that file. Syntax recovery reports multiple statement errors. Semantic checking also reports
 independent type and ownership errors, suppressing follow-on name errors from an
-invalid declaration. Recovery currently stops at invalid returns and control jumps.
+invalid declaration. Invalid returns and control jumps remain intact while checking
+continues in independent functions. Structurally invalid declarations can still
+limit recovery within the affected region.
 
 
 ## Using the editor

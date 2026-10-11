@@ -88,3 +88,25 @@ fn semantic_replay_keeps_overlapping_access_errors_and_related_locations() {
     assert_eq!(errors.iter().map(|error|error.code).collect::<Vec<_>>(),vec!["type","conflicting-access","conflicting-access"],"{errors:?}");
     assert!(errors[1..].iter().all(|error|error.related.len()==1));
 }
+
+#[test]
+fn invalid_return_does_not_hide_independent_function_errors() {
+    let source="function first():int{return \"bad\";}function second():boolean{return 42;}function third(){const value:int=\"bad\";}function main(){first();}";
+    let errors=tsrust_compiler::diagnostics(source);
+    assert_eq!(errors.len(),3,"{errors:?}");
+    assert!(errors.iter().all(|error|error.code=="type" && error.message.starts_with("Expected")));
+    assert_eq!(errors.iter().map(|error|error.span.start).collect::<Vec<_>>(),vec![source.find("return").unwrap(),source.rfind("return").unwrap(),source.rfind("\"bad\"").unwrap()]);
+    assert!(tsrust_compiler::check(source).is_err());
+}
+
+#[test]
+fn invalid_jumps_and_callback_returns_do_not_hide_unrelated_functions() {
+    for first in ["function first(){break;}","function first(){const callback=():int=>{return \"bad\";};callback();}","function first():int{try{return \"bad\";}finally{}}"] {
+        let source=format!("{first}function independent(){{const value:boolean=42;}}");
+        let strict=tsrust_compiler::check(&source).err().unwrap();
+        let errors=tsrust_compiler::diagnostics(&source);
+        assert_eq!(errors.len(),2,"{errors:?}");
+        assert_eq!(errors[0].code,strict.code);assert_eq!(errors[0].span,strict.span);
+        assert!(errors[1].message.contains("Expected boolean"),"{errors:?}");
+    }
+}
