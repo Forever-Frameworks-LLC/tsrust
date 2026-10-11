@@ -1,7 +1,8 @@
 # S10 JSON
 
-Status: private bounded dynamic-decoding backend passes focused checks. No public `std:json`
-binding or native JSON library is available yet. S09 is accepted; S10 remains open.
+Status: private bounded decoding, automatic native dependency linking and artifact
+reuse pass focused checks. No public `std:json` binding is available yet. S09 is
+accepted; S10 remains open.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
@@ -82,13 +83,45 @@ package checksum and requires rejection against the lockfile. Cargo treats regis
 sources as immutable after compilation; source edits alone do not invalidate its
 existing artifacts. Future cache integration must preserve private immutable bundles
 and include bundle identity in cache keys. Materialization refuses to replace
-an existing destination. This is packaging infrastructure only: the CLI does not
-yet select this bundle, link JSON, or cache the dependency artifacts. Those steps,
-cancellation handling, application-edit reuse, and installed consumer acceptance
-remain required before publishing JSON. Existing runtime-only builds retain their
-current rustc path.
+an existing destination. The shared CLI build preparation now selects this bundle for the exact compiler-owned
+JSON runtime module, links its libraries automatically, and caches the complete
+library set. Public JSON emission and installed consumer acceptance remain required
+before publishing JSON. Existing runtime-only builds retain their current rustc path.
 
 SQLite retains the focused red/green, cache-assumption failure, corrected lockfile
 integrity check, final build and formatting logs under `tsrust-s10-bundle-*`.
 The final focused test passes; whole-project formatting changes zero files and
 zero fingerprints. No installed JSON capability or S10 measurement is claimed.
+
+
+## Automatic runtime build and artifact reuse
+
+The shared build preparation used by build/run/test/dev recognizes the exact bundled
+JSON module. It materializes locked sources into the disposable native build
+directory and invokes pinned Cargo with offline, locked dependencies. Cargo uses a
+private empty home, incremental compilation stays disabled, and inherited compiler
+wrappers, Rust flags, target settings and profile overrides are removed. Existing
+dev process-group supervision owns this command, including its compiler children.
+
+The application links the resulting runtime and dependency search directory
+automatically. The existing bounded, atomic native cache stores the complete rlib
+set as one artifact, with the runtime source, dependency manifest and lockfile,
+backend identity, host platform and optimization profile in its identity. The
+application cache also includes dependency identity. Cache restoration validates
+member names, lengths and the required runtime library before creating output;
+it cannot write parent or absolute paths. The runtime cache retains its existing
+32-entry/256-MiB limit. Temporary Cargo output is deleted with the native build
+directory, not retained as a new compiler-development target.
+
+Focused native fixtures build JSON with an empty Cargo home, link and execute it,
+delete the entire original build directory, edit application code, then link and
+execute again using the restored runtime with no Cargo compilation command. Dev's
+nonblocking cache path is covered by the second build. Backend and profile changes
+miss the cache. Invalid artifact member paths and truncated lengths reject before
+writing. Existing native cache/runtime checks pass (11 tests, one existing ignore).
+The original failing fixture, focused green run, affected batch, final checks and
+formatting evidence are retained in SQLite under `tsrust-s10-link-*`.
+
+This is private backend integration acceptance. Public bindings, editor examples,
+JSON-aware emit distribution, installed JSON execution, matched benchmark support
+and S10 family measurements remain open.

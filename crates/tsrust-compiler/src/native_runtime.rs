@@ -4,6 +4,7 @@
 pub struct Units {
     pub application:String,
     pub runtime:Option<String>,
+    pub dependencies:bool,
 }
 
 pub(crate) fn bytes_module(views:bool,utf8:bool)->String {
@@ -19,10 +20,16 @@ pub(crate) fn files_module()->String {
 pub(crate) fn path_module()->String {
     format!("mod tsrust_native_path {{\n{}{}\n}}\n",include_str!("stdlib/path/runtime.rs"),include_str!("stdlib/path/relative.rs"))
 }
+/// Compiler-owned JSON support; public language bindings are implemented separately.
+pub fn json_module()->String {
+    format!("mod tsrust_native_json {{\n{}\n}}\n", include_str!("stdlib/json/mod.rs").lines().filter(|line| !line.starts_with("//!")).collect::<Vec<_>>().join("\n"))
+}
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=String::new();
+    let json=source.contains("mod tsrust_native_json {").then(json_module);
+    let dependencies=json.as_ref().is_some_and(|module|source.contains(module));
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
             application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));
@@ -31,6 +38,7 @@ pub fn separate(source:&str)->Units {
     };
     // Match complete variants; no feature is added merely because another is used.
     for (views,utf8) in [(true,true),(true,false),(false,true),(false,false)] {extract("tsrust_native_bytes",bytes_module(views,utf8));}
+    if let Some(module)=json {extract("tsrust_native_json",module);}
     extract("tsrust_native_files",files_module());extract("tsrust_native_path",path_module());
     if application.contains(crate::runtime::STRINGS) {
         // Other application helpers can still call the small number tie helper.
@@ -49,5 +57,5 @@ pub fn separate(source:&str)->Units {
         runtime.push_str(include_str!("runtime_number_tie.rs"));
         runtime.push_str(console);runtime.push_str("\n}\n");
     }
-    Units{application,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
+    Units{application,dependencies,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
 }

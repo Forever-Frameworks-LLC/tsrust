@@ -1,5 +1,6 @@
 mod dev_cli;
 mod runtime_build;
+mod native_dependency_bundle;
 #[cfg(unix)]
 mod dev_frontend;
 #[cfg(unix)]
@@ -278,7 +279,8 @@ fn run() -> Result<u8, String> {
     let cache = tsrust_compiler::native_cache::NativeCache::new(
         &cache_root,
         &[
-            b"native-cache-abi-2",
+            b"native-cache-abi-3",
+            native_dependency_bundle::IDENTITY.as_bytes(),
             backend_identity.as_bytes(),
             env!("CARGO_PKG_VERSION").as_bytes(),
             env::consts::OS.as_bytes(),
@@ -359,7 +361,9 @@ fn run() -> Result<u8, String> {
     Ok(0)
 }
 
-fn backend_command() -> Command {
+fn backend_command() -> Command { backend_tool("rustc") }
+fn backend_cargo_command() -> Command { backend_tool("cargo") }
+fn backend_tool(tool:&str) -> Command {
     let executable = format!("rustup{}", env::consts::EXE_SUFFIX);
     // GUI editors may omit Cargo's bin directory from their inherited PATH.
     // Keep PATH first so explicit wrappers and custom installations still work.
@@ -377,7 +381,7 @@ fn backend_command() -> Command {
         .filter(|candidate| candidate.is_file());
     let mut command = Command::new(on_path.or(installed).unwrap_or_else(|| executable.into()));
     // No --install: compiling a program never implicitly downloads a toolchain.
-    command.args(["run", RUST_BACKEND_VERSION, "rustc"]);
+    command.args(["run", RUST_BACKEND_VERSION, tool]);
     command
 }
 
