@@ -65,3 +65,8 @@ The [S09 contract audit](synchronous-host-contract-audit.md) records all 28 expo
 functions/types, ownership and platform boundaries, fixture evidence, and the nine
 pending measurement workloads. The read hover now states its existing 0–64 MiB
 length limit; file hovers state the existing macOS/Linux backend boundary.
+
+The nine workloads now have [accepted measurements and allocation profiles](../milestones/s09-host-measurements.md)
+in SQLite. Complete compiler regressions are running; LSP regressions and the
+existing editor-window verification remain pending. Measurement acceptance does
+not close the S09 family gate.
