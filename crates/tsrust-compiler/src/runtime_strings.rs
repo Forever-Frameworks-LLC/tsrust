@@ -1,7 +1,7 @@
 // Generated strings use only Rust's standard valid UTF-8 storage.
-type String = std::borrow::Cow<'static, str>;
+pub type String = std::borrow::Cow<'static, str>;
 // The body stays raw. Only ASCII double quotes in an attribute are escaped.
-fn tsr_string_html(
+pub fn tsr_string_html(
     value: &String,
     tag: &'static str,
     attribute: Option<(&'static str, &String)>,
@@ -15,14 +15,14 @@ fn tsr_string_html(
     String::Owned(output)
 }
 
-fn tsr_string_identity(value: &String) -> String {
+pub fn tsr_string_identity(value: &String) -> String {
     value.clone()
 }
-fn tsr_boolean_string(value: bool) -> String {
+pub fn tsr_boolean_string(value: bool) -> String {
     String::Borrowed(if value { "true" } else { "false" })
 }
 
-fn tsr_int_to_string(value: i64, radix: i64, failure: &'static str) -> String {
+pub fn tsr_int_to_string(value: i64, radix: i64, failure: &'static str) -> String {
     assert!((2..=36).contains(&radix), "{failure}");
     if radix == 10 {
         return String::Owned(value.to_string());
@@ -58,7 +58,7 @@ fn tsr_int_to_string(value: i64, radix: i64, failure: &'static str) -> String {
 // UTF-16 code units to text. A surrogate pair is one character; a surrogate
 // with no partner becomes U+FFFD because text always holds valid Unicode.
 #[allow(dead_code)]
-fn tsr_string_from_code_units(units: impl Iterator<Item = u16>) -> String {
+pub fn tsr_string_from_code_units(units: impl Iterator<Item = u16>) -> String {
     String::Owned(
         char::decode_utf16(units)
             .map(|unit| unit.unwrap_or(char::REPLACEMENT_CHARACTER))
@@ -66,7 +66,7 @@ fn tsr_string_from_code_units(units: impl Iterator<Item = u16>) -> String {
     )
 }
 #[allow(dead_code)]
-fn tsr_string_from_code_points(codes: impl Iterator<Item = i64>, failure: &'static str) -> String {
+pub fn tsr_string_from_code_points(codes: impl Iterator<Item = i64>, failure: &'static str) -> String {
     tsr_string_from_code_units(codes.flat_map(|code| {
         assert!((0..=0x10FFFF).contains(&code), "{failure}");
         let code = code as u32;
@@ -78,7 +78,7 @@ fn tsr_string_from_code_points(codes: impl Iterator<Item = i64>, failure: &'stat
         }
     }))
 }
-fn tsr_number_parse_int(text: &str, radix: Option<i64>) -> f64 {
+pub fn tsr_number_parse_int(text: &str, radix: Option<i64>) -> f64 {
     let text = text.trim_start_matches(|character| {
         matches!(character,
             '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}'
@@ -124,7 +124,7 @@ fn tsr_number_parse_int(text: &str, radix: Option<i64>) -> f64 {
 
 // Only the decimal prefix is selected here; standard f64 parsing supplies all
 // rounding, overflow, underflow, and signed-zero behavior without input copies.
-fn tsr_number_parse_float(text: &str) -> f64 {
+pub fn tsr_number_parse_float(text: &str) -> f64 {
     let text = text.trim_start_matches(|character| {
         matches!(character,
             '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}'
@@ -176,7 +176,7 @@ fn tsr_number_parse_float(text: &str) -> f64 {
 
 // Standard f64 formatters supply the digits and use Rust's ties-even rounding.
 // These adapters change only decimal layout and JavaScript's surface spelling.
-fn number_format_special(value: f64) -> Option<String> {
+pub fn number_format_special(value: f64) -> Option<String> {
     if value.is_nan() {
         Some(String::Borrowed("NaN"))
     } else if value == f64::INFINITY {
@@ -188,7 +188,7 @@ fn number_format_special(value: f64) -> Option<String> {
     }
 }
 
-fn number_decimal_layout(mut scientific: std::string::String, upper: i32) -> std::string::String {
+pub fn number_decimal_layout(mut scientific: std::string::String, upper: i32) -> std::string::String {
     let exponent_position = scientific.rfind('e').expect("standard scientific format");
     let exponent: i32 = scientific[exponent_position + 1..]
         .parse()
@@ -221,7 +221,7 @@ fn number_decimal_layout(mut scientific: std::string::String, upper: i32) -> std
     scientific
 }
 
-fn number_scientific(value: f64, digits: Option<usize>, capacity: usize) -> std::string::String {
+pub fn number_scientific(value: f64, digits: Option<usize>, capacity: usize) -> std::string::String {
     use std::fmt::Write as _;
     let mut output = std::string::String::with_capacity(capacity);
     match digits {
@@ -235,7 +235,7 @@ fn number_scientific(value: f64, digits: Option<usize>, capacity: usize) -> std:
     output
 }
 
-fn number_shortest(value: f64) -> String {
+pub fn number_shortest(value: f64) -> String {
     if value == 0.0 || (1e-6..1e21).contains(&value.abs()) {
         use std::fmt::Write as _;
         let mut output = std::string::String::with_capacity(32);
@@ -253,7 +253,7 @@ fn number_shortest(value: f64) -> String {
 // Radix 10 is the shortest round-trip text. Other radices emit the represented
 // integer digits and the fraction to the shortest text that reads back as the
 // same value, rounding the last digit to nearest with carry.
-fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> String {
+pub fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> String {
     assert!((2..=36).contains(&radix), "{failure}");
     if let Some(special) = number_format_special(value) {
         return special;
@@ -332,7 +332,7 @@ fn tsr_number_to_string(value: f64, radix: i64, failure: &'static str) -> String
     String::Owned(output)
 }
 
-fn tsr_number_fixed(value: f64, digits: Option<i64>, failure: &'static str) -> String {
+pub fn tsr_number_fixed(value: f64, digits: Option<i64>, failure: &'static str) -> String {
     let digits = digits.unwrap_or(0);
     assert!((0..=100).contains(&digits), "{failure}");
     if let Some(special) = number_format_special(value) {
@@ -348,7 +348,7 @@ fn tsr_number_fixed(value: f64, digits: Option<i64>, failure: &'static str) -> S
     String::Owned(output)
 }
 
-fn tsr_number_exponential(value: f64, digits: Option<i64>, failure: &'static str) -> String {
+pub fn tsr_number_exponential(value: f64, digits: Option<i64>, failure: &'static str) -> String {
     if let Some(special) = number_format_special(value) {
         return special;
     }
@@ -361,7 +361,7 @@ fn tsr_number_exponential(value: f64, digits: Option<i64>, failure: &'static str
     String::Owned(number_decimal_layout(scientific, -6))
 }
 
-fn tsr_number_precision(value: f64, precision: Option<i64>, failure: &'static str) -> String {
+pub fn tsr_number_precision(value: f64, precision: Option<i64>, failure: &'static str) -> String {
     if let Some(special) = number_format_special(value) {
         return special;
     }
@@ -378,17 +378,17 @@ fn tsr_number_precision(value: f64, precision: Option<i64>, failure: &'static st
     }
 }
 
-fn string_owned_capacity(capacity: usize, failure: &'static str) -> std::string::String {
+pub fn string_owned_capacity(capacity: usize, failure: &'static str) -> std::string::String {
     assert!(capacity <= isize::MAX as usize, "{failure}");
     let mut output = std::string::String::new();
     output.try_reserve_exact(capacity).expect(failure);
     output
 }
 
-fn tsr_string_concat(value: &String, arguments: &[&String], failure: &'static str) -> String {
+pub fn tsr_string_concat(value: &String, arguments: &[&String], failure: &'static str) -> String {
     tsr_string_concat_iter(value, arguments.iter().copied(), failure)
 }
-fn tsr_string_concat_iter<'a, I>(value: &String, arguments: I, failure: &'static str) -> String
+pub fn tsr_string_concat_iter<'a, I>(value: &String, arguments: I, failure: &'static str) -> String
 where
     I: Iterator<Item = &'a String> + Clone,
 {
@@ -406,7 +406,7 @@ where
     String::Owned(output)
 }
 
-fn tsr_string_pad(
+pub fn tsr_string_pad(
     value: &String,
     target: i64,
     filler: Option<&String>,
@@ -438,7 +438,7 @@ fn tsr_string_pad(
     String::Owned(output)
 }
 
-fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
+pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> String {
     let capacity = left.len().checked_add(right.len()).expect(failure);
     let mut output = std::string::String::with_capacity(capacity);
     output.push_str(left);
@@ -446,11 +446,11 @@ fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> Strin
     String::Owned(output)
 }
 
-fn tsr_length(value: &String) -> i64 {
+pub fn tsr_length(value: &String) -> i64 {
     i64::try_from(value.len()).expect("string length exceeds int range")
 }
 
-fn string_offset(len: usize, index: i64) -> usize {
+pub fn string_offset(len: usize, index: i64) -> usize {
     if index < 0 {
         (len as i128 + index as i128).max(0) as usize
     } else {
@@ -458,7 +458,7 @@ fn string_offset(len: usize, index: i64) -> usize {
     }
 }
 
-fn tsr_slice(value: &String, start: i64, end: Option<i64>) -> String {
+pub fn tsr_slice(value: &String, start: i64, end: Option<i64>) -> String {
     let len = value.len();
     let start = string_offset(len, start);
     let end = end.map_or(len, |end| string_offset(len, end));
@@ -481,7 +481,7 @@ fn tsr_slice(value: &String, start: i64, end: Option<i64>) -> String {
     }
 }
 
-fn tsr_substring(value: &String, start: i64, end: Option<i64>, failure: &str) -> String {
+pub fn tsr_substring(value: &String, start: i64, end: Option<i64>, failure: &str) -> String {
     let len = value.len();
     let clamp = |index: i64| (index.max(0) as u128).min(len as u128) as usize;
     let first = clamp(start);
@@ -502,7 +502,7 @@ fn tsr_substring(value: &String, start: i64, end: Option<i64>, failure: &str) ->
 
 // Substr counts a length from a relative byte start. Cap before addition so
 // every signed extreme is safe and an empty interior range needs no boundary.
-fn tsr_substr(value: &String, start: i64, length: Option<i64>, failure: &str) -> String {
+pub fn tsr_substr(value: &String, start: i64, length: Option<i64>, failure: &str) -> String {
     let len = value.len();
     let start = string_offset(len, start);
     let remaining = len - start;
@@ -522,7 +522,7 @@ fn tsr_substr(value: &String, start: i64, length: Option<i64>, failure: &str) ->
     }
 }
 
-fn tsr_char_at(value: &String, index: i64) -> String {
+pub fn tsr_char_at(value: &String, index: i64) -> String {
     usize::try_from(index)
         .ok()
         .and_then(|index| value.chars().nth(index))
@@ -531,41 +531,41 @@ fn tsr_char_at(value: &String, index: i64) -> String {
         })
 }
 
-fn tsr_trim(value: &String) -> String {
+pub fn tsr_trim(value: &String) -> String {
     match value {
         String::Borrowed(text) => String::Borrowed(text.trim()),
         String::Owned(text) => String::Owned(text.trim().to_owned()),
     }
 }
 
-fn tsr_trim_start(value: &String) -> String {
+pub fn tsr_trim_start(value: &String) -> String {
     match value {
         String::Borrowed(text) => String::Borrowed(text.trim_start()),
         String::Owned(text) => String::Owned(text.trim_start().to_owned()),
     }
 }
 
-fn tsr_trim_end(value: &String) -> String {
+pub fn tsr_trim_end(value: &String) -> String {
     match value {
         String::Borrowed(text) => String::Borrowed(text.trim_end()),
         String::Owned(text) => String::Owned(text.trim_end().to_owned()),
     }
 }
 
-fn tsr_lower(value: &String) -> String {
+pub fn tsr_lower(value: &String) -> String {
     String::Owned(value.to_lowercase())
 }
 
-fn tsr_normalize(value: &String) -> String {
+pub fn tsr_normalize(value: &String) -> String {
     String::Owned(value.trim().to_lowercase())
 }
 
-fn tsr_upper(value: &String) -> String {
+pub fn tsr_upper(value: &String) -> String {
     String::Owned(value.to_uppercase())
 }
 
 // Search positions are nonnegative clamped UTF-8 byte coordinates.
-fn string_search_position(len: usize, position: Option<i64>, default: usize) -> usize {
+pub fn string_search_position(len: usize, position: Option<i64>, default: usize) -> usize {
     position.map_or(default, |position| {
         if position < 0 {
             0
@@ -575,7 +575,7 @@ fn string_search_position(len: usize, position: Option<i64>, default: usize) -> 
     })
 }
 
-fn tsr_string_starts_with(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_starts_with(value: &String, needle: &String, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
@@ -583,7 +583,7 @@ fn tsr_string_starts_with(value: &String, needle: &String, position: Option<i64>
         .starts_with(needle.as_ref())
 }
 
-fn tsr_string_ends_with(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_ends_with(value: &String, needle: &String, position: Option<i64>) -> bool {
     let end = string_search_position(value.len(), position, value.len());
     value
         .get(..end)
@@ -591,7 +591,7 @@ fn tsr_string_ends_with(value: &String, needle: &String, position: Option<i64>) 
         .ends_with(needle.as_ref())
 }
 
-fn tsr_string_includes(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_includes(value: &String, needle: &String, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
@@ -599,7 +599,7 @@ fn tsr_string_includes(value: &String, needle: &String, position: Option<i64>) -
         .contains(needle.as_ref())
 }
 
-fn tsr_string_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
+pub fn tsr_string_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
@@ -610,7 +610,7 @@ fn tsr_string_index_of(value: &String, needle: &String, position: Option<i64>) -
         })
 }
 
-fn tsr_string_last_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
+pub fn tsr_string_last_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
     let position = string_search_position(value.len(), position, value.len());
     assert!(
         value.is_char_boundary(position),
@@ -627,7 +627,7 @@ fn tsr_string_last_index_of(value: &String, needle: &String, position: Option<i6
     })
 }
 
-fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> String {
+pub fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> String {
     assert!(count >= 0, "string repeat count must be nonnegative");
     let count = usize::try_from(count).expect(failure);
     let capacity = value.len().checked_mul(count).expect(failure);
@@ -637,7 +637,7 @@ fn tsr_string_repeat(value: &String, count: i64, failure: &'static str) -> Strin
 
 // String patterns have no captures. Only the four ordinary substitution tokens
 // expand; prefix/suffix always refer to the original source, not built output.
-fn string_replacement_template(
+pub fn string_replacement_template(
     output: &mut std::string::String,
     source: &str,
     position: usize,
@@ -663,7 +663,7 @@ fn string_replacement_template(
     output.push_str(remainder);
 }
 
-fn tsr_string_replace(value: &String, pattern: &String, replacement: &String, all: bool) -> String {
+pub fn tsr_string_replace(value: &String, pattern: &String, replacement: &String, all: bool) -> String {
     if !replacement.contains('$') {
         return String::Owned(if all {
             value.replace(pattern.as_ref(), replacement.as_ref())
@@ -689,7 +689,7 @@ fn tsr_string_replace(value: &String, pattern: &String, replacement: &String, al
 
 // Deterministic decimal display: ASCII grouping, up to three fractional digits,
 // shortest decimal input and ties away from zero. No locale database is needed.
-fn tsr_locale_group(text: &str) -> String {
+pub fn tsr_locale_group(text: &str) -> String {
     let negative = text.starts_with('-');
     let text = text.strip_prefix('-').unwrap_or(text);
     let (integer, fraction) = text.split_once('.').unwrap_or((text, ""));
@@ -703,11 +703,11 @@ fn tsr_locale_group(text: &str) -> String {
     String::Owned(output)
 }
 
-fn tsr_int_locale_string(value: i64) -> String {
+pub fn tsr_int_locale_string(value: i64) -> String {
     tsr_locale_group(&value.to_string())
 }
 
-fn tsr_number_locale_string(value: f64) -> String {
+pub fn tsr_number_locale_string(value: f64) -> String {
     if value.is_nan() { return String::Borrowed("NaN"); }
     if value == f64::INFINITY { return String::Borrowed("∞"); }
     if value == f64::NEG_INFINITY { return String::Borrowed("-∞"); }

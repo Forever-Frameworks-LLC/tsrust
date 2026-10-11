@@ -1,5 +1,5 @@
 // Node-compatible console formatting for the native printable value domain.
-enum TsrConsoleValue {
+pub enum TsrConsoleValue {
     Text(std::string::String),
     Int(i64),
     Number(f64),
@@ -83,7 +83,7 @@ fn tsr_console_number(value: f64, negative_zero: bool) -> std::string::String {
     }
 }
 impl TsrConsoleValue {
-    fn inspect(&self, depth: i32, hidden: bool) -> std::string::String {
+    pub fn inspect(&self, depth: i32, hidden: bool) -> std::string::String {
         self.inspect_options(depth, hidden, false)
     }
     fn inspect_options(&self, depth: i32, hidden: bool, colors: bool) -> std::string::String {
@@ -332,7 +332,7 @@ impl TsrConsoleValue {
         f64::NAN
     }
 }
-fn tsr_console_format(values: &[TsrConsoleValue]) -> std::string::String {
+pub fn tsr_console_format(values: &[TsrConsoleValue]) -> std::string::String {
     let Some(first) = values.first() else {
         return std::string::String::new();
     };
@@ -519,7 +519,7 @@ struct TsrConsoleState {
     timers: std::collections::BTreeMap<std::string::String, std::time::Instant>,
 }
 std::thread_local! {static TSR_CONSOLE_STATE: std::cell::RefCell<TsrConsoleState> = std::cell::RefCell::new(TsrConsoleState::default());}
-fn tsr_console_write(error: bool, text: &str) {
+pub fn tsr_console_write(error: bool, text: &str) {
     if tsr_console_test_capture(error,text) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -540,7 +540,7 @@ fn tsr_console_write(error: bool, text: &str) {
         }
     });
 }
-fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
+pub fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
     if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -562,7 +562,7 @@ fn tsr_console_scalar(error: bool, value: impl std::fmt::Display) {
         }
     });
 }
-fn tsr_console_text(error: bool, value: &str) {
+pub fn tsr_console_text(error: bool, value: &str) {
     if TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) && tsr_console_test_capture(error,&format!("{value}\n")) {return;}
     use std::io::Write as _;
     TSR_CONSOLE_STATE.with(|state| {
@@ -617,7 +617,7 @@ impl TsrConsoleValue {
         }
     }
 }
-fn tsr_console_call(method: &str, values: &[TsrConsoleValue]) {
+pub fn tsr_console_call(method: &str, values: &[TsrConsoleValue]) {
     let line = |error, text: std::string::String| tsr_console_write(error, &format!("{text}\n"));
     match method {
         "log" | "info" | "debug" | "dirxml" => line(false, tsr_console_format(values)),
@@ -778,9 +778,9 @@ std::thread_local! {
     static TSR_CONSOLE_TEST: std::cell::RefCell<TsrConsoleTest> = std::cell::RefCell::new(TsrConsoleTest::default());
     static TSR_CONSOLE_LOCATION: std::cell::RefCell<std::string::String> = const { std::cell::RefCell::new(std::string::String::new()) };
 }
-struct TsrConsoleLocation(Option<std::string::String>);
+pub struct TsrConsoleLocation(Option<std::string::String>);
 impl TsrConsoleLocation {
-    fn new(path:&str,line:usize,column:usize)->Self {
+    pub fn new(path:&str,line:usize,column:usize)->Self {
         if !TSR_CONSOLE_TEST.with(|slot|slot.borrow().name.is_some()) {return Self(None);}
         let cwd=std::env::current_dir().unwrap_or_default();
         let path=std::path::Path::new(path);
@@ -789,7 +789,7 @@ impl TsrConsoleLocation {
     }
 }
 impl Drop for TsrConsoleLocation {fn drop(&mut self){if let Some(previous)=self.0.take(){TSR_CONSOLE_LOCATION.with(|slot|{slot.replace(previous);});}}}
-fn tsr_console_test_begin(name:&str) {
+pub fn tsr_console_test_begin(name:&str) {
     if std::env::var("TSRUST_TEST_REPORTER").as_deref()!=Ok("pretty") {return;}
     TSR_CONSOLE_TEST.with(|slot|slot.borrow_mut().name=Some(name.to_owned()));
 }
@@ -801,7 +801,7 @@ fn tsr_console_test_capture(error:bool,text:&str)->bool {
         state.entries.push((error,TSR_CONSOLE_LOCATION.with(|slot|slot.borrow().clone()),text));true
     })
 }
-fn tsr_console_test_end(show_scope:bool) {
+pub fn tsr_console_test_end(show_scope:bool) {
     let state=TSR_CONSOLE_TEST.with(|slot|std::mem::take(&mut *slot.borrow_mut()));
     let Some(name)=state.name else{return;};
     use std::io::Write as _;

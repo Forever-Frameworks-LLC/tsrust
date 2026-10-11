@@ -323,3 +323,25 @@ This supports the initial byte/file/path boundary. Console/string support is nex
 the simple dev-loop workload still has no extracted runtime. Runtime artifact and
 lock-file retention are not yet bounded, and installed/performance acceptance for
 this stage is pending. Do not close the required milestone on these focused checks.
+
+## Console and string runtime boundary
+
+Ordinary console and string support now join the separate runtime library. Console
+formatting, stream state and test capture share one runtime module; generated
+application calls import its public Rust helpers and location guard. String support
+preserves the existing standard Cow string alias and borrowed/owned behavior. Only
+Rust helper visibility changes; no language API or view lifetime changes. A small
+number-format tie helper remains available to application-specific support code.
+
+Eight linked native cases pass across O0/O3, covering plain string/console code and
+the existing bytes/views, file and path cases. Application edits preserve runtime
+source identity. Twelve console checks and five CLI reporter checks pass, including
+stdout/stderr grouping and original source coordinates. Runtime-cache reuse across
+application edits and all three build-cancellation checks also pass. Evidence uses
+`tsrust-console-runtime-*` in SQLite.
+
+The ordinary dev-loop workload now selects a reusable runtime artifact. Generic
+application support and program-specific ABI adapters remain in application code.
+Next bound runtime/program artifacts and lock retention, verify extended edit-session
+memory, refresh installed consumers, and run final regression/performance acceptance.
+No speedup is claimed before the matching measurements complete.

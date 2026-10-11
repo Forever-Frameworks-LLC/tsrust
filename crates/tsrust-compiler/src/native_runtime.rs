@@ -32,5 +32,17 @@ pub fn separate(source:&str)->Units {
     // Match complete variants; no feature is added merely because another is used.
     for (views,utf8) in [(true,true),(true,false),(false,true),(false,false)] {extract("tsrust_native_bytes",bytes_module(views,utf8));}
     extract("tsrust_native_files",files_module());extract("tsrust_native_path",path_module());
+    if application.contains(crate::runtime::STRINGS) {
+        // Other application helpers can still call the small number tie helper.
+        application=application.replace(crate::runtime::STRINGS,&format!("use tsrust_runtime::text::*;\n{}",crate::runtime::NUMBER_TIE));
+        runtime.push_str("pub mod text {\n");runtime.push_str(crate::runtime::STRINGS);runtime.push_str("\n}\n");
+    }
+    let console=include_str!("runtime_console.rs");
+    if application.contains(console) {
+        application=application.replace(console,"use tsrust_runtime::console::*;\n");
+        runtime.push_str("pub mod console {\n");
+        runtime.push_str(include_str!("runtime_number_tie.rs"));
+        runtime.push_str(console);runtime.push_str("\n}\n");
+    }
     Units{application,runtime:(!runtime.is_empty()).then(||format!("#![allow(dead_code, unused_variables, unused_mut)]\n{runtime}"))}
 }

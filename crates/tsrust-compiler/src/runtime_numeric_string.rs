@@ -1,12 +1,12 @@
 // Whole-string scalar numeric conversion. Borrowed slices; no parsing buffer.
-fn tsr_numeric_whitespace(character: char) -> bool {
+pub fn tsr_numeric_whitespace(character: char) -> bool {
     matches!(character,
         '\u{0009}'..='\u{000d}' | '\u{0020}' | '\u{00a0}' | '\u{1680}'
         | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}'
         | '\u{205f}' | '\u{3000}' | '\u{feff}')
 }
 
-fn tsr_numeric_radix(digits: &[u8], width: u32) -> f64 {
+pub fn tsr_numeric_radix(digits: &[u8], width: u32) -> f64 {
     if digits.is_empty() { return f64::NAN; }
     let mut mantissa = 0u64;
     let mut bits = 0usize;
@@ -29,7 +29,7 @@ fn tsr_numeric_radix(digits: &[u8], width: u32) -> f64 {
     (mantissa as f64) * 2.0f64.powi((bits - 53) as i32)
 }
 
-fn tsr_number_from_text(text: &str) -> f64 {
+pub fn tsr_number_from_text(text: &str) -> f64 {
     let text = text.trim_matches(tsr_numeric_whitespace);
     if text.is_empty() { return 0.0; }
     let bytes = text.as_bytes();
