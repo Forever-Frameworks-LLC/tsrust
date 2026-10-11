@@ -6916,6 +6916,13 @@ impl Analyzer {
     }
 
     fn check_element_access(binding: &Binding, mode: Mode, span: Span) -> Result<(), Diagnostic> {
+        if binding.name.starts_with(crate::data_lowering::ACCESS) {
+            if mode == Mode::Mutate || (mode == Mode::Consume && !binding.ty.is_copy()) {
+                return Err(Diagnostic::new("data-readonly", "Imported data is readonly; use clone() for an owned copy before mutation or ownership transfer.", span));
+            }
+            return Ok(());
+        }
+
         if binding.mutable_place && mode == Mode::Consume && !binding.ty.is_copy() {
             return Err(Diagnostic::new("borrowed-place", "A mutable match payload borrows its source and cannot transfer ownership; use clone() for independent ownership.", span));
         }
@@ -10283,6 +10290,7 @@ impl Analyzer {
                 .names
                 .get(name)
                 .map(|id| context.bindings[*id].ty)
+                .or_else(|| name.strip_prefix(crate::data_lowering::ACCESS).and_then(|owner| self.function_names.get(owner)).map(|&function| self.signatures[function].result))
                 .or_else(|| {
                     if context.pending_names.contains(name) {
                         return None;
@@ -15852,6 +15860,16 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some((id, _)) = crate::native_bindings::by_symbol(name) {
             return self.native_function_value(id, span, expected);
         }
+        if !context.names.contains_key(name)
+            && let Some(owner) = name.strip_prefix(crate::data_lowering::ACCESS)
+            && let Some(&function) = self.function_names.get(owner)
+        {
+            let ty = self.signatures[function].result;
+            let token = Token { text: name.clone(), span, kind: crate::syntax::TokenKind::Symbol };
+            let binding = Self::bind(context, &token, ty, false)?;
+            context.bindings[binding].borrowed_place = Some(span);
+        }
+
         if self.discovering_results && context.pending_names.contains(name) {
             return Err(Self::pending_result(span));
         }

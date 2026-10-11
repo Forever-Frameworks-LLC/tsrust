@@ -242,7 +242,8 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         crate::data_shape::infer(&value).map_err(|failure| error(&source.id, "data-type", failure.message, failure.span))?;
         return Ok(ModuleSource {
             exports: BTreeMap::from([("default".into(), value.span)]),
-            data: Some(DataModule { value }), source, imports: vec![], default_export: None,
+            default_export: Some(syntax::Token { text: crate::data_lowering::OWNER.into(), span: value.span, kind: TokenKind::Symbol }),
+            data: Some(DataModule { value }), source, imports: vec![],
             declaration_source: String::new(),
         });
     }

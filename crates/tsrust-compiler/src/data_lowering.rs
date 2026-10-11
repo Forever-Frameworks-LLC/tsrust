@@ -43,7 +43,7 @@ fn annotation(shape: &Shape, samples: &[&Value], identity: &str, records: &mut V
         }).collect()),
         Shape::Object(fields) => {
             let index = records.len();
-            let name = format!("{}data_{identity}_{index}", crate::type_aliases::LINKED_PREFIX);
+            let name = format!("@data-record:{identity}:{index}");
             records.push(Record { native_type: None, set_definition: None, map_definition: None, enum_definition: None,
                 application: None, name: Token { text: name.clone(), span, kind: TokenKind::Symbol }, type_parameters: vec![], fields: vec![] });
             let fields = fields.iter().map(|(name, field)| {
@@ -87,6 +87,25 @@ fn expression(value: &Value, shape: &Shape) -> Expr {
         }
     };
     Expr::new(kind, value.span)
+}
+
+pub(crate) const OWNER: &str = "@data-owner";
+pub(crate) const ACCESS: &str = "@data:";
+pub(crate) fn program(value: &Value, identity: &str) -> Result<crate::syntax::Program, Diagnostic> {
+    use crate::syntax::{Program, Function, ResultAnnotation, Stmt, StmtKind};
+    let lowered = lower(value, identity)?;
+    let span = value.span;
+    Ok(Program {
+        diagnostic_first: None, diagnostic_skips: Default::default(), unresolved_local_function: None,
+        local_declarations: vec![], local_capture_plans: vec![], type_argument_checks: vec![], call_type_arguments: vec![],
+        records: lowered.records, type_aliases: Default::default(), unresolved_bases: vec![],
+        functions: vec![Function { application: None, scope_span: span,
+            name: Token { text: OWNER.into(), span, kind: TokenKind::Symbol }, type_parameters: vec![], params: vec![],
+            parameter_initializers: vec![], parameter_access: vec![], rest_parameter: false,
+            result: Some(ResultAnnotation::Named(Box::new(lowered.annotation))),
+            body: vec![Stmt { kind: StmtKind::Return(Some(lowered.value)), span, control_target: None, labels: vec![] }],
+        }],
+    })
 }
 
 #[cfg(test)]

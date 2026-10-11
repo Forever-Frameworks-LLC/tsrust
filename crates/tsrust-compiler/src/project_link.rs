@@ -169,12 +169,6 @@ pub(crate) fn check_graph_cached(graph:ProjectGraph,cache:&mut crate::project_se
     check_graph_entry(graph,&entries,None,Some(cache))
 }
 fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Option<&mut Vec<ProjectDiagnostic>>, mut cache:Option<&mut crate::project_session::ProjectSession>) -> Result<ProjectAnalysis, ProjectDiagnostic> {
-    // Keep unfinished data storage out of executable analysis. The module graph
-    // already validates original data and exports; linking lands separately.
-    if let Some((id, module)) = graph.modules.iter().find(|(_, module)| module.data.is_some()) {
-        return Err(ProjectDiagnostic { code: "data-import-storage", message: "Typed data import storage is not implemented yet.".into(),
-            location: SourceLocation { source: id.clone(), span: module.data.as_ref().unwrap().value.span }, related: vec![], fixes: Box::new([]) });
-    }
     let mut programs = BTreeMap::new();
     let mut globals: BTreeMap<SourceId, BTreeMap<String, String>> = BTreeMap::new();
     let mut segments = vec![];
@@ -207,7 +201,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 }
             }
         }
-        let parsed = if let Some(cache)=cache.as_deref_mut() {
+        let parsed = if let Some(data) = &source.data {
+            crate::data_lowering::program(&data.value, &module.to_string())
+        } else if let Some(cache)=cache.as_deref_mut() {
             cache.parse(&graph,id,module,entries.contains(id),imported,imported_records)
         } else {crate::syntax::parse_module(&source.declaration_source, entries.contains(id), imported, imported_records)};
         let mut program = parsed.map_err(|value| {
@@ -359,8 +355,11 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                             }
                         }
                     } else {
-                        globals[import.target.as_ref().expect("loaded target")][graph.modules[import.target.as_ref().unwrap()].exported_local(&binding.exported)]
-                            .clone()
+                        {
+                            let target = import.target.as_ref().expect("loaded target");
+                            let name = globals[target][graph.modules[target].exported_local(&binding.exported)].clone();
+                            if graph.modules[target].data.is_some() { format!("{}{name}", crate::data_lowering::ACCESS) } else { name }
+                        }
                     },
                 );
             }

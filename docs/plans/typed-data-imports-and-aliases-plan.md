@@ -314,6 +314,26 @@ from executable declaration source.
 
 Focused graph witnesses cover JSONC input, strict JSON rejection, UTF-8 error
 locations, changed cached data, numeric representability and named-export
-rejection. Evidence: `tsrust-data-project-*` in SQLite. Until the approved immutable
-storage is connected, executable checking deliberately reports
-`data-import-storage`; graph acceptance does not claim runnable imports.
+rejection. Evidence: `tsrust-data-project-*` in SQLite. The initial graph checkpoint reported `data-import-storage` during executable
+checking. The storage integration below replaces that temporary diagnostic.
+
+
+## Immutable data storage integration
+
+Data modules now link a compiler-owned initializer and one native immutable
+`LazyLock` owner per canonical source. Function-local bindings borrow that owner;
+reads do not reconstruct the value or reopen its source. Ordinary checked record,
+array and union layouts remain in use. The initializer is direct compiler AST,
+not generated Tsrust source or a user-visible executable top-level declaration.
+
+The checker rejects mutation and non-copy ownership transfer through data imports
+with `data-readonly` and directs users to explicit `clone`. Scalar reads retain
+ordinary copy semantics. Focused native witnesses read through multiple modules
+and callbacks, mutate an explicit clone without changing the source, and reject
+whole-value, field and callback ownership transfers. CLI acceptance also checks
+canonical alias sharing and execution after removing the original JSONC file.
+
+Evidence: `tsrust-data-storage-*` in SQLite. Broader ownership/closure boundaries,
+all entry modes, editor integration, documentation/examples and matched benchmark
+support remain required before public feature acceptance. Installed consumers
+have not been refreshed for data imports. No new timing claim is made.
