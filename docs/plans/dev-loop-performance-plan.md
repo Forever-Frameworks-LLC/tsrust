@@ -118,8 +118,7 @@ Idle CPU fell from 0.02 seconds to 0.00 at ps resolution for 6 files, and from
 resolution limit, not proof of no CPU work.
 
 Median 130-file cold/warm startup increased from 372.52/109.35 ms to
-402.40/122.76 ms. Subscription setup includes a redundant initial refresh in the
-current snapshot path; review this overhead before closing watcher performance
+402.40/122.76 ms. Subscription setup at that checkpoint included a redundant initial refresh; review this overhead before closing watcher performance
 acceptance. Three samples do not establish statistical significance. Original
 baseline, individual comparison samples and derived summaries remain in SQLite as
 `tsrust-dev-baseline-fixed.json`, `tsrust-dev-events-measured.json` and
@@ -136,3 +135,19 @@ The redundant initial subscription traversal is removed. A focused cost witness
 failed with two walks and passes with one; real notifications and failed reads
 still refresh subscriptions. All eight watcher/supervisor checks pass, including
 concurrent saves. Evidence: `tsrust-dev-startup-*`; comparative timing follows.
+
+The unchanged comparison protocol was rerun after `810b225e`, with identical source
+hashes and three samples per shape. For 6/130 files, cold medians were 426.17/444.88
+ms and warm medians 115.81/131.64 ms; these do not demonstrate a wall-clock gain
+from removing the extra walk. Leaf medians were 528.56/597.42 ms; shared edits
+496.51/534.24 ms. Phase timings varied too (6-file cold native/link median rose
+from 231.1 to 269.2 ms). Keep all original runs; do not select only favorable cases.
+Idle CPU remains 0.00–0.01 seconds per three-second window at ps resolution. The
+cost witness proves the redundant walk was removed, not an end-to-end speedup.
+Records use `tsrust-dev-startup-measured.json` and `tsrust-dev-startup-comparison.json`.
+
+Four CLI consumers are refreshed/hash verified from `810b225e`; installed startup,
+source edit, native notification operation and clean shutdown pass. Retained
+compiler state is the next implementation step. Startup distributions remain part
+of final milestone review rather than prompting repeated standalone retiming.
+Linux execution/overflow validation remains explicit outstanding acceptance.
