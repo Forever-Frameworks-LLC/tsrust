@@ -112,6 +112,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ordered_collection_metadata_validates_keys_and_retains_payload_identity() {
+        for (identity, arguments) in [
+            (NativeTypeId::OrderedMap, vec![Signature::String, Signature::Named(NativeTypeId::ByteView)]),
+            (NativeTypeId::OrderedSet, vec![Signature::Number]),
+            (NativeTypeId::Heap, vec![Signature::Int]),
+        ] {
+            let mut program=crate::syntax::parse("function main(){}").unwrap();
+            let annotation=project_with_parameters(&mut program.records, &Signature::Applied(identity, if identity==NativeTypeId::OrderedMap { &[Signature::Parameter(0),Signature::Parameter(1)] } else { &[Signature::Parameter(0)] }), &arguments, Span::default()).unwrap();
+            program.type_argument_checks.push(annotation);
+            crate::generic_records::specialize_in(&mut program,&crate::unions::UnionArena::default(),&mut crate::callable_resolution::Tables::default()).unwrap();
+            let instance=program.records.iter().find(|record|record.native_type==Some(identity)).unwrap();
+            assert!(instance.fields.is_empty());
+            let resolved=&instance.application.as_ref().unwrap().resolved_arguments;
+            assert_eq!(resolved.len(),arguments.len());
+            match identity {
+                NativeTypeId::OrderedMap => {
+                    assert_eq!(resolved[0],crate::syntax::Type::String);
+                    let crate::syntax::Type::Record(value)=resolved[1] else {panic!("native value identity lost")};
+                    assert_eq!(program.records[value].native_type,Some(NativeTypeId::ByteView));
+                }
+                NativeTypeId::OrderedSet => assert_eq!(resolved[0],crate::syntax::Type::Number),
+                NativeTypeId::Heap => assert_eq!(resolved[0],crate::syntax::Type::Int),
+                _ => unreachable!(),
+            }
+            let before=program.records.len();
+            assert_eq!(project(&mut program.records,&Signature::Applied(identity,&[]),Span::default()).unwrap_err().code,"native-type-arity");
+            assert_eq!(program.records.len(),before);
+            assert!(crate::native_exports::lookup("std:collections",native_types::declaration(identity).name).is_err());
+            for key in [Signature::Array(&Signature::Int),Signature::Named(NativeTypeId::Bytes),Signature::Optional(&Signature::Int)] {
+                let mut program=crate::syntax::parse("function main(){}").unwrap();
+                let parameters=if identity==NativeTypeId::OrderedMap {vec![key,Signature::Int]}else{vec![key]};
+                let signature=Signature::Applied(identity, if identity==NativeTypeId::OrderedMap { &[Signature::Parameter(0),Signature::Parameter(1)] } else { &[Signature::Parameter(0)] });
+                let annotation=project_with_parameters(&mut program.records,&signature,&parameters,Span::default()).unwrap();
+                program.type_argument_checks.push(annotation);
+                let error=crate::generic_records::specialize_in(&mut program,&crate::unions::UnionArena::default(),&mut crate::callable_resolution::Tables::default()).err().unwrap();
+                assert_eq!(error.code,"ordered-key");
+            }
+        }
+    }
+
+    #[test]
     fn deque_specializations_keep_element_identity_without_exposing_fields() {
         let span = Span::default();
         let mut program = crate::syntax::parse("function main(){}").unwrap();

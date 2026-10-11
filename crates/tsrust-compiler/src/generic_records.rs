@@ -434,6 +434,11 @@ impl Context<'_> {
             ));
         }
         let template = self.templates[name].clone();
+        if matches!(template.native_type, Some(crate::native_signatures::NativeTypeId::OrderedMap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::Heap))
+            && !matches!(types.first(), Some(Type::Int | Type::Number | Type::Boolean | Type::String | Type::Enum(_, _)))
+        {
+            return Err(Diagnostic::new("ordered-key", "Ordered collection keys require one numeric, boolean, string or enum type; object keys and mixed unions are unsupported.", span));
+        }
         let index = self.records.len();
         let label = format!(
             "{}<{}>",

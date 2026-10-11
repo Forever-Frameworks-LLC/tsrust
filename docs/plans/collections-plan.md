@@ -169,3 +169,11 @@ owners. Evidence is retained as `tsrust-s08-ordered-backend-acceptance.json`.
 Public signatures, compiler integration, lifetime/callback transport, editor help,
 executable catalog examples and matched workloads remain pending for these three
 types. These backend checks are not source-language or family acceptance.
+
+Internal native identities now retain ordered collection type arguments without
+exposing implementation fields. OrderedMap has separate key/value parameters;
+OrderedSet and Heap each have one element parameter. Specialization validates the
+ordered key restriction, including nullable/union and object rejection. Focused
+metadata checks preserve ByteView as a map value and reject wrong arity without
+changing the record arena. These internal identities are not yet module exports.
+Metadata evidence: `tsrust-s08-ordered-metadata-acceptance.json` in SQLite.

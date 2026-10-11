@@ -110,7 +110,7 @@ For each gate record: changed source identities; exact commands/results; positiv
 
 Update this ledger after each gate using: state (pending/in progress/blocked/accepted), implementation evidence link, measured evidence link or pending checkpoint, affected APIs, unresolved dependencies and next step. Blocked means a concrete missing contract, not general difficulty. No gate can close with a known unaddressed correctness regression in its changed behavior.
 
-Next steps: implement S08 collections, then continue S09–S21 in dependency order. S07 direct Rust review and final consumer refresh are accepted. Recursive views, callback support and gate 190 resource lifecycle have focused acceptance. S07 complete regressions and 17 matched measurements are recorded in `milestones/s07-resources-bytes.md`. S04 is accepted at gate 185. S05 frontend scaling and its separately registered runtime measurements remain pending their own checkpoint.
+Next steps: finish S08 collections, then complete the user-requested [project diagnostics milestone](plans/project-diagnostics-plan.md) before starting S09. Continue S09–S21 in dependency order afterward. S07 direct Rust review and final consumer refresh are accepted. Recursive views, callback support and gate 190 resource lifecycle have focused acceptance. S07 complete regressions and 17 matched measurements are recorded in `milestones/s07-resources-bytes.md`. S04 is accepted at gate 185. S05 frontend scaling and its separately registered runtime measurements remain pending their own checkpoint.
 
 ## Primary references
 

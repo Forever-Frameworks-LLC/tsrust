@@ -132,6 +132,30 @@ static DEQUE: Declaration = Declaration {
     fields: &[], capabilities: &[],
 };
 
+static ORDERED_MAP: Declaration = Declaration {
+    id: NativeTypeId::OrderedMap, module: "std:collections", name: "OrderedMap",
+    type_parameters: &["K", "V"], representation: Representation::Opaque,
+    // Source capabilities remain disabled until checked storage integration lands.
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+
+static ORDERED_SET: Declaration = Declaration {
+    id: NativeTypeId::OrderedSet, module: "std:collections", name: "OrderedSet",
+    type_parameters: &["T"], representation: Representation::Opaque,
+    // Source capabilities remain disabled until checked storage integration lands.
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+
+static HEAP: Declaration = Declaration {
+    id: NativeTypeId::Heap, module: "std:collections", name: "Heap",
+    type_parameters: &["T"], representation: Representation::Opaque,
+    // Source capabilities remain disabled until checked storage integration lands.
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
@@ -142,6 +166,9 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::File => &FILE,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::Deque => &DEQUE,
+        NativeTypeId::OrderedMap => &ORDERED_MAP,
+        NativeTypeId::OrderedSet => &ORDERED_SET,
+        NativeTypeId::Heap => &HEAP,
     }
 }
 
