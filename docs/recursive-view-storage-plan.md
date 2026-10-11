@@ -214,3 +214,45 @@ formatting logs under `tsrust-recursive-view-*.log`, including original red runs
 and Node-after-tsc on five cases, with no execution samples. Exact-byte readback was
 verified before deleting the loose copies. Consumers remain at `4367f4cc` until the
 next planned refresh.
+
+
+## Nullable-link representation checkpoint
+
+The private `recursive_links::Index` identifies nullable record alternatives on an
+inline strongly connected component. Array edges do not participate: a nullable
+field whose only return path crosses an array keeps its original inline layout.
+Only the record alternatives that close a cycle are indirect; unrelated alternatives
+and ordinary nullable records remain unchanged. Iterative graph traversal handles a
+4,096-record schema. The layout walker can account for link pointer size and cut only
+planned edges; a remaining direct cycle is still rejected.
+
+Native `RecordLinkN` support owns an `Option<Box<RecordN>>`. A present source link
+will allocate exactly one box. The empty internal slot supports iterative cloning
+and taking ownership without unsafe moves; it is not a new source value. Moving the
+payload consumes its wrapper. Drop drains the same component work stack as recursive
+arrays. Clone uses the existing iterative task engine and is emitted only for
+cloneable records. A shared union used in another recursive component retains that
+component's separate cleanup and clone traversal.
+
+Private O0/O3 witnesses run self-linked and mutually linked 10,001-node chains on a
+128 KiB native thread stack. They verify exactly 10,000 allocations during construction,
+independent clone addresses and mutations, twice the retained allocation bytes after
+cloning, 20,002 payload drops and full allocation restoration. Readonly/exclusive
+view-bearing chains verify real slice lifetimes, pointer identity, write-through,
+10,001 exact drops, owner reuse after the carrier scope ends and native rejection of
+a local owner escaping. No clone implementation is emitted for these view chains.
+The allocator observer uses the standard unsafe allocator instrumentation; generated
+link ownership code contains no unsafe operations.
+
+These are representation checks, not nullable-source acceptance. The original source
+layout diagnostic remains until union construction, conversion, narrowing, matching,
+clone/inspection and all move/borrow projections use the link wrapper consistently.
+Enable planned indirection in `validate_inline_layout` only with that complete
+emission path; replace the staging diagnostic assertion with public source/native
+controls then. Disposal-order, public editor and matched-workload coverage also
+remain required before accepting nullable links. No new API or timing is claimed.
+
+Checks: five planner tests, four layout tests, three runtime tests and six public
+recursive-array storage regressions pass. Whole-project formatting is unchanged.
+SQLite preserves all 10 red/green/runtime/layout/formatting logs under
+`tsrust-nullable-links-*.log`; exact-byte readback preceded loose-log removal.

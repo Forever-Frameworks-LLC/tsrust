@@ -186,10 +186,23 @@ fn validate_inline_layout(
     records: &[Record],
     unions: &crate::unions::UnionArena,
 ) -> Result<(), Diagnostic> {
+    // Publication remains gated until union construction and projection lower
+    // every planned link. The checked-layout walker is shared with its controls.
+    validate_inline_layout_with_indirection(records, unions, &|_, _| false)
+}
+
+fn validate_inline_layout_with_indirection(
+    records: &[Record],
+    unions: &crate::unions::UnionArena,
+    indirect: &impl Fn(crate::syntax::UnionId, usize) -> bool,
+) -> Result<(), Diagnostic> {
     let alternatives = |ty: Type| if let Type::Union(id) = ty { unions.members(id) } else { vec![ty] };
     let edges = records.iter().map(|record| record.fields.iter().flat_map(|field| {
         alternatives(field.ty.expect("resolved record field")).into_iter().filter_map(|ty| {
-            if let Type::Record(child) = ty { Some((child,field.annotation.span)) } else { None }
+            if let Type::Record(child) = ty {
+                if field.ty.and_then(Type::union).is_some_and(|id| indirect(id, child)) { None }
+                else { Some((child,field.annotation.span)) }
+            } else { None }
         }).collect::<Vec<_>>()
     }).collect::<Vec<_>>()).collect::<Vec<_>>();
     let mut states = vec![0u8; records.len()];
@@ -231,6 +244,7 @@ fn validate_inline_layout(
                     Type::String => crate::storage::string_storage_bound(),
                     Type::Set(_) | Type::Map(_) => std::mem::size_of::<Vec<()>>() + std::mem::size_of::<std::collections::HashMap<u64, Vec<usize>>>() + std::mem::size_of::<usize>(),
                     Type::Array(element) => crate::storage::array_storage_bound(element),
+                    Type::Record(child) if field_type.union().is_some_and(|id| indirect(id, child)) => std::mem::size_of::<usize>(),
                     Type::Record(child) => { depth = depth.max(depths[child] + 1); sizes[child] }
                     Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callback(_) | Type::Closure(_) => 0,
                     _ => unreachable!("record field type"),
@@ -264,4 +278,30 @@ fn validate_inline_layout(
         }
     }
     Ok(())
+}
+
+
+#[cfg(test)]
+#[test]
+fn nullable_link_layout_terminates_only_at_planned_indirection() {
+    use crate::{cloneability::tests::record, syntax::ArrayElement, Span};
+    let unions=crate::unions::UnionArena::default();
+    let next=unions.intern([Type::Record(0),Type::Undefined],Span::new(0,0)).unwrap();
+    for records in [
+        vec![record(&[next,Type::String])],
+        vec![record(&[Type::Record(1)]),record(&[next])],
+        vec![record(&[Type::Array(ArrayElement::Record(0,0)),next])],
+    ] {
+        let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
+        validate_inline_layout_with_indirection(&records,&unions,&|id,child|links.boxed(id,child)).unwrap();
+        // This staging checkpoint must not publish unsupported source emission.
+        assert_eq!(validate_inline_layout(&records,&unions).unwrap_err().code,"recursive-layout");
+    }
+    let records=[record(&[Type::Record(0),next])];
+    let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
+    assert_eq!(validate_inline_layout_with_indirection(&records,&unions,&|id,child|links.boxed(id,child)).unwrap_err().code,"recursive-layout");
+    let records=[record(&[Type::Int]),record(&[next])];
+    let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
+    assert!(!links.boxed(next.union().unwrap(),0));
+    validate_inline_layout_with_indirection(&records,&unions,&|id,child|links.boxed(id,child)).unwrap();
 }

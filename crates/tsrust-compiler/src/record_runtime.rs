@@ -9,6 +9,7 @@ pub(crate) struct RecordRuntime {
     membership: Vec<Option<usize>>,
     unions: Vec<crate::unions::UnionType>,
     cloneability: crate::cloneability::Cloneability,
+    links: crate::recursive_links::Index,
 }
 
 impl RecordRuntime {
@@ -89,6 +90,7 @@ impl RecordRuntime {
         }
         Self {
             ordered: std::collections::HashSet::new(),
+            links: crate::recursive_links::Index::new(records, |id| unions[id.index()].members.clone()),
             cloneability: crate::cloneability::Cloneability::new(records, |id| {
                 unions[id.index()].members.clone()
             }),
@@ -118,7 +120,9 @@ impl RecordRuntime {
                             "Union{}::V{index}(value)=>Union{}::V{index}({})",
                             id.index(),
                             id.index(),
-                            self.seed(group, *member, "*value")
+                            if let Type::Record(child) = *member && self.links.boxed(id, child) && self.membership[child] == Some(group) {
+                                format!("RecordLink{child}(None)")
+                            } else { self.seed(group, *member, "*value") }
                         )
                     })
                     .collect::<Vec<_>>()
@@ -157,7 +161,14 @@ impl RecordRuntime {
                     .iter()
                     .enumerate()
                     .filter_map(|(index, member)| {
-                        let body = self.visit(group, *member, "*value", action);
+                        let body = if let Type::Record(child) = *member && self.links.boxed(id, child) && self.membership[child] == Some(group) {
+                            match action {
+                                Action::Drop => format!("if let Some(child)=value.0.take() {{ stack.push(DropNode{group}::R{child}(*child)); }}"),
+                                Action::Enter => format!("tasks.push(CloneTask{group}::Enter{child}(value));"),
+                                Action::Count => "count += 1;".into(),
+                                Action::Shallow => format!("if count_record{group}_{child}(value) != 0 {{ return false; }}"),
+                            }
+                        } else { self.visit(group, *member, "*value", action) };
                         (!body.is_empty())
                             .then(|| format!("Union{}::V{index}(value)=>{{ {body} }}", id.index()))
                     })
@@ -235,7 +246,14 @@ impl RecordRuntime {
         match ty {
             Type::Union(id) => {
                 let arms=self.unions[id.index()].members.iter().enumerate().filter_map(|(index,member)|{
-                    let body=self.fill(group,*member,"*input","*result",shallow);
+                    let body=if let Type::Record(child)=*member && self.links.boxed(id,child) && self.membership[child] == Some(group) {
+                        if shallow {
+                            format!("*result=RecordLink{child}::new(seed_record{group}_{child}(input));")
+                        } else {
+                            let mismatch=if self.groups[group].len()>1 {" else { unreachable!() }"} else {""};
+                            format!("let CloneNode{group}::R{child}(child)=children.next().expect(\"completed clone link\"){mismatch}; *result=RecordLink{child}::new(child);")
+                        }
+                    } else {self.fill(group,*member,"*input","*result",shallow)};
                     (!body.is_empty()).then(||format!("(Union{}::V{index}(input),Union{}::V{index}(result))=>{{ {body} }}",id.index(),id.index()))
                 }).collect::<Vec<_>>().join(", ");
                 if arms.is_empty() {
@@ -321,6 +339,20 @@ impl RecordRuntime {
                 } else {
                     ""
                 };
+                if self.links.target(index) {
+                    let _ = writeln!(code, "struct RecordLink{index}{lifetime}(Option<Box<Record{index}{lifetime}>>);
+impl{lifetime} RecordLink{index}{lifetime} {{
+fn new(value:Record{index}{lifetime})->Self {{ Self(Some(Box::new(value))) }}
+fn into_inner(mut self)->Record{index}{lifetime} {{ *self.0.take().expect(\"present recursive link\") }}
+}}
+impl{lifetime} std::ops::Deref for RecordLink{index}{lifetime} {{ type Target=Record{index}{lifetime}; fn deref(&self)->&Self::Target {{ self.0.as_deref().expect(\"present recursive link\") }} }}
+impl{lifetime} std::ops::DerefMut for RecordLink{index}{lifetime} {{ fn deref_mut(&mut self)->&mut Self::Target {{ self.0.as_deref_mut().expect(\"present recursive link\") }} }}
+impl{lifetime} std::borrow::Borrow<Record{index}{lifetime}> for RecordLink{index}{lifetime} {{ fn borrow(&self)->&Record{index}{lifetime} {{ self }} }}
+impl{lifetime} Drop for RecordLink{index}{lifetime} {{ fn drop(&mut self) {{ if let Some(value)=self.0.take() {{ drop_record_graph{group}(vec![DropNode{group}::R{index}(*value)]); }} }} }}");
+                    if cloneable {
+                        let _ = writeln!(code,"impl Clone for RecordLink{index} {{ fn clone(&self)->Self {{ Self::new((**self).clone()) }} }}");
+                    }
+                }
                 let _ = writeln!(code, "struct RecordArray{index}{lifetime}(Vec<Record{index}{lifetime}>);
 impl{lifetime} RecordArray{index}{lifetime} {{
 #[inline]
@@ -631,3 +663,7 @@ pub fn run() {{
         assert!(run.status.success(), "{}", String::from_utf8_lossy(&run.stderr));
     }
 }
+
+#[cfg(test)]
+#[path = "record_runtime_links_tests.rs"]
+mod links_tests;

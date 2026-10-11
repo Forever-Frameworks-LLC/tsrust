@@ -72,6 +72,7 @@ mod scoped_record_bridge;
 mod aggregate_callable_facts;
 mod environment_lifetimes;
 mod recursive_view_shapes;
+mod recursive_links;
 mod record_runtime;
 mod runtime;
 mod storage;
