@@ -4,6 +4,10 @@ type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
 impl Emitter<'_> {
     #[inline(never)]
     pub(super) fn map_finish_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str)->String {
+        self.map_finish_field_cleanup(fun,planned,region,body,declarations,id,error_name,contract,runtime,places,storage,pattern,span,normal,normal_code,override_drop,None)
+    }
+    #[inline(never)]
+    pub(super) fn map_finish_field_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str,normal_fields:Option<&str>)->String {
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
         let fallback=std::collections::BTreeMap::new();
         // A preserved pending return is not a return performed by cleanup.
@@ -14,7 +18,7 @@ impl Emitter<'_> {
         }else{None};
         let error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let returned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Return));
-        let body=self.map_return_phase_storage_completion_body(planned,body,declarations,id,error_name,contract.clone(),runtime,storage,places,true,true,normal,error,carrier.as_ref());
+        let body=self.map_field_phase_storage_completion_body(planned,body,declarations,id,error_name,contract.clone(),runtime,storage,places,true,true,normal,error,carrier.as_ref(),normal_fields);
         let thrown=self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",error_name,contract,runtime,span,error);
         let legacy=self.map_layout_carried_cleanup_dispatch(fun,"legacy",error_name,contract,runtime,places,span,error);
         let legacy_error=error.map(|layout|self.map_error_storage_type(fun,places,layout)).unwrap_or_else(||storage.to_owned());

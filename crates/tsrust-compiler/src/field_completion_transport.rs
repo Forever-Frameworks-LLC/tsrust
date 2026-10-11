@@ -2,48 +2,12 @@
 use super::*;
 use crate::capture_loan_owners::Place;
 
+pub(super) struct FieldPlan {pub(super) input_fields:Vec<String>,pub(super) output_fields:Vec<String>}
 impl Emitter<'_> {
     pub(super) fn field_completion_transport(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,first:usize,incoming_name:&str,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>)->Option<String> {
         let cleanup=region.finally.as_ref()?;
         let catch=region.catch.as_ref().filter(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty()));
-        // Control exits need their own surviving-field payloads.
-        if !exception_contract_emit::escaping_controls(&region.body).is_empty()
-            || catch.is_some_and(|handler|!exception_contract_emit::escaping_controls(&handler.body).is_empty())
-            || !exception_contract_emit::escaping_controls(cleanup).is_empty()
-            || crate::completion::definitely_abrupt(&region.body,0) && catch.is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body,0))
-            || crate::completion::definitely_abrupt(cleanup,0) {return None;}
-        let mut body_places=partial_places(fun,&region.body);
-        if let Some(handler)=catch {body_places.extend(partial_places(fun,&handler.body));}
-        let mut places=body_places.clone();places.extend(partial_places(fun,cleanup));
-        if places.is_empty(){return None;}
-        normalize(fun,statement.span.start,&mut body_places);
-        normalize(fun,statement.span.start,&mut places);
-        let boundary=region.body.first().or_else(||cleanup.first())?.span.start;
-        use crate::analysis::MapCompletionPhase::{Handled,Cleaned};
-        let mut input_fields=vec![];let mut output_fields=vec![];
-        for (selection,phase,fields) in [(&body_places,Handled,&mut input_fields),(&places,Cleaned,&mut output_fields)] {
-            for place in selection {
-                let binding=&fun.bindings[place.binding];
-                if binding.capture_reference || binding.borrowed_place.is_some() || binding.mutable_place
-                    || binding.parameter && (place.binding>=fun.parameter_count || binding.mode!=Mode::Consume)
-                    || self.restored_capture(fun,place.binding) || self.owned_record_layout(fun,place.binding).is_some() {return None;}
-                if !fun.storage_exits.completion_field_available(boundary,phase,None,place)?{continue;}
-                let mut ty=binding.ty;let mut native=format!("value{}",place.binding);
-                for name in &place.fields {
-                    let Type::Record(record)=ty else{return None;};
-                    let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name)?;
-                    ty=self.program.records[record].fields[index].ty?;let _=write!(native,".field{index}");
-                }
-                fields.push(native);
-            }
-        }
-        // With no field transfer in the throwing body, original storage remains
-        // initialized at catch entry. Body transfers need precise error payloads.
-        if catch.is_some() && let Some(start)=region.body.first() {
-            let end=crate::error_effects::body_expressions(&region.body).iter().map(|value|value.span.end).chain(region.body.iter().map(|statement|statement.span.end)).max().unwrap_or(start.span.end);
-            if fun.storage_exits.expression_points().filter(|point|point.0>=start.span.start && point.1<=end).any(|point|
-                body_places.iter().any(|place|fun.storage_exits.transfer_at_expression(point,place.binding,&place.fields).is_some())) {return None;}
-        }
+        let FieldPlan{input_fields,output_fields}=self.completion_field_plan(fun,statement,region)?;
         self.completion_next.set(self.completion_next.get().max(first+4));
         let values=tuple(&input_fields);
         let (pattern,restore)=restoration(&input_fields,&format!("input_field{first}"));
@@ -72,6 +36,50 @@ impl Emitter<'_> {
         let thrown=self.exception_regions.native_throw("error");
         Some(format!("match {widened}{{TsrCompletion::Normal({output_pattern})=>{{{output_restore}}},TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}},_=>unreachable!(\"checked field cleanup control\")}}"))
     }
+    pub(super) fn completion_field_plan(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion)->Option<FieldPlan> {
+        let cleanup=region.finally.as_ref()?;
+        let catch=region.catch.as_ref().filter(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty()));
+        // Control exits need their own surviving-field payloads.
+        if !exception_contract_emit::escaping_controls(&region.body).is_empty()
+            || catch.is_some_and(|handler|!exception_contract_emit::escaping_controls(&handler.body).is_empty())
+            || !exception_contract_emit::escaping_controls(cleanup).is_empty() {return None;}
+        let mut body_places=partial_places(fun,&region.body);
+        if let Some(handler)=catch {body_places.extend(partial_places(fun,&handler.body));}
+        let mut places=body_places.clone();places.extend(partial_places(fun,cleanup));
+        if places.is_empty(){return None;}
+        // With no field transfer in the throwing body, original storage remains
+        // initialized at catch entry. Body transfers need precise error payloads.
+        if catch.is_some() && let Some(start)=region.body.first() {
+            let end=crate::error_effects::body_expressions(&region.body).iter().map(|value|value.span.end).chain(region.body.iter().map(|statement|statement.span.end)).max().unwrap_or(start.span.end);
+            if fun.storage_exits.expression_points().filter(|point|point.0>=start.span.start && point.1<=end).any(|point|
+                body_places.iter().any(|place|fun.storage_exits.transfer_at_expression(point,place.binding,&place.fields).is_some())) {return None;}
+        }
+        if crate::completion::definitely_abrupt(cleanup,0) || crate::completion::definitely_abrupt(&region.body,0) && catch.is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body,0)) {
+            return Some(FieldPlan{input_fields:vec![],output_fields:vec![]});
+        }
+        normalize(fun,statement.span.start,&mut body_places);
+        normalize(fun,statement.span.start,&mut places);
+        let boundary=region.body.first().or_else(||cleanup.first())?.span.start;
+        use crate::analysis::MapCompletionPhase::{Handled,Cleaned};
+        let mut input_fields=vec![];let mut output_fields=vec![];
+        for (selection,phase,fields) in [(&body_places,Handled,&mut input_fields),(&places,Cleaned,&mut output_fields)] {
+            for place in selection {
+                let binding=&fun.bindings[place.binding];
+                if binding.capture_reference || binding.borrowed_place.is_some() || binding.mutable_place
+                    || binding.parameter && (place.binding>=fun.parameter_count || binding.mode!=Mode::Consume)
+                    || self.restored_capture(fun,place.binding) || self.owned_record_layout(fun,place.binding).is_some() {return None;}
+                if !fun.storage_exits.completion_field_available(boundary,phase,None,place)?{continue;}
+                let mut ty=binding.ty;let mut native=format!("value{}",place.binding);
+                for name in &place.fields {
+                    let Type::Record(record)=ty else{return None;};
+                    let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name)?;
+                    ty=self.program.records[record].fields[index].ty?;let _=write!(native,".field{index}");
+                }
+                fields.push(native);
+            }
+        }
+        Some(FieldPlan{input_fields,output_fields})
+    }
     fn field_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,normal:&str)->String {
         self.completion_next.set(self.completion_next.get().max(id+1));
         let _region=self.exception_regions.enter_typed(id,exception_contract_emit::local_control_targets(body),error_name.into(),contract.clone(),runtime);
@@ -84,12 +92,12 @@ fn normalize(fun:&CheckedFunction,start:usize,places:&mut Vec<Place>) {
     places.sort();places.dedup();
     let all=places.clone();places.retain(|place|!all.iter().any(|parent|parent.binding==place.binding && parent.fields.len()<place.fields.len() && place.fields.starts_with(&parent.fields)));
 }
-fn restoration(fields:&[String],prefix:&str)->(String,String) {
+pub(super) fn restoration(fields:&[String],prefix:&str)->(String,String) {
     let names=(0..fields.len()).map(|index|format!("{prefix}_{index}")).collect::<Vec<_>>();
     (tuple(&names),fields.iter().zip(&names).map(|(field,value)|format!("{field}={value};")).collect())
 }
 
-fn tuple(values:&[String])->String {if values.is_empty(){"()".into()}else{format!("({},)",values.join(","))}}
+pub(super) fn tuple(values:&[String])->String {if values.is_empty(){"()".into()}else{format!("({},)",values.join(","))}}
 fn partial_places(fun:&CheckedFunction,body:&[Stmt])->Vec<Place> {
     let mut places=vec![];let mut pending=body.iter().collect::<Vec<_>>();
     while let Some(statement)=pending.pop(){match &statement.kind {

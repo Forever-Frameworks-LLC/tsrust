@@ -66,7 +66,16 @@ impl Emitter<'_> {
         let return_carrier=self.map_completion_carrier(fun,format!("MapControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Body,&fallback);
         let cleaned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,None);
         let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
-        let normal_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+1,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","");
+        let field_plan=self.completion_field_plan(fun,statement,region);
+        let input_fields=field_plan.as_ref().map(|plan|field_completion_transport::tuple(&plan.input_fields));
+        let output_fields=field_plan.as_ref().map(|plan|field_completion_transport::tuple(&plan.output_fields));
+        let (input_pattern,input_restore)=field_plan.as_ref().map_or_else(||(pattern.clone(),String::new()),|plan|{
+            let (fields,restore)=field_completion_transport::restoration(&plan.input_fields,&format!("map_input_field{first}"));(format!("({pattern},{fields})"),restore)
+        });
+        let (output_pattern,output_restore)=field_plan.as_ref().map_or_else(||(pattern.clone(),String::new()),|plan|{
+            let (fields,restore)=field_completion_transport::restoration(&plan.output_fields,&format!("map_output_field{first}"));(format!("({pattern},{fields})"),restore)
+        });
+        let normal_finish=self.map_finish_field_cleanup(fun,fun,region,cleanup,declarations,first+1,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","",output_fields.as_deref());
         let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
         let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let throw_finish=if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty(){
@@ -102,11 +111,11 @@ impl Emitter<'_> {
             let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
             self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
         }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
-        if exception_contract_emit::has_partial_return(fun,&region.body) && let Some(carrier)=&return_carrier {
+        if field_plan.is_none() && exception_contract_emit::has_partial_return(fun,&region.body) && let Some(carrier)=&return_carrier {
             let precise=self.map_precise_return_cleanup(fun,region,declarations,first+3,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
             *self.inline_map_return.borrow_mut()=Some(self.map_direct_return_route(carrier,&pattern,precise,first));
         }
-        let pending = self.map_return_phase_storage_completion_body(
+        let pending = self.map_field_phase_storage_completion_body(
             fun,
             &region.body,
             declarations,
@@ -121,9 +130,10 @@ impl Emitter<'_> {
             None,
             error,
             return_carrier.as_ref(),
+            input_fields.as_deref(),
         );
         let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{carried},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried finally completion\")}}}}");
-        let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} {carrier_declaration} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {pattern}=normal_owner.unwrap();drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};");
+        let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} {carrier_declaration} let {output_pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};{output_restore}");
         let boundary = places
             .iter()
             .flat_map(|place| {

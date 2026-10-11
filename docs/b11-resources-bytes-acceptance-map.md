@@ -469,3 +469,39 @@ only keyword-sized statement spans for nested transfers; both were repaired, the
 affected target rerun, and the previously unrun targets completed. Installed
 consumers remain `4367f4cc`. Recursive callable storage, gate 190 and S07 acceptance
 remain pending. No full family regression or timing ran at this checkpoint.
+
+### Map partial-return lexical disposal
+
+The ordinary surviving-field plan is now shared with Map completion bodies.
+Normal fields travel beside independently typed Map owners, then are restored before
+cleanup and again on normal continuation. Eligible catch handlers use the same
+transport. The body-normal fields are moved only after selecting Normal, preserving
+availability on the catch path. Terminal bodies and unconditionally replacing
+cleanup carry no normal fields. Body/catch locals leave their real Rust scope before
+cleanup; returned allocations and callback environment types remain unchanged.
+
+The formerly ignored Map partial-return disposal witness is enabled and passes at
+O0/O3. New native probes cover catch returns, terminal returns and unconditional
+cleanup replacement. The callback-environment probe separately proves exact disposal
+and pointer identity. New integration cases cover conditional cleanup field returns
+and terminal branches with distinct callback origins. A caught-field regression from
+premature synthetic field transfer was repaired and its full affected target rerun.
+
+Final focused results: 47 finally unit tests pass, plus the callback-disposal probe;
+21 exception-handling, 20 return-move, 4 generic-call exception, 3 native-region and
+17 scoped-record finally tests pass. The formatter corpus passes; whole-project
+formatting changes zero files/fingerprints. Rebuilt release runs the public assertion
+fixture. Five matched native/Node-after-tsc cases agree in SQLite record
+`runtime/results/2026-10-11T04-16-00-803Z-verify.json`; verifiedOnly is true and
+execution is empty. Existing workload sources, guards and hashes remain unchanged.
+No timing, full family regression or consumer installation occurred.
+
+Next failing witness: `loop_control_partial_returns_keep_lexical_disposal`, explicitly
+ignored after reproducing zero local disposals where cleanup requires one. Its source
+mixes an early field return with break; break is the first failing native path.
+The initial probe called the infallible ABI incorrectly; the corrected Result ABI
+probe confirms the runtime disposal defect. Both records are retained. Escaping
+controls need ownership payloads for their specific destinations. Catches after
+body-field transfers and specialized/captured record layouts also retain fallback
+routes. These are unfinished work, not accepted resource semantics. Exact evidence
+uses SQLite prefix `tsrust-map-field-transport-`. Gate 190 and S07 remain open.

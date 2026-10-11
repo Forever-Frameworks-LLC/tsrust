@@ -49,22 +49,31 @@ are excluded from that shortcut. Dead catches are not emitted by field transport
 catch transfer guards include nested expression spans, not only statement spans
 (which can cover just an if/while keyword).
 
-The original partial-return disposal witness is enabled and passes. Remaining
-ignored witness: `map_try_locals_drop_before_partial_return_cleanup` in
-`src/finally_move_slots.rs`. Explicit execution still observes zero disposals where
-one is required. Map carriers need integration with field transport. Escaping
-controls, catches after body-field transfers, capture/specialized record layouts
-also retain fallback routes and need coverage before broader finally acceptance.
-Do not accept resource cleanup yet.
+The original ordinary and Map partial-return disposal witnesses are enabled and
+pass. Map completion bodies now carry normal fields beside independently typed Map
+owners. Cleanup carries its surviving fields back to the normal continuation.
+Eligible catches carry body-normal fields only after selecting the normal branch;
+moving those fields into the body's completion prematurely breaks catch ownership
+correlation. Body/catch locals leave real Rust scopes before cleanup. Terminal body
+returns and unconditional cleanup replacement need no surviving normal fields.
 
-The public owned-return fixture and matched `exception_completion` workload now
-exercise conditional returns from finally as well as normal field continuation.
-Independent oracle, matched TypeScript, mutation guards and source hashes are
-updated. Exact red/repaired evidence uses SQLite prefix
-`tsrust-finally-field-transport-`. No timing or full family regression ran.
-See the acceptance map for final focused counts and untimed verification record.
-Installed CLI/editor consumers remain `4367f4cc`; the scratch release is rebuilt
-from this checkpoint's source before acceptance.
+Focused O0/O3 probes cover Map body/catch partial returns, terminal returns,
+unconditional cleanup replacement, pointer identity and exact local disposal.
+A separate callback-environment probe verifies exact disposal and allocation
+identity. Integration cases verify conditional cleanup returns and terminal
+branches with different callback origins. See the acceptance map for final counts.
+
+Still pending: escaping loop controls, catches after body-field transfers and
+capture/specialized record layouts retain fallback routes. A new native loop-control
+disposal witness tracks the next gap. Do not accept resource cleanup yet. Preserve
+lexical disposal without manual drops, dummy owners or clones.
+
+The existing public fixture and matched `exception_completion` workload exercise
+Map partial returns and conditional returns from finally. Source hashes, matched
+TypeScript, independent oracle and mutation guards remain current. Exact red and
+repaired records for this checkpoint use SQLite prefix `tsrust-map-field-transport-`.
+No timing or full family regression ran. Installed CLI/editor consumers remain
+`4367f4cc`; scratch release is rebuilt from this checkpoint before acceptance.
 
 Then finish recursive stored callback fields, gate 190's resource backend and
 synchronous file proof, and S07 family acceptance: complete compiler/editor

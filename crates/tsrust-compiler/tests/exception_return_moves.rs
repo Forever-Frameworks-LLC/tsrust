@@ -167,3 +167,19 @@ fn conditional_cleanup_return_keeps_other_field_on_normal_path() {
     runs("type Row={name:string;other:string;};function pick(a:Row,early:boolean):string{try{if(early){return a.name;}}finally{a.name=\"new\";const taken=a.name;console.log(taken);}return \"done\";}function main(){console.log(pick({name:\"left\",other:\"right\"},true),pick({name:\"left\",other:\"right\"},false));}","new\nnew\nleft done\n");
 
 }
+
+#[test]
+fn map_partial_returns_restore_cleanup_survivors() {
+    runs(
+        "type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean,replace:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});}finally{const item=handlers.get(early?\"old\":\"new\");if(item!==undefined){console.log(item.run());}if(replace){return a.other;}}return a.other;}function main(){console.log(pick({name:\"left\",other:\"right\"},true,false),pick({name:\"left\",other:\"right\"},true,true),pick({name:\"left\",other:\"right\"},false,false),pick({name:\"left\",other:\"right\"},false,true));}",
+        "3\n3\n7\n7\nleft right right right\n",
+    );
+}
+
+#[test]
+fn map_terminal_branch_returns_preserve_callback_origins() {
+    runs(
+        "type Row={name:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(early){return a.name;}else{handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});return a.name;}}finally{const item=handlers.get(early?\"old\":\"new\");if(item!==undefined){console.log(item.run());}}}function main(){console.log(pick({name:\"left\"},true),pick({name:\"right\"},false));}",
+        "3\n7\nleft right\n",
+    );
+}

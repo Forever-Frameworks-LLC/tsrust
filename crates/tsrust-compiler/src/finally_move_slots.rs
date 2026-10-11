@@ -92,7 +92,6 @@ mod tests {
         assert_try_local_drops_before_cleanup(LocalCleanup::LocalPartialReturn);
     }
     #[test]
-    #[ignore = "Map partial-return transport still inlines cleanup before try-local disposal"]
     fn map_try_locals_drop_before_partial_return_cleanup() {
         assert_try_local_drops_before_cleanup(LocalCleanup::MapPartialReturn);
     }
@@ -100,13 +99,32 @@ mod tests {
     fn unconditional_partial_return_preserves_lexical_disposal() {
         assert_try_local_drops_before_cleanup(LocalCleanup::AlwaysPartialReturn);
     }
+    #[test]
+    fn map_catch_locals_drop_before_partial_return_cleanup() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::MapCatchPartialReturn);
+    }
+    #[test]
+    fn map_terminal_partial_returns_preserve_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::MapTerminalPartialReturn);
+    }
+    #[test]
+    fn map_replacement_cleanup_keeps_body_local_disposal_order() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::MapReplacementPartialReturn);
+    }
+    #[test]
+    #[ignore = "Escaping loop controls still run cleanup before try-local disposal"]
+    fn loop_control_partial_returns_keep_lexical_disposal() {
+        assert_try_local_drops_before_cleanup(LocalCleanup::ControlPartialReturn);
+    }
     #[derive(Debug)]
-    enum LocalCleanup {WholeReturn,PartialReturn,PartialLocal,MapReturn,NestedPartialReturn,CatchPartialReturn,LocalPartialReturn,MapPartialReturn,AlwaysPartialReturn}
+    enum LocalCleanup {WholeReturn,PartialReturn,PartialLocal,MapReturn,NestedPartialReturn,CatchPartialReturn,LocalPartialReturn,MapPartialReturn,AlwaysPartialReturn,MapCatchPartialReturn,MapTerminalPartialReturn,MapReplacementPartialReturn,ControlPartialReturn}
     fn assert_try_local_drops_before_cleanup(case:LocalCleanup) {
-        let partial=matches!(case,LocalCleanup::PartialReturn|LocalCleanup::NestedPartialReturn|LocalCleanup::CatchPartialReturn|LocalCleanup::LocalPartialReturn|LocalCleanup::MapPartialReturn|LocalCleanup::AlwaysPartialReturn);
+        let partial=matches!(case,LocalCleanup::PartialReturn|LocalCleanup::NestedPartialReturn|LocalCleanup::CatchPartialReturn|LocalCleanup::LocalPartialReturn|LocalCleanup::MapPartialReturn|LocalCleanup::AlwaysPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn|LocalCleanup::ControlPartialReturn);
         let local_partial=matches!(case,LocalCleanup::PartialLocal);
-        let map=matches!(case,LocalCleanup::MapReturn|LocalCleanup::MapPartialReturn);
-        let source=if matches!(case,LocalCleanup::AlwaysPartialReturn) {
+        let map=matches!(case,LocalCleanup::MapReturn|LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn);
+        let source=if matches!(case,LocalCleanup::ControlPartialReturn) {
+            "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{for(let i=0;i<1;i+=1){try{const marker:Marker={value:1};if(early){return a.name;}break;}finally{cleanup();}}return a.name;}function main(){}"
+        }else if matches!(case,LocalCleanup::AlwaysPartialReturn) {
             "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const marker:Marker={value:1};return a.name;}finally{cleanup();}}function main(){}"
         }else if matches!(case,LocalCleanup::LocalPartialReturn) {
             "type Marker={value:int;};type Row={name:string;};type Local={name:string;marker:Marker;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const local:Local={name:a.name,marker:{value:1}};if(early){return local.name;}}finally{cleanup();}return \"owner\";}function main(){}"
@@ -121,7 +139,10 @@ mod tests {
         }else if partial {
             "type Marker={value:int;};type Row={name:string;};function cleanup():void{}function pick(a:Row,early:boolean):string{try{const marker:Marker={value:1};if(early){return a.name;}}finally{cleanup();}return a.name;}function main(){}"
         }else{"type Marker={value:int;};function cleanup():void{}function pick(a:string,early:boolean):string{try{const marker:Marker={value:1};if(early){return a;}}finally{cleanup();}return a;}function main(){}"};
-        let source=if matches!(case,LocalCleanup::MapPartialReturn){source.replace("type Holder", "type Row={name:string;};type Holder").replace("a:string", "a:Row").replace("return a;", "return a.name;")}else{source.to_owned()};
+        let source=if matches!(case,LocalCleanup::MapPartialReturn|LocalCleanup::MapCatchPartialReturn|LocalCleanup::MapTerminalPartialReturn|LocalCleanup::MapReplacementPartialReturn){source.replace("type Holder", "type Row={name:string;};type Holder").replace("a:string", "a:Row").replace("return a;", "return a.name;")}else{source.to_owned()};
+        let source=if matches!(case,LocalCleanup::MapCatchPartialReturn){source.replace("try{const marker", "try{throw 7;}catch(error){const marker")}else{source};
+        let source=if matches!(case,LocalCleanup::MapTerminalPartialReturn){source.replace(";}finally{cleanup();", ";return a.name;}finally{cleanup();").replace("}return a.name;}function main", "}}function main")}else{source};
+        let source=if matches!(case,LocalCleanup::MapReplacementPartialReturn){source.replace("}return a.name;}", "return \"owner\";}}") }else{source};
         let formatted=crate::formatting::format(&source).unwrap();
         assert_eq!(crate::formatting::format(&formatted).unwrap(),formatted);
         let checked=crate::analysis::analyze(crate::syntax::parse(&formatted).unwrap()).unwrap();
@@ -131,9 +152,9 @@ mod tests {
         native.insert_str(opening,&format!("assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),{expected},\"try local survived into finally\");"));
         let main=native.find("fn main()").unwrap();let opening=main+native[main..].find('{').unwrap()+1;
         let owner=if partial{"Record1{field0:String::Owned(\"owner\".into())}"}else{"String::Owned(\"owner\".into())"};
-        let call=if map{"tsr_result_function1(owned_arg,early).unwrap_or_else(|_|panic!(\"unexpected source error\"))"}else{"function1(owned_arg,early)"};
+        let call=if map || matches!(case,LocalCleanup::ControlPartialReturn){"tsr_result_function1(owned_arg,early).unwrap_or_else(|_|panic!(\"unexpected source error\"))"}else{"function1(owned_arg,early)"};
         let pointer=if partial{"owned_arg.field0.as_ptr()"}else{"owned_arg.as_ptr()"};
-        let identity=if matches!(case,LocalCleanup::LocalPartialReturn){"early"}else{"true"};
+        let identity=if matches!(case,LocalCleanup::LocalPartialReturn){"early"}else if matches!(case,LocalCleanup::MapReplacementPartialReturn){"false"}else{"true"};
         native.insert_str(opening,&format!("for early in [false,true]{{LOCAL_DROPS.store(0,std::sync::atomic::Ordering::SeqCst);let owned_arg={owner};let pointer={pointer};let returned={call};assert_eq!(returned,\"owner\");if {identity}{{assert_eq!(returned.as_ptr(),pointer,\"return cloned allocation\");}}assert_eq!(LOCAL_DROPS.load(std::sync::atomic::Ordering::SeqCst),{expected});}}"));
         native.push_str("static LOCAL_DROPS:std::sync::atomic::AtomicUsize=std::sync::atomic::AtomicUsize::new(0);impl Drop for Record0{fn drop(&mut self){LOCAL_DROPS.fetch_add(1,std::sync::atomic::Ordering::SeqCst);}}");
         let directory=std::env::temp_dir().join(format!("tsrust-finally-local-drops-{}-{case:?}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();
