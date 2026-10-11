@@ -5204,7 +5204,7 @@
     "name": "File",
     "signature": "type File",
     "parameters": [],
-    "documentation": "An owned open file with private storage. Use open to open an existing path read-only, read to advance its cursor, and close to release it explicitly. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads.\n\n```tsrust\nimport {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}\n```\n\nExpected output: none.",
+    "documentation": "An owned open file with private storage. Use open for an existing read-only file, create for a new or truncated write-only file, read/write/writeAll for cursor operations, and close for explicit release. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads and writes.\n\n```tsrust\nimport {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}\n```\n\nExpected output: none.",
     "examples": [
       {
         "source": "import {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}",
@@ -5216,7 +5216,7 @@
     "name": "FsError",
     "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
     "parameters": [],
-    "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range or allocation. operation names open, read or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined.",
+    "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range, allocation or write-zero. operation names open, create, read, write, writeAll or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined.",
     "examples": [
       {
         "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
@@ -5228,7 +5228,7 @@
         "documentation": "Stable failure category, as a string. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
       },
       "operation": {
-        "documentation": "Operation that failed: open, read or close. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+        "documentation": "Operation that failed: open, create, read, write, writeAll or close. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
       },
       "message": {
         "documentation": "Human-readable description. Text may vary by platform. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
@@ -5292,7 +5292,66 @@
         "output": "closed\n"
       }
     ]
-  }
+  },
+{
+  "name": "create",
+  "signature": "create(path: string): Result<File, FsError>",
+  "parameters": [
+    {
+      "label": "path: string",
+      "documentation": "Required filesystem path. Relative paths use the process working directory. Existing files are truncated; parent directories must exist."
+    }
+  ],
+  "documentation": "Creates a write-only file, or truncates an existing file to zero bytes. Returns Ok(File) positioned at the beginning, or Err(FsError) for filesystem failures such as a missing parent or denied access. Existing permissions are preserved; new files use host permissions and umask. This does not create parent directories. There are no optional arguments.\n\n```tsrust\nimport {create} from \"std:fs\"; function main(){match(create(\"output.bin\")){Ok(file)=>{console.log(\"created\");},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: created.\n\nOwnership: Returns one owned file. Explicit close consumes it and reports close errors; scope exit closes it automatically.",
+  "examples": [
+    {
+      "source": "import {create} from \"std:fs\"; function main(){match(create(\"output.bin\")){Ok(file)=>{console.log(\"created\");},Err(error)=>{throw error.message;}}}",
+      "output": "created\n"
+    }
+  ]
+},
+{
+  "name": "write",
+  "signature": "write(file: Mutable<File>, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<int, FsError>",
+  "parameters": [
+    {
+      "label": "file: Mutable<File>",
+      "documentation": "Required writable file. Its cursor advances by the number of bytes successfully written."
+    },
+    {
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Required borrowed byte storage, from 0 through 67108864 bytes. Views write only their selected range. Storage is not mutated or copied."
+    }
+  ],
+  "documentation": "Writes once at the current cursor and returns Ok(count), where count may be smaller than the input length, including zero. Retry the unwritten suffix when needed. Accepts 0 through 67108864 bytes; larger inputs return length-range before I/O. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\n```tsrust\nimport {create,write} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(write(file,bytes)){Ok(count)=>{console.log(count);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 3.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
+  "examples": [
+    {
+      "source": "import {create,write} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(write(file,bytes)){Ok(count)=>{console.log(count);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+      "output": "3\n"
+    }
+  ]
+},
+{
+  "name": "writeAll",
+  "signature": "writeAll(file: Mutable<File>, bytes: ReadOnly<Bytes | ByteView | ByteViewMut>): Result<void, FsError>",
+  "parameters": [
+    {
+      "label": "file: Mutable<File>",
+      "documentation": "Required writable file. Its cursor advances by the number of bytes successfully written."
+    },
+    {
+      "label": "bytes: ReadOnly<Bytes | ByteView | ByteViewMut>",
+      "documentation": "Required borrowed byte storage, from 0 through 67108864 bytes. Views write only their selected range. Storage is not mutated or copied."
+    }
+  ],
+  "documentation": "Writes the entire byte range at the current cursor, retrying short writes, and returns Ok(void). A zero-progress write returns Err with code write-zero. Accepts 0 through 67108864 bytes; larger inputs return length-range before I/O. Empty input succeeds without I/O. Interrupted writes retry; other failures return Err(FsError) and leave the file available. Errors may follow partial writes; changes are not rolled back. The file cursor advances, but input bytes are unchanged. No durability synchronization occurs. Arguments are required; byte lengths do not count Unicode characters.\n\n```tsrust\nimport {create,writeAll} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeAll(file,bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: written.\n\nOwnership: Mutably borrows the file and reads the byte owner or view for this call. Neither argument is consumed; no byte loan escapes.",
+  "examples": [
+    {
+      "source": "import {create,writeAll} from \"std:fs\"; import {fromUtf8} from \"std:bytes\"; function main(){match(create(\"output.bin\")){Ok(file)=>{match(fromUtf8(\"ABC\")){Ok(bytes)=>{match(writeAll(file,bytes)){Ok(_)=>{console.log(\"written\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+      "output": "written\n"
+    }
+  ]
+}
 ],
   "std:bytes": [
   {

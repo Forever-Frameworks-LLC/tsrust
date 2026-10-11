@@ -65,6 +65,9 @@ impl NativeBinding {
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
         use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut};
+        if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll") {
+            return &[ByteView, ByteViewMut];
+        }
         if self.module != "std:bytes" || position != 0 {
             return &[];
         }
@@ -86,6 +89,9 @@ impl NativeBinding {
 }
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::fs_bindings::OPEN,
+    crate::stdlib::fs_bindings::CREATE,
+    crate::stdlib::fs_bindings::WRITE,
+    crate::stdlib::fs_bindings::WRITE_ALL,
     crate::stdlib::fs_bindings::READ,
     crate::stdlib::fs_bindings::CLOSE,
     crate::stdlib::bytes::bindings::FROM_ARRAY,

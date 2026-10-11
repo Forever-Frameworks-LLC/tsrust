@@ -1855,3 +1855,18 @@ fn native_ordered_map_alias_has_typed_editor_help() {
   let items=ask(&index,&entry,"get('a'","textDocument/completion");assert!(items.to_string().contains("delete"),"{items}");
  }
 }
+
+#[test]
+fn file_write_signature_help_documents_borrowed_views_and_partial_progress() {
+    let entry = tsrust_compiler::format("import {writeAll,File} from 'std:fs';import {ByteView} from 'std:bytes';function save(file:Mutable<File>,bytes:ReadOnly<ByteView>){writeAll(file,bytes);}function main(){}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let help = ask(&index, &entry, "file, bytes", "textDocument/signatureHelp");
+    for phrase in ["ByteView", "ByteViewMut", "67108864"] { assert!(help.to_string().contains(phrase), "{help}"); }
+    let hover = ask(&index, &entry, "writeAll(file", "textDocument/hover");
+    assert!(hover.to_string().contains("not rolled back"), "{hover}");
+    assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+}

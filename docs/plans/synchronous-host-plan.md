@@ -8,9 +8,16 @@ The next file slice is create, write and writeAll. The private backend now has
 focused tests for truncation, exact binary content, read-only descriptor failures,
 64 MiB write limits, interrupted/short writes, write-zero and failure after partial
 progress. Six backend tests and the generated O0/O3 cleanup witness pass. Original
-red and green logs are retained as `tsrust-s09-file-write-*` in SQLite. These methods
-are not public yet: native bindings, byte-view alternatives, bridges, catalog docs,
-public native/editor fixtures and matched benchmark support remain required.
+red and green logs are retained as `tsrust-s09-file-write-*` in SQLite. Public bindings and bridges now expose create, write and writeAll, including borrowed
+Bytes, ByteView and ByteViewMut inputs. Focused native tests cover truncation, exact
+bytes, explicit/scope close, read-only errors, retained handles and ownership rejections.
+All eight file catalog examples execute at O0/O3, and 84 project IntelliSense tests
+pass, including view alternatives and partial-write documentation. The initial public
+witness exposed the required error-effect registration; it was added. A rejection
+witness expected the wrong diagnostic wording and now checks error[transferred].
+Original logs are retained as `tsrust-public-file-writes-*` in SQLite. This slice
+is still in progress: matched benchmark support and installed consumer acceptance
+remain required before its gate closes. No new measurements are claimed.
 
 Continue S09 with bounded full-file access, buffered readers/writers, environment
 and monotonic time foundations, auditing the existing path/fs/os contracts. Define

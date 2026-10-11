@@ -14,7 +14,7 @@ fn every_file_catalog_example_checks_and_executes() {
     std::fs::write(directory.0.join("input.bin"), [0, 65, 255, 66]).unwrap();
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:fs"].as_array().unwrap();
-    assert_eq!(entries.len(), 5);
+    assert_eq!(entries.len(), 8);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();

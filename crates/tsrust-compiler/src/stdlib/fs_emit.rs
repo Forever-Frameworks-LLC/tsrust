@@ -14,6 +14,8 @@ pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> 
     for binding in bindings {
         let (parameters, call, value): (String, String, String) = match binding.name {
             "open" => ("path: &String".into(), "tsrust_native_files::fs::open(path.as_ref())".into(), format!("Record{file} {{ handle: success }}")),
+            "create" => ("path: &String".into(), "tsrust_native_files::fs::create(path.as_ref())".into(), format!("Record{file} {{ handle: success }}")),
+            "write" | "writeAll" => (format!("file: &mut Record{file}, bytes: &impl TsrReadableBytes"), format!("tsrust_native_files::fs::{}(&mut file.handle, bytes.readable_bytes())", if binding.name == "write" {"write"} else {"write_all"}), "success".into()),
             "read" => {
                 let bytes = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::Bytes)).expect("read Bytes");
                 (format!("file: &mut Record{file}, length: i64"), "tsrust_native_files::fs::read(&mut file.handle,length)".into(), format!("Record{bytes} {{ bytes: success }}"))

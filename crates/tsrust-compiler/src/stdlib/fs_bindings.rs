@@ -21,3 +21,20 @@ pub const CLOSE: NativeBinding = NativeBinding {
     result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_close" }, features: &["fs"],
 };
+
+pub const CREATE: NativeBinding = NativeBinding {
+    name: "create", backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_create" }, ..OPEN
+};
+pub const WRITE: NativeBinding = NativeBinding {
+    module: "std:fs", name: "write", returned_borrow: None,
+    parameters: &[
+        NativeParameter { name: "file", ty: NativeType::Structured(&Signature::Named(NativeTypeId::File)), access: Mode::Mutate, optional: false, rest: false },
+        NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write" }, features: &["fs", "bytes"],
+};
+pub const WRITE_ALL: NativeBinding = NativeBinding {
+    name: "writeAll", result: NativeType::Structured(&Signature::Result(&Signature::Void, &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_all" }, ..WRITE
+};
