@@ -1,8 +1,8 @@
 # B11/S07: resources and bytes
 
-Status: gates 187–188 native declarations and owned byte operations are accepted.
-B11/S07 remains in progress; gates 189–190 cover scoped views, UTF-8 and resource
-lifecycle. No byte workload is measured. B10/S06 is
+Status: gates 187–189 native declarations, owned bytes, scoped views and strict
+UTF-8 have focused implementation acceptance. B11/S07 remains in progress; gate
+190 resource lifecycle and the S07 family milestone remain pending. No byte workload is measured. B10/S06 is
 accepted at gate 186. Resource close consumes ownership by owner decision.
 See the gate 187 record and current continuation handoff.
 
@@ -620,3 +620,11 @@ finds borrowed storage in nested signatures; observers cannot bypass the pending
 provenance/ABI guard. Recursive identity projection and native fixed-storage controls
 are verified. Source exports and factories remain unpublished. Continue with source
 loan propagation and safe lifetime-bearing emission; this is not gate acceptance.
+
+## Gate 189 focused acceptance
+
+The approved byte-view and recursive-storage scope is accepted at source checkpoint
+`bd4b0d02`, with requirement mapping in `milestones/189-native-byte-views.md`.
+Earlier pending callback-composition statements describe historical checkpoints.
+Gate 190 and S07 complete regressions, matched timing, performance review and final
+consumer refresh remain open. No measurement acceptance is implied.

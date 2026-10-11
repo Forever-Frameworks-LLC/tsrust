@@ -9,8 +9,8 @@ This is the current implementation map. S07 is not accepted or measured.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending remaining recursive callback storage composition; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
-| Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending remaining recursive callback storage composition | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 accepted with focused evidence; family regression/measurement pending | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
@@ -965,3 +965,13 @@ Thirty-three logs/probes and the untimed result were imported, read back byte fo
 byte and removed from loose storage. SQLite `PRAGMA quick_check` passes. Twenty-one
 obsolete test/native outputs were pruned (188,979,411 bytes); current consumers were
 retained.
+
+### Gate 189 scope review
+
+Focused implementation acceptance is complete at `bd4b0d02`; see
+`milestones/189-native-byte-views.md` for the requirement mapping. The current table,
+roadmap and all nine gate 189 workload acceptance flags now agree. Historical
+pending entries remain chronological evidence. Measurement flags remain false.
+SQLite readback reconfirmed the latest repaired matrix/native/editor/diagnostic
+passes. This review preserves completed checks; it does not claim a new complete
+regression or timing pass. Gate 190 is the next implementation step.

@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: array and nullable recursive view storage and capturing callbacks returning argument/owner views have focused acceptance; recursive callback fields and mutable-parameter replacement have focused acceptance; final gate 189 review remains pending. The owner approved parts A and B in the continuation chat.
+Date: 2026-10-10. Status: array and nullable recursive view storage and capturing callbacks returning argument/owner views have focused acceptance; recursive callback fields and mutable-parameter replacement have focused acceptance; gate 189 has focused implementation acceptance. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
@@ -354,7 +354,7 @@ cleanup, function references, closures, returned installers and tracked capture
 destinations transport those effects. Readonly/exclusive native execution and
 source/editor owner rejections are covered. The original probe also moved the
 field before passing the whole record; that use still correctly reports partial
-transfer. Review the completed gate 189 scope before advancing to resource gate 190. The finite-layout guard
+transfer. Gate 189 scope review is complete; resource gate 190 is next. The finite-layout guard
 remains for unsupported specializations; multiple incompatible components are not
 resolved by choosing one arbitrarily.
 

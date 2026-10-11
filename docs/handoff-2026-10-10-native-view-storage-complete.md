@@ -15,7 +15,8 @@ Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
 - Recursive records containing views share a real borrow lifetime. Array recursion,
   nullable links, provenance, iterative link destruction/clone and public fixtures
   are implemented. Views remain non-clonable. Recursive callback fields and nullable factory joins
-  and mutable-parameter replacement have focused acceptance; gate 189 review remains pending.
+  and mutable-parameter replacement have focused acceptance; gate 189 is accepted
+  for implementation. S07 family regressions and measurement remain pending.
 - View-capturing callbacks can return argument views or views of borrowed Bytes
   arguments. Terminal-branch provenance and temporary record calls are repaired.
 - The installed CLI/editor consumers were refreshed from `4367f4cc` with executable
@@ -139,7 +140,7 @@ See the acceptance map for final counts and untimed verification. No timing or f
 family regression ran. Installed CLI/editor remain `4367f4cc`; scratch release is
 rebuilt from this checkpoint before acceptance.
 
-Then finish recursive stored callback fields, gate 190's resource backend and
+Then finish gate 190's resource backend and
 synchronous file proof, and S07 family acceptance: complete compiler/editor
 regressions, matched measurements, regression review, justified optimization and
 consumer refresh. Continue through the existing S08–S21 roadmap after S07. Preserve
@@ -218,8 +219,9 @@ new executable fixture overwrites an intact field. This does not add uninitializ
 out parameters or placeholders. Captured destinations without caller storage
 provenance retain a source diagnostic; no owner identity is guessed.
 
-Next: reconcile gate 189 acceptance against its documented scope, then implement
-resource gate 190, complete S07 acceptance and continue the roadmap. No known
+Gate 189 focused implementation acceptance is recorded in
+`milestones/189-native-byte-views.md`. Next: implement resource gate 190, complete
+S07 acceptance and continue the roadmap. No known
 return-through-finally defect remains ignored; current ignored tests are opt-in
 measurements/diagnostics or a subprocess worker. Installed consumers remain
 `4367f4cc`; no family timing has run. See the acceptance map for exact evidence.

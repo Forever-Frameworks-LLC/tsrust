@@ -7,7 +7,8 @@ returned argument views, recursive array/nullable storage and record-parameter
 transport have focused acceptance. Recursive records may retain views solely
 through owned callback environments; a direct view field is not required.
 
-Gate 189 remains pending the remaining recursive callback storage compositions.
+Gate 189 has focused implementation acceptance, including recursive callback storage
+and mutable parameter replacement. See `milestones/189-native-byte-views.md`.
 Gate 190 and S07 regression/measurement acceptance remain open. The current status
 and exact evidence are in `b11-resources-bytes-acceptance-map.md` and
 `handoff-2026-10-10-native-view-storage-complete.md`.
