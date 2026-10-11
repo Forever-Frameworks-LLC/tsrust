@@ -300,3 +300,26 @@ runtime artifacts to build/dev and extend the boundary to ordinary console/strin
 support, which the dev benchmark exercises. Preserve feature selection and generic
 ownership rules; application-specific monomorphization may remain application work.
 Installed reuse, bounded artifact retention and measured acceptance remain required.
+
+## Runtime artifacts in build and dev
+
+Build/run/test and dev now prepare separated support through a shared runtime build
+adapter. Runtime artifacts use exact-source/backend/platform/optimization identities
+and the existing checksum-verified atomic cache publication. Each build copies the
+library into its private directory before linking. Program artifact identity advances
+to ABI 2 so older whole-program artifacts cannot bypass the new compilation path.
+Standalone emit remains unchanged; programs without extracted support need no rlib.
+
+A CLI witness changes application source and verifies runtime miss then hit at both
+O0 and O3, exact native outputs, and distinct runtime artifacts per optimization
+profile. Dev witnesses separately interrupt application and runtime compilation;
+both reap compiler descendants, preserve the last working process, reject obsolete
+executables and reuse the runtime on the final build. Backend-probe interruption
+and five existing project CLI checks also pass. Records use `tsrust-runtime-cache-*`
+in SQLite, including the initial absent-reuse failure and corrected artifact count
+(the cache also retains lock files).
+
+This supports the initial byte/file/path boundary. Console/string support is next;
+the simple dev-loop workload still has no extracted runtime. Runtime artifact and
+lock-file retention are not yet bounded, and installed/performance acceptance for
+this stage is pending. Do not close the required milestone on these focused checks.

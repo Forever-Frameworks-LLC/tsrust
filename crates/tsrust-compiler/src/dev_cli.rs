@@ -101,20 +101,29 @@ mod platform {
         let Some(status)=wait_for_build(&mut probe,root,expected,watcher)? else{return Ok(None);};
         let backend_identity=crate::validate_backend_output(std::process::Output{status,stdout:std::fs::read(probe_out).map_err(|e|e.to_string())?,stderr:std::fs::read(probe_err).map_err(|e|e.to_string())?})?;
         let backend_elapsed=backend_started.elapsed();
-        let binary=files.0.join("program");let generated=files.0.join("program.rs");
-        std::fs::write(&generated,&frontend.rust).map_err(|e|e.to_string())?;
+        let binary=files.0.join("program");
         let features=frontend.features.join(",");
         let cache=tsrust_compiler::native_cache::NativeCache::new(&root.join("target/tsrust-native"),&[
-            b"native-cache-abi-1",backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
+            b"native-cache-abi-2",backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
             if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
         ]);
         let cache_started=Instant::now();let reused=cache.lookup().is_some_and(|cached|std::fs::copy(cached,&binary).is_ok());let cache_elapsed=cache_started.elapsed();
         let native_started=Instant::now();
         if !reused {
+            let mut prepared=crate::runtime_build::Prepared::new(&frontend.rust,&backend_identity,&root.join("target/tsrust-native"),&files.0,release)?;
+            if let Some(mut command)=prepared.command.take() {
+                let errors=files.0.join("runtime.stderr");
+                command.stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
+                let mut compiler=Process::spawn(&mut command)?;
+                let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};
+                if !status.success(){return Err(format!("Runtime compilation failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
+                prepared.publish();
+            }
+            if verbose{eprintln!("[build] runtime={}",prepared.state);}
             // A file avoids pipe backpressure while the supervisor watches edits.
             let errors=files.0.join("backend.stderr");
-            let mut command=crate::backend_command();
-            command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&generated).arg("-o").arg(&binary)
+            let mut command=crate::backend_command();prepared.link(&mut command);
+            command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&prepared.application).arg("-o").arg(&binary)
                 .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
             let mut compiler=Process::spawn(&mut command)?;
             let Some(status)=wait_for_build(&mut compiler,root,expected,watcher)? else{return Ok(None);};

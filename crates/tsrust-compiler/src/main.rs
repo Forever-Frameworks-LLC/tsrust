@@ -1,4 +1,5 @@
 mod dev_cli;
+mod runtime_build;
 #[cfg(unix)]
 mod dev_frontend;
 #[cfg(unix)]
@@ -243,8 +244,6 @@ fn run() -> Result<u8, String> {
     let backend_identity = verify_backend()?;
     let backend_elapsed=backend_started.elapsed();
     let directory = TempDirectory::new().map_err(|e| e.to_string())?;
-    let generated = directory.0.join("program.rs");
-    fs::write(&generated, &rust).map_err(|e| e.to_string())?;
     let executable = if command == "build" {
         absolute(output.as_ref().expect("build output"))?
     } else {
@@ -278,7 +277,7 @@ fn run() -> Result<u8, String> {
     let cache = tsrust_compiler::native_cache::NativeCache::new(
         &cache_root,
         &[
-            b"native-cache-abi-1",
+            b"native-cache-abi-2",
             backend_identity.as_bytes(),
             env!("CARGO_PKG_VERSION").as_bytes(),
             env::consts::OS.as_bytes(),
@@ -297,7 +296,15 @@ fn run() -> Result<u8, String> {
     let cache_elapsed=cache_started.elapsed();
     let native_started=std::time::Instant::now();
     if !reused {
-        let result = backend_command()
+        let mut prepared=runtime_build::Prepared::new(&rust,&backend_identity,&cache_root,&directory.0,release)?;
+        if let Some(mut runtime)=prepared.command.take() {
+            let result=runtime.output().map_err(|e|e.to_string())?;
+            if !result.status.success(){return Err(format!("Runtime compilation failed:\n{}",String::from_utf8_lossy(&result.stderr)));}
+            prepared.publish();
+        }
+        if env::var("TSRUST_BUILD_TIMINGS").as_deref()==Ok("1"){eprintln!("[build] runtime={}",prepared.state);}
+        let mut command=backend_command();prepared.link(&mut command);
+        let result = command
             .arg("--edition=2024")
             .args([
                 "-C",
@@ -308,7 +315,7 @@ fn run() -> Result<u8, String> {
                 },
             ])
             .args(["-C", "overflow-checks=on"])
-            .arg(&generated)
+            .arg(&prepared.application)
             .arg("-o")
             .arg(&executable)
             .output()

@@ -34,11 +34,17 @@ fn wait_text(path:&std::path::Path,needle:&str)->String {
  loop {let text=fs::read_to_string(path).unwrap_or_default();if text.contains(needle){return text;}assert!(Instant::now()<until,"missing {needle}: {text}");std::thread::sleep(Duration::from_millis(20));}
 }
 #[test]
-fn edit_cancels_native_build_and_keeps_last_good_until_replacement() {
+fn edit_cancels_native_build_and_keeps_last_good_until_replacement() {cancel_build(false);}
+#[test]
+fn edit_cancels_runtime_build_and_keeps_last_good_until_replacement() {cancel_build(true);}
+fn cancel_build(runtime:bool) {
  let dir=support::TempDirectory::new();
  support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","app"]),20));
  let root=dir.0.join("app");let entry=root.join("src/main.tsr");
- let write=|text:&str|fs::write(&entry,support::format_round_trip(&format!("function main(){{console.log('{text}');while(true){{}}}}"))).unwrap();
+ let write=|text:&str| {
+  let (import,call)=if runtime && text=="stale-candidate" {("import {fromArray} from 'std:bytes';","match(fromArray([1])){Ok(bytes)=>{},Err(error)=>{throw error.message;}}") } else {("","")};
+  fs::write(&entry,support::format_round_trip(&format!("{import}import {{basename}} from 'std:path';function main(){{{call}console.log(basename('/tmp/{text}'));while(true){{}}}}"))).unwrap();
+ };
  write("last-good");
  let bin=dir.0.join("bin");fs::create_dir(&bin).unwrap();let wrapper=bin.join("rustup");
  fs::write(&wrapper,r#"#!/bin/sh
@@ -46,6 +52,7 @@ case "$*" in *--version*) exec "$REAL_RUSTUP" "$@";; esac
 if [ -f "$HOLD_BUILD" ]; then
   sleep 30 &
   child=$!
+  echo "$*" > "$PROBE_KIND"
   echo "$$ $child" > "$PROBE_MARKER"
   trap 'kill $child 2>/dev/null; wait $child; exit 0' TERM
   wait $child
@@ -55,14 +62,16 @@ exec "$REAL_RUSTUP" "$@"
  let original=std::env::var_os("PATH").unwrap();
  let real=std::env::split_paths(&original).map(|p|p.join("rustup")).find(|p|p.is_file()).unwrap();
  let mut paths=vec![bin];paths.extend(std::env::split_paths(&original));
- let marker=dir.0.join("probe");let hold=dir.0.join("hold");let log=dir.0.join("output");let file=fs::File::create(&log).unwrap();
- let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose"]).env("PATH",std::env::join_paths(paths).unwrap()).env("REAL_RUSTUP",real).env("PROBE_MARKER",&marker).env("HOLD_BUILD",&hold)
+ let marker=dir.0.join("probe");let kind=dir.0.join("kind");let hold=dir.0.join("hold");let log=dir.0.join("output");let file=fs::File::create(&log).unwrap();
+ let mut command=support::cli();command.current_dir(&root).args(["dev","--verbose"]).env("PATH",std::env::join_paths(paths).unwrap()).env("REAL_RUSTUP",real).env("PROBE_MARKER",&marker).env("HOLD_BUILD",&hold).env("PROBE_KIND",&kind)
   .stdout(file.try_clone().unwrap()).stderr(file).process_group(0);
  let mut dev=Group(command.spawn().unwrap());
  let text=wait_text(&log,"last-good");let old:i32=text.lines().find_map(|line|line.strip_prefix("[dev] Started program (pid ").and_then(|s|s.strip_suffix(")."))).unwrap().parse().unwrap();
  fs::write(&hold,"").unwrap();write("stale-candidate");let pids=wait_text(&marker," ");
+ assert_eq!(fs::read_to_string(&kind).unwrap().contains("--crate-type=rlib"),runtime);
  assert_eq!(unsafe{kill(old,0)},0,"last good program stopped during build");
  fs::remove_file(&hold).unwrap();write("newest-version");let text=wait_text(&log,"newest-version");
+ assert!(text.contains("runtime=miss") && text.contains("runtime=hit"),"{text}");
  assert!(!text.contains("stale-candidate"),"stale executable ran: {text}");
  assert_ne!(unsafe{kill(old,0)},0,"old program not reaped");
  for pid in pids.split_whitespace().map(|s|s.parse::<i32>().unwrap()) {assert_ne!(unsafe{kill(pid,0)},0,"cancelled compiler descendant survived");}
