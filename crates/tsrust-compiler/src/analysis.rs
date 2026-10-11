@@ -5039,13 +5039,16 @@ impl Analyzer {
             (true, false) => after_else_flow,
             (true, true) => HashMap::new(),
         };
-        for ((id, _), then_state) in before.into_iter().zip(after_then) {
+        for ((id, entry), then_state) in before.into_iter().zip(after_then) {
             let else_state = Availability::of(&context.bindings[id]);
             let joined = match (then_exits, else_exits) {
                 (false, false) => then_state.join(else_state),
                 (false, true) => then_state,
                 (true, false) => else_state,
-                (true, true) => Availability::default(),
+                // No branch reaches another statement, but capture ABI planning
+                // still needs the incoming carried-view slots. Clearing their
+                // provenance would make a valid owning view capture look untracked.
+                (true, true) => Availability { native_view_loans:entry.native_view_loans, ..Availability::default() },
             };
             joined.restore(&mut context.bindings[id]);
         }
@@ -14847,13 +14850,20 @@ self.names_materialized_type(element.with_depth(0).ty())
             let result = contract.result;
             let invocation = contract.invocation(&self.callables.shapes);
             Self::prepare_arguments(args, &params, span)?;
-            self.expression(
+            let actual = self.expression(
                 context,
                 callee,
                 invocation,
                 loans,
                 Some(field_type),
             )?;
+            // Checking a temporary factory call can specialize its returned record.
+            // Use the resulting field family for provenance and error effects,
+            // rather than the declaration-only family from the earlier hint.
+            let family = match actual {
+                Type::StoredCallable(family) | Type::BorrowedCallable(family) => family,
+                _ => family,
+            };
             let mut active = loans.clone();
             for root in Self::loan_roots(callee, invocation) {
                 active

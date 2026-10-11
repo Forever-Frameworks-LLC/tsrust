@@ -258,11 +258,18 @@ observations agree with Node-after-tsc on five untimed cases; SQLite record
 `runtime/results/2026-10-11T01-29-57-686Z-verify.json`. The earlier workload record is
 preserved unchanged. No timing ran.
 
-Two adjacent source-diagnostic boundaries remain to investigate. Calling `viewMut`
-directly in the stored callback body reports `callback-escape`, while the named
-`writable` helper passes. Calling through a temporary returned record
-(`saveRead(captured).pick(owner)`) reports `native-view-source`, while binding the
-record first preserves the owner diagnostic. Exact reproductions are SQLite records
-`tsrust-callback-direct-native-probe.tsr` and
-`tsrust-callback-temporary-owner-probe.tsr`. These do not change the previously
-tracked recursive stored-callback, finally, resource or measurement work.
+The two adjacent source-diagnostic boundaries are now repaired. A terminal `if`
+(including lowered `match`) retains incoming native-view slots for capture layout
+when both arms exit. Temporary record field calls select the actual checked family,
+so its returned-owner and error summaries are available. Direct `viewMut` in a
+stored callback and `saveRead(captured).pick(owner)` both execute; escaping the
+borrowed owner remains a source diagnostic.
+
+Evidence: all 15 public byte tests, the extended readonly/exclusive O0/O3 callback
+matrix, focused editor owner-escape test and four workload registration checks pass.
+The callback workload now calls a native view constructor directly and invokes the
+owner callback through a temporary returned record. Its five native/Node-after-tsc
+untimed cases agree: SQLite
+`runtime/results/2026-10-11T01-38-19-462Z-verify.json`. Original red probes and previous
+result records remain intact. No timing ran. Recursive stored callbacks, finally,
+resources acceptance and S07 measurements remain pending.

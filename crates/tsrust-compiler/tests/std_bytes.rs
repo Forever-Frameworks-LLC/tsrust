@@ -161,3 +161,23 @@ fn nullable_recursive_byte_views_keep_ownership_diagnostics() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{expected}]")),"{label}: {}",String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn temporary_callback_record_preserves_borrowed_owner_arguments() {
+    let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
+    let source=fixture.replace("const picker = saveRead(slice(first));\n    const selected = picker.pick(second);","const selected = saveRead(slice(first)).pick(second);");
+    assert_ne!(source,fixture);
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn native_view_constructor_inside_stored_callback_keeps_argument_ownership() {
+    let fixture=include_str!("fixtures/native-byte-views/callback-owners.tsr");
+    let source=fixture.replace("return writable(other);","match(viewMut(other,1,3)){Ok(value)=>{return value;},Err(error)=>{throw error.message;},}");
+    assert_ne!(source,fixture);
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}

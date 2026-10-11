@@ -293,6 +293,7 @@ fn native_view_capturing_callback_returns_its_argument() {
 #[test]
 fn native_view_capturing_argument_matrix() {
     for (label,contract,body,call) in [
+        ("terminal-branches", "Once<Function<Window,[Owned<Window>,boolean]>>", "(other:Owned<Window>,flag:boolean)=>{const kept=view;if(flag){return other;}else{return other;}}", "return holder.read(second,true);"),
         ("later-argument", "Function<Window,[int,Owned<Window>]>", "(n:int,other:Owned<Window>)=>{size(view);return other;}", "return holder.read(1,second);"),
         ("nested-argument", "Once<Function<Window,[Owned<Envelope>]>>", "(other:Owned<Envelope>)=>{const kept=view;return other.data;}", "return holder.read({data:second});"),
         ("read", "Function<Window,[Owned<Window>]>", "(other:Owned<Window>)=>{size(view);return other;}", "return holder.read(second);"),
