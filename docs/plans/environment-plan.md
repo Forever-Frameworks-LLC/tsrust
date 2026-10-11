@@ -42,4 +42,10 @@ Node-after-tsc cases pass, including 20,000 lookups. The initial missing fallibl
 registration was repaired; original and repaired evidence use
 `tsrust-env-workload-*` in SQLite. Timing remains pending S09.
 
-- Refresh installed consumers after public acceptance. Keep timing pending S09.
+All eight installed/workspace CLI and LSP consumers were atomically refreshed from
+`1db46101` and hash verified. The installed CLI passes all ten matched untimed
+cases. Installed LSP protocol checks report no diagnostics for the workload and
+verify environment hover documentation. The active `tsrust_test` editor language
+server was restarted and shows checking enabled with no Problems. Records use
+`tsrust-env-installed-*` in SQLite. Environment lookup has focused and installed
+acceptance; timing remains pending the S09 family milestone.
