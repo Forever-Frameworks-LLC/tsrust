@@ -80,7 +80,8 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     let dir=support::TempDirectory::new();
     support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","hello"]),20));
     let root=dir.0.join("hello");
-    fs::write(root.join("src/main.tsr"),"import {greeting} from './greeting.tsr';function main(){console.log(greeting());while(true){}}").unwrap();
+    fs::write(root.join("src/main.tsr"),support::format_round_trip("import {greeting} from './greeting.tsr';import {stable} from './stable.tsr';function main(){console.log(greeting());const value=stable();while(true){}}")).unwrap();
+    fs::write(root.join("src/stable.tsr"),support::format_round_trip("export function stable():int{return 1;}")).unwrap();
     fs::write(root.join("src/greeting.tsr"),"export function greeting():string{return 42;}").unwrap();
     let mut dev=Dev(support::cli().current_dir(root.join("src")).args(["dev","--verbose","--","--help"]).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap());
     let (tx,rx)=mpsc::channel();
@@ -103,6 +104,7 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
     wait(&rx,&mut lines,"second-version");
     // stderr/stdout reader threads may deliver the start line in either order.
     while lines.iter().filter(|line|line.contains("Started program")).count()<2 {lines.push(rx.recv_timeout(Duration::from_secs(5)).unwrap());}
+    assert!(lines.iter().any(|line|line.contains("syntax reused=1") && line.contains("headers reused=2")),"{lines:?}");
     let new=pid(&lines);assert_ne!(old,new);assert_ne!(unsafe {kill(old,0)},0,"old program must be reaped");
     unsafe {kill(dev.0.id() as i32,2);}
     wait(&rx,&mut lines,"[dev] Stopped.");

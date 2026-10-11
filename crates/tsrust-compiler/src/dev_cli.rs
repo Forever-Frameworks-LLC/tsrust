@@ -47,29 +47,68 @@ mod platform {
     }
     impl Drop for Process {fn drop(&mut self){self.stop();}}
     struct Running {process:Process,_files:TempDirectory}
-    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher)->Result<Option<(TempDirectory,PathBuf)>,String> {
+    fn build(root:&Path,release:bool,verbose:bool,expected:&Fingerprint,watcher:&mut Watcher,worker:&crate::dev_frontend::Worker)->Result<Option<(TempDirectory,PathBuf)>,String> {
+        use std::sync::mpsc::{self,TrySendError,TryRecvError};
         let project=project_config::load(root)?;
-        let files=TempDirectory::new().map_err(|e|e.to_string())?;
-        let binary=files.0.join("program");
-        let mut command=Command::new(std::env::current_exe().map_err(|e|e.to_string())?);
-        command.current_dir(root).arg("build").arg(&project.entry).arg("--output").arg(&binary)
-            .env("TSRUST_CACHE_DIR",root.join("target/tsrust-native"));
-        if verbose {command.env("TSRUST_BUILD_TIMINGS","1");} else {command.stdout(std::process::Stdio::null()).env_remove("TSRUST_BUILD_TIMINGS");}
-        if release {command.arg("--release");}
-        let mut compiler=Process::spawn(&mut command)?;
+        let (reply,response)=mpsc::channel();
+        let mut request=crate::dev_frontend::Request{entry:project.entry,reply};
+        loop {
+            if STOP.load(Ordering::Relaxed) || &watcher.snapshot(root)!=expected {return Ok(None);}
+            match worker.requests.try_send(request) {
+                Ok(())=>break,
+                Err(TrySendError::Full(pending))=>request=pending,
+                Err(TrySendError::Disconnected(_))=>return Err("Frontend worker stopped".into()),
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
         let mut last_input_check=Instant::now();
-        let status=loop {
-            if STOP.load(Ordering::Relaxed) {return Ok(None);}
+        let frontend=loop {
+            if STOP.load(Ordering::Relaxed){return Ok(None);}
             if last_input_check.elapsed()>=Duration::from_millis(100) {
                 if &watcher.snapshot(root)!=expected {return Ok(None);}
                 last_input_check=Instant::now();
             }
-            if let Some(status)=compiler.child.try_wait().map_err(|e|e.to_string())? {break status;}
-            std::thread::sleep(Duration::from_millis(20));
+            match response.try_recv() {
+                Ok(Ok(output))=>break output,
+                Ok(Err(error))=>{if &watcher.snapshot(root)!=expected{return Ok(None);}eprint!("{error}");return Err("Build failed".into());},
+                Err(TryRecvError::Disconnected)=>return Err("Frontend worker stopped".into()),
+                Err(TryRecvError::Empty)=>std::thread::sleep(Duration::from_millis(20)),
+            }
         };
-        compiler.stop();
-        if !status.success(){return Err("Build failed".into());}
-        // The executable stays private; validated native cache entries survive edits and restarts.
+        if &watcher.snapshot(root)!=expected {return Ok(None);}
+        if verbose {eprintln!("[build] syntax reused={} parsed={} headers reused={} parsed={}",frontend.stats.reused,frontend.stats.parsed,frontend.stats.headers_reused,frontend.stats.headers_parsed);}
+        let backend_started=Instant::now();let backend_identity=crate::verify_backend()?;let backend_elapsed=backend_started.elapsed();
+        let files=TempDirectory::new().map_err(|e|e.to_string())?;
+        let binary=files.0.join("program");let generated=files.0.join("program.rs");
+        std::fs::write(&generated,&frontend.rust).map_err(|e|e.to_string())?;
+        let features=frontend.features.join(",");
+        let cache=tsrust_compiler::native_cache::NativeCache::new(&root.join("target/tsrust-native"),&[
+            b"native-cache-abi-1",backend_identity.as_bytes(),env!("CARGO_PKG_VERSION").as_bytes(),std::env::consts::OS.as_bytes(),std::env::consts::ARCH.as_bytes(),
+            if release{b"release"}else{b"debug"},b"edition=2024;overflow-checks=on",frontend.rust.as_bytes(),&frontend.identity,features.as_bytes(),
+        ]);
+        let cache_started=Instant::now();let reused=cache.lookup().is_some_and(|cached|std::fs::copy(cached,&binary).is_ok());let cache_elapsed=cache_started.elapsed();
+        let native_started=Instant::now();
+        if !reused {
+            // A file avoids pipe backpressure while the supervisor watches edits.
+            let errors=files.0.join("backend.stderr");
+            let mut command=crate::backend_command();
+            command.current_dir(root).arg("--edition=2024").args(["-C",if release{"opt-level=3"}else{"opt-level=0"}]).args(["-C","overflow-checks=on"]).arg(&generated).arg("-o").arg(&binary)
+                .stdout(std::process::Stdio::null()).stderr(std::fs::File::create(&errors).map_err(|e|e.to_string())?);
+            let mut compiler=Process::spawn(&mut command)?;
+            let status=loop {
+                if STOP.load(Ordering::Relaxed) {return Ok(None);}
+                if last_input_check.elapsed()>=Duration::from_millis(100) {
+                    if &watcher.snapshot(root)!=expected {return Ok(None);}
+                    last_input_check=Instant::now();
+                }
+                if let Some(status)=compiler.child.try_wait().map_err(|e|e.to_string())? {break status;}
+                std::thread::sleep(Duration::from_millis(20));
+            };
+            compiler.stop();
+            if !status.success(){return Err(format!("Native build failed:\n{}",std::fs::read_to_string(errors).unwrap_or_default()));}
+            let _=cache.publish(&binary);
+        }
+        if verbose {eprintln!("[build] check={:.1}ms emit={:.1}ms backend={:.1}ms cache={} ({:.1}ms) native+link={:.1}ms",frontend.check.as_secs_f64()*1000.0,frontend.emit.as_secs_f64()*1000.0,backend_elapsed.as_secs_f64()*1000.0,if reused{"hit"}else{"miss"},cache_elapsed.as_secs_f64()*1000.0,if reused{0.0}else{native_started.elapsed().as_secs_f64()*1000.0});}
         Ok(Some((files,binary)))
     }
     #[cfg(test)]
@@ -105,6 +144,7 @@ mod platform {
         let _signals=Signals::install()?;
         let root=project.root;
         eprintln!("[dev] Watching {}. Press Ctrl+C to stop.",root.display());
+        let worker=crate::dev_frontend::Worker::new()?;
         let mut watcher=Watcher::default();
         let mut previous:Option<Fingerprint>=None;let mut running:Option<Running>=None;let mut built_once=false;
         while !STOP.load(Ordering::Relaxed) {
@@ -117,7 +157,7 @@ mod platform {
                 }
                 previous=Some(input.clone());
                 let build_started=Instant::now();
-                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher)};
+                let result=match &input {Err(error)=>Err(error.clone()),Ok(_)=>build(&root,release,verbose,&input,&mut watcher,&worker)};
                 match result {
                     Ok(Some((files,binary))) if !STOP.load(Ordering::Relaxed) && watcher.snapshot(&root)==input=>{
                         eprintln!("[dev] {} in {:.0} ms",if built_once {"Rebuilt"} else {"Built"},build_started.elapsed().as_secs_f64()*1000.0);built_once=true;

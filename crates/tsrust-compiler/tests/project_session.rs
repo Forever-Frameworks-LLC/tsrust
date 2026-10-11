@@ -68,3 +68,22 @@ fn cached_headers_resolve_retargeted_and_missing_dependencies_again() {
  assert_eq!(session.check(&FileSourceProvider,entry).unwrap().emit_rust(),original);
  assert_eq!(session.stats().headers_parsed,2);compare(&mut session,entry);
 }
+
+#[test]
+fn cached_cli_preserves_single_file_semantics_and_entry_changes() {
+ use tsrust_compiler::project_cli::{check_input,check_input_cached};
+ let dir=support::TempDirectory::new();let root=&dir.0;
+ write(root,"dep.tsr","export function value():int{return 3;}");
+ write(root,"main.tsr","import {value} from './dep.tsr';function main(){console.log(value());}");
+ write(root,"other.tsr","export function other():int{return 4;}");
+ let mut session=ProjectSession::default();
+ for name in ["main.tsr","other.tsr","main.tsr"] {
+  let path=root.join(name);let source=std::fs::read_to_string(&path).unwrap();
+  let cached=check_input_cached(&path,&source,&mut session).ok().unwrap();
+  assert_eq!(cached.emit_rust(),check_input(&path,&source).ok().unwrap().emit_rust());
+ }
+ write(root,"main.tsr","function main(){console.log(42);}");
+ let path=root.join("main.tsr");let source=std::fs::read_to_string(&path).unwrap();
+ assert_eq!(check_input_cached(&path,&source,&mut session).ok().unwrap().emit_rust(),check_input(&path,&source).ok().unwrap().emit_rust());
+ assert_eq!(session.stats().retained,0);assert_eq!(session.stats().headers_retained,0);
+}

@@ -11,8 +11,8 @@ Quiet default output, verbose phase timings, persistent validated native artifac
 private executable copies, shorter supervisor waits and reuse of unchanged source
 bytes are implemented. Last-good-program retention on failed builds is required.
 At the recorded baseline the watcher scanned directories and metadata. These
-improvements do not constitute incremental compilation: each build starts frontend checking afresh, and a
-fresh source version compiles the whole generated native program.
+improvements do not constitute incremental compilation: at that baseline each build started frontend checking afresh, and a
+fresh source version compiled the whole generated native program.
 
 ## Required implementation order and exit evidence
 
@@ -186,3 +186,27 @@ focused loader checks also pass for diamond graphs, invalid dependencies and tol
 editor headers. Evidence is stored as `tsrust-project-headers-*` in SQLite. This
 remains a library layer: persistent CLI worker integration, installed reuse and
 performance acceptance are still outstanding.
+
+
+## Persistent dev frontend worker
+
+Dev now owns one frontend thread and reuses its ProjectSession between builds.
+A bounded channel permits at most one queued request in addition to active work.
+Cancelled requests lose their response receiver; completed stale results cannot
+replace the running program. Native compilation remains a supervised child process
+group, cancelled on changes or shutdown. Diagnostics are checked against the current
+watcher snapshot before display. Type/ownership checking and Rust emission remain
+fresh. Single-file checking keeps its existing semantics and clears module caches.
+
+Five project CLI checks, five session checks and eight watcher/supervisor checks
+pass. The lifecycle witness first
+failed without reuse, then proves an unrelated module reuses syntax and two unchanged
+modules reuse headers after edits. It also covers failure recovery, keeping the last
+working process, and shutdown. Entry changes and switching to single-file source
+match clean checking. Records use `tsrust-dev-session-*` in SQLite.
+
+This checkpoint is not installed or measured acceptance. Frontend parsing itself is
+not preempted; obsolete responses are discarded and queued work is bounded. Next
+verify cancellation during builds and immutable source snapshots, then refresh
+consumers and measure the completed retained-state stage. Separate native runtime
+compilation, artifact eviction and Linux watcher execution remain required.

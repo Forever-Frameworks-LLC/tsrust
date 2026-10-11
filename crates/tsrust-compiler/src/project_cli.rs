@@ -35,6 +35,16 @@ pub fn check_input(path: &Path, source: &str) -> Result<CheckedInput, InputDiagn
             .map_err(InputDiagnostic::Single)
     }
 }
+/// Retain module parsing between dev checks while preserving single-file semantics.
+pub fn check_input_cached(path:&Path,source:&str,session:&mut crate::project_session::ProjectSession)->Result<CheckedInput,InputDiagnostic> {
+    if uses_modules(source).map_err(InputDiagnostic::Single)? || path.to_str().is_some_and(crate::project::is_test_entry) {
+        let path=path.to_str().ok_or_else(||InputDiagnostic::Single(Diagnostic::new("module-path","Source path must be valid UTF-8.",Span::default())))?;
+        session.check(&FileSourceProvider,path).map(CheckedInput::Project).map_err(InputDiagnostic::Project)
+    } else {
+        *session=crate::project_session::ProjectSession::default();
+        check(source).map(CheckedInput::Single).map_err(InputDiagnostic::Single)
+    }
+}
 /// Diagnostic checking shares strict successful analysis and collects parser errors.
 pub fn check_input_diagnostics(path: &Path, source: &str) -> Result<CheckedInput, Vec<InputDiagnostic>> {
     let module = uses_modules(source).map_err(|error| vec![InputDiagnostic::Single(error)])?
