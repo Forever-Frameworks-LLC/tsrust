@@ -18,7 +18,7 @@ impl Emitter<'_> {
         }else{None};
         let error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let returned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Return));
-        let body=self.map_field_phase_storage_completion_body(planned,body,declarations,id,error_name,contract.clone(),runtime,storage,places,true,true,normal,error,carrier.as_ref(),normal_fields);
+        let body=self.map_field_phase_storage_completion_body(planned,body,declarations,id,error_name,contract.clone(),runtime,storage,places,true,true,normal,error,carrier.as_ref(),normal_fields,&[]);
         let thrown=self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",error_name,contract,runtime,span,error);
         let legacy=self.map_layout_carried_cleanup_dispatch(fun,"legacy",error_name,contract,runtime,places,span,error);
         let legacy_error=error.map(|layout|self.map_error_storage_type(fun,places,layout)).unwrap_or_else(||storage.to_owned());

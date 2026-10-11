@@ -18768,10 +18768,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. A conditional cleanup return selects a different field and preserves it on normal continuation. Timing remains pending. Loop field returns include break, continue and normal fallthrough with cleanup trace. Body field returns, caught throws, handler field returns and normal continuation retain their cleanup traces.",
+      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. A conditional cleanup return selects a different field and preserves it on normal continuation. Timing remains pending. Loop field returns include break, continue and normal fallthrough with cleanup trace. Body field returns, caught throws, handler field returns and normal continuation retain their cleanup traces. The renewed Map path throws and is caught before cleanup; its trace verifies catch execution.",
       "specification": "Retain return values, cleanup trace and dynamic input text.",
-      "sourceSha256": "19eb12851745182bdc50d06deda736297449f245111e49850792445da619bd54",
-      "counterpartSha256": "4cd884b6f50b0f582a44dc45c36dd6fff5df62f02a7c0a9169d76f397ba176aa"
+      "sourceSha256": "0db41346034333207ad2af91a322b526306131f201ecbad5c52a3ffe542dc3a9",
+      "counterpartSha256": "24e29512d7a0eab4a7cafcc72a274e895a4f21ca55e0ca70a79635b13ed5e8d1"
     },
     {
       "id": "type_assertions",

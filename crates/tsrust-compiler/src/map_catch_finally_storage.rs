@@ -34,7 +34,22 @@ impl Emitter<'_> {
             let caught=exception_contract_emit::checked_catch_value("caught_error",&in_name,incoming,&unions,runtime,statement.span).expect("checked catch payload");
             format!("let {}value{binding}={caught};",if fun.bindings[binding].mutable{"mut "}else{""})
         }else{"drop(caught_error);".into()};
-        let field_plan=self.completion_field_plan(fun,statement,region);
+        let mut field_plan=self.completion_field_plan_inner(fun,statement,region,true);
+        let body_fields=field_plan.as_ref().and_then(|_|{
+            let mut fields=field_completion_transport::partial_places(fun,&region.body);
+            field_completion_transport::normalize(fun,statement.span.start,&mut fields);
+            use crate::analysis::MapCompletionPhase::Body;
+            Some((self.control_completion_fields(fun,boundary,Body,None,&fields)?,self.control_completion_fields(fun,boundary,Body,Some(crate::completion::CompletionKind::Throw),&fields)?))
+        });
+        if body_fields.is_none(){field_plan=None;}
+        let (body_normal_fields,body_error_fields)=body_fields.unwrap_or_default();
+        let body_values=field_plan.as_ref().map(|_|field_completion_transport::tuple(&body_normal_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>()));
+        let (body_pattern,body_restore)=if field_plan.is_some(){
+            let (fields,restore)=field_completion_transport::restoration(&body_normal_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>(),&format!("map_body_normal{first}"));(format!("(storage,{fields})"),restore)
+        }else{("storage".into(),String::new())};
+        let caught_names=body_error_fields.iter().enumerate().map(|(index,_)|format!("map_caught_field{first}_{index}")).collect::<Vec<_>>();
+        let caught_pattern=map_error_storage_emit::extend_tuple(&pattern,&caught_names);
+        let caught_restore=body_error_fields.iter().zip(&caught_names).map(|((field,_),value)|format!("{field}={value};")).collect::<String>();
         let input_fields=field_plan.as_ref().map(|plan|field_completion_transport::tuple(&plan.input_fields));
         let output_fields=field_plan.as_ref().map(|plan|field_completion_transport::tuple(&plan.output_fields));
         let (input_pattern,input_restore)=field_plan.as_ref().map_or_else(||(pattern.clone(),String::new()),|plan|{
@@ -66,9 +81,24 @@ impl Emitter<'_> {
             self.map_direct_return_route(carrier,&pattern,precise,first)
         });
         *self.inline_map_return.borrow_mut()=direct_return.clone();
-        let pending=self.map_field_phase_storage_completion_body(fun,&region.body,declarations,first,&in_name,incoming.clone(),runtime,&storage_type,&places,true,true,None,body_error,return_carrier.as_ref(),None);
+        let pending=self.map_field_phase_storage_completion_body(fun,&region.body,declarations,first,&in_name,incoming.clone(),runtime,&storage_type,&places,true,true,None,body_error,return_carrier.as_ref(),body_values.as_deref(),&body_error_fields);
         *self.inline_map_return.borrow_mut()=direct_return;
-        let handled=self.map_field_phase_storage_completion_body(fun,&handler.body,declarations,first+1,&out_name,outgoing.clone(),runtime,&storage_type,&places,handler_throws,true,None,handler_error,return_carrier.as_ref(),input_fields.as_deref());
+        let handled=self.map_field_phase_storage_completion_body(fun,&handler.body,declarations,first+1,&out_name,outgoing.clone(),runtime,&storage_type,&places,handler_throws,true,None,handler_error,return_carrier.as_ref(),input_fields.as_deref(),&[]);
+        // An empty handler has no statement input epoch. Project its caught
+        // owners explicitly into the normal cleanup representation.
+        let handled=if handler.body.is_empty(){
+            let caught=places.iter().map(|place|{
+                let (binding,fields)=self.map_storage_binding(fun,place).expect("caught Map place");
+                let key=crate::capture_loan_owners::Place{binding,fields:fields.clone()};
+                let target=self.map_storage_leaf_type(fun.bindings[binding].ty,&fields).expect("caught Map type");
+                let source=body_error.and_then(|layout|layout.get(&key)).copied().unwrap_or(target);
+                let value=self.map_typed_storage_leaf_value(place,None,Some(source),target);
+                value.live.unwrap_or(value.place)
+            }).collect::<Vec<_>>();
+            let values=field_completion_transport::tuple(&caught);
+            let values=input_fields.as_ref().map_or_else(||values.clone(),|fields|format!("({values},{fields})"));
+            format!("TsrCompletion::<_,{},{out_name}>::Normal({values})",return_carrier.as_ref().map_or_else(||format!("(TsrStorageExit<{}>,{storage_type})",self.native_type(fun.result)),|carrier|carrier.native.clone()))
+        }else{handled};
         let handler_split=format!("{{let completed={handled};match completed{{{normal_arm},{handler_throw},{return_arm},{impossible}}}}}");
         let body_split=format!("{{let completed={pending};match completed{{{normal_arm},TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{return_arm},{impossible}}}}}");
         let error_storage=handler_error.map(|layout|self.map_error_storage_type(fun,&places,layout)).unwrap_or_else(||storage_type.clone());
@@ -83,10 +113,12 @@ impl Emitter<'_> {
             let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
             self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
         }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
-        // The throwing body never transfers these fields. Carry them only
-        // after selecting its Normal arm, so catch can still consume them.
+        // Each selected path restores its own fields before entering handler or cleanup.
         let body_normal=input_fields.as_ref().map_or_else(||"storage".to_owned(),|fields|format!("(storage,{fields})"));
-        let joined=format!("{{let (body_normal,body_error,body_control)={{let {pattern}={values};{body_split}}};let owners:(Option<_>,Option<({out_name},{error_storage})>,Option<{control_type}>)=if body_normal.is_some(){{let storage=body_normal.unwrap();drop(body_error);drop(body_control);(Some({body_normal}),None,None)}}else{{drop(body_normal);if body_error.is_some(){{let (caught_error,{pattern})=body_error.unwrap();drop(body_control);{setup}{handler_split}}}else{{drop(body_error);(None,None,body_control)}}}};owners}}");
+        let body_normal_select=if fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Body,None){
+            format!("let {body_pattern}=body_normal.unwrap();{body_restore}drop(body_error);drop(body_control);(Some({body_normal}),None,None)")
+        }else{"unreachable!(\"no normal Map body completion\")".into()};
+        let joined=format!("{{let (body_normal,body_error,body_control)={{let {pattern}={values};{body_split}}};let owners:(Option<_>,Option<({out_name},{error_storage})>,Option<{control_type}>)=if body_normal.is_some(){{{body_normal_select}}}else{{drop(body_normal);if body_error.is_some(){{let (caught_error,{caught_pattern})=body_error.unwrap();{caught_restore}drop(body_control);{setup}{handler_split}}}else{{drop(body_error);(None,None,body_control)}}}};owners}}");
         let indent="    ".repeat(depth);
         let _=writeln!(output,"{indent}{in_decl}{out_decl}{cleanup_decl}{carrier_declaration}let {output_pattern}={{let (normal_owner,error_owner,control_owner)={joined};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending cleanup owner\")}}}}}}}};{output_restore}");
         let boundary=places.iter().flat_map(|place|[self.map_storage_transfer_at_exit(fun,&region.body,place),self.map_storage_transfer_at_exit(fun,&handler.body,place),self.map_storage_transfer_at_exit(fun,cleanup,place)]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);

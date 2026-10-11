@@ -6,7 +6,7 @@ export function expectedExceptionCompletionValues(id,n,seed,input){
  const output=[];
  for(let i=0;i<n;i++){
   const value=(i*13+seed)%97;
-  output.push([String(value+(value%3===0?2:1)),String(value+4),String(value)+",7,11,"+String(value%2===0?4:8)+(value%4<2?",20":",20,21")+(value%3===0?",31":value%3===1?",30,31":",29,31"),value%2===0&&value%3!==0?input+String(value):"alternate"]);
+  output.push([String(value+(value%3===0?2:1)),String(value+4),String(value)+",7,11,"+(value%2===0?"4":"32,8")+(value%4<2?",20":",20,21")+(value%3===0?",31":value%3===1?",30,31":",29,31"),value%2===0&&value%3!==0?input+String(value):"alternate"]);
  }
  return output;
 }

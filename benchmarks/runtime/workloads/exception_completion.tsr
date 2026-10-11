@@ -73,6 +73,9 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
     handlers.set("new", {
       run: (): int => current[0]
     });
+    throw 32;
+  } catch (error) {
+    trace.push(32);
   } finally {
     const item = handlers.get(early ? "old" : "new");
     if (item !== undefined) {

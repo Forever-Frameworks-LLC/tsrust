@@ -591,3 +591,36 @@ Final formatter corpus and rebuilt release assertion fixture pass. Whole-project
 formatting changes zero files/fingerprints. Five native/Node-after-tsc cases agree
 in SQLite `runtime/results/2026-10-11T04-57-25-403Z-verify.json`; verifiedOnly is true
 and execution is empty. This remains untimed correctness evidence.
+
+
+### Map body field returns through catch
+
+The previously ignored Map body-return/catch witness is enabled. Surviving ordinary
+fields accompany the body's error and normal payloads, independently of concrete
+Map callback owners. Selecting either path restores its fields before the handler
+or cleanup. An empty handler projects its caught callback owner into the normal
+cleanup representation explicitly; it has no statement input epoch to provide that
+conversion. Body-local disposal now precedes cleanup, and returned allocation
+identity is unchanged. O0/O3 witnesses also cover nonempty handlers and handler
+field returns. Integration coverage includes normal fallthrough and cleanup replacing
+a pending return with another field.
+
+Focused results: 59 finally unit tests pass with none ignored; 21 exception-handling,
+26 return-move (25 existing plus the new focused case), 4 generic-call exception and
+3 native-region tests pass. Whole-project formatting and the formatter corpus pass.
+The public callback fixture and matched workload now throw after renewing the Map,
+then record the catch before invoking the callback in cleanup. The independent
+closed-form oracle, TypeScript counterpart, mutation guards and source hashes reflect
+that behavior; all 3 registration tests pass. Iterations, operation units and timing
+protocols are unchanged. No editor behavior changed; no full regression or timing ran.
+
+Same-region catch/control combinations, nested Map error forwarding with ordinary
+fields, and specialized/captured layouts still require coverage. Gate 190, resource
+acceptance and S07 remain open. Installed consumers remain at `4367f4cc`; scratch
+release includes this repair. Exact records use SQLite prefix `tsrust-map-catch-fields-`.
+
+Final verification: 17 scoped-record finally tests pass. The rebuilt release passes
+the public assertion fixture. Five native/Node-after-tsc correctness cases agree in
+SQLite `runtime/results/2026-10-11T05-08-30-353Z-verify.json`; `verifiedOnly` is true
+and `execution` is empty. This is untimed evidence. Whole-project formatting changes
+zero files and fingerprints.

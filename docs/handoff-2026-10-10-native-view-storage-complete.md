@@ -82,21 +82,27 @@ needed, preventing loss of initialization proof across alternatives. Impossible
 normal completion arms diverge. Body/handler returns, nested cleanup replacement
 and caught loop exits now pass focused native/integration checks.
 
-Remaining ignored native witness:
-`map_body_field_return_and_catch_keep_lexical_disposal`. It returns a field on one
-body path, renews a Map callback and throws on another, then catches before cleanup.
-The return path still disposes the body local too late. Map completion carriers need
-surviving fields on their error and normal paths while preserving concrete callback
-owners. `completion_field_plan` still keeps the body-transfer/catch guard for Map
-callers; ordinary field emission uses the new opt-in path. Do not just remove the
-Map guard without extending its payloads. Same-region catch/control combinations
-and specialized/captured layouts still need coverage. Do not accept resources yet.
+The Map body-return/catch disposal witness is now enabled. Map body error payloads
+carry surviving ordinary fields beside their precisely typed callback owners; normal
+payloads carry their own fields. Each selected alternative restores fields before
+catch or cleanup. Empty handlers explicitly project the caught callback type into
+the normal cleanup representation, since they have no statement input epoch.
+Body scopes end before cleanup on all covered paths, without cloning returned data.
+Native O0/O3 witnesses cover empty and nonempty handlers and handler field returns.
+A four-mode integration case covers early return, handler return, caught continuation,
+normal fallthrough and cleanup replacing a return with another field.
+
+Same-region catch/control combinations, nested Map error forwarding with ordinary
+field payloads, and specialized/captured layouts still need coverage. The generic
+Map outgoing-storage projector still assumes Map destinations; do not claim those
+combinations accepted from this direct catch repair. Do not accept resources yet.
 
 Public fixtures and matched `exception_completion` now exercise body field returns,
 caught throws, handler field returns and normal continuation, in addition to loops
 and Map cleanup. Matched TypeScript, independent closed-form oracle, mutation guards
-and hashes are current. Exact red/repaired records use SQLite prefix
-`tsrust-field-catch-`. A discarded test variant correctly failed ownership checking:
+and hashes are current. Latest Map repair records use SQLite prefix
+`tsrust-map-catch-fields-`. The matched Map path now throws and records its catch
+before cleanup; the independent oracle, guards and fingerprints include that trace. A discarded test variant correctly failed ownership checking:
 fallible logging in inner cleanup could throw after the field had already moved.
 The final replacement tests keep that inner cleanup infallible.
 

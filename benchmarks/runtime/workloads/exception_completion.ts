@@ -29,6 +29,9 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: number[]): str
     if (early) { return value.text; }
     handlers.clear();
     handlers.set("new", {run: (): number => current[0]});
+    throw 32;
+  } catch (error) {
+    trace.push(32);
   } finally {
     const item = handlers.get(early ? "old" : "new");
     if (item !== undefined) { trace.push(item.run() + value.stamp); }

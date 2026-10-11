@@ -227,3 +227,11 @@ fn caught_loop_error_payload_survives_field_return_replacement() {
         "left right left\n",
     );
 }
+
+#[test]
+fn map_body_return_catch_and_normal_paths_preserve_field_owners() {
+    runs(
+        "type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,mode:int):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{if(mode===0){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});if(mode<3){throw 7;}}catch(error){if(mode===1){return a.name;}}finally{const item=handlers.get(mode===0?\"old\":\"new\");if(item!==undefined){console.log(item.run(),a.other);}if(mode===2){return a.other;}}return a.name;}function main(){for(let mode=0;mode<4;mode+=1){console.log(pick({name:\"left\",other:\"right\"},mode));}}",
+        "3 right\nleft\n7 right\nleft\n7 right\nright\n7 right\nleft\n",
+    );
+}

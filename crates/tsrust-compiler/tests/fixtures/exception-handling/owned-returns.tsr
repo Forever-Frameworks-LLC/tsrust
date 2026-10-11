@@ -41,6 +41,9 @@ function takeWithCallbacks(row: Row, early: boolean, trace: int[]): string {
     handlers.set("new", {
       run: (): int => current[0]
     });
+    throw 32;
+  } catch (error) {
+    trace.push(32);
   } finally {
     const item = handlers.get(early ? "old" : "new");
     if (item !== undefined) {
@@ -126,7 +129,7 @@ function main() {
   strictEqual(takeWithCallbacks({
     name: "second", other: "two"
   }, false, callbackTrace), "second");
-  strictEqual(callbackTrace.join(","), "3,7");
+  strictEqual(callbackTrace.join(","), "3,32,7");
   strictEqual(selectWithCleanup({
     name: "left", other: "right"
   }, true, false), "left");

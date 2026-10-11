@@ -97,7 +97,7 @@ impl Emitter<'_> {
     pub(super) fn completion_field_plan(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion)->Option<FieldPlan> {
         self.completion_field_plan_inner(fun,statement,region,false)
     }
-    fn completion_field_plan_inner(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,allow_catch_transfers:bool)->Option<FieldPlan> {
+    pub(super) fn completion_field_plan_inner(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,allow_catch_transfers:bool)->Option<FieldPlan> {
         let cleanup=region.finally.as_ref()?;
         let catch=region.catch.as_ref().filter(|handler|handler.error_contract.as_ref().is_some_and(|errors|errors.runtime || errors.opaque || !errors.explicit.is_empty()));
         // Control exits need their own surviving-field payloads.

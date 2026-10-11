@@ -30,7 +30,8 @@ impl Emitter<'_> {
             self.native_type(ty)
         }).collect::<Vec<_>>().join(","))
     }
-    pub(super) fn attach_map_error_storage(&self,fun:&CheckedFunction,body:&[Stmt],places:&[String],layout:&Layout) {
+    pub(super) fn attach_map_error_storage(&self,fun:&CheckedFunction,body:&[Stmt],places:&[String],layout:&Layout,fields:&[(String,Type)]) {
+        let extra=fields.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect::<Vec<_>>();
         let value=|place:&str,start:usize,point:Option<(usize,usize)>| {
             let (binding,fields)=self.map_storage_binding(fun,place).expect("checked Map storage");
             let target=layout.get(&crate::capture_loan_owners::Place{binding,fields:fields.clone()}).copied().unwrap_or_else(||self.map_storage_leaf_type(fun.bindings[binding].ty,&fields).expect("checked Map path"));
@@ -38,10 +39,14 @@ impl Emitter<'_> {
             let input=Some(fun.storage_exits.map_native_input(start,binding).unwrap_or(fun.bindings[binding].ty)).and_then(|root|self.map_storage_leaf_type(root,&fields));
             self.map_typed_storage_leaf_value(place,transferred,input,target)
         };
-        let points=fun.storage_exits.starts().map(|start|(start,places.iter().map(|place|value(place,start,None)).collect())).collect();
-        let expressions=fun.storage_exits.expression_points().map(|point|(point,places.iter().map(|place|value(place,point.0,Some(point))).collect())).collect();
+        let points=fun.storage_exits.starts().map(|start|(start,places.iter().map(|place|value(place,start,None)).chain(extra.iter().cloned()).collect())).collect();
+        let expressions=fun.storage_exits.expression_points().map(|point|(point,places.iter().map(|place|value(place,point.0,Some(point))).chain(extra.iter().cloned()).collect())).collect();
         let boundary=body.first().map_or(0,|statement|statement.span.start);
-        let initial=places.iter().map(|place|value(place,boundary,None)).collect();
+        let initial=places.iter().map(|place|value(place,boundary,None)).chain(extra.iter().cloned()).collect();
         self.exception_regions.attach_error_storage(initial,points,expressions);
     }
+}
+
+pub(super) fn extend_tuple(base:&str,fields:&[String])->String {
+    if fields.is_empty(){base.into()}else{format!("{}{},)",base.strip_suffix(')').expect("native storage tuple"),fields.join(","))}
 }
