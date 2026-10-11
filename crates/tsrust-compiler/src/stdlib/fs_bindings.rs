@@ -51,3 +51,23 @@ pub const WRITE_FILE: NativeBinding = NativeBinding {
         NativeParameter { name: "bytes", ty: NativeType::Structured(&Signature::Named(NativeTypeId::Bytes)), access: Mode::Read, optional: false, rest: false },
     ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_write_file" }, ..WRITE_ALL
 };
+
+
+pub const BUFFER_READER: NativeBinding = NativeBinding {
+    name: "bufferReader", parameters: &[
+        NativeParameter { name: "file", ty: NativeType::Structured(&Signature::Named(NativeTypeId::File)), access: Mode::Consume, optional: false, rest: false },
+        NativeParameter { name: "capacity", ty: NativeType::Int, access: Mode::Copy, optional: true, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::BufferedReader), &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_buffer_reader" }, ..OPEN
+};
+pub const BUFFER_WRITER: NativeBinding = NativeBinding {
+    name: "bufferWriter",
+    result: NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::BufferedWriter), &Signature::Named(NativeTypeId::FsError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_buffer_writer" }, ..BUFFER_READER
+};
+pub const FLUSH: NativeBinding = NativeBinding {
+    name: "flush", parameters: &[
+        NativeParameter { name: "writer", ty: NativeType::Structured(&Signature::Named(NativeTypeId::BufferedWriter)), access: Mode::Mutate, optional: false, rest: false },
+    ], backend: NativeBackend::Bundled { symbol: "tsrust_std_fs_flush" }, ..CLOSE
+};

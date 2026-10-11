@@ -68,6 +68,8 @@ static FILE: Declaration = Declaration {
     representation: Representation::Opaque, independent_clone: false,
     collection_key: false, thread_transfer: false, fields: &[], capabilities: &[],
 };
+static BUFFERED_READER: Declaration = Declaration { id: NativeTypeId::BufferedReader, name: "BufferedReader", ..FILE };
+static BUFFERED_WRITER: Declaration = Declaration { id: NativeTypeId::BufferedWriter, name: "BufferedWriter", ..FILE };
 static FS_ERROR: Declaration = Declaration {
     id: NativeTypeId::FsError, module: "std:fs", name: "FsError",
     type_parameters: &[],
@@ -164,6 +166,8 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::ByteView => &BYTE_VIEW,
         NativeTypeId::ByteViewMut => &BYTE_VIEW_MUT,
         NativeTypeId::File => &FILE,
+        NativeTypeId::BufferedReader => &BUFFERED_READER,
+        NativeTypeId::BufferedWriter => &BUFFERED_WRITER,
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::Deque => &DEQUE,
         NativeTypeId::OrderedMap => &ORDERED_MAP,
@@ -175,7 +179,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

@@ -64,7 +64,15 @@ impl NativeBinding {
     /// A byte observer reads any readable byte storage; a byte mutator writes any
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
-        use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut};
+        use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut, BufferedReader, BufferedWriter};
+        if self.module == "std:fs" && position == 0 {
+            match self.name {
+                "read" => return &[BufferedReader],
+                "write" | "writeAll" => return &[BufferedWriter],
+                "close" => return &[BufferedReader, BufferedWriter],
+                _ => {},
+            }
+        }
         if self.module == "std:fs" && position == 1 && matches!(self.name, "write" | "writeAll" | "writeFile") {
             return &[ByteView, ByteViewMut];
         }
@@ -88,6 +96,9 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::fs_bindings::BUFFER_READER,
+    crate::stdlib::fs_bindings::BUFFER_WRITER,
+    crate::stdlib::fs_bindings::FLUSH,
     crate::stdlib::fs_bindings::OPEN,
     crate::stdlib::fs_bindings::CREATE,
     crate::stdlib::fs_bindings::READ_FILE,

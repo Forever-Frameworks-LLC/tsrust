@@ -28,7 +28,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
     assert!(hover.to_string().contains("consumed even when close fails"), "{hover}");
     assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
     let help = ask(&index, &entry, "file, 4", "textDocument/signatureHelp");
-    assert!(help.to_string().contains("Mutable<File>") && help.to_string().contains("67108864"), "{help}");
+    assert!(help.to_string().contains("Mutable<File | BufferedReader>") && help.to_string().contains("67108864"), "{help}");
     let hover = ask(&index, &entry, "error.osCode", "textDocument/hover");
     assert!(!hover.is_null());
     let importing = "import { F } from 'std:fs';function main(){}";
@@ -1881,4 +1881,15 @@ fn full_file_helpers_document_limits_defaults_and_view_inputs() {
  assert!(help.to_string().contains("67108864")&&help.to_string().contains("maxBytes"),"{help}");
  let hover=ask(&index,&entry,"writeFile(","textDocument/hover");
  assert!(hover.to_string().contains("ByteViewMut")&&hover.to_string().contains("before the destination changes"),"{hover}");
+}
+
+#[test]
+fn buffered_file_help_documents_transfer_capacity_and_retry() {
+ let entry=tsrust_compiler::format("import {File,BufferedWriter,bufferWriter,flush,writeAll} from 'std:fs';import {ByteView} from 'std:bytes';function make(file:File){bufferWriter(file,8);}function save(writer:Mutable<BufferedWriter>,bytes:ReadOnly<ByteView>){writeAll(writer,bytes);flush(writer);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let help=ask(&index,&entry,"8);","textDocument/signatureHelp");
+ for phrase in ["8192","1048576","Consumed"] {assert!(help.to_string().contains(phrase),"{help}");}
+ let help=ask(&index,&entry,"writer, bytes","textDocument/signatureHelp");assert!(help.to_string().contains("BufferedWriter"),"{help}");
+ let hover=ask(&index,&entry,"flush(writer","textDocument/hover");assert!(hover.to_string().contains("unwritten suffix"),"{hover}");
 }
