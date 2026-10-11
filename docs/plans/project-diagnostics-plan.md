@@ -266,3 +266,34 @@ Evidence: `tsrust-workspace-scan-cost-89664eba.log`, `tsrust-scan-cache-red.log`
 `tsrust-scan-cache-worker.log`, `tsrust-scan-cache-protocol-cost.log`,
 `tsrust-scan-cache-release-protocol-cost.log`, `tsrust-scan-cache-release-build.log`
 and the executable observation script `tsrust-scan-probe.py` in SQLite.
+
+## Accepted installed behavior
+
+The optimized language server from `3d52a75a` is installed at both existing
+configured LSP consumer paths (their `debug` directory name is retained for local
+settings compatibility). The active VS Code server was restarted. A new unopened
+main-free probe showed both type errors; deleting it cleared both. The Problems
+filter was restored afterward. CLI consumers retain the verified compiler from
+`89664eba`; the cache change only affects the language server.
+
+Workspace discovery also exposed an old benchmark callback annotation that lacked
+explicit mutable access. Its current Function contract now passes a permanent
+native/formatted-source regression and matches all seven literal expected lines
+under Node after tsc. The Node-only iterable-spread adaptation is now `.ts` and its
+Node assertions pass. Historical evidence paths remain unchanged. The 11 remaining
+workspace diagnostics come from deliberate closure/ownership rejection fixtures;
+ordinary users do not need a main function to check source files.
+
+The diagnostics milestone is accepted on macOS with the full-run provenance and
+bounded recovery limitations documented above. Configuration/scaffolding remain
+future work. Continue with S09 synchronous host APIs; no S09 implementation is
+claimed here. Runtime benchmark measurements from S08 remain unchanged.
+
+Final installed and fixture evidence is stored as `tsrust-scan-cache-installed-3d52a75a.log`,
+`tsrust-project-fixture-cleanup-red.log`, `tsrust-project-fixture-cleanup-green.log`,
+`tsrust-project-fixture-node.log`, `tsrust-project-fixture-node-tsc.log` and
+`tsrust-project-diagnostics-acceptance-format.log`. The first generic Node runner
+invocation called main twice because this TypeScript witness already calls main;
+its original output is retained as `tsrust-project-fixture-node-source-order.log`.
+The successful comparison compiles the original TypeScript source with tsc and
+runs its emitted JavaScript exactly once. No expected output was weakened.

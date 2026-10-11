@@ -526,3 +526,12 @@ fn nullable_borrowed_defaults_keep_source_loan_and_escape_restrictions() {
         assert_eq!((error.span.start,error.span.end),(start,start+6));
     }
 }
+
+#[test]
+fn benchmark_source_order_witness_uses_current_callable_contracts() {
+    support::execute(
+        include_str!("../../../benchmarks/runtime/optional-default-parameter-source-order.tsr"),
+        include_str!("../../../benchmarks/runtime/optional-default-parameter-source-order-expected.txt"),
+        None,
+    );
+}

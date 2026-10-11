@@ -12,7 +12,7 @@ function apply(trace: Trace, first: int = mark(trace, "a", 10), second: int = ma
   return first + second;
 }
 
-function choose(trace: Trace, argumentTrace: Trace): (trace: Trace, first?: int, second?: int) => int {
+function choose(trace: Trace, argumentTrace: Trace): Function<int, [trace: Mutable<Trace>, first?: int, second?: int]> {
   trace.events += argumentTrace.events === "" ? "callee" : "late";
   return apply;
 }
