@@ -12,8 +12,8 @@ const row = JSON.parse(read('./manifest.json')).workloads.find(row => row.id ===
 test('Deep deque clone keeps independent nested storage and matched observations', () => {
   assert.ok(row);
   assert.equal(reportCategory(row.id),'collections');
-  assert.equal(row.measured, false);
-  assert.equal(row.measurementStatus, 'pending-collections-family');
+  assert.equal(row.measured, true);
+  assert.equal(row.measurementStatus, 'measured-collections-family');
   for (const [kind, file] of [['native',row.source],['typescript',row.counterpart]]) {
     const source = read('./'+file);
     assertCollectionSource(source,row,kind);
@@ -42,7 +42,7 @@ test('Timing and allocation runners guard and fingerprint collection contracts',
 
 test('Heap reference preserves ordering, cloning and independent arithmetic', () => {
   const heap=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_heap');
-  assert.ok(heap);assert.equal(heap.measured,false);assert.equal(reportCategory(heap.id),'collections');
+  assert.ok(heap);assert.equal(heap.measured, true);assert.equal(reportCategory(heap.id),'collections');
   for(const [kind,file,guard] of [['native',heap.source,'const copied=clone(values);'],['typescript',heap.counterpart,'values.sort((a,b)=>a-b);']]) {
     const source=read('./'+file);assertCollectionSource(source,heap,kind);
     const changed=replaceCodeSnippet(source,guard,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';
@@ -58,7 +58,7 @@ test('Heap reference preserves ordering, cloning and independent arithmetic', ()
 
 test('Ordered set compares sorted unique values against arithmetic observations',()=>{
  const tree=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_ordered_set');
- assert.ok(tree);assert.equal(tree.measured,false);assert.equal(reportCategory(tree.id),'collections');
+ assert.ok(tree);assert.equal(tree.measured, true);assert.equal(reportCategory(tree.id),'collections');
  for(const [kind,file,guard] of [['native',tree.source,'values.add((i+seed)%256);'],['typescript',tree.counterpart,'const copied=new Set(values);']]){
   const source=read('./'+file);assertCollectionSource(source,tree,kind);
   const changed=replaceCodeSnippet(source,guard,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';assert.throws(()=>assertCollectionSource(changed,{...tree,[key]:createHash('sha256').update(changed).digest('hex')},kind),/Collection scenario/);
@@ -70,7 +70,7 @@ test('Ordered set compares sorted unique values against arithmetic observations'
 
 test('Ordered map compares replacements and ordered entries with arithmetic observations',()=>{
  const tree=JSON.parse(read('./manifest.json')).workloads.find(row=>row.id==='native_ordered_map');
- assert.ok(tree);assert.equal(tree.measured,false);assert.equal(reportCategory(tree.id),'collections');
+ assert.ok(tree);assert.equal(tree.measured, true);assert.equal(reportCategory(tree.id),'collections');
  for(const [kind,file,guard] of [['native',tree.source,'values.set((i+seed)%256,999);'],['typescript',tree.counterpart,'const copied=new Map(values);']]){
   const source=read('./'+file);assertCollectionSource(source,tree,kind);
   const changed=replaceCodeSnippet(source,guard,'');const key=kind==='native'?'sourceSha256':'counterpartSha256';assert.throws(()=>assertCollectionSource(changed,{...tree,[key]:createHash('sha256').update(changed).digest('hex')},kind),/Collection scenario/);

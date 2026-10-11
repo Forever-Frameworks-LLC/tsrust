@@ -8,7 +8,7 @@ import {reportCategory} from './report.mjs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const row=JSON.parse(read('./manifest.json')).workloads.find(x=>x.id==='string_iteration');
 test('maps retain matched sources, independent oracle and runtime hooks',()=>{
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'strings');
+ assert.equal(row.measured, true);assert.equal(reportCategory(row.id),'strings');
  for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+name);assertStringIterationSource(source,row,kind);
   assert.throws(()=>assertStringIterationSource(source+' ',row,kind));

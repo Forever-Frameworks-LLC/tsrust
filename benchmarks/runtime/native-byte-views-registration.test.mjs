@@ -171,8 +171,8 @@ test('Mutable recursive parameters retain replacement captures and the empty lea
 test('Map view transport has matched sources and an independent arithmetic oracle', () => {
     const row=manifest.workloads.find(row=>row.id==='native_byte_views_maps');
     assert.ok(row);
-    assert.equal(row.measured,false);
-    assert.equal(row.measurementStatus,'pending-collections-family');
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus,'measured-collections-family');
     assert.equal(reportCategory(row.id),'bytes');
     for (const [kind,file] of [['native',row.source],['typescript',row.counterpart]]) {
         const source=read('./'+file);
@@ -188,7 +188,7 @@ test('Map view transport has matched sources and an independent arithmetic oracl
 test('Deque view workload uses feature paths, real removals and independent observations', () => {
     const row = manifest.workloads.find(value => value.id === 'native_byte_views_deque');
     assert.ok(row);
-    assert.equal(row.measured, false);
+    assert.equal(row.measured, true);
     assert.equal(row.source, 'workloads/collections/deque-views.tsr');
     for (const [kind, file, required] of [
         ['native', row.source, 'values.clear();'],
@@ -211,8 +211,8 @@ test('Deque view workload uses feature paths, real removals and independent obse
 test('Deque callbacks retain captures, invocation and independent observations', () => {
     const row = manifest.workloads.find(value => value.id === 'native_byte_views_deque_callbacks');
     assert.ok(row);
-    assert.equal(row.measured, false);
-    assert.equal(row.measurementStatus, 'pending-collections-family');
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-collections-family');
     assert.equal(row.source, 'workloads/collections/deque-callbacks.tsr');
     for (const [kind, file] of [['native', row.source], ['typescript', row.counterpart]]) {
         const source = read('./' + file);
