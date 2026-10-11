@@ -62,6 +62,7 @@ pub mod project;
 pub mod project_resolution;
 mod data_module;
 mod data_shape;
+mod data_lowering;
 pub mod project_session;
 pub mod project_cli;
 pub mod source_discovery;

@@ -279,3 +279,19 @@ these checks, optional fields and union tags in the subsequent integration.
 Focused inference witnesses and their failing precursors are retained as
 `tsrust-data-shape-*` in SQLite. This remains internal groundwork, not public
 data-import acceptance or a performance measurement.
+
+
+## Checked data declaration and value projection
+
+The internal lowering pass constructs ordinary record declarations, structured
+array/union annotations and value AST nodes directly from validated data. It
+preserves property and value spans, adds `undefined` to optional fields, selects
+numeric expressions after precision validation, and uses compiler-owned record
+identities. It does not generate executable source text or a top-level initializer.
+
+Focused witnesses run the resulting AST through ordinary analysis and native
+emission, check missing-field rejection, and observe nested records, optional
+fields, mixed unions, nullable values and nested arrays. The fixture source is
+formatted and checked for idempotence before AST insertion. Evidence is retained
+as `tsrust-data-lowering-*` in SQLite. Import storage, module graph integration,
+editor integration and public acceptance remain pending.
