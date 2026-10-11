@@ -2,7 +2,7 @@
 
 An experimental TypeScript-familiar language with inferred ownership and native compilation through Rust. The name, extension, syntax subset, and ownership rules remain provisional.
 
-Source files use `.tsr`. The compiler is written in Rust. Its reusable analysis library handles parsing, type checking, ownership inference, diagnostics, and Rust generation. The CLI invokes `rustc` only when building native executables. The Rust language server in `crates/tsrust-lsp` shares this library; its [VS Code extension](./editors/vscode/README.md) supplies highlighting, project-wide diagnostics and IntelliSense, including unsaved source and dependencies.
+Source files use `.tsr`. The compiler is written in Rust. Its reusable analysis library handles parsing, type checking, ownership inference, diagnostics, and Rust generation. The CLI invokes the pinned Rust backend when building native executables and supplies bundled dependency sources when required. The Rust language server in `crates/tsrust-lsp` shares this library; its [VS Code extension](./editors/vscode/README.md) supplies highlighting, project-wide diagnostics and IntelliSense, including unsaved source and dependencies.
 
 `main` is optional. Files containing only declarations, and empty files, can be
 checked, built and run. Running without `main` exits successfully without calling
@@ -123,7 +123,7 @@ The [local extension setup](./editors/vscode/README.md) covers building `tsrust-
 
 ## Try the ownership prototype
 
-Requirements: Rustup with Rust 1.96.1, rustfmt, and Clippy installed. The workspace pins that release. The compiler crate has no external dependencies; the language-server crate adds pinned protocol/JSON dependencies. Run `cargo fetch --locked` once to populate them before offline workspace builds. `tsrust check/emit` need no external compiler; native `build/run` commands explicitly select Rust 1.96.1 through Rustup. See the [setup and upgrade policy](./docs/rust-toolchain-policy.md).
+Requirements: Rustup with Rust 1.96.1, rustfmt, and Clippy installed. The workspace pins that release. The workspace lockfile pins compiler and language-server dependencies, including the source bundle used by native JSON programs. Run `cargo fetch --locked` once to populate them before offline workspace builds. `tsrust check/emit` need no external compiler; native `build/run` commands explicitly select Rust 1.96.1 through Rustup. See the [setup and upgrade policy](./docs/rust-toolchain-policy.md).
 
 Run these commands from the project root:
 
@@ -144,6 +144,23 @@ To inspect generated Rust or create a native executable:
 /tmp/tsrust-demo
 ./target/debug/tsrust build crates/tsrust-compiler/tests/fixtures/ownership/read_reuse.tsr --release -o /tmp/tsrust-demo-release
 ```
+
+To distribute generated source, export a standalone Cargo package:
+
+```sh
+tsrust emit src/main.tsr --package -o exported
+cd exported
+cargo build --offline --locked --release
+./target/release/program
+```
+
+The destination must not exist; its parent directory must already exist. The
+package includes generated Rust, a lockfile, the pinned toolchain declaration,
+and any required dependency sources with their licenses. It can be moved away
+from the original project and compiler. Rust 1.96.1 must already be installed
+for an offline build. No manual library paths or `--extern` flags are needed.
+Plain programs omit the dependency bundle. Regular `emit` still prints Rust
+for inspection; use `--package` when distributing JSON-dependent source.
 
 `build` and `run` use an unoptimized backend by default for faster development builds. Add `--release` to compile generated Rust at optimization level 3, matching the runtime benchmarks. Both profiles enable overflow checks and retain source-level arithmetic and bounds diagnostics. Building the compiler itself with `cargo build --release` does not select the generated program's profile; pass `--release` to `tsrust` separately.
 

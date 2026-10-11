@@ -348,3 +348,26 @@ retained alongside the repaired evidence. This is source implementation progress
 not S10 acceptance or timing evidence. Borrowed-reader public adapters, public
 writer APIs, direct typed streaming, matched benchmark registration and installed
 CLI acceptance remain pending, along with the other S10 requirements above.
+
+
+## Standalone native source export
+
+`tsrust emit input.tsr --package -o new-directory` exports a relocatable Cargo
+package. It includes generated Rust, the exact lockfile, Rust 1.96.1 selection,
+checked-overflow profiles and, for JSON programs, the embedded source dependency
+closure with checksums/licenses and relative offline Cargo configuration. Plain
+programs do not receive unused vendored dependencies. Normal emit remains useful
+for inspecting Rust; package export is the distribution path for JSON programs.
+
+Export performs no build or network request. Existing directories/files/symlinks
+are refused before mutation; failures after a successful directory creation clean
+up only the newly created tree. A recipient runs Cargo from the package directory
+with the pinned toolchain already installed. No repository, original Tsrust source,
+registry cache or manual extern/library paths are required.
+
+Focused package evidence (`tsrust-s10-package-*` in SQLite) relocates the export,
+removes the original source and compiles/runs both debug and release using an empty
+Cargo home and offline/locked Cargo. It also covers optional main, dependency-free
+packages, protected existing output and symlink destinations, invalid CLI options,
+and the existing bundled-dependency checks. Benchmark harness integration and
+installed consumer acceptance remain separate pending work.

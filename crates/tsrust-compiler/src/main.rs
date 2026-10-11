@@ -1,5 +1,6 @@
 mod dev_cli;
 mod runtime_build;
+mod package_export;
 mod native_dependency_bundle;
 #[cfg(unix)]
 mod dev_frontend;
@@ -34,7 +35,7 @@ Commands:
   new      Create a project with source, tests and configuration
   check    Check files/directories recursively; defaults to the current directory
   format   Format all .tsr project files; one explicit file prints source
-  emit     Emit Rust source
+  emit     Emit Rust source or a standalone Cargo package
   build    Build a native executable using config output or -o
   run      Build and run a program
   test     Discover and run .test.tsr / .spec.tsr files
@@ -44,6 +45,7 @@ Options:
   -V, --version              Show compiler version
   -o, --output <path>        Output file for emit/build
   --color auto|always|never  Color help, diagnostics, dev status and test reports
+  --package                 emit: write a standalone Cargo package to -o directory
   --json                    Machine-readable check results
   --release                 Optimize build/run/test/dev; overflow checks remain enabled
   --write                   Update source with format
@@ -54,6 +56,7 @@ Examples:
   tsrust run src/main.tsr --release
   tsrust test
   tsrust test tests --color always
+  tsrust emit src/main.tsr --package -o exported
   tsrust format
   tsrust format --check
   tsrust format src
@@ -147,6 +150,7 @@ fn run() -> Result<u8, String> {
     let mut json = false;
     let mut color_mode = "auto".to_owned();
     let mut release = false;
+    let mut package = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "-o" | "--output" if output.is_none() => {
@@ -160,6 +164,7 @@ fn run() -> Result<u8, String> {
             }
             _ if arg.starts_with("--color=") => color_mode = arg[8..].to_owned(),
             "--release" if !release => release = true,
+            "--package" if !package => package = true,
             _ => return Err(format!("Unknown or repeated option: {arg}. Run `tsrust --help` for usage.")),
         }
     }
@@ -190,6 +195,7 @@ fn run() -> Result<u8, String> {
     if output.is_some() && command != "emit" && command != "build" {
         return Err("--output applies only to emit/build".into());
     }
+    if package && (command != "emit" || output.is_none()) {return Err("--package requires emit and --output <new-directory>".into());}
     if command == "build" && output.is_none() {
         return Err("build requires --output".into());
     }
@@ -235,6 +241,12 @@ fn run() -> Result<u8, String> {
     let (rust, native_features) = analysis.emit_rust_with_native_features();
     let emit_elapsed=emit_started.elapsed();
     if command == "emit" {
+        if package {
+            let output=output.as_ref().expect("package output");
+            package_export::export(output,&rust).map_err(|error|format!("Unable to export package {}: {error}",output.display()))?;
+            println!("Emitted package {}",output.display());
+            return Ok(0);
+        }
         if let Some(output) = output {
             fs::write(output, rust).map_err(|e| e.to_string())?;
         } else {

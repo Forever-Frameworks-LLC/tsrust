@@ -6,6 +6,7 @@ pub(crate) fn materialize(root: &Path) -> io::Result<()> {
     // The caller supplies a fresh private directory. Never follow an existing
     // directory's symlinks or overwrite files belonging to another build.
     fs::create_dir(root)?;
+    let result=(|| {
     for (relative, bytes) in FILES {
         let path = root.join(relative);
         fs::create_dir_all(path.parent().unwrap())?;
@@ -13,6 +14,9 @@ pub(crate) fn materialize(root: &Path) -> io::Result<()> {
     }
     fs::create_dir(root.join(".cargo"))?;
     fs::write(root.join(".cargo/config.toml"), "[source.crates-io]\nreplace-with = \"bundled\"\n[source.bundled]\ndirectory = \"vendor\"\n[net]\noffline = true\n")
+    })();
+    if result.is_err(){let _=fs::remove_dir_all(root);}
+    result
 }
 
 // Lockfile package checksums bind the vendored source closure. The manifest binds
