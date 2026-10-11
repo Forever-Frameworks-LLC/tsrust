@@ -16,7 +16,9 @@ const row = manifest.workloads.find(value => value.id === 'native_byte_utf8');
 test('Native byte UTF-8 retains Unicode round trips and strict validation', () => {
     assert.ok(row, 'Native byte UTF-8 workload registered');
     assert.equal(manifest.workloads.filter(value => value.id === row.id).length, 1);
-    assert.equal(row.measured, false);
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(row.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
     assert.equal(reportCategory(row.id), 'bytes');
     const emitted = 'fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted, row, read('./' + row.source)).fallible, false);

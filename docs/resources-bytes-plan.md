@@ -1,9 +1,9 @@
 # B11/S07: resources and bytes
 
 Status: gates 187–190 native declarations, owned bytes, scoped views, strict UTF-8
-and file resources have focused implementation acceptance. B11/S07 remains in
-progress pending direct Rust wrapper review and consumer refresh. Complete regressions
-and 17 matched measurements are accepted; see `milestones/s07-resources-bytes.md`. B10/S06 is
+and file resources are accepted in B11/S07 on macOS. Complete regressions, 17 matched
+measurements, direct Rust wrapper review and installed-consumer refresh are accepted;
+see `milestones/s07-resources-bytes.md`. B10/S06 is
 accepted at gate 186. Resource close consumes ownership by owner decision.
 See the gate 187 record and current continuation handoff.
 

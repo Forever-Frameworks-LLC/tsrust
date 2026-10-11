@@ -28,7 +28,9 @@ for (const id of ['native_file_read_close', 'native_file_scope_drop']) test(`${i
   const row = manifest.workloads.find(row => row.id === id);
   assert.ok(row);
   assert.equal(reportCategory(id), 'resources');
-  assert.equal(row.measured, false);
+  assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(row.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
   assert.throws(()=>createNativeFileFixture({...row,fixtureSha256:'changed'}));
   const fixture = createNativeFileFixture(row);
   try {

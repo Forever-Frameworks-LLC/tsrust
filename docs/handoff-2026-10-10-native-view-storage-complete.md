@@ -2,15 +2,18 @@
 
 Current at the commit carrying this note. The original October 10 handoff is
 superseded; prior checkpoint evidence remains in Git, SQLite and
-`docs/b11-resources-bytes-acceptance-map.md`. S07 family acceptance remains open.
+`docs/b11-resources-bytes-acceptance-map.md`. S07 is accepted on macOS.
 
 Latest acceptance: all 300 workspace test targets and both doctest targets completed.
 Compiler: 3,053 passed. Editor: 500 accepted after an affected-only catalog fixture
 repair. No aborts or missing suites; four intentional ignores. VS Code integration
 and 24 benchmark contract tests pass. See `docs/milestones/s07-resources-bytes.md`.
 All 17 S07 workloads are now measured: 3,162 timing samples, 51 allocation profiles,
-zero final live bytes. Exact records and derived tables are in SQLite. Next: direct
-Rust byte/view wrapper comparison and final review, then refresh installed consumers.
+zero final live bytes. Direct Rust comparison adds 186 samples and six profiles.
+Six CLI/LSP copies, including the PATH CLI, are refreshed from `f30d882c`; packaged
+editor integration passes. Exact records and derived tables are in SQLite. Next:
+S08 collections, followed by S09–S21 in dependency order. Earlier checkpoint sections
+below are historical; this status supersedes their pending S07 statements.
 
 Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
 `docs/resources-bytes-plan.md`, `docs/recursive-view-storage-plan.md` and
@@ -24,18 +27,18 @@ Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
   nullable links, provenance, iterative link destruction/clone and public fixtures
   are implemented. Views remain non-clonable. Recursive callback fields and nullable factory joins
   and mutable-parameter replacement have focused acceptance; gate 189 is accepted
-  for implementation. S07 family regressions and measurement remain pending.
+  for implementation. S07 family regressions and measurements are now accepted.
 - View-capturing callbacks can return argument views or views of borrowed Bytes
   arguments. Terminal-branch provenance and temporary record calls are repaired.
-- The installed CLI/editor consumers were refreshed from `4367f4cc` with executable
-  fixture and LSP smoke checks. Later source work is not installed yet.
+- The installed CLI/editor consumers are refreshed from `f30d882c`, with executable
+  fixtures, ownership rejections, LSP protocol checks and packaged editor integration.
 - Resource close consumes ownership even on Err. Later use and double close are
   static errors. Drop is a nonthrowing fallback. Bytes and views need no close.
 - Whole-owner finally returns were repaired in `ed469b32` using initialized stack
   slots. Partial-field direct cleanup routes landed in `eba57bd2`, preserving
   returned allocations and sibling liveness without cloning or placeholders.
 
-## Current checkpoint: lexical disposal through partial returns
+## Earlier checkpoint: lexical disposal through partial returns
 
 Map callback return projections and cleanup carriers were repaired in `4d887f9d`.
 Whole-owner completion scopes were restored in `a26bda43`. This checkpoint extends

@@ -1,7 +1,8 @@
 # S07 resources and bytes: family acceptance
 
-Status: focused gates 187–190, family correctness and matched measurements accepted.
-Direct Rust wrapper review and final installed-consumer refresh remain pending.
+Status: S07 accepted on macOS. Gates 187–190, complete regressions, matched
+measurements, direct Rust review and installed-consumer verification are complete.
+S08–S21 remain subsequent roadmap work.
 
 ## Complete regression evidence
 
@@ -42,9 +43,9 @@ Exact logs and the target audit are stored in `benchmarks/records.sqlite` under
 `tsrust-s07-*` record paths, including `tsrust-s07-regressions.log`,
 `tsrust-s07-regression-audit.json`, `tsrust-s07-doc-examples-fixed.log` and
 `tsrust-s07-extension-integration-final.log`. Closed records are read back exactly
-before loose copies are removed. Installed consumers remain at `4367f4cc`.
+before loose copies are removed. The final consumer refresh is recorded below.
 
-## Remaining measurement and integration acceptance
+## Measurement and integration scope
 
 The scope is 17 workloads: `exception_completion`, `native_bytes`, the five byte
 access/growth/copy-append/clone/UTF-8 workloads, eight view workloads including
@@ -55,9 +56,9 @@ eight warmups and 31 samples. Preserve the five correctness cases per workload.
 Review allocations, comparable historical evidence and direct Rust when assessing
 wrapper overhead. Preserve original samples before justified optimization.
 
-After measurement review, update the ledger, coverage, roadmap, acceptance map,
-guide and handoff, then refresh and verify all five installed consumers atomically.
-S08–S21 remain subsequent roadmap work.
+The ledger, generated coverage, roadmap, acceptance map, public guides and handoff
+are updated for this acceptance. Five workspace consumers and the additional PATH
+CLI are atomically refreshed and verified below.
 
 ## Recorded measurements (October 11, 2026)
 
@@ -101,9 +102,8 @@ workloads have identical allocation profiles and disposal counts. No optimizatio
 or selective retiming is justified by this evidence alone.
 
 There were no previously indexed comparable S07 timing rows. Do not claim a
-historical speedup or combine unrelated workload epochs. Direct Rust comparison
-for byte/view wrapper overhead remains pending, as does the installed-consumer
-refresh. These measurements do not close S07 by themselves.
+historical speedup or combine unrelated workload epochs. The direct Rust comparison
+and installed-consumer refresh below complete the remaining S07 checks.
 
 SQLite records:
 - `runtime/results/2026-10-11T09-03-12-817Z.json`
@@ -140,3 +140,61 @@ including a view derived from a borrowed byte owner. The unused fixed input stri
 is omitted from direct Rust; native adaptation is outside timing, and its bytes
 remain separately reported in allocation evidence. Conclusions are limited to
 these two representative workloads, not every byte or recursive-view operation.
+
+## Direct Rust results and optimization decision
+
+The reference run at `f30d882c` retains 186 timing samples and six allocation
+profiles. Independent observations agree for both workloads, including the full
+retained result shape. Every profile ends with zero live bytes. Relative to the
+preserved generated-native run, mean native/direct-Rust throughput is 1.507× for
+construction and 1.369× for captured-view callbacks. These are separate collections
+on the same machine and protocol, not interleaved paired samples or universal
+compiler overhead claims.
+
+Per 2,048-iteration batch, construction has 4,097 native versus 6,145 direct-Rust
+allocations; callback views have 2,049 versus 4,097. Native nested numeric arrays
+store short rows inline, while the handwritten reference uses nested `Vec` values.
+This is a representation tradeoff: native construction retains 196,608 requested
+bytes versus 147,456 for the reference, while callback views retain 98,304 versus
+114,688. Input adaptation accounts for five extra native bytes outside timing.
+Both representations retain equivalent results until observation. This evidence
+does not justify changing the shared array layout or byte wrappers. No speculative
+optimization or selective retiming was performed.
+
+Exact direct-reference records and their normalized timing/allocation rows are in
+SQLite under `runtime/diagnostics/2026-10-11T09-12-47-683Z-direct-rust-bytes.json`
+and `runtime/diagnostics/s07-direct-rust-proof-2026-10-11.json`. Reference runs are
+identified as `direct-rust-reference`, with engine `direct-rust`, separately from
+the native/Node records. Original bytes were read back before loose copies were
+removed.
+
+## Final consumer acceptance
+
+Debug CLI/LSP and release CLI were built offline with the shared Cargo target and
+incremental compilation disabled. At `f30d882c`, the five workspace consumers and
+`~/.cargo/bin/tsrust` were replaced through temporary sibling files and atomic
+rename, before any consumer smoke checks. All destination hashes match their
+verified source binaries. Compiler/editor implementation sources are unchanged
+from the complete regression and matched measurement epoch.
+
+Each of four CLI paths checks and executes recursive mutable views, captured-view
+callbacks, bounded file reads/close and lexical cleanup fixtures, and rejects double
+close: 16 check/run fixture pairs and four ownership rejections. Fixture inputs are
+isolated temporary files. An initial smoke omitted the cleanup fixture's named files;
+that failure is retained and the corrected run supplies all documented inputs.
+
+Both LSP paths publish empty checked diagnostics for valid file code, show readonly
+and mutable byte-view alternatives, retain file hover/signature help, diagnose
+double close after editing, and shut down successfully. Packaged VS Code integration
+passes with the refreshed editor CLI/LSP. All nine packaged extension files match
+the existing installation; package.json differs only by VS Code's installation
+metadata, which was excluded from semantic comparison. No extension code reinstall
+was needed. Build, package, CLI, LSP and acceptance evidence is stored under
+`tsrust-s07-consumer-*`, `tsrust-s07-installed-*` and
+`tsrust-s07-packaged-integration.log` in SQLite.
+
+The final requirement receipt is `tsrust-s07-family-acceptance.json`. It binds
+correctness, measurements, coverage and consumer evidence and records cleanup of
+131 completed comparison outputs (24,138,373 bytes). All six current executable
+copies remain. Nineteen final records, including the tested VSIX, were imported,
+read back exactly and removed from loose storage; SQLite integrity passed.

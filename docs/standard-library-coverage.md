@@ -140,3 +140,17 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 ## Relative path increment
 
 `std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Combined compiler/editor regressions, native examples and matched measurements are accepted. Source, immutable SQLite evidence and five rebuilt consumers are integrated into main; see [the handoff](handoff-2026-10-08-path-relative.md). No further path or OS family is included.
+
+## S07 resources and bytes
+
+S07 is accepted on macOS: typed owned bytes, checked mutation/copy/UTF-8 operations,
+real borrowed views, recursive view storage and callbacks, and owned read-only file
+open/read/close with deterministic cleanup. [Byte/view behavior](native-bytes.md)
+and [file behavior](native-files.md) describe supported boundaries. This is not
+general Uint8Array, Node filesystem or buffered-stream compatibility; broader
+S09 host operations remain pending.
+
+The [family record](milestones/s07-resources-bytes.md) binds complete regressions,
+17 native/Node workloads, allocation profiles, two direct Rust reference workloads,
+performance review and six refreshed executable copies including the PATH CLI.
+Coverage tracks these APIs individually and keeps later S08–S21 work pending.

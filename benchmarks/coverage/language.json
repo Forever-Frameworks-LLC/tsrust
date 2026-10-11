@@ -605,13 +605,13 @@
       "result.propagation"
     ]
   },
-{
-  "category": "Owned native bytes",
-  "operations": [
-    "native.bytes.type",
-    "native.bytes.error",
-    "native.bytes.fromArray",
-    "native.bytes.length",
+  {
+    "category": "Owned native bytes",
+    "operations": [
+      "native.bytes.type",
+      "native.bytes.error",
+      "native.bytes.fromArray",
+      "native.bytes.length",
       "native.bytes.at",
       "native.bytes.set",
       "native.bytes.alloc",
@@ -620,7 +620,23 @@
       "native.bytes.copy",
       "native.bytes.clone",
       "native.bytes.fromUtf8",
-      "native.bytes.toUtf8"
-  ]
-}
+      "native.bytes.toUtf8",
+      "native.bytes.viewType",
+      "native.bytes.mutableViewType",
+      "native.bytes.view",
+      "native.bytes.viewMut",
+      "native.bytes.recursiveStorage",
+      "native.bytes.viewCallbacks"
+    ]
+  },
+  {
+    "category": "Owned file resources",
+    "operations": [
+      "native.fs.type",
+      "native.fs.error",
+      "native.fs.open",
+      "native.fs.read",
+      "native.fs.close"
+    ]
+  }
 ]

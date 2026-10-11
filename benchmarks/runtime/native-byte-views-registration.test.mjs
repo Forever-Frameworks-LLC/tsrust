@@ -14,7 +14,9 @@ const row = manifest.workloads.find(value => value.id === 'native_byte_views');
 test('Native byte views retain zero-copy reads, write-through and range errors', () => {
     assert.ok(row, 'Native byte access workload registered');
     assert.equal(manifest.workloads.filter(value => value.id === row.id).length, 1);
-    assert.equal(row.measured, false);
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(row.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
     assert.equal(reportCategory(row.id), 'bytes');
     const emitted = 'fn function0(value0: i64, value1: i64, value2: &String) -> Array<NumericArray<i64>> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted, row, read('./' + row.source)).fallible, false);
@@ -47,7 +49,9 @@ test('Native byte views retain zero-copy reads, write-through and range errors',
 for (const id of ['native_byte_views_recursive', 'native_byte_views_linked']) test(`${id} retains traversal and shared owner observations`, () => {
     const recursive = manifest.workloads.find(value => value.id === id);
     assert.ok(recursive, 'Recursive view workload registered');
-    assert.equal(recursive.measured, false);
+    assert.equal(recursive.measured, true);
+    assert.equal(recursive.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(recursive.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
     assert.equal(reportCategory(recursive.id), 'bytes');
     const emitted = 'fn tsr_result_function2(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError2> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted, recursive, read('./' + recursive.source)).fallible, true);
@@ -113,7 +117,9 @@ for (const id of ['native_byte_views_stored_callbacks','native_byte_views_captur
 test('Nullable callbacks retain an empty leaf and two capturing factories', () => {
     const row = manifest.workloads.find(value => value.id === 'native_byte_views_nullable_callbacks');
     assert.ok(row);
-    assert.equal(row.measured, false);
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(row.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
     assert.equal(reportCategory(row.id), 'bytes');
     const emitted = 'fn tsr_result_function5(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError5> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,true);
@@ -138,7 +144,9 @@ test('Nullable callbacks retain an empty leaf and two capturing factories', () =
 test('Mutable recursive parameters retain replacement captures and the empty leaf', () => {
     const row = manifest.workloads.find(value => value.id === 'native_byte_views_parameter_stores');
     assert.ok(row);
-    assert.equal(row.measured, false);
+    assert.equal(row.measured, true);
+    assert.equal(row.measurementStatus, 'measured-resources-bytes-family');
+    assert.equal(row.measurementEvidence, 'runtime/results/s07-measurement-proof-2026-10-11.json');
     assert.equal(reportCategory(row.id), 'bytes');
     const emitted = 'fn tsr_result_function5(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError5> { todo!() }\nfn main() {}';
     assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,true);

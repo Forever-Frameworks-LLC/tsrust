@@ -10945,12 +10945,13 @@
       "comparison": "paired",
       "evidence": [
         "./milestones/142-exception-handling.md",
-        "./exception-handling.md"
+        "./exception-handling.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "exception_completion"
       ],
-      "measured": false,
+      "measured": true,
       "note": "catch with or without a name. The caught value has the inferred alternatives of the body and needs narrowing; an unresolved callable contract is rejected. One matched scenario is registered and verified untimed."
     },
     {
@@ -11118,12 +11119,13 @@
       "comparison": "paired",
       "evidence": [
         "./milestones/142-exception-handling.md",
-        "./exception-handling.md"
+        "./exception-handling.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "exception_completion"
       ],
-      "measured": false,
+      "measured": true,
       "note": "finally runs before every pending exit, including uncaught errors, and can replace it. One matched scenario is registered and verified untimed."
     },
     {
@@ -11413,12 +11415,13 @@
       "comparison": "paired",
       "evidence": [
         "./milestones/142-exception-handling.md",
-        "./exception-handling.md"
+        "./exception-handling.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "exception_completion"
       ],
-      "measured": false,
+      "measured": true,
       "note": "throw of any checked value; the value must start on the same line. Arithmetic and bounds failures throw structured runtime errors with source coordinates. One matched scenario is registered and verified untimed."
     },
     {
@@ -11431,12 +11434,13 @@
       "comparison": "paired",
       "evidence": [
         "./milestones/142-exception-handling.md",
-        "./exception-handling.md"
+        "./exception-handling.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "exception_completion"
       ],
-      "measured": false,
+      "measured": true,
       "note": "try with catch, finally or both. Normal, return, throw, break and continue completions pass through finally; an exit from finally replaces the pending one. One matched scenario is registered and verified untimed."
     },
     {
@@ -12295,12 +12299,13 @@
       "implementation": "implemented",
       "comparison": "paired group",
       "evidence": [
-        "./milestones/177-unreachable-catch-bodies.md"
+        "./milestones/177-unreachable-catch-bodies.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "exception_completion"
       ],
-      "measured": false,
+      "measured": true,
       "note": "Reconciled in the gate 178 inventory audit: accepted behavior verified natively. catch without a binding."
     },
     {
@@ -22282,6 +22287,106 @@
       "evidence": []
     },
     {
+      "id": "native.fs.close",
+      "display": "native.fs.close",
+      "category": "Owned file resources",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-files.md",
+        "./milestones/190-file-resources.md"
+      ],
+      "workloads": [
+        "native_file_read_close",
+        "native_file_scope_drop"
+      ],
+      "measured": true,
+      "note": "S07 read-only existing files, bounded cursor reads, consuming close even on error and deterministic fallback disposal accepted on macOS. Linux close semantics were reviewed but not natively executed. Broader S09 filesystem/stream APIs remain pending."
+    },
+    {
+      "id": "native.fs.error",
+      "display": "native.fs.error",
+      "category": "Owned file resources",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-files.md",
+        "./milestones/190-file-resources.md"
+      ],
+      "workloads": [
+        "native_file_read_close",
+        "native_file_scope_drop"
+      ],
+      "measured": true,
+      "note": "S07 read-only existing files, bounded cursor reads, consuming close even on error and deterministic fallback disposal accepted on macOS. Linux close semantics were reviewed but not natively executed. Broader S09 filesystem/stream APIs remain pending."
+    },
+    {
+      "id": "native.fs.open",
+      "display": "native.fs.open",
+      "category": "Owned file resources",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-files.md",
+        "./milestones/190-file-resources.md"
+      ],
+      "workloads": [
+        "native_file_read_close",
+        "native_file_scope_drop"
+      ],
+      "measured": true,
+      "note": "S07 read-only existing files, bounded cursor reads, consuming close even on error and deterministic fallback disposal accepted on macOS. Linux close semantics were reviewed but not natively executed. Broader S09 filesystem/stream APIs remain pending."
+    },
+    {
+      "id": "native.fs.read",
+      "display": "native.fs.read",
+      "category": "Owned file resources",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-files.md",
+        "./milestones/190-file-resources.md"
+      ],
+      "workloads": [
+        "native_file_read_close",
+        "native_file_scope_drop"
+      ],
+      "measured": true,
+      "note": "S07 read-only existing files, bounded cursor reads, consuming close even on error and deterministic fallback disposal accepted on macOS. Linux close semantics were reviewed but not natively executed. Broader S09 filesystem/stream APIs remain pending."
+    },
+    {
+      "id": "native.fs.type",
+      "display": "native.fs.type",
+      "category": "Owned file resources",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-files.md",
+        "./milestones/190-file-resources.md"
+      ],
+      "workloads": [
+        "native_file_read_close",
+        "native_file_scope_drop"
+      ],
+      "measured": true,
+      "note": "S07 read-only existing files, bounded cursor reads, consuming close even on error and deterministic fallback disposal accepted on macOS. Linux close semantics were reviewed but not natively executed. Broader S09 filesystem/stream APIs remain pending."
+    },
+    {
       "id": "native.bytes.alloc",
       "display": "native.bytes.alloc",
       "category": "Owned native bytes",
@@ -22291,13 +22396,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_growth"
       ],
-      "measured": false,
-      "note": "Gate 188 allocation/resize increment. Optional zero fill, strict length-before-fill validation, prefix preservation and failure atomicity verified with native/editor witnesses. Matched workload ready; family acceptance and timing remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.append",
@@ -22309,13 +22415,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_copy_append"
       ],
-      "measured": false,
-      "note": "Gate 188 append/copy increment. Checked int-array append is atomic; strict half-open copies return independent owners. Full owned-byte acceptance and family timing remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.at",
@@ -22327,13 +22434,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_access"
       ],
-      "measured": false,
-      "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.clone",
@@ -22345,13 +22453,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./milestones/188-owned-byte-operations.md"
+        "./milestones/188-owned-byte-operations.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_clone"
       ],
-      "measured": false,
-      "note": "Gate 188 explicit independent clone, aggregate storage/capture and exact O0/O3 cleanup acceptance. Direct and aggregate native/Node copies have an independent retained-result oracle; family timing remains pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.copy",
@@ -22363,13 +22472,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_copy_append"
       ],
-      "measured": false,
-      "note": "Gate 188 append/copy increment. Checked int-array append is atomic; strict half-open copies return independent owners. Full owned-byte acceptance and family timing remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.error",
@@ -22378,16 +22488,17 @@
       "kind": "language",
       "declarationSources": [],
       "implementation": "native variant",
-      "comparison": "compile-only",
+      "comparison": "paired group",
       "evidence": [
         "./milestones/187-native-byte-foundation.md",
-        "./native-bytes.md"
+        "./native-bytes.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_bytes"
       ],
-      "measured": false,
-      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.fromArray",
@@ -22399,13 +22510,14 @@
       "comparison": "paired group",
       "evidence": [
         "./milestones/187-native-byte-foundation.md",
-        "./native-bytes.md"
+        "./native-bytes.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_bytes"
       ],
-      "measured": false,
-      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.fromUtf8",
@@ -22417,13 +22529,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_utf8"
       ],
-      "measured": false,
-      "note": "Gate 189 strict UTF-8 increment. Explicit independent encoding, strict decoding offsets, NUL/BOM preservation and reservation failure controls verified. Scoped views and gate/family acceptance remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.length",
@@ -22435,13 +22548,51 @@
       "comparison": "paired group",
       "evidence": [
         "./milestones/187-native-byte-foundation.md",
-        "./native-bytes.md"
+        "./native-bytes.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_bytes"
       ],
-      "measured": false,
-      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
+    },
+    {
+      "id": "native.bytes.mutableViewType",
+      "display": "native.bytes.mutableViewType",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior."
+    },
+    {
+      "id": "native.bytes.recursiveStorage",
+      "display": "native.bytes.recursiveStorage",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views_recursive",
+        "native_byte_views_linked"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior. Nullable recursive links allocate owned nodes; nonterminating inline recursion is rejected."
     },
     {
       "id": "native.bytes.resize",
@@ -22453,13 +22604,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_growth"
       ],
-      "measured": false,
-      "note": "Gate 188 allocation/resize increment. Optional zero fill, strict length-before-fill validation, prefix preservation and failure atomicity verified with native/editor witnesses. Matched workload ready; family acceptance and timing remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.set",
@@ -22471,13 +22623,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_access"
       ],
-      "measured": false,
-      "note": "Gate 188 checked access/mutation increment. Strict nonnegative byte indices, structured Result errors, exclusive atomic writes and stored-callable editor help verified. Five native/Node-after-tsc cases verified untimed; full owned-byte gate and cleanup matrix remain in progress."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.toUtf8",
@@ -22489,13 +22642,14 @@
       "comparison": "paired group",
       "evidence": [
         "./native-bytes.md",
-        "./resources-bytes-plan.md"
+        "./resources-bytes-plan.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_byte_utf8"
       ],
-      "measured": false,
-      "note": "Gate 189 strict UTF-8 increment. Explicit independent encoding, strict decoding offsets, NUL/BOM preservation and reservation failure controls verified. Scoped views and gate/family acceptance remain pending."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
     },
     {
       "id": "native.bytes.type",
@@ -22504,16 +22658,93 @@
       "kind": "language",
       "declarationSources": [],
       "implementation": "native variant",
-      "comparison": "compile-only",
+      "comparison": "paired group",
       "evidence": [
         "./milestones/187-native-byte-foundation.md",
-        "./native-bytes.md"
+        "./native-bytes.md",
+        "./milestones/s07-resources-bytes.md"
       ],
       "workloads": [
         "native_bytes"
       ],
-      "measured": false,
-      "note": "Gate 187 typed native declaration/signature foundation and initial owned byte construction/length. Native callable storage, generic/record/array/Result payloads, nominal aliases and editor help verified. Five matched native/Node-after-tsc cases verified untimed. Wider operations, views and resource lifecycle remain gates 188–190."
+      "measured": true,
+      "note": "S07 accepted: checked owned byte operations, explicit copies and strict UTF-8, with compiler/native/editor evidence and measured matched native/Node scenarios. Shared operation names accept the documented byte owners/views. Workload timing covers complete scenarios, not isolated API costs; no JavaScript Uint8Array compatibility claim."
+    },
+    {
+      "id": "native.bytes.view",
+      "display": "native.bytes.view",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior."
+    },
+    {
+      "id": "native.bytes.viewCallbacks",
+      "display": "native.bytes.viewCallbacks",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views_callbacks",
+        "native_byte_views_stored_callbacks",
+        "native_byte_views_captured_only",
+        "native_byte_views_nullable_callbacks",
+        "native_byte_views_parameter_stores"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior. View captures and argument-view returns preserve separate provenance; stored callbacks and parameter replacement have native checks."
+    },
+    {
+      "id": "native.bytes.viewMut",
+      "display": "native.bytes.viewMut",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior."
+    },
+    {
+      "id": "native.bytes.viewType",
+      "display": "native.bytes.viewType",
+      "category": "Owned native bytes",
+      "kind": "language",
+      "declarationSources": [],
+      "implementation": "native variant",
+      "comparison": "paired group",
+      "evidence": [
+        "./milestones/s07-resources-bytes.md",
+        "./native-bytes.md"
+      ],
+      "workloads": [
+        "native_byte_views"
+      ],
+      "measured": true,
+      "note": "S07 accepts real borrowed byte views, readonly/exclusive access, nested ranges, owner provenance and shared recursive lifetimes. No implicit copy, clone or shared owner. Matched scenario measurements are retained separately from API behavior."
     },
     {
       "id": "storage.bigint",

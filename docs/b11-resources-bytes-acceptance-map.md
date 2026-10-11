@@ -1,12 +1,12 @@
 # B11/S07 resources and bytes acceptance map
 
-This is the current implementation map. S07 family acceptance remains open.
+This is the current implementation map. S07 is accepted on macOS.
 
 Family correctness is accepted: 3,053 compiler and 500 editor tests, complete target
 coverage, VS Code integration and 24 benchmark contract tests. Original failure and
 affected-only repair evidence are retained; see `milestones/s07-resources-bytes.md`.
 The 17-workload timing and allocation records are accepted and indexed in SQLite.
-Direct Rust wrapper review and final consumer refresh remain open.
+Direct Rust wrapper review and final consumer refresh are accepted. S08 is next.
 
 | Scope | Status | Authoritative evidence |
 | --- | --- | --- |
@@ -15,12 +15,12 @@ Direct Rust wrapper review and final consumer refresh remain open.
 | Independent clone, generic/record/array/Map/nullable/Result storage and callable captures | Gate 188 accepted | ownership.tsr; native_declarations.rs; project_intelligence.rs |
 | Validation/reservation atomicity and one argument evaluation | Gate 188 accepted | bytes/runtime.rs tests; access.tsr; growth.tsr; copy-append.tsr; ownership.tsr |
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
-| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 accepted with focused evidence; family regression/measurement pending | native-byte-views-implementation.md; resources-bytes-plan.md |
+| Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Gate 189 and S07 accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
-| Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
+| Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have complete S07 correctness acceptance | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 focused implementation accepted | milestones/190-file-resources.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 focused implementation accepted; S09 broader host scope pending | resources-bytes-plan.md |
-| Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
+| Complete regressions, matched measurements and optimization review | S07 accepted: correctness, measurements, review and refreshed consumers | resources-bytes-plan.md; standard-library-roadmap.md |
 
 All current byte workloads have matching sources, independent oracles, source hashes,
 ABI support and harness hooks. Untimed verification is distinct from measurement.

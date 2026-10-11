@@ -2,6 +2,11 @@
 
 [Documentation index](./README.md) · [Proposed roadmap](./roadmap.md) · [Source section map](./section-map.md)
 
+Implemented resources and byte operations are documented in [native bytes and
+views](native-bytes.md) and [owned file reads](native-files.md). S07 evidence is
+in the [family acceptance record](milestones/s07-resources-bytes.md). The broader
+workstream proposals below do not imply implementation of later roadmap families.
+
 ## Workstream scope
 
 **Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.

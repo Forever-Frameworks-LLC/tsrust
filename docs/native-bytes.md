@@ -173,5 +173,46 @@ produces an empty string; invalid bytes never turn into replacement characters.
 Neither operation consumes or changes its input. Both require exactly one correctly
 typed argument, with no coercion or defaults. Reservation failure returns `allocation`
 without offset; this does not guarantee recovery from every process-wide memory
-exhaustion. Encoding/decoding copies are explicit. Scoped zero-copy views are still
-pending; UTF-8 support does not imply borrowed-view support or gate 189 acceptance.
+exhaustion. Encoding/decoding copies are explicit. Decoding also accepts a readonly
+or mutable byte view and reads only that view's range.
+
+## Borrowed byte views
+
+`ByteView` is a readonly borrowed range. `ByteViewMut` is an exclusive mutable
+borrowed range. Neither owns or copies the underlying bytes. `view(bytes, start,
+end)` accepts `Bytes`, `ByteView` or `ByteViewMut` and returns
+`Result<ByteView, ByteError>`. `viewMut(bytes, start, end)` accepts `Bytes` or
+`ByteViewMut` and returns `Result<ByteViewMut, ByteError>`.
+
+Both indices are required integer byte offsets. The start is inclusive and end
+exclusive; require `0 <= start <= end <= length(bytes)`. Empty ranges, including
+one at the end, are valid. Invalid bounds return a `range` error with the relevant
+offset. Nested views use offsets relative to their immediate input range. For a
+buffer encoding `hello`, `view(bytes, 1, 4)` borrows the bytes for `ell`.
+
+The existing `length`, `at`, `copy`, `toUtf8` and `view` operations accept either
+owner or view type. `set` and `viewMut` require a mutable owner/view. There are no
+separate view-only read/write function names. Writing through a mutable view changes
+its owner. `copy` produces an independent owned buffer; views cannot be cloned.
+Byte offsets need not align to UTF-8 characters, so decoding a partial character
+returns the ordinary strict UTF-8 error.
+
+A view cannot outlive its owner. Live views restrict conflicting writes, resizing,
+ownership transfer and mutable reborrowing. Views need no `close`. Callbacks may
+capture views and return a view received as an argument; captured and returned
+owners retain their own provenance. Stored callbacks and parameter replacement
+remain subject to the same owner protections.
+
+Records can contain views and recurse through arrays or nullable record links.
+Each present nullable recursive link uses a uniquely owned heap allocation; this
+also applies to nullable links between mutually recursive record types. Layouts
+without a terminating indirection are rejected. Nonrecursive layouts are unchanged.
+A recursive record containing views uses one shared borrow lifetime, so its entire
+value must fit within every referenced owner's lifetime. View-containing values
+remain non-clonable. Deep clone is available only when all contained types support it.
+
+Executable examples cover [readonly access](../crates/tsrust-compiler/tests/fixtures/native-byte-views/read.tsr),
+[callbacks](../crates/tsrust-compiler/tests/fixtures/native-byte-views/callbacks.tsr)
+and [recursive links](../crates/tsrust-compiler/tests/fixtures/native-byte-views/recursive-links.tsr).
+The [S07 evidence](milestones/s07-resources-bytes.md) separates these guarantees from
+matched workload measurements and the direct Rust comparison.
