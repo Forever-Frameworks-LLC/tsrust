@@ -1,9 +1,9 @@
 # S08 collections acceptance
 
-Status: implementation, complete regression acceptance and family measurements are
-verified, including native-reference review. Targeted performance improvements and
-installed-consumer refresh remain pending.
-S08 is not yet accepted as a complete roadmap milestone.
+Status: S08 is accepted on macOS. Implementation, complete regressions, matched
+measurements, native-reference review, justified optimizations and installed
+CLI/editor verification are complete. Project-wide, multiple-error diagnostics
+is the next required milestone before S09.
 
 ## Regression evidence
 
@@ -11,7 +11,8 @@ The complete run at `f414c3ea` observed all 304 compiler/LSP test and doctest
 targets from Cargo metadata. It preserved 53 failed tests across six completed
 targets and six stack-overflow aborts. All other targets completed successfully.
 
-Focused repairs and reruns now accept 3,119 compiler tests and 511 editor tests,
+The retained full regression and affected reruns accept 3,121 compiler tests and
+511 editor tests,
 with three and one intentional ignores respectively. No target remains failed,
 aborted or unrun. Completed successful targets were retained rather than restarting
 the complete run. The collection suite adds a regression covering 15 invalid
@@ -198,13 +199,55 @@ An allocator witness fails on the prior implementation with two allocations and
 passes with one at optimization levels 0 and 3. It verifies all nine returned
 values and that mutating the result leaves the source unchanged. All 99 affected
 spread, rest and collection checks pass, including existing later-argument mutation
-and depth witnesses. Performance reruns remain pending.
+and depth witnesses. Performance reruns are accepted below.
 
-## Remaining acceptance
+### Measured spread results
 
-Measure the single scalar spread transfer on workloads whose emitted code
-changes. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
-after changes. Refresh all installed consumers and verify editor diagnostics.
-Then begin the requested project-wide, multiple-error diagnostics milestone before
-S09. The measurement proof accepts the recorded measurements; it does not declare
-the complete S08 milestone accepted.
+The emitted-code audit identified five previously measured workloads affected by
+the change. Their five correctness cases per engine, 930 timing samples and 15
+allocation profiles pass at `d6de4131`, with the original eight warmups, 31 samples
+and three processes. Heap allocations fall from 14,337 to 10,241 per batch, matching
+the direct Rust control's count. Heap native throughput improves 29.5%; its unchanged
+Node control improves 2.0%. Native/Node throughput is now 0.744×, so this complete
+workload remains slower than Node despite the improvement.
+
+The current iterable-array and iterable-call baselines show 1.037× and 0.997×
+native throughput respectively, with stable Node controls and unchanged allocation
+counts. Those small differences do not establish meaningful regressions. Older
+nested-function-rest and generic-value-adapter records have different source hashes;
+the new measurements establish current results without a historical speedup claim.
+
+SQLite proof `runtime/diagnostics/s08-single-spread-proof-d6de4131.json` binds:
+
+- `runtime/results/2026-10-11T14-42-47-703Z.json`
+- `runtime/diagnostics/2026-10-11T14-43-24-106Z-native-allocations.json`
+
+The emitted-code audit is `tsrust-s08-single-spread-affected.json`. Original records,
+focused failing/passing allocation witnesses and affected reruns are preserved.
+String concatenation costs remain visible in the baseline; broader string-storage
+changes are not justified as part of this collection optimization. No universal
+native performance claim is made.
+
+## Installed consumers and milestone acceptance
+
+All six consumers were atomically refreshed from `d6de4131`: workspace debug and
+editor compiler/LSP binaries, workspace release CLI and the installed CLI. Hashes
+match their shared-target build outputs. The installed server reports zero
+diagnostics for 32 byte-view/collection documents, and four installed CLI assertion
+fixtures pass natively. Restarting the active VSCode server clears the stale
+OrderedMap error; checking remains enabled and the Problems panel reports no
+problems in the already open OrderedMap and recursive-array documents.
+
+`tsrust-s08-consumers-d6de4131.json` in SQLite records consumer hashes, checked
+source hashes, native smoke results and editor verification. It also records
+1,295,219,361 bytes of removed obsolete incremental, benchmark and test outputs.
+All current consumers were rehashed after cleanup. Closed records were restored
+byte-for-byte before deleting their loose copies.
+
+S08 acceptance covers all six collection kinds, their ownership/invalidation and
+clone boundaries, executable catalog documentation, full regressions with retained
+repair evidence, matched measurements, native references and measured optimization.
+The two new optimization regressions supplement the original complete run; unaffected
+passing targets were retained. No S08 check remains failed, aborted or unrun.
+The next work is [project diagnostics](../plans/project-diagnostics-plan.md), including
+unopened files and multiple independent errors per file, before beginning S09.

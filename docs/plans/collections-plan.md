@@ -1,7 +1,9 @@
 # S08 collections
 
-S07 is accepted on macOS. S08 is in progress; its family acceptance and measurements
-remain pending. This plan preserves the six collection kinds required by the
+S07 and S08 are accepted on macOS. S08 implementation, full regressions, family
+measurements, optimization review and installed consumers are verified in the
+[acceptance report](../milestones/s08-collections.md). The implementation notes
+below preserve the development sequence. This plan preserves the six collection kinds required by the
 [standard-library roadmap](../standard-library-roadmap.md).
 
 ## Scope and order
