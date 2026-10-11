@@ -125,7 +125,11 @@ path error and its repair. Formatting and installed refresh evidence accompany t
 source checkpoint. This user-priority repair does not close S09 or its pending
 buffered-file benchmark acceptance.
 
-## Dev-loop performance follow-up
+## Required dev-loop performance milestone
+
+Owner priority: complete [the dev-loop performance milestone](dev-loop-performance-plan.md)
+before more S09 APIs or application workflows. Its three architectural steps and
+measurement/installed acceptance are required; this section records earlier progress.
 
 The first repair keeps normal output to watching/build-duration/program output,
 with process details and compiler phase timings behind `--verbose`. Dev builds now
