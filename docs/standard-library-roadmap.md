@@ -12,10 +12,14 @@ Preserve JavaScript-compatible globals where their behavior is already supported
 
 Proposed namespaces: std:path, fs, env, process, bytes, time, collections, json, schema, task, thread, channel, sync, http, tls, sqlite, sql, cache and queue. Spellings and signatures remain design proposals until their gate closes.
 
-The owner-requested [globals/imports audit](plans/globals-and-imports-policy.md)
-records current placement and pending policy decisions. Recommendations there are
-not accepted migrations. Preserve existing APIs while prioritizing approved typed
-data imports and aliases; resolve JSON global error semantics before publication.
+The owner-approved [globals/imports policy and mandatory audit](plans/globals-and-imports-policy.md)
+requires exhaustive per-symbol reconciliation before adding new conventions.
+The JSON namespace will expose throwing `JSON.parse` and Result-returning
+`JSON.tryParse`, preserving native safety and existing imports. Signatures and
+IntelliSense must expose semantic differences; runtime dependencies follow actual
+usage. Implementation follows the prioritized typed-data imports and aliases and
+is required before S10 acceptance. Neither the audit nor the JSON globals are
+implemented merely by recording this decision.
 
 ## Architecture and compiler handoffs
 

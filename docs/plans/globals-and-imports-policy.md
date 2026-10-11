@@ -1,9 +1,10 @@
 # Globals and imports: inventory and decision
 
-Status: owner requested a consistency review on 2026-10-11. The inventory below
-reflects current source. Recommendations are not approved API migrations. Keep
-existing behavior while resolving this policy; alias and typed-data import work
-can continue independently.
+Status: owner approved this placement policy and the throwing `JSON.parse` /
+Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is pending.
+The family inventory below is preliminary; the complete per-symbol audit is a
+required acceptance deliverable, not optional follow-up. Existing working imports
+remain supported. Alias and typed-data import work retains its current priority.
 
 ## Current inventory
 
@@ -20,7 +21,7 @@ of independently implemented functions.
 | Imported host services | std:fs, std:path, std:os, std:env, std:time | Keep explicit imports; resources and lifecycle remain visible |
 | Imported native storage | std:bytes, std:collections | Keep explicit imports for Bytes, views, Deque, Heap and ordered collections |
 | Imported testing API | std:testing | Keep explicit imports; do not introduce Jest-style ambient test globals |
-| JSON core | std:json parse, stringify, kind, JsonValue, JsonError, JsonLimits | Decide global JSON surface and error contract before introducing aliases |
+| JSON core | std:json parse, stringify, kind, JsonValue, JsonError, JsonLimits | Implement approved JSON namespace with distinct throwing and Result entry points |
 | JSON variants and resources | parseJsonc, JsonlReader, openJsonl, readJsonl, closeJsonl | Keep specialized APIs imported unless a later reviewed design supersedes this |
 
 These classifications describe placement, not JavaScript compatibility. For
@@ -28,7 +29,7 @@ example, native string indexing and ownership rules remain explicit even where
 spelling is familiar. `std:testing-runtime` is an implementation bridge, not a
 reason to advertise a second public testing convention.
 
-## Tradeoffs and recommended rule
+## Approved placement rule
 
 Globals reduce ceremony and make familiar code discoverable. Their costs are
 ambient namespace growth, shadowing questions and compatibility expectations.
@@ -47,24 +48,77 @@ hover, signature help, diagnostics, examples and selected-feature linking. An
 editor-only JSON namespace or eager inclusion of all JSON runtime code is not
 acceptance.
 
-## JSON decision still needed
+## Approved JSON contract
 
-The existing `parse` returns `Result<JsonValue, JsonError>` and accepts resource
-limits. Existing `stringify` also returns a Result and accepts an output byte
-limit. A global name does not decide their error behavior or erase these limits.
+- `JSON.parse(text, limits?)` returns owned `JsonValue` on success and throws a
+  typed `JsonError` on failure. It never returns `any` or claims an unchecked
+  record shape. Callers may use normal try/catch.
+- `JSON.tryParse(text, limits?)` returns `Result<JsonValue, JsonError>`. Parsing,
+  limits, offsets and error information must match the throwing entry point.
+- Preserve the current `std:json.parse` Result contract for compatibility; do not
+  silently change the meaning of existing imports.
+- Apply the same distinct-name pattern to serialization in the implementation
+  design: `JSON.stringify` for throwing encoding and `JSON.tryStringify` for
+  Result-based encoding, retaining output limits and existing imported behavior.
+- Both paths use the same validated backend. Changing error delivery must not
+  introduce implicit clones, hidden shared ownership, unbounded parsing, loss of
+  error fields, or a second parser with diverging acceptance rules.
+- Typed error propagation must work through functions and callbacks, with catch
+  inspection and cleanup verified. No panic-based error conversion or flattened
+  message-only substitute for JsonError.
 
-| Option | Benefit | Cost |
-|---|---|---|
-| JSON.parse/stringify return checked Result values | Reuses existing safe contracts and explicit error handling | Familiar JavaScript spelling has different return/error behavior |
-| JSON.parse/stringify throw typed errors and return checked values | Familiar control flow and names; JsonValue still requires safe inspection | Adds a distinct throwing contract and must define limits and error conversion |
-| Keep core JSON imported | No migration or second contract | Preserves the naming inconsistency identified by the owner |
+Example target behavior (not implemented yet):
 
-Recommend the familiar JSON namespace for eventual placement, but obtain the
-owner's choice of error contract before changing the public surface. Do not
-infer approval of a throwing API, Result-returning global, `any`, or unchecked
-`JSON.parse<T>` from the naming discussion alone. A safe typed decoder needs
-actual validation, not a generic assertion.
+```typescript
+const data = JSON.parse(text); // throws on malformed input
+match (JSON.tryParse(text)) {
+  Ok(data) => { /* inspect the checked JSON value */ },
+  Err(error) => { /* handle the structured parse failure */ }
+}
+```
 
-Typed JSON/JSONC file imports are separate and already approved. Their shapes
-are known at build/check time and must appear in the editor. They do not depend
-on choosing a runtime global JSON API.
+Runtime parsing still requires safe shape inspection or actual validated typed
+decoding. An unchecked `JSON.parse<T>` is not authorized. Typed JSON/JSONC file
+imports remain separate: the compiler infers their shape from validated input
+at build/check time and exposes that same type to the editor.
+
+## Required thorough audit and acceptance
+
+Before adding the global JSON convention, complete an exhaustive per-symbol
+inventory of current globals, constructors, namespace members, imported public
+exports and private bridges. The family table above does not satisfy this gate.
+
+1. Reconcile compiler recognition, type checking, ownership/effects, native binding
+   registration and emission against editor catalogs and completions. Include
+   globals implemented outside the native registry and imports implemented as
+   bundled source. Record omissions, editor-only claims and undocumented exports.
+2. For each public symbol record current spelling, category, global/imported
+   placement, purpose, argument/result types, failure behavior, ownership effects,
+   runtime dependencies, source locations and proposed disposition. Distinguish
+   language primitives from library operations and private bridges.
+3. Review every disposition against familiarity, namespace cost, dependency
+   visibility, aliases, shadowing, semantic differences and migration impact.
+   Do not manufacture JavaScript compatibility from matching names. Retain
+   intentional Tsrust extensions with explicit explanations.
+4. Record accepted placement, justified exceptions and remaining decisions in a
+   coverage matrix. No silent removals or unrelated mass renaming. Preserve old
+   supported imports while publishing one preferred spelling per error contract.
+5. Implement the approved JSON pair only after the audit identifies its consistent
+   placement. Test success/error equivalence between both paths, default and
+   explicit limits, numeric/Unicode boundaries, malformed input, structured catch
+   fields, propagation, cleanup, shadowing and import compatibility.
+6. Verify completion, hover, signature/parameter help and diagnostics show actual
+   return types, errors, limits and ownership. Execute the documented examples.
+   Checked runtime JsonValue and inferred file-import types must not be conflated.
+7. Prove usage-based linking: a program without JSON and a program that shadows
+   the name must not acquire JSON dependencies. Actual JSON operations must select
+   required support automatically in build/run/test/dev and exported packages.
+8. Record focused compiler/native/editor checks and matched benchmark support as
+   implementation acceptance; preserve S10 family regressions and measurements
+   as separate outstanding requirements. Refresh installed consumers only from a
+   verified checkpoint and verify real editor behavior.
+
+Store immutable audit/check evidence in SQLite and keep this plan plus the current
+coverage matrix concise. Audit completeness requires every discovered public
+symbol to have a reviewed row; a family count or passing examples alone is not
+proof of exhaustive coverage.

@@ -14,10 +14,13 @@ S10 must retain the typed decoder boundary and allocation evidence needed for it
 
 ## Public naming review
 
-The owner requested a globals/imports consistency audit. See
-[the inventory and JSON decision](globals-and-imports-policy.md). Existing APIs
-remain unchanged; adding a global JSON surface requires an explicit error-contract
-decision. This does not block the approved typed file imports or path aliases.
+The owner approved a thorough globals/imports audit and the familiar JSON
+namespace: `JSON.parse` throws typed errors; `JSON.tryParse` returns a checked
+Result. Existing imported APIs retain their behavior. See
+[the approved policy and mandatory audit acceptance](globals-and-imports-policy.md).
+Complete the per-symbol audit before introducing the convention. Alias and typed
+file-import work remains first; global JSON follows before S10 acceptance. No
+naming decision remains open for the approved parsing pair.
 
 ## Immediate priority: typed imports and aliases
 
