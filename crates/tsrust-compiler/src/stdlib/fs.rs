@@ -1,13 +1,14 @@
 //! Bounded synchronous file operations and consuming native close.
 
 use super::resource::{Backend, Resource};
-use std::io::Read;
+use std::io::{Read,Write};
 use std::os::fd::IntoRawFd;
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 compile_error!("std:fs consuming close is currently supported on macOS and Linux");
 
 pub const MAX_READ_BYTES: usize = 64 * 1024 * 1024;
+pub const MAX_WRITE_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Debug)]
 pub struct FsFailure {
@@ -26,6 +27,7 @@ impl FsFailure {
             ErrorKind::Interrupted => "interrupted",
             ErrorKind::IsADirectory => "is-directory",
             ErrorKind::WouldBlock => "would-block",
+            ErrorKind::WriteZero => "write-zero",
             _ => "io",
         };
         Self { code, operation, message: error.to_string(), os_code: error.raw_os_error().map(i64::from) }
@@ -44,6 +46,44 @@ impl Backend for FileBackend {
 
 pub fn open(path: &str) -> Result<FileHandle, FsFailure> {
     std::fs::File::open(path).map(|file| Resource::new(FileBackend(file))).map_err(|error| FsFailure::io("open", error))
+}
+
+/// Create or truncate a write-only file. Existing permissions are preserved;
+/// newly created files use the host's normal creation mode and umask.
+pub fn create(path:&str)->Result<FileHandle,FsFailure> {
+    std::fs::File::create(path).map(|file|Resource::new(FileBackend(file)))
+        .map_err(|error|FsFailure::io("create",error))
+}
+
+pub fn write(file:&mut FileHandle,bytes:&[u8])->Result<i64,FsFailure> {
+    write_with(&mut file.get_mut().0,bytes,false)
+}
+pub fn write_all(file:&mut FileHandle,bytes:&[u8])->Result<(),FsFailure> {
+    write_with(&mut file.get_mut().0,bytes,true).map(|_|())
+}
+fn validate_write_length(length:usize,operation:&'static str)->Result<(),FsFailure> {
+    if length>MAX_WRITE_BYTES {
+        return Err(FsFailure {code:"length-range",operation,
+            message:"Write length must be between 0 and 67108864 bytes.".into(),os_code:None});
+    }
+    Ok(())
+}
+/// A failing write-all operation may already have changed the file. Do not
+/// retry non-interruption failures or imply rollback of successful writes.
+fn write_with(output:&mut impl Write,bytes:&[u8],all:bool)->Result<i64,FsFailure> {
+    let operation=if all {"writeAll"} else {"write"};
+    validate_write_length(bytes.len(),operation)?;
+    let mut written=0;
+    while written<bytes.len() {
+        let count=match output.write(&bytes[written..]) {
+            Err(error) if error.kind()==std::io::ErrorKind::Interrupted=>continue,
+            result=>result.map_err(|error|FsFailure::io(operation,error))?,
+        };
+        if !all {return Ok(count as i64);}
+        if count==0 {return Err(FsFailure::io(operation,std::io::ErrorKind::WriteZero.into()));}
+        written+=count;
+    }
+    Ok(written as i64)
 }
 
 /// Read at most length bytes once, retrying only interrupted reads. Short reads and
@@ -103,6 +143,73 @@ mod tests {
     }
     fn failure<T>(result: Result<T, FsFailure>) -> FsFailure {
         match result { Ok(_) => panic!("expected error"), Err(error) => error }
+    }
+
+    #[test]
+    fn create_truncates_and_writes_preserve_bytes_and_close_ownership() {
+        let directory=Directory::new();let path=directory.input();
+        let mut file=create(&path).unwrap();
+        assert!(std::fs::read(&path).unwrap().is_empty());
+        assert_eq!(write(&mut file,&[0,65,255]).unwrap(),3);
+        write_all(&mut file,&[66,0]).unwrap();
+        assert_eq!(write(&mut file,&[]).unwrap(),0);
+        file.close().unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(),[0,65,255,66,0]);
+        let mut readonly=open(&path).unwrap();
+        let error=failure(write(&mut readonly,&[9]));
+        assert_eq!(error.operation,"write");assert!(error.os_code.is_some());
+        readonly.close().unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(),[0,65,255,66,0]);
+    }
+
+    struct ShortWriter {bytes:Vec<u8>,calls:usize,interrupt:bool,fail_after:Option<usize>,zero:bool}
+    impl std::io::Write for ShortWriter {
+        fn write(&mut self,bytes:&[u8])->std::io::Result<usize> {
+            self.calls+=1;
+            if self.interrupt {self.interrupt=false;return Err(std::io::ErrorKind::Interrupted.into());}
+            if self.fail_after.is_some_and(|limit|self.bytes.len()>=limit) {
+                return Err(std::io::ErrorKind::PermissionDenied.into());
+            }
+            let count=if self.zero {0} else {bytes.len().min(2)};
+            self.bytes.extend_from_slice(&bytes[..count]);Ok(count)
+        }
+        fn flush(&mut self)->std::io::Result<()> {Ok(())}
+    }
+    fn writer()->ShortWriter {ShortWriter {bytes:vec![],calls:0,interrupt:false,fail_after:None,zero:false}}
+
+    #[test]
+    fn write_limits_and_create_errors_remain_structured() {
+        assert!(validate_write_length(0,"write").is_ok());
+        assert!(validate_write_length(MAX_WRITE_BYTES,"writeAll").is_ok());
+        for length in [MAX_WRITE_BYTES+1,usize::MAX] {
+            let error=failure(validate_write_length(length,"writeAll"));
+            assert_eq!((error.code,error.operation,error.os_code),("length-range","writeAll",None));
+        }
+        let directory=Directory::new();
+        let error=failure(create(directory.0.join("missing/child").to_str().unwrap()));
+        assert_eq!((error.code,error.operation),("not-found","create"));assert!(error.os_code.is_some());
+        let error=failure(create("bad\0path"));
+        assert_eq!((error.code,error.operation),("invalid-input","create"));
+    }
+
+    #[test]
+    fn writes_retry_interruptions_and_preserve_partial_progress() {
+        let mut output=writer();output.interrupt=true;
+        assert_eq!(write_with(&mut output,b"abcde",false).unwrap(),2);
+        assert_eq!(output.bytes,b"ab");assert_eq!(output.calls,2);
+        let mut output=writer();output.interrupt=true;
+        assert_eq!(write_with(&mut output,b"abcde",true).unwrap(),5);
+        assert_eq!(output.bytes,b"abcde");assert_eq!(output.calls,4);
+        let mut output=writer();output.fail_after=Some(2);
+        let error=failure(write_with(&mut output,b"abcde",true));
+        assert_eq!((error.operation,error.code),("writeAll","permission-denied"));
+        assert_eq!(output.bytes,b"ab");assert_eq!(output.calls,2);
+        let mut output=writer();output.zero=true;
+        let error=failure(write_with(&mut output,b"x",true));
+        assert_eq!((error.operation,error.code),("writeAll","write-zero"));
+        assert_eq!(output.calls,1);
+        let mut output=writer();
+        assert_eq!(write_with(&mut output,b"",true).unwrap(),0);assert_eq!(output.calls,0);
     }
 
     #[test]

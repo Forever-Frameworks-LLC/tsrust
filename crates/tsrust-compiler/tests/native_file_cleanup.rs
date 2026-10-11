@@ -12,7 +12,7 @@ fn generated_files_release_once_in_lexical_order_at_o0_o3() {
     support::success(&emitted);
     let mut rust = String::from_utf8(emitted.stdout).unwrap();
     let original = "Resource::new(FileBackend(file))";
-    assert_eq!(rust.matches(original).count(), 1);
+    assert_eq!(rust.matches(original).count(), 2); // open and create share resource ownership.
     rust = rust.replace(original, "{ crate::opened(path, std::os::fd::AsRawFd::as_raw_fd(&file)); Resource::new(FileBackend(file)) }");
     let original = "release(file.into_raw_fd()).map_err(|error| FsFailure::io(\"close\", error))";
     assert_eq!(rust.matches(original).count(), 1);
