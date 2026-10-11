@@ -8,6 +8,8 @@ pub enum NativeTypeId {
     ByteError,
     ByteView,
     ByteViewMut,
+    File,
+    FsError,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -151,7 +153,7 @@ mod tests {
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {
         static ARRAY: Signature = Signature::Array(&Signature::Named(NativeTypeId::Bytes));
         let result = Signature::Result(&ARRAY, &Signature::Named(NativeTypeId::ByteError));
-        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
+        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::FsError => "FileFailure".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| None), Err(RenderError::MissingType(NativeTypeId::Bytes)));
     }
 

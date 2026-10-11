@@ -5006,6 +5006,101 @@
     ]
   }
 ],
+  "std:fs": [
+  {
+    "name": "File",
+    "signature": "type File",
+    "parameters": [],
+    "documentation": "An owned open file with private storage. Use open to open an existing path read-only, read to advance its cursor, and close to release it explicitly. File literals, clone, comparison, hashing, console inspection and implicit sharing are unsupported. Unclosed files release automatically on scope exit. Explicit close consumes the handle even on failure; later use is rejected. No implicit flush or durability synchronization occurs. Ownership: passing by value transfers the handle; Mutable<File> borrows it for cursor-changing reads.\n\n```tsrust\nimport {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}\n```\n\nExpected output: none.",
+    "examples": [
+      {
+        "source": "import {File} from \"std:fs\"; function inspect(file:ReadOnly<File>):void{} function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "FsError",
+    "signature": "type FsError = { code: string; operation: string; message: string; osCode?: int; }",
+    "parameters": [],
+    "documentation": "A file operation failure. code is a stable category: not-found, permission-denied, invalid-input, interrupted, is-directory, would-block, io, length-range or allocation. operation names open, read or close. message explains the failure; its text is not stable. osCode preserves the platform error number when available, otherwise undefined. This record type takes no arguments and changes no file. Ownership: strings are owned; borrowing fields leaves the error reusable.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined.",
+    "examples": [
+      {
+        "source": "import {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}",
+        "output": "length-range read undefined\n"
+      }
+    ],
+    "fields": {
+      "code": {
+        "documentation": "Stable failure category, as a string. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+      },
+      "operation": {
+        "documentation": "Operation that failed: open, read or close. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+      },
+      "message": {
+        "documentation": "Human-readable description. Text may vary by platform. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+      },
+      "osCode": {
+        "documentation": "Optional platform error number. Missing values read as undefined; range/allocation failures have no OS code. Reading this field changes no file.\n\n```tsrust\nimport {FsError} from \"std:fs\"; function main(){const error:FsError={code:\"length-range\",operation:\"read\",message:\"Invalid length\"};console.log(error.code,error.operation,error.osCode);}\n```\n\nExpected output: length-range read undefined. Ownership: string fields may be borrowed or explicitly cloned; osCode copies."
+      }
+    }
+  },
+  {
+    "name": "open",
+    "signature": "open(path: ReadOnly<string>): Result<File, FsError>",
+    "parameters": [
+      {
+        "label": "path: ReadOnly<string>",
+        "documentation": "Required path to an existing file. Relative paths use the process working directory; no default. Borrowed without mutation."
+      }
+    ],
+    "documentation": "Opens an existing path read-only at cursor zero. Does not create or truncate files. Returns Ok(File) or an open error; missing paths, permissions and embedded NUL are reported. Opening a directory may succeed, but reading it fails. Paths follow normal filesystem symlink resolution. The example assumes input.bin exists. Ownership: path is borrowed; success creates a unique file owner.\n\n```tsrust\nimport {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: closed.",
+    "examples": [
+      {
+        "source": "import {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+        "output": "closed\n"
+      }
+    ]
+  },
+  {
+    "name": "read",
+    "signature": "read(file: Mutable<File>, length: int): Result<Bytes, FsError>",
+    "parameters": [
+      {
+        "label": "file: Mutable<File>",
+        "documentation": "Required open file. Exclusively borrowed; a successful read advances its cursor by the returned byte count."
+      },
+      {
+        "label": "length: int",
+        "documentation": "Required maximum byte count, 0 through 67108864 inclusive. No default. Zero returns empty Bytes without I/O."
+      }
+    ],
+    "documentation": "Reads at most length bytes from the current cursor into independently owned Bytes. Short reads and empty EOF results succeed; this does not read to the end automatically. Invalid lengths and allocation failures occur before I/O. Interrupted reads retry; other I/O errors return Err and retain the file for closing. No text decoding occurs. The example assumes input.bin contains four bytes. Ownership: mutably borrows the file, returns independent bytes and never closes the handle.\n\n```tsrust\nimport {open,read,close} from \"std:fs\"; import {length} from \"std:bytes\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(read(file,4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}match(close(file)){Ok(_)=>{},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 4.",
+    "examples": [
+      {
+        "source": "import {open,read,close} from \"std:fs\"; import {length} from \"std:bytes\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(read(file,4)){Ok(bytes)=>{console.log(length(bytes));},Err(error)=>{throw error.message;}}match(close(file)){Ok(_)=>{},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+        "output": "4\n"
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "signature": "close(file: File): Result<void, FsError>",
+    "parameters": [
+      {
+        "label": "file: File",
+        "documentation": "Required owned open file. Consumed on both Ok and Err; later use and a second close are source errors."
+      }
+    ],
+    "documentation": "Releases a file and reports success as Ok(void), or an OS close failure as Err(FsError). The handle is consumed even when close fails. Close is not retried after an error. It performs no implicit user-space flush or durability synchronization. Unclosed owners have a nonthrowing scope-exit fallback that discards close errors. The example assumes input.bin exists. Ownership: consumes the handle; no closed handle is returned.\n\n```tsrust\nimport {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: closed.",
+    "examples": [
+      {
+        "source": "import {open,close} from \"std:fs\"; function main(){match(open(\"input.bin\")){Ok(file)=>{match(close(file)){Ok(_)=>{console.log(\"closed\");},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",
+        "output": "closed\n"
+      }
+    ]
+  }
+],
   "std:bytes": [
   {
     "name": "Bytes",

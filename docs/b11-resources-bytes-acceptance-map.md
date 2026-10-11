@@ -13,7 +13,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Strict UTF-8 encoding/decoding and error offsets | Gate 189 accepted with focused evidence | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
 | Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
-| Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
+| Useful synchronous file proof and private instrumented resource backend | Public read/close slice and private backend have focused checks; generated cleanup and benchmark acceptance pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
 
 All current byte workloads have matching sources, independent oracles, source hashes,
@@ -1019,3 +1019,35 @@ Whole-project formatting is unchanged. Token preservation/idempotence and format
 native execution pass. Six logs were imported and verified byte for byte before
 removal; SQLite integrity passes. Two completed test executables were pruned while
 retaining current consumers.
+
+### Gate 190 source file API
+
+`std:fs` now exports opaque File, structured FsError and open/read/close. File is
+noncloneable, non-key-capable and not thread-transfer eligible. Native bridges use
+the actual resource/file runtime; read returns independently owned Bytes. All three
+calls report failures through Result, with an explicit checked nonthrowing effect.
+Close consumes the source owner on both success and error paths.
+
+The public `native-files/read-close.tsr` fixture runs at O0/O3, directly and through
+stored function values. Three file tests cover source transfer/capability failures
+and the public fixture; 19 native declaration regressions pass. Every new catalog
+example checks and executes at O0/O3 (five examples, ten native runs). Editor checks
+cover consuming-close hover, mutable-read signature help and File/FsError import
+completion. Exact failed and repaired logs use `tsrust-file-source-*` in SQLite.
+
+The first source probe exposed a missing native error-effect contract, now recorded
+for the three Result-returning operations. Two test expectations were corrected to
+use the language's strict equality syntax and existing scalar-only diagnostic.
+These did not require a new comparison rule. A native-signature unit-test match was
+extended for the two new nominal identities.
+
+Generated source lifecycle counts across cleanup, further editor diagnostics and
+matched file benchmark support remain pending before gate 190 acceptance. S07 full
+regressions, timing, review and installed-consumer refresh remain pending.
+
+Forty-two checked error-effect tests and the formatter corpus pass. Whole-project
+formatting changed only the new fixture; a second pass changes nothing, and the
+formatted fixture executes at O3 with the current debug compiler. Fifteen logs were
+imported and read back exactly before removal; SQLite integrity passes. Five
+completed test executables were pruned (166,910,384 bytes). Installed consumers
+remain `4367f4cc`; scratch release has not been refreshed for this API.

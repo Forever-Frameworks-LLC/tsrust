@@ -60,6 +60,23 @@ static BYTES: Declaration = Declaration {
     fields: &[],
     capabilities: &[],
 };
+static FILE: Declaration = Declaration {
+    id: NativeTypeId::File, module: "std:fs", name: "File",
+    representation: Representation::Opaque, independent_clone: false,
+    collection_key: false, thread_transfer: false, fields: &[], capabilities: &[],
+};
+static FS_ERROR: Declaration = Declaration {
+    id: NativeTypeId::FsError, module: "std:fs", name: "FsError",
+    representation: Representation::Record, independent_clone: true,
+    collection_key: false, thread_transfer: true,
+    capabilities: &[Capability::Inspection, Capability::StringConversion, Capability::PropertyReflection, Capability::ObjectSpread, Capability::Equality],
+    fields: &[
+        Field { name: "code", signature: Signature::String, optional: false },
+        Field { name: "operation", signature: Signature::String, optional: false },
+        Field { name: "message", signature: Signature::String, optional: false },
+        Field { name: "osCode", signature: Signature::Int, optional: true },
+    ],
+};
 static BYTE_ERROR: Declaration = Declaration {
     id: NativeTypeId::ByteError,
     module: "std:bytes",
@@ -106,13 +123,15 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::ByteError => &BYTE_ERROR,
         NativeTypeId::ByteView => &BYTE_VIEW,
         NativeTypeId::ByteViewMut => &BYTE_VIEW_MUT,
+        NativeTypeId::File => &FILE,
+        NativeTypeId::FsError => &FS_ERROR,
     }
 }
 
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT].into_iter().find(|item| item.module == module && item.name == name)
+    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

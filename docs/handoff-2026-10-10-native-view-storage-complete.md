@@ -228,10 +228,10 @@ measurements/diagnostics or a subprocess worker. Installed consumers remain
 
 Gate 190 now has a private consuming resource owner and a concrete read-only file
 backend in `stdlib/resource.rs` and `stdlib/fs.rs`. Bounded cursor reads and actual
-OS close have O0/O3 backend witnesses. Both modules are currently test-only; no
-source File API is published. Next integrate handle/error identities, registry
-signatures and emission, then source cleanup/capability/editor checks and matched
-benchmark support. See `resources-bytes-plan.md` for the close policy and platform
+OS close have O0/O3 backend witnesses. The generated runtime now uses both modules. `std:fs` exports
+File, FsError, open, read and consuming close, with executable catalog examples,
+source capability/transfer diagnostics and editor hover/signature/import help.
+Next finish generated source cleanup witnesses and matched benchmark support. See `resources-bytes-plan.md` for the close policy and platform
 evidence. Do not replace explicit close with File drop or implicit sync.
 
 ## Working environment

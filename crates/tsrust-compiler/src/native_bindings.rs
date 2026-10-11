@@ -85,6 +85,9 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::fs_bindings::OPEN,
+    crate::stdlib::fs_bindings::READ,
+    crate::stdlib::fs_bindings::CLOSE,
     crate::stdlib::bytes::bindings::FROM_ARRAY,
     crate::stdlib::bytes::bindings::LENGTH,
     crate::stdlib::bytes::bindings::AT,

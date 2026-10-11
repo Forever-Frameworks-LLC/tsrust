@@ -7,6 +7,8 @@ pub(crate) mod testing;
 mod resource;
 #[cfg(test)]
 mod fs;
+pub(crate) mod fs_bindings;
+pub(crate) mod fs_emit;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module { "std:testing" => Some(testing::SOURCE), _ => None }
 }

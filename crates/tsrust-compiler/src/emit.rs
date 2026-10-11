@@ -2367,6 +2367,10 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ bytes: Vec<u8> }}");
                 continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::File) {
+                let _ = writeln!(output, "struct Record{index} {{ handle: tsrust_native_files::fs::FileHandle }}");
+                continue;
+            }
             if let Some(access) = native_view_emit::access(self.program, index) {
                 let mutable = if access == crate::native_return_borrows::BorrowAccess::Exclusive { "mut " } else { "" };
                 let _ = writeln!(output, "struct Record{index}<'a> {{ bytes: &'a {mutable}[u8] }}");
@@ -2941,6 +2945,8 @@ impl Emitter<'_> {
         }
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         if !byte_bindings.is_empty() { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
+        let file_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:fs" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
+        output.push_str(&crate::stdlib::fs_emit::bridges(self.program, &file_bindings));
         let numeric_support = output.contains("NumericArray<") || output.contains("NumericArray::");
         let literal_support = output.contains("LiteralStringArray");
         let split_support = output.contains("tsr_string_split(");

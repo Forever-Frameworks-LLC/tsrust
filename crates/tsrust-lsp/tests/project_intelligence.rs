@@ -17,6 +17,30 @@ fn ask(index: &ProjectIndex, source: &str, needle: &str, method: &str) -> Value 
 }
 
 #[test]
+fn file_api_hover_and_signature_help_preserve_consuming_close() {
+    let entry = tsrust_compiler::format("import {open,read,close} from 'std:fs';function main(){match(open('input.bin')){Ok(file)=>{read(file,4);close(file);},Err(error)=>{console.log(error.osCode);}}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "close(file)", "textDocument/hover");
+    assert!(hover.to_string().contains("consumed even when close fails"), "{hover}");
+    assert!(!hover.to_string().contains("__tsrust_private_"), "{hover}");
+    let help = ask(&index, &entry, "file, 4", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("Mutable<File>") && help.to_string().contains("67108864"), "{help}");
+    let hover = ask(&index, &entry, "error.osCode", "textDocument/hover");
+    assert!(!hover.is_null());
+    let importing = "import { F } from 'std:fs';function main(){}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, importing.into());
+    let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri).unwrap().0).unwrap();
+    let completion = ask(&ProjectIndex::new(&graph), importing, " }", "textDocument/completion");
+    let labels = completion.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
+    assert_eq!(labels, ["File", "FsError"], "{completion}");
+}
+
+#[test]
 fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
     let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();match(result){Ok(user)=>{console.log(user.name.toUpperCase());},Err(error)=>{console.log(error.length);}}}").unwrap();
     let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<User,string>{return Ok({name:'Pat'});}").unwrap();

@@ -673,3 +673,19 @@ post-release Interrupted error proves a single close attempt and a usable later
 file; it does not claim to reproduce a hardware close failure. Test directories are
 removed. Source exports, registry/ABI integration, editor documentation and matched
 benchmark support remain the next gate 190 work. The backend is still test-only.
+
+### Source file API integration
+
+The preceding private-backend boundary is superseded: File/FsError identities and
+open/read/close bindings now reach source checking, generated native storage and
+Result bridges. File has no implicit clone, comparison, key or thread-transfer
+capability. All three functions return operational errors in Result. Mutable read
+borrows its handle; close consumes it even when returning Err.
+
+Five complete catalog entries and their executable examples are verified at O0/O3.
+The public read-close fixture also executes through stored native function values.
+Source errors reject forged/cloned handles, double close, use after close including
+the Err arm, inspection and comparison. Editor help and import completion match.
+This is a focused S09 file increment within gate 190, not synchronous-host family
+acceptance. Generated cleanup instrumentation, remaining editor diagnostics and
+matched benchmark readiness are the next work; S07 remains unmeasured.

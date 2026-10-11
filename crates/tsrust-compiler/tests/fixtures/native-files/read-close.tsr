@@ -1,0 +1,54 @@
+import { File, open, read, close } from "std:fs";
+import { Bytes, length, at } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+function take(file: Mutable<File>, count: int): Bytes {
+  match (read(file, count)) {
+    Ok(bytes) => {
+      return bytes;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
+
+function main() {
+  match (open("input.bin")) {
+    Ok(file) => {
+      strictEqual(length(take(file, 0)), 0);
+      match (read(file, -1)) {
+        Ok(_) => {
+          throw "invalid length succeeded";
+        },
+        Err(error) => {
+          strictEqual(error.code, "length-range");
+        }
+      }
+
+      const first = take(file, 2);
+      strictEqual(length(first), 2);
+      match (at(first, 1)) {
+        Ok(value) => {
+          strictEqual(value, 65);
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+
+      strictEqual(length(take(file, 8)), 2);
+      strictEqual(length(take(file, 1)), 0);
+      match (close(file)) {
+        Ok(_) => {
+        },
+        Err(error) => {
+          throw error.message;
+        }
+      }
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
