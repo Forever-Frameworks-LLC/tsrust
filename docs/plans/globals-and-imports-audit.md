@@ -107,3 +107,10 @@ real borrowed views and consuming resource operations.
 The [testing review](globals-and-imports-testing-audit.md) covers 18 public exports,
 29 matcher members and 14 private bridges. Public imports and private retention
 boundaries remain unchanged; completion visibility is verified.
+
+## Imported collections review slice
+
+The [collections review](globals-and-imports-collections-audit.md) covers four
+constructors/types and 29 members. Keep specialized collections imported.
+Generated helper selection is currently by family; per-method elimination is not
+claimed. Global Set/Map and remaining receiver/namespace surfaces remain open.
