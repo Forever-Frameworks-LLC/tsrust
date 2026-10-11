@@ -84,6 +84,10 @@ impl Emitter<'_> {
         Some(format!("match {widened}{{TsrCompletion::Normal({output_pattern})=>{{{output_restore}}},TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}},_=>unreachable!(\"checked field cleanup control\")}}"))
     }
     pub(super) fn field_native_place(&self,fun:&CheckedFunction,native:&str)->Option<Place> {
+        if native.contains("_field") {
+            let (binding,fields)=self.map_storage_binding(fun,native)?;
+            return Some(Place{binding,fields});
+        }
         let mut parts=native.split('.');
         let binding=parts.next()?.strip_prefix("value")?.parse::<usize>().ok()?;
         let mut ty=fun.bindings.get(binding)?.ty;let mut fields=vec![];
@@ -124,20 +128,7 @@ impl Emitter<'_> {
         use crate::analysis::MapCompletionPhase::{Handled,Cleaned};
         let mut input_fields=vec![];let mut output_fields=vec![];
         for (selection,phase,fields) in [(&body_places,Handled,&mut input_fields),(&places,Cleaned,&mut output_fields)] {
-            for place in selection {
-                let binding=&fun.bindings[place.binding];
-                if binding.capture_reference || binding.borrowed_place.is_some() || binding.mutable_place
-                    || binding.parameter && (place.binding>=fun.parameter_count || binding.mode!=Mode::Consume)
-                    || self.restored_capture(fun,place.binding) || self.owned_record_layout(fun,place.binding).is_some() {return None;}
-                if !fun.storage_exits.completion_field_available(boundary,phase,None,place)?{continue;}
-                let mut ty=binding.ty;let mut native=format!("value{}",place.binding);
-                for name in &place.fields {
-                    let Type::Record(record)=ty else{return None;};
-                    let index=self.program.records[record].fields.iter().position(|field|field.name.text==*name)?;
-                    ty=self.program.records[record].fields[index].ty?;let _=write!(native,".field{index}");
-                }
-                fields.push(native);
-            }
+            fields.extend(self.control_completion_fields(fun,boundary,phase,None,selection)?.into_iter().map(|(name,_)|name));
         }
         Some(FieldPlan{input_fields,output_fields})
     }

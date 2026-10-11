@@ -868,7 +868,7 @@ impl Emitter<'_> {
                 (Mode::Mutate, Mode::Mutate) => "&mut *",
                 _ => "",
             }};
-            let mutable = if binding.mutable && !binding.capture_reference {
+            let mutable = if (binding.mutable || self.finally_moves.partial_root(&checked.function,slot)) && !binding.capture_reference {
                 "mut "
             } else {
                 ""
@@ -2509,7 +2509,7 @@ impl Emitter<'_> {
                     (Mode::Mutate, Mode::Mutate) => "&mut *",
                     _ => "",
                 }};
-                let mutable = if binding.mutable && !binding.capture_reference {
+                let mutable = if (binding.mutable || self.finally_moves.partial_root(&closure.function,capture.inner)) && !binding.capture_reference {
                     "mut "
                 } else {
                     ""

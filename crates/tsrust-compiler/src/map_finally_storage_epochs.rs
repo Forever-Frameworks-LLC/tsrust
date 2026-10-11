@@ -67,7 +67,7 @@ impl Emitter<'_> {
         let cleaned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,None);
         let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let error_fields=self.exception_regions.error_storage_values(statement.span).unwrap_or_default().into_iter().filter_map(|value|{
-            if self.map_storage_binding(fun,&value.place).is_some(){return None;}
+            if matches!(value.target,Some(Type::Map(_))){return None;}
             self.field_native_place(fun,&value.place)?;
             Some((value.place,value.target.expect("typed inherited field storage")))
         }).collect::<Vec<_>>();

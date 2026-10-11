@@ -18768,10 +18768,10 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. A conditional cleanup return selects a different field and preserves it on normal continuation. Timing remains pending. Loop field returns include break, continue and normal fallthrough with cleanup trace. Body field returns, caught throws, handler field returns and normal continuation retain their cleanup traces. The renewed Map path throws and is caught before cleanup; its trace verifies catch execution. Map errors cross an inner finally; loop break and continue leave a catch in the same cleanup region.",
+      "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. A conditional cleanup return selects a different field and preserves it on normal continuation. Timing remains pending. Loop field returns include break, continue and normal fallthrough with cleanup trace. Body field returns, caught throws, handler field returns and normal continuation retain their cleanup traces. The renewed Map path throws and is caught before cleanup; its trace verifies catch execution. Map errors cross an inner finally; loop break and continue leave a catch in the same cleanup region. Field retention includes a callback-bearing record; caught field returns execute inside an owning callback.",
       "specification": "Retain return values, cleanup trace and dynamic input text.",
-      "sourceSha256": "d12065165b19c92dcea654f9090d904161ccad294164912562fa12e5394885d1",
-      "counterpartSha256": "8b86df279f2a25e9a30c7e101902cbccff37071a0d739e8cd91bffa8f2eb9164"
+      "sourceSha256": "f1da25a29d6f295df70ea9eb1c471f71d23d29a9b7c41f81126ca20af9f68061",
+      "counterpartSha256": "c30b99c471c54ce54d3b0bc491c45cd6ad9ac8a3e37679fb90f68cfdeb6da294"
     },
     {
       "id": "type_assertions",

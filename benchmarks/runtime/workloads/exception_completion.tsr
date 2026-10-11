@@ -41,16 +41,25 @@ type RetainedOwner = {
   stamp: int;
 };
 
+type RetainedCallbackOwner = {
+  text: string;
+  run: ReadOnly<Function<int>>;
+};
+
 function retainedField(value: RetainedOwner, early: boolean, trace: int[]): string {
+  const stamp = [value.stamp];
+  const row: RetainedCallbackOwner = {
+    text: value.text, run: (): int => stamp[0]
+  };
   try {
     if (early) {
-      return value.text;
+      return row.text;
     }
   } finally {
-    trace.push(value.stamp);
+    trace.push(row.run());
   }
 
-  return value.text;
+  return row.text;
 }
 
 type CallbackHolder = {
@@ -116,26 +125,29 @@ function retainedLoop(value: RetainedOwner, mode: int, trace: int[]): string {
 }
 
 function retainedCatch(value: RetainedOwner, mode: int, trace: int[]): string {
-  try {
-    if (mode === 0) {
-      return value.text;
+  const run = (): string => {
+    try {
+      if (mode === 0) {
+        return value.text;
+      }
+
+      if (mode === 1) {
+        throw 31;
+      }
+
+      trace.push(29);
+    } catch (error) {
+      trace.push(30);
+      if (mode === 1) {
+        return value.text;
+      }
+    } finally {
+      trace.push(31);
     }
 
-    if (mode === 1) {
-      throw 31;
-    }
-
-    trace.push(29);
-  } catch (error) {
-    trace.push(30);
-    if (mode === 1) {
-      return value.text;
-    }
-  } finally {
-    trace.push(31);
-  }
-
-  return value.text;
+    return value.text;
+  };
+  return run();
 }
 
 type CleanupChoice = {

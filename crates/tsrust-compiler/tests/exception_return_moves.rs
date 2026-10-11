@@ -267,3 +267,40 @@ fn caught_loop_cleanup_replaces_pending_return_with_sibling() {
         "left\nleft\nright\n",
     );
 }
+
+#[test]
+fn callback_record_partial_and_aggregate_returns_preserve_fields() {
+    runs(
+        "type Child={name:string;other:string;};type Row={child:Child;run:ReadOnly<Function<int>>;};function pick(row:Row,early:boolean):Child{try{if(early){return row.child;}}finally{console.log(row.run());}return row.child;}function main(){const values=[3];const first=pick({child:{name:\"left\",other:\"one\"},run:():int=>values[0]},true);console.log(first.name,first.other);const second=pick({child:{name:\"right\",other:\"two\"},run:():int=>values[0]+4},false);console.log(second.name,second.other);}",
+        "3\nleft one\n7\nright two\n",
+    );
+    runs(
+        "type Row={name:string;run:ReadOnly<Function<int>>;};function pick(row:Row,early:boolean):string{try{if(early){return row.name;}}finally{console.log(row.run());}return row.name;}function main(){const values=[3];console.log(pick({name:\"left\",run:():int=>values[0]},true),pick({name:\"right\",run:():int=>values[0]+4},false));}",
+        "3\n7\nleft right\n",
+    );
+}
+
+#[test]
+fn captured_record_fields_survive_catch_and_loop_cleanup() {
+    runs(
+        "type Row={name:string;other:string;};function pick(row:Row,mode:int,trace:int[]):string{const run=():string=>{for(let i=0;i<2;i+=1){try{if(mode===0){return row.name;}throw 7;}catch(error){if(mode===1){break;}continue;}finally{trace.push(i);if(mode===2){return row.other;}}}return row.name;};return run();}function main(){for(let mode=0;mode<3;mode+=1){const trace:int[]=[];console.log(pick({name:\"left\",other:\"right\"},mode,trace),trace.join(\",\"));}}",
+        "left 0\nleft 0\nright 0\n",
+    );
+}
+
+#[test]
+fn map_catch_loop_controls_preserve_callback_origins() {
+    runs(
+        "type Row={name:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(row:Row,mode:int,trace:int[]):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});for(let i=0;i<2;i+=1){try{if(mode===0){return row.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});if(mode<3){throw 7;}}catch(error){if(mode===1){break;}continue;}finally{const item=handlers.get(mode===0?\"old\":\"new\");if(item!==undefined){trace.push(item.run()+i);}}}return row.name;}function main(){for(let mode=0;mode<4;mode+=1){const trace:int[]=[];console.log(pick({name:\"owner\"},mode,trace),trace.join(\",\"));}}",
+        "owner 3\nowner 7\nowner 7,8\nowner 7,8\n",
+    );
+}
+
+
+#[test]
+fn split_callback_fields_survive_nested_map_error_replacement() {
+    runs(
+        "type Row={name:string;other:string;run:ReadOnly<Function<int>>;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,mode:int):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{try{if(mode===0){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});throw 7;}finally{if(mode===1){return a.other;}}}catch(error){}finally{const item=handlers.get(mode===0?\"old\":\"new\");if(item!==undefined){console.log(item.run(),a.run());}}return a.name;}function main(){const retained=[11];for(let mode=0;mode<3;mode+=1){console.log(pick({name:\"left\",other:\"right\",run:():int=>retained[0]},mode));}}",
+        "3 11\nleft\n7 11\nright\n7 11\nleft\n",
+    );
+}

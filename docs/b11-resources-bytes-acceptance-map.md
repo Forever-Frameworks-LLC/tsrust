@@ -11,7 +11,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
 | Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
-| Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields and ordinary catch/loop disposal verified; Map catch/loop and specialized/captured field combinations still pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
+| Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields, catch/loop disposal, split callback records and owning captures have focused acceptance; family regression remains pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
@@ -664,3 +664,48 @@ formatting preserves tokens and finishes with zero changes/fingerprint updates.
 Five native/Node-after-tsc cases agree in SQLite
 `runtime/results/2026-10-11T05-21-39-462Z-verify.json`; `verifiedOnly` is true and
 `execution` is empty. These checks are untimed, not family measurement acceptance.
+
+
+### Callback-bearing record leaves and owning captures
+
+Field completion transport now expands callback-bearing records into their independent
+native leaves. Checked availability selects each surviving leaf, including leaves of
+a returned nested plain record. Source/native field lookup recognizes those names.
+Owning captures with Consume mode may use the same transport when they are not
+references. Native declarations become mutable where restoration requires it; this
+does not permit mutation of a source const or borrowed owner. Map inherited-field
+selection distinguishes Maps by target type rather than by native name recognition.
+
+Two new red native disposal probes preceded the repair: a local record containing a
+callback, and a plain record owned by a callback. Both now pass at O0/O3 with exact
+local disposal and unchanged returned allocation identity. Map/catch loop disposal
+already passed; four-mode integration coverage checks callback origins on return,
+break, continue and normal continuation. Additional source tests cover nested record
+field returns, owning captures through catch/loop cleanup, and split ordinary leaves
+through nested Map error/replacement transport. The public fixture combines a captured
+callback-bearing record with field returns through finally.
+
+A separate probe attempted to return a borrowed callable inside a record and received
+the existing callback-escape diagnostic. The repair preserves that rule; the accepted
+aggregate-return test moves a plain child record beside the retained callback. Restored
+Option-root and borrowed-storage fallback routes are unchanged. No disposal witness
+is ignored. Recursive stored-callable support, gate 190 and S07 acceptance remain open.
+
+Matched exception support now uses a callback-bearing record for retained fields and
+an owning callback for caught returns. TypeScript, source guards, mutation checks and
+hashes are current; the independent closed-form result stays unchanged. Iterations,
+operation units and measurement protocols are preserved. This is focused implementation
+acceptance, not timing or a full family regression. No editor behavior changed.
+Exact records use SQLite prefixes `tsrust-callback-field-cleanup-`,
+`tsrust-captured-field-cleanup-`, `tsrust-owned-capture-field-cleanup-` and
+`tsrust-map-catch-control-`. Installed consumers remain `4367f4cc`.
+
+Final focused evidence: 64 finally unit tests pass with none ignored. Return-move
+coverage has 32 retained passes, the corrected aggregate-return case passes, and the
+new split-field/nested-Map case passes (34 cases total). The adjacent 21 exception,
+4 generic-call exception, 3 native-region and 17 scoped-record finally tests pass.
+The formatter corpus, 3 registration checks and rebuilt release public fixture pass.
+Five native/Node-after-tsc cases agree in SQLite
+`runtime/results/2026-10-11T05-33-30-740Z-verify.json`; `verifiedOnly` is true and
+`execution` is empty. Whole-project formatting finishes with zero changes. No timing
+or full family regression ran.

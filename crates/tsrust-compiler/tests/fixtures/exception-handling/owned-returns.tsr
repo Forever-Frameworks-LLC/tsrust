@@ -120,7 +120,39 @@ function takeThroughCatch(row: Row, mode: int, trace: int[]): string {
   return row.name;
 }
 
+type CallbackFieldOwner = {
+  text: string;
+  run: ReadOnly<Function<int>>;
+};
+
+function takeCapturedCallbackField(row: Row, early: boolean, trace: int[]): string {
+  const lengths = [row.other.length];
+  const owner: CallbackFieldOwner = {
+    text: row.name, run: (): int => lengths[0]
+  };
+  const action = (): string => {
+    try {
+      if (early) {
+        return owner.text;
+      }
+    } finally {
+      trace.push(owner.run());
+    }
+
+    return owner.text;
+  };
+  return action();
+}
+
 function main() {
+  const capturedTrace: int[] = [];
+  strictEqual(takeCapturedCallbackField({
+    name: "first", other: "one"
+  }, true, capturedTrace), "first");
+  strictEqual(takeCapturedCallbackField({
+    name: "second", other: "four"
+  }, false, capturedTrace), "second");
+  strictEqual(capturedTrace.join(","), "3,4");
   const trace: int[] = [];
   strictEqual(take({
     name: "first", other: "one"

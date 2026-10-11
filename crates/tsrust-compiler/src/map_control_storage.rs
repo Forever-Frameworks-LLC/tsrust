@@ -9,7 +9,7 @@ impl Emitter<'_> {
         let controls=self.control_targets.snapshot().into_iter().flat_map(|target|[CompletionKind::Break(Some(target)),CompletionKind::Continue(Some(target))]).filter_map(|kind|fun.storage_exits.map_completion_layout(boundary,phase,Some(kind)).map(|layout|(kind,layout))).collect::<Vec<_>>();
         if returned.is_none() && controls.is_empty(){return None;}
         let fields=self.exception_regions.error_storage_values(crate::Span{start:boundary,end:boundary}).unwrap_or_default().into_iter().filter_map(|value|{
-            if self.map_storage_binding(fun,&value.place).is_some(){return None;}
+            if matches!(value.target,Some(Type::Map(_))){return None;}
             let place=self.field_native_place(fun,&value.place)?;
             (fun.storage_exits.completion_field_available(boundary,phase,Some(CompletionKind::Return),&place)==Some(true)).then(||(value.place,value.target.expect("typed return field")))
         }).collect();

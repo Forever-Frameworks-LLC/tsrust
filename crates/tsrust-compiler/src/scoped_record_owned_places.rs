@@ -94,7 +94,7 @@ impl Emitter<'_> {
             &mut Vec::new(),
             Mode::Consume,
             true,
-            fun.bindings[id].mutable,
+            fun.bindings[id].mutable || self.finally_moves.partial_root(fun,id),
         );
         // Bind every leaf directly. A named, partially moved generic record
         // can otherwise retain its old callback lifetime until scope exit.

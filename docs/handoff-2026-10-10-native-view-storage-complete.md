@@ -107,16 +107,31 @@ moved fields. Legacy cleanup returns remain valid when there is no specialized
 carrier. Native disposal and allocation identity, nested catch, and cleanup replacement
 are covered. The original callback-disposal regression remains part of acceptance.
 
-Map-backed same-region catch/control and specialized/captured layouts still need
-coverage; their fallback routes remain. Do not accept resources yet.
+Map-backed same-region catch/control now has native disposal and four-mode output
+coverage without an additional implementation change. Field transport also handles
+callback-bearing records stored as independent native leaves, including nested plain
+record subtrees. Owning callback captures may transport fields when their checked mode
+is Consume and they are not references. Native bindings become mutable only to restore
+transported owners; source const/borrow rules are unchanged. Map error/return field
+classification uses the target type, so split ordinary leaves are not mistaken for Maps.
+Native O0/O3 probes verify exact disposal and allocation identity for both layouts;
+source fixtures cover captured catch/loop cleanup and nested Map replacement.
+
+One aggregate-return probe hit the existing callback-escape diagnostic for returning
+a borrowed callable inside a record. This repair does not relax that source rule;
+aggregate field transport is checked with a plain nested record beside a retained
+callback. Restored Option-root and borrowed-storage fallback paths are unchanged.
+All current disposal witnesses are enabled and pass. Resource acceptance is still open.
 
 Public fixtures and matched `exception_completion` now exercise body field returns,
 caught throws, handler field returns and normal continuation, in addition to loops
 and Map cleanup. Matched TypeScript, independent closed-form oracle, mutation guards
-and hashes are current. Latest records use SQLite prefixes `tsrust-nested-map-fields-` and
-`tsrust-caught-field-control-`. The matched Map error crosses an inner finally before
+and hashes are current. Latest records use SQLite prefixes `tsrust-callback-field-cleanup-`,
+`tsrust-captured-field-cleanup-`, `tsrust-owned-capture-field-cleanup-` and
+`tsrust-map-catch-control-`. The matched Map error crosses an inner finally before
 catch; loop break/continue now leave a catch in the same cleanup region. The independent
-oracle, guards, counterpart and fingerprints are current. A discarded test variant correctly failed ownership checking:
+oracle, guards, counterpart and fingerprints are current. The field-retention stage
+now uses a callback-bearing record; caught field returns run inside an owning callback. A discarded test variant correctly failed ownership checking:
 fallible logging in inner cleanup could throw after the field had already moved.
 The final replacement tests keep that inner cleanup infallible.
 

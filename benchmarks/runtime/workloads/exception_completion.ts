@@ -14,9 +14,12 @@ function retained(value: string, early: boolean, trace: number[]): string {
 }
 
 type RetainedOwner = {text: string; stamp: number;};
+type RetainedCallbackOwner = {text: string; run: ()=>number;};
 function retainedField(value: RetainedOwner, early: boolean, trace: number[]): string {
-  try { if (early) { return value.text; } } finally { trace.push(value.stamp); }
-  return value.text;
+  const stamp = [value.stamp];
+  const row: RetainedCallbackOwner = {text: value.text, run: (): number => stamp[0]};
+  try { if (early) { return row.text; } } finally { trace.push(row.run()); }
+  return row.text;
 }
 
 type CallbackHolder = {run: ()=>number;};
@@ -55,15 +58,18 @@ function retainedLoop(value: RetainedOwner, mode: number, trace: number[]): stri
 }
 
 function retainedCatch(value: RetainedOwner, mode: number, trace: number[]): string {
-  try {
-    if (mode === 0) { return value.text; }
-    if (mode === 1) { throw 31; }
-    trace.push(29);
-  } catch (error) {
-    trace.push(30);
-    if (mode === 1) { return value.text; }
-  } finally { trace.push(31); }
-  return value.text;
+  const run = (): string => {
+    try {
+      if (mode === 0) { return value.text; }
+      if (mode === 1) { throw 31; }
+      trace.push(29);
+    } catch (error) {
+      trace.push(30);
+      if (mode === 1) { return value.text; }
+    } finally { trace.push(31); }
+    return value.text;
+  };
+  return run();
 }
 
 type CleanupChoice = {first: string; second: string;};

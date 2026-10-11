@@ -116,8 +116,22 @@ impl Emitter<'_> {
         for place in places {
             let binding=&fun.bindings[place.binding];
             if binding.capture_reference || binding.borrowed_place.is_some() || binding.mutable_place
-                || binding.parameter && (place.binding>=fun.parameter_count || binding.mode!=Mode::Consume)
-                || self.restored_capture(fun,place.binding) || self.owned_record_layout(fun,place.binding).is_some(){return None;}
+                || binding.parameter && binding.mode!=Mode::Consume
+                || self.restored_capture(fun,place.binding){return None;}
+            if let Some(layout)=self.owned_record_layout(fun,place.binding){
+                for leaf in &layout.leaves {
+                    let mut ty=binding.ty;let mut names=Vec::new();
+                    for index in &leaf.path {
+                        let Type::Record(record)=ty else{return None;};
+                        let field=self.program.records[record].fields.get(*index)?;
+                        names.push(field.name.text.clone());ty=field.ty?;
+                    }
+                    if !names.starts_with(&place.fields){continue;}
+                    let projected=Place{binding:place.binding,fields:names};
+                    if fun.storage_exits.completion_field_available(boundary,phase,kind,&projected)==Some(true){fields.push((leaf.native_name(place.binding),leaf.ty));}
+                }
+                continue;
+            }
             if !fun.storage_exits.completion_field_available(boundary,phase,kind,place).unwrap_or(false){continue;}
             let mut ty=binding.ty;let mut native=format!("value{}",place.binding);
             for field in &place.fields {
