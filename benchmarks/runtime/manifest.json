@@ -18857,7 +18857,7 @@
       "specification": "Retain key counts, membership, deletion/reinsertion order, copied-source count, cleared count and snapshot order.",
       "sourceSha256": "40b5f092a2fc9f76b403b768b6af644ac9cadf272cd570262cb190a2d5a84f68",
       "counterpartSha256": "db7890e817e7c117499e91cc11ac9ef373457606ea2645100d25cc1771c9d0fd",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "map_values",
@@ -18886,7 +18886,7 @@
       "specification": "Retain duplicate replacement, selected values, membership, removal results, clear count, copied count and copied input text.",
       "sourceSha256": "7c6953e697b11d89e0315a9c44803ea329463eb7988342bfbcb136c1715039c3",
       "counterpartSha256": "6baaafaf1814616afc0e1aa4c75af0add584beaaa7194bb7f698da39447f8a5d",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "map_snapshots",
@@ -18915,7 +18915,7 @@
       "specification": "Retain deletion/reinsertion key order, copied value order, both tuple fields and cleared receiver count.",
       "sourceSha256": "fdc70ea1e62b8b1d76c0b77e20cd6b8a28135c4ed69c7f7027a96ebf3228a22c",
       "counterpartSha256": "8a072dc39ee20ca60d1cae092c561c9647a8dfcf59c2e52ce892e36b411116ac",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "set_entries",
@@ -18944,7 +18944,7 @@
       "specification": "Retain deletion/reinsertion order, duplicate tuple keys, copied owned labels and source clear result.",
       "sourceSha256": "cc941e7ef017327e35c5c83222cac2d5c577687567d28b0244b0dd052467597d",
       "counterpartSha256": "12626ff6cd11c110cf5918df91772a3a96173bc95466d40806b2bd79ff31a038",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "set_for_each",
@@ -18973,7 +18973,7 @@
       "specification": "Retain callback key/count sum and full ordered owned-label concatenation.",
       "sourceSha256": "a1b2cc9c705355f614051aa8378935b52c7459332737d9b22c0023a07e4e87b8",
       "counterpartSha256": "775ac57d38daa03e5c84532382f20f59e7b53673ef8e563e8f94b781878e3b08",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "array_callback_errors",
@@ -19030,7 +19030,7 @@
       "specification": "Retain full key/value label order, replacement order and callback sum.",
       "sourceSha256": "5d9ce7209254fa11c415b7925eb9ac65e3145bc12161dd6a359b04a9585d8644",
       "counterpartSha256": "4da2863a36b87bdd5eab7d5744120612f9d1d4af358139f6b04e5b2772766fe9",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "set_relations",
@@ -19059,7 +19059,7 @@
       "specification": "Retain full numeric and owned-label relation results.",
       "sourceSha256": "3dfdd8503dd7e3b0b61fc3d2a53fa5098c19e0b4798ecbadabec9ea150199083",
       "counterpartSha256": "2992fe7f77889dd333382b32284e465da177eaa129d6f2a6d21d492f5a5c4ddf",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "set_algebra",
@@ -19088,7 +19088,7 @@
       "specification": "Retain ordered numeric algebra snapshots and owned-label union after source mutation.",
       "sourceSha256": "96a97dc34b37ddd12acc9c80e5d99e4a453329fba80186fa0d455f11f90858a0",
       "counterpartSha256": "9bf7482dea2ae2bb13841a911dcaa6c9171fb738e7ff6569a61c8bcdb730e11c",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "map_iteration",
@@ -19117,7 +19117,7 @@
       "specification": "Borrow ordered entries through tuple and pattern bindings, then release source loan before mutation.",
       "sourceSha256": "7c905d103ecc56fcfe20fdb0ea351ab6818b654b254fedd5f229f4a4d5130d2b",
       "counterpartSha256": "26c5bd0b206af0642f44d8664663b9895e3cfb8a10fa7913e3462363e74047fd",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "string_iteration",
@@ -19175,7 +19175,7 @@
       "specification": "Independent collection copies and borrowed mapping, including noncloneable native values.",
       "sourceSha256": "d177076c5d721099a25cff6f85d76b6c429124463b4e0e7c606b0df3c397656c",
       "counterpartSha256": "0b663c5cf13c4da394e2c1c0c4d7013feced4d366efccceda978ea18c66605da",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "iterable_array_spread",
@@ -19204,7 +19204,7 @@
       "specification": "Ordered string characters and Set elements with owning Map tuples; no implicit cloning.",
       "sourceSha256": "151bd5784516d26d279ea8070f86ee866af5a391cdac072832fb1a5455b2068c",
       "counterpartSha256": "9a7f952a6ddef13e41bbe1afe0825617308de31d24a7801dc87fde8b61a5fc2e",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "iterable_call_spread",
@@ -19233,7 +19233,7 @@
       "specification": "Ordered iterable argument staging with checked parameter access and borrowed noncloneable Map tuples.",
       "sourceSha256": "c83e4381a5cda746b1fff924259eefcc21b0b3acf1fe5df30637a2cd650e5ac8",
       "counterpartSha256": "05ec00a7648eecbdd914715664eb823817db47a28c58f59ad8772fb611e358ad",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "map_group_by",
@@ -19262,7 +19262,7 @@
       "specification": "Ordered grouping with two-position callbacks, independent scalar groups and Unicode character sources.",
       "sourceSha256": "938bd36507af9e2fc0cb510e581594934fac64c927aadccd4224249a8e73b6c3",
       "counterpartSha256": "dd8879c0ec4744faf63ede78efb840801aa6711e5b3cd2e397bbd656d2bd0f24",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "numeric_literals",
@@ -20848,7 +20848,7 @@
       "sourceSha256": "8e16f0840454ef0214d940e961b0989ae90b500e5cb80ed0262f17546847b2d6",
       "counterpartSha256": "93dfcdd12b0ba246a3c1a7c4170340173c8afe3f0e420087e2c9728e9f2b1007",
       "verificationEvidence": "runtime/results/2026-10-11T10-04-18-452Z-verify.json",
-      "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
+      "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
     },
     {
       "id": "native_byte_views_deque",

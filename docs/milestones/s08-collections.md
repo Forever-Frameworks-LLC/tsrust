@@ -151,13 +151,44 @@ distinct keys in each container; it now observes zero after reserving the outer
 storage. The same witness runs 2,048 forced-collision operations against an
 independent sequence model and checks deletion, replacement, reinsertion and
 independent clones at optimization levels 0 and 3. All 74 focused collection,
-Map/Set, iteration, relation and algebra checks pass. Matched performance reruns
-remain pending; the original baseline stays immutable in SQLite.
+Map/Set, iteration, relation and algebra checks pass. Matched performance reruns now pass for all 14 affected workloads; the original
+baseline stays immutable in SQLite.
+
+### Measured bucket results
+
+At `7f6c3887`, the affected workload rerun retains all five correctness cases per
+engine, eight warmups, 31 samples and three processes. It adds 2,604 execution
+samples and 42 allocation profiles, without retiming startup or compilation.
+Native throughput improves by 2.5–38.8% across the 14 workloads. Unchanged Node
+controls vary from 0.975× to 1.031×; the smallest native change is within that
+variation and should not be treated as a firm speedup. Allocation counts and
+requested bytes decrease in every affected workload, with deterministic counters
+and zero live bytes after disposal.
+
+Representative results include Map values (1.209× native throughput, 51,201 to
+38,913 allocations), Set algebra (1.288×, 141,313 to 88,065 allocations), and
+Map byte views (1.388×, 53,249 to 20,481 allocations). Native remains slower than
+Node on many complete workloads; this optimization does not establish universal
+native superiority. No affected workload shows a measured throughput regression.
+
+SQLite proof `runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json`
+binds exact source/counterpart identities, emitted-source agreement and protocol
+counts to both records and includes every baseline comparison:
+
+- `runtime/results/2026-10-11T14-36-31-471Z.json`
+- `runtime/diagnostics/2026-10-11T14-36-56-622Z-native-allocations.json`
+
+All originals were verified byte-for-byte after import before removing loose
+copies. The bucket optimization is accepted. Heap still stages each numeric
+spread into an intermediate Array before copying it into its final rest array;
+its two spread expressions explain the two extra allocations per iteration
+relative to the direct Rust control. Preserve eager snapshot and argument-order
+semantics when investigating a single-spread rest-pack transfer.
 
 ## Remaining acceptance
 
-Measure the implemented Map/Set bucket optimization and inspect Heap spread
-allocations. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
+Investigate a single-spread rest-pack transfer to remove the identified Heap
+intermediate allocations. Make only evidence-backed changes. Preserve this baseline and rerun only affected workloads
 after changes. Refresh all installed consumers and verify editor diagnostics.
 Then begin the requested project-wide, multiple-error diagnostics milestone before
 S09. The measurement proof accepts the recorded measurements; it does not declare
