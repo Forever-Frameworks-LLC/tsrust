@@ -188,8 +188,11 @@ impl Analyzer {
         let name=path.first()?;let index=self.program.records[record].fields.iter().position(|field|&field.name.text==name)?;
         let mut fields=self.program.records[record].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
         fields[index]=if path.len()==1{ty}else{let Type::Record(child)=fields[index]else{return None;};Type::Record(self.record_type_with_field(child,&path[1..],ty)?)};
-        let id=self.scoped_records.materialize(record,fields,&mut self.program.records);
-        if self.fields.len()<=id{self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+        let recursive=self.native_borrow_types && fields.iter().any(|ty| self.native_shape_contains_view(*ty))
+            && crate::recursive_view_shapes::Index::new(&self.program.records,&|id|self.unions.members(id)).recursive(self.scoped_records.declaration(record));
+        let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions).ok()?}
+            else {self.scoped_records.materialize(record,fields,&mut self.program.records)};
+        while self.fields.len()<self.program.records.len(){let id=self.fields.len();self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
         Some(id)
     }
     pub(super) fn update_local_record_field_type(&mut self,context:&mut Context,target:&Expr,ty:Type)->Result<(),Diagnostic>{

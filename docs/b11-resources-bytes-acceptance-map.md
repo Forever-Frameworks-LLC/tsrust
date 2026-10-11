@@ -877,3 +877,43 @@ including the two remaining failures: nullable joins from different factories
 Forty logs/probes and the untimed result were imported and read back byte-for-byte
 before deleting loose copies. SQLite `PRAGMA quick_check` passes. Final
 whole-project formatting changes no files; obsolete native/test outputs are pruned.
+
+### Gate 189 nullable recursive callback joins
+
+Nullable callback fields now share a stable family across populated and empty
+factories, owning parameter extraction and later local replacement. Constructors
+and discovered returns retain the same recursive component. Field replacement
+also materializes recursive components rather than expanding their links.
+
+An empty callback-only result quantifies an independent output lifetime. It does
+not borrow unused inputs or substitute static. Direct functions, forwarding calls,
+closures and trait adapters preserve that contract. Filling an empty record with
+a short-lived capture still rejects escape. The public nullable fixture and ten
+source variants cover null/undefined, factory order, empty leaves, callback-only
+records, optional extraction and replacement at O0/O3. The native stress witness
+now includes nullable callbacks, checks allocation identity, drops 10,000 links on
+a 64 KiB stack and rejects either short owner at O0/O3.
+
+Focused acceptance retains 24 public byte tests through completed and repaired
+passes, 321 affected callback/record/nullable tests, four native family tests, five
+editor tests, seven benchmark registration/mutation tests and the formatter corpus.
+The new closure fixture and owner rejections were rerun after the trait repair;
+completed unaffected checks were retained. Whole-project formatting is unchanged,
+and the formatted public fixture executes with the current release compiler.
+
+`native_byte_views_nullable_callbacks` includes an empty leaf and 16 parents
+alternating two capturing factories. Its matched TypeScript, independent arithmetic
+oracle, source guards, hashes and ABI/harness registration are complete. Native and
+Node-after-tsc agree on five untimed cases each for this workload, stored callbacks
+and callback-only records. Exact evidence is SQLite record
+`runtime/results/2026-10-11T07-26-39-414Z-verify.json` (`verifiedOnly: true`, zero
+execution samples). This is correctness evidence, not measurement.
+
+SQLite retains exact `tsrust-nullable-family-*` logs/probes, including original
+failures and repaired passes, with byte-for-byte readback before loose-file removal.
+Mutable recursive parameter replacement remains pending. Gate 189, resource gate
+190 and S07 acceptance remain open; installed consumers remain `4367f4cc`.
+
+Forty-three logs/probes and the untimed result were imported and verified before
+removal. SQLite `PRAGMA quick_check` passes. Twenty-six obsolete test/native outputs
+were pruned (369,763,335 bytes); current CLI/editor consumers were retained.

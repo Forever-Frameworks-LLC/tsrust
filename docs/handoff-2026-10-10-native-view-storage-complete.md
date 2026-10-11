@@ -14,8 +14,8 @@ Read `AGENTS.md`, `docs/development-workflow.md`, the acceptance map,
   Nonrecursive layouts stay unchanged. No shared ownership or implicit byte copies.
 - Recursive records containing views share a real borrow lifetime. Array recursion,
   nullable links, provenance, iterative link destruction/clone and public fixtures
-  are implemented. Views remain non-clonable. Recursive records storing callback
-  fields still have the explicit callable-layout diagnostic and remain pending.
+  are implemented. Views remain non-clonable. Recursive callback fields and nullable factory joins
+  have focused acceptance; replacement through mutable parameters remains pending.
 - View-capturing callbacks can return argument views or views of borrowed Bytes
   arguments. Terminal-branch provenance and temporary record calls are repaired.
 - The installed CLI/editor consumers were refreshed from `4367f4cc` with executable
@@ -194,15 +194,21 @@ families need no error ABI; unresolved catch contracts still reject. Ten public
 source variants run at O0/O3, and the native 10,000-link witness now also contains
 only two capturing callbacks, with both short-owner rejections.
 
-Next: complete nullable callback joins across factories and replacement through
-mutable recursive parameters. Basic nullable fields execute, but `tsrust-storage-composition-nullable-join.tsr`
-rejects a link from a second factory with `Expected Holder | undefined, found Holder`.
-The retained
-`tsrust-storage-composition-replacement.tsr` probe still reports `Expected closure,
-found closure` because native field replacement currently excludes parameters. The finite-layout guard
-remains for unsupported specializations. Then finish resource gate 190, S07
-acceptance and the roadmap. Installed consumers remain `4367f4cc`; no family timing
-has run. See the acceptance map for this checkpoint's exact evidence.
+Nullable callbacks now join across populated and empty factories. Constructors,
+local replacement and discovered factory returns reuse the same recursive field
+family, including nullable payloads. Recursive field updates preserve the component
+layout. Empty callback-only results quantify an independent output lifetime without
+inventing an owner or substituting static. An empty result may outlive an unused
+input; a populated callback still cannot outlive its capture. Tests include source
+order, null/undefined, extracted optional callbacks and filling a returned empty
+record. The native 10,000-link small-stack test also covers nullable callbacks.
+
+Next: complete replacement through mutable recursive parameters. The retained
+`tsrust-storage-composition-replacement.tsr` probe reports `Expected closure, found
+closure` because native field replacement currently excludes parameters. The
+finite-layout guard remains for unsupported specializations. Then finish resource
+gate 190, S07 acceptance and the roadmap. Installed consumers remain `4367f4cc`;
+no family timing has run. See the acceptance map for exact checkpoint evidence.
 
 ## Working environment
 

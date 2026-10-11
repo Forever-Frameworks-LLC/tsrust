@@ -109,3 +109,28 @@ for (const id of ['native_byte_views_stored_callbacks','native_byte_views_captur
         assert.equal(expectedChecksum(row.id,n,7,'bytes'),expected.checksum);
     }
 });
+
+test('Nullable callbacks retain an empty leaf and two capturing factories', () => {
+    const row = manifest.workloads.find(value => value.id === 'native_byte_views_nullable_callbacks');
+    assert.ok(row);
+    assert.equal(row.measured, false);
+    assert.equal(reportCategory(row.id), 'bytes');
+    const emitted = 'fn tsr_result_function5(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>, TsrFunctionError5> { todo!() }\nfn main() {}';
+    assert.equal(assertABI(emitted,row,read('./'+row.source)).fallible,true);
+    for (const [kind,file] of [['native',row.source],['typescript',row.counterpart]]) {
+        const source = read('./'+file);
+        assertNativeByteViewsSource(source,row,kind);
+        assert.throws(()=>assertNativeByteViewsSource(source,{...row,operationsPerIteration:2},kind));
+        for (const from of ['let root=empty();','parent.next=root;','sum+=first(root.read!());','return chunk.read;','const absent=tail===undefined?1:0;','depth%2===0?node(owner):alternate(owner)']) {
+            const changed=replaceCodeSnippet(source,from,'');
+            const key=kind==='native'?'sourceSha256':'counterpartSha256';
+            assert.throws(()=>assertNativeByteViewsSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
+        }
+    }
+    assert.deepEqual(expectedNativeByteViewsValues(row.id,3,255,'bytes'),[[17,4080,1],[17,0,1],[17,16,1]]);
+    for (const seed of [0,7,1000000]) for (const n of [0,1,37,2048]) {
+        const expected=expectedNativeByteViewsObservation(row.id,n,seed,'bytes');
+        assert.deepEqual(expectedExactResult(row.id,n,seed,'bytes'),expected);
+        assert.equal(expectedChecksum(row.id,n,seed,'bytes'),expected.checksum);
+    }
+});

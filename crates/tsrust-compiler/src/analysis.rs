@@ -5413,8 +5413,11 @@ impl Analyzer {
             matches!(field.ty, Some(Type::Callback(id)) if !self.callables.callbacks[id].kind.is_owned())
         });
         let recursive_views = crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id));
-        let recursive_callbacks = self.native_borrow_types && self.program.records.iter().enumerate().any(|(id, record)|
-            recursive_views.recursive(id) && record.fields.iter().any(|field| matches!(field.ty, Some(Type::StoredCallable(_)))))
+        let recursive_nullable_callbacks = self.native_borrow_types && self.program.records.iter().enumerate().any(|(id, record)|
+            recursive_views.recursive(id) && record.fields.iter().any(|field| field.ty.is_some_and(|ty|
+                matches!(self.unions.payload(ty), Some(Type::StoredCallable(_))))));
+        let recursive_callbacks = recursive_nullable_callbacks || self.native_borrow_types && self.program.records.iter().enumerate().any(|(id, record)|
+            recursive_views.recursive(id) && record.fields.iter().any(|field| field.ty.is_some_and(|ty| matches!(self.unions.payload(ty).unwrap_or(ty), Type::StoredCallable(_)))))
             && self.signatures.iter().any(|signature| signature.params.iter().any(|ty|
                 matches!(ty, Type::Record(record) if recursive_views.recursive(*record))));
         if !recursive_callbacks && (!self.program.records.iter().any(borrowing_field)
@@ -9960,6 +9963,7 @@ impl Analyzer {
                 ));
             }
         };
+        let Type::Record(index) = self.scoped_records.recursive_parameter(Type::Record(index)) else { unreachable!() };
         if let Some(id) = self.program.records[index].native_type
             && !crate::native_types::declaration(id).source_constructible() {
             return Err(Diagnostic::new("native-opaque", "Opaque native values cannot be constructed with record literals; use their module's constructors.", span));
@@ -9988,7 +9992,9 @@ impl Analyzer {
                 )
             })?;
             let nominal=self.scoped_records.declaration(index);
-            let field_type=if matches!(field_type,Type::Closure(_) | Type::BorrowedCallable(_)) {
+            let scoped_value = matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some())
+                && !matches!(self.expression_type_hint(context, value), Some(Type::Null | Type::Undefined));
+            let field_type=if scoped_value || matches!(field_type,Type::Closure(_) | Type::BorrowedCallable(_)) {
                 self.program.records[nominal].fields.iter().find(|field|field.name.text==key.text).and_then(|field|field.ty).unwrap_or(field_type)
             }else{field_type};
             let actual = if let Type::StoredCallable(family) = field_type {
@@ -10006,14 +10012,7 @@ impl Analyzer {
                 if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
             if scoped_native || nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
                 let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
-                concrete[position] = if let Type::StoredCallable(family) = actual
-                    && self.callables.storage.scoped_native_family(family).is_some()
-                    && crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).recursive(nominal) {
-                    self.callables.storage.intern_recursive_scoped_native(
-                        &self.callables.shapes, &self.callables.callbacks, family,
-                        nominal, position, &self.closures, value.span,
-                    )?
-                } else { actual };
+                concrete[position] = self.recursive_native_field_type(actual, nominal, position, value.span)?;
                 specialized = true;
             }
         }
@@ -13587,6 +13586,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         } else {
             self.signatures[index].result
         };
+        // Recursive factories share their component even while result discovery
+        // still sees the written nominal return annotation.
+        let result = self.scoped_records.recursive_parameter(result);
         if context.template && self.checked.get(index).and_then(Option::as_ref).is_none_or(|function|function.template)
             && self.program.functions[index].parameter_initializers.iter().any(|initializer|matches!(initializer,ParameterInitializer::Default{..}))
             && matches!(result,Type::Closure(id) if matches!(self.closures[id].forward,Some(ClosureForward::Abstract(_)))) {

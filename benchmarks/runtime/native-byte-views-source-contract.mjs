@@ -1,8 +1,17 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks','native_byte_views_stored_callbacks','native_byte_views_captured_only','native_byte_views_nullable_callbacks'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
+    if (row.id === 'native_byte_views_nullable_callbacks') {
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One 17-node nullable callback chain construction and consuming traversal with an empty leaf' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Nullable callback views denominator');
+        const owner = kind === 'native' ? 'ReadOnly<Bytes>' : 'Uint8Array';
+        const required = ['function empty():Chunk{return {};}', 'function take(chunk:Chunk){return chunk.read;}', 'const byte=(i+seed)%256;', 'let root=empty();', 'let depth=0;', 'while(depth<16)', 'depth++;', 'const parent=depth%2===0?node(owner):alternate(owner);', 'parent.next=root;root=parent;', 'while(root.next!==undefined){sum+=first(root.read!());count++;const child=root.next!;root=child;}', 'const tail=take(root);const absent=tail===undefined?1:0;count++;output.push([count,sum,absent]);', 'return output;'];
+        for (const factory of ['node','alternate']) required.push(`function ${factory}(owner:${owner}):Chunk{const captured=byteWindow(owner);return {read:()=>captured};}`);
+        required.push(...(kind==='native' ? ['read?:Once<Function<ByteView>>;', 'match(view(owner,0,2))', 'match(at(data,0))', 'match(fromArray([byte,255]))'] : ['read?:()=>Uint8Array;', 'return owner.subarray(0,2);', 'return data[0];', 'const owner=Uint8Array.from([byte,255]);']));
+        for (const text of required) if (!containsCodeSnippet(source,text)) throw Error('Nullable callback views scenario: '+text);
+        return;
+    }
     if (['native_byte_views_stored_callbacks','native_byte_views_captured_only'].includes(row.id)) {
         const capturedOnly = row.id === 'native_byte_views_captured_only';
         if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One 17-node nullable recursive view-capturing callback construction and consuming traversal' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Stored callback views denominator');

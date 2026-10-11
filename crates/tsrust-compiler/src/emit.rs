@@ -2611,7 +2611,10 @@ impl Emitter<'_> {
             // keeps its more precise per-slot lifetimes and result intersections.
             let argument_views = self.native_views.contains(closure.function.result)
                 && (params.iter().any(|parameter| self.native_views.contains(parameter.ty))
-                    || native_view_signature.as_ref().is_some_and(|signature|!signature.storage_lifetimes.is_empty()));
+                    || native_view_signature.as_ref().is_some_and(|signature|!signature.storage_lifetimes.is_empty())
+                    // Empty recursive results quantify their output lifetime in
+                    // the trait implementation as well as the direct method.
+                    || self.native_view_empty_recursive_result(&closure.function));
             let mut argument_trait_bounds = String::new();
             let (arguments, native_result) = if argument_views {
                 lifetimes.push("'native_arguments".into());

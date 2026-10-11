@@ -260,9 +260,10 @@ mod tests {
 
     #[test]
     fn recursive_view_callback_native_chain_keeps_identity_and_bounded_drop() {
-        for callback_only in [false,true] {
+        for (callback_only, nullable) in [(false,false),(true,false),(false,true),(true,true)] {
         let source = "type Window={};type Holder={data:Window;read:Once<Function<Window>>;next?:Holder;};function build(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function other(first:Window,second:Window):Holder{return {data:first,read:()=>second};}function take(holder:Holder){return holder.read;}function main(){}";
         let source = if callback_only { source.replace("data:Window;", "data:Once<Function<Window>>;").replace("data:first,", "data:()=>first,") } else { source.to_owned() };
+        let source = if nullable { source.replace("read:Once<Function<Window>>;", "read?:Once<Function<Window>>;") } else { source };
         let source = crate::formatting::format(&source).unwrap();
         assert_eq!(crate::formatting::format(&source).unwrap(), source);
         let mut parsed = crate::syntax::parse(&source).unwrap();
@@ -272,23 +273,33 @@ mod tests {
         let Type::Record(record) = checked.functions[factory].result else { panic!("concrete recursive record") };
         let other = checked.functions.iter().position(|function| function.name == "other" && !function.template).unwrap();
         assert_eq!(checked.functions[other].result, Type::Record(record));
-        let Type::StoredCallable(family) = checked.records[record].fields[1].ty.unwrap() else { unreachable!() };
+        let callback_type = checked.records[record].fields[1].ty.unwrap();
+        let payload = if let Type::Union(id) = callback_type { checked.unions[id.index()].members.iter().copied().find(|ty| matches!(ty, Type::StoredCallable(_))).unwrap() } else { callback_type };
+        let Type::StoredCallable(family) = payload else { unreachable!() };
+        let invoke = |holder: &str| {
+            let call = format!("function{take}({holder})", take = checked.functions.iter().position(|function| function.name == "take").unwrap());
+            if let Type::Union(id) = callback_type {
+                let tag = checked.unions[id.index()].members.iter().position(|ty| *ty == payload).unwrap();
+                format!("match {call}{{Union{}::V{tag}(callback)=>callback.call(),_=>panic!(\"missing callback\")}}", id.index())
+            } else { format!("{call}.call()") }
+        };
         assert_eq!(checked.stored_contracts.origins(family).unwrap().len(), 2);
-        let take = checked.functions.iter().position(|function| function.name == "take").unwrap();
+        let invoke_root = invoke("root");
+        let invoke_holder = invoke("holder");
         let union = checked.records[record].fields[2].ty.unwrap().union().unwrap();
         let tag = checked.unions[union.index()].members.iter().position(|ty| *ty == Type::Record(record)).unwrap();
         let union = union.index();
         let make = format!("function{factory}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let alternate = format!("function{other}(Record0{{bytes:&first}},Record0{{bytes:&second}})");
         let first_pointer = if callback_only { "" } else { "assert_eq!(root.field0.bytes.as_ptr(),first.as_ptr());" };
-        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}{first_pointer}let result=function{take}(root).call();assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
-        let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
+        let probe = format!("fn family_probe(){{std::thread::Builder::new().stack_size(64*1024).spawn(||{{let first=vec![3u8];let second=vec![7u8];let mut root={make};for index in 0..10000{{let mut parent=if index%2==0{{{make}}}else{{{alternate}}};parent.field2=Union{union}::V{tag}(RecordLink{record}::new(root));root=parent;}}{first_pointer}let result={invoke_root};assert_eq!(result.bytes.as_ptr(),second.as_ptr());assert_eq!(result.bytes[0],7);}}).unwrap().join().unwrap();}}");
+        let negative = format!("fn invalid_escape(){{let retained;let first=vec![3u8];{{let second=vec![7u8];let holder={make};retained={invoke_holder};}}assert_eq!(retained.bytes[0],7);}}");
         let mut generated = crate::emit::emit(&checked);
         let main = generated.find("fn main()").unwrap();
         let opening = main + generated[main..].find('{').unwrap() + 1;
         generated.insert_str(opening,"family_probe();");
-        let sibling_owner = format!("fn invalid_sibling_escape(){{let retained;let second=vec![7u8];{{let first=vec![3u8];let holder={make};retained=function{take}(holder).call();}}assert_eq!(retained.bytes[0],7);}}");
-        compile_family(&generated,"",&probe,vec![(negative,"does not live long enough"),(sibling_owner,"does not live long enough")],if callback_only {"recursive-captured-chain"} else {"recursive-chain"});
+        let sibling_owner = format!("fn invalid_sibling_escape(){{let retained;let second=vec![7u8];{{let first=vec![3u8];let holder={make};retained={invoke_holder};}}assert_eq!(retained.bytes[0],7);}}");
+        compile_family(&generated,"",&probe,vec![(negative,"does not live long enough"),(sibling_owner,"does not live long enough")],if nullable {"recursive-nullable-callback-chain"} else if callback_only {"recursive-captured-chain"} else {"recursive-chain"});
         }
     }
 

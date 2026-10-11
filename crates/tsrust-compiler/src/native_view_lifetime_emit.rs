@@ -12,6 +12,15 @@ pub(super) struct Lifetimes {
     pub(super) bounds: Vec<String>,
 }
 impl Lifetimes {
+    pub(super) fn empty_recursive_output(&mut self) {
+        // A checked empty component carries no owner. Quantify its output
+        // lifetime independently instead of inventing a borrow or using static.
+        debug_assert!(self.outputs.is_empty());
+        let name = "'native_empty".to_owned();
+        self.declarations.push(name.clone());
+        self.outputs.insert((Vec::new(), Vec::new()), name);
+        self.shared_outputs.insert((Vec::new(), Vec::new()));
+    }
     pub(super) fn with_captures(function:&CheckedFunction,parameters:&[usize],captures:&BTreeMap<(usize,LifetimeSource),String>)->Self {
         let mut plan=Self::default();
         for &root in parameters {
@@ -77,8 +86,12 @@ impl Lifetimes {
     }
 }
 impl Emitter<'_> {
+    pub(super) fn native_view_empty_recursive_result(&self, function: &CheckedFunction) -> bool {
+        function.native_returns.as_deref().is_none_or(|loans| loans.is_empty())
+            && matches!(function.result, Type::Record(record) if self.native_views.recursive(record))
+    }
     pub(super) fn native_view_closure_signature(&self,closure:&crate::analysis::CheckedClosure,method:Option<usize>,function:&CheckedFunction,parameters:&[usize])->Option<native_function_signature_emit::NativeSignature> {
-        if function.native_returns.is_none() && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty))) {return None;}
+        if function.native_returns.is_none() && !self.native_views.contains(function.result) && !parameters.iter().any(|&id|self.native_views.contains(function.bindings[id].input_ty.unwrap_or(function.bindings[id].ty))) {return None;}
         let (lifetimes,_)=self.capture_layout(closure);
         let mut next=0;
         let mut captures=BTreeMap::new();

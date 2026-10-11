@@ -363,3 +363,39 @@ fn uninhabited_record_callback_still_requires_a_resolved_catch_contract() {
     assert!(!output.status.success());
     let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[error-effect]"),"{stderr}");
 }
+
+#[test]
+fn nullable_recursive_callbacks_join_factories() {
+    let source=include_str!("fixtures/native-byte-views/recursive-callbacks.tsr")
+        .replace("read: Once<Function<ByteView>>;", "read?: Once<Function<ByteView>>;")
+        .replace("child.read()", "child.read!()").replace("holder.read()", "holder.read!()")
+        .replace("function main()", "function other(first:ByteView,second:ByteView):Holder{return {data:first,read:()=>second};}function main()")
+        .replace("holder.next = build(read(second), read(first));", "holder.next=other(read(second),read(first));");
+    let only=source.replace("  data: ByteView;\n", "").replace("data: first, read:", "read:").replace("data:first,read:","read:").replace("  strictEqual(length(holder.data), 2);\n", "");
+    let null=source.replace("read?: Once<Function<ByteView>>;", "read:Once<Function<ByteView>>|null;");
+    let replacement=source.replace("const result = holder.read!();", "const previous=holder.read!();strictEqual(length(previous),2);holder.read=undefined;strictEqual(holder.read===undefined,true);const value=read(first);holder.read=()=>value;const result=holder.read!();")
+        .replace("strictEqual(value, 7);", "strictEqual(value, 3);");
+    let parameter=source.replace("function main()", "function take(holder:Holder){return holder.read;}function main()")
+        .replace("const result = holder.read!();", "holder.next=undefined;const callback=take(holder);const result=callback!();");
+    let helpers=source.split("function main()").next().unwrap();
+    let empty=format!("{helpers}function empty(first:ByteView):Holder{{return {{data:first}};}}function main(){{const first=bytes(3);const second=bytes(7);const holder=build(read(first),read(second));holder.next=empty(read(first));const child=holder.next!;strictEqual(child.read===undefined,true);const result=holder.read!();strictEqual(length(result),2);}}");
+    let empty_only=empty.replace("  data: ByteView;\n", "").replace("data: first, read:", "read:").replace("data:first,read:","read:").replace("return {data:first};", "return {};");
+    let empty_helpers=empty_only.split("function main()").next().unwrap();
+    let independent=format!("{empty_helpers}function vacant():Holder{{const short=bytes(9);return empty(read(short));}}function main(){{const owner=bytes(7);const holder=vacant();strictEqual(holder.read===undefined,true);const value=read(owner);holder.read=()=>value;const result=holder.read!();strictEqual(length(result),2);}}");
+    let reverse=format!("{}{}", &empty_only[empty_helpers.len()..],empty_helpers);
+    for source in [source,only.clone(),null,replacement,parameter,empty,empty_only,independent,reverse,include_str!("fixtures/native-byte-views/nullable-recursive-callbacks.tsr").to_owned()] {
+        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+        for optimized in [false,true] {
+            let mut command=support::cli();command.arg("run").arg(&path);if optimized {command.arg("--release");}
+            support::success(&support::run(&mut command,120));
+        }
+    }
+    let helpers=only.split("function main()").next().unwrap();
+    for body in ["return other(value,read(short));", "const holder:Holder={};const captured=read(short);holder.read=()=>captured;return holder;"] {
+        let escaping=format!("{helpers}function leak(value:ByteView):Holder{{const short=bytes(3);{body}}}function main(){{const owner=bytes(7);const holder=leak(read(owner));const result=holder.read!();console.log(length(result));}}");
+        let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&escaping));
+        let output=support::run(support::cli().arg("check").arg(path),60);
+        assert!(!output.status.success());
+        let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[native-view-escape]"),"{stderr}");
+    }
+}

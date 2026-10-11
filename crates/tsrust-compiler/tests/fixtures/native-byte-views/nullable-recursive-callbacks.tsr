@@ -1,0 +1,93 @@
+import { Bytes, ByteView, alloc, view, length, at } from "std:bytes";
+import { strictEqual } from "std:testing";
+
+type Holder = {
+  read?: Once<Function<ByteView>>;
+  next?: Holder;
+};
+
+function bytes(value: int): Bytes {
+  match (alloc(2, value)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function read(owner: ReadOnly<Bytes>): ByteView {
+  match (view(owner, 0, 2)) {
+    Ok(result) => {
+      return result;
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}
+
+function build(first: ByteView, second: ByteView): Holder {
+  return {
+    read: () => second
+  };
+}
+
+function other(first: ByteView, second: ByteView): Holder {
+  return {
+    read: () => second
+  };
+}
+
+function empty(): Holder {
+  return {
+  };
+}
+
+function vacant(): Holder {
+  const short = bytes(9);
+  const unused = read(short);
+  const make = () => empty();
+  return make();
+}
+
+function take(holder: Holder) {
+  return holder.read;
+}
+
+function main() {
+  const first = bytes(3);
+  const second = bytes(7);
+  const holder = build(read(first), read(second));
+  holder.next = other(read(second), read(first));
+  const child = holder.next!;
+  child.next = empty();
+  const leaf = child.next!;
+  const absent = take(leaf);
+  strictEqual(absent === undefined, true);
+  const childResult = child.read!();
+  strictEqual(length(childResult), 2);
+  const result = holder.read!();
+  match (at(result, 0)) {
+    Ok(value) => {
+      strictEqual(value, 7);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+
+  const filled = vacant();
+  const captured = read(first);
+  filled.read = () => captured;
+  const replacement = filled.read!();
+  match (at(replacement, 0)) {
+    Ok(value) => {
+      strictEqual(value, 3);
+    },
+    Err(error) => {
+      throw error.message;
+    },
+  }
+}

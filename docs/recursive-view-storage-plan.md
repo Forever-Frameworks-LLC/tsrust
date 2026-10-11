@@ -341,9 +341,14 @@ local replacement, exclusive writes and whole-record capture. An unused view
 argument does not extend the result lifetime. The two-callback native chain witness
 proves that either captured owner can limit the shared lifetime at O0/O3.
 
-Before gate 189 acceptance, complete nullable callback joins across factories and
-recursive replacement through mutable parameters. Basic nullable callback storage
-executes, while mutable-parameter replacement still reports a type mismatch. The finite-layout guard
+Nullable callback payloads now use the same per-field family across factories,
+including absent initializers and later local replacement. Empty callback-only
+results expose an independently quantified lifetime; unused inputs do not become
+owners. Returned empty records can be filled with a later view without recursive
+layout conversion. Public, editor and native lifetime witnesses cover these cases.
+
+Before gate 189 acceptance, complete recursive replacement through mutable
+parameters, which still reports a type mismatch. The finite-layout guard
 remains for unsupported specializations; multiple incompatible components are not
 resolved by choosing one arbitrarily.
 

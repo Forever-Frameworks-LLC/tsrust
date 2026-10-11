@@ -2,19 +2,29 @@
 use super::*;
 
 impl Analyzer {
+    // All alternatives of a recursive field share one family, including a
+    // nullable payload initialized later from an empty record.
+    pub(super) fn recursive_native_field_type(&mut self, actual: Type, nominal: usize, field: usize, span: Span) -> Result<Type, Diagnostic> {
+        let payload = self.unions.payload(actual).unwrap_or(actual);
+        let Type::StoredCallable(source) = payload else { return Ok(actual); };
+        if !self.native_borrow_types || self.callables.storage.scoped_native_family(source).is_none()
+            || !crate::recursive_view_shapes::Index::new(&self.program.records, &|id| self.unions.members(id)).recursive(nominal) { return Ok(actual); }
+        let canonical = self.callables.storage.intern_recursive_scoped_native(
+            &self.callables.shapes, &self.callables.callbacks, source, nominal, field, &self.closures, span,
+        )?;
+        if let Type::Union(union) = actual {
+            self.unions.intern(self.unions.members(union).into_iter().map(|member| if member == payload { canonical } else { member }), span)
+        } else { Ok(canonical) }
+    }
+
     pub(super) fn recursive_native_field_value(&mut self, context: &Context, target: &Expr, value: &mut Expr, actual: Type) -> Result<Type, Diagnostic> {
         if !self.native_borrow_types { return Ok(actual); }
-        let Type::StoredCallable(source) = actual else { return Ok(actual); };
-        if self.callables.storage.scoped_native_family(source).is_none() { return Ok(actual); }
         let Some(holder) = Self::native_view_local_field(context, target) else { return Ok(actual); };
         let Type::Record(record) = context.bindings[holder].ty else { return Ok(actual); };
         let nominal = self.scoped_records.declaration(record);
-        if crate::recursive_view_shapes::Index::with_storage(&self.program.records, &|id| self.unions.members(id), &self.callables.storage).access(record).is_none() { return Ok(actual); }
         let ExprKind::Field(_, name) = &target.kind else { return Ok(actual); };
         let field = self.program.records[nominal].fields.iter().position(|field| field.name.text == *name).expect("checked recursive field");
-        let canonical = self.callables.storage.intern_recursive_scoped_native(
-            &self.callables.shapes, &self.callables.callbacks, source, nominal, field, &self.closures, value.span,
-        )?;
+        let canonical = self.recursive_native_field_type(actual, nominal, field, value.span)?;
         if actual != canonical { value.wrap_record_carrier(canonical); }
         Ok(canonical)
     }
