@@ -81,12 +81,17 @@ impl Events {
   self.entries.retain(|path,(_,watch)| {if active.contains(path){true}else{unsafe{libc::inotify_rm_watch(self.queue.as_raw_fd(),*watch)};false}});Ok(())
  }
  pub(crate) fn changed(&mut self)->io::Result<bool> {
-  let mut buffer=[0u8;65536];
-  // SAFETY: writable buffer and live descriptor. All records, including overflow,
-  // trigger reconciliation, so no unaligned event parsing is needed.
-  let count=unsafe{libc::read(self.queue.as_raw_fd(),buffer.as_mut_ptr().cast(),buffer.len())};
-  if count<0 {let error=io::Error::last_os_error();if error.kind()==io::ErrorKind::WouldBlock{return Ok(false);}if error.kind()==io::ErrorKind::Interrupted{return Ok(true);}return Err(error);}
-  Ok(count>0)
+  let mut buffer=[0u8;65536];let mut changed=false;
+  // Drain bursts in bounded batches, preserving responsiveness under continuous
+  // writes. Remaining events request reconciliation on the next supervisor poll.
+  for _ in 0..16 {
+   // SAFETY: writable buffer and live descriptor. All records, including overflow,
+   // trigger reconciliation, so no unaligned event parsing is needed.
+   let count=unsafe{libc::read(self.queue.as_raw_fd(),buffer.as_mut_ptr().cast(),buffer.len())};
+   if count<0 {let error=io::Error::last_os_error();if error.kind()==io::ErrorKind::WouldBlock{break;}if error.kind()==io::ErrorKind::Interrupted{return Ok(true);}return Err(error);}
+   if count==0{break;}changed=true;
+  }
+  Ok(changed)
  }
 }
 #[cfg(not(any(target_os="macos",target_os="linux")))]
@@ -135,5 +140,36 @@ mod tests {
   let mut events=Events::new(root).unwrap();
   for name in ["target","node_modules",".git"] {fs::write(root.join(name).join("hidden.tsr"),"changed").unwrap();}
   fs::write(outside.0.join("external.tsr"),"changed").unwrap();assert!(!events.changed().unwrap());
+ }
+ #[cfg(target_os="linux")]
+ #[test]
+ fn overflow_requests_reconciliation_and_drains_the_default_queue() {
+  let limit:usize=fs::read_to_string("/proc/sys/fs/inotify/max_queued_events").unwrap().trim().parse().unwrap();
+  assert!(limit<=16384,"overflow acceptance requires a runner with max_queued_events <= 16384");
+  let temp=crate::TempDirectory::new().unwrap();let root=&temp.0;
+  let mut events=Events::new(root).unwrap();let observer=Events::new(root).unwrap();
+  let path=root.join("main.tsr");
+  for _ in 0..=limit/2 {fs::write(&path,"before").unwrap();fs::remove_file(&path).unwrap();}
+  fs::write(&path,"final").unwrap();
+  let mut overflow=false;let mut buffer=[0u8;65536];
+  loop {
+   // SAFETY: valid descriptor and writable buffer. Parse headers unaligned;
+   // inotify includes each complete header and its trailing name in one read.
+   let count=unsafe{libc::read(observer.queue.as_raw_fd(),buffer.as_mut_ptr().cast(),buffer.len())};
+   if count<0 {assert_eq!(io::Error::last_os_error().kind(),io::ErrorKind::WouldBlock);break;}
+   assert!(count>0);let mut offset=0;
+   while offset<count as usize {
+    assert!(offset+std::mem::size_of::<libc::inotify_event>()<=count as usize);
+    let event=unsafe{std::ptr::read_unaligned(buffer.as_ptr().add(offset).cast::<libc::inotify_event>())};
+    overflow|=event.mask&libc::IN_Q_OVERFLOW!=0;
+    offset+=std::mem::size_of::<libc::inotify_event>()+event.len as usize;
+   }
+   assert_eq!(offset,count as usize);
+  }
+  assert!(overflow,"must exercise real kernel event loss");
+  assert!(events.changed().unwrap());
+  assert_eq!(fs::read_to_string(&path).unwrap(),"final");
+  assert!(!events.changed().unwrap(),"drained overflow must not trigger repeated rescans");
+  fs::write(&path,"recovered").unwrap();changed(&mut events);
  }
 }

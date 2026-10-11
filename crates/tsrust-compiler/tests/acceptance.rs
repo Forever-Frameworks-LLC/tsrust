@@ -544,7 +544,13 @@ exit 1
                 ]
             );
             let captured = std::fs::read_to_string(&arguments).unwrap();
-            let args: Vec<_> = captured.lines().collect();
+            let mut args: Vec<_> = captured.lines().collect();
+            assert_eq!(args.len(), 13);
+            assert_eq!(args[3], "--extern");
+            let library=args[4].strip_prefix("tsrust_runtime=").expect("explicit runtime dependency");
+            assert!(std::path::Path::new(library).is_absolute());
+            assert_eq!(std::path::Path::new(library).file_name().unwrap(), "libtsrust_runtime.rlib");
+            args.drain(3..5);
             assert_eq!(args.len(), 11);
             assert_eq!(
                 &args[..8],

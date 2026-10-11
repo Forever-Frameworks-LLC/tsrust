@@ -114,7 +114,7 @@ fn dev_restarts_dependencies_keeps_last_good_on_error_and_cleans_up_on_interrupt
 #[cfg(unix)]
 #[test]
 fn dev_is_quiet_by_default_and_reuses_native_builds_across_sessions() {
- use std::{io::{BufRead,BufReader},process::Stdio,sync::mpsc,time::Duration};
+ use std::{io::{BufRead,BufReader},process::Stdio,sync::mpsc,time::{Duration,Instant}};
  unsafe extern "C" {fn kill(pid:i32,signal:i32)->i32;}
  let dir=support::TempDirectory::new();support::success(&support::run(support::cli().current_dir(&dir.0).args(["new","cache-demo"]),20));let root=dir.0.join("cache-demo");
  for verbose in [false,true] {
@@ -124,8 +124,9 @@ fn dev_is_quiet_by_default_and_reuses_native_builds_across_sessions() {
   std::thread::spawn(move||for line in BufReader::new(out).lines(){if sender.send(line.unwrap()).is_err(){break;}});
   std::thread::spawn(move||for line in BufReader::new(err).lines(){if tx.send(line.unwrap()).is_err(){break;}});
   let mut lines=Vec::new();let mut success=false;
-  for _ in 0..30 {
-   match rx.recv_timeout(Duration::from_secs(2)){Ok(line)=>{success|=line.contains("Hello from cache-demo!");lines.push(line);if success{break;}},Err(_)=>break}
+  let deadline=Instant::now()+Duration::from_secs(30);
+  while Instant::now()<deadline {
+   match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())){Ok(line)=>{success|=line.contains("Hello from cache-demo!");lines.push(line);if success{break;}},Err(_)=>break}
   }
   unsafe {kill(child.id() as i32,2);}
   let status=child.wait().unwrap();lines.extend(rx.try_iter());

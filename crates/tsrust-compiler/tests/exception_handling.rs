@@ -65,7 +65,7 @@ fn native_runner_reports_result_errors_and_continues() {
     let directory = support::TempDirectory::new();
     let source = directory.0.join("runner.rs");
     let binary = directory.0.join("runner");
-    let runtime = include_str!("../src/stdlib/testing/runtime.rs");
+    let runtime = concat!(include_str!("../src/runtime_number_tie.rs"),include_str!("../src/runtime_console.rs"),include_str!("../src/stdlib/testing/runtime.rs"));
     let registration = include_str!("../src/stdlib/testing/registration_runtime.rs");
     std::fs::write(&source, format!("type String=std::borrow::Cow<'static,str>;{runtime}\nfn main(){{TSR_TESTS.with(|registry|{{let mut registry=registry.borrow_mut();registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"typed\".into(),callback:Box::new(||Err(\"typed failure\".to_owned()))}});registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"later\".into(),callback:Box::new(||Ok(()))}});}});assert_eq!(tsrust_testing_run_tests(),1);}}" )).unwrap();
     let original = std::fs::read_to_string(&source).unwrap();
@@ -154,7 +154,8 @@ fn test_command_reports_typed_failure_after_finally() {
     assert!(!output.status.success());
     let stdout=String::from_utf8_lossy(&output.stdout);
     let stderr=String::from_utf8_lossy(&output.stderr);
-    assert!(stdout.contains("FAIL failure"),"stdout: {stdout}; stderr: {stderr}");
+    assert!(stdout.contains("× failure") && stdout.contains("input.tsr > failure") && stdout.contains("\n   failed\n"),"stdout: {stdout}; stderr: {stderr}");
+    assert!(stdout.contains("Tests  0 passed | 1 failed (1)"),"{stdout}");
     assert!(stdout.contains("finish cleanup"),"{stdout}");
     assert!(!stderr.contains("panicked"),"{stderr}");
 }

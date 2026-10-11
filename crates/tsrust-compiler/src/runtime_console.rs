@@ -595,7 +595,7 @@ impl TsrConsoleValue {
             _ => true,
         }
     }
-    fn label(&self) -> std::string::String {
+    pub fn label(&self) -> std::string::String {
         match self {
             Self::Text(v) => v.clone(),
             Self::Number(v) => tsr_console_number(*v, false),

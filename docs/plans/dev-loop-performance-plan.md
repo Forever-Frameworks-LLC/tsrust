@@ -400,7 +400,49 @@ stability allowance. This bounds the observed session, not all project sizes or
 allocator behavior. The exact diagnostic script is retained in SQLite as
 `tsrust-dev-session-witness.py` for reproduction.
 
-Full compiler regressions have started; their acceptance is pending. Linux Rust
-targets and Docker CLI are present, but Docker's daemon socket is absent; Linux
-execution still needs an available runner. Complete editor regressions, Linux
-validation, performance review and obsolete-output cleanup before milestone closure.
+Full compiler regressions have started; their acceptance is pending. Complete
+editor regressions, remaining lifecycle validation, performance review and
+obsolete-output cleanup before milestone closure.
+
+## Linux notification acceptance and regression repairs
+
+The installed Docker Desktop runner now executes the actual watcher and source
+discovery modules on Linux aarch64, offline, using Rust 1.96.1. Eight tests pass,
+including concurrent atomic saves, exclusions, idle behavior, root-loss fallback
+and real inotify queue overflow. The overflow witness independently observes
+`IN_Q_OVERFLOW` at the runner's 16,384-event queue limit. It first reproduced
+repeated rescans after a burst; bounded draining (at most sixteen 64 KiB reads per
+poll) repairs that defect. Larger queues and continuous writers can leave events
+for the next poll, preserving bounded supervisor work. This is watcher-module
+acceptance, not a full Linux CLI or compiler regression run. Original failure and
+passing evidence are retained as `tsrust-linux-*` records in SQLite.
+
+The full macOS compiler pass exposed a private console `label` helper used by
+generated `String(value)` conversions after runtime separation. It also exposed
+an isolated Rust test harness that omitted the console capture dependencies, and
+an older backend-argument assertion that did not account for automatic linking.
+The argument, helper and harness repairs pass their affected checks.
+The original full pass is preserved and will not be restarted. Only affected
+groups require reruns after repair.
+
+The quiet dev-output witness also stopped a cold build after a two-second gap
+between log lines. It now waits for its expected program output with a 30-second
+overall deadline, matching other lifecycle checks; the separate measurement
+protocol remains responsible for latency acceptance. This repair passes its focused rerun.
+
+Both complete passes have finished. LSP acceptance reports 530 passed, zero
+failed and one intentionally ignored measurement. The original compiler pass
+reports 3,160 passed, 43 failed and three ignored tests across 276 suite summaries.
+The compiler failures occupy 29 integration suites; those suites and the expanded
+runtime-separation witness completed with 294 passing checks and one stale reporter
+assertion. That assertion now verifies grouped failure output, the thrown message,
+failure counts and cleanup output, and its focused rerun passes. Combined retained
+and repaired results cover all 3,203 compiler tests, with three intentional ignores.
+Repair records are `tsrust-dev-regression-repairs.log` and
+`tsrust-dev-reporter-assertion-repair.log` in SQLite. Installed consumer refresh and
+remaining dev-loop performance/lifecycle review are still pending. The exact full-pass records are
+`tsrust-dev-milestone-compiler.log` and `tsrust-dev-milestone-lsp.log` in SQLite.
+
+Runtime separation adds no required user flags: `tsrust build`, `run`, `test` and
+`dev` select, cache and link support automatically. The Rust backend's `--extern`
+argument is an internal implementation detail.
