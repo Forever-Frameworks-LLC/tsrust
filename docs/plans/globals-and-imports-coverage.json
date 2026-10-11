@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "inventoryRows": 399,
-  "status": "per-row review complete; independent discovery reconciliation pending",
+  "status": "reviewed; discovery reconciliation accepted in globals-and-imports-audit-closure.md",
   "reviews": {
     "docs/plans/globals-and-imports-array-audit.md": [
       "Array::at",

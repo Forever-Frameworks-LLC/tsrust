@@ -1,7 +1,10 @@
 # Globals and imports audit coverage
 
-Status: discovery is in progress. This file does not accept the exhaustive audit
-or authorize skipping its remaining semantic review before JSON globals land.
+Status: the current public API placement audit is accepted. All 399 discovered
+identities have a reviewed disposition, and independent compiler/editor discovery
+reconciliation is complete. See the [closure review](globals-and-imports-audit-closure.md).
+The approved JSON namespace is authorized for implementation; it is not implemented
+or accepted by this documentation checkpoint.
 
 ## Reproducible inventory
 
@@ -24,24 +27,23 @@ Original inventory and build output are stored in SQLite as
 `tsrust-api-audit-inventory.json` and `tsrust-api-audit-build.log`. Every generated
 row remains `pending`; presence in this inventory is not semantic verification.
 
-## Coverage still required
+## Accepted coverage
 
-| Surface | Discovery evidence | Remaining review |
+| Surface | Source reconciliation | Reviewed contracts |
 |---|---|---|
-| Native imported functions | Compiled registry, parameter access, results, backend and features | Per-symbol behavior, effects, emission, documentation agreement and disposition |
-| Native imported types | Identity lookup, representation, clone/transfer and fields | Construction, capabilities, ownership documentation and disposition |
-| Bundled `std:testing` | Export declarations and original source lines | Wrapper behavior, effects, aliases and all private bridge restrictions |
-| Receiver methods | Catalog rows | Independent compiler recognition/emission inventory; reconcile omissions and editor-only claims |
-| Namespace members | Catalog rows | Independent recognition, shadowing, dependency selection and error semantics |
-| Globals and constructors | Catalog rows | Independent compiler inventory including uncataloged language primitives; shadowing and ownership |
-| JSON placement | Approved parse/tryParse and serialization policy | Complete preceding review, then implement and verify the approved contracts |
+| Native imports/types | Compiled binding registry and exhaustive native identity lookup | JSON, host, storage, collections and testing reviews below |
+| Bundled testing | Export declarations, wrapper source and private bridge access | Public exports/matchers and all private runtime helpers |
+| Receiver members | Checker dispatch, rewrites, emitter targets and catalog examples | Strings, arrays, collections and scalar formatting |
+| Namespaces/globals | Parser/checker targets, constants, name resolution and fallback help | Numeric globals, Math/Number, Object/console, constructors and primitives |
+| Error/option record fields | Compiled native field declarations | Reviewed within their owning type rows; no separate imported spelling |
+| JSON placement | Approved distinct throwing/Result contracts | Naming accepted; implementation, tests and S10 milestone acceptance remain pending |
 
-The generated inventory retains complete catalog signatures and documentation as
-review input. It deliberately does not infer failure behavior or runtime effects
-from names or automatically mark a family reviewed. Each public symbol still needs
-the source anchors and reviewed fields specified in the policy. Compiler globals
-outside the registry remain a separate discovery pass; the present count is not
-proof that every public compiler symbol has been discovered.
+The generated inventory is discovery input and deliberately keeps `review: pending`.
+The explicit coverage manifest and linked semantic reviews hold acceptance, rather
+than mechanically changing discovery rows to accepted. Counts include types,
+namespace headings, properties and private bridges; they do not count independent
+runtime functions. New identities must receive a review before coverage verification
+passes. The closure review records source scope and exclusions.
 
 ## Numeric global review
 
@@ -81,14 +83,14 @@ The catalog-only pass omitted six documented spellings: `Math`, `console`, `int`
 `crates/tsrust-lsp/src/intelligence.rs` rather than `builtins.json`. `void` also has
 fallback text but already had a catalog row. The inventory now discovers these
 fallback arms and records their source anchor, producing 399 rows. This is a
-discovery correction, not a public API change. Review of these spellings and the
-remaining receiver/namespace operations is still pending.
+discovery correction, not a public API change. Review of these spellings and receiver/namespace operations is now complete in
+the linked slices; the original discovery correction remains recorded here.
 
 ## JSON review slice
 
 All twelve current JSON exports have a [per-symbol review](globals-and-imports-json-audit.md),
 including ownership, errors, dependencies and the approved migration disposition.
-The complete cross-library audit remains open.
+The completed cross-library disposition is recorded in the closure review.
 
 ## Host-service review slice
 
@@ -113,21 +115,19 @@ boundaries remain unchanged; completion visibility is verified.
 The [collections review](globals-and-imports-collections-audit.md) covers four
 constructors/types and 29 members. Keep specialized collections imported.
 Generated helper selection is currently by family; per-method elimination is not
-claimed. Global Set/Map and remaining receiver/namespace surfaces remain open.
+claimed. Global Set/Map and remaining receiver/namespace surfaces are reviewed below.
 
 ## Global Set/Map review slice
 
 The [Set/Map review](globals-and-imports-set-map-audit.md) covers 29 constructors,
 receiver members and static grouping entries. Preserve global placement and
-explicit native ownership/copy contracts. Other namespace and receiver families
-remain pending.
+explicit native ownership/copy contracts. Other namespace and receiver families are covered below.
 
 ## Numeric namespace review slice
 
 The [Math/Number review](globals-and-imports-math-number-audit.md) covers 58
 namespace members, independently reconciled against compiler targets/constants.
-Keep global placement and explicit numeric contracts. Number conversion, other
-namespaces and remaining receiver/type surfaces are still pending.
+Keep global placement and explicit numeric contracts. Number conversion, other namespaces and receiver/type surfaces are covered below.
 
 ## Object/console review slice
 
@@ -140,7 +140,7 @@ non-string-label exception; runtime behavior is unchanged.
 
 The [string review](globals-and-imports-string-audit.md) covers 50 receiver/static
 members, indexing units, errors and copying costs. Preserve current spellings;
-string conversion, remaining receiver families and type primitives remain pending.
+string conversion, remaining receiver families and type primitives are covered below.
 
 ## Scalar conversion/formatting review slice
 
@@ -158,8 +158,8 @@ at hover's stale nullable-element restriction without changing runtime behavior.
 
 The [primitive review](globals-and-imports-primitives-audit.md) covers the final
 22 discovered rows. [Coverage manifest](globals-and-imports-coverage.json) maps
-each current identity to its review. Per-row accounting is complete; final
-independent discovery reconciliation remains before audit closure.
+each current identity to its review. Per-row accounting and independent discovery
+reconciliation are complete; see the closure review for acceptance scope.
 
 After generating a fresh inventory, run
 `python3 tools/verify-api-audit.py /path/to/inventory.json`. The verifier rejects

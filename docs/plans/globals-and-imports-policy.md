@@ -2,8 +2,9 @@
 
 Status: owner approved this placement policy and the throwing `JSON.parse` /
 Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is pending.
-The family inventory below is preliminary; the complete per-symbol audit is a
-required acceptance deliverable, not optional follow-up. Existing working imports
+The complete current per-symbol audit is accepted in
+[the closure review](globals-and-imports-audit-closure.md). The family summary below
+is supplemented by 399 explicit reviewed identities; it is not the audit by itself. Existing working imports
 remain supported. Alias and typed-data import work retains its current priority.
 
 The current [audit coverage matrix](globals-and-imports-audit.md) records discovery
