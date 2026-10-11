@@ -60,3 +60,8 @@ Ordinary file-backed maps cannot promise safety against external modification or
 truncation; read-only and copy-on-write do not remove this constraint. Settle the
 external-file safety contract before implementation. Writable mappings and flush
 semantics require separate acceptance.
+
+The [S09 contract audit](synchronous-host-contract-audit.md) records all 28 exported
+functions/types, ownership and platform boundaries, fixture evidence, and the nine
+pending measurement workloads. The read hover now states its existing 0–64 MiB
+length limit; file hovers state the existing macOS/Linux backend boundary.
