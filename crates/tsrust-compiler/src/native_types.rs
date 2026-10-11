@@ -83,6 +83,13 @@ static FS_ERROR: Declaration = Declaration {
         Field { name: "osCode", signature: Signature::Int, optional: true },
     ],
 };
+static ENV_ERROR: Declaration = Declaration {
+    id: NativeTypeId::EnvError, module: "std:env", name: "EnvError",
+    fields: &[
+        Field { name: "code", signature: Signature::String, optional: false },
+        Field { name: "message", signature: Signature::String, optional: false },
+    ], ..FS_ERROR
+};
 static BYTE_ERROR: Declaration = Declaration {
     id: NativeTypeId::ByteError,
     module: "std:bytes",
@@ -169,6 +176,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::BufferedReader => &BUFFERED_READER,
         NativeTypeId::BufferedWriter => &BUFFERED_WRITER,
         NativeTypeId::FsError => &FS_ERROR,
+        NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::Deque => &DEQUE,
         NativeTypeId::OrderedMap => &ORDERED_MAP,
         NativeTypeId::OrderedSet => &ORDERED_SET,
@@ -179,7 +187,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

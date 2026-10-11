@@ -1,8 +1,8 @@
 # S09 environment lookup
 
-The first environment API is read-only lookup. It will expose
+The first environment API is read-only lookup. It exposes
 `get(name: string): Result<string | undefined, EnvError>` from `std:env`.
-`EnvError` will contain `code` and `message` strings. Missing variables return
+`EnvError` contains `code` and `message` strings. Missing variables return
 `Ok(undefined)`; present empty values return `Ok("")`. Successful strings own their
 storage. The name is borrowed, and lookup does not mutate the process environment.
 
@@ -22,12 +22,18 @@ not call process-global mutation APIs from parallel Rust tests. Four focused tes
 pass, including two child fixtures. Original failing and passing records are stored
 as `tsrust-env-backend-*` in SQLite. This is backend acceptance only.
 
+## Public implementation
+
+The typed registry and generated bridge now expose `get` and `EnvError`. Public
+native checks pass at O0/O3 for optional results, empty and Unicode values, missing
+variables, invalid names, non-Unicode errors, aliases and stored function calls.
+Wrong arity and argument types are rejected. The source name remains usable after
+lookup. Both catalog examples execute at O0/O3; project editor checks verify hover,
+parameter help and both import names. Original records use `tsrust-env-public-*`.
+This is focused implementation evidence, not complete environment acceptance.
+
 ## Remaining acceptance
 
-- Register `EnvError` and `get` in the typed native registry and generated bridge.
-- Add public native O0/O3 fixtures, alias/function-value and diagnostic checks.
-- Complete catalog documentation, verified examples, import completion, hover and
-  parameter help.
 - Register matched Node-after-tsc lookup support with controlled environment inputs,
   an independent result oracle and source guards; run representative untimed cases.
 - Refresh installed consumers after public acceptance. Keep timing pending S09.

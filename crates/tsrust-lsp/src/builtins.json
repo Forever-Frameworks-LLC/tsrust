@@ -6058,5 +6058,36 @@
       }
     ]
   }
+],
+  "std:env": [
+  {
+    "name": "EnvError",
+    "signature": "type EnvError = { code: string; message: string }",
+    "parameters": [],
+    "documentation": "Describes an environment lookup failure. code is InvalidName for an empty name or a name containing = or NUL, or NotUnicode when a value cannot be represented as Unicode. message explains the failure without including the environment value. Missing variables are successful lookups, not errors. Fields are ordinary strings.\n\n```tsrust\nimport {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}\n```\n\nExpected output: none. Ownership: an owned record; explicit clone creates independent storage.",
+    "examples": [
+      {
+        "source": "import {EnvError} from \"std:env\"; function describe(error:ReadOnly<EnvError>):string{return error.code + \": \" + error.message;} function main(){}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "get",
+    "signature": "get(name: ReadOnly<string>): Result<string | undefined, EnvError>",
+    "parameters": [
+      {
+        "label": "name: ReadOnly<string>",
+        "documentation": "Required nonempty variable name. Must not contain = or NUL. Uses the executable host\u2019s case-sensitivity rules."
+      }
+    ],
+    "documentation": "Reads a variable from the running process environment. Returns Ok(value) with an independent UTF-8 string when present, Ok(undefined) when missing, or Err(EnvError). An empty value returns Ok(\"\"). Empty names and names containing = or NUL fail with InvalidName. Non-Unicode values fail with NotUnicode; no lossy replacement occurs. Lookup uses host name matching rules and does not mutate the environment. Values are read at execution time.\n\n```tsrust\nimport {get} from \"std:env\"; function main(){match(get(\"A=B\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: InvalidName. Ownership: borrows name without consuming it; successful strings own their storage.",
+    "examples": [
+      {
+        "source": "import {get} from \"std:env\"; function main(){match(get(\"A=B\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
+        "output": "InvalidName\n"
+      }
+    ]
+  }
 ]
 }

@@ -1,4 +1,7 @@
 //! Read-only environment backend. Public bindings are integrated separately.
+pub(crate) mod bindings;
+pub(crate) mod emit;
+#[cfg(test)]
 include!("runtime.rs");
 
 #[cfg(test)]

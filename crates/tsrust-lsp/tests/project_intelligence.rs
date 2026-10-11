@@ -1909,3 +1909,16 @@ fn default_function_imports_keep_alias_help_definitions_and_completion() {
   let completion=ask(&ProjectIndex::new(&graph),importing,"default as","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="default"),"{completion}");
  }
 }
+
+#[test]
+fn environment_lookup_editor_contract() {
+ let entry="import {get as lookup,EnvError} from 'std:env';function main(){const result=lookup('HOME');}";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,entry.into());
+ let checked=workspace.snapshot().check(&uri).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,entry,"lookup('HOME'","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
+ for text in ["EnvError","undefined","InvalidName","NotUnicode","Ownership:","```tsrust"] {assert!(docs.contains(text),"{hover}");}
+ let help=ask(&index,entry,"'HOME'","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),1,"{help}");
+ let importing="import { } from 'std:env';";let mut workspace=Workspace::default();workspace.open(uri.clone(),1,importing.into());
+ let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&uri.0).unwrap();let completion=ask(&ProjectIndex::new(&graph),importing," }","textDocument/completion");
+ for name in ["get","EnvError"] {assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+}
