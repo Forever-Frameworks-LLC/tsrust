@@ -12,6 +12,13 @@ The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
 S10 must retain the typed decoder boundary and allocation evidence needed for it.
 
+## Public naming review
+
+The owner requested a globals/imports consistency audit. See
+[the inventory and JSON decision](globals-and-imports-policy.md). Existing APIs
+remain unchanged; adding a global JSON surface requires an explicit error-contract
+decision. This does not block the approved typed file imports or path aliases.
+
 ## Immediate priority: typed imports and aliases
 
 Owner approved JSON/JSONC file imports and project path aliases on 2026-10-11,

@@ -12,6 +12,11 @@ Preserve JavaScript-compatible globals where their behavior is already supported
 
 Proposed namespaces: std:path, fs, env, process, bytes, time, collections, json, schema, task, thread, channel, sync, http, tls, sqlite, sql, cache and queue. Spellings and signatures remain design proposals until their gate closes.
 
+The owner-requested [globals/imports audit](plans/globals-and-imports-policy.md)
+records current placement and pending policy decisions. Recommendations there are
+not accepted migrations. Preserve existing APIs while prioritizing approved typed
+data imports and aliases; resolve JSON global error semantics before publication.
+
 ## Architecture and compiler handoffs
 
 Keep in-process frontend analysis independent of network, databases, Cargo and native execution. Add project analysis alongside existing check(source), preserving the single-source API. Explicit source identity must accompany project symbols, diagnostics, related spans and edits; do not concatenate files and guess offsets.
