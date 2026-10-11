@@ -2026,3 +2026,17 @@ fn typed_json_import_fields_have_hover_completion_and_source_navigation() {
     let hover=ask(&ProjectIndex::checked(&checked),&entry,"host);","textDocument/hover");
     assert!(hover.to_string().contains("int"),"{hover}");
 }
+
+#[test]
+fn typed_json_import_completion_survives_incomplete_source() {
+    let root="file:///tsrust-intelligence/main.tsr";
+    let entry="import settings from './settings.json';function main(){settings.server.ho";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(root).unwrap(),1,entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/settings.json").unwrap(),1,r#"{"server":{"host":"local","port":8080}}"#.into());
+    let input=workspace.snapshot();
+    assert!(input.check(&source_id(root).unwrap()).is_err());
+    let graph=tsrust_compiler::project::load_project_headers(&input,&source_id(root).unwrap().0).unwrap();
+    let completion=ask(&ProjectIndex::new(&graph),entry,"ho","textDocument/completion");
+    assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="host")),"{completion}");
+}

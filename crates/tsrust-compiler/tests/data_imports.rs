@@ -44,3 +44,28 @@ fn data_import_scalar_array_and_escaped_property_roots_execute() {
     let output=support::run(support::cli().arg("run").arg(&entry),60);support::success(&output);
     assert_eq!(String::from_utf8(output.stdout).unwrap(),"雪\n42\n-0.5\ntrue\nnull\n1\ntwo\nnull\n7\nescaped\n");
 }
+
+#[test]
+fn data_import_boundary_test_callbacks_and_cloned_quoted_keys() {
+    let directory=support::TempDirectory::new();
+    fs::write(directory.0.join("settings.json"),r#"{"a-b":1,"name":"original","values":[1,2]}"#).unwrap();
+    let entry=directory.0.join("data.test.tsr");
+    fs::write(&entry,support::format_round_trip("import settings from './settings.json';import {test,strictEqual} from 'std:testing';function reader():Function<int>{return ()=>settings['a-b'];}function name():string{return clone(settings.name);}test('immutable imported data',()=>{const owned=clone(settings);owned['a-b']=9;strictEqual(owned['a-b'],9);strictEqual(settings['a-b'],1);const read=reader();strictEqual(read(),1);strictEqual(name(),'original');});")).unwrap();
+    let output=support::run(support::cli().env("TSRUST_TEST_REPORTER","plain").arg("test").arg(&entry),60);support::success(&output);
+    assert!(String::from_utf8(output.stdout).unwrap().contains("1 passed"));
+}
+
+#[test]
+fn data_import_boundary_rejects_mutations_and_escaping_owned_fields() {
+    let directory=support::TempDirectory::new();fs::write(directory.0.join("settings.json"),r#"{"a-b":1,"name":"original","values":[1,2]}"#).unwrap();
+    let entry=directory.0.join("main.tsr");
+    for body in ["settings['a-b']=9;","settings.values[0]=3;","const aliased=settings.values;aliased.push(3);","const mutate=()=>{settings.values.push(3);};mutate();"] {
+        fs::write(&entry,support::format_round_trip(&format!("import settings from './settings.json';function main():void{{{body}}}"))).unwrap();
+        let output=support::run(support::cli().arg("check").arg(&entry),20);
+        assert!(!output.status.success(),"accepted {body}");
+        let error=String::from_utf8_lossy(&output.stderr);
+        assert!(error.contains("data-readonly"),"{body}: {error}");
+    }
+    fs::write(&entry,support::format_round_trip("import settings from './settings.json';function steal():string{return settings.name;}")).unwrap();
+    let output=support::run(support::cli().arg("check").arg(&entry),20);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("data-readonly"));
+}

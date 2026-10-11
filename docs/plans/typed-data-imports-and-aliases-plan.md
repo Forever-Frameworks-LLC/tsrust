@@ -379,3 +379,19 @@ ownership, inference and bounds. Evidence: `tsrust-data-workflows-*` in SQLite.
 
 Further ownership and editor boundaries, test-command integration, matched
 benchmark support and installed-consumer verification remain pending.
+
+
+## Additional ownership and editor boundaries
+
+Focused acceptance now covers `tsrust test` callbacks, an escaping callback that
+reads immutable imported data, explicit cloning of owned fields, and mutation of
+quoted properties on an explicit clone. Imported quoted properties, array
+assignments, aliased array mutation, callback mutation and returning an owned
+field without cloning all produce `data-readonly`. These checks passed without
+additional implementation changes.
+
+Completion for nested data fields remains available while the importing function
+body is incomplete. Evidence: `tsrust-data-boundary-*` in SQLite (three focused
+tests passed; whole-project formatting changed no files or fingerprints).
+Matched benchmark support, additional editor shape coverage and installed-consumer
+verification remain pending. No timing or S10 completion is claimed.
