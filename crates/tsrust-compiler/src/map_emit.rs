@@ -15,6 +15,11 @@ impl Emitter<'_> {
         }}
         for (id, record) in self.program.records.iter().enumerate() { if let Some(map) = &record.map_definition {
             let key=self.native_type(map.key);let value=self.native_type(map.value);
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap) {
+                if self.scoped_record_native_parameter(map.value) {let _=writeln!(output,"type Map{id}<P>=TsrOrderedMap<TsrOrdered<{key}>,P>;");}
+                else {let _=writeln!(output,"type Map{id}=TsrOrderedMap<TsrOrdered<{key}>,{value}>;");}
+                continue;
+            }
             if self.scoped_record_native_parameter(map.value) {
                 if let Some(pair)=map.entry.or_else(||nominal(map).and_then(|key|shared_entries.get(&key).copied())) {
                     let pair=self.program.scoped_records.declaration(pair);
@@ -63,7 +68,11 @@ impl Emitter<'_> {
     pub(super) fn map_method_expression(&self, function: &CheckedFunction, expression: &Expr, callee: &Expr, arguments: &[Expr], method: MapMethod) -> String {
         let ExprKind::Field(base,_) = &callee.kind else {unreachable!()};
         let Type::Map(id)=base.ty.unwrap() else {unreachable!()};
-        let value_type=self.program.records[id].map_definition.as_ref().unwrap().value;
+        let map=self.program.records[id].map_definition.as_ref().unwrap();
+        let value_type=map.value;
+        let ordered=self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap);
+        let query_suffix=if map.key==Type::String {"string_key"}else{"copy_key"};
+        let iterator=if ordered {"source_iter"}else{"iter"};
         let borrowed=matches!(expression.ty,Some(Type::BorrowedUnion(_)));
         let mode=match method {MapMethod::Set|MapMethod::Delete|MapMethod::Clear=>Mode::Mutate,MapMethod::Get if !borrowed && !value_type.is_copy()=>Mode::Consume,_=>Mode::Read};
         let receiver=self.expr(function,base,mode);
@@ -81,19 +90,21 @@ impl Emitter<'_> {
                     let converted=self.map_entry_payload_projection(source,value_type,"entry_input");
                     format!("{{let entry_input={input};{converted}}}")
                 }else{self.expr(function,&arguments[1],Mode::Consume)};
-                let _=write!(action,"let map_value={value};map_receiver.set(map_key,map_value)");
+                if ordered {let _=write!(action,"let map_value={value};let _=map_receiver.insert(TsrOrdered::new(map_key),map_value);");}
+                else {let _=write!(action,"let map_value={value};map_receiver.set(map_key,map_value)");}
             },
-            MapMethod::Has=>action.push_str("map_receiver.has(map_key)"),
-            MapMethod::Delete=>action.push_str("map_receiver.delete(map_key)"),
+            MapMethod::Has=>action.push_str(&if ordered{format!("map_receiver.contains_{query_suffix}(map_key)")}else{"map_receiver.has(map_key)".into()}),
+            MapMethod::Delete=>action.push_str(&if ordered{format!("map_receiver.remove_{query_suffix}(map_key).is_some()")}else{"map_receiver.delete(map_key)".into()}),
             MapMethod::Clear=>action.push_str("map_receiver.clear()"),
-            MapMethod::Keys=>action.push_str(&self.flat_array_result(expression.ty.unwrap(),"map_receiver.iter().map(|(key,_)|key.clone()).collect::<Vec<_>>()")),
-            MapMethod::Values=>action.push_str(&self.flat_array_result(expression.ty.unwrap(),"map_receiver.iter().map(|(_,value)|value.clone()).collect::<Vec<_>>()")),
+            MapMethod::Keys=>action.push_str(&self.flat_array_result(expression.ty.unwrap(),&format!("map_receiver.{iterator}().map(|(key,_)|key.clone()).collect::<Vec<_>>()"))),
+            MapMethod::Values=>action.push_str(&self.flat_array_result(expression.ty.unwrap(),&format!("map_receiver.{iterator}().map(|(_,value)|value.clone()).collect::<Vec<_>>()"))),
             MapMethod::Entries(pair)=>{
                 let pair_type=self.native_type(Type::Record(pair));
-                action.push_str(&self.flat_array_result(expression.ty.unwrap(),&format!("map_receiver.iter().map(|(key,value)|{pair_type}{{field0:key.clone(),field1:value.clone()}}).collect::<Vec<_>>()")));
+                action.push_str(&self.flat_array_result(expression.ty.unwrap(),&format!("map_receiver.{iterator}().map(|(key,value)|{pair_type}{{field0:key.clone(),field1:value.clone()}}).collect::<Vec<_>>()")));
             },
             MapMethod::Get=>{
-                let selected=if value_type.is_copy(){"map_receiver.get(map_key).copied()"}else if borrowed{"map_receiver.get(map_key)"}else{"map_receiver.into_value(map_key)"};
+                let get=if ordered{format!("map_receiver.get_{query_suffix}(map_key)")}else{"map_receiver.get(map_key)".into()};
+                let selected=if value_type.is_copy(){format!("{get}.copied()")}else if borrowed{get}else if ordered{format!("map_receiver.into_value_{query_suffix}(map_key)")}else{"map_receiver.into_value(map_key)".into()};
                 match expression.ty.unwrap() {
                     Type::Undefined=>{let _=write!(action,"let _={selected};TsrUndefined");},
                     Type::Union(id)|Type::BorrowedUnion(id)=>{
@@ -106,5 +117,20 @@ impl Emitter<'_> {
             },
         }
         format!("{{let map_receiver={receiver};{action}}}")
+    }
+}
+
+#[cfg(test)]
+mod ordered_tests {
+    #[test]
+    fn ordered_map_core_emission_uses_tree_queries_and_sorted_snapshots() {
+        // Exercise backend selection while OrderedMap remains unexported. Source
+        // checking still supplies the ordinary map ownership and method plans.
+        let source=r#"function owned():Map<int,string>{const map=new Map<int,string>();map.set(1,'moved');return map;}function main(){if(owned().get(1)!=='moved'){throw 'transfer';}const values=new Map<string,int>();values.set('z',9);values.set('a',1);values.set('m',5);values.set('a',2);const query='a';if(values.get(query)!==2 || !values.has(query) || values.size!==3){throw 'lookup';}const keys=values.keys();if(keys.join(',')!=='a,m,z'){throw 'order';}let visited='';values.forEach((value,key)=>{visited+=key;});if(visited!=='amz'){throw 'callback order';}const snapshot=values.values();if(snapshot.join(',')!=='2,5,9'){throw 'values';}const pairs=values.entries();if(pairs[0][0]!=='a' || pairs[2][1]!==9){throw 'entries';}const copy=clone(values);if(!copy.delete(query) || copy.delete(query) || copy.size!==2 || values.size!==3){throw 'clone';}copy.clear();if(copy.size!==0){throw 'clear';}const numbers=new Map<number,string>();numbers.set(-0.0,'zero');numbers.set(NaN,'nan');if(numbers.get(0.0)!=='zero' || numbers.get(NaN)!=='nan'){throw 'number';}}
+"#;
+        let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+        let mut checked=crate::check(&formatted).unwrap();
+        for record in &mut checked.program.records {if record.map_definition.is_some(){record.native_type=Some(crate::native_signatures::NativeTypeId::OrderedMap);}}
+        crate::scoped_record_places::tests::native(&super::emit(&checked.program));
     }
 }

@@ -279,3 +279,14 @@ borrowed entries whose keys and values occupy separate tree fields, including
 passing complete entries to functions. It must not introduce implicit key copies,
 shared ownership or erased lifetimes. Editor/catalog and matched workloads follow
 that integration; no OrderedMap timing or public acceptance is claimed here.
+
+The emitter now selects tree storage for internal OrderedMap identities. Set/get,
+has/delete, clear/size, clone, sorted keys/values/entries snapshots and forEach use
+that backend. String queries borrow; a get on a consumed temporary transfers the
+selected owned value. A formatted native witness checks these paths, duplicate
+replacement, independent clone mutation and number-key equality. The witness
+selects internal identities after ordinary Map analysis; it does not establish
+public OrderedMap construction, complete ownership integration or editor support.
+The ordinary collection regression suite remains green. Evidence:
+`tsrust-s08-ordered-map-emission-acceptance.json` in SQLite. Borrowed for-of entries
+and callback/view payload integration remain required before public acceptance.

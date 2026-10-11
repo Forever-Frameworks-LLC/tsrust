@@ -2357,7 +2357,7 @@ impl Emitter<'_> {
         if self.program.records.iter().any(|record| record.native_element().is_some()) {
             output.push_str(include_str!("stdlib/collections/deque_runtime.rs"));
         }
-        let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)));
+        let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("stdlib/collections/ordered_key_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
@@ -6029,6 +6029,8 @@ impl Emitter<'_> {
         };
         let iterator = if literal {
             "for_each_array.literal_iter()"
+        } else if matches!(receiver_type,Type::Map(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)) {
+            "for_each_array.source_iter()"
         } else if method.is_some_and(|method| method.access == Mode::Mutate) {
             "for_each_array.iter_mut()"
         } else {
