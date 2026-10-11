@@ -145,6 +145,8 @@ fn tsrust_testing_run_suite(registry: &mut TsrTestRegistry, id: usize, path: &mu
                     if tsrust_testing_pretty() {
                         println!("   {} {name}",tsrust_testing_style("×","31"));
                         let file_name = ancestors.iter().find_map(|&scope| (scope != 0 && !registry.suites[scope].displayed).then(|| registry.suites[scope].name.clone())).unwrap_or_default();
+                        let cwd=std::env::current_dir().unwrap_or_default();
+                        let file_name=std::path::Path::new(&file_name).strip_prefix(&cwd).unwrap_or(std::path::Path::new(&file_name)).display();
                         counts.failures.push((format!("{file_name} > {name}"),errors.join("\n")));
                     } else { println!("{} {name}: {}", tsrust_testing_style("FAIL", "1;31"), errors.join("; ")); }
                 }
@@ -190,7 +192,7 @@ fn tsrust_testing_run_tests_result() -> Result<i64, std::string::String> {
         if !counts.failures.is_empty() {
             println!("\n {}",tsrust_testing_style("Failed Tests","1;31"));
             for (index,(name,error)) in counts.failures.iter().enumerate() {
-                println!("\n {} {}",tsrust_testing_style(&format!("{}. {name}",index+1),"1;31"),"");
+                println!("\n {}",tsrust_testing_style(&format!("{}. {name}",index+1),"1;31"));
                 for line in error.lines() { println!("   {}",tsrust_testing_style(line,if line.starts_with("Expected:") {"32"} else if line.starts_with("Received:") {"31"} else {"0"})); }
             }
         }

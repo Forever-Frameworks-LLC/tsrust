@@ -4,10 +4,11 @@ fn pretty_report_groups_files_shows_assertion_values_and_totals_without_ansi_whe
  let dir=support::TempDirectory::new();
  let source=support::format_round_trip("import {test,strictEqual} from 'std:testing';test('greeting',():void=>{strictEqual('hello','goodbye');});test('passes',():void=>{strictEqual(1,1);});");
  let file=dir.0.join("greeting.test.tsr");std::fs::write(&file,source).unwrap();
- let output=support::run(support::cli().args(["test","--color","never"]).arg(&file).env("TSRUST_TEST_REPORTER","pretty"),60);
+ let output=support::run(support::cli().args(["test","--color","never"]).arg(&file).current_dir(&dir.0).env("TSRUST_TEST_REPORTER","pretty"),60);
  assert!(output.stderr.is_empty(),"{}",String::from_utf8_lossy(&output.stderr));
  assert_eq!(output.status.code(),Some(1));let text=String::from_utf8_lossy(&output.stdout);
  for expected in ["greeting.test.tsr","✓ passes","× greeting","Failed Tests","Expected:","\"goodbye\"","Received:","\"hello\"","Test Files","Tests","Duration"]{assert!(text.contains(expected),"missing {expected}: {text}");}
+ assert!(!text.contains(dir.0.to_str().unwrap()),"{text}");
  assert!(!text.contains('\x1b'));assert!(output.stderr.is_empty());
 }
 
