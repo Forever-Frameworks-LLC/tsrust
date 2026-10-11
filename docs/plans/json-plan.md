@@ -1,10 +1,12 @@
 # S10 JSON
 
-Status: the first public dynamic slice (`parse`, `parseJsonc`, `stringify`, `kind`, `JsonValue`,
-`JsonError`, `JsonLimits`) passes focused compiler/native/editor checks in source.
-Matched benchmark support, JSON-aware emit distribution and installed acceptance
-remain open, so this implementation slice is not yet accepted. S09 is accepted;
-S10 remains open.
+Status: public dynamic JSON/JSONC, owned JSONL readers and standalone offline
+package export pass focused compiler/native/editor checks. Installed CLI and LSP
+are refreshed from `d3aedae3`; outside-repository JSONC/JSONL execution, relocated
+package compilation/execution and checked editor hover pass. Matched benchmark
+support, dynamic child operations, typed paths, borrowed adapters, public writers
+and remaining S10 requirements are still open. No S10 timing acceptance is claimed.
+S09 is accepted; S10 remains open.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
@@ -346,8 +348,9 @@ Focused compiler/native checks, editor help and executable catalog examples use
 `tsrust-s10-jsonl-public-*` evidence in SQLite. The initial fixture corrections are
 retained alongside the repaired evidence. This is source implementation progress,
 not S10 acceptance or timing evidence. Borrowed-reader public adapters, public
-writer APIs, direct typed streaming, matched benchmark registration and installed
-CLI acceptance remain pending, along with the other S10 requirements above.
+writer APIs, direct typed streaming and matched benchmark registration remain
+pending, along with the other S10 requirements above. The current reader APIs
+now pass installed CLI/editor smoke checks from `d3aedae3`.
 
 
 ## Standalone native source export
@@ -369,5 +372,11 @@ Focused package evidence (`tsrust-s10-package-*` in SQLite) relocates the export
 removes the original source and compiles/runs both debug and release using an empty
 Cargo home and offline/locked Cargo. It also covers optional main, dependency-free
 packages, protected existing output and symlink destinations, invalid CLI options,
-and the existing bundled-dependency checks. Benchmark harness integration and
-installed consumer acceptance remain separate pending work.
+and the existing bundled-dependency checks. Benchmark harness integration remains
+pending. Installed CLI and LSP consumer smoke evidence is under
+`tsrust-s10-package-consumers-*`. A first pipelined hover request returned no result
+before document checking completed; the protocol-aware follow-up waits for checked
+diagnostics and then verifies the hover. CLI/package checks already passed in the
+first run and were preserved. Both repository and test-project editor servers were
+restarted; the test project reports No Problems and the open repository fixture
+reports zero errors (five pre-existing workspace warnings remain).
