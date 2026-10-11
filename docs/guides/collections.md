@@ -36,7 +36,11 @@ returns. Clearing or removing elements does not yet release their source-level
 owner restrictions before the queue binding leaves scope. A readonly reborrow of
 an exclusive view cannot escape the local queue that stores it.
 
-Iteration, scoped callback payload integration, explicit conditional cloning and
+`for...of` visits elements from front to back without removing them. Scalar
+elements copy; owned elements borrow readonly for each iteration. The queue
+cannot mutate or transfer while traversal borrows it. Empty queues skip the body.
+
+Scoped callback payload integration, explicit conditional cloning and
 thread-transfer capability remain unfinished. These methods do not establish
 complete S08 acceptance. [The collection plan](../plans/collections-plan.md)
 tracks remaining implementation and family measurements.

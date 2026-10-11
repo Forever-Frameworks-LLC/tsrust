@@ -4966,7 +4966,7 @@ impl Analyzer {
         labels: &[Token],
     ) -> Result<(), Diagnostic> {
         let actual = self.expression(context, iterable, Mode::Read, &Loans::new(), None)?;
-        let element = self.iterable_element(actual).ok_or_else(|| Diagnostic::new("iteration-type", "for...of requires an array, string, Set or Map.", iterable.span))?;
+        let element = self.iterable_element(actual).ok_or_else(|| Diagnostic::new("iteration-type", "for...of requires an array, string, Set, Map or Deque.", iterable.span))?;
         // Iterable evaluation happens once, even for an empty array. Its moves
         // therefore belong to both the zero-iteration and repeated paths.
         let mut visible = context.names.values().copied().collect::<Vec<_>>();

@@ -20849,7 +20849,7 @@
       ],
       "iterations": 2048,
       "operationsPerIteration": 1,
-      "operationUnit": "Nine view deque inserts, indexed read, removal from both ends and clear",
+      "operationUnit": "Nine view deque inserts, indexed read, borrowed traversal, removal from both ends and clear",
       "inputText": "bytes",
       "category": "bytes",
       "implementationGate": "S08",
@@ -20858,11 +20858,11 @@
       "nativeSourceAccepted": true,
       "implementationAccepted": true,
       "measured": false,
-      "notes": "Five matched native/Node correctness cases passed without timing. S08 family measurements pending.",
-      "specification": "Insert eight readonly byte views at the back and one at the front. Read index four, remove from both ends, drain the remainder, then insert and clear. Node uses array deque operations and Uint8Array.subarray. Independent arithmetic oracle observes count, indexed byte, removed byte sum and final size.",
-      "sourceSha256": "da87fc37adec1e27a56b5931202cb8e31fa428fdf62737a40245c74fa6d9d1b4",
-      "counterpartSha256": "6c11f31be350bf1579bd5cac8ad7fb7ec3d7737ab0a47cd8269f2b62bc389397",
-      "verificationEvidence": "runtime/results/2026-10-11T10-53-11-549Z-verify.json"
+      "notes": "Five matched native/Node cases verify borrowed traversal and deque operations without timing. S08 family measurements pending.",
+      "specification": "Insert eight readonly byte views at the back and one at the front. Read index four, remove from both ends, drain the remainder, then insert and clear. Node uses array deque operations and Uint8Array.subarray. Independent arithmetic oracle observes count, indexed byte, removed byte sum and final size. Borrowed traversal independently observes the stored byte sum before removals.",
+      "sourceSha256": "8f5dfb840e2591f41693180a43ee55cd3c7dfc401ac340be81152c0debfae4bb",
+      "counterpartSha256": "6f05e2758ce8a4a8931edde551f5d280a1be25620f7f1abad09b4a5f2aef36e2",
+      "verificationEvidence": "runtime/results/2026-10-11T11-05-09-012Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -107,7 +107,13 @@ pass against an independent arithmetic oracle. Runtime and allocation drivers us
 manifest source paths so active workloads can be grouped by feature. Original
 measurement records and their historical paths remain unchanged.
 
-Iteration, scoped callback payload integration, conditional cloning and
+Borrowed `for...of` iteration now visits the front-to-back sequence without
+removing elements. Focused checks cover owned strings, empty traversal, mutation
+rejection, native view payloads and early returns through finally. Checked and
+fallback editor hover resolve the element type through import aliases. The deque
+workload also observes the borrowed traversal sum independently of its pop sum.
+
+Scoped callback payload integration, conditional cloning and
 thread-transfer capabilities remain pending. Initial methods do not establish
 complete collection acceptance. S08 remains open and no deque timing has been
 performed.

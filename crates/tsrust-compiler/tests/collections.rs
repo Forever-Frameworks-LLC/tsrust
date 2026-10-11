@@ -1,6 +1,34 @@
 mod support;
 
 #[test]
+fn deque_iteration_borrows_in_front_to_back_order() {
+    let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
+function main(){const values=new Deque<string>();values.pushBack('b');values.pushFront('a');values.pushBack('c');let joined='';for(const value of values){joined+=value;}strictEqual(joined,'abc');strictEqual(values.size,3);values.clear();for(const value of values){throw 'empty queue visited';}}
+"#;
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+    let source = source.replace("joined+=value;", "values.clear();joined+=value;");
+    let path = directory.source(&support::format_round_trip(&source));
+    let output = support::run(support::cli().arg("check").arg(path), 30);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("iteration-conflict"));
+}
+
+#[test]
+fn deque_iteration_retains_views_and_handles_early_completion() {
+    let helpers = include_str!("fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+    let source = format!(r#"import {{Deque}} from 'std:collections';{helpers}
+function first(values:ReadOnly<Deque<ByteView>>):int{{for(const part of values){{return length(part);}}return 0;}}
+function guarded(values:ReadOnly<Deque<ByteView>>):string{{let output='';try{{for(const part of values){{output+=text(part);return output;}}}}finally{{strictEqual(values.size,2);}}return output;}}
+function main(){{const owner=bytes('ab');const values=new Deque<ByteView>();values.pushBack(window(owner));values.pushFront(window(owner));let sum=0;for(const part of values){{sum+=length(part);}}strictEqual(sum,4);strictEqual(first(values),2);strictEqual(guarded(values),'ab');values.clear();strictEqual(first(values),0);}}
+"#);
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&support::format_round_trip(&source));
+    support::success(&support::run(support::cli().arg("run").arg(path), 120));
+}
+
+#[test]
 fn deque_end_operations_move_values_and_borrow_reads() {
     let source = r#"import {Deque} from 'std:collections';import {strictEqual} from 'std:testing';
 function main(){

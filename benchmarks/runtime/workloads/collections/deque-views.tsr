@@ -46,6 +46,11 @@ function workload(n: int, seed: int, input: string): int[][] {
           }
         }
 
+        let traversed = 0;
+        for (const part of values) {
+          traversed += first(part);
+        }
+
         const front = values.popFront()!;
         const back = values.popBack()!;
         let sum = first(front) + first(back);
@@ -56,7 +61,7 @@ function workload(n: int, seed: int, input: string): int[][] {
 
         values.pushBack(byteWindow(owner));
         values.clear();
-        output.push([count + 1, read, sum, values.size]);
+        output.push([count + 1, read, sum, values.size, traversed]);
       },
       Err(error) => {
         throw error.message;

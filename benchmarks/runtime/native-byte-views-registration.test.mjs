@@ -200,7 +200,7 @@ test('Deque view workload uses feature paths, real removals and independent obse
         const key = kind === 'native' ? 'sourceSha256' : 'counterpartSha256';
         assert.throws(() => assertNativeByteViewsSource(changed, {...row, [key]: createHash('sha256').update(changed).digest('hex')}, kind), /Deque view scenario/);
     }
-    assert.deepEqual(expectedNativeByteViewsValues(row.id, 3, 255, 'bytes'), [[9,255,2295,0],[9,0,0,0],[9,1,9,0]]);
+    assert.deepEqual(expectedNativeByteViewsValues(row.id, 3, 255, 'bytes'), [[9,255,2295,0,2295],[9,0,0,0,0],[9,1,9,0,9]]);
     for (const n of [0,1,17,2048]) {
         const expected = expectedNativeByteViewsObservation(row.id, n, 19, 'bytes');
         assert.deepEqual(expectedExactResult(row.id, n, 19, 'bytes'), expected);

@@ -1710,6 +1710,19 @@ fn byte_view_factories_types_and_shared_observers_have_editor_help() {
 }
 
 #[test]
+fn native_deque_iteration_has_element_hover() {
+    let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function main(){const values=new Queue<string>();values.pushBack('a');for(const item of values){console.log(item);}}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    for index in [ProjectIndex::checked(&checked), ProjectIndex::new(&checked.graph)] {
+        let hover = ask(&index, &entry, "item);", "textDocument/hover");
+        assert!(hover.to_string().contains("item: string"), "{hover}");
+    }
+}
+
+#[test]
 fn native_deque_alias_methods_have_typed_editor_help() {
     let entry = tsrust_compiler::format("import {Deque as Queue} from 'std:collections';function inspect(input:ReadOnly<Queue<int>>){return input.back();}function main(){const values=new Queue<int>();values.pushBack(7);const first=values.front();const count=values.size;console.log(count,first);}").unwrap();
     let uri = "file:///tsrust-intelligence/main.tsr";

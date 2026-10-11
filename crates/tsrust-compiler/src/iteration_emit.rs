@@ -81,6 +81,8 @@ impl Emitter<'_> {
         };
         let iterator = if matches!(iterable.ty, Some(Type::Map(_))) {
             "entry_iter"
+        } else if matches!(iterable.ty, Some(Type::Record(id)) if self.program.records[id].native_element().is_some()) {
+            "values.iter"
         } else {
             "iter"
         };
