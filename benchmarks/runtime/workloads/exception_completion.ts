@@ -26,10 +26,12 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: number[]): str
   const handlers = new Map<string, CallbackHolder>();
   handlers.set("old", {run: (): number => old[0]});
   try {
-    if (early) { return value.text; }
-    handlers.clear();
-    handlers.set("new", {run: (): number => current[0]});
-    throw 32;
+    try {
+      if (early) { return value.text; }
+      handlers.clear();
+      handlers.set("new", {run: (): number => current[0]});
+      throw 32;
+    } finally {}
   } catch (error) {
     trace.push(32);
   } finally {
@@ -43,6 +45,8 @@ function retainedLoop(value: RetainedOwner, mode: number, trace: number[]): stri
   for (let i = 0; i < 2; i += 1) {
     try {
       if (mode === 0) { return value.text; }
+      if (mode === 1 || mode === 2) { throw mode; }
+    } catch (error) {
       if (mode === 1) { break; }
       if (mode === 2) { continue; }
     } finally { trace.push(20 + i); }

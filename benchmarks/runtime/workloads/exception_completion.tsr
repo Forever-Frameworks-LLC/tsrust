@@ -65,15 +65,18 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
     run: (): int => old[0]
   });
   try {
-    if (early) {
-      return value.text;
-    }
+    try {
+      if (early) {
+        return value.text;
+      }
 
-    handlers.clear();
-    handlers.set("new", {
-      run: (): int => current[0]
-    });
-    throw 32;
+      handlers.clear();
+      handlers.set("new", {
+        run: (): int => current[0]
+      });
+      throw 32;
+    } finally {
+    }
   } catch (error) {
     trace.push(32);
   } finally {
@@ -93,6 +96,10 @@ function retainedLoop(value: RetainedOwner, mode: int, trace: int[]): string {
         return value.text;
       }
 
+      if (mode === 1 || mode === 2) {
+        throw mode;
+      }
+    } catch (error) {
       if (mode === 1) {
         break;
       }

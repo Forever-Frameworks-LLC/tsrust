@@ -12,7 +12,10 @@ impl Emitter<'_> {
     }
     pub(super) fn map_project_outgoing_storage(&self,fun:&CheckedFunction,layout:&Layout,destinations:Vec<native_storage_availability::Value>)->String {
         let values=destinations.into_iter().map(|value| {
-            let (binding,fields)=self.map_storage_binding(fun,&value.place).expect("checked outgoing Map storage");
+            let Some((binding,fields))=self.map_storage_binding(fun,&value.place) else {
+                self.field_native_place(fun,&value.place).expect("checked outgoing field storage");
+                return value.place;
+            };
             let source=layout.get(&crate::capture_loan_owners::Place{binding,fields:fields.clone()}).copied().unwrap_or_else(||self.map_storage_leaf_type(fun.bindings[binding].ty,&fields).expect("checked outgoing Map path"));
             let target=value.target.expect("typed Map destination");
             // The selected completion has already restored an initialized native

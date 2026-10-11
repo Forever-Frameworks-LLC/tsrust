@@ -8,7 +8,12 @@ impl Emitter<'_> {
         let returned=fun.storage_exits.map_completion_layout(boundary,phase,Some(CompletionKind::Return));
         let controls=self.control_targets.snapshot().into_iter().flat_map(|target|[CompletionKind::Break(Some(target)),CompletionKind::Continue(Some(target))]).filter_map(|kind|fun.storage_exits.map_completion_layout(boundary,phase,Some(kind)).map(|layout|(kind,layout))).collect::<Vec<_>>();
         if returned.is_none() && controls.is_empty(){return None;}
-        let mut carrier=self.map_return_carrier(fun,name,places,storage,returned.unwrap_or(fallback));
+        let fields=self.exception_regions.error_storage_values(crate::Span{start:boundary,end:boundary}).unwrap_or_default().into_iter().filter_map(|value|{
+            if self.map_storage_binding(fun,&value.place).is_some(){return None;}
+            let place=self.field_native_place(fun,&value.place)?;
+            (fun.storage_exits.completion_field_available(boundary,phase,Some(CompletionKind::Return),&place)==Some(true)).then(||(value.place,value.target.expect("typed return field")))
+        }).collect();
+        let mut carrier=self.map_return_carrier(fun,name,places,storage,returned.unwrap_or(fallback),fields);
         carrier.native.pop();for (_,layout) in &controls{carrier.native.push(',');carrier.native.push_str(&self.map_error_storage_type(fun,places,layout));}carrier.native.push('>');carrier.controls=controls;Some(carrier)
     }
     pub(super) fn map_carrier_declaration(&self,carrier:&Carrier<'_>)->String {
@@ -95,7 +100,8 @@ impl Emitter<'_> {
         }arms
     }
     pub(super) fn map_select_control_owner(&self,carrier:&Carrier<'_>,pattern:&str,returned:String,common:String,controls:Vec<String>)->String {
-        let mut variants=vec![("Return".to_owned(),format!("(pending_return,{pattern})"),returned),("Common".to_owned(),format!("(pending_exit,{pattern})"),common)];
+        let (returned_pattern,restore)=self.map_return_field_pattern(carrier,pattern);
+        let mut variants=vec![("Return".to_owned(),format!("(pending_return,{returned_pattern})"),format!("{restore}{returned}")),("Common".to_owned(),format!("(pending_exit,{pattern})"),common)];
         variants.extend(controls.into_iter().enumerate().map(|(index,body)|(format!("Exit{index}"),pattern.to_owned(),body)));
         let names=(0..variants.len()).map(|index|format!("selected_control{index}")).collect::<Vec<_>>();
         let arms=variants.iter().enumerate().map(|(index,(variant,_,_))|format!("{}::{variant}(owner)=>({})",carrier.name,(0..variants.len()).map(|slot|if slot==index{"Some(owner)"}else{"None"}).collect::<Vec<_>>().join(","))).collect::<Vec<_>>().join(",");

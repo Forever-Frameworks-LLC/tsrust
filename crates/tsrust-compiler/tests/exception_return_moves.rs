@@ -235,3 +235,35 @@ fn map_body_return_catch_and_normal_paths_preserve_field_owners() {
         "3 right\nleft\n7 right\nleft\n7 right\nright\n7 right\nleft\n",
     );
 }
+
+#[test]
+fn nested_map_error_forwarding_retains_ordinary_fields() {
+    runs(
+        "type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,early:boolean):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{try{if(early){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});throw 7;}finally{}}catch(error){}finally{const item=handlers.get(early?\"old\":\"new\");if(item!==undefined){console.log(item.run(),a.other);}}return a.name;}function main(){console.log(pick({name:\"left\",other:\"one\"},true),pick({name:\"right\",other:\"two\"},false));}",
+        "3 one\n7 two\nleft right\n",
+    );
+}
+
+#[test]
+fn caught_field_returns_and_loop_exits_keep_cleanup_order() {
+    runs(
+        "type Row={name:string;};function pick(a:Row,mode:int,trace:int[]):string{for(let i=0;i<2;i+=1){try{if(mode===0){return a.name;}throw 7;}catch(error){if(mode===1){break;}if(mode===2){continue;}}finally{trace.push(i);}trace.push(9);}return a.name;}function main(){for(let mode=0;mode<4;mode+=1){const trace:int[]=[];console.log(pick({name:\"owner\"},mode,trace),trace.join(\",\"));}}",
+        "owner 0\nowner 0\nowner 0,1\nowner 0,9,1,9\n",
+    );
+}
+
+#[test]
+fn nested_map_error_fields_survive_cleanup_return_replacement() {
+    runs(
+        "type Row={name:string;other:string;};type Holder={run:ReadOnly<Function<int>>;};function pick(a:Row,mode:int):string{const old=[3];const current=[7];const handlers=new Map<string,Holder>();handlers.set(\"old\",{run:():int=>old[0]});try{try{if(mode===0){return a.name;}handlers.clear();handlers.set(\"new\",{run:():int=>current[0]});throw 7;}finally{if(mode===1){return a.other;}}}catch(error){}finally{const item=handlers.get(mode===0?\"old\":\"new\");if(item!==undefined){console.log(item.run());}}return a.name;}function main(){for(let mode=0;mode<3;mode+=1){console.log(pick({name:\"left\",other:\"right\"},mode));}}",
+        "3\nleft\n7\nright\n7\nleft\n",
+    );
+}
+
+#[test]
+fn caught_loop_cleanup_replaces_pending_return_with_sibling() {
+    runs(
+        "type Row={name:string;other:string;};function pick(a:Row,mode:int):string{for(let i=0;i<1;i+=1){try{if(mode===0){return a.name;}throw 7;}catch(error){if(mode===1){continue;}break;}finally{if(mode===2){return a.other;}}}return a.name;}function main(){for(let mode=0;mode<3;mode+=1){console.log(pick({name:\"left\",other:\"right\"},mode));}}",
+        "left\nleft\nright\n",
+    );
+}

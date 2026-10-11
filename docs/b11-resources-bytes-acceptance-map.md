@@ -11,7 +11,7 @@ This is the current implementation map. S07 is not accepted or measured.
 | Exact disposal and allocation restoration at O0/O3 | Gate 188 accepted | native_byte_cleanup.rs; cleanup.tsr; exact SQLite gate 188 records |
 | Scoped zero-copy readonly/exclusive views, provenance, conflicts and escape diagnostics | Published with focused array/nullable recursive storage checks; gate 189 pending recursive stored-callable fields; capturing callbacks returning argument/owner views accepted | native-byte-views-implementation.md; resources-bytes-plan.md |
 | Strict UTF-8 encoding/decoding and error offsets | Implemented; gate 189 still pending recursive stored-callable fields | native-owned-bytes/utf8.tsr; utf8_runtime.rs; resources-bytes-plan.md |
-| Owned returns through finally, including renewed Map callbacks | Whole/partial returns and Map carriers verified; regions without partial returns preserve lexical disposal; partial-return disposal remains defective | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
+| Owned returns through finally, including renewed Map callbacks | Whole/partial returns, nested Map error fields and ordinary catch/loop disposal verified; Map catch/loop and specialized/captured field combinations still pending | exception_return_moves.rs; finally_move_slots.rs; final continuation entry below |
 | Opaque resource consuming close, drop and failure ownership | Gate 190 pending | owner consuming-close decision; resources-bytes-plan.md |
 | Useful synchronous file proof and private instrumented resource backend | Gate 190 pending | resources-bytes-plan.md |
 | Complete regressions, matched measurements and optimization review | Family milestone pending | resources-bytes-plan.md; standard-library-roadmap.md |
@@ -624,3 +624,43 @@ the public assertion fixture. Five native/Node-after-tsc correctness cases agree
 SQLite `runtime/results/2026-10-11T05-08-30-353Z-verify.json`; `verifiedOnly` is true
 and `execution` is empty. This is untimed evidence. Whole-project formatting changes
 zero files and fingerprints.
+
+
+### Nested Map fields and same-region catch controls
+
+Ordinary catch-plus-finally now supports destination-specific field transport for
+break/continue. The body's error carries surviving fields into catch. Return payloads
+retain fields that alternate error paths transfer. Body-local disposal precedes
+cleanup, verified at O0/O3 with exact drop counts and unchanged allocation identity.
+Integration cases cover handler break/continue, normal continuation and cleanup
+replacing a pending return with a sibling field.
+
+Nested Map error projection no longer assumes every destination is a Map. Surviving
+ordinary fields accompany the inner error and are restored before cleanup. Precise
+Map return carriers also retain surviving fields needed by that cleanup. Error
+cleanup carries its normal fields separately, preserving initialization when a
+conditional cleanup return consumes a sibling. Impossible normal, infallible-error,
+and specialized-control alternatives do not access moved fields. A regression showed
+legacy cleanup returns still require their fallback route when no specialized return
+carrier exists; the repair preserves that route.
+
+The original panic, intermediate ownership failures and repaired checks are retained
+under SQLite prefixes `tsrust-nested-map-fields-` and `tsrust-caught-field-control-`.
+The public fixture and matched workload now forward Map errors through an inner
+finally and exercise break/continue from catch. Oracle results are unchanged; source
+guards, matched TypeScript and hashes include the new control flow. Protocols and
+sample counts are unchanged. No editor behavior changed. No full regression or timing ran.
+
+Map-backed same-region catch/control and specialized/captured layouts still need
+coverage. Gate 190, resource acceptance and S07 remain open. Installed consumers
+remain at `4367f4cc`; scratch release is rebuilt from the current source.
+
+Final evidence: 61 finally unit tests, 30 return-move, 21 exception-handling,
+4 generic-call exception and 3 native-region tests pass. The scoped-record batch
+retains 16 passes; its one failing legacy-return case passes after the focused repair.
+Both nested Map integration cases pass again after that repair. The formatter corpus,
+3 registration tests and rebuilt release public assertion fixture pass. Whole-project
+formatting preserves tokens and finishes with zero changes/fingerprint updates.
+Five native/Node-after-tsc cases agree in SQLite
+`runtime/results/2026-10-11T05-21-39-462Z-verify.json`; `verifiedOnly` is true and
+`execution` is empty. These checks are untimed, not family measurement acceptance.

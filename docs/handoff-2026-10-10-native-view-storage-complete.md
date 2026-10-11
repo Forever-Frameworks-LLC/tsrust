@@ -92,17 +92,31 @@ Native O0/O3 witnesses cover empty and nonempty handlers and handler field retur
 A four-mode integration case covers early return, handler return, caught continuation,
 normal fallthrough and cleanup replacing a return with another field.
 
-Same-region catch/control combinations, nested Map error forwarding with ordinary
-field payloads, and specialized/captured layouts still need coverage. The generic
-Map outgoing-storage projector still assumes Map destinations; do not claim those
-combinations accepted from this direct catch repair. Do not accept resources yet.
+Ordinary same-region catch/control transport now carries the body's error fields
+into the handler and uses destination-specific field payloads for break/continue.
+Returns retain any surviving fields needed after alternate error transfers. A native
+O0/O3 witness verifies body-local disposal before cleanup, and integration tests cover
+break, continue, normal continuation and cleanup replacing a return with a sibling.
+
+Nested Map error forwarding now recognizes ordinary field destinations, carries them
+through the inner body, and restores them before cleanup. Map return carriers also
+retain surviving ordinary fields required by that cleanup. Normal completion of
+error cleanup carries fields separately so a conditional cleanup return does not hide
+their initialization. Impossible normal/error/control alternatives no longer read
+moved fields. Legacy cleanup returns remain valid when there is no specialized
+carrier. Native disposal and allocation identity, nested catch, and cleanup replacement
+are covered. The original callback-disposal regression remains part of acceptance.
+
+Map-backed same-region catch/control and specialized/captured layouts still need
+coverage; their fallback routes remain. Do not accept resources yet.
 
 Public fixtures and matched `exception_completion` now exercise body field returns,
 caught throws, handler field returns and normal continuation, in addition to loops
 and Map cleanup. Matched TypeScript, independent closed-form oracle, mutation guards
-and hashes are current. Latest Map repair records use SQLite prefix
-`tsrust-map-catch-fields-`. The matched Map path now throws and records its catch
-before cleanup; the independent oracle, guards and fingerprints include that trace. A discarded test variant correctly failed ownership checking:
+and hashes are current. Latest records use SQLite prefixes `tsrust-nested-map-fields-` and
+`tsrust-caught-field-control-`. The matched Map error crosses an inner finally before
+catch; loop break/continue now leave a catch in the same cleanup region. The independent
+oracle, guards, counterpart and fingerprints are current. A discarded test variant correctly failed ownership checking:
 fallible logging in inner cleanup could throw after the field had already moved.
 The final replacement tests keep that inner cleanup infallible.
 

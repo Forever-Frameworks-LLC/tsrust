@@ -12,19 +12,20 @@ impl Emitter<'_> {
         let fallback=std::collections::BTreeMap::new();
         // A preserved pending return is not a return performed by cleanup.
         // Only cleanup's own return/control exits need this specialized carrier.
-        let source_control=exception_contract_emit::has_source_return(body) || !exception_contract_emit::escaping_controls(body).is_empty();
+        let has_controls=!exception_contract_emit::escaping_controls(body).is_empty();
+        let source_control=exception_contract_emit::has_source_return(body) || has_controls;
         let carrier=if source_control{
             self.map_completion_carrier(fun,format!("MapCleanupControl{id}"),places,storage,boundary,crate::analysis::MapCompletionPhase::Cleaned,&fallback)
         }else{None};
         let error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let returned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Return));
         let body=self.map_field_phase_storage_completion_body(planned,body,declarations,id,error_name,contract.clone(),runtime,storage,places,true,true,normal,error,carrier.as_ref(),normal_fields,&[]);
-        let thrown=self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",error_name,contract,runtime,span,error);
+        let thrown=if contract.runtime || contract.opaque || !contract.explicit.is_empty(){self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",error_name,contract,runtime,span,error)}else{"match pending_error {}".into()};
         let legacy=self.map_layout_carried_cleanup_dispatch(fun,"legacy",error_name,contract,runtime,places,span,error);
         let legacy_error=error.map(|layout|self.map_error_storage_type(fun,places,layout)).unwrap_or_else(||storage.to_owned());
         let legacy_type=format!("TsrCompletion<(),(TsrStorageExit<{}>,{storage}),({error_name},{legacy_error})>",self.native_type(fun.result));
         let values=format!("({},)",places.join(","));
-        let common=format!("let legacy:{legacy_type}=TsrCompletion::Return((pending_exit,{values}));{legacy}");
+        let common=if has_controls || carrier.is_none(){format!("let legacy:{legacy_type}=TsrCompletion::Return((pending_exit,{values}));{legacy}")}else{"unreachable!(\"cleanup has no loop control\")".into()};
         let (declaration,carried,selected)=if let Some(carrier)=&carrier {
             let owner=self.map_outgoing_return_storage(fun,span,returned);
             let resumed=self.exception_regions.dispatch_return("pending_return",span,owner.as_deref());

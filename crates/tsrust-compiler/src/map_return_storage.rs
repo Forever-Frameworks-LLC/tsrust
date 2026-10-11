@@ -4,20 +4,25 @@ type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
 pub(super) struct Carrier<'a> {
     pub(super) name:String,
     pub(super) native:String,
+    pub(super) fields:Vec<(String,Type)>,
     pub(super) controls:Vec<(crate::completion::CompletionKind,&'a Layout)>,
     pub(super) layout:&'a Layout,
 }
 impl Emitter<'_> {
-    pub(super) fn map_return_carrier<'a>(&self,fun:&CheckedFunction,name:String,places:&[String],storage:&str,layout:&'a Layout)->Carrier<'a> {
+    pub(super) fn map_return_carrier<'a>(&self,fun:&CheckedFunction,name:String,places:&[String],storage:&str,layout:&'a Layout,fields:Vec<(String,Type)>)->Carrier<'a> {
         let result=self.native_type(fun.result);
         let returned=self.map_error_storage_type(fun,places,layout);
-        Carrier{controls:vec![],native:format!("{name}<{result},{returned},{storage}>"),name,layout}
+        let returned=map_error_storage_emit::extend_tuple(&returned,&fields.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>());
+        Carrier{fields,controls:vec![],native:format!("{name}<{result},{returned},{storage}>"),name,layout}
     }
     pub(super) fn map_direct_return_route(&self,carrier:&Carrier<'_>,pattern:&str,cleanup:String,id:usize)->exception_contract_emit::InlineExit {
         let binding=format!("direct_map_return{id}");
+        let (pattern,restore)=self.map_return_field_pattern(carrier,pattern);
+        let cleanup=format!("{restore}{cleanup}");
         exception_contract_emit::InlineExit{binding:binding.clone(),ty:carrier.native.clone(),code:format!("let (pending_return,{pattern})={{let completed={binding};match completed{{{}::Return(owner)=>owner,_=>unreachable!(\"selected Map return\")}}}};{cleanup};unreachable!(\"Map return cleanup exits\");",carrier.name)}
     }
     pub(super) fn attach_map_return_storage(&self,fun:&CheckedFunction,body:&[Stmt],places:&[String],carrier:&Carrier<'_>) {
+        let extra=carrier.fields.iter().map(|(place,ty)|native_storage_availability::Value{place:place.clone(),empty:String::new(),live:None,transferred:None,target:Some(*ty)}).collect::<Vec<_>>();
         let value=|place:&str,start:usize,point:Option<(usize,usize)>| {
             let (binding,fields)=self.map_storage_binding(fun,place).expect("checked return Map storage");
             let target=carrier.layout.get(&crate::capture_loan_owners::Place{binding,fields:fields.clone()}).copied().unwrap_or_else(||self.map_storage_leaf_type(fun.bindings[binding].ty,&fields).expect("return Map path"));
@@ -29,11 +34,16 @@ impl Emitter<'_> {
         // disjoint callback origin and must not be projected into an earlier return.
         let start=body.first().map_or(0,|statement|statement.span.start);
         let end=body.last().map_or(start,|statement|statement.span.end);
-        let points=fun.storage_exits.starts().filter(|point|*point>=start && *point<end).map(|start|(start,places.iter().map(|place|value(place,start,None)).collect())).collect();
-        let expressions=fun.storage_exits.expression_points().filter(|point|point.0>=start && point.1<=end).map(|point|(point,places.iter().map(|place|value(place,point.0,Some(point))).collect())).collect();
+        let points=fun.storage_exits.starts().filter(|point|*point>=start && *point<end).map(|start|(start,places.iter().map(|place|value(place,start,None)).chain(extra.iter().cloned()).collect())).collect();
+        let expressions=fun.storage_exits.expression_points().filter(|point|point.0>=start && point.1<=end).map(|point|(point,places.iter().map(|place|value(place,point.0,Some(point))).chain(extra.iter().cloned()).collect())).collect();
         let boundary=body.first().map_or(0,|statement|statement.span.start);
-        let initial=places.iter().map(|place|value(place,boundary,None)).collect();
+        let initial=places.iter().map(|place|value(place,boundary,None)).chain(extra.iter().cloned()).collect();
         self.exception_regions.attach_return_storage(carrier.name.clone(),initial,points,expressions);
+    }
+    pub(super) fn map_return_field_pattern(&self,carrier:&Carrier<'_>,pattern:&str)->(String,String) {
+        let names=carrier.fields.iter().enumerate().map(|(index,_)|format!("{}_field{index}",carrier.name)).collect::<Vec<_>>();
+        let restore=carrier.fields.iter().zip(&names).map(|((field,_),value)|format!("{field}={value};")).collect::<String>();
+        (map_error_storage_emit::extend_tuple(pattern,&names),restore)
     }
     #[inline(never)]
     pub(super) fn map_precise_return_cleanup(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations:&[Stmt],first:usize,_carrier:&Carrier<'_>,cleanup_name:&str,cleanup_contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->String {

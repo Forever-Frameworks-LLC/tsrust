@@ -1,6 +1,6 @@
 # Recursive storage that holds byte views
 
-Date: 2026-10-10. Status: array and nullable recursive view storage implemented with focused checks; recursive stored-callable fields and callback-return completion remain pending. The owner approved parts A and B in the continuation chat.
+Date: 2026-10-10. Status: array and nullable recursive view storage and capturing callbacks returning argument/owner views have focused acceptance; recursive stored-callable fields remain pending. The owner approved parts A and B in the continuation chat.
 
 The owner wants types such as:
 
