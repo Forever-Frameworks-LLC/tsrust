@@ -10,6 +10,7 @@ pub enum NativeTypeId {
     ByteViewMut,
     File,
     FsError,
+    Deque,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,6 +30,7 @@ pub enum Signature {
     Number,
     Void,
     Named(NativeTypeId),
+    Applied(NativeTypeId, &'static [Signature]),
     /// Index in the binding's explicit type parameter list, never a type name.
     Parameter(usize),
     /// Absence uses the ordinary undefined alternative, including borrowed values.
@@ -42,6 +44,7 @@ pub enum Signature {
 pub enum RenderError {
     MissingType(NativeTypeId),
     MissingParameter(usize),
+    Arity(NativeTypeId),
     Depth,
     Size,
 }
@@ -79,6 +82,7 @@ impl Signature {
                 Self::Parameter(index) => pending.push((parameters.get(*index).ok_or(RenderError::MissingParameter(*index))?, depth + 1)),
                 Self::Named(id) => {
                     let declaration = crate::native_types::declaration(*id);
+                    if !declaration.type_parameters.is_empty() { return Err(RenderError::Arity(*id)); }
                     if declaration.borrow_access().is_some() {
                         return Ok(true);
                     }
@@ -88,6 +92,13 @@ impl Signature {
                             .iter()
                             .map(|field| (&field.signature, depth + 1)),
                     );
+                }
+                Self::Applied(id, arguments) => {
+                    let declaration = crate::native_types::declaration(*id);
+                    if declaration.type_parameters.len() != arguments.len() { return Err(RenderError::Arity(*id)); }
+                    if declaration.borrow_access().is_some() { return Ok(true); }
+                    pending.extend(arguments.iter().map(|argument| (argument, depth + 1)));
+                    pending.extend(declaration.fields.iter().map(|field| (&field.signature, depth + 1)));
                 }
                 Self::Array(element) | Self::Optional(element) => pending.push((element, depth + 1)),
                 Self::Result(value, error) => {
@@ -133,7 +144,20 @@ impl Signature {
                         Self::Int => output.push_str("int"),
                         Self::Number => output.push_str("number"),
                         Self::Void => output.push_str("void"),
-                        Self::Named(id) => output.push_str(&visible(*id).ok_or(RenderError::MissingType(*id))?),
+                        Self::Named(id) => {
+                            if !crate::native_types::declaration(*id).type_parameters.is_empty() { return Err(RenderError::Arity(*id)); }
+                            output.push_str(&visible(*id).ok_or(RenderError::MissingType(*id))?);
+                        }
+                        Self::Applied(id, arguments) => {
+                            if crate::native_types::declaration(*id).type_parameters.len() != arguments.len() { return Err(RenderError::Arity(*id)); }
+                            output.push_str(&visible(*id).ok_or(RenderError::MissingType(*id))?);
+                            output.push('<');
+                            pending.push(Work::Text(">"));
+                            for (index, argument) in arguments.iter().enumerate().rev() {
+                                pending.push(Work::Type(argument, depth + 1));
+                                if index > 0 { pending.push(Work::Text(", ")); }
+                            }
+                        }
                         Self::Parameter(index) => output.push_str(&parameter(*index).ok_or(RenderError::MissingParameter(*index))?),
                         Self::Intrinsic(intrinsic) => output.push_str(match intrinsic {
                             Intrinsic::OwnedVoidCallback => "Owned<Function<void>>",
@@ -184,10 +208,19 @@ mod tests {
     }
 
     #[test]
+    fn applied_native_signatures_validate_arity_and_follow_element_borrows() {
+        let queue = Signature::Applied(NativeTypeId::Deque, &[Signature::Parameter(0)]);
+        assert_eq!(queue.render_with_parameters(|_| Some("Queue".into()), |_| Some("Window".into())).unwrap(), "Queue<Window>");
+        assert_eq!(queue.contains_borrowed_native_with_parameters(&[Signature::Named(NativeTypeId::ByteView)]), Ok(true));
+        assert_eq!(Signature::Applied(NativeTypeId::Deque, &[]).render(|_| Some("Queue".into())), Err(RenderError::Arity(NativeTypeId::Deque)));
+        assert_eq!(Signature::Named(NativeTypeId::Deque).contains_borrowed_native(), Err(RenderError::Arity(NativeTypeId::Deque)));
+    }
+
+    #[test]
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {
         static ARRAY: Signature = Signature::Array(&Signature::Named(NativeTypeId::Bytes));
         let result = Signature::Result(&ARRAY, &Signature::Named(NativeTypeId::ByteError));
-        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::FsError => "FileFailure".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
+        assert_eq!(result.render(|id| Some(match id { NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::FsError => "FileFailure".into(), NativeTypeId::Deque => "Queue".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| None), Err(RenderError::MissingType(NativeTypeId::Bytes)));
     }
 

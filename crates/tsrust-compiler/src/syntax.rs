@@ -1532,6 +1532,8 @@ impl Record {
 
 #[derive(Clone, Debug)]
 pub struct RecordApplication {
+    /// Checked argument identities retained independently of their display spelling.
+    pub resolved_arguments: Vec<Type>,
     pub declaration: Token,
     pub arguments: Vec<crate::type_syntax::ValueAnnotation>,
 }

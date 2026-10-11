@@ -393,7 +393,7 @@ impl Context<'_> {
         let id = self.records.len();
         self.records.push(Record { native_type: None, map_definition: None, set_definition: Some(SetDefinition { key }), enum_definition: None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
-            application: Some(Box::new(RecordApplication { declaration: Token { text: "Set".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
+            application: Some(Box::new(RecordApplication { resolved_arguments: vec![key], declaration: Token { text: "Set".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id);
         self.unions.register_set_type(id);
         Ok(id)
@@ -409,7 +409,7 @@ impl Context<'_> {
         let id = self.records.len();
         self.records.push(Record { native_type: None, map_definition: Some(MapDefinition { key, value, entry: None }), set_definition: None, enum_definition: None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
-            application: Some(Box::new(RecordApplication { declaration: Token { text: "Map".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
+            application: Some(Box::new(RecordApplication { resolved_arguments: vec![key, value], declaration: Token { text: "Map".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id); self.unions.register_map_type(id); Ok(id)
     }
     fn instance(
@@ -453,8 +453,8 @@ impl Context<'_> {
         self.instances.insert(key, index);
         *self.counts.entry(name.to_owned()).or_default() += 1;
         self.records.push(Record {
-            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
-            application: Some(Box::new(RecordApplication { declaration: template.name.clone(), arguments: arguments.to_vec() })),
+            native_type: template.native_type, map_definition: None, set_definition: None,                enum_definition: None,
+            application: Some(Box::new(RecordApplication { resolved_arguments: types, declaration: template.name.clone(), arguments: arguments.to_vec() })),
             name: Token {
                 text: label,
                 ..template.name.clone()

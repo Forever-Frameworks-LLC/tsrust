@@ -47,7 +47,7 @@ impl Resolver<'_> {
         let index = self.records.len();
         self.records.push(Record {
             native_type: Some(id), name: Token { text: linked_name(id), kind: TokenKind::Symbol, span },
-            application: None, type_parameters: Vec::new(), fields: Vec::new(),
+            application: None, type_parameters: item.type_parameters.iter().map(|name| TypeName { text: (*name).into(), span }).collect(), fields: Vec::new(),
             map_definition: None, set_definition: None, enum_definition: None,
         });
         let mut fields = Vec::new();
@@ -76,7 +76,22 @@ impl Resolver<'_> {
             Signature::Int => return Ok(named("int", span)),
             Signature::Number => return Ok(named("number", span)),
             Signature::Void => return Ok(named("void", span)),
-            Signature::Named(id) => { self.declaration(*id, span, depth + 1)?; return Ok(named(&linked_name(*id), span)); }
+            Signature::Named(id) => {
+                if !native_types::declaration(*id).type_parameters.is_empty() {
+                    return Err(Diagnostic::new("native-type-arity", "Generic native types require explicit type arguments.", span));
+                }
+                self.declaration(*id, span, depth + 1)?; return Ok(named(&linked_name(*id), span));
+            }
+            Signature::Applied(id, arguments) => {
+                if native_types::declaration(*id).type_parameters.len() != arguments.len() {
+                    return Err(Diagnostic::new("native-type-arity", "Native type argument count does not match its declaration.", span));
+                }
+                self.declaration(*id, span, depth + 1)?;
+                Kind::Applied {
+                    name: TypeName { text: linked_name(*id), span },
+                    arguments: arguments.iter().map(|argument| self.signature(argument, span, depth + 1)).collect::<Result<_, _>>()?,
+                }
+            }
             Signature::Array(element) => Kind::Array(Box::new(self.signature(element, span, depth + 1)?)),
             Signature::Optional(element) => Kind::Union(vec![self.signature(element, span, depth + 1)?, named("undefined", span)]),
             Signature::Result(value, error) => Kind::Applied {
@@ -95,6 +110,31 @@ fn named(text: &str, span: Span) -> ValueAnnotation {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deque_specializations_keep_element_identity_without_exposing_fields() {
+        let span = Span::default();
+        let mut program = crate::syntax::parse("function main(){}").unwrap();
+        intern(&mut program.records, NativeTypeId::Deque, span).unwrap();
+        let signature = Signature::Applied(NativeTypeId::Deque, &[Signature::Parameter(0)]);
+        for argument in [Signature::Int, Signature::String, Signature::Int] {
+            let annotation = project_with_parameters(&mut program.records, &signature, &[argument], span).unwrap();
+            program.type_argument_checks.push(annotation);
+        }
+        let count = program.records.len();
+        let wrong_arity = project(&mut program.records, &Signature::Applied(NativeTypeId::Deque, &[]), span).unwrap_err();
+        assert_eq!(wrong_arity.code, "native-type-arity");
+        assert_eq!(program.records.len(), count);
+        let unions = crate::unions::UnionArena::default();
+        crate::generic_records::specialize_in(&mut program, &unions, &mut crate::callable_resolution::Tables::default()).unwrap();
+        let instances: Vec<_> = program.records.iter().filter(|record| record.native_type == Some(NativeTypeId::Deque)).collect();
+        assert_eq!(instances.len(), 2);
+        assert!(instances.iter().all(|record| record.fields.is_empty()));
+        assert_eq!(instances[0].application.as_ref().unwrap().resolved_arguments, vec![crate::syntax::Type::Int]);
+        assert_eq!(instances[1].application.as_ref().unwrap().resolved_arguments, vec![crate::syntax::Type::String]);
+        assert_ne!(instances[0].name.text, instances[1].name.text);
+        assert!(crate::native_exports::lookup("std:collections", "Deque").is_err(), "do not publish incomplete source integration");
+    }
 
     #[test]
     fn generic_projection_preserves_native_identity_and_rolls_back_missing_arguments() {

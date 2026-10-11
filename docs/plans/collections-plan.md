@@ -86,3 +86,12 @@ arguments fail without retaining partially interned records, and cyclic argument
 substitution is bounded. Borrowed payload detection follows both substitutions and
 optional results. This removes a metadata prerequisite; generic collection storage
 and the source constructor still require integration.
+
+Deque now has a private native declaration with one element parameter. Generic
+specialization retains native identity and checked argument identities rather than
+discarding them or representing the element as a public field. Applied native
+signatures validate argument count, render visible aliases, project into generic
+annotations and inspect element borrows. Repeated identical specializations reuse
+one identity; distinct element types remain distinct. The declaration is deliberately
+absent from source exports until constructor, ownership and emission integration is
+complete. Conditional clone and thread-transfer capabilities remain pending.

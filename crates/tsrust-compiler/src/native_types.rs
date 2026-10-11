@@ -25,6 +25,7 @@ pub struct Declaration {
     pub id: NativeTypeId,
     pub module: &'static str,
     pub name: &'static str,
+    pub type_parameters: &'static [&'static str],
     pub representation: Representation,
     /// Explicit clone produces independent storage. This never permits implicit copies.
     pub independent_clone: bool,
@@ -53,6 +54,7 @@ static BYTES: Declaration = Declaration {
     id: NativeTypeId::Bytes,
     module: "std:bytes",
     name: "Bytes",
+    type_parameters: &[],
     representation: Representation::Opaque,
     independent_clone: true,
     collection_key: false,
@@ -62,11 +64,13 @@ static BYTES: Declaration = Declaration {
 };
 static FILE: Declaration = Declaration {
     id: NativeTypeId::File, module: "std:fs", name: "File",
+    type_parameters: &[],
     representation: Representation::Opaque, independent_clone: false,
     collection_key: false, thread_transfer: false, fields: &[], capabilities: &[],
 };
 static FS_ERROR: Declaration = Declaration {
     id: NativeTypeId::FsError, module: "std:fs", name: "FsError",
+    type_parameters: &[],
     representation: Representation::Record, independent_clone: true,
     collection_key: false, thread_transfer: true,
     capabilities: &[Capability::Inspection, Capability::StringConversion, Capability::PropertyReflection, Capability::ObjectSpread, Capability::Equality],
@@ -81,6 +85,7 @@ static BYTE_ERROR: Declaration = Declaration {
     id: NativeTypeId::ByteError,
     module: "std:bytes",
     name: "ByteError",
+    type_parameters: &[],
     representation: Representation::Record,
     independent_clone: true,
     collection_key: false,
@@ -97,6 +102,7 @@ static BYTE_VIEW: Declaration = Declaration {
     id: NativeTypeId::ByteView,
     module: "std:bytes",
     name: "ByteView",
+    type_parameters: &[],
     representation: Representation::Borrowed(crate::native_return_borrows::BorrowAccess::ReadOnly),
     independent_clone: false,
     collection_key: false,
@@ -108,12 +114,22 @@ static BYTE_VIEW_MUT: Declaration = Declaration {
     id: NativeTypeId::ByteViewMut,
     module: "std:bytes",
     name: "ByteViewMut",
+    type_parameters: &[],
     representation: Representation::Borrowed(crate::native_return_borrows::BorrowAccess::Exclusive),
     independent_clone: false,
     collection_key: false,
     thread_transfer: false,
     fields: &[],
     capabilities: &[],
+};
+
+// Registered for compiler integration; source export waits for the complete surface.
+static DEQUE: Declaration = Declaration {
+    id: NativeTypeId::Deque, module: "std:collections", name: "Deque",
+    type_parameters: &["T"], representation: Representation::Opaque,
+    // Conditional element capabilities are resolved during collection integration.
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
 };
 
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
@@ -125,6 +141,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::ByteViewMut => &BYTE_VIEW_MUT,
         NativeTypeId::File => &FILE,
         NativeTypeId::FsError => &FS_ERROR,
+        NativeTypeId::Deque => &DEQUE,
     }
 }
 
