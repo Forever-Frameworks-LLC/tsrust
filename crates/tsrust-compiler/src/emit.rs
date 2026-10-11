@@ -2582,18 +2582,20 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>();
             let (arguments, mut lifetimes) = self.native_argument_tuple(&params);
             lifetimes.splice(0..0, capture_lifetimes);
-            // A callback without captured views that returns a view it received ties
+            // A callback that returns a view it received ties
             // the result to its view arguments. The trait adapters name one lifetime
             // for those arguments and the result; the call itself stays more precise.
-            let argument_views = self.native_captures.lifetimes[index] == 0
-                && self.native_views.contains(closure.function.result)
+            let argument_views = self.native_views.contains(closure.function.result)
                 && params.iter().any(|parameter| self.native_views.contains(parameter.ty));
+            let mut argument_trait_bounds = String::new();
             let (arguments, native_result) = if argument_views {
                 lifetimes.push("'native_arguments".into());
                 let mut result = native_result.replace("'_", "'native_arguments");
                 if let Some(signature) = &native_view_signature {
+                    argument_trait_bounds = signature.replacement_where.clone();
                     for name in signature.generics.trim_matches(|c| c == '<' || c == '>').split(',').map(str::trim).filter(|name| name.starts_with('\'')) {
                         result = result.replace(name, "'native_arguments");
+                        argument_trait_bounds = argument_trait_bounds.replace(name, "'native_arguments");
                     }
                 }
                 (arguments.replace("'_", "'native_arguments"), result)
@@ -2615,6 +2617,7 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(", ");
             let forwarded_trait_where = forwarded_signature.as_ref().map_or_else(||closure_signature.as_ref().map_or_else(String::new, |signature|signature.trait_where.clone()), |(target,_)| self.forwarded_record_trait_where(*target));
+            let forwarded_trait_where = if argument_trait_bounds.is_empty() {forwarded_trait_where} else if forwarded_trait_where.is_empty() {argument_trait_bounds} else {format!("{forwarded_trait_where}, {}",argument_trait_bounds.trim_start_matches(" where "))};
             let forwarded = forwarded_signature.as_ref().map_or_else(|| {
                 let mut arguments = vec![forwarded.clone()];
                 arguments.extend(self.unnamed_owner_markers(self.closure_owner_inputs(index).len()).into_iter().map(|marker|format!("std::marker::PhantomData::<{marker}>")));

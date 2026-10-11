@@ -20590,6 +20590,34 @@
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume nullable next links during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
       "sourceSha256": "0a7ad2a11365054cab870c7cc08cfd43934239d979cd014c8c2096dcc24100a2",
       "counterpartSha256": "2947db1658ec792a0e49c398f6c0e9e06f0a9d21c86faef9b32a1dcafce1ff91"
+    },
+    {
+      "id": "native_byte_views_callbacks",
+      "family": "native-byte-views",
+      "source": "workloads/native_byte_views_callbacks.tsr",
+      "counterpart": "workloads/native_byte_views_callbacks.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "One view-capturing callback construction and argument-view return",
+      "inputText": "bytes",
+      "category": "bytes",
+      "implementationGate": 189,
+      "measurementStatus": "pending-resources-bytes-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": false,
+      "measured": false,
+      "notes": "Capturing callbacks returning argument views. Native and Node-after-tsc agree on five untimed cases. S07 measurements pending.",
+      "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Observe returned length and first byte. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
+      "sourceSha256": "bbaece69ad7cccc2c5dbf4177d5bf8ef80d36246c872189addb89272e4125399",
+      "counterpartSha256": "0d010548725af924f2e0412a8468c29018a23e628686798ffa0ba021c5b82fed"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

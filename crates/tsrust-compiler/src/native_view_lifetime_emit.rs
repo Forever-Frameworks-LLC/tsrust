@@ -34,7 +34,7 @@ impl Lifetimes {
 
     pub(super) fn with_named_sources(inputs:BTreeMap<(usize,LifetimeSource),String>,returns:&[crate::analysis::native_view_loans::Loan])->Result<Self,crate::Diagnostic> {
         if returns.iter().any(|loan|!inputs.contains_key(&(loan.root,loan.source.clone()))) {
-            return Err(crate::Diagnostic::new("native-view-family-emission","A returned family view has no named capture source lifetime.",crate::Span::default()));
+            return Err(crate::Diagnostic::new("native-view-family-emission","A returned family view has no named source lifetime.",crate::Span::default()));
         }
         let mut plan=Self{inputs,..Self::default()};
         plan.plan_outputs(returns);
@@ -149,6 +149,26 @@ impl Emitter<'_> {
             }
             _=>*next+=self.native_captures.type_lifetimes(self.program,&self.borrowed_lifetime_alternatives,ty),
         }
+    }
+
+    pub(super) fn native_view_family_argument_type(&self,parameter:ArgumentContract,root:usize,plan:&Lifetimes)->String {
+        let storage=plan.storage(root).unwrap_or("");
+        if !self.native_views.contains(parameter.ty) {return self.native_argument_type(parameter,storage);}
+        if let Type::Union(id)=parameter.ty && !id.copy {
+            if parameter.mode==Mode::Read {
+                return self.native_view_signature_type(Type::BorrowedUnion(id),Some(root),plan);
+            }
+            if parameter.mode==Mode::Mutate && (parameter.omission.is_omittable() || self.multiple_data_union(parameter.ty)) {
+                let payloads=self.program.unions[id.index()].members.iter().filter(|member|!member.is_copy()).map(|&member|{
+                    let mut guards=if let Type::Record(success)=member {vec![VariantGuard{path:vec![],success}]}else{vec![]};
+                    let native=self.native_view_signature_slot(member,Some(root),plan,&mut Vec::new(),&mut guards);
+                    format!("&{storage} mut {native}")
+                }).collect::<Vec<_>>().join(",");
+                return format!("Union{}<{payloads}>",id.index());
+            }
+        }
+        let native=self.native_view_signature_type(parameter.ty,Some(root),plan);
+        match parameter.mode {Mode::Read=>format!("&{storage} {native}"),Mode::Mutate=>format!("&{storage} mut {native}"),_=>native}
     }
 
     pub(super) fn native_view_signature_type(&self,ty:Type,input:Option<usize>,plan:&Lifetimes)->String {

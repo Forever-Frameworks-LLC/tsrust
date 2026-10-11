@@ -35,6 +35,10 @@ fn assert_record_execution(checked:&crate::analysis::CheckedProgram,relay:usize,
     let first_access=if matches!(checked.functions[relay].bindings[0].mode,crate::Mode::Read|crate::Mode::Mutate){"&"}else{""};
     // A result that may also carry the first input needs both owners for its whole life.
     let joined=checked.functions[relay].native_returns.as_deref().is_some_and(|loans|loans.iter().any(|loan|loan.root==0));
+    if generated.contains(&format!("fn tsr_result_function{relay}")) {
+        let (generics,result)=if joined {("<'a:'out,'b:'out,'out>","'out")}else{("<'a,'b>","'b")};
+        generated.push_str(&format!("fn function{relay}{generics}(first:{first_access}Record{view}<'a>,second:Record{view}<'b>)->Record{view}<{result}>{{match tsr_result_function{relay}(first,second){{Ok(value)=>value,Err(_)=>panic!(\"unexpected callback failure\")}}}}"));
+    }
     let probe = if joined {format!(
         "fn carried_probe(){{let mut owner=vec![7u8,8];let pointer=owner.as_ptr();{{let mut short=vec![1u8];let mut returned=function{relay}({first_access}Record{view}{{bytes:{reference} short}},Record{view}{{bytes:{reference} owner}});assert_eq!(returned.bytes.as_ptr(),pointer);assert_eq!(returned.bytes,&[7,8]);{write}}}assert_eq!(owner[0],{expected});}}"
     )} else {format!(
@@ -271,22 +275,35 @@ fn native_view_storage_invocation_and_replacement_matrix() {
     }
 }
 
-/// Forms that are not supported yet report a source diagnostic. They must never
-/// reach native compilation or overflow the compiler.
 #[test]
-fn native_view_storage_open_forms_are_source_diagnostics() {
-    let cases:&[(&str,&str,&str,&str,&str)]=&[
-        ("argument-returned-by-view-owning-callback","read:Once<Function<Window,[Owned<Window>]>>;marker:int;","return {read:(other:Owned<Window>)=>{const kept=view;return other;},marker:1};","const holder=save(first);return holder.read(second);","native-view-family-emission"),
-    ];
-    for (label,holder,save,relay,code) in cases {
+fn native_view_capturing_callback_returns_its_argument() {
+    let source="type Window={};type Holder={read:Once<Function<Window,[Owned<Window>]>>;marker:int;};function save(view:Window):Holder{return {read:(other:Owned<Window>)=>{const kept=view;return other;},marker:1};}function relay(first:Window,second:Window):Window{const holder=save(first);return holder.read(second);}function main(){}";
+    for mutable in [false,true] {
+        let source=crate::formatting::format(source).unwrap();
+        assert_eq!(crate::formatting::format(&source).unwrap(),source);
+        let mut parsed=crate::syntax::parse(&source).unwrap();
+        parsed.records[0].native_type=Some(if mutable{NativeTypeId::ByteViewMut}else{NativeTypeId::ByteView});
+        let checked=crate::analysis::analyze(parsed).unwrap();
+        let relay=checked.functions.iter().position(|function|function.name=="relay").unwrap();
+        assert!(checked.functions[relay].native_returns.as_ref().unwrap().iter().all(|loan|loan.root==1));
+        assert_record_execution(&checked,relay,&format!("captured-argument-{mutable}"));
+    }
+}
+
+#[test]
+fn native_view_capturing_argument_matrix() {
+    for (label,contract,body,call) in [
+        ("later-argument", "Function<Window,[int,Owned<Window>]>", "(n:int,other:Owned<Window>)=>{size(view);return other;}", "return holder.read(1,second);"),
+        ("nested-argument", "Once<Function<Window,[Owned<Envelope>]>>", "(other:Owned<Envelope>)=>{const kept=view;return other.data;}", "return holder.read({data:second});"),
+        ("read", "Function<Window,[Owned<Window>]>", "(other:Owned<Window>)=>{size(view);return other;}", "return holder.read(second);"),
+        ("mutate", "Function<Window,[Owned<Window>]>", "(other:Owned<Window>)=>{calls+=1;size(view);return other;}", "return holder.read(second);"),
+        ("joined", "Once<Function<Window,[Owned<Window>,boolean]>>", "(other:Owned<Window>,choose:boolean)=>{if(choose){return view;}return other;}", "return holder.read(second,false);"),
+        ("throw", "Once<Function<Window,[Owned<Window>,boolean]>>", "(other:Owned<Window>,fail:boolean)=>{const kept=view;if(fail){throw 1;}return other;}", "return holder.read(second,false);"),
+        ("alternatives", "Once<Function<Window,[Owned<Window>]>>", "flag()?(other:Owned<Window>)=>{const kept=view;return other;}:(other:Owned<Window>)=>{return view;}", "return holder.read(second);"),
+    ] {
         for mutable in [false,true] {
-            let source=format!("type Window={{}};type Holder={{{holder}}};function save(view:Window):Holder{{{save}}}function relay(first:Window,second:Window):Window{{{relay}}}function main(){{}}");
-            let formatted=crate::formatting::format(&source).unwrap();
-            let mut parsed=crate::syntax::parse(&formatted).unwrap();
-            parsed.records.iter_mut().find(|record|record.name.text=="Window").unwrap().native_type=Some(if mutable {NativeTypeId::ByteViewMut}else{NativeTypeId::ByteView});
-            let error=crate::analysis::analyze(parsed).err().unwrap_or_else(||panic!("{label}: expected a diagnostic"));
-            assert_eq!(error.code,*code,"{label}: {error:?}");
-            assert_ne!(error.span,crate::Span::default(),"{label}");
+            let source=format!("type Window={{}};type Envelope={{data:Window;}};type Holder={{read:{contract};marker:int;}};function size(view:ReadOnly<Window>):int{{return 2;}}function flag():boolean{{return true;}}function save(view:Window):Holder{{let calls=0;return {{read:{body},marker:1}};}}function relay(first:Window,second:Window):Window{{let holder=save(first);{call}}}function main(){{}}");
+            assert_stored_source_access(&source,&format!("capturing-argument-{label}-{mutable}"),mutable);
         }
     }
 }

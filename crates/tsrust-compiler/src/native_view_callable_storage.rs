@@ -113,8 +113,11 @@ pub(crate) fn validate_abi(
             return Err(unsupported("Native callable family capture paths and access must match the checked environment."));
         }
         for loan in closure.function.native_returns.as_deref().into_iter().flatten() {
-            if closure.parameters.contains(&loan.root) {
-                return Err(unsupported("Native family results borrowing an invocation argument require argument lifetime planning."));
+            if let Some(position)=closure.parameters.iter().position(|&root|root==loan.root) {
+                if matches!(loan.source,LifetimeSource::Storage) && !matches!(contract.params[position].mode,Mode::Read|Mode::Mutate) {
+                    return Err(unsupported("A native family cannot return a borrow of consumed argument storage."));
+                }
+                continue;
             }
             if matches!(loan.source, LifetimeSource::Storage) {
                 return Err(unsupported("A consuming native family cannot return a borrow of destroyed capture storage."));

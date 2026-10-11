@@ -150,8 +150,8 @@ the finally-return repair and family measurements.
 | Shared observers: `length`, `at`, `copy`, `toUtf8`, `view` on `Bytes`, `ByteView`, `ByteViewMut`; `set`, `viewMut` on `Bytes`, `ByteViewMut` | published; typed alternatives in `NativeBinding::argument_alternatives`, shared readable and writable byte traits in the bridges | same fixtures; `stdlib/bytes/emit.rs` |
 | Ownership diagnostics through the CLI: escape, owner write, resize, move, read under an exclusive view, write through a readonly view, clone, construction | nine cases | `byte_view_ownership_rules_are_source_diagnostics` |
 | IntelliSense: catalog entries with executable examples, hover, signature help with alternatives, import completion, conflict diagnostics | complete for the published surface | `project_intelligence.rs`, `project_diagnostics.rs`, `builtins.json` |
-| A callback that returns a view it received as an argument, stored or local | supported when the callback captures no view | fixture `callbacks.tsr`; matrix row `argument-owned-view` |
-| The same, when the callback also captures a view | diagnosed (`native-view-family-emission`) | `native_view_storage_open_forms_are_source_diagnostics` |
+| A callback that returns a view it received as an argument, stored or local | supported, including owned view captures | fixture `callbacks.tsr`; `native_view_capturing_argument_matrix` |
+| The same, when the callback also captures a view | supported with precise argument origins and intersections for mixed returns | `native_view_capturing_callback_returns_its_argument`; `native_view_capturing_argument_matrix` |
 | Matched workload `native_byte_views` (`Uint8Array.subarray`) | registered; native and Node-after-tsc agree untimed; not measured | `native-byte-views-*.mjs`; SQLite `runtime/results/2026-10-10T23-27-13-709Z-verify.json` |
 | A type that contains itself and holds a view (`Chunk { data: ByteView; next?: Chunk }`) | implemented with focused source/native/editor checks; recursive stored-callable fields remain guarded | `recursive-view-storage-plan.md` |
 
@@ -210,3 +210,33 @@ this is pending callback integration, alongside capturing callbacks returning ar
 views. Gate 189 and S07 remain open. Finally-return repair, resources, family
 measurements and the final consumer refresh remain pending. Consumers stay at
 `4367f4cc`.
+
+
+### Capturing callbacks returning argument views
+
+Scoped callback families now give invocation arguments their own named lifetimes,
+separate from capture lifetimes. An argument-only return follows the argument owner;
+an unused capture does not shorten it. A result selected from a capture or argument
+requires both owners. This uses real slices and retains the existing owning capture
+requirements. Views remain non-clonable.
+
+Focused evidence: 18 stored-view tests pass, including readonly/exclusive O0/O3
+execution, pointer identity, write-through, selected-owner escape controls, reusable
+read/mutate callbacks, later and nested arguments, throwing calls and alternative
+bodies. All five public view fixtures pass through CLI; editor acceptance and
+related-location owner-escape diagnostics pass. The new matched workload
+`native_byte_views_callbacks` agrees with Node-after-tsc on five untimed cases:
+SQLite `runtime/results/2026-10-11T01-22-59-785Z-verify.json`. No timing ran.
+
+The benchmark oracle dispatch also replaces an accidental comma expression with
+explicit workload membership. A non-view byte workload control prevents recurrence.
+No existing timing records were rewritten.
+
+A separate probe returning a new view of a borrowed `Bytes` callback argument still
+reports `native-view-source`. Its original source and diagnostic are retained as
+`tsrust-view-argument-owner-probe.tsr` and `tsrust-view-argument-public.log` in SQLite.
+Investigate the `ClosureForward::Once` adapter's missing return summary and borrowed
+argument lifetime in trait emission. This is distinct from returning a view argument.
+Recursive records with stored callbacks, the owned return-through-finally repair,
+resource cleanup acceptance and S07 measurements remain open. Installed consumers
+remain at `4367f4cc` until the next approved refresh.

@@ -197,3 +197,20 @@ fn recursive_byte_views_keep_short_owner_escape_diagnostics() {
         assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related| !related.is_empty()));
     }
 }
+
+#[test]
+fn capturing_callbacks_keep_argument_view_owner_diagnostics() {
+    let fixture=include_str!("../../tsrust-compiler/tests/fixtures/native-byte-views/callbacks.tsr");
+    let mut workspace=Workspace::default();
+    workspace.open(id("main"),1,fixture.into());
+    assert!(workspace.snapshot().check(&id("main")).is_ok());
+    let helpers=fixture.split("function main()").next().unwrap();
+    let source=tsrust_compiler::format(&format!("{helpers}function leak(first:ByteView):ByteView{{match(fromUtf8(\"short\")){{Ok(owner)=>{{return captured(first,slice(owner,0,1));}},Err(error)=>{{throw error.message;}}}}}}function main(){{}}" )).unwrap();
+    workspace.open(id("main"),2,source);
+    let snapshot=workspace.snapshot();
+    let error=snapshot.check(&id("main")).err().unwrap();
+    assert_eq!(error.code,"native-view-escape");
+    let diagnostics=convert(&snapshot,Some(&error)).unwrap();
+    let diagnostic=serde_json::to_value(&diagnostics[&id("main")][0]).unwrap();
+    assert!(diagnostic["relatedInformation"].as_array().is_some_and(|related|!related.is_empty()));
+}

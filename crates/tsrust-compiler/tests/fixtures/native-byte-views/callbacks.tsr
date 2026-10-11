@@ -29,11 +29,33 @@ function direct(bytes: ReadOnly<Bytes>): ByteView {
   return pick(slice(bytes, 2, 5));
 }
 
+function captured(first: ByteView, second: ByteView): ByteView {
+  const picker: Picker = {
+    pick: (other: Owned<ByteView>) => {
+      const kept = first;
+      strictEqual(length(kept), 1);
+      return other;
+    }, marker: 2
+  };
+  return picker.pick(second);
+}
+
+function localCaptured(first: ByteView, second: ByteView): ByteView {
+  const pick = (other: Owned<ByteView>): ByteView => {
+    const kept = first;
+    strictEqual(length(kept), 1);
+    return other;
+  };
+  return pick(second);
+}
+
 function main() {
   match (fromUtf8("hello")) {
     Ok(bytes) => {
       strictEqual(length(choose(bytes)), 2);
       strictEqual(length(direct(bytes)), 3);
+      strictEqual(length(captured(slice(bytes, 0, 1), slice(bytes, 1, 4))), 3);
+      strictEqual(length(localCaptured(slice(bytes, 0, 1), slice(bytes, 2, 4))), 2);
     },
     Err(error) => {
       throw error.message;

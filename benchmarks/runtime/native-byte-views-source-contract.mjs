@@ -1,8 +1,15 @@
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 import {createHash} from 'node:crypto';
 export function assertNativeByteViewsSource(source,row,kind) {
-    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
+    if (!['native','typescript'].includes(kind) || !['native_byte_views','native_byte_views_recursive','native_byte_views_linked','native_byte_views_callbacks'].includes(row.id) || row.family !== 'native-byte-views') throw Error('Native byte views family');
     if (createHash('sha256').update(source).digest('hex') !== (kind==='native'?row.sourceSha256:row.counterpartSha256)) throw Error('Native byte views fingerprint');
+    if (row.id === 'native_byte_views_callbacks') {
+        if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== 'One view-capturing callback construction and argument-view return' || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Callback byte views denominator');
+        const required = ['const byte = (i + seed) % 256;', 'const next = (byte + 1) % 256;', 'if (first(kept) !== expected) { throw "capture mismatch"; }', 'return other;', 'const picker = make(window(owner, 0, 1), byte);', 'const selected = picker.pick(window(owner, 1, 3));', 'return output;'];
+        required.push(...(kind === 'native' ? ['match (view(owner, start, end))', 'match (fromArray([byte, next, 255]))', 'output.push([length(selected), first(selected)]);'] : ['return owner.subarray(start, end);', 'const owner = Uint8Array.from([byte, next, 255]);', 'output.push([selected.length, first(selected)]);']));
+        for (const text of required) if (!containsCodeSnippet(source,text)) throw Error('Callback byte views scenario: '+text);
+        return;
+    }
     if (['native_byte_views_recursive','native_byte_views_linked'].includes(row.id)) {
         const linked = row.id === 'native_byte_views_linked';
         if (row.iterations !== 2048 || row.operationsPerIteration !== 1 || row.operationUnit !== (linked ? 'One 17-node nullable recursive byte-view construction and consuming traversal' : 'One 17-node recursive byte-view construction and consuming traversal') || row.resultEncoding !== 'array-shape-scalar-v1') throw Error('Recursive byte views denominator');

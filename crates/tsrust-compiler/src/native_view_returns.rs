@@ -5,7 +5,7 @@ use super::*;
 fn untracked(span: Span) -> Diagnostic {
     Diagnostic::new(
         "native-view-source",
-        "This returned byte view has no tracked owner. A callback cannot yet return a byte view that it received as an argument; return a captured view or use a named function.",
+        "This returned byte view has no tracked owner. Return a view whose source owner remains available to the caller.",
         span,
     )
 }

@@ -17,6 +17,9 @@ impl Emitter<'_> {
         crate::native_view_callable_storage::validate_abi(layout,contract,&self.program.closures,&self.program.error_effects,crate::Span::default())?;
         let mut inputs=BTreeMap::new();
         let mut lifetimes=Vec::new();
+        let argument_offset=layout.alternatives.len();
+        let mut argument_names=Vec::new();
+        let mut argument_slots=vec![0;contract.params.len()];
         let mut returns=Vec::<Loan>::new();
         for (arm,alternative) in layout.alternatives.iter().enumerate() {
             let closure=self.program.closures.get(alternative.origin).ok_or_else(||unsupported("Unknown native callable family environment."))?;
@@ -32,9 +35,22 @@ impl Emitter<'_> {
                 inputs.insert((arm,captured_source(slot.capture,&slot.path,&slot.guards)),name.clone());
                 lifetimes.push(name);
             }
+            // Alternative closures have different binding indices. Invocation
+            // parameters share one positional ABI, outside the capture-root range.
+            for (position,&binding) in closure.parameters.iter().enumerate() {
+                let root=argument_offset+position;
+                for loan in closure.function.bindings[binding].native_view_loans.as_deref().into_iter().flatten()
+                    .chain(closure.function.native_returns.as_deref().into_iter().flatten().filter(|loan|loan.root==binding)) {
+                    let key=(root,loan.source.clone());
+                    if let std::collections::btree_map::Entry::Vacant(entry)=inputs.entry(key) {
+                        let name=format!("'native_argument{position}_{}",argument_slots[position]);
+                        argument_slots[position]+=1;argument_names.push(name.clone());entry.insert(name);
+                    }
+                }
+            }
             for loan in closure.function.native_returns.as_deref().into_iter().flatten() {
-                if closure.parameters.contains(&loan.root) {
-                    return Err(unsupported("Native family results borrowing an invocation argument require argument lifetime planning."));
+                if let Some(position)=closure.parameters.iter().position(|&binding|binding==loan.root) {
+                    let mut returned=loan.clone();returned.root=argument_offset+position;returns.push(returned);continue;
                 }
                 let mut returned=loan.clone();
                 returned.root=arm;
@@ -56,9 +72,10 @@ impl Emitter<'_> {
             writeln!(generated,"V{}({environment}),",alternative.origin).unwrap();
         }
         generated.push_str("}\n");
-        let method_generics=if plan.declarations.is_empty(){String::new()}else{format!("<{}>",plan.declarations.join(", "))};
+        argument_names.extend(plan.declarations.iter().cloned());
+        let method_generics=lifetime_parameters(&argument_names);
         let bounds=if plan.bounds.is_empty(){String::new()}else{format!(" where {}",plan.bounds.join(", "))};
-        let parameters=contract.params.iter().enumerate().map(|(position,&parameter)|format!(",argument{position}:{}",self.native_argument_type(parameter,""))).collect::<String>();
+        let parameters=contract.params.iter().enumerate().map(|(position,&parameter)|format!(",argument{position}:{}",self.native_view_family_argument_type(parameter,argument_offset+position,&plan))).collect::<String>();
         let arguments=(0..contract.params.len()).map(|position|format!("argument{position}")).collect::<Vec<_>>().join(", ");
         let result=self.native_view_signature_type(contract.result,None,&plan);
         // A family with a throwing alternative uses the error layout planned for its
