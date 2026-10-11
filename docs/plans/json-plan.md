@@ -380,3 +380,23 @@ diagnostics and then verifies the hover. CLI/package checks already passed in th
 first run and were preserved. Both repository and test-project editor servers were
 restarted; the test project reports No Problems and the open repository fixture
 reports zero errors (five pre-existing workspace warnings remain).
+
+## Benchmark dependency preparation
+
+The runtime harness now prepares JSON dependencies from the compiler's offline
+source-package export. Cargo artifact messages identify the exact serde and
+serde_json libraries; the harness supplies linkage automatically. Preparation
+uses the shared target, an isolated Cargo home, locked vendored sources and the
+pinned Rust toolchain. Exported source must match the benchmark emission.
+Temporary package sources and Cargo homes are removed after preparation.
+
+Dependency preparation is untimed setup. The existing optimized rustc command
+still compiles each instrumented application, including every requested compile
+sample; it is not replaced with a cached Cargo application build. Records include
+library hashes, manifest/lock/config hashes and the preparation command. Existing
+workloads without JSON retain their original compilation path and sample counts.
+
+Four focused checks pass, including offline dependency preparation followed by
+separate instrumented native compilation/execution and source-drift rejection.
+Evidence: `tsrust-s10-benchmark-dependencies-{red,green,final,format}.log` in SQLite.
+Matched JSON workloads, allocation integration and family timing remain open.
