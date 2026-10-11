@@ -227,5 +227,18 @@ Twelve bounded dev checks pass, including external edits, symlink retargeting,
 frozen invalid UTF-8 failures and watcher recovery. A live dev test also edits an
 outside-root imported file and observes a replacement process, then verifies bad
 alias recovery and shutdown cleanup. Evidence: `tsrust-dev-boundaries-*` in SQLite.
-Installed-consumer refresh remains pending; typed data imports and the mandatory
-API audit remain unfinished S10 requirements.
+Typed data imports and the mandatory API audit remain unfinished S10 requirements.
+
+
+## Installed alias consumers
+
+CLI and LSP release binaries and the compiled VS Code extension bundle were
+refreshed from `5ebaf46e`. An isolated installed-CLI project executes a default
+import through `@/components` and its directory index. The installed LSP reports
+no diagnostics and returns the imported string signature in hover.
+
+After reloading the repository editor window, Tsrust checking is enabled and the
+observed status shows no problems; the previous JSON workload error badge clears.
+The separate owner project window also shows no problems, but its reload could
+not be confirmed through the UI. No owner source files were edited. Evidence:
+`tsrust-alias-consumer-*` and `tsrust-alias-installed-smoke.py` in SQLite.
