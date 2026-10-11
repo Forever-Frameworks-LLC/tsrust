@@ -1,5 +1,5 @@
 //! Immutable project inputs and dependency invalidation, independent of protocol scheduling.
-use std::cell::RefCell;
+use std::cell::{Cell,RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -60,6 +60,7 @@ impl Workspace {
     }
     pub fn snapshot(&self) -> WorkspaceSnapshot {
         WorkspaceSnapshot {
+            consistent:Cell::new(true),
             open: self.open.clone(),
             revisions: self.revisions.clone(),
             read: RefCell::new(BTreeMap::new()),
@@ -100,6 +101,7 @@ type Resolutions = BTreeMap<(Option<SourceId>, String), Result<SourceId, String>
 
 #[derive(Clone)]
 pub struct WorkspaceSnapshot {
+    consistent:Cell<bool>,
     open: BTreeMap<SourceId, Buffer>,
     revisions: BTreeMap<SourceId, u64>,
     read: RefCell<BTreeMap<SourceId, Arc<String>>>,
@@ -133,10 +135,33 @@ fn disk_stamp(id: &SourceId) -> Option<DiskStamp> {
 }
 impl WorkspaceSnapshot {
     fn disk_current(&self) -> bool {
-        self.disk
+        self.consistent.get() && self.disk
             .borrow()
             .iter()
             .all(|(id, stamp)| disk_stamp(id) == *stamp)
+    }
+    /// Start an independent entry analysis against the same immutable buffers.
+    pub(crate) fn fresh(&self) -> Self {
+        Self {consistent:Cell::new(true),open:self.open.clone(), revisions:self.revisions.clone(),
+            read:RefCell::default(), observed:RefCell::default(),
+            resolved:RefCell::default(), disk:RefCell::default()}
+    }
+    pub(crate) fn can_reuse(&self, previous:&Self) -> bool {
+        previous.disk_current() && previous.observed.borrow().iter()
+            .all(|id|self.revisions.get(id)==previous.revisions.get(id))
+    }
+    /// Carry all reused dependencies into final stale-input validation and ranges.
+    pub(crate) fn absorb(&self, input:&Self) {
+        // Separate entries may observe an edit at different times. Never publish
+        // a combined result whose dependency versions disagree.
+        if !input.consistent.get()
+            || input.read.borrow().iter().any(|(id,text)|self.read.borrow().get(id).is_some_and(|old|old!=text))
+            || input.disk.borrow().iter().any(|(id,stamp)|self.disk.borrow().get(id).is_some_and(|old|old!=stamp)) {
+            self.consistent.set(false);
+        }
+        self.read.borrow_mut().extend(input.read.borrow().clone());
+        self.observed.borrow_mut().extend(input.observed.borrow().iter().cloned());
+        self.disk.borrow_mut().extend(input.disk.borrow().clone());
     }
     pub fn open_sources(&self) -> Vec<SourceId> { self.open.keys().cloned().collect() }
     pub fn check(&self, entry: &SourceId) -> Result<ProjectAnalysis, ProjectDiagnostic> {
@@ -247,5 +272,23 @@ impl WorkspaceSnapshot {
         } else {
             Err(format!("Missing source {}", id.0))
         }
+    }
+}
+
+#[cfg(test)]
+mod scan_input_tests {
+    use super::*;
+    #[test]
+    fn combining_different_dependency_contents_never_certifies_a_current_scan() {
+        let id=SourceId("/tmp/tsrust-scan-consistency.tsr".into());
+        let mut workspace=Workspace::default();
+        workspace.open(id.clone(),1,"function old(){}".into());
+        let old=workspace.snapshot();old.read(&id).unwrap();
+        workspace.change(&id,2,"function changed(){}".into());
+        let new=workspace.snapshot();new.read(&id).unwrap();
+        let combined=workspace.snapshot();combined.absorb(&old);combined.absorb(&new);
+        assert!(!workspace.current(&combined));
+        let stable=workspace.snapshot();stable.absorb(&new);
+        assert!(workspace.current(&stable));
     }
 }

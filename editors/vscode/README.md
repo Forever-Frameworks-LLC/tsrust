@@ -20,7 +20,7 @@ From the repository root, with its pinned Rust toolchain and Node.js 22 or newer
 
 ```sh
 cargo fetch --locked
-CARGO_TARGET_DIR=target/editor cargo build --offline --locked -p tsrust-lsp
+CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=target/editor cargo build --offline --locked --release -p tsrust-lsp
 npm --prefix editors/vscode ci
 npm --prefix editors/vscode run package
 code --install-extension editors/vscode/tsrust-0.2.0.vsix --force
@@ -28,11 +28,11 @@ code --install-extension editors/vscode/tsrust-0.2.0.vsix --force
 
 The compiler crate remains dependency-free. The new server has protocol/JSON dependencies; `cargo fetch --locked` downloads them once before offline builds. The VSIX bundles its JavaScript dependencies and their license notices, but does not contain the Rust server binary. Nothing is published to the Marketplace.
 
-Open VS Code Settings and set **Tsrust › Server: Path** to the absolute path of `target/editor/debug/tsrust-lsp`. For this repository checkout:
+Open VS Code Settings and set **Tsrust › Server: Path** to the absolute path of `target/editor/release/tsrust-lsp`. For this repository checkout:
 
 ```json
 {
-  "tsrust.server.path": "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/debug/tsrust-lsp",
+  "tsrust.server.path": "/Users/seancotter/Desktop/dev/learning/tsrust/target/editor/release/tsrust-lsp",
   "tsrust.analysis.debounceMs": 200
 }
 ```
@@ -64,7 +64,7 @@ For the VS Code Extension Host integration suite, point at the installed executa
 
 ```sh
 VSCODE_EXECUTABLE='/Applications/Visual Studio Code.app/Contents/MacOS/Code' \
-TSRUST_LSP_PATH="$PWD/target/editor/debug/tsrust-lsp" \
+TSRUST_LSP_PATH="$PWD/target/editor/release/tsrust-lsp" \
 npm --prefix editors/vscode run test:integration
 ```
 

@@ -230,3 +230,39 @@ Consumer refresh and installed-editor acceptance remain pending.
 
 The repaired compiler also passes all 19 affected LSP project-diagnostic and
 workspace-scanner tests (`tsrust-diagnostics-editor-repairs.log` in SQLite).
+
+
+## Workspace scan responsiveness
+
+Installed verification at `89664eba` confirmed two independent diagnostics in an
+unopened file with no main function. Removing that file cleared both diagnostics;
+the already open recursive-arrays and ordered-map sources had no diagnostics.
+The repository's 14 remaining diagnostics include deliberate rejection fixtures.
+The refreshed compiler consumers pass a three-error/two-file main-free project
+and its repaired version. Original build, CLI smoke and editor observation evidence
+use `tsrust-diagnostics-*-89664eba` paths in SQLite.
+
+The initial implementation rechecked every source after every edit. A recursive
+CLI check of this repository took 44.872 seconds with the debug compiler. The LSP
+now retains independent entry results, reuses unchanged successful and failed
+analyses, and rechecks changed inputs and their importers. It tracks unsaved buffer
+revisions, attempted missing imports, disk identities and timestamps; file creation,
+deletion and root changes are discovered on every scan. Reused inputs still enter
+stale-publication validation. Conflicting dependency versions observed during a
+scan invalidate the combined result. Removed entries release their cached inputs.
+
+Focused acceptance: 31 LSP tests pass across workspace inputs, project diagnostics,
+scanner behavior, inconsistent-input rejection and worker protocol tests. A real
+stdio LSP smoke scan over this repository reports two errors in an unopened probe,
+clears them after repair and clears the removed file. Single-run observations:
+debug cold scan 48.857 seconds, one-file edit 0.089 seconds, deletion 0.084 seconds;
+optimized cold scan 9.544 seconds, edit 0.058 seconds, deletion 0.062 seconds.
+These are editor responsiveness observations, not matched native/Node runtime
+benchmarks. No generated runtime behavior changed. Use optimized language-server
+builds for large workspaces. The probe sources were removed after the checks.
+
+Evidence: `tsrust-workspace-scan-cost-89664eba.log`, `tsrust-scan-cache-red.log`,
+`tsrust-scan-cache-checks.log`, `tsrust-scan-cache-final.log`,
+`tsrust-scan-cache-worker.log`, `tsrust-scan-cache-protocol-cost.log`,
+`tsrust-scan-cache-release-protocol-cost.log`, `tsrust-scan-cache-release-build.log`
+and the executable observation script `tsrust-scan-probe.py` in SQLite.

@@ -60,10 +60,11 @@ fn run(
     // Analysis is synchronous. Dropping this thread's handle permits exit without
     // waiting for an obsolete check. Cooperative interruption is compiler task C3.
     std::thread::spawn(move || {
+        let mut scan_cache=tsrust_lsp::workspace_scan::Cache::default();
         while let Ok(job) = work.recv() {
             let job = match job {
                 Job::Workspace(job) => {
-                    let result=catch_unwind(AssertUnwindSafe(||tsrust_lsp::workspace_scan::check(&job)))
+                    let result=catch_unwind(AssertUnwindSafe(||scan_cache.check(&job)))
                         .unwrap_or_else(|_|Err("workspace analysis panicked".into()));
                     if completed.send(Checked::Workspace(tsrust_lsp::workspace_scan::Checked {job,result})).is_err() {break;}
                     continue;

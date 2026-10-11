@@ -1,7 +1,7 @@
 //! Workspace diagnostics use immutable inputs and one replaceable pending scan.
 use crate::{project_diagnostics::{convert_all, source_id}, project_session::{Buckets, ProjectSession, Publication}, workspace::WorkspaceSnapshot};
-use std::{collections::BTreeSet, path::PathBuf, time::{Duration, Instant}};
-use tsrust_compiler::project::SourceId;
+use std::{collections::{BTreeMap,BTreeSet}, path::PathBuf, time::{Duration, Instant}};
+use tsrust_compiler::project::{SourceId,ProjectDiagnostic};
 
 pub struct Job {
     pub revision: u64,
@@ -68,7 +68,21 @@ impl Scanner {
     }
 }
 
-pub fn check(job: &Job) -> Result<Buckets,String> {
+struct Entry {
+    input: WorkspaceSnapshot,
+    errors: Vec<ProjectDiagnostic>,
+}
+/// Worker-local entry results. Each entry retains its own dependency observations.
+#[derive(Default)]
+pub struct Cache {
+    entries: BTreeMap<SourceId,Entry>,
+    checked: usize,
+}
+impl Cache {
+    /// Number of entry analyses performed by the most recent scan.
+    pub fn checked_entries(&self)->usize {self.checked}
+    pub fn check(&mut self, job: &Job) -> Result<Buckets,String> {
+    self.checked=0;
     let roots=job.roots.iter().filter(|root|root.exists()).cloned().collect::<Vec<_>>();
     let mut files=tsrust_compiler::source_discovery::discover(&roots)?.into_iter()
         .map(|path|SourceId(path.to_string_lossy().into_owned())).collect::<BTreeSet<_>>();
@@ -76,9 +90,18 @@ pub fn check(job: &Job) -> Result<Buckets,String> {
         let path=PathBuf::from(&id.0);
         if path.extension().is_some_and(|extension|extension=="tsr") && roots.iter().any(|root|path.starts_with(root)) {files.insert(id);}
     }
+    self.entries.retain(|id,_|files.contains(id));
     let mut errors=Vec::new();
     for file in files {
-        if let Err(found)=job.input.check_with_diagnostics(&file) {errors.extend(found);}
+        if !self.entries.get(&file).is_some_and(|entry|job.input.can_reuse(&entry.input)) {
+            let input=job.input.fresh();
+            let errors=input.check_with_diagnostics(&file).err().unwrap_or_default();
+            self.entries.insert(file.clone(),Entry{input,errors});
+            self.checked+=1;
+        }
+        let entry=&self.entries[&file];
+        job.input.absorb(&entry.input);
+        errors.extend(entry.errors.iter().cloned());
     }
     let mut buckets=convert_all(&job.input,&errors)?;
     for diagnostics in buckets.values_mut() {
@@ -87,3 +110,7 @@ pub fn check(job: &Job) -> Result<Buckets,String> {
     }
     Ok(buckets)
 }
+
+}
+
+pub fn check(job:&Job)->Result<Buckets,String> {Cache::default().check(job)}

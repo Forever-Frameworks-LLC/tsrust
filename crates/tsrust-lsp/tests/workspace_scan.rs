@@ -69,3 +69,60 @@ fn removing_last_root_clears_previous_publications() {
     let cleared=scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap();
     assert_eq!(cleared.len(),1);assert!(cleared[0].diagnostics.is_empty());assert!(!scanner.enabled());
 }
+
+#[test]
+fn cached_scans_recheck_only_changed_inputs_and_importers() {
+    use tsrust_lsp::workspace_scan::Cache;
+    let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join("library.tsr"),"export function value():int{return 7;}").unwrap();
+    std::fs::write(dir.0.join("entry.tsr"),"import {value} from './library.tsr';function use():int{return value();}").unwrap();
+    std::fs::write(dir.0.join("other.tsr"),"function other(){const first:int=\"bad\";const second:boolean=42;}").unwrap();
+    let mut projects=ProjectSession::default();let mut scanner=Scanner::default();let mut cache=Cache::default();
+    scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let first=cache.check(&job).unwrap();
+    assert_eq!(cache.checked_entries(),3);assert_eq!(first.values().map(Vec::len).sum::<usize>(),2);
+    scanner.accept(Checked{job,result:Ok(first.clone())},&projects,now,Duration::ZERO).unwrap();
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();assert_eq!(cache.check(&job).unwrap(),first);
+    assert_eq!(cache.checked_entries(),0,"unchanged scan must reuse successful and failed analyses");
+    projects.open(&Snapshot{uri:dir.uri("library.tsr"),version:1,generation:1,text:"export function value():int{return \"bad\";}".into()});
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let changed=cache.check(&job).unwrap();
+    assert_eq!(cache.checked_entries(),2);assert_eq!(changed.values().map(Vec::len).sum::<usize>(),3);
+    assert_eq!(job.input.version(&SourceId(dir.0.join("library.tsr").to_str().unwrap().into())),Some(1));
+    projects.close(&dir.uri("library.tsr"));
+    std::fs::remove_file(dir.0.join("other.tsr")).unwrap();
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);
+    assert_eq!(cache.checked_entries(),2);
+    let cleared=scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap();
+    assert!(cleared.iter().all(|item|item.diagnostics.is_empty()));
+    assert!(cleared.iter().any(|item|item.uri==dir.uri("other.tsr")));
+}
+
+#[test]
+fn cached_missing_imports_and_disk_edits_are_invalidated_without_watch_events() {
+    use tsrust_lsp::workspace_scan::Cache;
+    let dir=Directory::new();let now=Instant::now();
+    std::fs::write(dir.0.join("entry.tsr"),"import {value} from './missing.tsr';function use():int{return value();}").unwrap();
+    let projects=ProjectSession::default();let mut scanner=Scanner::default();let mut cache=Cache::default();
+    scanner.initialize(&json!({"rootUri":dir.uri("")}),now);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    assert_eq!(cache.check(&job).unwrap().values().map(Vec::len).sum::<usize>(),1);
+    std::fs::write(dir.0.join("missing.tsr"),"export function value():int{return 7;}").unwrap();
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();
+    assert!(cache.check(&job).unwrap().values().all(Vec::is_empty));assert_eq!(cache.checked_entries(),2);
+    std::fs::write(dir.0.join("missing.tsr"),"export function value():int{return \"bad\";}").unwrap();
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);
+    assert_eq!(result.as_ref().unwrap().values().map(Vec::len).sum::<usize>(),1);
+    assert_eq!(cache.checked_entries(),2);
+    // Cached dependencies still participate in stale-publication rejection.
+    scanner.dirty(now,Duration::ZERO);
+    let job=scanner.next(now,projects.workspace.snapshot()).unwrap();let result=cache.check(&job);
+    assert_eq!(cache.checked_entries(),0);
+    std::fs::write(dir.0.join("missing.tsr"),"export function value():int{return 7;}").unwrap();
+    assert!(scanner.accept(Checked{job,result},&projects,now,Duration::ZERO).unwrap().is_empty());
+    assert!(scanner.due_in(now).is_some());
+}
