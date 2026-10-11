@@ -23,6 +23,12 @@ implemented merely by recording this decision.
 
 ## Architecture and compiler handoffs
 
+Required organization checkpoint: after focused JSON namespace acceptance and
+before further S10 API expansion, reorganize compiler sources, including strays
+inside `stdlib`, into coherent modules. Start with filesystem implementation and
+tests, then proceed by dependency family. Preserve public APIs and runtime behavior;
+see the [compiler source organization plan](plans/compiler-source-organization-plan.md).
+
 Keep in-process frontend analysis independent of network, databases, Cargo and native execution. Add project analysis alongside existing check(source), preserving the single-source API. Explicit source identity must accompany project symbols, diagnostics, related spans and edits; do not concatenate files and guess offsets.
 
 A compiler-owned typed native binding registry defines argument/result types, generics, borrowing/mutation/transfer, callback retention and invocation, async behavior, thread-transfer constraints, errors and required runtime features. Library modules consume this registry. The editor must consume public metadata, not independently invent these contracts. Every new method/property still receives complete builtins.json documentation before gate acceptance.
