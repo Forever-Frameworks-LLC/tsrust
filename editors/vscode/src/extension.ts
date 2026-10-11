@@ -12,7 +12,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   disposed = false;
   const output = vscode.window.createOutputChannel('Tsrust');
   const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/*.tsr');
-  context.subscriptions.push(sourceWatcher);
+  const configWatcher = vscode.workspace.createFileSystemWatcher('**/tsrust.config.json');
+  context.subscriptions.push(sourceWatcher, configWatcher);
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.command = 'tsrust.restartServer';
   status.tooltip = 'Tsrust compiler diagnostics. Click to restart the language server.';
@@ -108,9 +109,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const next = new LanguageClient('tsrust', 'Tsrust', {
       command: path, args: [], transport: TransportKind.stdio,
     }, {
-      documentSelector: [{ language: 'tsrust', scheme: 'file' }, { language: 'tsrust', scheme: 'untitled' }],
+      documentSelector: [{ language: 'tsrust', scheme: 'file' }, { language: 'tsrust', scheme: 'untitled' }, { scheme: 'file', pattern: '**/tsrust.config.json' }],
       outputChannel: output,
-      synchronize: { fileEvents: sourceWatcher },
+      synchronize: { fileEvents: [sourceWatcher, configWatcher] },
       initializationOptions: { debounceMs: settings.get<number>('analysis.debounceMs', 200) },
       errorHandler: {
         error: () => ({ action: ErrorAction.Continue }),

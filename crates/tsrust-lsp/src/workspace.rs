@@ -249,7 +249,7 @@ impl WorkspaceSnapshot {
                 Err(error)=>return Err(format!("{}: {error}",id.0)),
             }
         }
-        Err(format!("Cannot resolve {path}; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))
+        Err(format!("Missing source for {path}; tried {}",candidates.iter().map(|path|path.display().to_string()).collect::<Vec<_>>().join(", ")))
     }
     // Observe lexical and canonical identities, including absent candidates, so
     // file creation and symlink retargeting invalidate previously chosen paths.

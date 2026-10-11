@@ -142,3 +142,26 @@ Tsrust document buffers and the VS Code extension watches only `.tsr` files.
 Wire configuration notifications and supported config overlays, verify actual
 hover/completion/navigation and dev invalidation, then refresh installed consumers.
 The lower-level snapshot tests do not prove protocol delivery or UI behavior.
+
+## Configuration protocol delivery
+
+The LSP now accepts `tsrust.config.json` buffers as configuration inputs without
+scheduling them as Tsrust source documents. Open/change/close updates flow through
+project dependency invalidation, retaining buffer versions and restoring disk
+fallback on close. The VS Code client selects these files and watches their
+creation, changes and deletion alongside source files.
+
+A live protocol witness opens an unsaved configuration and aliased dependency,
+checks the importing file and its checked hover, changes the mapping to a missing
+target, restores it, and closes the unsaved configuration. Import diagnostics
+appear and clear accordingly. The existing live unsaved-dependency lifecycle test
+also passes. Extension compilation passes. Evidence: `tsrust-alias-protocol-*`
+and `tsrust-alias-extension-build.log` in SQLite. These are protocol/build checks;
+installed consumers have not yet been refreshed.
+
+Remaining dev correctness issue: its source provider currently delegates alias
+resolution to live filesystem configuration, while source content comes from a
+captured build snapshot. Resolve against captured configuration and candidate
+identities before accepting dev behavior; include configuration edits during a
+build and nested project configuration discovery. Existing watchers recognize
+configuration filenames, but that alone does not prove snapshot consistency.

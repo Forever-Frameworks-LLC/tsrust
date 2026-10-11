@@ -225,7 +225,11 @@ fn run(
                             }),
                             "textDocument/didOpen" => serde_json::from_value::<DidOpenTextDocumentParams>(notification.params).map_err(|e| e.to_string()).map(|params| {
                                 let doc = params.text_document;
-                                if doc.language_id == "tsrust" {
+                                if configuration_uri(doc.uri.as_str()) {
+                                    scanner.dirty(now,debounce);
+                                    let snapshot=Snapshot{uri:doc.uri.to_string(),version:doc.version,generation:0,text:doc.text};
+                                    for dependent in projects.open(&snapshot) {documents.reschedule(&dependent,now,debounce);}
+                                } else if doc.language_id == "tsrust" {
                                     scanner.dirty(now,debounce);
                                     let uri = doc.uri.to_string();
                                     documents.open(uri.clone(), doc.version, doc.text, now);
@@ -240,7 +244,11 @@ fn run(
                                 }
                                 let uri = params.text_document.uri.to_string();
                                 let change = params.content_changes.into_iter().next().unwrap();
-                                if !documents.change(&uri, params.text_document.version, change.text, now, debounce) {
+                                if configuration_uri(&uri) {
+                                    scanner.dirty(now,debounce);
+                                    let snapshot=Snapshot{uri:uri.clone(),version:params.text_document.version,generation:0,text:change.text};
+                                    for dependent in projects.change(&snapshot) {documents.reschedule(&dependent,now,debounce);}
+                                } else if !documents.change(&uri, params.text_document.version, change.text, now, debounce) {
                                     eprintln!("tsrust-lsp: ignored outdated or unopened document change: {uri}");
                                 } else if let Some(snapshot) = documents.snapshot(&uri) {
                                     scanner.dirty(now,debounce);
@@ -311,6 +319,9 @@ fn run(
             recv(after(wait)) -> _ => {}
         }
     }
+}
+fn configuration_uri(uri:&str)->bool {
+    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).file_name().is_some_and(|name|name=="tsrust.config.json"))
 }
 fn publish_project(
     connection: &Connection,
@@ -484,6 +495,36 @@ mod project_protocol_tests {
                 return notification.params;
             }
         }
+    }
+    #[test]
+    fn live_alias_configuration_updates_import_diagnostics_without_becoming_source() {
+        fn receive(client:&Connection)->Message {client.receiver.recv_timeout(Duration::from_secs(5)).unwrap()}
+        fn request(client:&Connection,id:i32,method:&str) {client.sender.send(Message::Request(Request{id:RequestId::from(id),method:method.into(),params:json!(null)})).unwrap();}
+        fn initialize(client:&Connection) {
+            client.sender.send(Message::Request(Request{id:RequestId::from(1),method:"initialize".into(),params:json!({"initializationOptions":{"debounceMs":0}})})).unwrap();
+            assert!(matches!(receive(client),Message::Response(response) if response.error.is_none()));
+            notify(client,"initialized",json!({}));
+        }
+        let (server,client)=Connection::memory();
+        let worker=std::thread::spawn(move||run(server,diagnostics));initialize(&client);
+        let config="file:///tsrust-live-alias/tsrust.config.json";
+        let root="file:///tsrust-live-alias/main.tsr";
+        let dep="file:///tsrust-live-alias/src/greeting.tsr";
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":config,"languageId":"json","version":1,"text":r#"{"paths":{"@/*":"./src/*"}}"#}}));
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":dep,"languageId":"tsrust","version":1,"text":"export function greeting():string{return 'hello';}"}}));
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":root,"languageId":"tsrust","version":1,"text":"import {greeting} from '@/greeting';function main(){console.log(greeting());}"}}));
+        until(&client,|p|p["uri"]==root&&p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        client.sender.send(Message::Request(Request{id:RequestId::from(7),method:"textDocument/hover".into(),params:json!({"textDocument":{"uri":root},"position":{"line":0,"character":64}})})).unwrap();
+        loop {if let Message::Response(response)=receive(&client) {if response.id==RequestId::from(7) {let result=response.result.unwrap();assert!(result.to_string().contains("string"),"{result}");break;}}}
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":config,"version":2},"contentChanges":[{"text":r#"{"paths":{"@/*":"./missing/*"}}"#}]}));
+        until(&client,|p|p["uri"]==root&&p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":config,"version":3},"contentChanges":[{"text":r#"{"paths":{"@/*":"./src/*"}}"#}]}));
+        until(&client,|p|p["uri"]==root&&p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        notify(&client,"textDocument/didClose",json!({"textDocument":{"uri":config}}));
+        until(&client,|p|p["uri"]==root&&p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        request(&client,9,"shutdown");
+        loop {if matches!(receive(&client),Message::Response(response) if response.id==RequestId::from(9)){break;}}
+        notify(&client,"exit",json!(null));assert_eq!(worker.join().unwrap().unwrap(),0);
     }
     #[test]
     fn live_unsaved_dependency_errors_recheck_clear_and_keep_versions() {
