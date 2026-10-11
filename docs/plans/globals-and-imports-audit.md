@@ -101,3 +101,9 @@ preferred; the existing throwing relative-path exception is recorded.
 The sixteen byte and fifteen file exports have a
 [per-symbol review](globals-and-imports-storage-audit.md). Keep explicit imports,
 real borrowed views and consuming resource operations.
+
+## Testing review slice
+
+The [testing review](globals-and-imports-testing-audit.md) covers 18 public exports,
+29 matcher members and 14 private bridges. Public imports and private retention
+boundaries remain unchanged; completion visibility is verified.

@@ -187,14 +187,16 @@ fn standard_testing_namespace_combines_assertions_expect_and_registration() {
 }
 
 #[test]
-fn testing_imports_reject_compatibility_names_and_private_runtime() {
+fn testing_imports_reject_unconfigured_aliases_and_private_runtime() {
     for module in ["vitest", "node:assert/strict", "node:test", "std:assert", "std:test", "std:testing-runtime"] {
         let directory = support::TempDirectory::new();
-        let path = directory.source(&format!("import {{ok}} from {module:?};function main(){{ok(true);}}"));
+        let path = directory.source(&support::format_round_trip(&format!("import {{ok}} from {module:?};function main(){{ok(true);}}")));
         let output = support::run(support::cli().arg("check").arg(path), 60);
         assert!(!output.status.success(), "unexpected public module: {module}");
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("module-path") || stderr.contains("module-native"), "{module}: {stderr}");
+        let expected = if module.starts_with("std:") { "error[module-native]" } else { "error[module-load]: No path alias matches" };
+        assert!(stderr.contains(expected), "{module}: {stderr}");
+        if module == "std:testing-runtime" { assert!(stderr.contains("Testing runtime bindings are private"), "{stderr}"); }
     }
 }
 

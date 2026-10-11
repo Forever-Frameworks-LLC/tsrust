@@ -2061,3 +2061,23 @@ fn typed_json_import_array_optional_union_and_clone_help() {
     let definition=ask(&index,&entry,"title);","textDocument/definition");
     assert_eq!(definition["uri"],target,"{definition}");
 }
+
+#[test]
+fn testing_public_exports_exclude_private_runtime_bridges() {
+    let root=source_id("file:///tsrust-intelligence/main.tsr").unwrap();
+    let mut workspace=Workspace::default();
+    let source="import { } from 'std:testing';";
+    workspace.open(root.clone(),1,source.into());
+    let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&root.0).unwrap();
+    let completion=ask(&ProjectIndex::new(&graph),source," }","textDocument/completion");
+    let names=completion.as_array().unwrap().iter().filter_map(|item|item["label"].as_str()).collect::<std::collections::BTreeSet<_>>();
+    for name in ["ok","strictEqual","notStrictEqual","fail","expect","Expectation","NegatedExpectation","test","it","runTests","describe","suite","beforeAll","afterAll","beforeEach","afterEach","before","after"] {
+        assert!(names.contains(name),"missing {name}: {completion}");
+    }
+    for binding in tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:testing-runtime" && binding.name!="runTests") {
+        assert!(!names.contains(binding.name),"private {} offered: {completion}",binding.name);
+    }
+    workspace.change(&root,2,"import { checkAssertion } from 'std:testing-runtime';".into());
+    let error=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&root.0).unwrap_err();
+    assert!(format!("{error:?}").contains("Testing runtime bindings are private"));
+}
