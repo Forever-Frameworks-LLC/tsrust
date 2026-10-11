@@ -42,8 +42,10 @@ Buffered files now have focused implementation acceptance, executable examples,
 matched buffering/readback support and eight installed native/Node untimed cases.
 See [buffered-file acceptance](buffered-files-plan.md).
 
-Continue S09 with environment
-and monotonic time foundations, auditing the existing path/fs/os contracts. Define
+Environment lookup now has a tested private read-only backend; public bindings and
+matched workload support remain pending. See [environment lookup](environment-plan.md).
+Continue S09 with public environment lookup and monotonic time foundations, auditing
+the existing path/fs/os contracts. Define
 focused API batches before implementation and run the family milestone only after
 the public surface, examples and matched workload support are complete.
 

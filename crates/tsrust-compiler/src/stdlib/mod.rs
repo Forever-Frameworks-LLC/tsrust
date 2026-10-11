@@ -14,3 +14,6 @@ pub(crate) mod fs_emit;
 pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module { "std:testing" => Some(testing::SOURCE), _ => None }
 }
+
+#[cfg(test)]
+mod env;
