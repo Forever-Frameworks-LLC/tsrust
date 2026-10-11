@@ -2003,3 +2003,26 @@ fn configured_alias_default_import_has_checked_completion_hover_and_navigation()
  let definition=ask(&index,&entry,"greet(","textDocument/definition");assert_eq!(definition["uri"],target,"{definition}");
  let completion=ask(&index,&entry,"greet(","textDocument/completion");assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="greet")),"{completion}");
 }
+
+#[test]
+fn typed_json_import_fields_have_hover_completion_and_source_navigation() {
+    let entry=tsrust_compiler::format("import settings from './settings.jsonc';function main(){console.log(settings.server.host);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let target="file:///tsrust-intelligence/settings.jsonc";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    workspace.open(source_id(target).unwrap(),1,"{\n  // server configuration\n  \"server\": {\"host\": \"local\", \"port\": 8080},\n}".into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"host);","textDocument/hover");
+    assert!(hover.to_string().contains("string"),"{hover}");
+    let completion=ask(&index,&entry,"host);","textDocument/completion");
+    assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="host")),"{completion}");
+    let definition=ask(&index,&entry,"host);","textDocument/definition");
+    assert_eq!(definition["uri"],target,"{definition}");
+    assert_eq!(definition["range"]["start"]["line"],2,"{definition}");
+    workspace.change(&source_id(target).unwrap(),2,"{\"server\":{\"host\":42}}".into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let hover=ask(&ProjectIndex::checked(&checked),&entry,"host);","textDocument/hover");
+    assert!(hover.to_string().contains("int"),"{hover}");
+}

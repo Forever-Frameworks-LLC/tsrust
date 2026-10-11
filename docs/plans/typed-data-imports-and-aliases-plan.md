@@ -337,3 +337,25 @@ Evidence: `tsrust-data-storage-*` in SQLite. Broader ownership/closure boundarie
 all entry modes, editor integration, documentation/examples and matched benchmark
 support remain required before public feature acceptance. Installed consumers
 have not been refreshed for data imports. No new timing claim is made.
+
+
+## Editor data schema and live buffers
+
+Editor indexes now consume compiler-derived data schemas, including original
+property spans. Imported nested fields provide completion, hover and navigation
+to their JSON/JSONC declarations. Checked record facts use stable data declaration
+identities rather than displaying the entire JSON object as a type name. Import
+hover explains embedded immutable storage and explicit cloning.
+
+The extension watches JSON/JSONC files and synchronizes their open buffers. The
+language server treats these as auxiliary project inputs, so they invalidate
+dependents without being checked as Tsrust source files. Focused protocol tests
+cover unsaved data type changes, diagnostic recovery and closing an unsaved input;
+existing config and Tsrust dependency lifecycle checks still pass. The nested
+field witness also checks updated hover types after editing data. The extension
+compiles successfully. Evidence: `tsrust-data-editor-*` in SQLite.
+
+Incomplete-source assistance, additional data shapes and ownership boundaries,
+all CLI entry modes, dev/package acceptance, public documentation and matched
+benchmark support remain pending. Installed consumers still need a verified
+feature refresh. These focused checks do not close S10.

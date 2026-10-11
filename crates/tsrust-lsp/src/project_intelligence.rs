@@ -39,6 +39,13 @@ impl ProjectIndex {
             let module = &graph.modules[id];
             let mut declaration = SourceIndex::with_entry_help(&module.declaration_source, false);
             let mut index = SourceIndex::with_entry_help(&module.source.text, id == &graph.entry);
+            if let Some(data) = &module.data {
+                let schema = data.schema();
+                declaration = SourceIndex::with_entry_help(&module.source.text, false);
+                declaration.add_data_schema(&schema);
+                index.add_data_schema(&schema);
+            }
+
             for import in &module.imports {
                 if let Some(native) = import.native {
                     index.import_native_names(import.names, native);

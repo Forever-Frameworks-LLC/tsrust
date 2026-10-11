@@ -13,6 +13,8 @@ mod generic_intelligence;
 mod result_intelligence;
 #[path = "native_type_intelligence.rs"]
 mod native_type_intelligence;
+#[path = "data_intelligence.rs"]
+mod data_intelligence;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -2597,10 +2599,13 @@ impl SourceIndex {
         types: &std::collections::BTreeMap<String, String>,
     ) -> bool {
         let Some(declaration) = dependency.symbols.iter().find(|s| {
-            s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 12 | 23 | 26)
+            s.name == exported && s.scope == 0 && s.owner.is_none() && matches!(s.kind, 10 | 12 | 13 | 23 | 26)
         }) else {
             return false;
         };
+        if declaration.kind == 13 {
+            return self.import_data_value(dependency, declaration, local, span, uri);
+        }
         if declaration.kind == 26 {
             return self.import_structured_native_alias(dependency, declaration, local, span, uri, types);
         }

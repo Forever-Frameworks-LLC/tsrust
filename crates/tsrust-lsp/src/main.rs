@@ -225,7 +225,7 @@ fn run(
                             }),
                             "textDocument/didOpen" => serde_json::from_value::<DidOpenTextDocumentParams>(notification.params).map_err(|e| e.to_string()).map(|params| {
                                 let doc = params.text_document;
-                                if configuration_uri(doc.uri.as_str()) {
+                                if auxiliary_uri(doc.uri.as_str()) {
                                     scanner.dirty(now,debounce);
                                     let snapshot=Snapshot{uri:doc.uri.to_string(),version:doc.version,generation:0,text:doc.text};
                                     for dependent in projects.open(&snapshot) {documents.reschedule(&dependent,now,debounce);}
@@ -244,7 +244,7 @@ fn run(
                                 }
                                 let uri = params.text_document.uri.to_string();
                                 let change = params.content_changes.into_iter().next().unwrap();
-                                if configuration_uri(&uri) {
+                                if auxiliary_uri(&uri) {
                                     scanner.dirty(now,debounce);
                                     let snapshot=Snapshot{uri:uri.clone(),version:params.text_document.version,generation:0,text:change.text};
                                     for dependent in projects.change(&snapshot) {documents.reschedule(&dependent,now,debounce);}
@@ -320,8 +320,8 @@ fn run(
         }
     }
 }
-fn configuration_uri(uri:&str)->bool {
-    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).file_name().is_some_and(|name|name=="tsrust.config.json"))
+fn auxiliary_uri(uri:&str)->bool {
+    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).extension().and_then(|value|value.to_str()).is_some_and(|extension|matches!(extension,"json"|"jsonc")))
 }
 fn publish_project(
     connection: &Connection,
@@ -495,6 +495,28 @@ mod project_protocol_tests {
                 return notification.params;
             }
         }
+    }
+    #[test]
+    fn live_json_data_edits_recheck_dependents_and_clear_diagnostics() {
+        let (server, client) = Connection::memory();
+        let worker = std::thread::spawn(move || run(server, diagnostics));
+        client.sender.send(Message::Request(Request { id: 1.into(), method: "initialize".into(), params: json!({"initializationOptions":{"debounceMs":0}}) })).unwrap();
+        assert!(matches!(client.receiver.recv_timeout(Duration::from_secs(5)).unwrap(), Message::Response(_)));
+        notify(&client,"initialized",json!({}));
+        let root="file:///tsrust-live-data/main.tsr";
+        let data="file:///tsrust-live-data/settings.jsonc";
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":data,"languageId":"jsonc","version":1,"text":"{\"host\":\"local\",}"}}));
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":root,"languageId":"tsrust","version":1,"text":"import settings from './settings.jsonc'; function main(){console.log(settings.host.toUpperCase());}"}}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":2},"contentChanges":[{"text":"{\"host\":42}"}]}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":3},"contentChanges":[{"text":"{\"host\":\"restored\"}"}]}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        notify(&client,"textDocument/didClose",json!({"textDocument":{"uri":data}}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        client.sender.send(Message::Request(Request{id:9.into(),method:"shutdown".into(),params:json!(null)})).unwrap();
+        loop { if matches!(client.receiver.recv_timeout(Duration::from_secs(5)).unwrap(),Message::Response(response) if response.id==RequestId::from(9)) {break;} }
+        notify(&client,"exit",json!(null)); assert_eq!(worker.join().unwrap().unwrap(),0);
     }
     #[test]
     fn live_alias_configuration_updates_import_diagnostics_without_becoming_source() {

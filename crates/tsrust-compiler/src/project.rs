@@ -153,6 +153,41 @@ pub struct DataModule {
     pub(crate) value: crate::data_module::Value,
 }
 #[derive(Clone, Debug)]
+pub struct DataSchema {
+    pub root: crate::type_syntax::ValueAnnotation,
+    pub records: Vec<DataRecord>,
+}
+#[derive(Clone, Debug)]
+pub struct DataRecord {
+    pub name: String,
+    pub span: Span,
+    pub fields: Vec<DataField>,
+}
+#[derive(Clone, Debug)]
+pub struct DataField {
+    pub name: String,
+    pub span: Span,
+    pub annotation: crate::type_syntax::ValueAnnotation,
+    pub optional: bool,
+}
+impl DataModule {
+    /// Compiler-derived schema for editor assistance; no second JSON inference.
+    pub fn schema(&self) -> DataSchema {
+        let mut lowered = crate::data_lowering::lower(&self.value, "editor").expect("validated data module");
+        let names: BTreeMap<_, _> = lowered.records.iter().map(|record| (record.name.text.clone(), format!("JsonData{}", record.name.span.start))).collect();
+        let rename = |name: &str| names.get(name).cloned().unwrap_or_else(|| name.into());
+        crate::type_aliases::link_names(&mut lowered.annotation, &rename);
+        let records = lowered.records.into_iter().map(|record| DataRecord {
+            name: names[&record.name.text].clone(), span: record.name.span,
+            fields: record.fields.into_iter().map(|mut field| {
+                crate::type_aliases::link_names(&mut field.annotation, &rename);
+                DataField { name: field.name.text, span: field.name.span, annotation: field.annotation, optional: field.optional }
+            }).collect(),
+        }).collect();
+        DataSchema { root: lowered.annotation, records }
+    }
+}
+#[derive(Clone, Debug)]
 pub struct ModuleSource {
     pub data: Option<DataModule>,
     pub source: SourceFile,

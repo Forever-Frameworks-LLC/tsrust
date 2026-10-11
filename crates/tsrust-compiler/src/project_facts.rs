@@ -397,9 +397,9 @@ impl ProjectAnalysis {
                 .map_or(record.name.span, |application| application.declaration.span),
         )?;
         let source = &self.graph.modules[&declaration.source].source.text;
-        let name = source
-            .get(declaration.span.start..declaration.span.end)?
-            .to_owned();
+        let name = if self.graph.modules[&declaration.source].data.is_some() {
+            format!("JsonData{}", declaration.span.start)
+        } else { source.get(declaration.span.start..declaration.span.end)?.to_owned() };
         let arguments = record
             .application
             .as_ref()
