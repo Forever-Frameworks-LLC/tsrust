@@ -12,8 +12,9 @@ fn deque_catalog_examples_check_and_execute() {
     std::fs::create_dir(&path).unwrap();
     let directory = Directory(path);
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
-    let entries = catalog["std:collections"].as_array().unwrap();
-    assert_eq!(entries.len(), 1);
+    let mut entries = catalog["std:collections"].as_array().unwrap().iter().collect::<Vec<_>>();
+    entries.extend(catalog["Heap"].as_array().unwrap());
+    assert_eq!(entries.len(), 7);
     for entry in entries {
         for example in entry["examples"].as_array().unwrap() {
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();

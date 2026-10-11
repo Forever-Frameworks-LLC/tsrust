@@ -30,7 +30,7 @@ impl Analyzer {
     }
     pub(super) fn deque_receiver(&self, context: &Context, base: &Expr) -> Option<usize> {
         let Type::Record(id) = self.expression_type_hint(context, base)? else { return None; };
-        self.program.records[id].native_element().map(|_| id)
+        (self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Deque)).then_some(id)
     }
     pub(super) fn deque_method_type(&self, id: usize, name: &str, span: Span) -> Result<Type, Diagnostic> {
         match name {

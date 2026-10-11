@@ -5145,6 +5145,18 @@
           "output": "1 2 new\n"
         }
       ]
+    },
+    {
+      "name": "Heap",
+      "signature": "type Heap<T>",
+      "parameters": [],
+      "documentation": "An owned max heap: peek reads the greatest value and pop removes it. new Heap<T>() takes no arguments and requires an explicit int, number, boolean, string or enum element type. Numbers use numeric order, with all NaNs equal and greater than infinity; signed zeros are stored as positive zero. Strings use Unicode scalar lexicographic order, without locale collation or normalization. Booleans place true above false. Enums use their backing values. Duplicate values remain separate entries. No borrowed iteration is currently provided; repeated pop consumes values in descending order. clone(heap) deep-clones independent storage.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);console.log(values.pop()!,values.pop()!);}\n```\n\nExpected output: 9 2.\n\nOwnership: passing by value transfers the heap; storage releases automatically when its owner ends.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(2);values.push(9);console.log(values.pop()!,values.pop()!);}",
+          "output": "9 2\n"
+        }
+      ]
     }
   ],
   "std:fs": [
@@ -5558,5 +5570,68 @@
     }
   ]
 }
-]
+],
+  "Heap": [
+    {
+      "name": "size",
+      "signature": "size: int",
+      "documentation": "Returns the readonly number of stored values. Takes no arguments and leaves the heap unchanged. Invalid argument counts and incompatible types are static errors.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.size);}\n```\n\nExpected output: 1.\n\nOwnership: push, pop and clear require mutable access; peek and size borrow readonly. No implicit element cloning.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.size);}",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "push",
+      "signature": "push(value: Element): void",
+      "documentation": "Transfers one value of the declared element type into the heap. Returns void and increases size by one. Equal values are stored separately. Invalid argument counts and incompatible types are static errors.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);values.push(9);console.log(values.pop()!);}\n```\n\nExpected output: 9.\n\nOwnership: push, pop and clear require mutable access; peek and size borrow readonly. No implicit element cloning.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);values.push(9);console.log(values.pop()!);}",
+          "output": "9\n"
+        }
+      ],
+      "parameters": [
+        "value: Element"
+      ]
+    },
+    {
+      "name": "peek",
+      "signature": "peek(): Element | undefined",
+      "documentation": "Returns the greatest value without removal, or undefined when empty. Takes no arguments. Scalar results copy; owned string results borrow from a stored receiver. Mutation is rejected while that borrow remains live. Invalid argument counts and incompatible types are static errors.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.peek(),values.size);}\n```\n\nExpected output: 3 1.\n\nOwnership: push, pop and clear require mutable access; peek and size borrow readonly. No implicit element cloning.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.peek(),values.size);}",
+          "output": "3 1\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "pop",
+      "signature": "pop(): Element | undefined",
+      "documentation": "Removes and returns the greatest value, or undefined when empty. Takes no arguments. Removal transfers an owned value to the caller. Invalid argument counts and incompatible types are static errors.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.pop(),values.size,values.pop());}\n```\n\nExpected output: 3 0 undefined.\n\nOwnership: push, pop and clear require mutable access; peek and size borrow readonly. No implicit element cloning.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);console.log(values.pop(),values.size,values.pop());}",
+          "output": "3 0 undefined\n"
+        }
+      ],
+      "parameters": []
+    },
+    {
+      "name": "clear",
+      "signature": "clear(): void",
+      "documentation": "Releases every stored value and sets size to zero. Takes no arguments and returns void. Invalid argument counts and incompatible types are static errors.\n\n```tsrust\nimport {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);values.clear();console.log(values.size);}\n```\n\nExpected output: 0.\n\nOwnership: push, pop and clear require mutable access; peek and size borrow readonly. No implicit element cloning.",
+      "examples": [
+        {
+          "source": "import {Heap} from \"std:collections\";function main(){const values=new Heap<int>();values.push(3);values.clear();console.log(values.size);}",
+          "output": "0\n"
+        }
+      ],
+      "parameters": []
+    }
+  ]
 }

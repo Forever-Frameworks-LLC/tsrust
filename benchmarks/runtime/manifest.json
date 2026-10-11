@@ -20921,6 +20921,35 @@
       "sourceSha256": "b2154ee9f9dbf7b3c799431c6d0abedb86a08a935bcd1580b96c982ea8681b44",
       "counterpartSha256": "dd9930d4ca046b4fc83273a2fefa361b72c8bf75bb404adc971c18807c3ef16b",
       "verificationEvidence": "runtime/results/2026-10-11T11-40-20-910Z-verify.json"
+    },
+    {
+      "id": "native_heap",
+      "family": "native-collections",
+      "source": "workloads/collections/heap.tsr",
+      "counterpart": "workloads/collections/heap.ts",
+      "result": "int[][]",
+      "resultEncoding": "array-shape-scalar-v1",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "iterations": 2048,
+      "operationsPerIteration": 1,
+      "operationUnit": "Nine heap inserts, peek, independent clone and descending removal",
+      "inputText": "collections",
+      "category": "collections",
+      "implementationGate": "S08",
+      "measurementStatus": "pending-collections-family",
+      "sourceAccepted": true,
+      "nativeSourceAccepted": true,
+      "implementationAccepted": true,
+      "measured": false,
+      "notes": "Five matched native and Node-after-tsc correctness cases pass; Node reference uses an explicitly sorted array. Collections family timing remains pending.",
+      "specification": "Insert nine bounded integers into a max heap, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum and empty clone size. Node uses an explicitly sorted numeric array and independent slice.",
+      "sourceSha256": "ffac34bee75892e5d8914dd1338149706b567e21f836f95b7696afab74a84d6f",
+      "counterpartSha256": "f0d798bdf9c9a31fc1c2de97175bea05881e2ed287e0484981a9baab574945a1",
+      "verificationEvidence": "runtime/results/2026-10-11T11-56-42-212Z-verify.json"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

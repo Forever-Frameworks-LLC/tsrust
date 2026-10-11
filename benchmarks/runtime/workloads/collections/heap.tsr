@@ -1,0 +1,25 @@
+import { Heap } from "std:collections";
+
+function workload(n: int, seed: int, input: string): int[][] {
+  const output: int[][] = [];
+  for (let i = 0; i < n; i++) {
+    const values = new Heap<int>();
+    for (let j = 0; j < 9; j++) {
+      values.push((i + seed + j) % 256);
+    }
+
+    const top = values.peek()!;
+    const copied = clone(values);
+    let sum = 0;
+    while (copied.size > 0) {
+      sum += copied.pop()!;
+    }
+
+    output.push([values.size, top, sum, copied.size]);
+  }
+
+  return output;
+}
+
+function main() {
+}

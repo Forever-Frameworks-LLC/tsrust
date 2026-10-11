@@ -614,11 +614,15 @@ pub enum SetMethod { Add, Has, Delete, Clear, Values, Entries(usize), IsSubsetOf
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MapMethod { Set, Get, Has, Delete, Clear, Keys, Values, Entries(usize) }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HeapMethod { Push, Peek, Pop, Clear }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DequeMethod { PushFront, PushBack, PopFront, PopBack, Front, Back, At, Clear }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallTarget {
     DequeMethod(DequeMethod),
+    HeapMethod(HeapMethod),
     MapMethod(MapMethod),
     SetMethod(SetMethod),    ConditionalClosure(usize),
     ConditionalCallback(usize),
@@ -1531,7 +1535,7 @@ pub struct Record {
 impl Record {
     /// Native collection payloads are owned storage, not source-visible fields.
     pub(crate) fn native_element(&self) -> Option<Type> {
-        if self.native_type != Some(crate::native_signatures::NativeTypeId::Deque) { return None; }
+        if !matches!(self.native_type, Some(crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap)) { return None; }
         self.application.as_ref()?.resolved_arguments.first().copied()
     }
     /// Positional products share the native ownership machinery with records.

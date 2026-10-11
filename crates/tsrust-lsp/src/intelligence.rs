@@ -1766,7 +1766,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = (matches!(self.text(method), "Set" | "Map") || self.native_type_aliases.get(self.text(method)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque)) && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         if !(checked_generic || array_constructor || set_constructor || result_constructor) || self.text(next) != "<" {
             return None;
@@ -1831,7 +1831,7 @@ impl SourceIndex {
         None
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if self.deque_element(&receiver).is_some() {
+        if self.deque_element(&receiver).is_some() || self.heap_element(&receiver).is_some() {
             return self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
                 .and_then(|entry| entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): ").map(|(_, result)| result.to_owned())))
                 .unwrap_or_default();
@@ -1872,6 +1872,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        if self.heap_element(receiver).is_some() { return method=="push"; }
         if self.deque_element(receiver).is_some() { return matches!(method, "pushFront" | "pushBack" | "at"); }
         if matches!(
             method,
@@ -1920,7 +1921,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque)) { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -2099,7 +2100,7 @@ impl SourceIndex {
             if self.text(end) == "." && name(self.text(end + 1)) && self.text(end + 2) != "(" {
                 let field = end + 1;
                 ty = self.checked_view(field).map(str::to_owned).or_else(|| {
-                    if self.text(field) == "size" && self.deque_element(&ty).is_some() { return Some("int".into()); }
+                    if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some()) { return Some("int".into()); }
                     self.symbols
                         .iter()
                         .find(|symbol| {
@@ -3451,9 +3452,10 @@ impl SourceIndex {
                 continue;
             };
             if callee > 0 && self.text(callee - 1) == "new"
-                && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Deque) {
+                && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap)) {
                 let ty = self.snippet(callee, open);
-                let docs = builtins_for("std:collections").into_iter().find(|entry| entry["name"] == "Deque")
+                let family=tsrust_compiler::native_types::declaration(*self.native_type_aliases.get(self.text(callee)).unwrap()).name;
+                let docs = builtins_for("std:collections").into_iter().find(|entry| entry["name"] == family)
                     .and_then(|entry| entry["documentation"].as_str().map(str::to_owned)).unwrap_or_default();
                 return json!({"signatures":[{"label":format!("new {ty}(): {ty}"),"documentation":{"kind":"markdown","value":docs},"parameters":[]}],"activeSignature":0});
             }

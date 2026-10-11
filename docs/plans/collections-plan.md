@@ -166,14 +166,32 @@ representations, comparison transitivity and heap removal order. Six Rust reject
 cases cover borrowed read/iterator invalidation, non-clonable values and escaping
 owners. Evidence is retained as `tsrust-s08-ordered-backend-acceptance.json`.
 
-Public signatures, compiler integration, lifetime/callback transport, editor help,
-executable catalog examples and matched workloads remain pending for these three
-types. These backend checks are not source-language or family acceptance.
+Public integration remains pending for OrderedMap and OrderedSet. Heap source
+integration follows below. Backend checks alone are not family acceptance.
 
 Internal native identities now retain ordered collection type arguments without
 exposing implementation fields. OrderedMap has separate key/value parameters;
 OrderedSet and Heap each have one element parameter. Specialization validates the
 ordered key restriction, including nullable/union and object rejection. Focused
 metadata checks preserve ByteView as a map value and reject wrong arity without
-changing the record arena. These internal identities are not yet module exports.
+changing the record arena. OrderedMap and OrderedSet remain internal identities;
+Heap is now a module export.
 Metadata evidence: `tsrust-s08-ordered-metadata-acceptance.json` in SQLite.
+
+## Heap source integration
+
+`std:collections` now exports `Heap<T>` with alias-aware construction, size, push,
+peek, pop and clear. The compiler checks scalar/enum ordering constraints and
+receiver ownership. String reads borrow; pops transfer values. Explicit cloning
+creates independent storage. No borrowed iteration is exposed yet.
+
+Native witnesses cover empty results, duplicates, independent clones, owned strings,
+boolean and numeric enums, NaN/infinity/signed-zero boundaries, invalid element
+shapes and mutation/transfer errors. Checked and fallback editor indexes resolve
+aliased methods, typed arguments, results and size. Constructor and five member
+catalog examples execute after format/idempotence checks.
+
+The `native_heap` workload compares nine inserts, peek, independent clone and drain
+against an explicitly sorted Node array. An independent arithmetic oracle checks
+sizes, maximum and drain sum, including modulo wrap boundaries. Timing remains
+pending. Evidence: `tsrust-s08-heap-acceptance.json` in SQLite.

@@ -152,7 +152,7 @@ static HEAP: Declaration = Declaration {
     id: NativeTypeId::Heap, module: "std:collections", name: "Heap",
     type_parameters: &["T"], representation: Representation::Opaque,
     // Source capabilities remain disabled until checked storage integration lands.
-    independent_clone: false, collection_key: false, thread_transfer: false,
+    independent_clone: true, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
 
@@ -175,7 +175,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR, &DEQUE].into_iter().find(|item| item.module == module && item.name == name)
+    [&BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &FS_ERROR, &DEQUE, &HEAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

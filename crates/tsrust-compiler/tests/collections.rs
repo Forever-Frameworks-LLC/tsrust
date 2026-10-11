@@ -394,3 +394,34 @@ fn ordered_backends_reject_invalidation_noncloneable_values_and_escape() {
         assert!(String::from_utf8_lossy(&output.stderr).contains(code),"{}",String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn heap_orders_scalars_and_transfers_owned_values() {
+    let source=r#"import {Heap as Queue} from 'std:collections';import {strictEqual} from 'std:testing';
+function main(){const values=new Queue<int>();strictEqual(values.size,0);strictEqual(values.pop(),undefined);values.push(2);values.push(9);values.push(9);strictEqual(values.peek(),9);const copy=clone(values);strictEqual(copy.pop(),9);strictEqual(values.size,3);strictEqual(values.pop(),9);strictEqual(values.pop(),9);strictEqual(values.pop(),2);strictEqual(values.peek(),undefined);const words=new Queue<string>();words.push('a');words.push('🦀');words.push('界');{const top=words.peek();if(top!==undefined){strictEqual(top,'🦀');}}const word=words.pop()!;strictEqual(word,'🦀');words.clear();strictEqual(words.size,0);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+}
+
+#[test]
+fn heap_number_enum_order_and_invalid_access_are_checked() {
+    let source=r#"import {Heap} from 'std:collections';import {strictEqual} from 'std:testing';
+enum Priority{Low=1,High=9}
+function main(){const values=new Heap<number>();values.push(-0.0);values.push(Infinity);values.push(NaN);values.push(-Infinity);strictEqual(Number.isNaN(values.pop()!),true);strictEqual(values.pop(),Infinity);strictEqual(Object.is(values.pop()!,0.0),true);strictEqual(values.pop(),-Infinity);const priorities=new Heap<Priority>();priorities.push(Priority.Low);priorities.push(Priority.High);strictEqual(priorities.pop(),Priority.High);const flags=new Heap<boolean>();flags.push(false);flags.push(true);strictEqual(flags.pop(),true);}
+"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    for body in [
+        "const values=new Heap<int>(1);",
+        "const values=new Heap<int>();values.push('bad');",
+        "const values=new Heap<int>();values.size=3;",
+        "const values=new Heap<int>();for(const value of values){}",
+        "const values=new Heap<string>();values.push('a');const first=values.peek();values.clear();if(first!==undefined){console.log(first);}",
+        "const values=new Heap<string>();const text='a';values.push(text);console.log(text);",
+        "const values=new Heap<int[]>();",
+    ] {
+        let source=format!("import {{Heap}} from 'std:collections';function main(){{{body}}}");let path=directory.source(&support::format_round_trip(&source));
+        assert!(!support::run(support::cli().arg("check").arg(path),30).status.success(),"invalid heap accepted: {body}");
+    }
+}

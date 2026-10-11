@@ -7161,7 +7161,7 @@ impl Analyzer {
                 collect(body, mode, roots);
             } else if matches!(
                 expr.target,
-                Some(CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
+                Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
             ) && matches!(expr.ty, Some(Type::BorrowedUnion(_)))
             {
                 if let ExprKind::Call(callee, _) = &expr.kind
@@ -8158,7 +8158,7 @@ impl Analyzer {
             ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
             ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
             ExprKind::NativeConstructor(arguments, annotation) => {
-                if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Deque construction takes no arguments.", expr.span)); }
+                if !arguments.is_empty() { return Err(Diagnostic::new("arity", "Native collection construction takes no arguments.", expr.span)); }
                 let annotation = annotation.as_ref().expect("native constructor annotation");
                 let ty = self.resolve_value_annotation(annotation, false)?;
                 if !matches!(ty, Type::Record(id) if self.program.records[id].native_element().is_some()) {
@@ -10479,6 +10479,10 @@ impl Analyzer {
                         };
                         if result.is_some() { return result; }
                     }
+                    if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap) {
+                        let result=self.heap_method_type(id,name,expr.span).ok()?;
+                        return Some(if name=="peek" && !result.is_copy(){Type::BorrowedUnion(result.union()?)}else{result});
+                    }
                     if let Some(Type::Record(id)) = receiver_hint && self.program.records[id].native_element().is_some() {
                         let result = self.deque_method_type(id, name, expr.span).ok()?;
                         return Some(if matches!(name.as_str(), "front" | "back" | "at") && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result });
@@ -10901,6 +10905,7 @@ impl Analyzer {
         {
             return Self::numeric_constant_access(mode, span);
         }
+        if self.heap_receiver(context, base).is_some() { return self.heap_size(context, base, name, mode, loans, span); }
         if self.deque_receiver(context, base).is_some() { return self.deque_size(context, base, name, mode, loans, span); }
         if self.map_receiver_hint(context, base) { return self.map_size(context, base, name, mode, loans, span); }
         if self.set_receiver_hint(context, base) {
@@ -11386,7 +11391,7 @@ impl Analyzer {
                     if matches!(
                         expr.target,
                         Some(
-                            CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
+                            CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast
                         )
                     ) =>
                 {
@@ -14269,6 +14274,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
             return self.array_from_mapping(context,expr,loans,expected);
         }
+        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
         if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected); }
         if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected); }
@@ -17092,6 +17098,8 @@ mod sets;
 mod maps;
 #[path = "stdlib/collections/check.rs"]
 mod deques;
+#[path = "stdlib/collections/heap_check.rs"]
+mod heaps;
 
 impl Analyzer {
     #[inline(never)]
