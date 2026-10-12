@@ -294,3 +294,21 @@ SQLite. Historical registration statements above describe their original state.
 This closes only these phase measurements; module fanout and separate runtime
 acceptance must be reconciled independently. No full-suite rerun or runtime
 throughput claim accompanies this build-cost baseline.
+
+
+## Runtime and scaling ledger reconciliation (2026-10-12)
+
+The basename runtime measurement was already accepted with the
+[lexical path family](stdlib-lexical-path.md). SQLite original
+`runtime/results/2026-10-08T00-59-07-862Z.json` contains three processes of 31
+samples for each engine after eight warmups: 93 native and 93 Node-after-tsc
+samples for `std_path_basename_ascii`, at 20,000 operations per sample.
+Native mean reciprocal throughput was 0.743 times Node's. That slower signal was
+already reviewed; no rerun is needed to repair this stale ledger. The original
+record and its accepted proof remain unchanged. This is historical family evidence,
+not a claim that the current compiler was remeasured.
+
+The [module fanout baseline](modules-02-project-linking.md#frontend-scaling-measurements-2026-10-12)
+also closes the separately deferred frontend scaling measurement. Together with
+the two-project phase run, these reconcile the S05 measurement queue. They do not
+close S10 or later roadmap families, or add allocation/platform coverage.

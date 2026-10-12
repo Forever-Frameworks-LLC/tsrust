@@ -37,3 +37,28 @@ At the scheduled checkpoint run: CARGO_TARGET_DIR=target/editor cargo test --off
 ## Next handoff: S04
 
 Supply project source symbol/type metadata and imported-symbol editor assistance, unsaved dependency providers, dependency invalidation, cross-file diagnostics/navigation, project fix validation and stale/versioned result protection. CLI acceptance does not supply these capabilities. Preserve existing single-file source assistance, quick fixes, formatter and quiet automatic checking. No installed global CLI or VSIX refresh was performed by this gate; development builds contain this implementation.
+
+
+## Frontend scaling measurements (2026-10-12)
+
+The deferred fanout run completed at `9525ddaa` using the optimized release test
+binary, shared Cargo target and disabled incremental compilation. Original ten
+samples per size are retained: 30 samples, each separating load, check and emit.
+SQLite stores `tsrust-fanout-timing-9525ddaa.log`, toolchain/source/binary identity
+in `tsrust-fanout-identity-9525ddaa.json`, and parsed validated rows in
+`tsrust-fanout-review-9525ddaa.json`. Build evidence is retained separately.
+
+| Total modules | Median load | Median check | Median emit |
+| --- | ---: | ---: | ---: |
+| 18 | 0.325 ms | 0.561 ms | 0.273 ms |
+| 66 | 0.898 ms | 1.452 ms | 0.419 ms |
+| 258 | 2.304 ms | 3.649 ms | 0.938 ms |
+
+All rows have exactly one provider read per module and nonempty generated output.
+The expected totals remain 136, 2080 and 32896; this timing run does not execute
+native output. Existing execution witnesses remain separate correctness evidence.
+These are in-process frontend measurements, not CLI startup or native build
+measurements. No comparable prior normalized fanout measurement was found, so
+this establishes a baseline rather than proving absence of a historical regression.
+The measured range shows no superlinear increase in total phase medians; it does
+not establish asymptotic complexity or large-project latency guarantees.
