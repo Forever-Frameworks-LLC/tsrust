@@ -28,3 +28,13 @@ test('object encoding checks record layout and drops preparation trees before co
  assert.throws(()=>nativeEncodingAllocation(emitted.replace('field0: bool','field0: i64'),driver,'encode_typed_object'));
  assert.match(directEncodingAllocation(driver,'encode_typed_object'),/serialize_struct/);
 });
+
+test('raw encoding prepares borrowed fragments before counters and checks exact text',()=>{
+ const emitted="struct Record0<'a>{fragment:tsrust_native_json::raw::Fragment<'a>}\nfn tsr_result_function0<'native_input2_0>(value0: i64, value1: i64, value2: &Record0<'native_input2_0>) -> Result<String,TsrFunctionError0<Record3>> {}\nfn main() {}";
+ const adapted=nativeEncodingAllocation(emitted,driver,'encode_raw');
+ assert.ok(adapted.indexOf('raw::borrow')<adapted.indexOf('ALLOCS.store(0'));
+ assert.match(adapted,/assert_eq!\(&\*value, arguments\[2\].as_str\(\)\)/);
+ assert.throws(()=>nativeEncodingAllocation(emitted.replace('fragment:','changed:'),driver,'encode_raw'));
+ const direct=directEncodingAllocation(driver,'encode_raw');
+ assert.ok(direct.indexOf('RawValue')<direct.indexOf('ALLOCS.store(0'));
+});

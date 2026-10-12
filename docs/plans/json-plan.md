@@ -2137,3 +2137,30 @@ JSON.stringify would normalize it. The workload includes validation, output
 construction and equality observation, with no allocation-equivalence claim.
 Measurement status stays unmeasured until the family timing run. Separate
 allocation and direct-Rust encoding coverage remain required for S10 closure.
+
+
+### Raw encoding allocation baseline
+
+The established JSON allocation harness now supports numeric, escaped-Unicode and
+32-level raw encoding fixtures. It prepares and validates borrowed fragments
+before counters reset, retains the exact encoded string through observation, and
+checks disposal after output and input scope exit. Direct Rust uses borrowed
+Serde RawValue plus serialization. Node validates before counters and returns its
+existing immutable source string; its heap delta is not an equivalent output
+allocation measurement. Fixtures exclude surrounding whitespace for the direct
+Serde comparison; exact surrounding-whitespace preservation has native witnesses.
+
+Nine cases (three shapes by three sizes) completed with three fresh processes per
+engine, 81 process results total. Native and direct Rust allocation/reallocation
+counts match: one 128-byte allocation for small cases; one allocation and one
+reallocation for 1,000-element cases. Retained capacities are 3,912 numeric,
+24,001 escaped-Unicode and 3,974 deep bytes for those large cases. All native and
+direct Rust output/final disposal counters return to zero. This supports bounded
+output-allocation behavior, not timing or RSS parity.
+
+Canonical original: `tsrust-raw-encoding-allocation-9c961146.json` in SQLite.
+Adapter contracts and the original test-setup syntax failure are preserved in
+`tsrust-raw-allocation-*-9c961146.log`. Review removed two unreachable accidental
+branches from non-encoding adapters after measurement; the measured encoding
+path is unchanged. Raw timing/RSS, executable documentation expansion and final
+S10 acceptance/consumer refresh remain pending.
