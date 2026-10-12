@@ -179,3 +179,14 @@ pub(crate) const BORROW_JSONL:NativeBinding=NativeBinding {
  returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::Exclusive,payload:NativeTypeId::JsonlReaderView,slot:crate::native_return_borrows::ReturnSlot::ResultOk}),
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_borrow_jsonl"},..OPEN_JSONL
 };
+
+pub(crate) const BORROW_JSONL_WRITER:NativeBinding=NativeBinding {
+ name:"borrowJsonlWriter",
+ parameters:&[
+  NativeParameter{name:"writer",ty:NativeType::Structured(&Signature::Named(NativeTypeId::BufferedWriter)),access:Mode::Mutate,optional:false,rest:false},
+  NativeParameter{name:"maxBytes",ty:NativeType::Int,access:Mode::Copy,optional:true,rest:false},
+ ],
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::JsonlWriterView),&Signature::Named(NativeTypeId::JsonlError))),
+ returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::Exclusive,payload:NativeTypeId::JsonlWriterView,slot:crate::native_return_borrows::ReturnSlot::ResultOk}),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_borrow_jsonl_writer"},..CREATE_JSONL
+};

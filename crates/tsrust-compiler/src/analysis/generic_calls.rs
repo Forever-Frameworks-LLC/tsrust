@@ -161,6 +161,10 @@ impl Analyzer {
             callee.kind=ExprKind::Name("@json:typedreadJsonlView".into());
         }
 
+        if matches!(&callee.kind,ExprKind::Name(name) if name=="@json:writeJsonl")
+            && args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriterView))) {
+            callee.kind=ExprKind::Name("@json:writeJsonlView".into());
+        }
         let Some((name, _)) = Self::generic_call_name(callee) else {
             return Ok(());
         };

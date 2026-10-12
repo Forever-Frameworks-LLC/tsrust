@@ -69,6 +69,7 @@ impl NativeBinding {
             return &[crate::native_signatures::NativeTypeId::JsonView];
         }
         if self.module == "std:json" && position == 0 && matches!(self.name,"readJsonl"|"closeJsonl") {return &[crate::native_signatures::NativeTypeId::JsonlReaderView];}
+        if self.module == "std:json" && position == 0 && matches!(self.name,"writeJsonl"|"flushJsonl"|"closeJsonlWriter") {return &[crate::native_signatures::NativeTypeId::JsonlWriterView];}
         if self.module == "std:fs" && position == 0 {
             match self.name {
                 "read" => return &[BufferedReader],
@@ -103,6 +104,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::json::bindings::PARSE,
     crate::stdlib::json::bindings::PARSE_JSONC,
     crate::stdlib::json::bindings::CREATE_JSONL,
+    crate::stdlib::json::bindings::BORROW_JSONL_WRITER,
     crate::stdlib::json::bindings::WRITE_JSONL,
     crate::stdlib::json::bindings::FLUSH_JSONL,
     crate::stdlib::json::bindings::CLOSE_JSONL_WRITER,

@@ -21643,6 +21643,31 @@
       "sourceSha256": "8be5b1bc1c9cb65e87c70c948f2dcebb8b4338dd9771c254030e094f124a6678",
       "counterpartSha256": "5efe0194eba16952904a0130e6607a8ea6283e72c223dd2c74e41433b7fcf62e",
       "fixtureSha256": "9c194b8d966138341ba704b40220738c86dc3d470d49dfa50379ace2a9e501c2"
+    },
+    {
+      "id": "native_jsonl_borrowed_writer",
+      "category": "json",
+      "description": "Bounded typed JSON Lines output through a borrowed writer",
+      "source": "workloads/native_jsonl_borrowed_writer.tsr",
+      "counterpart": "workloads/native_jsonl_borrowed_writer.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One file create, typed record write and consuming close",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "native-jsonl-writer-v1",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Write the fixed 48-byte ASCII record, including LF. Observe one completed write per iteration; verify final file bytes outside timing.",
+      "notes": "Includes file creation/truncation, buffered owner, borrowed adapter, typed record write, adapter flush/close and owner close. Exact final file bytes are checked outside timing. Node stages the same fixed ASCII record and writes all bytes; native bounds reject during staging. No timing samples.",
+      "sourceSha256": "d2f991edd87db9193b4195661f2b23f16304a607e801da2c55fd2a8edef14ea2",
+      "counterpartSha256": "908a2cf5a0db24337054cfcfb004b56c2b08ba4ec6642ac7ee9d54203d64cc17",
+      "fixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

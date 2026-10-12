@@ -399,7 +399,7 @@ impl Cache {
             }
             // JSON Lines selects its concrete owned/borrowed receiver after
             // argument types are known, without changing public generic arity.
-            if name=="@json:typedreadJsonl" {
+            if matches!(name.as_str(),"@json:typedreadJsonl"|"@json:writeJsonl") {
                 self.value_calls.insert((enclosing_name.clone(),expression.span.start,expression.span.end),arguments);
                 return Ok(());
             }

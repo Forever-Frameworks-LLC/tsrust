@@ -181,7 +181,8 @@ impl Analyzer {
                 error
             })?;
         if writing {
-            let writer=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriter)).unwrap();
+            let identity=if args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriterView))) {crate::native_signatures::NativeTypeId::JsonlWriterView}else{crate::native_signatures::NativeTypeId::JsonlWriter};
+            let writer=self.program.records.iter().position(|record|record.native_type==Some(identity)).unwrap();
             self.expression(context,&mut args[0],Mode::Mutate,loans,Some(Type::Record(writer)))?;
         }else{self.expression(context, &mut args[1], Mode::Copy, loans, Some(Type::Int))?;}
 

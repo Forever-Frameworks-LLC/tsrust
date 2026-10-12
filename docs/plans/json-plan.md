@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned bounded JSONL writers and borrowed JSONL readers have focused source acceptance. Borrowed writers, raw fragments, allocation
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Raw fragments, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -1111,3 +1111,33 @@ The public naming audit reconciles all 429 inventory identities exactly once.
 Evidence: tsrust-json-borrowed-*-3cb97e60 in SQLite. No timing was performed.
 Installed consumers remain at ee1e2717. Borrowed writers, public raw fragments,
 allocation baselines and S10 family acceptance remain open.
+
+
+### Public borrowed JSON Lines writers
+
+borrowJsonlWriter exclusively borrows an existing BufferedWriter and returns
+Result<JsonlWriterView, JsonlError>. Its optional maxBytes bounds each staged
+record excluding LF, defaults to 16777216, and validates before writing or
+flushing. The existing buffer and file position remain in use. writeJsonl accepts
+inferred and explicit typed values through owned or borrowed adapters, including
+import aliases. flushJsonl and closeJsonlWriter use static receiver dispatch.
+
+The emitted representation holds Writer<&mut BufferedWriter> with a real source
+lifetime. Closing or dropping the adapter flushes output but leaves the file
+owner open. Explicit close exposes flush failures and otherwise preserves any
+prior terminal error. Dropping cannot report failure. Encoding rejection emits
+no prefix of that record; I/O failures retain the existing partial-write policy.
+Owner conflicts, clone, fabrication, use after adapter close, and local-owner
+escape are rejected; forwarding a borrowed parameter is accepted.
+
+Eight focused native/compiler tests pass, including existing owned writers,
+borrowed owner reuse, typed aliases, invalid limits, terminal errors, drop flush
+visibility, and the catalog's exact output file. Backend writer and returned-borrow
+contract checks pass. Two writer editor checks and 26 JSON/file guards pass.
+native_jsonl_borrowed_writer compares file creation, buffered owner and adapter,
+typed output, adapter flush/close and owner close with Node's matched fixed ASCII
+output. Five untimed cases agree, with final file bytes checked outside timing.
+The public audit covers all 431 discovered identities exactly once.
+Evidence: tsrust-json-borrowed-writer-*-829dd771 in SQLite. Installed consumers
+remain at ee1e2717. Public raw fragments, allocation baselines and S10 family
+regression/performance acceptance remain open; no timing acceptance is claimed.

@@ -2245,7 +2245,7 @@ fn typed_jsonl_import_exposes_owned_record_and_reader_contract(){
 fn jsonl_writer_editor_describes_typed_borrows_and_consuming_close(){
  let entry=tsrust_compiler::format("import {JsonlWriter,writeJsonl as write,flushJsonl,closeJsonlWriter} from 'std:json';type Item={name:string;};function output(writer:JsonlWriter,item:Item){write(writer,item);flushJsonl(writer);closeJsonlWriter(writer);}").unwrap();
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
- let hover=ask(&index,&entry,"write(writer","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("value: T")&&text.contains("Mutable<JsonlWriter>")&&text.contains("undefined-value"),"{hover}");
+ let hover=ask(&index,&entry,"write(writer","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("value: T")&&text.contains("Mutable<JsonlWriter | JsonlWriterView>")&&text.contains("undefined-value"),"{hover}");
  let hover=ask(&index,&entry,"closeJsonlWriter(writer","textDocument/hover");assert!(hover.to_string().contains("consumes the writer"),"{hover}");
 }
 
@@ -2255,4 +2255,12 @@ fn borrowed_jsonl_editor_shows_receiver_alternatives_and_owner_lifetime(){
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&entry,"borrowJsonl(input)","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("JsonlReaderView")&&text.contains("exclusively borrows")&&text.contains("relative"),"{hover}");
  let hover=ask(&index,&entry,"next<int>","textDocument/hover");assert!(hover.to_string().contains("Mutable<JsonlReader | JsonlReaderView>"),"{hover}");
+}
+
+#[test]
+fn borrowed_jsonl_writer_editor_describes_flush_and_owner_retention(){
+ let entry=tsrust_compiler::format("import {BufferedWriter} from 'std:fs';import {borrowJsonlWriter,writeJsonl as write,closeJsonlWriter} from 'std:json';function output(owner:Mutable<BufferedWriter>){match(borrowJsonlWriter(owner)){Ok(writer)=>{write<int>(writer,7);closeJsonlWriter(writer);},Err(e)=>{throw e.message;}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&entry,"borrowJsonlWriter(owner)","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("JsonlWriterView")&&text.contains("exclusively borrows")&&text.contains("leaves the owner open"),"{hover}");
+ let hover=ask(&index,&entry,"write<int>","textDocument/hover");assert!(hover.to_string().contains("Mutable<JsonlWriter | JsonlWriterView>"),"{hover}");
 }

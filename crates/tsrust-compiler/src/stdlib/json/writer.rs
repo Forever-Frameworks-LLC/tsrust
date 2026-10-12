@@ -26,6 +26,12 @@ impl<W:Output> Output for &mut W {
  // Finish this adapter's buffered output, without consuming the caller's owner.
  fn close(self)->Result<(),FsFailure> {self.flush()}
 }
+/// Statically dispatched native resource operations retain the concrete owner.
+pub trait Sink {
+ fn write_jsonl(&mut self,value:&Value)->Result<(),WriteError>;
+ fn flush_jsonl(&mut self)->Result<(),WriteError>;
+ fn close_jsonl(self)->Result<(),WriteError>;
+}
 pub struct Writer<W:Output> {output:Option<W>,max_bytes:usize,line:usize,terminal:Option<WriteError>}
 impl<W:Output> Writer<W> {
  pub fn new(output:W,max_bytes:usize)->Self {Self{output:Some(output),max_bytes,line:1,terminal:None}}

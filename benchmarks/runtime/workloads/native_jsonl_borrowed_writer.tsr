@@ -1,0 +1,69 @@
+import { create, bufferWriter, close } from 'std:fs';
+import { borrowJsonlWriter, writeJsonl, closeJsonlWriter } from 'std:json';
+
+type Item = {
+  active: boolean;
+  name: string;
+  values: int[];
+};
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const item: Item = {
+      active: true, name: 'hello', values: [20, 17]
+    };
+    match (create(input)) {
+      Ok(file) => {
+        match (bufferWriter(file, 8192)) {
+          Ok(output) => {
+            {
+              match (borrowJsonlWriter(output)) {
+                Ok(writer) => {
+                  match (writeJsonl(writer, item)) {
+                    Ok(_) => {
+                    },
+                    Err(error) => {
+                      throw error.message;
+                    }
+                  }
+
+                  match (closeJsonlWriter(writer)) {
+                    Ok(_) => {
+                    },
+                    Err(error) => {
+                      throw error.message;
+                    }
+                  }
+                },
+                Err(error) => {
+                  throw error.message;
+                }
+              }
+            }
+
+            match (close(output)) {
+              Ok(_) => {
+              },
+              Err(error) => {
+                throw error.message;
+              }
+            }
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    checksum += 1;
+    i++;
+  }
+
+  return checksum;
+}

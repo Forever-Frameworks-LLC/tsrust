@@ -12,11 +12,11 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
- if(row.id==='native_jsonl_writer'){
+ if(['native_jsonl_writer','native_jsonl_borrowed_writer'].includes(row.id)){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSONL writer identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSONL writer fingerprint');
   if(row.iterations!==2000||row.inputText!=='native-jsonl-writer-v1'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One file create, typed record write and consuming close')throw Error('JSONL writer denominator');
-  const snippets=kind==='native'?['createJsonl(input)','writeJsonl(writer,item)','closeJsonlWriter(writer)']:["fileSystem.openSync(input,'w')",'JSON.stringify(item)','fileSystem.writeSync(file,bytes,offset,bytes.length-offset,null)','fileSystem.closeSync(file)'];
+  const snippets=kind==='native'?[...(row.id==='native_jsonl_borrowed_writer'?['create(input)','bufferWriter(file,8192)','borrowJsonlWriter(output)','close(output)']:['createJsonl(input)']),'writeJsonl(writer,item)','closeJsonlWriter(writer)']:["fileSystem.openSync(input,'w')",'JSON.stringify(item)','fileSystem.writeSync(file,bytes,offset,bytes.length-offset,null)','fileSystem.closeSync(file)'];
   for(const snippet of ['while(i<n){const item:Item={active:true,name:\'hello\',values:[20,17]};','checksum+=1;i++;',...snippets])if(!containsCodeSnippet(source,snippet))throw Error('JSONL writer placement');
   return;
  }

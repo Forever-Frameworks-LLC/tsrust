@@ -7,7 +7,7 @@ impl Emitter<'_> {
         expr: &Expr,
         args: &[Expr],
     ) -> String {
-        let writing=matches!(args[0].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriter));
+        let writing=matches!(args[0].ty,Some(Type::Record(id)) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)));
         let root = match args[usize::from(writing)].ty.unwrap() {
             Type::Union(id) if !id.copy => Type::BorrowedUnion(id),
             ty => ty,
