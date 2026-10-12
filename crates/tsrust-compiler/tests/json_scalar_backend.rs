@@ -44,3 +44,14 @@ fn string_extraction_moves_storage_and_errors_retain_no_input() {
     assert_eq!(error.code,"expected-string");assert_eq!(error.offset,0);
     assert!(!format!("{error:?}").contains("secret"));
 }
+
+#[test]
+fn integer_tokens_outside_json_storage_never_round_into_range() {
+    let limits=Limits{bytes:4096,depth:16,entries:32,nodes:64};
+    for text in ["-9223372036854775809","18446744073709551616","[-9223372036854775809]","{\"n\":18446744073709551616}"] {
+        assert_eq!(parse(text.as_bytes(),limits).unwrap_err().code,"integer-range", "{text}");
+    }
+    for text in ["-9223372036854775808","18446744073709551615","\"-9223372036854775809\"","1e30","-0.0"] {
+        assert!(parse(text.as_bytes(),limits).is_ok(), "{text}");
+    }
+}

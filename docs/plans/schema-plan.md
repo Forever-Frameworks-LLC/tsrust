@@ -13,7 +13,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean API checked; remaining constructors pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int API checked; remaining constructors pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
@@ -328,3 +328,35 @@ zero issue budgets. These backend adapters remain test-only groundwork; public
 numeric constructors, generated runtime integration and matched numeric workloads
 are still required. No public API, timing or consumer refresh is claimed here.
 Evidence: `tsrust-schema-numeric-owned-{red,check,format}-00878231.log` in SQLite.
+
+## Integer schema integration and range correction
+
+s.int() now infers Schema<int>. safeParse copies concrete int input or consumes
+JsonValue and returns Result<int, SchemaError>. Exact signed 64-bit integer JSON
+values remain exact, including both endpoints. Fractional and range failures retain
+checked extraction codes; nonnumeric JSON reports type-mismatch. Constructor,
+method hover, inferred results, signature help and executable examples are covered.
+
+The owner's full-range requirement exposed an existing JSON parser defect:
+-9223372036854775809 became a floating value rounded to i64::MIN. Dynamic and typed
+JSON decoding now inspect integer tokens after syntax validation and reject tokens
+outside exact i64/u64 JSON storage. Strings containing those digits are unchanged.
+Raw validated text remains unrestricted by numeric storage because it is not decoded.
+Decimal/exponent forms retain the existing floating-point contract; this change is
+not arbitrary-precision integer support. The added linear token scan requires a
+performance review with the affected JSON workloads at the next family milestone.
+
+Twelve focused schema compiler/native cases, four editor cases, thirteen scalar JSON
+backend cases and seven typed JSON cases pass. The independent BigInt oracle checks
+13 signed/unsigned boundary and beyond-JavaScript-safe-integer cases. The new matched
+native_schema_int workload checks the small-number domain (7 and 1.5), all exposed
+error fields, guarded source hashes and the existing native ABI. Four sizes agree
+across native and Node-after-tsc, with zero timing samples. Three workload contract
+tests pass. The benchmark's narrow domain is not evidence of full-range Node JSON
+parity; the separate BigInt check supplies that boundary oracle.
+
+SQLite evidence uses `tsrust-schema-int-*-6c2dd78c.log`, including the original
+incorrect assertion import, corrected builder rejection, range defect, focused
+repairs, formatting and untimed verification. S11 remains incomplete; number/null,
+constraints, composites and fused typed decoding are still required. Consumers
+remain at the accepted S10 checkpoint. No S11 timing or family acceptance is claimed.

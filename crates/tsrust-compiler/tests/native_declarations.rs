@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -449,4 +449,28 @@ fn schema_boolean_infers_and_validates_without_truthiness() {
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"false false\ntrue\ntype-mismatch boolean number\n");
     assert!(checked_source("import {s,Schema} from 'std:schema';function make():Schema<string>{return s.boolean();}function main(){}").is_err());
+}
+
+#[test]
+fn schema_integer_preserves_exact_values_and_checked_errors() {
+    let source = r#"import {s,Schema} from 'std:schema';
+import {strictEqual} from 'std:testing';
+function make():Schema<int>{return s.int();}
+function main(){
+ const schema=make();
+ match(schema.safeParse(JSON.parse('9223372036854775807'))){Ok(value)=>{strictEqual(value,9223372036854775807);},Err(error)=>{throw 'exact integer rejected';}}
+ const input=42;
+ match(schema.safeParse(input)){Ok(value)=>{strictEqual(value,input);},Err(error)=>{throw 'integer rejected';}}
+ for(const text of ['1.5','18446744073709551615','true']){
+ match(schema.safeParse(JSON.parse(text))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}
+ }
+}"#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"integer-fractional integer number\ninteger-range integer number\ntype-mismatch integer boolean\n");
+    let direct=checked_source("import {s} from 'std:schema';function main(){s.int().safeParse(42);}").unwrap();
+    assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
+    let invalid="import {s} from 'std:schema';function main(){const input=JSON.parse('1');s.int().safeParse(input);JSON.stringify(input);}";
+    assert_eq!(checked_source(invalid).err().expect("input transfers").code,"transferred");
 }

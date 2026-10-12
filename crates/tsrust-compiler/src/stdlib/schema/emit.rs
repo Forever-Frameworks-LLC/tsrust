@@ -9,9 +9,10 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let record = |id| program.records.iter().position(|record| record.native_type == Some(id)).unwrap();
     let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
     let boolean = matches!(binding.name, "__safeParseBoolean" | "__safeParseBooleanValue");
+    let integer = matches!(binding.name, "__safeParseInt" | "__safeParseIntValue");
     let owned = !matches!(binding.parameters[1].ty, NativeType::Structured(_));
-    let native = if boolean { "bool" } else { "String" };
-    let expected = if boolean { "boolean" } else { "string" };
+    let native = if integer { "i64" } else if boolean { "bool" } else { "String" };
+    let expected = if integer { "integer" } else if boolean { "boolean" } else { "string" };
     let variant = if boolean { "Bool" } else { "String" };
     let payload = if boolean { "text" } else { "String::Owned(text)" };
     if owned {
@@ -21,6 +22,18 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let error = record(NativeTypeId::SchemaError);
     let issue = record(NativeTypeId::SchemaIssue);
     let path = record(NativeTypeId::SchemaPath);
+    if integer {
+        return format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
+            match tsrust_native_json::read_i64(&input.value) {{
+                Ok(value) => Union{result}::V{ok_tag}(Record{ok}{{field0:value}}),
+                Err(failure) => {{
+                    let code=if failure.code==\"expected-number\" {{ \"type-mismatch\" }} else {{ failure.code }};
+                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"integer\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value))}};
+                    Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
+                }}
+            }}
+        }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err));
+    }
     format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
         match input.value {{
             tsrust_native_json::Value::{variant}(text) => Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),

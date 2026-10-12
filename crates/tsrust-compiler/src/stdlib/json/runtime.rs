@@ -71,7 +71,38 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
         Seed { budget: &mut budget, depth: 0, permitted: true }, &mut decoder
     ).map_err(|error| located(input, error, budget.failed))?;
     decoder.end().map_err(|error| located(input, error, Some("trailing-data")))?;
+    validate_integer_tokens(input)?;
     Ok(value)
+}
+
+/// Run after syntax validation. Integer tokens must fit the exact integer storage
+/// variants; serde otherwise falls back to f64 and can round an overflow into range.
+fn validate_integer_tokens(input: &[u8]) -> Result<(), Error> {
+    let mut index = 0;
+    while index < input.len() {
+        if input[index] == b'"' {
+            index += 1;
+            while index < input.len() {
+                match input[index] {
+                    b'\\' => index += 2,
+                    b'"' => { index += 1; break; }
+                    _ => index += 1,
+                }
+            }
+        } else if input[index] == b'-' || input[index].is_ascii_digit() {
+            let start = index;
+            while index < input.len() && matches!(input[index], b'0'..=b'9' | b'-' | b'+' | b'.' | b'e' | b'E') { index += 1; }
+            let token = &input[start..index];
+            if token.iter().any(|byte| matches!(byte, b'.' | b'e' | b'E')) { continue; }
+            let (digits, limit): (&[u8], &[u8]) = if token[0] == b'-' {
+                (&token[1..], b"9223372036854775808")
+            } else { (token, b"18446744073709551615") };
+            if digits.len() > limit.len() || (digits.len() == limit.len() && digits > limit) {
+                return Err(failure("integer-range", start));
+            }
+        } else { index += 1; }
+    }
+    Ok(())
 }
 
 /// Replace comments with same-length whitespace so backend offsets still address

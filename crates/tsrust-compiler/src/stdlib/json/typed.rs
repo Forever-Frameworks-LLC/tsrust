@@ -164,6 +164,7 @@ pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<
 /// JSONC normalization and streaming retain the owned boundary above.
 pub fn decode_borrowed<'de,T:serde::Deserialize<'de>>(input:&'de [u8],limits:Limits)->Result<T,Error>{
  validate(input,limits)?;
+ super::validate_integer_tokens(input)?;
  serde_json::from_slice(input).map_err(|error|{
   let text=error.to_string();
   let code=if error.is_data(){["number-precision","integer-range","integer-fractional"].into_iter().find(|code|text.starts_with(&format!("tsrust:{code}"))).unwrap_or("shape-mismatch")}else{"shape-mismatch"};

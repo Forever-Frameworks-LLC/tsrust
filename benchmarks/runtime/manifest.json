@@ -21786,6 +21786,30 @@
       "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
       "sourceSha256": "b3e4a67afe874a24f64024ff6acaf7b73b2efdd44c17efbca929d2f12ee87ff7",
       "counterpartSha256": "0dfe159e84c3cecbe76ebe4d1eaf62f3a0d75a60dbec4184bf13995fdcb2a960"
+    },
+    {
+      "id": "native_schema_int",
+      "category": "schema",
+      "description": "Reusable integer schema with successful and failing JSON validation",
+      "source": "workloads/native_schema_int.tsr",
+      "counterpart": "workloads/native_schema_int.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "7",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "One successful integer 7 and one rejected fraction 1.5 per iteration. Observe the integer and every error field; checksum adds eight.",
+      "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
+      "sourceSha256": "dc422bb456242196627456e483e2583508962e4a6aca0f5d8505c29abf0531b1",
+      "counterpartSha256": "758da393828f22f5ce8cfeed2d7e144f2282536bef7b57cb8417b96557df37f2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

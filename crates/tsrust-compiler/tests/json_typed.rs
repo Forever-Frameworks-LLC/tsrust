@@ -8,6 +8,7 @@ function main(){
  const item=JSON.parse<Item>('{"name":"hello","values":[1,2],"active":true}');
  strictEqual(item.name,'hello');strictEqual(item.values[1],2);strictEqual(item.active,true);
  match(JSON.tryParse<int[]>('[1,2,3]')){Ok(values)=>{strictEqual(values.length,3);},Err(error)=>{throw error.message;}}
+ match(JSON.tryParse<int>('-9223372036854775809')){Ok(value)=>{throw 'underflow rounded';},Err(error)=>{strictEqual(error.code,'integer-range');}}
  match(JSON.tryParse<number>('9007199254740993')){Ok(value)=>{throw 'rounded';},Err(error)=>{strictEqual(error.code,'number-precision');}}
  match(JSON.tryParse<Item>('{"name":42,"values":[],"active":true}')){Ok(value)=>{throw 'wrong shape';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}
  strictEqual(typeof JSON.parse('42'),'number');
