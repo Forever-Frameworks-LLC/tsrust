@@ -2220,6 +2220,22 @@ fn typed_json_import_binding_hover_shows_complete_shape() {
 }
 
 #[test]
+fn typed_json_import_hover_expands_nullable_array_records_and_empty_objects() {
+    let entry=tsrust_compiler::format("import settings from './settings.json';function main(){}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let target="file:///tsrust-intelligence/settings.json";
+    for data in [r#"{"items":[{"nested":{"value":7}},null],"empty":{}}"#,r#"[{"nested":{"value":7}},null]"#] {
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        workspace.open(source_id(target).unwrap(),1,data.into());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let hover=ask(&ProjectIndex::checked(&checked),&entry,"settings from","textDocument/hover");
+        let text=hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains("readonly nested:") && text.contains("readonly value: int;") && text.contains("| null)[]"),"{hover}");
+        assert!(!text.contains("@data-record") && !text.contains("__tsrust_private_"),"{hover}");
+        if data.starts_with('{') {assert!(text.contains("readonly empty: {};"),"{hover}");}
+    }
+}
+
+#[test]
 fn typed_jsonc_import_exposes_concrete_record_hover(){
  let entry=tsrust_compiler::format("import {parseJsonc as decode} from 'std:json';type Item={name:string;};function main(){match(decode<Item>('{}')){Ok(item)=>{console.log(item.name);},Err(error)=>{console.log(error.code);}}}").unwrap();
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());

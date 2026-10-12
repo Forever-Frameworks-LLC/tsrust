@@ -24,7 +24,7 @@ impl SourceIndex {
         }
         let ty = spelling(&schema.root);
         self.symbols.push(Symbol { name: "@data-owner".into(), kind: 13, span: schema.root.span, extent: schema.root.span, scope: 0,
-            signature: format!("const @data-owner: {ty}"), ty,
+            signature: format!("const @data-owner: {}", data_shape(schema, &schema.root, 0)), ty,
             docs: "Validated and embedded at build time. One immutable value per data file; reads do not copy. Use clone() for an owned copy before mutation.".into(), parameters: vec![], owner: None });
     }
     pub(super) fn import_data_value(&mut self, dependency: &SourceIndex, declaration: &Symbol, local: &str, span: Span, uri: &str) -> bool {
@@ -38,7 +38,7 @@ impl SourceIndex {
         let mut symbol = declaration.clone();
         symbol.name = local.into(); symbol.span = span; symbol.extent = span;
         symbol.ty = remap_imported_type(&symbol.ty, &types).unwrap_or_default();
-        symbol.signature = format!("const {local}: {}", data_shape(dependency, &declaration.ty, 0));
+        symbol.signature = declaration.signature.replacen("const @data-owner:", &format!("const {local}:"), 1);
         self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
         self.symbols.push(symbol);
         true
@@ -46,16 +46,22 @@ impl SourceIndex {
 }
 
 // Data schemas are finite; cap expansion to keep deeply nested hovers readable.
-fn data_shape(index: &SourceIndex, ty: &str, depth: usize) -> String {
+fn data_shape(schema: &DataSchema, value: &ValueAnnotation, depth: usize) -> String {
     if depth >= 8 { return "...".into(); }
-    if let Some(element) = ty.strip_suffix("[]") {
-        return format!("{}[]", data_shape(index, element, depth + 1));
+    match &value.kind {
+        ValueAnnotationKind::Array(element) => {
+            let text=data_shape(schema,element,depth);
+            if matches!(element.kind,ValueAnnotationKind::Union(_)) {format!("({text})[]")} else {format!("{text}[]")}
+        },
+        ValueAnnotationKind::Union(values) => values.iter().map(|value|data_shape(schema,value,depth)).collect::<Vec<_>>().join(" | "),
+        ValueAnnotationKind::Named(name) => {
+            let Some(record)=schema.records.iter().find(|record|record.name==name.text) else {return name.text.clone();};
+            if record.fields.is_empty(){return "{}".into();}
+            let indent="  ".repeat(depth+1);
+            let fields=record.fields.iter().map(|field|format!("{indent}readonly {}{}: {};",field.name,
+                if field.optional {"?"} else {""},data_shape(schema,&field.annotation,depth+1))).collect::<Vec<_>>().join("\n");
+            format!("{{\n{fields}\n{}}}","  ".repeat(depth))
+        },
+        _ => unreachable!("data schema only contains named, array and union types"),
     }
-    let fields = index.symbols.iter().filter(|symbol| symbol.owner.as_deref() == Some(ty)).collect::<Vec<_>>();
-    if fields.is_empty() { return ty.to_owned(); }
-    let indent = "  ".repeat(depth + 1);
-    let fields = fields.iter().map(|field| format!("{indent}readonly {}{}: {};", field.name,
-        if field.signature.starts_with(&format!("{}?", field.name)) { "?" } else { "" },
-        data_shape(index, &field.ty, depth + 1))).collect::<Vec<_>>().join("\n");
-    format!("{{\n{fields}\n{}}}", "  ".repeat(depth))
 }

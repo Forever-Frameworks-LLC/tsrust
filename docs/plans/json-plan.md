@@ -2031,3 +2031,14 @@ left intact because its active usage could not be established from the sandbox.
 The exact removed paths and sizes are retained in SQLite as
 `tsrust-obsolete-test-outputs-243b012b.json`. Current S10 overview text is reconciled
 with the already recorded raw implementation, measurements and consumer refresh.
+
+## JSON import hover follow-up
+
+Imported binding hovers now expand the validated schema structurally, including
+nullable record arrays and empty objects. Internal data-record names no longer
+replace those shapes. Array/union precedence remains explicit. Five focused
+project-intelligence tests pass, including the existing simple import, field
+navigation, completion and optional-array checks. This changes display only;
+canonical type identity, readonly access and source navigation remain intact.
+SQLite evidence: `tsrust-json-hover-{red,check,format}-dc6d1c73.log`.
+
