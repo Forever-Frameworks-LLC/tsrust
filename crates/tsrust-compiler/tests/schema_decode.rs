@@ -114,3 +114,42 @@ fn fused_coercion_rejects_non_json_inputs_during_checking(){
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("schema-json-input"),"{}",String::from_utf8_lossy(&output.stderr));
 }
+
+#[test]
+fn fused_limits_precede_callbacks_and_validation_issues_stay_bounded() {
+    let source=r#"
+    import {s} from 'std:schema';
+    function forbiddenCallback():int{throw 'Callback ran before document validation';}
+    function rejectedJson(text:string,code:string){
+      const schema=s.int().transform(value=>forbiddenCallback());
+      match(schema.safeParseJson(text)){
+        Ok(value)=>{throw 'Resource violation accepted';},
+        Err(failure)=>{
+          if(failure.kind!=='json'){throw 'Expected JSON boundary error';}
+          if(failure.error.code!==code){throw 'Wrong JSON limit code';}
+        }
+      }
+    }
+    function main(){
+      rejectedJson(' '.repeat(16777216)+'0','byte-limit');
+      rejectedJson('['.repeat(65)+'0'+']'.repeat(65),'depth-limit');
+      rejectedJson('['+'0,'.repeat(999999)+'0]','node-limit');
+      const schema=s.array(s.int());
+      match(schema.safeParseJson('['+'null,'.repeat(80)+'null]')){
+        Ok(value)=>{throw 'Invalid array accepted';},
+        Err(failure)=>{
+          if(failure.kind!=='validation'){throw 'Wrong error domain';}
+          if(!failure.error.truncated||failure.error.issues.length!==64){throw 'Issue budget bypassed';}
+          if(failure.error.issues[63].path[0].index!==63){throw 'Issue order changed';}
+          if(failure.error.issues[0].observed!=='null'){throw 'Issue contains wrong type';}
+        }
+      }
+      const defaults=s.object({count:s.int().default(()=>forbiddenCallback())}).strip();
+      match(defaults.safeParseJson('{"ignored":"\\ud800"}')){
+        Ok(value)=>{throw 'Invalid ignored Unicode accepted';},
+        Err(failure)=>{if(failure.kind!=='json'){throw 'Wrong ignored error domain';}}
+      }
+    }
+    "#;
+    assert_eq!(execute(source), "");
+}

@@ -161,4 +161,22 @@ mod tests {
         assert_eq!(document("[0,1]",Limits{nodes:2,..limits()}).unwrap_err().code,"node-limit");
         assert_eq!(document("[0,1]",Limits{entries:1,..limits()}).unwrap_err().code,"entry-limit");
     }
+    #[test]
+    fn source_cursor_limits_accept_exact_boundaries_and_count_duplicate_entries() {
+        let exact=Limits{bytes:5,depth:1,entries:2,nodes:3};
+        assert!(document("[0,1]",exact).is_ok());
+        for (limits,code) in [
+            (Limits{bytes:4,..exact},"byte-limit"),
+            (Limits{depth:0,..exact},"depth-limit"),
+            (Limits{entries:1,..exact},"entry-limit"),
+            (Limits{nodes:2,..exact},"node-limit"),
+        ] { assert_eq!(document("[0,1]",limits).unwrap_err().code,code); }
+        let duplicate=r#"{"x":0,"x":1}"#;
+        assert_eq!(document(duplicate,Limits{entries:1,..limits()}).unwrap_err().code,"entry-limit");
+        assert_eq!(document(duplicate,Limits{nodes:2,..limits()}).unwrap_err().code,"node-limit");
+        let fields=document(duplicate,Limits{entries:2,nodes:3,..limits()}).unwrap().fields().unwrap();
+        assert_eq!(fields.len(),1);
+        assert_eq!(fields["x"].int().unwrap(),1);
+    }
+
 }

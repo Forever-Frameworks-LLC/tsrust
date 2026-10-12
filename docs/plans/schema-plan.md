@@ -1850,3 +1850,24 @@ Original and formatted records are preserved under `tsrust-schema-allocation-*`
 in SQLite. The harness removes generated packages, native binaries and TypeScript
 outputs on completion. Timing samples remain zero. Reusable plans, objects, unions
 and broader failure profiles remain required for S11 family allocation review.
+
+
+## Fused decoder boundary acceptance
+
+A public native witness now verifies the documented 16 MiB byte limit, depth 64,
+and one-million-node budget before any transform callback runs. Malformed Unicode
+in an ignored field rejects before a missing-field default factory can execute.
+An array with 81 invalid entries retains exactly 64 ordered issues, reports
+truncation and keeps controlled observed-type summaries. A source-cursor witness
+checks exact accepted limits, each adjacent rejected boundary, and duplicate-key
+entry/node accounting before last-key-wins field selection. Both cases pass;
+no public API or runtime behavior changed in this section.
+
+Native source is formatted and checked for a stable round trip by the shared
+fixture helper. Whole-project formatting also passes. SQLite preserves
+`tsrust-schema-boundaries-{source,native1,native2,native3,native4,format}.log`.
+The initial native fixtures were rejected for unreachable returns and consuming
+owned fields through a narrowed union; the final witness uses supported read-only
+field access. Those failures are retained, not represented as runtime defects.
+S11 remains in progress; these are focused boundary checks, not full regressions
+or performance acceptance.
