@@ -3,6 +3,7 @@ use super::*;
 
 impl Analyzer {
     pub(super) fn iterable_element(&mut self, actual: Type) -> Option<ArrayElement> {
+        let actual = actual.scalar_base();
         match actual {
             Type::Array(element) => Some(element),
             Type::String => ArrayElement::from_value_type(Type::String),

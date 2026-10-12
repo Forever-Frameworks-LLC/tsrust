@@ -2140,7 +2140,8 @@ impl SourceIndex {
                 end = close + 1;
                 continue;
             }
-            if self.text(end) == "[" && ty == "string" {
+            if self.text(end) == "[" && (ty == "string" || literal_scalar_family(&ty) == Some("string")) {
+                ty = "string".to_owned();
                 // A string position is a one-character string.
                 let close = self.pairs.get(end).copied().flatten()?;
                 end = close + 1;
@@ -2464,8 +2465,8 @@ impl SourceIndex {
                     return element.into();
                 }
                 // A string position is a one-character string.
-                if receiver == "string" {
-                    return receiver.into();
+                if receiver == "string" || literal_scalar_family(receiver) == Some("string") {
+                    return "string".into();
                 }
                 if !receiver.is_empty() {
                     return String::new();
@@ -4132,7 +4133,7 @@ fn array_element_type(ty: &str) -> Option<&str> {
 }
 
 fn iterable_element_type(ty:&str)->Option<String>{
-    if ty=="string"{return Some("string".to_owned());}
+    if ty=="string" || literal_scalar_family(ty)==Some("string"){return Some("string".to_owned());}
     if let Some(element)=array_element_type(ty){return Some(element.to_owned());}
     use tsrust_compiler::type_syntax::ValueAnnotationKind as Kind;
     let annotation=tsrust_compiler::type_syntax::parse(ty).ok()?;

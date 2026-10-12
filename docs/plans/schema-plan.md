@@ -1198,9 +1198,8 @@ and parameter help use the corresponding scalar API.
 
 This remains prerequisite work, not acceptance of public `s.literal`, enum schemas,
 or discriminated unions. Before exposing those APIs, complete the literal type
-integration audit: scalar-to-union widening and union remapping, scalar conversion
-and observation dispatch, indexed/iterated strings, collection key and element
-contracts, contextual inference, and remaining wildcard type matches. Add focused
+integration audit: collection key and element contracts, contextual inference, and remaining
+wildcard type matches. Add focused
 regressions for each supported boundary; reject unsupported cases in the checker
 rather than allowing native failures. Preserve exact output types throughout schema
 chains and projected editor facts.
@@ -1210,3 +1209,31 @@ cases, two editor cases, and six affected existing union regression cases. These
 are bounded checks, not full compiler/LSP acceptance. Evidence prefix:
 `tsrust-literal-*` in SQLite. Public schema docs/examples, matched workload support,
 full family regressions and measurements remain required. No timing is claimed.
+
+
+### Literal scalar dispatch follow-up
+
+Literal values now use their underlying scalar contracts for Boolean, String and
+Number conversion, union `typeof`, string indexing and string iteration. This
+prevents literal false/zero/empty strings from accidentally taking object truthiness
+and prevents native dispatch from treating literal strings as arrays or JSON values.
+Editor inference reports indexed characters and iteration bindings as `string`.
+
+Literal values and literal unions can widen into matching scalar union members.
+Widening preserves the existing ownership policy: constructing new owned tagged
+storage transfers its source, including when passed to a readonly consumer. An
+attempt to introduce implicit scalar borrowing was rejected by existing ownership
+and temporary-lifetime regressions and removed. Union payloads retain their ordinary
+native representation with no hidden clone. Mutable collection covariance remains rejected.
+
+These changes remain prerequisites for schema literals and enums. The public
+constructors, owned/JSON validation, chained output types, executable catalog
+examples and matched workloads still need implementation. Focused evidence uses
+`tsrust-literal-{conversions,string-access,typeof,widening,readonly-widening,access-editor,dispatch-regression}*`
+in SQLite. No full regression or timing acceptance is claimed.
+
+Follow-up verification: 15 literal compiler/native cases, 21 existing nullable,
+union, numeric-conversion, string-indexing and string-iteration cases, and three
+literal editor cases pass. Failed exploration records remain alongside repaired
+checks; no expected failure was ignored. The original ownership contract remains
+in force. Whole-project formatting reported no source or fingerprint changes.

@@ -2666,3 +2666,14 @@ fn literal_string_methods_keep_scalar_help_and_result_types() {
     let completion=ask(&index,&entry,"toUpperCase()","textDocument/completion");assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="includes")),"{completion}");
     let help=ask(&index,&entry,"'ad'","textDocument/signatureHelp");assert!(help.to_string().contains("string"),"{help}");
 }
+
+#[test]
+fn literal_string_access_and_iteration_infer_string_results() {
+    let entry=tsrust_compiler::format("function main(){const text:'ab'='ab';const first=text[0];console.log(first);for(const letter of text){console.log(letter);}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("first)","first: string"),("letter)","letter: string")] {
+        let hover=ask(&index,&entry,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{hover}");
+    }
+}

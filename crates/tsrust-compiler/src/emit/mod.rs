@@ -1117,6 +1117,8 @@ impl Emitter<'_> {
             .iter()
             .enumerate()
             .map(|(index, member)| {
+                let scalar = member.scalar_base();
+                let member = &scalar;
                 let result = match target {
                     CallTarget::Number => match member {
                         Type::Null => "0.0f64".into(),
@@ -1179,7 +1181,8 @@ impl Emitter<'_> {
                 if matches!(member, Type::Record(id) if matches!(self.program.records[*id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                     return format!("{}{}::V{index}(value)=>String::Borrowed(tsrust_native_json::type_of(&value.value))",if union.copy {"Union"} else {"ViewUnion"},union.index());
                 }
-                let label = match member {
+                let scalar = member.scalar_base();
+                let label = match &scalar {
                     Type::Record(id) if self.program.records[*id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "string",
                     Type::Null | Type::Set(_) | Type::Map(_) | Type::Record(_) | Type::Array(_) => "object",
                     Type::Undefined => "undefined",
@@ -1434,7 +1437,7 @@ impl Emitter<'_> {
                         let to = target
                             .iter()
                             .position(|ty| {
-                                ty == member
+                                ty.accepts_scalar_value(*member)
                                     || matches!((ty,member),(Type::Record(left),Type::Record(right)) if self.program.scoped_records.declaration(*left)==self.program.scoped_records.declaration(*right))
                                     || matches!(ty, Type::Callback(_))
                                         && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
@@ -1453,7 +1456,7 @@ impl Emitter<'_> {
             let to = target
                 .iter()
                 .position(|ty| {
-                    *ty == actual
+                    ty.accepts_scalar_value(actual)
                         || matches!(ty, Type::Callback(_))
                             && matches!(actual, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                 })
@@ -1503,7 +1506,7 @@ impl Emitter<'_> {
                     let next = target
                         .iter()
                         .position(|ty| {
-                            ty == member
+                            ty.accepts_scalar_value(*member)
                                 || matches!(ty, Type::Callback(_))
                                     && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
                                 // A concrete environment of the same nominal record.
@@ -1521,7 +1524,7 @@ impl Emitter<'_> {
         } else {
             let variant = target
                 .iter()
-                .position(|ty| *ty == actual)
+                .position(|ty| ty.accepts_scalar_value(actual))
                 .or_else(|| {
                     target.iter().position(|ty| {
                         matches!(ty, Type::Callback(_))
@@ -1583,7 +1586,7 @@ impl Emitter<'_> {
                 CallTarget::ArrayIsArray => first
                     .is_some_and(|a| matches!(a.ty, Some(Type::Array(_))) || matches!(a.ty,Some(Type::Record(id)) if self.program.records[id].is_tuple()))
                     .to_string(),
-                CallTarget::BooleanConversion => match first.map(|a| a.ty.unwrap()) {
+                CallTarget::BooleanConversion => match first.map(|a| a.ty.unwrap().scalar_base()) {
                     None | Some(Type::Null | Type::Undefined | Type::Void) => "false".into(),
                     Some(Type::Boolean) => "builtin_argument_0".into(),
                     Some(Type::Int) => "builtin_argument_0 != 0".into(),
@@ -1596,7 +1599,7 @@ impl Emitter<'_> {
                     Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "!builtin_argument_0.text.is_empty()".into(),
                     _ => "true".into(),
                 },
-                CallTarget::StringConversion => match first.map(|a| a.ty.unwrap()) {
+                CallTarget::StringConversion => match first.map(|a| a.ty.unwrap().scalar_base()) {
                     None => "String::Borrowed(\"\")".into(),
                     Some(Type::Null) => "String::Borrowed(\"null\")".into(),
                     Some(Type::Undefined | Type::Void) => "String::Borrowed(\"undefined\")".into(),
@@ -4010,7 +4013,7 @@ impl Emitter<'_> {
                 fun.bindings[id].borrowed_place.is_some() || fun.bindings[id].borrowed_element.is_some()
             }),
             // A string position is a new string, not a place in the text.
-            ExprKind::Index(base, _) if base.ty == Some(Type::String) => false,
+            ExprKind::Index(base, _) if base.ty.map(Type::scalar_base) == Some(Type::String) => false,
             ExprKind::Field(base, _) | ExprKind::Index(base, _) => {
                 Self::borrowed_place_expression(fun, base)
             }
@@ -7802,7 +7805,7 @@ impl Emitter<'_> {
                 prefix,
                 operator,
             } => self.update_expression(fun, target, *increment, *prefix, *operator),
-            ExprKind::Index(base, index) if base.ty == Some(Type::String) => self.string_index(fun, expr, base, index, mode),
+            ExprKind::Index(base, index) if base.ty.map(Type::scalar_base) == Some(Type::String) => self.string_index(fun, expr, base, index, mode),
             ExprKind::Index(base, index)
                 if self.expression_shape(base)
                     == Some(crate::fixed_storage::Shape::LiteralStrings) =>
@@ -8806,7 +8809,7 @@ impl Emitter<'_> {
                 ),
                 CallTarget::Number => match args.first() {
                     None => "0.0f64".into(),
-                    Some(argument) => match argument.ty.expect("checked Number argument") {
+                    Some(argument) => match argument.ty.expect("checked Number argument").scalar_base() {
                         Type::Union(union) | Type::BorrowedUnion(union) => self.union_observation(union, &self.expr(fun, argument, Mode::Read), CallTarget::Number),
                         Type::Null => format!(
                             "{{ let _ = {}; 0.0f64 }}",

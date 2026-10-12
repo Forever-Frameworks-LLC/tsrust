@@ -529,6 +529,8 @@ impl UnionId {
 }
 
 impl Type {
+    /// Identity or a literal widened to its native scalar; never collection covariance.
+    pub fn accepts_scalar_value(self, actual: Self) -> bool { self == actual || self == actual.scalar_base() }
     pub fn scalar_base(self)->Self {if let Self::Literal(_,kind)=self{kind.base()}else{self}}
     pub fn union(self) -> Option<UnionId> {
         match self {

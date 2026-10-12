@@ -11189,7 +11189,7 @@ impl Analyzer {
     #[inline(never)]
     fn string_index(&mut self,context:&mut Context,base:&mut Expr,index:&mut Expr,loans:&Loans)->Result<Type,Diagnostic> {
         let ty=self.expression(context,base,Mode::Read,loans,None)?;
-        debug_assert_eq!(ty,Type::String);
+        debug_assert_eq!(ty.scalar_base(),Type::String);
         let mut active=loans.clone();
         for root in Self::loan_roots(base,Mode::Read){active.entry(root).or_default().push((Mode::Read,base.span));}
         let actual=self.expression(context,index,Mode::Copy,&active,Some(Type::Int))?;
@@ -11209,7 +11209,7 @@ impl Analyzer {
             expr.kind = ExprKind::Field(receiver,name);
             return Ok(result);
         }
-        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base)==Some(Type::String) {
+        if !Self::optional_hint_boundary(base) && self.expression_type_hint(context,base).map(Type::scalar_base)==Some(Type::String) {
             return self.string_index(context,base,index,loans);
         }
         let result=if Self::named_storage(base) {self.array_index(context,base,index,mode,loans,expr.span)} else {self.temporary_array_index(context,base,index,mode,loans,expected)}?;
@@ -15179,7 +15179,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     ));
                 }
                 if let Some(argument) = args.first_mut() {
-                    let scalar = |ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String | Type::Enum(_, _));
+                    let scalar = |ty: Type| matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String | Type::Enum(_, _));
                     let accepted = |ty: Type| ty.union().map(|id| self.unions.members(id).iter().copied().all(scalar)).unwrap_or_else(|| scalar(ty));
                     if self.expression_type_hint(context, argument).is_some_and(|ty| !accepted(ty)) {
                         return Err(Diagnostic::new("type", "Number() and unary + accept only scalar data, including scalar unions; arrays, records and functions need an explicit scalar value.", argument.span));

@@ -150,8 +150,7 @@ impl UnionArena {
     }
 
     pub fn accepts(&self, expected: Type, actual: Type) -> bool {
-        if actual!=actual.scalar_base()&&expected==actual.scalar_base(){return true;}
-        if expected == actual {
+        if expected.accepts_scalar_value(actual) {
             return true;
         }
         let Type::Union(id) = expected else {
@@ -163,8 +162,8 @@ impl UnionArena {
             Type::Union(other) => arena.types[other.index()]
                 .members
                 .iter()
-                .all(|ty| members.contains(ty)),
-            other => members.contains(&other),
+                .all(|ty| members.iter().any(|member| member.accepts_scalar_value(*ty))),
+            other => members.iter().any(|member| member.accepts_scalar_value(other)),
         }
     }
 

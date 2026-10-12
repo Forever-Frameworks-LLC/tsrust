@@ -40,7 +40,7 @@ impl Emitter<'_> {
         if temporary_scope {
             let _ = writeln!(output, "{indent}{{ {declarations}");
         }
-        if iterable.ty == Some(Type::String) {
+        if iterable.ty.map(Type::scalar_base) == Some(Type::String) {
             self.string_iteration(
                 output,
                 fun,

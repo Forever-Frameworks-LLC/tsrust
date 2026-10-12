@@ -104,3 +104,50 @@ fn dynamic_comparisons_do_not_prove_a_particular_literal() {
         "type State='ready'|'done';function f(value:State,key:string):'done'{if(value!==key){return clone(value);}return 'done';}function main(){}",
     ] { assert!(tsrust_compiler::check(source).is_err(),"dynamic guard unsafely narrowed: {source}"); }
 }
+
+#[test]
+fn literal_conversions_observe_underlying_values() {
+    let source=r#"
+    function main(){const empty:''='';const zero:0=0;const no:false=false;const numeric:'42'='42';const choice:''|'yes'='';console.log(Boolean(empty),Boolean(zero),Boolean(no),Boolean(choice));console.log(String(empty),String(zero),String(no),String(choice));console.log(Number(numeric),Number(zero),Number(no));}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"false false false false\n 0 false \n42 0 0\n");
+}
+
+#[test]
+fn literal_strings_support_indexing_and_iteration() {
+    let source=r#"
+    function main(){const text:'ab'='ab';console.log(text[0]);for(const letter of text){console.log(letter);}console.log(text);}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"a\na\nb\nab\n");
+}
+
+#[test]
+fn literal_union_typeof_reports_scalar_kinds() {
+    let source=r#"
+    function inspect(value:'ready'|7|false):string{return typeof value;}
+    function main(){console.log(inspect('ready'),inspect(7),inspect(false));}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"string number boolean\n");
+}
+
+#[test]
+fn literal_values_and_unions_widen_into_scalar_union_members() {
+    let source=r#"
+    function show(value:string|null):void{console.log(value);}
+    function main(){const tag:'ready'='ready';show(tag);const state:'done'|'ready'='done';show(state);const n:7|false=7;const broad:int|boolean=n;console.log(broad);}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"ready\ndone\n7\n");
+}
+
+#[test]
+fn owned_union_widening_preserves_transfer() {
+    support::reject("function main(){const value:'ready'='ready';const tagged:string|null=value;console.log(value,tagged);}", "transferred");
+}
