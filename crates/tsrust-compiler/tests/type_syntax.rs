@@ -52,8 +52,6 @@ fn annotation_parser_rejects_incomplete_and_expression_syntax() {
         "int[3]",
         "int |",
         "a <= b",
-        "\"int\"",
-        "true",
         "Box<int>;",
         "A<B<C>>>",
     ] {
@@ -233,4 +231,43 @@ fn explicit_mutable_callable_annotations_preserve_borrowing_and_spans() {
     assert_eq!(ownership, CallableOwnership::Reusable);
     assert_eq!(parameters[0].access.as_ref().unwrap().mode, tsrust_compiler::Mode::Read);
     assert_eq!(&source[parameters[0].name.span.start..parameters[0].name.span.end], "value");
+}
+
+#[test]
+fn literal_annotations_preserve_values_and_compose_with_generic_types() {
+    for source in ["'ready'", "\"line\\nend\"", "true", "false", "7", "-9223372036854775808", "9007199254740993", "1.5", "-0.0", "1e3", "0xff", "('ready' | 'done')[]", "Result<'ready', false>"] {
+        let annotation=parse(source).unwrap_or_else(|error|panic!("{source}: {error:?}"));
+        assert_eq!(annotation.span.start,0);assert_eq!(annotation.span.end,source.len());
+    }
+}
+
+#[test]
+fn literal_annotations_keep_exact_payloads_and_reject_expressions() {
+    use tsrust_compiler::type_syntax::LiteralAnnotation as Literal;
+    for (source,expected) in [
+        ("'ready'",Literal::String("ready".into())),
+        ("\"line\\nend\"",Literal::String("line\nend".into())),
+        ("9007199254740993",Literal::Int("9007199254740993".into())),
+        ("-9223372036854775808",Literal::Int("-9223372036854775808".into())),
+        ("-0.0",Literal::Number("-0.0".into())),
+        ("true",Literal::Boolean(true)),
+        ("false",Literal::Boolean(false)),
+    ] {
+        let Kind::Literal(actual)=parse(source).unwrap().kind else{panic!("literal type: {source}")};
+        assert_eq!(actual,expected);
+        assert_eq!(parse(&actual.text()).unwrap().kind,Kind::Literal(actual));
+    }
+    for source in ["1+2","-'ready'","-true","true()","'ready'.length","1[3]","--1"] {
+        assert!(parse(source).is_err(),"expression accepted as type: {source}");
+    }
+}
+
+#[test]
+fn literal_annotation_formatting_preserves_values_without_silently_widening() {
+    let source="function wrong(tag:'ready'|'done'):9007199254740993{const fixed:true=false;return 9007199254740992;}";
+    let formatted=tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(),formatted);
+    assert!(formatted.contains("9007199254740993"));
+    assert!(formatted.contains("9007199254740992"));
+    assert!(tsrust_compiler::check(&formatted).is_err(),"incompatible literal assignments must not be widened and accepted");
 }

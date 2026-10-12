@@ -557,7 +557,7 @@ impl Linker<'_> {
             _ => {}
         }
         match &mut annotation.kind {
-            Kind::Named(_) => {}
+            Kind::Literal(_) | Kind::Named(_) => {}
             Kind::Polymorphic { declaration, .. } => self.span(&mut declaration.span),
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 for argument in arguments { self.value_annotation(argument); }

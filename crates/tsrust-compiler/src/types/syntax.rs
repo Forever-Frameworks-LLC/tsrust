@@ -42,11 +42,31 @@ pub struct CallableParameter {
     pub span: Span,
 }
 
+/// Literal syntax retains exact numeric spelling until checked type normalization.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum LiteralAnnotation {
+    String(String),
+    Int(String),
+    Number(String),
+    Boolean(bool),
+}
+impl LiteralAnnotation {
+    pub fn text(&self)->String {
+        match self {
+            Self::String(value)=>serde_json::to_string(value).expect("string literal spelling"),
+            Self::Int(value)|Self::Number(value)=>value.clone(),
+            Self::Boolean(value)=>value.to_string(),
+        }
+    }
+    pub(crate) fn copy(&self)->bool { !matches!(self,Self::String(_)) }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ValueAnnotationKind {
     /// Checked polymorphic environment identity; never produced by source parsing.
     Polymorphic { origin: usize, declaration: TypeName },
     Named(TypeName),
+    Literal(LiteralAnnotation),
     Callable {
         ownership: CallableOwnership,
         parameters: Vec<CallableParameter>,
@@ -65,7 +85,7 @@ pub enum ValueAnnotationKind {
 impl ValueAnnotation {
     fn nesting(&self) -> usize {
         match &self.kind {
-            ValueAnnotationKind::Named(_) | ValueAnnotationKind::Polymorphic { .. } => 0,
+            ValueAnnotationKind::Literal(_) | ValueAnnotationKind::Named(_) | ValueAnnotationKind::Polymorphic { .. } => 0,
             ValueAnnotationKind::Callable {
                 parameters, result, ..
             } => {
@@ -594,6 +614,20 @@ impl AnnotationParser<'_> {
                 }
             }
             value
+        } else if matches!(self.peek().kind,TokenKind::String|TokenKind::Integer|TokenKind::Number)
+            || self.peek().kind==TokenKind::Name&&matches!(self.peek().text.as_str(),"true"|"false")
+            || self.is("-")&&self.tokens.get(self.index+1).is_some_and(|token|matches!(token.kind,TokenKind::Integer|TokenKind::Number)) {
+            let start=self.peek().span.start;
+            let negative=self.is("-");if negative{self.take();}
+            let token=self.take();
+            let numeric=if negative{format!("-{}",token.text)}else{token.text.clone()};
+            let literal=match token.kind {
+                TokenKind::String=>LiteralAnnotation::String(token.text),
+                TokenKind::Integer=>LiteralAnnotation::Int(numeric),
+                TokenKind::Number=>LiteralAnnotation::Number(numeric),
+                _=>LiteralAnnotation::Boolean(token.text=="true"),
+            };
+            ValueAnnotation{kind:ValueAnnotationKind::Literal(literal),span:Span::new(start,token.span.end)}
         } else {
             if self.peek().kind != TokenKind::Name
                 || matches!(self.peek().text.as_str(), "true" | "false")

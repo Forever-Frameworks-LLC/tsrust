@@ -6,6 +6,7 @@ use tsrust_compiler::type_syntax::{parse, ValueAnnotation, ValueAnnotationKind a
 pub(super) fn canonical(source: &str) -> Option<String> {
     fn render(value: &ValueAnnotation) -> Option<String> {
         Some(match &value.kind {
+            Kind::Literal(value) => value.text(),
             Kind::Named(name) => name.text.clone(),
             Kind::Group(inner) => render(inner)?,
             Kind::Applied { name, arguments } => format!(
@@ -79,7 +80,7 @@ fn applications(value: &ValueAnnotation, source: &str, output: &mut Vec<String>)
             }
             applications(result, source, output);
         }
-        Kind::Named(_) | Kind::Polymorphic { .. } => {}
+        Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
     }
 }
 fn substitute(
@@ -88,7 +89,7 @@ fn substitute(
     edits: &mut Vec<(usize, usize, String)>,
 ) {
     match &value.kind {
-        Kind::Polymorphic { .. } => {},
+        Kind::Literal(_) | Kind::Polymorphic { .. } => {},
         Kind::Named(name) => {
             if let Some(argument) = bindings.get(&name.text) {
                 let replacement =
@@ -126,6 +127,7 @@ fn substitute(
 }
 fn copy_annotation(value: &ValueAnnotation) -> bool {
     match &value.kind {
+        Kind::Literal(value) => !matches!(value,tsrust_compiler::type_syntax::LiteralAnnotation::String(_)),
         Kind::Named(name) => matches!(name.text.as_str(), "int" | "number" | "boolean" | "null" | "undefined"),
         Kind::Group(inner) => copy_annotation(inner),
         Kind::Union(members) => members.iter().all(copy_annotation),
@@ -236,5 +238,21 @@ impl SourceIndex {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod literal_tests {
+    use super::*;
+    #[test]
+    fn literal_annotation_spelling_and_substitution_preserve_values() {
+        assert_eq!(canonical("Result<'ready', false>"),Some("Result<\"ready\",false>".into()));
+        assert_eq!(canonical("9007199254740993 | -9223372036854775808"),Some("9007199254740993|-9223372036854775808".into()));
+        let source="Box<'T' | T>";let annotation=parse(source).unwrap();let mut edits=Vec::new();
+        substitute(&annotation,&BTreeMap::from([("T".into(),"7".into())]),&mut edits);
+        assert_eq!(edits.len(),1);assert_eq!(&source[edits[0].0..edits[0].1],"T");
+        assert_eq!(edits[0].2,"7");
+        assert!(!copy_annotation(&parse("'owned text'").unwrap()));
+        assert!(copy_annotation(&parse("7 | false").unwrap()));
     }
 }

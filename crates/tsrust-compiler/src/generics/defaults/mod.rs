@@ -13,6 +13,7 @@ mod scope;
 enum Shape {
     Polymorphic(usize),
     Named(String),
+    Literal(crate::type_syntax::LiteralAnnotation),
     Array(Box<Shape>),
     Applied(String, Vec<Shape>),
     Union(Vec<Shape>),
@@ -24,6 +25,7 @@ fn annotation(value: &ValueAnnotation) -> Shape {
     match &value.kind {
         Kind::Polymorphic { origin, .. } => Shape::Polymorphic(*origin),
         Kind::Named(name) => Shape::Named(name.text.clone()),
+        Kind::Literal(value) => Shape::Literal(value.clone()),
         Kind::Group(inner) => annotation(inner),
         Kind::Array(inner) => Shape::Array(Box::new(annotation(inner))),
         Kind::Applied { name, arguments } => Shape::Applied(

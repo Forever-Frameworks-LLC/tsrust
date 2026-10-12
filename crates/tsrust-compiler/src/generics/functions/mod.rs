@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, HashMap};
 enum Key {
     Polymorphic(usize, String),
     Named(String),
+    Literal(crate::type_syntax::LiteralAnnotation),
     Array(Box<Key>),
     Applied(String, Vec<Key>),
     Union(Vec<Key>),
@@ -21,6 +22,7 @@ fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
     Ok(match &value.kind {
         Kind::Polymorphic { origin, declaration } => Key::Polymorphic(*origin,declaration.text.clone()),
         Kind::Named(name) => Key::Named(name.text.clone()),
+        Kind::Literal(value) => Key::Literal(value.clone()),
         Kind::Group(inner) => return key(inner),
         Kind::Array(inner) => Key::Array(Box::new(key(inner)?)),
         Kind::Applied { name, arguments } => Key::Applied(name.text.clone(),arguments.iter().map(key).collect::<Result<_,_>>()?),
@@ -221,7 +223,7 @@ impl Cache {
                     Kind::Callable { .. } | Kind::Polymorphic { .. } => { callable = true; break; }
                     Kind::Array(inner) | Kind::Group(inner) => pending.push(inner),
                     Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => pending.extend(arguments),
-                    Kind::Named(_) => {},
+                    Kind::Literal(_) | Kind::Named(_) => {},
                 }
             }
             if callable { continue; }
@@ -690,4 +692,14 @@ fn callable_payload_keys_normalize_equivalent_ownership_and_omission() {
     *ownership = CallableOwnership::Owned;
     parameters[0].omission = crate::ParameterOmission::Required;
     assert_ne!(key(&original).unwrap(), key(&equivalent).unwrap());
+}
+
+#[cfg(test)]
+#[test]
+fn literal_signature_keys_distinguish_values_from_type_names() {
+    use crate::type_syntax::parse;
+    assert!(same_annotation_contract(&parse("Function<'ready'>").unwrap(),&parse("Function<\"ready\">").unwrap()));
+    assert!(!same_annotation_contract(&parse("Function<'ready'>").unwrap(),&parse("Function<'done'>").unwrap()));
+    assert!(!same_annotation_contract(&parse("Function<'T'>").unwrap(),&parse("Function<T>").unwrap()));
+    assert!(!same_annotation_contract(&parse("Function<9007199254740993>").unwrap(),&parse("Function<9007199254740992>").unwrap()));
 }

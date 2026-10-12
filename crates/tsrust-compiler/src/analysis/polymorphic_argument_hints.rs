@@ -77,7 +77,7 @@ pub(super) fn remap_annotation(value: &mut crate::type_syntax::ValueAnnotation, 
             Kind::Polymorphic {origin,..} => {
                 *origin=ids.get(*origin).copied().flatten().ok_or_else(||Diagnostic::new("callable-layout","Polymorphic annotation retains an unresolved environment identity.",value.span))?;
             }
-            Kind::Named(_)=>{},
+            Kind::Literal(_) | Kind::Named(_)=>{},
             Kind::Group(inner)|Kind::Array(inner)=>pending.push(inner),
             Kind::Applied{arguments,..}|Kind::Union(arguments)|Kind::Tuple(arguments)=>pending.extend(arguments),
             Kind::Callable{parameters,result,..}=>{

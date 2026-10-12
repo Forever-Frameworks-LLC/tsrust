@@ -159,7 +159,7 @@ impl Context<'_> {
         parameters: &[TypeName],
     ) -> Result<(), Diagnostic> {
         match &value.kind {
-            Kind::Polymorphic { .. } => Ok(()),
+            Kind::Literal(_) | Kind::Polymorphic { .. } => Ok(()),
             Kind::Named(name) => {
                 if parameters
                     .iter()
@@ -271,7 +271,7 @@ impl Context<'_> {
             return self.result_annotation(value);
         }
         match &mut value.kind {
-            Kind::Polymorphic { .. } => {},
+            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if name.text == "Result" {
                     return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));

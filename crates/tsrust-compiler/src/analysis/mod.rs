@@ -856,6 +856,7 @@ pub(crate) fn resolve_value_type(
 ) -> Result<Type, Diagnostic> {
     use crate::type_syntax::ValueAnnotationKind as Kind;
     match &annotation.kind {
+        Kind::Literal(_) => Err(Diagnostic::new("literal-type", "Literal-value type checking is not yet implemented.", annotation.span)),
         Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
         Kind::Group(inner) => resolve_value_type(inner, allow_void, record_names, unions),
         Kind::Union(members) => {

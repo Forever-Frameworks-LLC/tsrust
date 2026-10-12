@@ -711,8 +711,9 @@ are still required. SQLite: `tsrust-schema-literal-*-70853c77.log`.
 
 ## Typed object assembly groundwork and literal-type dependency
 
-Inspection confirms the compiler annotation/type surface does not yet represent
-literal-value types. Precise s.literal output and literal discriminators therefore
+Inspection confirmed checked types did not represent literal values. The syntax
+prerequisite below now preserves literal annotations; checked singleton identities
+remain pending. Precise s.literal output and literal discriminators therefore
 need compiler/editor type support before public acceptance; do not silently widen
 that requirement to dynamic JSON or claim scalar-only inference completes it.
 
@@ -1168,3 +1169,35 @@ Next required S11 work includes public literal/enum and union families, then the
 remaining second-tranche APIs. The approved chain contracts above are required
 for refinement, transformation and explicit coercion acceptance; they are not
 implemented by the default work.
+
+## Literal annotation prerequisite in progress
+
+Public literal and enum schemas still require checked singleton type identities.
+The syntax layer now retains string, boolean, integer and number literal
+annotations as distinct literal nodes rather than nominal type names. It preserves
+exact numeric spelling (including integers beyond JavaScript's safe range and the
+i64 minimum), decoded string values and original source spans. Literals compose
+with arrays, unions, callable signatures and generic arguments. Generic identity,
+substitution, alias/link traversal and editor canonical spelling preserve these
+values; a quoted `"T"` is not a reference to a type parameter named T.
+
+This is a preparatory syntax checkpoint, not public `s.literal` or enum acceptance.
+Checked resolution deliberately reports `literal-type` until the checked literal
+representation and assignment rules are integrated. Do not widen literal outputs
+to primitive types to bypass that work. No runtime workload or measurement is
+claimed for this syntax prerequisite.
+
+Next implementation must add canonical checked identities for literal values,
+with exact integer normalization and separate int/number identity. Native storage
+must retain the underlying scalar representation and ownership: in particular,
+validated owned strings must remain owned strings, not static enum tags replacing
+the input. Allow proven literal values to widen to the corresponding scalar;
+reject arbitrary scalar values where a literal is required. Carry these identities
+through aliases, generic specializations, arrays, unions and projected editor
+facts before accepting public literal schemas or discriminated unions.
+
+Focused evidence covers exact values/spans, malformed expression rejection,
+formatting idempotence, generic substitution/identity and editor rendering. The
+existing 128-level syntax nesting limit remains enforced. Full type checking,
+flow narrowing, native execution, public schema docs/examples and matched workload
+support remain required. Evidence prefix: `tsrust-literal-*` in SQLite.

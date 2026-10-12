@@ -15,7 +15,7 @@ fn each(annotation: &mut ValueAnnotation, visit: &mut impl FnMut(&mut ValueAnnot
     while let Some(current) = pending.pop() {
         visit(current);
         match &mut current.kind {
-            Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
             Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                 pending.extend(arguments.iter_mut())
             }

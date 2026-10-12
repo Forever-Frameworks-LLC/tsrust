@@ -20,7 +20,7 @@ fn may_defer(pattern: &ValueAnnotation) -> bool {
         Kind::Union(_) => true,
         Kind::Group(inner) | Kind::Array(inner) => may_defer(inner),
         Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => arguments.iter().any(may_defer),
-        Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => false,
+        Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => false,
     }
 }
 
@@ -152,7 +152,7 @@ impl Types<'_> {
                 Ok(())
             }
             Kind::Named(name) if name.text == "void" && actual == Type::Void => Ok(()),
-            Kind::Named(_) => {
+            Kind::Literal(_) | Kind::Named(_) => {
                 let expected =
                     crate::analysis::resolve_value_type(pattern, false, self.names, self.unions)?;
                 if expected == actual {
@@ -206,7 +206,7 @@ impl Types<'_> {
                 let mut unbound = false;
                 while let Some(value) = pending.pop() {
                     match &value.kind {
-                        Kind::Polymorphic { .. } => {},
+                        Kind::Literal(_) | Kind::Polymorphic { .. } => {},
                         Kind::Named(name) => {
                             unbound |=
                                 variables.contains(&name.text) && !bindings.contains_key(&name.text)
@@ -452,7 +452,7 @@ impl Types<'_> {
                     self.materialize_names(member)?;
                 }
             }
-            Kind::Callable { .. } | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Callable { .. } | Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
         }
         Ok(())
     }

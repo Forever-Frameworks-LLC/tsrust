@@ -429,6 +429,7 @@ impl ProjectAnalysis {
         names: &HashMap<&str, usize>,
     ) -> Option<ProjectType> {
         match &annotation.kind {
+            Kind::Literal(value) => Some(ProjectType::Named {name:value.text(),declaration:None,arguments:vec![]}),
             Kind::Named(name) => {
                 if let Some(id) = names.get(name.text.as_str()) {
                     return self.project_record(*id, names);

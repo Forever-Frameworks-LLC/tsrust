@@ -25,7 +25,7 @@ pub(crate) fn apply(
             ));
         }
         match &mut value.kind {
-            Kind::Polymorphic { .. } => {},
+            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if let Some(argument) = bindings.get(&name.text) {
                     validate_depth(argument, depth)?;
@@ -88,6 +88,7 @@ pub(crate) fn apply(
     }
     fn copy_annotation(value: &ValueAnnotation) -> bool {
         match &value.kind {
+            Kind::Literal(value)=>value.copy(),
             Kind::Named(name) => matches!(name.text.as_str(), "int" | "number" | "boolean" | "null" | "undefined"),
             Kind::Group(inner) => copy_annotation(inner),
             Kind::Union(members) => members.iter().all(copy_annotation),
@@ -105,7 +106,7 @@ pub(crate) fn apply(
                 ));
             }
             match &value.kind {
-                Kind::Named(_) | Kind::Polymorphic { .. } => {}
+                Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
                 Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
                 Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
                     pending.extend(arguments.iter().map(|value| (value, depth + 1)))
@@ -194,6 +195,7 @@ fn private_containment_parameter_substitution_preserves_element_ownership() {
     use crate::type_syntax::parse;
     fn shape(value: &ValueAnnotation) -> String {
         match &value.kind {
+            Kind::Literal(value)=>value.text(),
             Kind::Named(name) => name.text.clone(),
             Kind::Array(inner) => format!("{}[]",shape(inner)),
             Kind::Union(members) => members.iter().map(shape).collect::<Vec<_>>().join("|"),
@@ -235,4 +237,16 @@ fn containment_element_retains_actual_element_coordinates() {
     apply(&mut annotation,&HashMap::from([("T".into(),argument)])).unwrap();
     assert_eq!(annotation.span,expected_span);
     let Kind::Named(name)=annotation.kind else {panic!("element")};assert_eq!(name.span,expected_span);assert_eq!(name.text,"string");
+}
+
+#[cfg(test)]
+#[test]
+fn literal_arguments_remain_values_during_generic_substitution() {
+    use crate::type_syntax::{parse,LiteralAnnotation};
+    let mut value=parse("Function<T,['T',T]>").unwrap();
+    apply(&mut value,&HashMap::from([("T".into(),parse("9007199254740993").unwrap())])).unwrap();
+    let Kind::Callable{parameters,result,..}=value.kind else{panic!("callable")};
+    assert_eq!(result.kind,Kind::Literal(LiteralAnnotation::Int("9007199254740993".into())));
+    assert_eq!(parameters[0].annotation.kind,Kind::Literal(LiteralAnnotation::String("T".into())));
+    assert_eq!(parameters[1].annotation.kind,result.kind);
 }
