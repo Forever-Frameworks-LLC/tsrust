@@ -571,3 +571,25 @@ function main(){const schema=s.int().min(9223372036854775806).max(92233720368547
     support::success(&support::run(support::cli().arg("run").arg(path),60));
     assert_eq!(checked_source("import {s} from 'std:schema';function main(){const original=s.int();original.min(0);original.safeParse(1);}").err().unwrap().code,"transferred");
 }
+
+#[test]
+fn schema_generated_exclusive_integer_plan_preserves_exact_limits() {
+    // Inject the backend plan until the public exclusive builders are integrated.
+    let source=r#"import {s} from 'std:schema';
+function main(){const schema=s.int();
+ for(const input of [9007199254740992,9007199254740993,9007199254740994]){
+  match(schema.safeParse(input)){Ok(value)=>{console.log(value);},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+ }
+}"#;
+    let source=support::format_round_trip(source);
+    let checked=checked_source(&source).unwrap();let (rust,features)=checked.emit_rust_with_native_features();
+    assert!(features.is_empty());
+    let marker="bounds: tsrust_schema_plan::IntBounds::default()";
+    assert_eq!(rust.matches(marker).count(),1);
+    let rust=rust.replace(marker,"bounds: tsrust_schema_plan::IntBounds::default().gt(9007199254740992).unwrap().lt(9007199254740994).unwrap()");
+    let directory=support::TempDirectory::new();let file=directory.0.join("schema.rs");let binary=directory.0.join("schema");
+    std::fs::write(&file,rust).unwrap();
+    support::success(&support::run(support::rustc().arg("--edition=2024").arg(file).arg("-o").arg(&binary),60));
+    let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n9007199254740993\ntoo-large\n");
+}

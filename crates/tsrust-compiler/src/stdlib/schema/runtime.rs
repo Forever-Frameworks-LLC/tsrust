@@ -32,6 +32,16 @@ impl StringBounds {
 #[derive(Debug, Default)]
 pub struct IntBounds { min: Option<i64>, max: Option<i64> }
 impl IntBounds {
+    pub fn gt(self,limit:i64)->Result<Self,ConstructionError>{
+        let error=||ConstructionError{code:"contradictory-bounds",operation:"gt",limit};
+        let next=limit.checked_add(1).ok_or_else(error)?;
+        self.min(next).map_err(|_|error())
+    }
+    pub fn lt(self,limit:i64)->Result<Self,ConstructionError>{
+        let error=||ConstructionError{code:"contradictory-bounds",operation:"lt",limit};
+        let next=limit.checked_sub(1).ok_or_else(error)?;
+        self.max(next).map_err(|_|error())
+    }
     pub fn min(mut self,limit:i64)->Result<Self,ConstructionError>{
         let next=self.min.unwrap_or(i64::MIN).max(limit);
         if self.max.is_some_and(|max|next>max){return Err(ConstructionError{code:"contradictory-bounds",operation:"min",limit});}
@@ -51,6 +61,27 @@ impl IntBounds {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn exclusive_integer_runtime_bounds_intersect_without_overflow() {
+        let plan=IntBounds::default().gt(2).unwrap().lt(5).unwrap().min(1).unwrap().max(9).unwrap();
+        for (input,expected) in [(2,Some("too-small")),(3,None),(4,None),(5,Some("too-large"))] {
+            assert_eq!(plan.check(input),expected);
+        }
+        let high=IntBounds::default().gt(i64::MAX-1).unwrap();
+        assert_eq!(high.check(i64::MAX),None);
+        assert_eq!(high.check(i64::MAX-1),Some("too-small"));
+        let low=IntBounds::default().lt(i64::MIN+1).unwrap();
+        assert_eq!(low.check(i64::MIN),None);
+        assert_eq!(low.check(i64::MIN+1),Some("too-large"));
+        for (error,operation,limit) in [
+            (IntBounds::default().gt(i64::MAX).unwrap_err(),"gt",i64::MAX),
+            (IntBounds::default().lt(i64::MIN).unwrap_err(),"lt",i64::MIN),
+            (IntBounds::default().gt(2).unwrap().lt(3).unwrap_err(),"lt",3),
+            (IntBounds::default().lt(3).unwrap().gt(2).unwrap_err(),"gt",2),
+        ] {
+            assert_eq!((error.code,error.operation,error.limit),("contradictory-bounds",operation,limit));
+        }
+    }
     #[test]
     fn consuming_bounds_reject_invalid_construction_and_intersect() {
         let plan=StringBounds::default().min(2).unwrap().max(4).unwrap().min(1).unwrap().max(9).unwrap();

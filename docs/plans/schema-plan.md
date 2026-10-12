@@ -560,3 +560,19 @@ Single-value intervals cover both signed endpoints and values beyond JavaScript'
 safe-integer range. This repairs internal groundwork only; public exclusive
 builders, editor documentation and matched workloads remain pending.
 SQLite evidence: `tsrust-schema-exclusive-{red,check,format}-fda48454.log`.
+
+## Consuming exclusive integer runtime
+
+The generated-program IntBounds backend now supports consuming gt/lt constraints.
+It converts exclusive limits to inclusive stored endpoints using checked i64
+arithmetic, then intersects them with existing constraints. Overflow and empty
+intersections return contradictory-bounds with the original operation and limit;
+they never wrap or round. Validation continues to borrow the immutable plan.
+
+Three runtime tests pass, covering repeated constraints, inclusive/exclusive
+intersection, signed endpoints and construction-error fields. A formatted-source
+native witness injects exclusive bounds into generated storage and verifies the
+exact integer 9007199254740993 succeeds while both neighboring endpoints fail.
+This is backend acceptance only: source syntax, editor/catalog support and matched
+exclusive workloads remain pending. No timing or consumer refresh is claimed.
+SQLite: `tsrust-schema-exclusive-runtime-{red,check,native,format}-525b4d9f.log`.
