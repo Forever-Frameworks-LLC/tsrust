@@ -10,7 +10,10 @@ const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
 for(const id of ['native_json_raw_encoding','native_json_raw','native_json_roundtrip','native_json_namespace','native_json_scalars','native_json_typeof','native_json_inspection','native_json_views','native_json_refinement','native_json_string_reads','native_json_string_views','native_json_string_projection','native_json_construction','native_json_containers','native_jsonl_writer','native_jsonl_borrowed_writer','native_jsonl_borrowed','native_jsonl_typed','native_jsonc_typed','native_json_encoding','native_json_typed'])test(`${id} preserves registration, operation count and independent oracle`,()=>{
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
  assert.equal(rows.length,1);const row=rows[0];
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'json');
+ assert.equal(typeof row.measured,'boolean');
+ if(row.measured){assert.equal(row.measurementStatus,'measured-native-node');assert.match(row.measurementRecord,/^runtime\/results\/.+\.json$/);}
+ else{assert.equal(row.measurementStatus,'unmeasured-json-family');}
+ assert.equal(reportCategory(row.id),'json');
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+file);assertNativeJsonSource(source,row,kind);
   assert.throws(()=>assertNativeJsonSource(source+' ',row,kind));

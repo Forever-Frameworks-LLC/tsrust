@@ -21710,10 +21710,11 @@
       ],
       "family": "native-json",
       "inputText": " { \"a\": [1,true,null], \"b\": \"hello\" } ",
-      "measured": false,
-      "measurementStatus": "unmeasured-json-family",
+      "measured": true,
+      "measurementStatus": "measured-native-node",
+      "measurementRecord": "runtime/results/2026-10-12T10-42-19-906Z.json",
       "specification": "Validate fixed ASCII input, embed unchanged text as payload, compare complete output with a fixed independent literal and accumulate its 50-byte length.",
-      "notes": "Includes validation, output creation and full equality observation. Native uses bounded raw validation and typed serialization. Node validates with JSON.parse then explicitly concatenates original text; ordinary JSON.stringify would normalize it. No allocation, validation-coverage or JSON.stringify implementation equivalence claim. Untimed registration.",
+      "notes": "Includes validation, output creation and full equality observation. Native uses bounded raw validation and typed serialization. Node validates with JSON.parse then explicitly concatenates original text; ordinary JSON.stringify would normalize it. No allocation, validation-coverage or JSON.stringify implementation equivalence claim. Native/Node execution timing is retained in SQLite.",
       "sourceSha256": "4a67bd7b9c33ebde717aa8e60ff0037780d96172b03dd3b4c7a85cad9475fc45",
       "counterpartSha256": "80ffb0963ffc6536abe98e3ee7cec85515bc1290ce5c7b81a7732301e086a3c8"
     }

@@ -2253,3 +2253,34 @@ native tests. The new regression covers scalar and empty-container depth, escape
 brackets, the 64-level boundary, depth errors and trailing input. SQLite evidence:
 `tsrust-raw-validation-depth-{red,backend,native,format}-3c208e25.log`.
 Performance acceptance remains pending measurements of this repaired source.
+
+### Validation repair measurement at 0329d1ba
+
+The original creation protocol completed (12 cases, 108 processes, 3,348 batch
+samples), plus selective raw-field decoding (three cases, 27 processes, 837 batch
+samples). Records `tsrust-raw-validation-depth-{creation,selective,review}-0329d1ba.json`
+are verified in SQLite with their logs; original baselines remain unchanged.
+
+At 1,000 elements, native numeric/Unicode/deep creation now takes
+8.478/42.982/8.959 microseconds, respectively 4.3%/6.8%/2.3% above the original
+baseline. Direct-Rust controls rise 6.8%/9.0%/9.3%, and Node controls rise
+7.2%/8.8%/7.2%. This removes the large extra-scan regression; the comparison does
+not establish statistical equivalence across runs. Invalid input rises 5.0%,
+alongside a 5.3% direct-Rust rise.
+
+Selective-field creation takes 57.375 versus 50.444 microseconds (+13.7%); direct
+Rust rises 12.6%, while Node rises 4.1%. That path retains a selected-subtree scan
+and an extra depth word. Keep this cost visible rather than attributing all change
+to either implementation or machine variation. Prepared encoding improvements
+remain separately measured; end-to-end timing and final catalog/consumer acceptance
+are still required.
+
+End-to-end raw validation and encoding now has native/Node timing in
+`runtime/results/2026-10-12T10-42-19-906Z.json`: five correctness cases pass, with
+93 samples per engine across three processes. For 2,000 operations, medians are
+0.270250 ms native and 0.321667 ms Node (native/Node duration ratio 0.840).
+The source checks complete exact output each iteration. Node validates with
+JSON.parse then concatenates original text; this is preservation-policy parity,
+not ordinary JSON.stringify or validation-budget equivalence. Startup and
+compilation timing were not included. Final catalog and consumer acceptance remain
+open, including stale parse-hover wording discovered during this review.
