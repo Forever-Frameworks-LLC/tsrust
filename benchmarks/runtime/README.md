@@ -26,13 +26,15 @@ If dependency installation defers package scripts, run `node node_modules/deno/i
 
 Routine checkpoints use `--execution-only --engines=native,node-tsc --only=<workload IDs>` to compare native execution with compiled Node. `--engines` accepts unique known engine IDs and records the selected engines; invalid selections fail before building programs. Omission keeps the full eight-engine matrix. The subset keeps the same correctness cases, warmups, processes and samples per engine.
 
-### Focused JSON encoding evidence
+### Focused JSON encoding and decoding evidence
 
 With pinned Node, absolute `TSRUST`, shared `CARGO_TARGET_DIR` and
 `CARGO_INCREMENTAL=0`, run `node json-encoding-timing.mjs` for the native/direct
 Rust/Node encoding matrix. `--rss` runs a separate macOS process-memory matrix;
 it does not repeat timing. Both verify exact output and remove temporary builds.
 RSS includes startup, input preparation, output observation and runtime overhead.
+`node json-decoding-timing.mjs` and its `--rss` mode cover numeric, Unicode,
+nested/selective, malformed and deep decoding with matching direct Rust baselines.
 Capture stdout as JSON and stderr as the run log; import closed records into
 SQLite and verify exact restoration before deleting loose copies.
 

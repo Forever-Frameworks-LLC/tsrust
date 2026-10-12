@@ -1569,3 +1569,43 @@ SQLite records: `tsrust-json-rss-0debe317.json`, matching log, and
 includes exact input/source/driver/helper hashes and per-process values. This closes
 encoding RSS coverage for these authored shapes; decoding and streaming RSS,
 remaining latency coverage, public raw fragments and installed refresh remain open.
+
+### Decoding latency and peak RSS
+
+The decoding harness reuses the ABI-checked allocation adapters and independent
+shape/checksum oracles. Twelve kinds cover numeric and Unicode arrays, nested and
+selective records, malformed syntax, typed mismatches and 32-level dynamic arrays.
+Timing sizes 0/1/1000 use three fresh processes per engine, eight warmup batches,
+31 measured batches of 100 operations, plus separate first-operation latency.
+The completed matrix contains 324 process samples, 10,044 batches and 1,004,400
+measured decodes. Input preparation and output observation remain outside timers;
+replacement/disposal and failure-error construction/disposal remain inside.
+
+At size 1000, median microseconds per operation (native/direct Rust/Node):
+- Numeric dynamic: 10.56/8.80/5.38; typed: 15.62/6.58/6.14.
+- Unicode dynamic: 84.18/68.14/46.17; typed: 121.55/68.74/48.01.
+- Nested dynamic: 59.65/49.86/32.67; typed: 54.78/44.92/35.37.
+- Selective dynamic: 309.70/259.08/186.08; typed: 192.39/91.60/189.06.
+- Malformed dynamic: 40.93/27.47/18.65; typed: 16.76/26.28/18.43.
+- Typed mismatch: 46.60/26.42/17.05; deep dynamic: 13.34/10.26/6.86.
+
+Native enforces bounded JSON validation that direct Serde does not. Typed decoding
+prevalidates syntax/depth/numbers and directly deserializes without an intermediate
+dynamic tree. This costs time on valid input but rejects malformed input without
+building the typed result. Review any future fused validation against these exact
+error, number and allocation contracts; do not remove checks merely to match Serde.
+Selective typed results retain only requested fields; dynamic results retain the
+whole tree. Compare each with its matching baseline, not with different retention.
+
+Separate RSS sizes 0/1/10000 provide another 324 process samples, no timed batches.
+Whole-process peaks include startup, input setup, retained output and checksum
+observers. At size 10000 native/direct Rust peaks in MiB were numeric typed
+2.12/2.09, Unicode typed 3.42/3.39, nested typed 2.75/2.83, selective typed
+4.20/4.28 and selective dynamic 13.56/13.58. Node process peaks ranged about
+44–62 MiB; runtime and observer costs are included, not serializer-only memory.
+
+SQLite evidence uses prefix `tsrust-json-decoding-` and suffix `-ec9c4b41`:
+`timing` and `rss` JSON/log pairs, `audit` JSON plus its executable Python source,
+and red/check/format logs. Eleven focused adapter/driver tests pass. Source and
+input hashes and individual measurements remain immutable. Streaming direct-Rust
+latency/RSS, public raw fragments and final installed consumers remain open.
