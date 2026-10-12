@@ -183,3 +183,90 @@ impl<'de> serde::de::DeserializeSeed<'de> for ValidateKey<'_>{
   decoder.deserialize_str(Key)
  }
 }
+
+#[cfg(test)]
+mod encoding_tests {
+ use super::*;
+ struct Record<'a>{name:&'a str,values:&'a [i64],active:bool}
+ impl serde::Serialize for Record<'_>{
+  fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
+   use serde::ser::SerializeMap;
+   let mut map=serializer.serialize_map(Some(3))?;
+   map.serialize_entry("active",&self.active)?;
+   map.serialize_entry("name",self.name)?;
+   map.serialize_entry("values",self.values)?;
+   map.end()
+  }
+ }
+ #[test]
+ fn direct_typed_encoding_borrows_records_and_preserves_integer_bits(){
+  let name=String::from("hi\n😀");let values=vec![i64::MIN,i64::MAX];
+  let record=Record{name:&name,values:&values,active:true};
+  let expected="{\"active\":true,\"name\":\"hi\\n😀\",\"values\":[-9223372036854775808,9223372036854775807]}";
+  assert_eq!(encode(&record,expected.len()).unwrap(),expected);
+  assert_eq!(name,"hi\n😀");assert_eq!(values,vec![i64::MIN,i64::MAX]);
+  let error=encode(&record,expected.len()-1).unwrap_err();assert_eq!(error.code,"output-limit");assert!(error.offset<=expected.len()-1);
+  assert_eq!(encode(&record,0).unwrap_err().code,"output-limit");
+ }
+ #[test]
+ fn direct_typed_encoding_stops_at_the_generated_container_bound(){
+  struct Nested{remaining:usize,depth:usize}
+  impl serde::Serialize for Nested{
+   fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
+    use serde::ser::SerializeSeq;
+    if self.remaining==0{return serializer.serialize_i64(7);}
+    let depth=encoding_container::<S::Error>(self.depth)?;
+    let mut sequence=serializer.serialize_seq(Some(1))?;
+    sequence.serialize_element(&Nested{remaining:self.remaining-1,depth})?;
+    sequence.end()
+   }
+  }
+  let expected=format!("{}7{}","[".repeat(64),"]".repeat(64));
+  assert_eq!(encode(&Nested{remaining:64,depth:0},expected.len()).unwrap(),expected);
+  let error=encode(&Nested{remaining:65,depth:0},1024).unwrap_err();
+  assert_eq!(error.code,"depth-limit");assert_eq!(error.offset,64);
+  assert_eq!(encoding_container::<serde_json::Error>(usize::MAX).unwrap_err().to_string(),"tsrust:depth-limit");
+ }
+ #[test]
+ fn direct_typed_encoding_rejects_undefined_at_root_or_in_arrays(){
+  let error=encode(&Undefined,32).unwrap_err();assert_eq!(error.code,"undefined-value");assert_eq!(error.offset,0);
+  let error=encode(&(1,Undefined),32).unwrap_err();assert_eq!(error.code,"undefined-value");assert_eq!(error.offset,3);
+ }
+ #[test]
+ fn direct_typed_encoding_rejects_nonfinite_and_redacts_serializer_errors(){
+  for value in [f64::NAN,f64::INFINITY,f64::NEG_INFINITY]{assert_eq!(encode(&FiniteNumber(value),32).unwrap_err().code,"number-nonfinite");}
+  assert_eq!(encode(&FiniteNumber(-0.0),32).unwrap(),"-0.0");
+  struct Bad;
+  impl serde::Serialize for Bad{fn serialize<S:serde::Serializer>(&self,_:S)->Result<S::Ok,S::Error>{Err(serde::ser::Error::custom("secret content"))}}
+  let error=encode(&Bad,32).unwrap_err();assert_eq!(error.code,"invalid-json");assert!(!error.message.contains("secret"));
+ }
+}
+
+
+/// Generated visitors borrow source fields and write directly into bounded output.
+pub fn encode<T:serde::Serialize + ?Sized>(value:&T,max_bytes:usize)->Result<String,Error>{
+ super::serialize_bounded(value,max_bytes)
+}
+/// Serde's ordinary f64 serialization maps nonfinite values to null. Typed JSON
+/// numbers use this adapter so a value is never silently changed into null.
+pub struct FiniteNumber(pub f64);
+impl serde::Serialize for FiniteNumber{
+ fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
+  if !self.0.is_finite(){return Err(serde::ser::Error::custom("tsrust:number-nonfinite"));}
+  serializer.serialize_f64(self.0)
+ }
+}
+/// Every generated record/array visitor enters before visiting its children.
+/// Scalars retain their parent's depth; the root starts at zero.
+pub fn encoding_container<E:serde::ser::Error>(depth:usize)->Result<usize,E>{
+ if depth>=64{return Err(E::custom("tsrust:depth-limit"));}
+ Ok(depth+1)
+}
+
+/// Object visitors omit undefined fields. All other positions reject them.
+pub struct Undefined;
+impl serde::Serialize for Undefined{
+ fn serialize<S:serde::Serializer>(&self,_:S)->Result<S::Ok,S::Error>{
+  Err(serde::ser::Error::custom("tsrust:undefined-value"))
+ }
+}

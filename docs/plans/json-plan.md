@@ -76,7 +76,7 @@ The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
 The public dynamic slice now covers checked extraction and scalar/container construction.
-Typed conversion remains pending. Null is a JSON
+Typed decoding has focused source acceptance; public typed encoding remains pending. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
 Errors now cross the public Result boundary as JsonError records containing code,
 message and a byte offset. Their editor documentation and examples are checked.
@@ -870,3 +870,31 @@ claimed. Installed consumers remain at 818459f3 until the next refresh.
 Next: direct typed encoding, typed JSONC/JSONL and bounded writer integration,
 opt-in raw/borrowed fragments, then the complete S10 allocation/performance and
 regression milestone. The broader S11–S21 roadmap is unchanged.
+
+### Direct typed encoder backend
+
+A private serialization boundary now writes borrowed typed fields directly to the
+same bounded UTF-8 output sink used by dynamic stringify. It does not construct a
+JsonValue tree. The sink reports output-limit without returning partial output;
+unknown serializer errors retain only a redacted invalid-json error and byte offset.
+
+Generated number visitors must use FiniteNumber: ordinary Serde floating-point
+serialization substitutes null for nonfinite numbers, which is not the approved
+checked contract. This adapter preserves finite values and negative zero and
+returns the existing number-nonfinite code for NaN or infinity. Generated container
+visitors must call encoding_container before visiting children; the root starts
+at depth zero and the 65th container returns depth-limit. Scalars do not consume
+a container level. The generic backend cannot enforce these compiler visitor
+obligations by itself; public integration and its rejection tests remain required.
+
+Focused private tests cover borrowed records and integer arrays, signed 64-bit
+boundaries, Unicode and escaped byte counts, exact output caps, negative zero,
+nonfinite values, redacted failures and the 64/65-container boundary. The existing
+dynamic output-budget test and a generated native namespace/limits witness pass.
+Evidence uses tsrust-json-encode-*-9493d256 in SQLite. This is backend acceptance
+only, not public typed stringify, editor, workload or measurement acceptance.
+
+Public integration is next. The owner approved omitting undefined object fields
+and rejecting undefined array entries or root values. No implicit null replacement
+is allowed. Generated object visitors skip absent fields; array/root visitors use
+the private rejection adapter and report undefined-value. This decision is settled.

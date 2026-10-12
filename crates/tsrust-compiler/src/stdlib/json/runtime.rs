@@ -24,6 +24,7 @@ impl std::error::Error for Error {}
 fn message(code: &str) -> &'static str {
     match code {
         "allocation" => "Unable to allocate bounded JSON storage",
+        "undefined-value" => "JSON cannot encode undefined at this position",
         "shape-mismatch" => "JSON value does not match the requested type",
         "expected-boolean" => "Expected a JSON boolean",
         "expected-number" => "Expected a JSON number",
@@ -125,6 +126,11 @@ pub fn parse_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
 }
 
 pub fn stringify(value: &Value, max_bytes: usize) -> Result<std::string::String, Error> {
+    serialize_bounded(value,max_bytes)
+}
+
+/// Shared bounded output for dynamic values and compiler-generated typed visitors.
+fn serialize_bounded<T:serde::Serialize + ?Sized>(value:&T,max_bytes:usize)->Result<std::string::String,Error> {
     struct Output { bytes: Vec<u8>, limit: usize, exceeded: bool }
     impl std::io::Write for Output {
         fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
@@ -134,8 +140,16 @@ pub fn stringify(value: &Value, max_bytes: usize) -> Result<std::string::String,
         fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
     }
     let mut output=Output{bytes:Vec::new(),limit:max_bytes,exceeded:false};
-    if serde_json::to_writer(&mut output,value).is_err() {
-        return Err(failure(if output.exceeded {"output-limit"} else {"invalid-json"},output.bytes.len()));
+    if let Err(error)=serde_json::to_writer(&mut output,value) {
+        let code=if output.exceeded {"output-limit"} else {
+            match error.to_string().as_str() {
+                "tsrust:number-nonfinite"=>"number-nonfinite",
+                "tsrust:depth-limit"=>"depth-limit",
+                "tsrust:undefined-value"=>"undefined-value",
+                _=>"invalid-json",
+            }
+        };
+        return Err(failure(code,output.bytes.len()));
     }
     Ok(std::string::String::from_utf8(output.bytes).expect("JSON serialization emits UTF-8"))
 }
