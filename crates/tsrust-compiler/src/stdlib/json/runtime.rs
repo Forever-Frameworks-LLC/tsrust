@@ -27,6 +27,9 @@ fn message(code: &str) -> &'static str {
         "expected-boolean" => "Expected a JSON boolean",
         "expected-number" => "Expected a JSON number",
         "expected-string" => "Expected a JSON string",
+        "expected-object" => "Expected a JSON object",
+        "expected-array" => "Expected a JSON array",
+        "index-range" => "JSON array index must be nonnegative",
         "integer-fractional" => "JSON number has a fractional part",
         "integer-range" => "JSON number is outside the signed integer range",
         "number-precision" => "JSON integer cannot be represented exactly as a number",
@@ -172,6 +175,33 @@ pub fn read_string(value: &Value) -> Result<&str, Error> {
 }
 pub fn take_string(value: Value) -> Result<String, Error> {
     match value { Value::String(text) => Ok(text), _ => Err(failure("expected-string", 0)) }
+}
+
+
+/// Missing children are None; a present JSON null remains Some(Value::Null).
+/// The borrow is tied only to the container, not to the lookup key.
+pub fn get_key<'a>(value: &'a Value, key: &str) -> Result<Option<&'a Value>, Error> {
+    let Value::Object(object) = value else { return Err(failure("expected-object", 0)); };
+    Ok(object.get(key))
+}
+pub fn get_index(value: &Value, index: i64) -> Result<Option<&Value>, Error> {
+    let Value::Array(array) = value else { return Err(failure("expected-array", 0)); };
+    if index < 0 { return Err(failure("index-range", 0)); }
+    // An index beyond the host address space is absent, not a truncated index.
+    Ok(usize::try_from(index).ok().and_then(|index| array.get(index)))
+}
+/// Consumes the entire container; only the selected child survives. No clone.
+pub fn take_key(value: Value, key: &str) -> Result<Option<Value>, Error> {
+    let Value::Object(mut object) = value else { return Err(failure("expected-object", 0)); };
+    Ok(object.remove(key))
+}
+pub fn take_index(value: Value, index: i64) -> Result<Option<Value>, Error> {
+    let Value::Array(mut array) = value else { return Err(failure("expected-array", 0)); };
+    if index < 0 { return Err(failure("index-range", 0)); }
+    let Some(index) = usize::try_from(index).ok().filter(|index| *index < array.len()) else { return Ok(None); };
+    // Order is unobservable after consuming the parent. Avoid shifting children
+    // that are about to be dropped; the selected child's allocation is retained.
+    Ok(Some(array.swap_remove(index)))
 }
 
 struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str> }

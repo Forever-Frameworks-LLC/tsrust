@@ -73,7 +73,7 @@ can override them.
 The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
-The initial public slice documents these rules; numeric extraction/construction
+The public scalar slice now covers checked extraction. Numeric construction
 and typed conversion remain pending. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
 Errors now cross the public Result boundary as JsonError records containing code,
@@ -446,3 +446,33 @@ identities. The workload remains explicitly unmeasured. Focused registration,
 adapter and report checks are retained under `tsrust-s10-json-benchmark-*`.
 Allocation profiling, direct Rust comparison and the remaining JSON workload
 matrix still need implementation before family measurement acceptance.
+
+## Private container selection foundation
+
+The backend now distinguishes absent children from present JSON null, reports
+wrong container kinds explicitly, and rejects negative array indices. Positive
+out-of-bounds indices return absence, including indices beyond the host address
+space. Object keys use exact UTF-8 strings with no coercion. Selection errors use
+zero offsets and fixed messages without source contents.
+
+Read access returns a reference tied to the container, independently of the key
+argument's lifetime. Consuming access moves only the selected child and drops the
+remaining container, including on absence or error. Array selection does not shift
+siblings that will immediately be dropped. Tests verify that selected string
+allocations retain their original addresses in both borrowed and consuming paths.
+No clone, shared owner, unsafe code or lifetime erasure is introduced.
+
+This is private backend acceptance only. Public borrowed access must first extend
+the native return contract to express an optional borrowed payload inside Result;
+the current contract only recognizes direct named payloads and named Result Ok
+payloads. Do not substitute an owned clone or collapse absence into JSON null to
+avoid this integration. Public binding, editor, lifetime rejection and matched
+workload acceptance remain required before exposing child APIs.
+
+SQLite evidence: tsrust-json-containers-red.log, the initial compile repair in
+tsrust-json-containers-green.log,
+tsrust-json-containers-green-2.log, tsrust-json-containers-final.log and
+tsrust-json-containers-format.log.
+The green batch runs ten container/backend and ten scalar/backend checks; the
+seven shared parser tests run in both harnesses. The final affected harness passes
+ten checks. No benchmark timing or installed-consumer acceptance is claimed.
