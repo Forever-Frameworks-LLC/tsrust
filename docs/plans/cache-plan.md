@@ -126,3 +126,32 @@ exclusive owner loan even though the returned value itself is read-only. Do not
 classify these as ordinary Map.get reads or allow an operation that would fail
 only in native compilation. These checks establish the backend boundary; they
 do not yet prove Tsrust diagnostics or source-level lifetime inference.
+
+## Proposed public contract for review
+
+The following is a proposal, not an accepted or available source API. Public
+integration must not silently infer approval from the internal backend behavior.
+
+| Operation | Proposed observable behavior |
+| --- | --- |
+| `new LruCache<K,V>(capacity)` from `std:cache` | Positive integer item capacity; invalid capacity raises a checked runtime error. No default expiration and no background task. |
+| `get(key)` | Purges expired entries, updates recency and returns a read-only borrowed `V | undefined`. |
+| `peek(key)` | Purges expired entries and returns the same borrowed result without updating recency. |
+| `set(key, value, ttlMs?)` | Takes owned key/value. Optional TTL is a positive integer number of milliseconds from insertion, using the monotonic clock. Reads do not extend it. |
+| Successful set result | `Ok` contains the displaced owned key/value entry, or undefined if nothing was displaced. Expired entries are disposed before live-entry capacity eviction. |
+| Failed set result | `Err` contains a stable error code and the original owned input key/value. Invalid TTL or deadline overflow leaves the cache unchanged. |
+| `remove(key)` | Purges expiration and transfers the live key/value entry, or returns undefined. |
+| `size()` | Purges expiration and reports the number of live entries. It is a method because it can perform cleanup. |
+| `clear()` | Disposes all retained entries. Scope exit also disposes them deterministically. |
+
+Get/peek retain an exclusive cache-owner loan until the borrowed result's last
+use. That prevents further cache operations during the loan, even another lookup.
+The returned value itself remains read-only. Explicit clone(value), when supported,
+provides an independent value; remove transfers ownership without cloning. No
+automatic sharing, hidden clone, concurrent access or background expiration is
+introduced. Item capacity does not promise a payload-byte bound.
+
+The ownership restriction and operation-driven cleanup are the material review
+decision. After that decision, implement the complete constructor/operations as
+one source integration family with diagnostics, catalog help, examples, source
+ownership tests and matched workloads. Backend evidence alone cannot close S19.
