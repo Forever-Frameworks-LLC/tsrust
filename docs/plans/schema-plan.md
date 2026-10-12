@@ -2011,3 +2011,10 @@ possibly configured at module scope, with workers borrowed and returned through 
 pool. This is a preference for discussion, not settled API or lifecycle semantics.
 Discuss pool configuration, local versus global ownership, bounded admission, job
 settlement, cooperative cancellation and synchronized state during S12 design.
+
+
+The owner has now prioritized globals first, including checker and IntelliSense,
+then continuation of S11. Follow [the module-state plan](module-state-plan.md).
+Thread-pool discussion is explicitly deferred until after async implementation.
+Earlier suggestions for mandatory global pools, batch and state APIs remain
+unapproved. Diagnostic-option drafts are saved at `8d47c02b` and remain unverified.

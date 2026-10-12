@@ -98,7 +98,7 @@ impl SourceIndex {
                 self.generic_display_names.insert(owner.clone(),display);
                 if !self.symbols.iter().any(|symbol|symbol.owner.as_ref()==Some(&owner)) {
                     for (name,optional,ty) in fields {
-                        self.symbols.push(Symbol { signature:format!("{name}{}: {ty}",if optional {"?"}else{""}),name,kind:8,span:Span::new(0,0),extent:Span::new(0,0),scope:0,ty,docs:"Inferred from an object schema.".into(),parameters:vec![],owner:Some(owner.clone()) });
+                        self.symbols.push(Symbol { signature:format!("{name}{}: {ty}",if optional {"?"}else{""}),name,kind:8,span:Span::new(0,0),extent:Span::new(0,0),scope:0,ty,docs:"Inferred from checked object fields.".into(),parameters:vec![],owner:Some(owner.clone()) });
                     }
                 }
                 Some(owner)
@@ -299,7 +299,41 @@ impl SourceIndex {
         self.checked_method_results = finish(results);
         self.refresh_result_match_bindings();
         self.refresh_checked_initializers();
+        self.apply_module_value_facts(graph, current, facts, dependencies);
         self.materialize_generic_fields();
+    }
+
+    /// Use the owning declaration's checked type for both local and imported
+    /// bindings. Do not infer imported schema values from a textual type label.
+    fn apply_module_value_facts(
+        &mut self,
+        graph: &ProjectGraph,
+        current: &SourceId,
+        facts: &ProjectCheckedTypeFacts,
+        dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
+    ) {
+        for fact in &facts.module_values {
+            let mut locations = Vec::new();
+            if fact.location.source == *current { locations.push(fact.location.span); }
+            for import in &graph.modules[current].imports {
+                if import.target.as_ref() != Some(&fact.location.source) { continue; }
+                let dependency = &graph.modules[&fact.location.source];
+                for binding in &import.bindings {
+                    let declared_name = dependency.source.text.get(fact.location.span.start..fact.location.span.end);
+                    if declared_name == Some(dependency.exported_local(&binding.exported)) {
+                        locations.push(binding.span);
+                    }
+                }
+            }
+            if locations.is_empty() { continue; }
+            let Some(ty) = self.project_type_spelling(graph, current, &fact.ty, dependencies) else { continue; };
+            let display = self.display_type(&ty);
+            for symbol in self.symbols.iter_mut().filter(|symbol| symbol.kind == 13 && locations.contains(&symbol.span)) {
+                let keyword = if symbol.signature.starts_with("let ") { "let" } else { "const" };
+                symbol.signature = format!("{keyword} {}: {display}", symbol.name);
+                symbol.ty = ty.clone();
+            }
+        }
     }
 
     pub(crate) fn apply_project_generic_facts(

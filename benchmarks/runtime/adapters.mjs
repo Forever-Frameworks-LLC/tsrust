@@ -1,3 +1,4 @@
+import {moduleStateABI,moduleStateDriver} from './module-state-contract.mjs';
 import {isCopying,assertCopyingPolicy,validateCopyingObservation} from './copying-array-observation.mjs';
 import {verifyCopyingResultABI,pruneCopyingContainers,copyingRecordObserver} from './copying-array-result-abi.mjs';
 import {isRange,assertRangePolicy,validateRangeObservation} from './range-mutation-observation.mjs';
@@ -39,6 +40,7 @@ function copyingNativeObserver(w,emitted,source){const binding=verifyCopyingResu
 // Argument/result hooks only; authored workload bodies are never rewritten.
 export const rustResults = {'boolean[][]': 'Array<NumericArray<bool>>', 'number': 'f64', 'number[]': 'Vec<f64>', 'boolean[]': 'NumericArray<bool>', 'number[][]': 'Vec<Vec<f64>>', 'string[][]': 'Vec<Array<String>>', 'int[][][]': 'Vec<Array<NumericArray<i64>>>', 'int': 'i64', 'string[]': 'Array<String>', 'int[]': 'NumericArray<i64>', 'int[][]': 'Array<NumericArray<i64>>'};
 export function assertABI(emitted, workload, {source} = {}) {
+ if(workload.family==='module-state')return moduleStateABI(emitted,workload,source);
  if(isCopying(workload))return verifyCopyingResultABI(emitted,workload,source);
  if(isRange(workload))return verifyRangeResultABI(emitted,workload,source);
  if(isHigher(workload))return verifyHigherResultABI(emitted,workload,source);
@@ -98,6 +100,7 @@ export function rustChecksum(workload, {probe = false,emitted,source} = {}) {
  return `fn ${name}(values: ${parameter}) -> i64 { let mut result = 0_i64; ${body} result }`;
 }
 export function adaptRustDriver(driver, workload, {probe = false,emitted,source} = {}) {
+ if(workload.family==='module-state')return moduleStateDriver(driver,workload,emitted,source);
  if(isCopying(workload))verifyCopyingResultABI(emitted,workload,source);
  if(isRange(workload))verifyRangeResultABI(emitted,workload,source);
  if(isHigher(workload))verifyHigherResultABI(emitted,workload,source);

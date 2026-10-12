@@ -216,6 +216,7 @@ impl Contexts {
             slots.push(slot);
         }
         let mut context = capture_context::project(outer, &slots);
+        capture_context::retain_module_references(&mut context, &program.module_owner_bindings);
         // Transitive dependencies need typed slots, but must not introduce their
         // spellings into this body's lexical name map. A peer can capture a
         // different binding with the same spelling as this function's parameter.
@@ -238,7 +239,7 @@ impl Contexts {
         let Some(source) = self.prepared.get(&index) else { return Vec::new(); };
         self.identities[&index].iter().enumerate().map(|(inner, &binding)| {
             let slot = parameter_count + inner;
-            let initial = if source.bindings[inner].ty.is_copy() { Mode::Copy } else { Mode::Read };
+            let initial = source.bindings[inner].mode;
             let mode = checked.map_or_else(|| assumed.mode(index, binding, initial), |function| function.bindings[slot].mode);
             named_capture_access::Access { binding, slot, mode }
         }).collect()

@@ -1,3 +1,4 @@
+import {assertModuleStateSource} from './module-state-contract.mjs';
 import {assertMonotonicTimeSource} from './monotonic-time-contract.mjs';
 import {environmentFor,assertEnvironmentSource} from './environment-contract.mjs';
 import {assertCollectionSource} from './collections-contract.mjs';
@@ -178,6 +179,7 @@ const rows = [];
 for (const workload of workloads) {
  const sourcePath = path.join(here, workload.source ?? `workloads/${workload.id}.tsr`);
  const source = fs.readFileSync(sourcePath);
+ if(workload.family==='module-state'){assertModuleStateSource(source.toString(),workload,'native');assertModuleStateSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload,'typescript');}
  if(lexicalPathIds.includes(workload.id)){assertLexicalPathSource(source.toString(),workload);assertLexicalPathSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
  if(osIdentityIds.includes(workload.id)){assertOsIdentitySource(source.toString(),workload);assertOsIdentitySource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}
  if(pathJoinIds.includes(workload.id)){assertPathJoinSource(source.toString(),workload);assertPathJoinSource(fs.readFileSync(path.join(here,workload.counterpart),'utf8'),workload);}

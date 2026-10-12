@@ -24,3 +24,5 @@ pub(crate) mod native_view_origin_remap;
 pub(crate) mod polymorphic_callable_storage;
 pub(crate) mod polymorphic_invocation_plans;
 pub(crate) mod environment_lifetimes;
+
+pub(crate) mod module_state;

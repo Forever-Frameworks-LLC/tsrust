@@ -1,0 +1,22 @@
+let completed = 0;
+
+function increment() {
+  completed++;
+}
+
+function workload(n: int, seed: int): int {
+  const before = completed;
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    increment();
+    checksum += 3;
+    i++;
+  }
+
+  if (completed - before !== n) {
+    throw 'Module state was not retained';
+  }
+
+  return checksum;
+}

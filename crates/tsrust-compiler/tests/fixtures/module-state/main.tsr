@@ -1,0 +1,21 @@
+import { strictEqual } from 'std:testing';
+import { person, settings, requests, recordRequest, configure } from './state.tsr';
+
+function main() {
+  recordRequest();
+  recordRequest();
+  configure(5);
+  strictEqual(requests, 2);
+  strictEqual(settings.retries, 5);
+  const copy = clone(settings);
+  copy.retries = 9;
+  strictEqual(settings.retries, 5);
+  match (person.safeParseJson('{"name":"Ada","age":30}')) {
+    Ok(value) => {
+      strictEqual(value.name, 'Ada');
+    },
+    Err(error) => {
+      throw 'Expected valid person';
+    }
+  }
+}

@@ -76,6 +76,8 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    /// Program-owned declarations, with source identity preserved across imports.
+    pub module_values: Vec<ProjectExpressionTypeInfo>,
     /// Enum identities retain their declaration across import aliases.
     pub enum_scalars: Vec<(ProjectType, String)>,
     pub json_string_receivers: Vec<SourceLocation>,
@@ -185,7 +187,14 @@ impl ProjectAnalysis {
             })
         }).collect();
         let enum_scalars=self.analysis.program.records.iter().enumerate().filter_map(|(id,record)|{let definition=record.enum_definition.as_ref()?;let ty=self.project_type(Type::Enum(id,definition.kind),&names)?;Some((ty,if definition.kind==crate::syntax::EnumKind::String{"string"}else{"number"}.to_owned()))}).collect();
+        let module_values = self.analysis.program.functions.iter().find(|function| function.name == "main")
+            .into_iter().flat_map(|function| &function.bindings).filter_map(|binding| {
+                let span = binding.declaration_span?;
+                if !self.analysis.program.module_owner_bindings.contains(&span) { return None; }
+                Some(ProjectExpressionTypeInfo { location: self.source_location(span)?, ty: self.project_type(binding.ty, &names)? })
+            }).collect();
         ProjectCheckedTypeFacts {
+            module_values,
             enum_scalars,
             json_string_receivers: facts.json_string_receivers.iter().filter_map(|span|self.source_location(*span)).collect(),
             generic_nominals: self.analysis.program.deferred_generic_nominals.iter().filter_map(|(span, declaration)|
@@ -408,7 +417,7 @@ impl ProjectAnalysis {
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
         }
-        if record.name.text.starts_with("@schema:decode-error-")||record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
+        if record.name.text.starts_with("@module:object:")||record.name.text.starts_with("@schema:decode-error-")||record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
             return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), field.optional, self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
         }
         let declaration = self.source_location(

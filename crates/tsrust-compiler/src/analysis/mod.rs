@@ -290,6 +290,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) module_owner_bindings: Vec<Span>,
     pub(crate) schema_choices: crate::stdlib::schema::plans::Choices,
     pub(crate) schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
     pub(crate) schema_factories: HashMap<Type,usize>,
@@ -574,6 +575,7 @@ pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
 
 // Incomplete capture layouts stay private, even after typed flow checking.
 fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagnostic> {
+    crate::callables::module_state::validate(&checked)?;
     native_view_calls::validate_closures(&checked.closures)?;
     checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
     checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
@@ -736,6 +738,7 @@ struct Analyzer {
     /// sets this.
     speculative_access_run: bool,
     builtin_literals: bool,
+    module_literal_scope: Option<Span>,
     observing_values: bool,
     recursive_callbacks: HashSet<usize>,
     depth: usize,
@@ -1523,6 +1526,11 @@ fn remap_function_closures(
 
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
+        // Never silently drop preserved initializers while module ownership
+        // lowering is under construction.
+        if let Some(statement) = program.module_bindings.first() {
+            return Err(Diagnostic::new("module-state", "Module storage requires program ownership lowering.", statement.span));
+        }
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
         if program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
@@ -1664,6 +1672,7 @@ impl Analyzer {
             effects_only: false,
             speculative_access_run: false,
             builtin_literals: false,
+            module_literal_scope: None,
             observing_values: false,
             recursive_callbacks: HashSet::new(),
             depth: 0,
@@ -2188,6 +2197,7 @@ impl Analyzer {
         visible.sort_unstable();
         visible.dedup();
         let mut context = capture_context::project(outer, &visible);
+        capture_context::retain_module_references(&mut context, &self.program.module_owner_bindings);
         // Preserve lexical aliases as well as binding declaration names. Adapter
         // wrappers introduce a private alias to avoid parameter-name shadowing.
         context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
@@ -2339,7 +2349,14 @@ impl Analyzer {
                     return Err(Diagnostic::new("callback-escape",
                         "An owned escaping closure cannot retain a borrowed callback input. Use an owned callback parameter or keep the borrowing closure in the caller's scope.", span));
                 }
-                let storage = if binding.ty.is_copy() {
+                let module_capture = self.program.module_owner_bindings.iter()
+                    .any(|declaration| context.source_bindings.get(&declaration.start) == Some(&inner));
+                let storage = if module_capture {
+                    if access == Mode::Consume {
+                        return Err(Diagnostic::new("module-state-consume", "A callback cannot consume program-owned module storage; use explicit clone().", usage));
+                    }
+                    access.max(Mode::Read)
+                } else if binding.ty.is_copy() {
                     if access == Mode::Mutate && !escapes {
                         Mode::Mutate
                     } else {
@@ -3429,6 +3446,7 @@ impl Analyzer {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
         let checked = CheckedProgram {
+            module_owner_bindings: self.program.module_owner_bindings,
             schema_choices: self.schema_choices,
             schema_pipelines: self.schema_pipelines,
             schema_factories: self.schema_factories,
@@ -5718,7 +5736,13 @@ impl Analyzer {
                     annotation,
                     value,
                     binding,
-                } => self.let_statement(context, *rebindable, name, annotation, value, binding)?,
+                } => {
+                    let previous = self.module_literal_scope;
+                    self.module_literal_scope = self.program.module_owner_bindings.contains(&name.span).then_some(value.span);
+                    let checked = self.let_statement(context, *rebindable, name, annotation, value, binding);
+                    self.module_literal_scope = previous;
+                    checked?;
+                },
                 StmtKind::Assign {
                     target,
                     value,
@@ -5896,6 +5920,9 @@ impl Analyzer {
         }
         let native_loans = Self::native_view_value_loans(context, value)?;
         let id = Self::bind(context, name, actual, false)?;
+        if self.program.module_owner_bindings.contains(&name.span) {
+            context.bindings[id].declaration_span = Some(name.span);
+        }
         if !native_loans.is_empty() || (self.native_borrow_types && self.native_shape_contains_view(actual)) {
             self.reject_recursive_native_view_storage(actual, name.span)?;
             context.native_view_declaration_depths.insert(id, context.lexical_scopes.len());
@@ -9966,7 +9993,8 @@ impl Analyzer {
         expected: Option<Type>,
         span: Span,
     ) -> Result<Type, Diagnostic> {
-        if expected.is_none() && self.builtin_literals {
+        let module_literal = self.module_literal_scope.is_some_and(|scope| scope.start <= span.start && span.end <= scope.end);
+        if expected.is_none() && (self.builtin_literals || module_literal) {
             let mut inferred = Vec::new();
             let mut types = HashMap::new();
             for (key, value) in fields.iter_mut() {
@@ -9978,7 +10006,7 @@ impl Analyzer {
                     ));
                 }
                 let actual = self.expression(context, value, Mode::Consume, loans, None)?;
-                if !matches!(
+                if !module_literal && !matches!(
                     actual,
                     Type::Int
                         | Type::Number
@@ -10012,11 +10040,13 @@ impl Analyzer {
                 });
             }
             let id = self.program.records.len();
+            let name = if module_literal { format!("@module:object:{id}") } else { format!("BuiltinObject{id}") };
+            self.record_names.insert(name.clone(), id);
             self.program.records.push(Record {
             native_type: None, map_definition: None, set_definition: None,                enum_definition: None,literal_definition:None,
                 application: None,
                 name: Token {
-                    text: format!("BuiltinObject{id}"),
+                    text: name,
                     span,
                     kind: TokenKind::Name,
                 },

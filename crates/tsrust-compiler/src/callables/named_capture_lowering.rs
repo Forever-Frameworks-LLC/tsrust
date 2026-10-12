@@ -94,7 +94,7 @@ pub(crate) fn prepare(checked: &mut CheckedProgram) -> Result<(), Diagnostic> {
     for &function in &capturing {
         for access in checked.named_capture_access[&function].clone() {
             let binding = &mut checked.functions[function].bindings[access.slot];
-            if binding.ty.is_copy() && access.mode == Mode::Mutate {
+            if binding.ty.is_copy() && matches!(access.mode, Mode::Read | Mode::Mutate) {
                 binding.capture_reference = true;
             }
         }

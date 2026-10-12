@@ -185,3 +185,9 @@ duplicated logic; remove obsolete code; resolve Rust warnings without blanket
 suppression; and reconcile documentation. Preserve observable behavior and protected
 owner files. Batch regressions after the cleanup section is complete. Keep new S11
 code organized during implementation rather than relying on this later pass.
+
+
+Current priority: implement program-owned module let/const and exports with complete
+checker/editor integration before resuming S11; see [module state](plans/module-state-plan.md).
+Revisit thread-pool API design after async implementation, as requested by the owner.
+Do not treat earlier proposed pool APIs or mandatory global pools as approved.

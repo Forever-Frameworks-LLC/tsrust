@@ -2864,3 +2864,42 @@ fn collection_schema_types_and_json_completion_follow_input_contracts(){
     let help=ask(&index,&entry,"record(s.int())","textDocument/hover");
     assert!(help.to_string().contains("arbitrary string keys"),"{help}");
 }
+
+#[test]
+fn imported_module_values_keep_inferred_types_and_source_definitions() {
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let dependency = "file:///tsrust-intelligence/state.tsr";
+    let entry = "import {settings,count} from './state.tsr';function main(){console.log(settings.retries);console.log(count);}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id(dependency).unwrap(), 1, "export const settings={retries:3};export let count=0;".into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "count);", "textDocument/hover");
+    assert!(hover.to_string().contains("int"), "{hover}");
+    let definition = ask(&index, entry, "settings.retries", "textDocument/definition");
+    assert!(definition.to_string().contains("state.tsr"), "{definition}");
+    workspace.open(source_id(dependency).unwrap(), 2, "export const settings={retries:3};export let count='ready';".into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let hover = ask(&ProjectIndex::checked(&checked), entry, "count);", "textDocument/hover");
+    assert!(hover.to_string().contains("string"), "{hover}");
+}
+
+#[test]
+fn imported_module_schema_preserves_checked_output_and_methods() {
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import {person as validator} from './schema.tsr';function main(){const result=validator.safeParseJson('{\"name\":\"Ada\"}');}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/schema.tsr").unwrap(), 1,
+        "import {s} from 'std:schema';export const person=s.object({name:s.string()});".into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    assert!(!checked.checked_type_facts().module_values.is_empty(), "Missing checked module types: {:?}", checked.checked_type_facts());
+    let hover = ask(&index, entry, "validator.safeParseJson", "textDocument/hover");
+    assert!(hover.to_string().contains("validator") && hover.to_string().contains("Schema"), "{hover}; {:?}", checked.checked_type_facts().module_values);
+    let completion = ask(&index, entry, "safeParseJson(", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item| item["label"] == "safeParseJson"), "{completion}");
+    let definition = ask(&index, entry, "validator.safeParseJson", "textDocument/definition");
+    assert!(definition.to_string().contains("schema.tsr"), "{definition}");
+}

@@ -22362,6 +22362,28 @@
       "notes": "Handwritten TypeScript reference. Includes input construction, JSON record decoding and Map/Set collisions. Unmeasured; parity pending.",
       "sourceSha256": "4c6824710f8040db6231f0e98d18c35710569d43f2276d77bf355f89ccec0fbf",
       "counterpartSha256": "64bb06fb4df7bb565e296f671fa3a0d99c48bdeb6517a7366f5b726877fa2018"
+    },
+    {
+      "id": "native_module_state",
+      "category": "module-state",
+      "description": "Program-owned scalar mutation through a module function, retained across invocations",
+      "source": "workloads/native_module_state.tsr",
+      "counterpart": "workloads/native_module_state.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One module counter update with checked per-call delta",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int"
+      ],
+      "family": "module-state",
+      "measured": false,
+      "measurementStatus": "unmeasured-module-state",
+      "specification": "Checksum seed + 3*n; every invocation additionally checks the counter advanced exactly n.",
+      "notes": "Initialization excluded on both sides. Native driver retains the verified scalar owner across warmups/samples; authored workload body unchanged. Untimed parity pending.",
+      "sourceSha256": "e001907ca710bf72cf61072300cef0558dd4f10547ad7a6a44152429f9d0484d",
+      "counterpartSha256": "954b2bdd5cddfd8037837dc8867fd16120c5f393a6a4441bbba6ca6f8056acd8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

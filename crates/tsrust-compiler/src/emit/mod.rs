@@ -7430,12 +7430,12 @@ impl Emitter<'_> {
             .zip(slots)
             .map(|(access, &slot)| {
                 let binding = &fun.bindings[slot];
-                if binding.ty.is_copy() && access.mode == Mode::Mutate {
-                    // A scalar the callee changes: lend the caller's slot.
+                if binding.ty.is_copy() && matches!(access.mode, Mode::Read | Mode::Mutate) {
+                    let reference = if access.mode == Mode::Mutate { "&mut " } else { "&" };
                     return if binding.capture_reference {
-                        format!("&mut *value{slot}")
+                        format!("{reference}*value{slot}")
                     } else {
-                        format!("&mut value{slot}")
+                        format!("{reference}value{slot}")
                     };
                 }
                 let mut name = Expr::new(ExprKind::Name(binding.name.clone()), call.span);

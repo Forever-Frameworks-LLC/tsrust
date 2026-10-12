@@ -120,3 +120,13 @@ mod tests {
         assert_eq!(outer.bindings[view].view_roots, vec![root, hidden]);
     }
 }
+
+/// Module bindings keep live owner identity even when the value is Copy.
+pub(super) fn retain_module_references(context: &mut Context, declarations: &[Span]) {
+    for span in declarations {
+        if let Some(&slot) = context.source_bindings.get(&span.start) {
+            context.bindings[slot].mode = Mode::Read;
+            context.bindings[slot].capture_reference = true;
+        }
+    }
+}

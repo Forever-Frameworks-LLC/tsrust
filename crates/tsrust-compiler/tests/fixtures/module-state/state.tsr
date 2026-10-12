@@ -1,0 +1,19 @@
+import { s } from 'std:schema';
+
+export const person = s.object({
+  name: s.string(), age: s.number()
+});
+
+export const settings = {
+  retries: 3
+};
+
+export let requests = 0;
+
+export function recordRequest() {
+  requests++;
+}
+
+export function configure(retries: int) {
+  settings.retries = retries;
+}

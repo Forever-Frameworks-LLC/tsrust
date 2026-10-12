@@ -1816,6 +1816,9 @@ pub struct Program {
     pub call_type_arguments: Vec<(Span, Vec<crate::type_syntax::ValueAnnotation>)>,
     pub records: Vec<Record>,
     pub functions: Vec<Function>,
+    /// Module-owned declarations in initialization order, before ownership lowering.
+    pub module_bindings: Vec<Stmt>,
+    pub(crate) module_owner_bindings: Vec<Span>,
     /// Expanded `type Name = Type;` declarations of the file. Uses are
     /// already expanded; a project keeps these for importing modules.
     pub(crate) type_aliases: crate::type_aliases::Aliases,
@@ -1852,7 +1855,7 @@ pub(crate) fn parse_test_entry(source: &str) -> Result<Program, Diagnostic> {
 
 /// Parses a module whose imports include type aliases of other modules.
 pub(crate) fn parse_module(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
-    parse_entry_with(source, test_entry, imported, records)
+    parse_raw(source, test_entry, imported, records)
 }
 
 fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases) -> Result<Program, Diagnostic> {
@@ -1861,6 +1864,7 @@ fn parse_entry(source: &str, test_entry: bool, imported: crate::type_aliases::Al
 
 fn parse_entry_with(source: &str, test_entry: bool, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Program, Diagnostic> {
     let mut program = parse_raw(source, test_entry, imported, records)?;
+    crate::callables::module_state::lower(&mut program)?;
     crate::local_functions::resolve(&mut program)?;
     Ok(program)
 }
@@ -2289,6 +2293,8 @@ impl Parser<'_> {
             call_type_arguments: Vec::new(),
             records: Vec::new(),
             functions: Vec::new(),
+            module_bindings: Vec::new(),
+            module_owner_bindings: Vec::new(),
         };
         self.collect_type_aliases()?;
         let mut interface_bases: Vec<(Token, Vec<Token>)> = Vec::new();
@@ -2364,6 +2370,9 @@ impl Parser<'_> {
                 program.records.push(record);
             } else if self.accept("function") {
                 program.functions.push(self.named_function()?);
+            } else if !test_entry && matches!(self.peek().text.as_str(), "let" | "const") {
+                program.module_bindings.push(self.block_statement()?);
+                program.module_bindings.append(&mut self.pending);
             } else if test_entry {
                 registration.push(self.block_statement()?);
                 registration.append(&mut self.pending);

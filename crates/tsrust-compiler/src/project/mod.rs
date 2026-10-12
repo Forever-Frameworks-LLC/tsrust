@@ -302,7 +302,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             && depth > 0
             && token.kind == TokenKind::Name
             && match token.text.as_str() {
-                "export" => tokens.get(i + 1).is_some_and(|next| next.kind == TokenKind::Name && matches!(next.text.as_str(), "function" | "type" | "enum" | "interface"))
+                "export" => tokens.get(i + 1).is_some_and(|next| next.kind == TokenKind::Name && matches!(next.text.as_str(), "function" | "type" | "enum" | "interface" | "const" | "let"))
                     && tokens.get(i + 2).is_some_and(|name| name.kind == TokenKind::Name),
                 "import" => tokens.get(i + 1).is_some_and(|next| next.kind == TokenKind::Symbol && next.text == "{"),
                 _ => false,
@@ -445,18 +445,18 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                     name=next.clone();
                     for byte in &mut bytes[token.span.start..tokens[i+3].span.end] {if !matches!(*byte,b'\n'|b'\r'){*byte=b' ';}}
                     i+=3;
-                } else {return Err(error(id,"module-export","Default exports require a function declaration or a local function name.",next.span));}
+                } else {return Err(error(id,"module-export","Default exports require a function declaration or a local declaration name.",next.span));}
                 exports.insert("default".into(),name.span);default_export=Some(name);
                 i+=1;continue;
             }
             if tokens[i + 1].kind != TokenKind::Name
-                || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface")
+                || !matches!(tokens[i + 1].text.as_str(), "function" | "type" | "enum" | "interface" | "const" | "let")
                 || tokens[i + 2].kind != TokenKind::Name
             {
                 return Err(error(
                     id,
                     "module-export",
-                    "Supported exports are function, type, interface, enum declarations and default functions.",
+                    "Supported exports are function, type, interface, enum, const, let declarations and default functions.",
                     token.span,
                 ));
             }
@@ -484,11 +484,12 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         String::from_utf8(bytes).expect("whitespace replacement preserves UTF-8");
     let mut names = BTreeMap::new();
     let declared = if declarations {
-        let parsed = if is_test_entry(&id.0) { syntax::parse_test_entry(&declaration_source) } else { syntax::parse(&declaration_source) };
+        let parsed = syntax::parse_module(&declaration_source, is_test_entry(&id.0), Default::default(), Default::default());
         let program = parsed.map_err(|e| source_error(id, e))?;
         if let Some(default)=&default_export {
-            if !program.functions.iter().any(|function|function.name.text==default.text) {
-                return Err(error(id,"module-export","Default export must refer to a local function declaration.",default.span));
+            if !program.functions.iter().any(|function|function.name.text==default.text)
+                && !program.module_bindings.iter().any(|statement| matches!(&statement.kind, syntax::StmtKind::Let { name, .. } if name.text == default.text)) {
+                return Err(error(id,"module-export","Default export must refer to a local function or module binding.",default.span));
             }
         }
         program
@@ -501,6 +502,10 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
                     .iter()
                     .map(|function| function.name.clone()),
             )
+            .chain(program.module_bindings.iter().filter_map(|statement| match &statement.kind {
+                syntax::StmtKind::Let { name, .. } => Some(name.clone()),
+                _ => None,
+            }))
             .collect::<Vec<_>>()
     } else {
         // Only top-level declaration names are inspected; bodies can be incomplete.
@@ -509,7 +514,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         for pair in tokens.windows(2) {
             if depth == 0
                 && pair[0].kind == TokenKind::Name
-                && matches!(pair[0].text.as_str(), "function" | "type" | "enum" | "interface")
+                && matches!(pair[0].text.as_str(), "function" | "type" | "enum" | "interface" | "const" | "let")
                 && pair[1].kind == TokenKind::Name
             {
                 declared.push(pair[1].clone());

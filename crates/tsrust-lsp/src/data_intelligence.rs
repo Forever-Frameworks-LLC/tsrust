@@ -38,7 +38,7 @@ impl SourceIndex {
         let mut symbol = declaration.clone();
         symbol.name = local.into(); symbol.span = span; symbol.extent = span;
         symbol.ty = remap_imported_type(&symbol.ty, &types).unwrap_or_default();
-        symbol.signature = declaration.signature.replacen("const @data-owner:", &format!("const {local}:"), 1);
+        symbol.signature = declaration.signature.replacen(&format!(" {}", declaration.name), &format!(" {local}"), 1);
         self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
         self.symbols.push(symbol);
         true

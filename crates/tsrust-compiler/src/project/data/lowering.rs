@@ -98,6 +98,8 @@ pub(crate) fn program(value: &Value, identity: &str) -> Result<crate::syntax::Pr
     Ok(Program {
         diagnostic_first: None, diagnostic_skips: Default::default(), unresolved_local_function: None,
         local_declarations: vec![], local_capture_plans: vec![], type_argument_checks: vec![], call_type_arguments: vec![],
+        module_bindings: vec![],
+        module_owner_bindings: vec![],
         records: lowered.records, type_aliases: Default::default(), unresolved_bases: vec![],
         functions: vec![Function { application: None, scope_span: span,
             name: Token { text: OWNER.into(), span, kind: TokenKind::Symbol }, type_parameters: vec![], params: vec![],

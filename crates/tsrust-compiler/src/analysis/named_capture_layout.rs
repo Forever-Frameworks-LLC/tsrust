@@ -60,7 +60,7 @@ pub(super) fn build(program: &CheckedProgram) -> Result<Vec<Layout>, Diagnostic>
                         return Err(Diagnostic::new("capture-layout", "Recursive members disagree about the type of one captured binding.", declaration.source_name.span));
                     }
                     field.access = field.access.max(access.mode);
-                    field.storage = if field.ty.is_copy() && field.access != Mode::Mutate { Mode::Copy } else { field.access };
+                    field.storage = if field.ty.is_copy() && field.access == Mode::Copy { Mode::Copy } else { field.access };
                 }
                 members.push((function, accesses));
             }

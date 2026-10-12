@@ -256,6 +256,10 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             .iter()
             .map(|r| &r.name)
             .chain(program.functions.iter().map(|f| &f.name))
+            .chain(program.module_bindings.iter().filter_map(|statement| match &statement.kind {
+                StmtKind::Let { name, .. } => Some(name),
+                _ => None,
+            }))
             .map(|name| {
                 let linked = if id == &graph.entry
                     && name.text == "main"
@@ -329,6 +333,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         call_type_arguments: vec![],
         records: vec![],
         functions: vec![],
+        module_bindings: vec![],
+        module_owner_bindings: vec![],
         type_aliases: Default::default(),
         unresolved_bases: Vec::new(),
     };
@@ -369,6 +375,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         let lexical_types = crate::lexical_generic_scopes::inherited(&program);
         let mut visitor = Linker {
             names: &names,
+            imported_bindings: graph.modules[id].imports.iter().flat_map(|import| import.bindings.iter().map(|binding| binding.local.clone())).collect(),
+            assignment_error: None,
             testing_types: id.0 == "std:testing",
             module,
             offset: segments[module].1,
@@ -405,6 +413,20 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 captured_names.insert(declaration.emitted_name.clone(), captures);
             }
         }
+        // Module declarations share canonical names, rather than introducing
+        // function-local shadows. Visit each initializer before qualifying its owner.
+        visitor.type_parameters.clear();
+        for statement in &mut program.module_bindings {
+            if let StmtKind::Let { name, annotation, value, .. } = &mut statement.kind {
+                visitor.span(&mut statement.span);
+                visitor.expr(value, &BTreeSet::new());
+                if let Some(annotation) = annotation { visitor.value_annotation(annotation); }
+                visitor.token_span(name);
+                name.text = names[&name.text].clone();
+            } else {
+                visitor.body(std::slice::from_mut(statement), &mut BTreeSet::new());
+            }
+        }
         for function in &mut program.functions {
             visitor.span(&mut function.scope_span);
             visitor.type_parameters = function.type_parameters.iter()
@@ -432,6 +454,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             }
             visitor.body(&mut function.body, &mut locals);
         }
+        if let Some(error) = visitor.assignment_error.take() {
+            return Err(diagnostic(&graph, &segments, error));
+        }
         let declaration_offset = linked.local_declarations.len();
         let scope_offset = linked.local_declarations.iter().map(|declaration| declaration.scope + 1).max().unwrap_or(0);
         let owner_offset = linked.functions.len();
@@ -449,9 +474,14 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
             visitor.span(&mut declaration.function_scope);
             declaration.emitted_name = names[&declaration.emitted_name].clone();
         }
+        if let Some(mut token) = program.unresolved_local_function.take() {
+            visitor.token_span(&mut token);
+            linked.unresolved_local_function = Some(token);
+        }
         linked.local_declarations.extend(program.local_declarations);
         linked.local_capture_plans.extend(program.local_capture_plans);
         linked.call_type_arguments.extend(program.call_type_arguments);
+        linked.module_bindings.extend(program.module_bindings);
         linked.records.extend(program.records);
         linked.functions.extend(program.functions);
     }
@@ -475,6 +505,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         entry.body = body;
         linked.functions.push(entry);
     }
+    crate::callables::module_state::lower(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;
+    crate::local_functions::resolve(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;
     let checked = match crate::analysis::analyze(linked.clone()) {
         Err(value) if value.code == "recursion-inference" => {
             crate::analysis::analyze_recursive(linked.clone())
@@ -497,6 +529,8 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     })
 }
 struct Linker<'a> {
+    imported_bindings: BTreeSet<String>,
+    assignment_error: Option<Diagnostic>,
     testing_types: bool,
     names: &'a BTreeMap<String, String>,
     module: usize,
@@ -617,12 +651,51 @@ impl Linker<'_> {
             }
         }
     }
+    fn assignment_target(&mut self, target: &Expr, locals: &BTreeSet<String>, offset_span: bool) {
+        if let ExprKind::Name(name) = &target.kind {
+            if !locals.contains(name) && self.imported_bindings.contains(name) && self.assignment_error.is_none() {
+                let span = if offset_span { Span::new(target.span.start + self.offset, target.span.end + self.offset) } else { target.span };
+                self.assignment_error = Some(Diagnostic::new("module-import-assignment", "Cannot reassign an imported binding; update it through its declaring module.", span));
+            }
+        }
+    }
+
     fn body(&mut self, body: &mut [Stmt], locals: &mut BTreeSet<String>) {
+        // Lexical declarations shadow module names throughout the block. Their
+        // initialization readiness is checked after linking, including captures
+        // in a function declared before the local variable it uses.
+        for statement in body.iter() {
+            match &statement.kind {
+                StmtKind::LocalFunction(function) => { locals.insert(function.name.text.clone()); }
+                StmtKind::Let { name, .. } => { locals.insert(name.text.clone()); }
+                _ => {}
+            }
+        }
         for stmt in body {
             self.span(&mut stmt.span);
             for label in &mut stmt.labels {self.token_span(label);}
             match &mut stmt.kind {
-                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
+                StmtKind::LocalFunction(function) => {
+                    self.span(&mut function.scope_span);
+                    self.token_span(&mut function.name);
+                    let outer_types = self.type_parameters.clone();
+                    for parameter in &mut function.type_parameters {
+                        self.type_parameters.insert(parameter.text.clone());
+                        self.span(&mut parameter.span);
+                    }
+                    let mut scope = locals.clone();
+                    for ((name, annotation, callback), initializer) in function.params.iter_mut().zip(&mut function.parameter_initializers) {
+                        self.initializer(initializer, &scope);
+                        parameter_pattern_names(name, &function.body, &mut scope);
+                        scope.insert(name.text.clone());
+                        self.token_span(name);
+                        self.value_annotation(annotation);
+                        if let Some(callback) = callback { self.callback(callback); }
+                    }
+                    if let Some(result) = &mut function.result { self.result(result); }
+                    self.body(&mut function.body, &mut scope);
+                    self.type_parameters = outer_types;
+                },
                 StmtKind::Throw(value) => self.expr(value,locals),
                 StmtKind::Try(region) => {
                     self.body(&mut region.body,&mut locals.clone());
@@ -690,6 +763,7 @@ impl Linker<'_> {
                     value,
                     operator,
                 } => {
+                    self.assignment_target(target, locals, true);
                     self.expr(target, locals);
                     self.expr(value, locals);
                     if let Some((_, span)) = operator {
@@ -765,6 +839,7 @@ impl Linker<'_> {
                 ..
             } => {
                 self.span(operator);
+                self.assignment_target(target, locals, true);
                 self.expr(target, locals);
                 self.expr(value, locals);
             }
@@ -772,6 +847,7 @@ impl Linker<'_> {
                 target, operator, ..
             } => {
                 self.span(operator);
+                self.assignment_target(target, locals, true);
                 self.expr(target, locals);
             }
             ExprKind::Unary {
