@@ -228,6 +228,13 @@ mod encoding_tests {
   assert_eq!(encoding_container::<serde_json::Error>(usize::MAX).unwrap_err().to_string(),"tsrust:depth-limit");
  }
  #[test]
+ fn dynamic_values_share_the_typed_parent_depth_budget(){
+  let value=serde_json::json!({"items":[1,2]});
+  assert_eq!(encode(&Dynamic(&value,62),100).unwrap(),"{\"items\":[1,2]}");
+  assert_eq!(encode(&Dynamic(&value,63),100).unwrap_err().code,"depth-limit");
+  assert_eq!(encode(&Dynamic(&serde_json::json!(7),64),100).unwrap(),"7");
+ }
+ #[test]
  fn direct_typed_encoding_rejects_undefined_at_root_or_in_arrays(){
   let error=encode(&Undefined,32).unwrap_err();assert_eq!(error.code,"undefined-value");assert_eq!(error.offset,0);
   let error=encode(&(1,Undefined),32).unwrap_err();assert_eq!(error.code,"undefined-value");assert_eq!(error.offset,3);
@@ -268,5 +275,29 @@ pub struct Undefined;
 impl serde::Serialize for Undefined{
  fn serialize<S:serde::Serializer>(&self,_:S)->Result<S::Ok,S::Error>{
   Err(serde::ser::Error::custom("tsrust:undefined-value"))
+ }
+}
+
+/// Borrow dynamic subtrees while sharing the containing typed visitor's depth.
+pub struct Dynamic<'a>(pub &'a serde_json::Value, pub usize);
+impl serde::Serialize for Dynamic<'_> {
+ fn serialize<S:serde::Serializer>(&self,serializer:S)->Result<S::Ok,S::Error>{
+  match self.0 {
+   serde_json::Value::Array(values)=>{
+    use serde::ser::SerializeSeq;
+    let depth=encoding_container::<S::Error>(self.1)?;
+    let mut output=serializer.serialize_seq(Some(values.len()))?;
+    for value in values {output.serialize_element(&Dynamic(value,depth))?;}
+    output.end()
+   },
+   serde_json::Value::Object(values)=>{
+    use serde::ser::SerializeMap;
+    let depth=encoding_container::<S::Error>(self.1)?;
+    let mut output=serializer.serialize_map(Some(values.len()))?;
+    for (key,value) in values {output.serialize_entry(key,&Dynamic(value,depth))?;}
+    output.end()
+   },
+   value=>value.serialize(serializer),
+  }
  }
 }

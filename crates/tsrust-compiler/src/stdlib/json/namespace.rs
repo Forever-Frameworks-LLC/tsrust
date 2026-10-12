@@ -79,13 +79,13 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             }
             let binding = match member.as_str() {
                 "tryParse" => "parse",
-                "tryStringify" => "stringify",
+                "tryStringify" => { throwing.insert("tryStringify"); "stringify" },
                 "parse" => { throwing.insert("parse"); "parse" },
                 "stringify" => { throwing.insert("stringify"); "stringify" },
                 _ => return Ok(()),
             };
             required.insert(binding, expression.span);
-            expression.kind = ExprKind::Name(if member.starts_with("try") {
+            expression.kind = ExprKind::Name(if member == "tryStringify" { "@json:tryStringify".into() } else if member.starts_with("try") {
                 format!("@native:std:json#{binding}")
             } else { format!("@json:{binding}") });
             Ok(())
@@ -114,8 +114,10 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     use crate::native_signatures::{NativeTypeId, Signature};
     let source = if name == "parse" {
         "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
+    } else if name == "tryStringify" {
+        "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
     } else {
-        "function adapter<T>(value:ReadOnly<T>,maxBytes:int=16777216):string {match(backend(value,maxBytes)){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
+        "function adapter<T>(value:T,maxBytes:int=16777216):string {const encoded:Result<string,JsonError>=backend(value,maxBytes);match(encoded){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
     };
     let mut function = crate::syntax::parse(source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
@@ -139,10 +141,12 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
             }
         }
     }
-    crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
+    let replacements = [("JsonError".to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(NativeTypeId::JsonError),function.name.span)?)].into_iter().collect();
+    crate::source_walk::function_annotations(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements))?;
+    crate::source_walk::function_body(&mut function, &mut |annotation|crate::type_substitution::apply(annotation,&replacements), &mut |expression| {
         shift(&mut expression.span);
         if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") {
-            expression.kind = ExprKind::Name(format!("@native:std:json#{name}"));
+            expression.kind = ExprKind::Name(if name == "parse" {format!("@native:std:json#{name}")} else {"@json:encode".into()});
         }
         Ok(())
     })?;

@@ -773,7 +773,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
-        JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
+        JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
         ArrayMap|MapGroupBy|ArrayFlatMap|ArrayFilter|ArrayForEach|ArraySome|ArrayEvery|
         ArrayFind|ArrayFindLast|ArrayFindIndex|ArrayFindLastIndex|ArrayReduce|
         ArrayReduceRight|ArraySort|ArrayToSorted=>{

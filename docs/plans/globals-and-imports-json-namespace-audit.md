@@ -41,3 +41,12 @@ JSON guide and both catalog entries. Compiler-owned generic adapters preserve
 normal typed exception propagation and borrowed arguments. This adds no global
 name or native binding inventory row. Focused evidence is recorded in the JSON
 plan; performance acceptance remains pending.
+
+
+Direct typed encoding extends the existing JSON.stringify/tryStringify identities;
+it adds no global symbols. Scalars copy and aggregate input is borrowed. Named
+records, tuples and arrays no longer require dynamic JsonValue constructors.
+Undefined object fields are omitted; undefined roots/array entries and nonfinite
+numbers fail explicitly. JsonValue/View support remains. The imported std:json
+stringify contract remains the dynamic Result-returning API. Catalog signatures,
+parameter help, hover and executable examples describe the namespace extension.

@@ -636,6 +636,7 @@ pub enum CallTarget {
     JsonStringLength,
     JsonStringView,
     JsonDecode,
+    JsonEncode,
     StringConversion,
     ArrayIsArray,
     ObjectIs,

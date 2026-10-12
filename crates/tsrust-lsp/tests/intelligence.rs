@@ -9968,3 +9968,17 @@ fn json_typed_decoding_exposes_checked_record_members_and_signatures() {
     let entries=completion.as_array().unwrap();
     assert!(entries.iter().any(|entry|entry["label"]=="name") && entries.iter().any(|entry|entry["label"]=="count"),"{completion}");
 }
+
+#[test]
+fn json_encoding_editor_documents_typed_values_and_undefined_policy() {
+    let source="type Item={name:string;};function main(){const item:Item={name:'hello'};JSON.stringify(item);JSON.tryStringify(item);}";
+    for method in ["stringify", "tryStringify"] {
+        let needle=format!("{method}(");
+        let hover=ask(source,"textDocument/hover",&needle,0);
+        let docs=hover["contents"]["value"].as_str().unwrap();
+        for text in ["value: T", "undefined-value", "number-nonfinite", "64", "borrows"] {assert!(docs.contains(text),"{hover}");}
+        let mut position=at(source,&needle,0);position.character+=needle.len() as u32;
+        let help=SourceIndex::new(source).request("textDocument/signatureHelp",&json!({"position":position}),"file:///test.tsr").unwrap();
+        assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value: T"),"{help}");
+    }
+}

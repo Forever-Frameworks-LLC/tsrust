@@ -170,7 +170,7 @@ fn json_namespace_catalog_examples_execute() {
 #[test]
 fn json_namespace_invalid_calls_have_public_diagnostics() {
     let directory=support::TempDirectory::new();
-    for call in ["JSON.parse()", "JSON.parse(1)", "JSON.stringify('null')", "JSON.tryParse(1)", "JSON.parse('null',1)", "JSON.stringify(JSON.parse('null'),'big')"] {
+    for call in ["JSON.parse()", "JSON.parse(1)", "JSON.stringify()", "JSON.tryParse(1)", "JSON.parse('null',1)", "JSON.stringify(JSON.parse('null'),'big')"] {
         let path=directory.source(&support::format_round_trip(&format!("function main(){{{call};}}")));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted {call}");
@@ -201,12 +201,11 @@ function main(){
 }
 
 #[test]
-fn json_native_bridges_have_stable_registry_order() {
+fn json_namespace_selects_only_used_native_bridges_deterministically() {
     let checked=tsrust_compiler::check("function main(){JSON.stringify(JSON.parse('null'));}").unwrap();
-    let bindings=tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:json" && ["parse","stringify"].contains(&binding.name)).collect::<Vec<_>>();
-    for _ in 0..8 {
-        let emitted=checked.emit_rust();
-        let offsets=bindings.iter().map(|binding|{let prefix=format!("fn tsrust_std_json_{}",binding.name);let offset=emitted.find(&prefix).unwrap();assert!(matches!(emitted.as_bytes()[offset+prefix.len()],b'('|b'<'));offset}).collect::<Vec<_>>();
-        assert!(offsets.windows(2).all(|pair|pair[0]<pair[1]),"native bridges must follow registry order");
-    }
+    let emitted=checked.emit_rust();
+    assert!(emitted.contains("fn tsrust_std_json_parse("));
+    assert!(!emitted.contains("fn tsrust_std_json_stringify("));
+    assert!(emitted.contains("tsrust_native_json::typed::encode"));
+    for _ in 0..8 { assert_eq!(checked.emit_rust(),emitted); }
 }

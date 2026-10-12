@@ -1957,43 +1957,43 @@
     },
     {
       "name": "stringify",
-      "signature": "JSON.stringify(value: ReadOnly<JsonValue | JsonView>, maxBytes?: int): string",
+      "signature": "JSON.stringify<T>(value: T, maxBytes?: int): string",
       "parameters": [
         {
-          "label": "value: ReadOnly<JsonValue | JsonView>",
-          "documentation": "Required JSON value. Its contents are not mutated or consumed."
+          "label": "value: T",
+          "documentation": "Required scalar, named record, tuple, array, JsonValue, JsonView or StringView. Borrows data without consuming or mutating it; scalars copy."
         },
         {
           "label": "maxBytes?: int",
           "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values throw invalid-limits."
         }
       ],
-      "documentation": "Encodes a JsonValue or JsonView as compact strict JSON with sorted object keys and no extra whitespace. Returns a UTF-8 string or throws JsonError with code output-limit before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value throws invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Catch errors with try/catch; JsonError retains code, message and byte offset. Accepts checked JsonValue or JsonView rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "documentation": "Encodes scalars, named records, tuples, arrays and dynamic JSON values as compact strict JSON. Returns a UTF-8 string or throws JsonError. Object keys are sorted; tuples encode as arrays. The optional nonnegative maxBytes limit defaults to 16777216 bytes. Negative limits report invalid-limits; output exceeding the limit reports output-limit without returning partial output. Omits undefined object fields; root and array undefined report undefined-value. Nonfinite numbers report number-nonfinite. More than 64 nested containers reports depth-limit, including dynamic JSON nested inside typed records. Preserves exact int values and floating negative zero. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Unsupported resources, collections and callbacks are rejected during checking. No replacer callback is supported.\n\n```tsrust\ntype Item={name:string;count:int;};function main(){const item:Item={name:\"hello\",count:42};console.log(JSON.stringify(item));}\n```\n\nExpected output: {\"count\":42,\"name\":\"hello\"}.\n\nOwnership: borrows input without mutation or implicit copies; the output string owns independent storage.",
       "examples": [
         {
-          "source": "function main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}",
-          "output": "{\"a\":2,\"z\":1}\n"
+          "source": "type Item={name:string;count:int;};function main(){const item:Item={name:\"hello\",count:42};console.log(JSON.stringify(item));}",
+          "output": "{\"count\":42,\"name\":\"hello\"}\n"
         }
       ]
     },
     {
       "name": "tryStringify",
-      "signature": "JSON.tryStringify(value: ReadOnly<JsonValue | JsonView>, maxBytes?: int): Result<string, JsonError>",
+      "signature": "JSON.tryStringify<T>(value: T, maxBytes?: int): Result<string, JsonError>",
       "parameters": [
         {
-          "label": "value: ReadOnly<JsonValue | JsonView>",
-          "documentation": "Required JSON value. Its contents are not mutated or consumed."
+          "label": "value: T",
+          "documentation": "Required scalar, named record, tuple, array, JsonValue, JsonView or StringView. Borrows data without consuming or mutating it; scalars copy."
         },
         {
           "label": "maxBytes?: int",
           "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values return invalid-limits."
         }
       ],
-      "documentation": "Encodes a JsonValue or JsonView as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Accepts checked JsonValue or JsonView rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: output-limit. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "documentation": "Encodes scalars, named records, tuples, arrays and dynamic JSON values as compact strict JSON. Returns Result<string, JsonError>; encoding failures return Err. Object keys are sorted; tuples encode as arrays. The optional nonnegative maxBytes limit defaults to 16777216 bytes. Negative limits report invalid-limits; output exceeding the limit reports output-limit without returning partial output. Omits undefined object fields; root and array undefined report undefined-value. Nonfinite numbers report number-nonfinite. More than 64 nested containers reports depth-limit, including dynamic JSON nested inside typed records. Preserves exact int values and floating negative zero. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Unsupported resources, collections and callbacks are rejected during checking. No replacer callback is supported.\n\n```tsrust\nfunction main(){match(JSON.tryStringify(undefined)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: undefined-value.\n\nOwnership: borrows input without mutation or implicit copies; the output string owns independent storage.",
       "examples": [
         {
-          "source": "function main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
-          "output": "output-limit\n"
+          "source": "function main(){match(JSON.tryStringify(undefined)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
+          "output": "undefined-value\n"
         }
       ]
     }

@@ -907,3 +907,29 @@ by a failing-then-passing editor witness. All 32 import-focused project editor
 tests pass. Whole-project formatting changes no sources or fingerprints.
 Evidence: tsrust-json-hover-*-c2322741 in SQLite. Installed editor refresh remains
 pending with the JSON family consumer refresh; no measurements were run.
+
+
+### Direct typed encoding integration
+
+JSON.stringify and JSON.tryStringify now specialize borrowed serializers for
+scalars, named records, tuples, arrays, nullable unions and recursive records.
+JsonValue, JsonView and StringView remain supported. No intermediate JSON tree
+or input clone is introduced. Aggregate visitors use the ordinary native ABI;
+fixed-storage specialization is disabled where that ABI is required. The owned
+input remains reusable after encoding. Result wrappers must be matched to obtain
+the payload before encoding; callbacks, Maps, Sets and resources are rejected.
+
+Undefined object fields are omitted. Root and array undefined fail with
+undefined-value; nonfinite numbers fail with number-nonfinite. Every container,
+including dynamic subtrees embedded in typed data, shares the 64-level budget.
+The existing bounded output sink enforces maxBytes. Keys are sorted and integer
+bits remain exact. Synthetic adapter diagnostics point back to user calls.
+
+Focused acceptance covers three compiler/native tests, five encoder runtime
+tests, nine namespace tests including catalog examples, and three editor tests.
+The native_json_encoding workload has a TypeScript counterpart, independent
+47-byte ASCII oracle, source guards and five untimed native/Node cases. Fourteen
+JSON workload guards pass. Evidence uses tsrust-json-encoding-*-fc30a5f9;
+preceding failures and the dynamic-depth witness are retained in SQLite. No
+measurements or installed-consumer refresh are claimed. JSONC/JSONL typed
+adapters, bounded writer integration and the S10 family milestone remain open.

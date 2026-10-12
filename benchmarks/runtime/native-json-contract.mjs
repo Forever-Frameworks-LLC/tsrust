@@ -12,6 +12,15 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_encoding'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON encoding identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON encoding fingerprint');
+  if(row.iterations!==2000||row.inputText!=='hello'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One record construction, encoding and exact output comparison')throw Error('JSON encoding denominator');
+  const name=kind==='native'?'clone(input)':'input';
+  const body=`while(i<n){const item:Item={active:true,name:${name},values:[20,17]};const text=JSON.stringify(item);if(text!=='{"active":true,"name":"hello","values":[20,17]}'){throw 'Unexpected JSON output';}checksum+=text.length;i++;}`;
+  for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON encoding operation placement');
+  return;
+ }
  if(row.id==='native_json_typed'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typed identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typed fingerprint');
@@ -195,4 +204,9 @@ export const typedInput='{"name":"hello","values":[20,17],"active":true}';
 export function typedChecksum(n,seed,input){
  if(input!==typedInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*42))throw Error('JSON typed oracle inputs');
  return seed+n*42;
+}
+
+export function encodingChecksum(n,seed,input){
+ if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*47))throw Error('JSON encoding oracle inputs');
+ return seed+n*47;
 }

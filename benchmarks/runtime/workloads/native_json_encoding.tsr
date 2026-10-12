@@ -1,0 +1,24 @@
+type Item = {
+  active: boolean;
+  name: string;
+  values: int[];
+};
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const item: Item = {
+      active: true, name: clone(input), values: [20, 17]
+    };
+    const text = JSON.stringify(item);
+    if (text !== '{"active":true,"name":"hello","values":[20,17]}') {
+      throw 'Unexpected JSON output';
+    }
+
+    checksum += text.length;
+    i++;
+  }
+
+  return checksum;
+}

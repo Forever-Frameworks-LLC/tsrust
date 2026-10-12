@@ -1,3 +1,4 @@
+mod json_encoding;
 mod json_typed;
 mod json_refinement;
 mod nullable_link_emit;
@@ -8461,6 +8462,7 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {

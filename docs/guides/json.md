@@ -209,3 +209,33 @@ The wrapper still owns or borrows JSON storage. This does not yet permit assigni
 the payload to a string local, returning a borrowed string, or invoking other
 string methods. Use the explicit consuming `takeString` when independent owned
 string storage is needed; borrowed views cannot be consumed by that operation.
+
+## Encode ordinary typed values
+
+`JSON.stringify(value)` accepts scalars, named records, tuples, arrays, `JsonValue`,
+`JsonView` and `StringView`. `JSON.tryStringify(value)` provides the same encoding
+through `Result<string, JsonError>`. Dynamic constructors such as `fromEntries`
+are useful for assembling a `JsonValue`, but ordinary data does not require them.
+Object literals currently require a named record annotation:
+
+```ts
+ type Item = { name: string; count: int; };
+ function main() {
+   const item: Item = { name: 'hello', count: 42 };
+   console.log(JSON.stringify(item));
+ }
+```
+
+The result is `{"count":42,"name":"hello"}`. Object keys are sorted. Tuples
+encode as arrays. Encoding borrows input and produces an owned string, without
+building an intermediate JSON tree or implicitly cloning the input. Recursive
+records retain their existing ownership and allocation rules.
+
+Undefined object fields are omitted. Undefined at the root or in an array reports
+`undefined-value`; it is never silently replaced with null. Nonfinite numbers
+report `number-nonfinite`. Integers retain their exact signed 64-bit values.
+The default output limit is 16777216 UTF-8 bytes; pass a nonnegative second
+argument to change it. Exceeding this limit reports `output-limit` without
+returning partial output. Container nesting above 64 reports `depth-limit`,
+including dynamic JSON nested inside typed data. Resource handles, callbacks,
+Maps and Sets are not JSON encodable.
