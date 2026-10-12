@@ -21232,6 +21232,30 @@
       "sourceSha256": "4ba373d60baffbbc0880962629046c068258388cf28acc04d55c0b49d635abee",
       "counterpartSha256": "ecb1dddf4da7b755dcae4386f89420365719d126a20eb337aca4799a313b8afc",
       "dataSha256": "4bd2caafccb1ae78da2df61b7083bda68ca031519d75a567a25bf78e3e7ec026"
+    },
+    {
+      "id": "native_json_namespace",
+      "category": "json",
+      "description": "Throwing JSON namespace parse and compact encoding with exact output validation",
+      "source": "workloads/native_json_namespace.tsr",
+      "counterpart": "workloads/native_json_namespace.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One parse, compact encode and exact output comparison",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": " { \"a\": [1,true,null], \"b\": \"hello\" } ",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse the fixed input and compactly encode each iteration. Compare the complete encoded text against the independent expected literal before adding its ASCII length to the seeded checksum.",
+      "notes": "Includes parsing, allocation, encoding, exact comparison and cleanup. Fixed lexically sorted keys and ASCII text avoid object-order and UTF-8/UTF-16 differences. Not a general JSON parity claim.",
+      "sourceSha256": "bd29abae3a2b47ba015726367a575cf71092a2fe17410e9ada0a64af8646f8d9",
+      "counterpartSha256": "025e24acd97cce7cbfa75ed71e2449240c9293c1b93acaacd40dcaadcd8996e5"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

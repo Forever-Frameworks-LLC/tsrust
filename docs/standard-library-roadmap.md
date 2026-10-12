@@ -14,12 +14,13 @@ Proposed namespaces: std:path, fs, env, process, bytes, time, collections, json,
 
 The owner-approved [globals/imports policy and mandatory audit](plans/globals-and-imports-policy.md)
 requires exhaustive per-symbol reconciliation before adding new conventions.
-The JSON namespace will expose throwing `JSON.parse` and Result-returning
+The accepted JSON namespace exposes throwing `JSON.parse` and Result-returning
 `JSON.tryParse`, preserving native safety and existing imports. Signatures and
 IntelliSense must expose semantic differences; runtime dependencies follow actual
 usage. Implementation follows the prioritized typed-data imports and aliases and
-is required before S10 acceptance. Neither the audit nor the JSON globals are
-implemented merely by recording this decision.
+is required before S10 acceptance. The audit and namespace now have
+[focused acceptance](milestones/json-namespace.md); timing and consumer refresh
+remain part of the S10 family milestone.
 
 ## Architecture and compiler handoffs
 

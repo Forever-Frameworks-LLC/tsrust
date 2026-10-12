@@ -215,7 +215,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
- if(id==='native_json_roundtrip')return jsonChecksum(n,seed,inputText);
+ if(['native_json_roundtrip','native_json_namespace'].includes(id))return jsonChecksum(n,seed,inputText);
  if(id===monotonicTimeID)return expectedMonotonicTimeObservation(n,seed).checksum;
  if(id===environmentID)return expectedEnvironmentObservation(n,seed).checksum;
  if(collectionIDs.includes(id))return expectedCollectionObservation(id,n,seed,inputText).checksum;

@@ -7,8 +7,8 @@ import {expectedChecksum} from './oracle.mjs';
 import {assertABI} from './adapters.mjs';
 import {reportCategory} from './report.mjs';
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
-test('JSON roundtrip preserves registration, operation count and independent oracle',()=>{
- const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id==='native_json_roundtrip');
+for(const id of ['native_json_roundtrip','native_json_namespace'])test(`${id} preserves registration, operation count and independent oracle`,()=>{
+ const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
  assert.equal(rows.length,1);const row=rows[0];
  assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'json');
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){

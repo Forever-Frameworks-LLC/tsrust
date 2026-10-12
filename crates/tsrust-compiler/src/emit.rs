@@ -229,7 +229,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         conditional_temporaries: RefCell::new(Vec::new()),
         conditional_next: Cell::new(0),
         expression_depth: Cell::new(0),
-        native_bindings: RefCell::new(HashSet::new()),
+        native_bindings: RefCell::new(std::collections::BTreeSet::new()),
     };
     emitter.borrowing_records=emitter.record_borrowing_family();
     emitter
@@ -314,7 +314,7 @@ struct Emitter<'a> {
     conditional_temporaries: RefCell<Vec<String>>,
     conditional_next: Cell<usize>,
     expression_depth: Cell<usize>,
-    native_bindings: RefCell<HashSet<usize>>,
+    native_bindings: RefCell<std::collections::BTreeSet<usize>>,
 }
 
 enum StorageStep<'a> {

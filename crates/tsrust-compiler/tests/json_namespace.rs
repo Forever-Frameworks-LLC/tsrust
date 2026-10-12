@@ -199,3 +199,14 @@ function main(){
 }
 "#);
 }
+
+#[test]
+fn json_native_bridges_have_stable_registry_order() {
+    let checked=tsrust_compiler::check("function main(){JSON.stringify(JSON.parse('null'));}").unwrap();
+    let bindings=tsrust_compiler::native_bindings::BINDINGS.iter().filter(|binding|binding.module=="std:json" && ["parse","stringify"].contains(&binding.name)).collect::<Vec<_>>();
+    for _ in 0..8 {
+        let emitted=checked.emit_rust();
+        let offsets=bindings.iter().map(|binding|emitted.find(&format!("fn tsrust_std_json_{}(",binding.name)).unwrap()).collect::<Vec<_>>();
+        assert!(offsets.windows(2).all(|pair|pair[0]<pair[1]),"native bridges must follow registry order");
+    }
+}

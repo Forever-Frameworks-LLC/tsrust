@@ -12,6 +12,10 @@ The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
 S10 must retain the typed decoder boundary and allocation evidence needed for it.
 
+The approved global JSON namespace has [focused acceptance](../milestones/json-namespace.md),
+including editor documentation and untimed matched workload checks. Next comes the
+required compiler source organization checkpoint before further S10 API expansion.
+
 ## Public naming review
 
 The owner approved a thorough globals/imports audit and the familiar JSON

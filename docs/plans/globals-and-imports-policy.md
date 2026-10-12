@@ -1,8 +1,9 @@
 # Globals and imports: inventory and decision
 
 Status: owner approved this placement policy and the throwing `JSON.parse` /
-Result-returning `JSON.tryParse` pair on 2026-10-11. Implementation is in progress;
-the namespace gate is not accepted.
+Result-returning `JSON.tryParse` pair on 2026-10-11. Focused implementation is accepted;
+see [namespace acceptance](../milestones/json-namespace.md). S10 family timing and
+installed-consumer refresh remain pending.
 
 The four namespace entry points now work in project and single-source analysis.
 Result operations resolve to existing native bindings. Throwing operations use
@@ -39,8 +40,8 @@ The API audit now reconciles 404 identities, adding the namespace heading and fo
 methods in globals-and-imports-json-namespace-audit.md. Evidence:
 `tsrust-json-shadow-3.log`, `tsrust-json-dependency-capture.log`, and
 `tsrust-json-audit-verification.log`; failed capture and initial diagnostic records
-are retained too. Matched workload support and final focused acceptance remain
-pending. This checkpoint is not a consumer release or measured S10 acceptance.
+are retained too. Matched workload support and focused acceptance are now recorded in the namespace
+milestone. This is not a consumer release or measured S10 acceptance.
 The complete current per-symbol audit is accepted in
 [the closure review](globals-and-imports-audit-closure.md). The family summary below
 is supplemented by 404 explicit reviewed identities; it is not the audit by itself. Existing working imports
