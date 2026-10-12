@@ -18,3 +18,5 @@ pub(crate) mod writer_emit;
 pub(crate) mod raw;
 
 pub(crate) mod raw_emit;
+
+pub(crate) mod source;

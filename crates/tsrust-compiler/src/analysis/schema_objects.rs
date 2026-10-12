@@ -29,7 +29,7 @@ impl Analyzer {
 
     pub(super) fn schema_retained_value_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
-        let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).expect("schema JSON type");
+        let json=self.schema_native_dependency(crate::native_signatures::NativeTypeId::JsonValue,span)?;
         let mut map=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:"Map".into(),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:"string".into(),span})},ValueAnnotation{span,kind:Kind::Named(TypeName{text:self.program.records[json].name.text.clone(),span})}]}};
         self.generic_records.materialize(&mut map,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;

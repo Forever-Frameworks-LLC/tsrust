@@ -7,7 +7,8 @@ matching owned input or JsonValue. Reusable default factories are integrated.
 Exact literals, string-list enums and declared enum schemas preserve inferred types.
 Readonly refinements, owned transforms and explicit coercion pipelines have focused
 compiler/native/editor acceptance, including nested union rollback and defaults.
-Remaining composite APIs, fused decoding and family acceptance remain pending.
+Fused JSON text decoding has focused public/compiler/editor acceptance.
+Remaining composite APIs and family acceptance remain pending.
 
 ## Required surface and coverage
 
@@ -53,8 +54,8 @@ separates `{ kind: 'json', error: JsonError }` for syntax/resource failures from
 `{ kind: 'validation', error: ValidationError }` for data that violates the rules.
 Callback exceptions propagate. Typed JSON imports continue to report compile-time
 diagnostics. The public runtime rename is checked across scalar/pipeline results,
-explicit type imports and editor aliases; `SchemaConstructionError` is unchanged. This error contract does not claim that fused public decoding has
-landed; implementation and acceptance remain pending.
+explicit type imports and editor aliases; `SchemaConstructionError` is unchanged. The fused decoder checkpoint below records implementation and focused acceptance;
+S11 family acceptance and timing remain pending.
 
 ## Approved contracts
 
@@ -1675,3 +1676,59 @@ normalize whitespace without weakening type checks. Whole-project formatting
 passed with no source or fingerprint changes. No timing or S11 family acceptance.
 SQLite preserves exact logs as `tsrust-validation-naming-{typed,native,editor,
 editor-repair,json-native,format}.log`. Installed consumers remain accepted S10.
+
+
+## Fused JSON decoding checkpoint
+
+`schema.safeParseJson(text)` borrows text and the reusable schema, constructing owned
+output directly. Its tagged failures distinguish JSON syntax/resource errors from
+runtime ValidationError values. Callback exceptions propagate. The complete JSON
+syntax, UTF-8/Unicode, integer-token and resource checks run before callbacks,
+including ignored and duplicate fields. Default input budgets match JSON.parse:
+16 MiB, depth 64, one million entries per container and one million value nodes.
+Issue retention remains 64 issues, 32 segments and 1024 path bytes per issue.
+
+Source cursors retain real document borrows. Arrays stream child slices; objects
+build a flat index of decoded keys and borrowed value slices. Last duplicate wins
+before field validation. Known fields never construct a dynamic JsonValue tree.
+Retained extras and an explicit JsonValue coercion parameter request final owned
+dynamic data. Unescaped strings borrow during reading, then allocate final owned
+storage; escaped strings decode into owned storage. Ordered branch retries may
+revisit source and reconstruct rejected candidate outputs, without cloning or
+stringifying an intermediate tree. Flat object indexes and candidate reconstruction
+are allocation costs to measure at the S11 family milestone.
+
+Native scalar, array, object, presence, defaults, literal/enum, ordered/discriminated
+union and callback pipeline plans use the fused path. Coercion decodes its declared
+owned input directly, then commits before invoking the conversion. Readonly
+rejection permits branch fallback; failures after consumption do not. Commitment
+in an earlier object field does not prevent an independent later union from trying
+its readonly alternatives. Non-JSON coercion input types are checker errors.
+Recursive coercion input shapes remain explicitly diagnosed pending the required
+recursive/lazy schema tranche; they must not become a native compile failure.
+
+Focused evidence: six public compiler/native cases, four source-cursor runtime
+cases, one editor hover/completion/result/signature-help case and 26 workload contracts passed.
+The final callback case was rerun after adding coercion input checking. Failed
+intermediate runs are preserved: a generated brace, missing automatic JsonError/
+JsonValue registration, and two fixture construction issues were repaired. A
+retaining schema now registers its JSON dependency without requiring a JSON import.
+Whole-project formatting passed; one new workload was formatted and its fingerprint
+refreshed, then a second pass changed nothing. Native versus Node-after-tsc parity
+passed at n=0,1,17,2000 for native_schema_json_fused, with zero timing samples.
+The workload includes successful typed output and missing/unknown-field errors;
+its oracle is seed + 4*n across two operations per iteration. Its TypeScript
+reference is handwritten JSON.parse plus validation, not a Zod differential claim.
+
+SQLite records use the prefix `tsrust-fused-section-` with suffixes native1 through
+native4, workloads1, editor1, editor2, choices1, choices2, source1, format1, format2, parity1,
+inputs1 and callbacks-final. Earlier acceptance and original failed records remain
+unchanged. Installed consumers remain accepted S10; no S11 family timing or full
+regression acceptance is claimed.
+
+Outstanding chain defect found during this section: direct
+`s.union([s.string(), s.string()]).min(3)` is rejected before receiver construction;
+assigning the union to a variable before `.min(3)` works and its outer bound is
+verified by the fused witness. Fix direct constructor chaining before S11 family
+acceptance. Then continue recursive/lazy composition, collection schemas, richer
+issue APIs and JSON Schema export, followed by the required family acceptance.

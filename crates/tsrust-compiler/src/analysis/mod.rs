@@ -1,6 +1,7 @@
 mod thread_transfer;
 mod json_typed;
 mod schema;
+mod schema_decode;
 mod schema_objects;
 mod schema_presence;
 mod schema_defaults;
@@ -14361,6 +14362,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
+        if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_pipeline_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_pipeline_validation(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}

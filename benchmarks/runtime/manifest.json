@@ -22052,6 +22052,30 @@
       "counterpartSha256": "27a45cd603f715142184eb44e082d4ab106c1dc27aa5af6fb5c9fd2cc0a10858"
     },
     {
+      "id": "native_schema_json_fused",
+      "category": "schema",
+      "description": "Fused typed JSON object decoding against JSON.parse plus owned validation",
+      "source": "workloads/native_schema_json_fused.tsr",
+      "counterpart": "workloads/native_schema_json_fused.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON text decode, rule validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"count\":2}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate count 2; reject a missing count and unknown extra field. Checksum adds four per iteration.",
+      "notes": "Direct typed native output versus handwritten TypeScript JSON.parse plus validation. Includes syntax checks, output construction and errors. Not Zod. Unmeasured; parity pending.",
+      "sourceSha256": "dd58e2f32ef704ede64ab4118c27370da8d5198c5ea89b5d5d6ae03425e4c465",
+      "counterpartSha256": "efc1a80e793752ccf70c6cea2db12006bf322a5c9b7e98701c5112228b2d4cc2"
+    },
+    {
       "id": "native_schema_json_object",
       "category": "schema",
       "description": "Typed JSON object validation with missing and unknown field diagnostics",

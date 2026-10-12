@@ -407,7 +407,7 @@ impl ProjectAnalysis {
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
         }
-        if record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
+        if record.name.text.starts_with("@schema:decode-error-")||record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
             return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), field.optional, self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
         }
         let declaration = self.source_location(

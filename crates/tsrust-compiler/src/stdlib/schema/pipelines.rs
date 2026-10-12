@@ -153,6 +153,10 @@ impl Pipelines {
         }
         (callbacks, leaves)
     }
+    pub(crate) fn coercion_inputs(&self,root:usize)->Vec<Type>{
+        let (callbacks,_)=self.dependencies(root);
+        self.stages.values().filter(|stage|stage.operation==Operation::Coerce&&callbacks.contains(&stage.callback)).map(|stage|stage.callback_input).collect()
+    }
     pub(crate) fn callbacks(&self) -> impl Iterator<Item = usize> + '_ {
         self.stages.values().map(|stage| stage.callback).chain(self.wrappers.values().filter_map(|plan|
             if let WrapperKind::Default(family)=plan.kind {Some(family)}else{None}))

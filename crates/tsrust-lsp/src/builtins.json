@@ -1,5 +1,22 @@
 {
   "SchemaPipeline": [
+{
+  "name": "safeParseJson",
+  "signature": "safeParseJson(text: ReadOnly<string>): Result<Output, { kind: 'json'; error: JsonError } | { kind: 'validation'; error: ValidationError }>",
+  "parameters": [
+    {
+      "label": "text: ReadOnly<string>",
+      "documentation": "Borrowed UTF-8 JSON text. The complete document is checked before any default factory or callback runs."
+    }
+  ],
+  "documentation": "Decodes JSON text directly into the inferred schema output, applying the reusable rules, defaults and callbacks. Returns Ok(output), or Err with kind json for malformed JSON/resource limits and kind validation for data that violates the rules. Narrow kind to access JsonError code/message/byte offset or ValidationError issues/property-index paths. Callback exceptions propagate. Limits are 16 MiB of UTF-8 input, depth 64, one million entries per container and one million value nodes; validation retains at most 64 issues with 32 path segments and 1024 path bytes each. Unknown object fields reject by default; strip discards them and retain returns owned extras. Last duplicate key wins before callbacks. Exact integer-to-number conversion remains checked. Entire syntax and resource validation precedes callbacks, including discarded fields. Union branches retry only before a consuming transform/coercion commits. The receiver is unchanged.\n\nOwnership: borrows text and schema; output owns its data and outlives text. Typed fields do not construct an intermediate JsonValue tree. Explicit retained extras or JsonValue coercion arguments request owned dynamic values.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int()});match(schema.safeParseJson('{\"count\":7}')){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.kind);}}}\n```\n\nExpected output: 7.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int()});match(schema.safeParseJson('{\"count\":7}')){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.kind);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "refine",
     "signature": "refine(predicate: (value: ReadOnly<Output>) => boolean): Schema<Output>",

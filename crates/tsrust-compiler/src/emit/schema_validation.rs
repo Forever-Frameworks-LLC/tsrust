@@ -89,6 +89,7 @@ impl Emitter<'_> {
         format!("{name}(&{plan},path,issues,failure)")
     }
     pub(super) fn schema_validate(&self,fun:&CheckedFunction,expr:&Expr,args:&[Expr])->String {
+        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:decode")){return self.schema_text_decode_call(fun,expr,args);}
         let Type::Record(root)=args[0].ty.unwrap() else{unreachable!()};
         let mut generated=String::from("fn tsrust_schema_numeric_code(code:&str)->tsrust_schema_issues::Code{use tsrust_schema_issues::Code;match code{\"integer-range\"=>Code::IntegerRange,\"integer-fractional\"=>Code::IntegerFractional,\"number-precision\"=>Code::NumberPrecision,\"number-nonfinite\"=>Code::NumberNonfinite,\"too-small\"=>Code::TooSmall,\"too-large\"=>Code::TooLarge,_=>Code::Type}}");
         let errors=expr.schema_invocations.as_deref().unwrap_or_default().iter().fold(crate::error_effects::FailureSet::default(),|errors,family|errors|self.program.error_effects.storage_errors.get(family).cloned().unwrap_or_default());

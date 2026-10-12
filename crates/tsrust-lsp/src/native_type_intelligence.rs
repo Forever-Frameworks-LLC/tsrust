@@ -71,7 +71,7 @@ impl SourceIndex {
                 .and_then(|label| label.strip_prefix("input: "))
                 .map(str::to_owned).unwrap_or_else(|| format!("{output} | JsonValue"));
             entries.extend(self.schema_pipeline_entries(&input, output, output).into_iter()
-                .filter(|entry| matches!(entry["name"].as_str(),Some("refine"|"transform"|"coerce"))));
+                .filter(|entry| matches!(entry["name"].as_str(),Some("refine"|"transform"|"coerce"|"safeParseJson"))));
         }
         entries
     }

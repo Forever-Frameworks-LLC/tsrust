@@ -2818,3 +2818,20 @@ fn schema_validation_error_alias_tracks_scalar_and_pipeline_results() {
         assert!(!hover.to_string().contains("SchemaError"),"{hover}");
     }
 }
+
+#[test]
+fn schema_fused_json_help_and_result_expose_separate_failure_kinds(){
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.object({count:s.int()});const result=schema.safeParseJson('{\"count\":2}');}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let method=ask(&index,&entry,"safeParseJson(","textDocument/hover");
+    assert!(method.to_string().contains("ValidationError")&&method.to_string().contains("JsonError")&&method.to_string().contains("borrows text"),"{method}");
+    let help=ask(&index,&entry,"'{\"count\":2}'","textDocument/signatureHelp");
+    assert!(help.to_string().contains("ReadOnly<string>")&&help.to_string().contains("ValidationError")&&help.to_string().contains("JsonError"),"{help}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    for expected in ["validation","json","count","int"]{assert!(result.to_string().contains(expected),"{result}");}
+    assert!(!result.to_string().contains("@schema:"),"{result}");
+    let completion=ask(&index,&entry,"safeParseJson(","textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|entry|entry["label"]=="safeParseJson"),"{completion}");
+}
