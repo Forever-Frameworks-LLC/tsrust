@@ -34,13 +34,20 @@ impl<W:Output> Writer<W> {
  }
  fn stop(&mut self,error:WriteError)->Result<(),WriteError> {self.terminal=Some(error.clone());Err(error)}
  pub fn write(&mut self,value:&Value)->Result<(),WriteError> {
+  self.write_with(|limit|stringify(value,limit))
+ }
+ /// Generated serializers borrow source values and enforce typed number/depth rules.
+ pub fn write_typed<T:serde::Serialize + ?Sized>(&mut self,value:&T)->Result<(),WriteError>{
+  self.write_with(|limit|super::typed::encode(value,limit))
+ }
+ fn write_with(&mut self,encode:impl FnOnce(usize)->Result<String,super::Error>)->Result<(),WriteError>{
   if let Some(error)=&self.terminal {return Err(error.clone());}
-  let Some(next)=self.line.checked_add(1) else {
+  let Some(next)=self.line.checked_add(1).filter(|next|u64::try_from(*next).is_ok_and(|next|next<=i64::MAX as u64)) else {
    return self.stop(WriteError{code:"position-limit",message:"JSON Lines record count limit exceeded",operation:"write",line:self.line,os_code:None});
   };
   // A rejected encoding must not leave a partial record in the destination.
   // The record budget excludes LF, matching the reader's byte budget.
-  let record=match stringify(value,self.max_bytes) {Ok(record)=>record,Err(error)=>{
+  let record=match encode(self.max_bytes) {Ok(record)=>record,Err(error)=>{
    return self.stop(WriteError{code:error.code,message:error.message,operation:"write",line:self.line,os_code:None});
   }};
   let output=self.output.as_mut().expect("live JSON Lines writer");
@@ -82,6 +89,24 @@ mod tests {
   }
   fn flush(&mut self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.flushes+=1;if s.fail_flush{Err(error())}else{Ok(())}}
   fn close(self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.closes+=1;if s.fail_close{Err(error())}else{Ok(())}}
+ }
+ #[test]
+ fn typed_records_are_borrowed_and_failed_encoding_emits_no_prefix(){
+  let state=Rc::new(RefCell::new(State::default()));let mut writer=Writer::new(Probe(state.clone()),16);
+  let values=vec![1_i64,2,3];writer.write_typed(&values).unwrap();
+  assert_eq!(values,vec![1,2,3]);assert_eq!(state.borrow().bytes,b"[1,2,3]\n");
+  let error=writer.write_typed(&(1,super::super::typed::Undefined)).unwrap_err();
+  assert_eq!(error.code,"undefined-value");assert_eq!(error.line,2);
+  assert_eq!(state.borrow().bytes,b"[1,2,3]\n");
+  assert_eq!(writer.write_typed(&values).unwrap_err(),error);
+  assert_eq!(writer.close().unwrap_err(),error);assert_eq!(state.borrow().closes,1);
+ }
+ #[test]
+ fn public_record_counter_never_exceeds_signed_integer_range(){
+  let state=Rc::new(RefCell::new(State::default()));let mut writer=Writer::new(Probe(state.clone()),16);
+  writer.line=usize::try_from(i64::MAX).unwrap_or(usize::MAX);
+  let error=writer.write_typed(&7_i64).unwrap_err();assert_eq!(error.code,"position-limit");
+  assert!(state.borrow().bytes.is_empty());drop(writer);assert_eq!(state.borrow().closes,1);
  }
  #[test]
  fn compact_records_have_one_lf_and_encoding_failure_writes_nothing() {

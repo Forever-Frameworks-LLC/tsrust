@@ -993,3 +993,21 @@ and numeric policies differ outside the fixed ASCII shared input domain.
 Evidence: tsrust-jsonl-typed-*-0374c3d0 in SQLite. Bounded writer integration,
 remaining borrowed adapters, allocation/performance acceptance and consumer
 refresh remain open. No timing samples were collected.
+
+### Typed writer staging boundary
+
+The private JSONL writer now accepts generated serde serializers through
+write_typed, sharing the bounded direct encoder. It stages one complete record
+before writing any bytes, borrows the input and appends exactly one LF after a
+successful encoding. Failed encoding leaves that record unwritten, becomes
+terminal and is repeated by subsequent writes. Close still attempts cleanup
+and reports its existing error precedence. Generated serializers retain their
+finite-number, undefined and shared-depth obligations from direct stringify.
+
+Record counters now stop before exceeding the signed 64-bit public integer
+range, including flush/close's next-record counter. Eight writer tests pass,
+covering typed borrowing, encoding rejection after a staged prefix, exact byte
+limits, partial I/O, flush/close failures, borrowed output and overflow. Evidence:
+tsrust-json-writer-typed-*-f4177484 in SQLite. This is private backend acceptance;
+public writer bindings, catalog/editor checks and matched workloads remain next.
+No timing or installed-consumer refresh was performed.
