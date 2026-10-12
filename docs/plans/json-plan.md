@@ -1141,3 +1141,42 @@ The public audit covers all 431 discovered identities exactly once.
 Evidence: tsrust-json-borrowed-writer-*-829dd771 in SQLite. Installed consumers
 remain at ee1e2717. Public raw fragments, allocation baselines and S10 family
 regression/performance acceptance remain open; no timing acceptance is claimed.
+
+### Numeric-array allocation baselines
+
+benchmarks/runtime/json-allocations.mjs now measures generated dynamic and typed
+JSON decoding against direct serde_json Rust and Node-after-tsc counterparts. It
+reuses the established allocation drivers and three fresh-process samples per
+case. Sizes are 0, 1 and 10000 exact integers, with independently constructed
+inputs and an arithmetic checksum. The existing input/output disposal accounting
+is unchanged. Input allocation is outside operation counters; output is retained
+until counters are sampled, then dropped. Every Rust sample verifies zero live
+bytes after output disposal and after input disposal. Node reports post-GC heap
+deltas, which are not comparable to Rust allocation counts or requested bytes.
+
+The harness requires an explicit verified TSRUST binary and the shared absolute
+CARGO_TARGET_DIR. It uses the pinned Rust/Node/TypeScript versions, prepares native
+dependencies automatically, preserves source/emission/instrumentation/dependency
+hashes and compile commands, and removes its temporary build directory. Run with
+those environment variables and `node benchmarks/runtime/json-allocations.mjs`;
+stdout is the immutable JSON record and stderr reports progress. No timing samples
+are collected. The older general allocation runner is not used by this harness.
+
+The first run at compiler checkpoint 7dbf303d has six cases and 54 process samples
+(three engines, three samples each). Requested-byte allocation counts are stable
+across all three Rust samples. Empty arrays allocate nothing. At 10000 values,
+generated typed output and direct Vec<i64> each retain 131072 requested bytes;
+generated dynamic output and direct serde_json::Value each retain 524288 bytes.
+The single-element native typed output fits inline and allocates no heap storage;
+the direct Vec baseline retains 32 bytes. Inline storage still occupies memory.
+These observations concern these successful numeric arrays, not general JSON or
+process RSS. They do not measure the CPU cost of native limit validation or typed
+decoding's two passes. The direct Rust baseline has no native resource limits.
+
+Four adapter/accounting tests pass, and both generated programs and both typed
+TypeScript counterparts compile and execute under the measured protocol. Evidence:
+tsrust-json-allocation-*-7dbf303d in SQLite, including the original result JSON.
+This is partial S10 allocation evidence, not family acceptance. Unicode, nested
+and selective objects, malformed/partial-failure inputs, encoding, streaming and
+raw-fragment allocation cases remain required, along with full family regressions
+and timing. Raw-fragment public output semantics still await the owner's choice.
