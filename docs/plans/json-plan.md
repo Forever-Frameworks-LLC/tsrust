@@ -6,7 +6,7 @@ the approved JSON namespace have focused acceptance. Installed CLI/editor
 consumers were refreshed from `818459f3`, including child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
-its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Dynamic construction,
+its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar construction has focused source acceptance. Container construction,
 direct typed runtime paths, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
@@ -734,10 +734,10 @@ and whole-project formatting. The new benchmark parses once, checks a string gua
 projects a local and performs length plus two searches. Five untimed cases agree;
 no family measurement or installed-consumer acceptance is claimed here.
 
-The number-refinement decision remains open: preserving exact JSON integers can
-require checked extraction, a throwing precision check, or a new exact numeric
-representation. The existing asInt/asNumber behavior remains unchanged while the
-owner considers these choices. This does not block other S10 implementation.
+The owner accepted preserving exact JSON storage after a number guard. Arithmetic
+requires checked asInt/asNumber extraction; asNumber rejects precision loss.
+Implicit numeric projection and a new exact numeric type are not required for
+this S10 inspection contract. Existing conversion behavior remains unchanged.
 
 
 ### Scalar JSON construction
@@ -758,3 +758,27 @@ it does not isolate constructor costs. Evidence is stored under
 `tsrust-json-construction-*` in SQLite. No family timing or consumer refresh is
 claimed. Container construction, typed conversion, streams and integrated S10
 acceptance remain open.
+
+
+### Owned container backend and numeric contract
+
+The owner confirmed that typeof-number guards preserve JSON storage. A native
+witness retains 9007199254740993 exactly, extracts it with asInt, rejects lossy
+asNumber, and still serializes the original value. A direct number assignment
+after the guard is rejected. This resolves the numeric-refinement decision;
+historical statements about pending exact numeric projection are superseded.
+
+Private owned-container helpers validate depth, per-container entries and total
+values before constructing a new root. The root counts as one value and one
+container level. Nesting is capped at 64. Object input budgets count duplicate
+entries and all their values before last-key replacement. Objects retain the
+existing sorted-key representation. Array storage and child string allocations
+transfer without cloning. Existing caller storage is consumed on error.
+
+Focused backend tests cover retained allocation identity, exact integer payloads,
+duplicate replacement, key order, nested entry budgets, depth/node boundaries and
+invalid limits. These helpers are infrastructure only: no public container API,
+editor support, workload registration or installed acceptance is claimed yet.
+Public array/object constructors and their complete acceptance remain the next
+construction step. Evidence uses tsrust-json-containers-backend-* and
+tsrust-json-number-contract-* in SQLite.

@@ -7,8 +7,11 @@ import {asBoolean, asInt, asNumber, takeString} from 'std:json';
 import {strictEqual} from 'std:testing';
 function main() {
   const integer=JSON.parse('9007199254740993');
+  strictEqual(typeof integer,'number');
+  if(typeof integer==='number'){
   match(asInt(integer)){Ok(value)=>{strictEqual(value,9007199254740993);},Err(error)=>{throw error;}}
   match(asNumber(integer)){Ok(_)=>{throw 'lost precision';},Err(error)=>{strictEqual(error.code,'number-precision');}}
+  }
   strictEqual(JSON.stringify(integer),'9007199254740993');
   match(asBoolean(JSON.parse('false'))){Ok(value)=>{strictEqual(value,false);},Err(error)=>{throw error;}}
   match(asInt(JSON.parse('1.5'))){Ok(_)=>{throw 'rounded fraction';},Err(error)=>{strictEqual(error.code,'integer-fractional');}}
@@ -48,4 +51,10 @@ fn json_scalar_catalog_examples_execute() {
 #[test]
 fn nested_match_shadow_restores_outer_binding() {
     tsrust_compiler::check("function main(){const value=42;match(Ok<int,string>(1)){Ok(value)=>{console.log(value);},Err(error)=>{throw error;}}console.log(value);}").unwrap();
+}
+
+#[test]
+fn json_number_guard_does_not_implicitly_round_into_number() {
+ let source="function main(){const value=JSON.parse('9007199254740993');if(typeof value==='number'){const rounded:number=value;}}";
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));let output=support::run(support::cli().arg("check").arg(path),60);assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("error[type]"));
 }

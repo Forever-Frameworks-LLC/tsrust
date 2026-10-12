@@ -383,3 +383,74 @@ pub trait ViewSource<'a> { fn json_view(self) -> &'a Value; }
 pub fn from_f64(value:f64)->Result<Value,Error>{
  serde_json::Number::from_f64(value).map(Value::Number).ok_or_else(||failure("number-nonfinite",0))
 }
+
+/// Budgets for already-owned dynamic values. No input byte stream is parsed.
+#[derive(Clone, Copy, Debug)]
+pub struct BuildLimits {pub depth:usize,pub entries:usize,pub nodes:usize}
+struct BuildBudget {limits:BuildLimits,nodes:usize}
+impl BuildBudget {
+ fn root(limits:BuildLimits,entries:usize)->Result<Self,Error>{
+  if limits.depth>64{return Err(invalid_limits());}
+  if limits.nodes==0{return Err(failure("node-limit",0));}
+  if limits.depth==0{return Err(failure("depth-limit",0));}
+  if entries>limits.entries{return Err(failure("entry-limit",0));}
+  Ok(Self{limits,nodes:1})
+ }
+ fn visit(&mut self,value:&Value,depth:usize)->Result<(),Error>{
+  if self.nodes>=self.limits.nodes{return Err(failure("node-limit",0));}
+  self.nodes+=1;
+  let entries=match value{Value::Array(values)=>values.len(),Value::Object(values)=>values.len(),_=>return Ok(())};
+  if depth>=self.limits.depth{return Err(failure("depth-limit",0));}
+  if entries>self.limits.entries{return Err(failure("entry-limit",0));}
+  match value {
+   Value::Array(values)=>for value in values{self.visit(value,depth+1)?;},
+   Value::Object(values)=>for value in values.values(){self.visit(value,depth+1)?;},
+   _=>unreachable!(),
+  }
+  Ok(())
+ }
+}
+/// Validates the new root and all descendants, then transfers the input allocation.
+pub fn build_array(values:Vec<Value>,limits:BuildLimits)->Result<Value,Error>{
+ let mut budget=BuildBudget::root(limits,values.len())?;
+ for value in &values{budget.visit(value,1)?;}
+ Ok(Value::Array(values))
+}
+/// Counts all supplied entries before duplicate replacement; the last key wins.
+pub fn build_object(entries:Vec<(String,Value)>,limits:BuildLimits)->Result<Value,Error>{
+ let mut budget=BuildBudget::root(limits,entries.len())?;
+ for (_,value) in &entries{budget.visit(value,1)?;}
+ let mut object=serde_json::Map::new();
+ for (key,value) in entries{object.insert(key,value);}
+ Ok(Value::Object(object))
+}
+
+#[cfg(test)]
+mod construction_tests {
+ use super::*;
+ fn limits()->BuildLimits{BuildLimits{depth:4,entries:3,nodes:20}}
+ #[test]
+ fn owned_containers_preserve_payloads_and_duplicate_key_rules(){
+  let text=String::from("owned payload");let allocation=text.as_ptr();
+  let array=build_array(vec![Value::String(text),Value::from(i64::MAX)],limits()).unwrap();
+  assert_eq!(array[0].as_str().unwrap().as_ptr(),allocation);
+  assert_eq!(array[1].as_i64(),Some(i64::MAX));
+  let object=build_object(vec![("z".into(),Value::Null),("a".into(),array),("z".into(),Value::Bool(true))],limits()).unwrap();
+  assert_eq!(object["z"],Value::Bool(true));
+  assert_eq!(object["a"][0].as_str().unwrap().as_ptr(),allocation);
+  assert_eq!(object.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(),vec!["a","z"]);
+ }
+ #[test]
+ fn construction_budgets_count_root_nested_values_and_replaced_entries(){
+  assert_eq!(build_array(vec![],BuildLimits{depth:0,..limits()}).unwrap_err().code,"depth-limit");
+  assert_eq!(build_array(vec![],BuildLimits{nodes:0,..limits()}).unwrap_err().code,"node-limit");
+  assert_eq!(build_array(vec![],BuildLimits{depth:65,..limits()}).unwrap_err().code,"invalid-limits");
+  assert!(build_array(vec![],BuildLimits{depth:1,entries:0,nodes:1}).is_ok());
+  assert_eq!(build_array(vec![Value::Array(vec![])],BuildLimits{depth:1,..limits()}).unwrap_err().code,"depth-limit");
+  assert_eq!(build_array(vec![Value::Null;4],limits()).unwrap_err().code,"entry-limit");
+  assert_eq!(build_array(vec![Value::Array(vec![Value::Null;4])],limits()).unwrap_err().code,"entry-limit");
+  assert_eq!(build_object(vec![("same".into(),Value::Null);4],limits()).unwrap_err().code,"entry-limit");
+  assert_eq!(build_object(vec![("same".into(),Value::Null);3],BuildLimits{nodes:3,..limits()}).unwrap_err().code,"node-limit");
+  assert!(build_object(vec![("same".into(),Value::Null);3],BuildLimits{nodes:4,..limits()}).is_ok());
+ }
+}
