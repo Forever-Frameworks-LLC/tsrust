@@ -635,6 +635,7 @@ pub enum CallTarget {
     JsonBoolean,
     JsonStringLength,
     JsonStringView,
+    JsonDecode,
     StringConversion,
     ArrayIsArray,
     ObjectIs,
@@ -4480,10 +4481,11 @@ impl Parser<'_> {
                 span,
             ));
         }
-        if matches!(Self::optional_identity(&expr).kind, ExprKind::Field(_, _)) {
+        if matches!(&Self::optional_identity(&expr).kind, ExprKind::Field(base, member)
+            if !matches!(&base.kind, ExprKind::Name(name) if name == "JSON" && matches!(member.as_str(), "parse" | "tryParse"))) {
             return Err(Diagnostic::new(
                 "unsupported",
-                "Explicit member type arguments are only supported for Array.of.",
+                "Explicit member type arguments are supported for Array.of, JSON.parse and JSON.tryParse.",
                 span,
             ));
         }

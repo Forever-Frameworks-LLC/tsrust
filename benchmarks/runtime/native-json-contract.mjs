@@ -12,6 +12,16 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_typed'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typed identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typed fingerprint');
+  if(row.iterations!==2000||row.inputText!==typedInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One checked record decode and scalar field observation')throw Error('JSON typed denominator');
+  const body=kind==='native'?`while(i<n){const item=JSON.parse<Item>(input);if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]+item.values[1];i++;}`:`while(i<n){const item=decodeItem(input);if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]!+item.values[1]!;i++;}`;
+  for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON typed operation placement');
+  if(kind==='typescript')for(const snippet of ["const item:unknown=JSON.parse(input);","if(typeof fields.name!=='string'||typeof fields.active!=='boolean'||!Array.isArray(fields.values))throw Error('shape-mismatch');","for(const value of fields.values){if(typeof value!=='number'||!Number.isSafeInteger(value))throw Error('integer-range');}"])if(!containsCodeSnippet(source,snippet))throw Error('JSON typed checked fields');
+  return;
+ }
+
  if(row.id==='native_json_containers'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON containers identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON containers fingerprint');
@@ -179,4 +189,10 @@ export function constructionChecksum(n,seed,input){
 export function containersChecksum(n,seed,input){
  if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*34))throw Error('JSON containers oracle inputs');
  return seed+n*34;
+}
+
+export const typedInput='{"name":"hello","values":[20,17],"active":true}';
+export function typedChecksum(n,seed,input){
+ if(input!==typedInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*42))throw Error('JSON typed oracle inputs');
+ return seed+n*42;
 }

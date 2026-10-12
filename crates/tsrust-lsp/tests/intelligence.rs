@@ -9949,3 +9949,22 @@ fn json_namespace_editor_respects_local_receivers() {
     let docs=hover["contents"]["value"].as_str().unwrap_or("");
     assert!(docs.contains("JsonValue") && !docs.contains("@json") && !docs.contains("native#"),"{hover}");
 }
+
+#[test]
+fn json_typed_decoding_exposes_checked_record_members_and_signatures() {
+    let source="type Item={name:string;count:int;};function main(){const item=JSON.parse<Item>('{}');console.log(item.name);JSON.tryParse<int[]>('[1]');}";
+    for (needle,result) in [("parse<Item>","JSON.parse<Item>"),("tryParse<int[]>","Result<int[], JsonError>")] {
+        let hover=ask(source,"textDocument/hover",needle,0);
+        let docs=hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains(result) && docs.contains("number-precision"),"{hover}");
+        let call=format!("{needle}(");let mut position=at(source,&call,0);position.character+=call.len() as u32;
+        let signature=SourceIndex::new(source).request("textDocument/signatureHelp",&json!({"position":position}),"file:///test.tsr").unwrap();
+        assert!(signature["signatures"][0]["label"].as_str().unwrap_or("").contains(result),"{signature}");
+    }
+    let hover=ask(source,"textDocument/hover","item=",0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("Item"),"{hover}");
+    let source="type Item={name:string;count:int;};function main(){const item=JSON.parse<Item>('{}');item.}";
+    let completion=ask(source,"textDocument/completion","}",2);
+    let entries=completion.as_array().unwrap();
+    assert!(entries.iter().any(|entry|entry["label"]=="name") && entries.iter().any(|entry|entry["label"]=="count"),"{completion}");
+}

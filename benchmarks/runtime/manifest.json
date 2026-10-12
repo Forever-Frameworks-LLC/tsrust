@@ -21496,6 +21496,30 @@
       "notes": "Native constructors validate default budgets and transfer values; Node uses ordinary arrays and Object.fromEntries. Native reused string input is explicitly copied. Includes encoding; no timing samples.",
       "sourceSha256": "a72f75606905d8e424fdb70fd3d054e98af554766e787d8960fe76ba6ee420bf",
       "counterpartSha256": "6939ab9f0d0d3845eef81bafced7e86ce9925f61e780cf7f14ab0631e3a98fe8"
+    },
+    {
+      "id": "native_json_typed",
+      "category": "json",
+      "description": "Checked direct typed JSON record and array decoding",
+      "source": "workloads/native_json_typed.tsr",
+      "counterpart": "workloads/native_json_typed.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked record decode and scalar field observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "{\"name\":\"hello\",\"values\":[20,17],\"active\":true}",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Decode name, two integer values and active flag; independently observed checksum adds 42 per iteration.",
+      "notes": "Native bounded direct visitors; Node parses then checks the record shape and safe integer array. Fixed input stays within shared numeric and budget domains. Native safety limits and arbitrary integer handling differ; no timing samples.",
+      "sourceSha256": "cd7cd1aef24f881ae5defe70162f7da5a901277dbedd3f9031a57086941a51f1",
+      "counterpartSha256": "d4c6f197630af09e73fe385506717a7f5f743e47bfb3af19d107ef09dd49e8f0"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

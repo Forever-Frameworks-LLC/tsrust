@@ -1,3 +1,4 @@
+mod json_typed;
 mod json_refinement;
 mod native_view_mutations;
 mod native_view_expression_calls;
@@ -7782,6 +7783,7 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Option<Type>, Diagnostic> {
+        if let Some(result)=self.json_typed_decode(context,expr,loans,expected)?{return Ok(Some(result));}
         if let Some(result)=self.json_string_length(context,expr,mode,loans)?{return Ok(Some(result));}
         if let Some(result) = self.result_match_intrinsic(context, expr, loans)? {
             return Ok(Some(result));

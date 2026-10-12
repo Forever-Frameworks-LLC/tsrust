@@ -1,0 +1,25 @@
+type Item = {
+  name: string;
+  values: int[];
+  active: boolean;
+};
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const item = JSON.parse<Item>(input);
+    if (!item.active) {
+      throw 'Inactive item';
+    }
+
+    checksum += item.name.length + item.values[0] + item.values[1];
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '{"name":"hello","values":[20,17],"active":true}'));
+}

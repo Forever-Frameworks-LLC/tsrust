@@ -665,8 +665,9 @@ impl SourceIndex {
     // An incomplete EOF member can be checked through a readonly projection.
     // typeof preserves the physical tag; Project metadata supplies only proven views.
     fn receiver_probe(&self) -> Option<(String, usize, usize, usize)> {
-        let last = self.tokens.len().checked_sub(1)?;
-        if !self.source[self.tokens[last].span.end..].trim().is_empty() {
+        let end = self.tokens.len().checked_sub(1)?;
+        let last = (0..=end).rev().find(|&token| self.text(token) != "}")?;
+        if !self.source[self.tokens[end].span.end..].trim().is_empty() {
             return None;
         }
         let dot = if member_separator(self.text(last)) {
@@ -1779,7 +1780,8 @@ impl SourceIndex {
             && self.text(method - 2) == "Array";
         let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
-        if !(checked_generic || array_constructor || set_constructor || result_constructor) || self.text(next) != "<" {
+        let json_decode = method >= 2 && self.text(method - 2) == "JSON" && self.resolve_token(method - 2).is_none() && matches!(self.text(method), "parse" | "tryParse");
+        if !(checked_generic || array_constructor || set_constructor || result_constructor || json_decode) || self.text(next) != "<" {
             return None;
         }
         let mut depth = 0usize;
@@ -3058,7 +3060,7 @@ impl SourceIndex {
             ),
             "JSON" => (
                 "namespace JSON",
-                "Parses and encodes bounded JSON values. parse and stringify throw structured JsonError; tryParse and tryStringify return Result. Parsed values use checked JsonValue. Neither path returns dynamically typed objects. Arguments are borrowed and results own their storage.",
+                "Parses and encodes bounded JSON values. parse and stringify throw structured JsonError; tryParse and tryStringify return Result. Parsed values use checked JsonValue unless an explicit type argument requests checked owned data. Neither path returns dynamically typed objects. Arguments are borrowed and results own their storage.",
                 vec![],
             ),
             "Math" => (
@@ -3118,6 +3120,15 @@ impl SourceIndex {
         let mut entry = self.receiver_builtins(&receiver)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
+        if receiver == "JSON" && self.text(token + 1) == "<"
+            && let Some(signature) = entry["typedSignature"].as_str()
+            && let Some(open) = self.member_call_open(token)
+        {
+            let arguments = self.snippet(token + 1, open);
+            if let Some(target) = arguments.strip_prefix('<').and_then(|value|value.strip_suffix('>')) {
+                entry["signature"] = json!(builtin_type_substitution(signature,&[("T",target.trim())]));
+            }
+        }
         if (matches!(self.text(token), "flat" | "flatMap")
             || (receiver == "Array" && matches!(self.text(token),"of"|"from"))
             || (receiver == "Map" && self.text(token)=="groupBy"))
@@ -3469,7 +3480,8 @@ impl SourceIndex {
             if self.text(open) != "(" {
                 continue;
             }
-            if let Some((label,parameters))=self.expression_callee_signature(open) {
+            let json_namespace = self.call_callee(open).is_some_and(|callee| callee >= 2 && self.text(callee - 2) == "JSON" && self.resolve_token(callee - 2).is_none());
+            if !json_namespace && let Some((label,parameters))=self.expression_callee_signature(open) {
                 let active=self.call_argument_parameter(open,offset,&parameters);
                 let parameters=parameters.iter().map(|parameter|json!({"label":parameter})).collect::<Vec<_>>();
                 let mut help=json!({"signatures":[{"label":label,"parameters":parameters}],"activeSignature":0});

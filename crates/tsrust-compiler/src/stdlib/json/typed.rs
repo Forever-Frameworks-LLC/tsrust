@@ -1,4 +1,5 @@
 //! Direct typed decoding uses bounded validation without a dynamic value tree.
+pub use serde;
 use super::{Budget, Error, Limits, failure, located};
 
 #[cfg(test)]

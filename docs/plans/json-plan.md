@@ -7,7 +7,8 @@ consumers were refreshed from `818459f3`, including child views, boolean refinem
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
-Direct typed runtime paths, borrowed adapters, public writers, allocation
+Direct typed JSON decoding now has focused source acceptance. Typed encoding,
+typed JSONC/JSONL adapters, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -832,3 +833,40 @@ The support module is included in the automatically packaged native JSON runtime
 Evidence uses tsrust-json-typed-backend-*-e55e0647 in SQLite. This is backend
 infrastructure only: public typed syntax, compiler-generated visitors, editor
 support, matched workloads and direct typed encoding remain pending.
+
+
+### Checked typed JSON decoding
+
+`JSON.parse<T>` and `JSON.tryParse<T>` now specialize checked compiler-owned
+adapters. Ordinary calls without explicit type arguments remain dynamic. The
+requested type drives direct visitors for owned scalars, records, tuples, arrays,
+nullable/optional values and recursive records. No JsonValue tree is built before
+conversion. Both paths borrow input and limits; results own their storage.
+
+Required fields reject omission; optional fields default to undefined. Unknown
+fields are validated under all input budgets and then skipped. Every known-field
+occurrence must match its type; valid duplicate fields replace previous values.
+Typed records use declaration field order. Tuples reject extra elements. Numeric
+visitors preserve the checked ExactInt/ExactNumber contracts described above.
+Multi-shape unions, native resources, views and functions are diagnosed as
+unsupported targets. This batch does not claim schema-driven union selection.
+
+Focused acceptance covers generated native output, recursive arrays and nullable
+links, optional fields, tuples, nested arrays, generic wrappers, borrowed input,
+throwing and Result failures, numeric boundaries, skipped-field limits, duplicate
+fields, unsupported targets and executable catalog examples. Invalid target
+errors reference the user type argument rather than synthetic adapter source.
+Editor hover, signature help and member completion show concrete requested types;
+completion recovery also handles a trailing member before closing braces.
+
+The native_json_typed workload and checked Node-after-tsc counterpart have an
+independent checksum, source fingerprints, ABI/operation guards and five untimed
+matched cases. Node validates the fixed input shape after JSON.parse; the native
+path validates budgets before direct decoding. Those costs are disclosed, not
+claimed identical. SQLite records use tsrust-json-typed-*-1a08e3af, retaining
+failed witnesses and repaired checks. No timing or allocation measurements are
+claimed. Installed consumers remain at 818459f3 until the next refresh.
+
+Next: direct typed encoding, typed JSONC/JSONL and bounded writer integration,
+opt-in raw/borrowed fragments, then the complete S10 allocation/performance and
+regression milestone. The broader S11–S21 roadmap is unchanged.

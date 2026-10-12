@@ -26,3 +26,18 @@ Evidence includes executable catalog examples, editor hover/signature/completion
 namespace/native contract tests and dependency-selection tests. See the policy
 plan for exact SQLite records and remaining feature acceptance work. Performance
 measurements are not implied by this semantic review.
+
+
+## Checked typed decoding extension
+
+Explicit `JSON.parse<T>` now returns checked owned T; `JSON.tryParse<T>` returns
+Result<T, JsonError>. Untyped calls and imported std:json.parse retain their
+existing contracts. The type argument drives direct decoding rather than an
+unchecked assertion. Native dependencies are still selected automatically.
+
+The supported owned shape set, optional/missing/duplicate field policy, checked
+numeric conversions and unsupported target diagnostics are documented in the
+JSON guide and both catalog entries. Compiler-owned generic adapters preserve
+normal typed exception propagation and borrowed arguments. This adds no global
+name or native binding inventory row. Focused evidence is recorded in the JSON
+plan; performance acceptance remains pending.

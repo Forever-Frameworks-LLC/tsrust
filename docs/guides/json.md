@@ -1,7 +1,8 @@
 # JSON values and errors
 
 Use the global JSON namespace for bounded parsing and serialization. Parsed data
-is an owned `JsonValue`, not an unchecked record or dynamically typed object.
+is an owned `JsonValue` by default. An explicit type argument requests checked
+decoding into that owned type.
 
 ```tsrust
 function main() {
@@ -51,6 +52,39 @@ are separate build-time data modules; see [modules](modules.md).
 
 Local variables named JSON shadow the global namespace. Runtime dependencies are
 selected automatically from checked usage; no per-build linking flags are needed.
+
+## Decoding a known shape
+
+```tsrust
+type Item = { name: string; count: int; };
+function main() {
+  const item = JSON.parse<Item>('{"name":"hello","count":42}');
+  console.log(item.name, item.count); // hello 42
+}
+```
+
+`JSON.parse<T>` returns `T` or throws `JsonError`. `JSON.tryParse<T>` returns
+`Result<T, JsonError>`. The explicit type drives validation; it is not an unchecked
+cast. Without a type argument, both functions retain their dynamic JsonValue
+contracts, even when the surrounding declaration has a record annotation.
+
+Supported targets are owned scalar values, records, tuples, arrays and recursive
+records with nullable or optional links. Required fields must exist; omitted
+optional fields become undefined. Every occurrence of a known field must match
+its declared type; valid duplicates replace earlier values. Unknown fields are
+skipped but still count toward all input budgets. Tuples require the declared
+number of elements. A shape mismatch reports `shape-mismatch` with a byte offset.
+
+`int` rejects fractional and out-of-range values. `number` rejects signed or
+unsigned 64-bit integer payloads that would lose precision, and preserves floating
+negative zero. Larger integer tokens retain the parser's finite floating-point
+rules. Use `int` for exact signed 64-bit arithmetic. The errors are
+`integer-fractional`, `integer-range` and `number-precision`.
+
+Decoding borrows text and limits and directly builds independent owned storage.
+It does not build a dynamic JSON tree first. Native resources, borrowed views,
+functions and unions with multiple non-null value shapes are not decoding targets.
+Typed JSONC and JSONL decoding and direct typed encoding remain pending.
 
 ## Extracting scalar values
 
