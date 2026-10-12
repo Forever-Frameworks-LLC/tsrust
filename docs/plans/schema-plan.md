@@ -822,3 +822,32 @@ truncation, missing fields and a zero-issue budget. The original compile failure
 and repaired checks are retained in SQLite under
 `tsrust-schema-issue-bridge-*-9f9d4f7d.log`. This is a prerequisite for composite
 validation; public array safeParse and its matched workload remain pending.
+
+## Owned array validation integration
+
+Array schemas now validate matching owned scalar arrays, including nested arrays,
+through the normal checker and generated native execution. The schema is borrowed
+and reusable; input transfers on both outcomes. Literal, inline-constructor and
+variable inputs are supported. String, int, number, boolean and null leaves retain
+their scalar constraints; exact integers never pass through floating point.
+
+Generated validators use the shared consuming loop and bounded error collector.
+Errors preserve input order and indexed paths. Defaults retain 64 issues, 32 path
+segments and 1024 field-name bytes per path; truncation remains explicit. Empty
+arrays succeed. Partial output is dropped after failure while remaining elements
+are visited. The implementation currently builds output storage; allocation and
+throughput optimization remain part of the family milestone.
+
+Focused native checks cover plan reuse, consumed-input rejection, all scalar
+storage families, nested constraints, empty input and issue truncation. Editor
+coverage verifies inferred nested Result types and substituted ownership signatures.
+The catalog includes an executed array validation example. The registered
+native_schema_owned_array workload has a handwritten TypeScript counterpart,
+independent checksum, indexed error observers, source guards and ABI support.
+Four untimed cases agree across native and Node-after-tsc; no timings were collected.
+SQLite evidence: `tsrust-schema-array-validation-*-2f62407c.log`.
+
+This completes the matching-owned-input path only. JsonValue arrays, checked
+numeric conversion between element types, broader composite schemas and the
+remaining S11 milestone acceptance are still required. Installed consumers remain
+at the accepted S10 checkpoint.

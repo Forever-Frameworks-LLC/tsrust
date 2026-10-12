@@ -2544,3 +2544,15 @@ fn schema_array_constructor_keeps_nested_output_hover() {
     let hover=ask(&index,&entry,"rows =","textDocument/hover");
     assert!(hover.to_string().contains("Schema<string[][]>"),"{hover}");
 }
+
+#[test]
+fn schema_array_validation_infers_result_and_documents_input() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const rows=s.array(s.array(s.string()));const result=rows.safeParse([['ok']]);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(hover.to_string().contains("Result<string[][], SchemaError>"),"{hover}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("64")&&hover.to_string().contains("Owned<string[][]>"),"{hover}");
+}

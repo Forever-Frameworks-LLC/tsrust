@@ -21978,6 +21978,30 @@
       "notes": "Parse plus validate and observe. Plan constructed outside loop. Matched Node domain contains only 1.5 and true; exact integer-to-number precision rejection has separate native boundary checks. Handwritten reference, not Zod. Validation-only and pinned Zod comparisons remain required.",
       "sourceSha256": "5248ca9f50878977c90ab7d740fead66d548b2f1a58930357959b32d28d8f1be",
       "counterpartSha256": "9a7cae2ae3538ec1d9059fde37760cc970e95ec73e73ad4230c0bcd3f3bdd796"
+    },
+    {
+      "id": "native_schema_owned_array",
+      "category": "schema",
+      "description": "Reusable owned integer array schema with indexed validation errors",
+      "source": "workloads/native_schema_owned_array.tsr",
+      "counterpart": "workloads/native_schema_owned_array.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One owned array construction, validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "owned-array",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate [2,3] successfully and reject [1,0] with two indexed errors. Checksum adds four per iteration.",
+      "notes": "Validation of small exact integers with a reusable min-2 plan. Handwritten TypeScript reference, not Zod. JSON parsing excluded; no timings collected.",
+      "sourceSha256": "8aa9db522911ee1af0cd520d494dfa1f765d09bca7fcf5a0e46758b3851a46af",
+      "counterpartSha256": "0664d225258160fa72cb3db3a265711ee2d850d59d419ef3af656399033e6a88"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

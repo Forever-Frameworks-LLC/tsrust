@@ -56,6 +56,7 @@ use crate::analysis::{ArgumentContract, CheckedFunction, CheckedProgram, Closure
 use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
 mod native_view_emit;
+mod schema_validation;
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -2350,7 +2351,7 @@ impl Emitter<'_> {
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
-        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number)))) {
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
             output.push_str("mod tsrust_schema_plan {\n");
             output.push_str(include_str!("../stdlib/schema/runtime.rs").trim_start_matches("//! Scalar schema plan storage shared by generated programs and backend tests.\n"));
             output.push_str("\n}\n");
@@ -8515,6 +8516,7 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {

@@ -92,7 +92,7 @@ impl NumberBounds {
 
 /// Consume every element, retaining typed output only while the array is valid.
 /// The caller owns bounded issue collection and path construction.
-pub fn validate_array<I,O>(values:Vec<I>,mut validate:impl FnMut(usize,I)->Option<O>)->Option<Vec<O>> {
+pub fn validate_array<I,O>(values:impl IntoIterator<Item=I>,mut validate:impl FnMut(usize,I)->Option<O>)->Option<Vec<O>> {
     let mut output=Vec::new();
     let mut valid=true;
     for (index,value) in values.into_iter().enumerate() {

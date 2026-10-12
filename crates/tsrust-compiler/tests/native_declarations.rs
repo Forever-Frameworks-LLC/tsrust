@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -707,4 +707,34 @@ fn main(){
     std::fs::write(&file,rust).unwrap();
     support::success(&support::run(support::rustc().arg("--edition=2024").arg(file).arg("-o").arg(&binary),60));
     support::success(&support::run(&mut std::process::Command::new(binary),10));
+}
+
+#[test]
+fn schema_owned_array_validation_reuses_plan_and_consumes_input() {
+    let source="import {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));const input=[2,3];match(schema.safeParse(input)){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse([1,0])){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues.length);for(const issue of error.issues){console.log(issue.code);}}}}";
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"2\n2\ntoo-small\ntoo-small\n");
+    let invalid="import {s} from 'std:schema';function main(){const schema=s.array(s.int());const input=[1,2];schema.safeParse(input);console.log(input.length);}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}
+
+#[test]
+fn schema_owned_array_validation_handles_nested_and_scalar_storage() {
+    let source=r#"import {s} from 'std:schema';function main(){
+      match(s.array(s.int()).safeParse([5])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      const rows=s.array(s.array(s.string().min(2)));
+      match(rows.safeParse([['hello','😀a']])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      match(rows.safeParse([['x']])){Ok(value)=>{throw 'unexpected';},Err(error)=>{for(const issue of error.issues){console.log(issue.path.length,issue.code);}}}
+      const flags=s.array(s.boolean());match(flags.safeParse([true,false])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      const numbers=s.array(s.number().gt(0.0));match(numbers.safeParse([1.5,2.5])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      const nulls=s.array(s.null());match(nulls.safeParse([null,null])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      const positive=s.array(s.int().min(1));let invalid:int[]=[];let i=0;while(i<65){invalid.push(0);i++;}
+      match(positive.safeParse(invalid)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues.length,error.truncated);}}
+      const empty:int[]=[];match(positive.safeParse(empty)){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"1\n1\n2 too-small\n2\n2\n2\n64 true\n0\n");
 }

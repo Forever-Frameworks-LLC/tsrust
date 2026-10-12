@@ -8,10 +8,11 @@ impl Kind {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, TooSmall, TooLarge, Literal, UnknownField }
+pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, NumberNonfinite, TooSmall, TooLarge, Literal, UnknownField }
 impl Code {
     pub(super) fn as_str(self) -> &'static str {
         match self {
+            Self::NumberNonfinite => "number-nonfinite",
             Self::UnknownField => "unknown-field",
             Self::Literal => "literal-mismatch",
             Self::Type => "type-mismatch", Self::Missing => "missing-field",

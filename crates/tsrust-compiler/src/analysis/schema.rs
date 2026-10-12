@@ -20,6 +20,37 @@ impl Analyzer {
         expr.kind=ExprKind::NativeConstructor(std::mem::take(args),Some(Box::new(annotation)));
         Ok(Some(result))
     }
+    pub(super) fn schema_array_validation(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+        let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
+        let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
+        if member!="safeParse" {return Ok(None);}
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:array"));
+        let mut receiver=(**base).clone();
+        let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
+        let Some(Type::Record(id))=receiver_type else{return Ok(None)};
+        let record=&self.program.records[id];
+        if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
+        let output=record.application.as_ref().unwrap().resolved_arguments[0];
+        if !matches!(output,Type::Array(_)){return Ok(None);}
+        let mut leaf=output;
+        while let Type::Array(element)=leaf {leaf=element.ty();}
+        if !matches!(leaf,Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null){return Err(Diagnostic::new("schema-type","Array validation requires a supported scalar element schema.",callee.span));}
+        if args.len()!=1{return Err(Diagnostic::new("arity","safeParse expects one input value.",expr.span));}
+        if !constructing {self.expression(context,&mut receiver,Mode::Read,loans,Some(Type::Record(id)))?;}
+        self.expression(context,&mut args[0],Mode::Consume,loans,Some(output))?;
+        let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
+        let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
+        let mut annotation=ValueAnnotation{span:expr.span,kind:Kind::Applied{name:TypeName{text:"Result".into(),span:expr.span},arguments:vec![types.annotation(output,expr.span)?,types.annotation(Type::Record(error),expr.span)?]}};
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
+        append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
+        let result=self.resolve_value_annotation(&annotation,false)?;
+        self.require(result,expected,expr.span)?;
+        args.insert(0,receiver);
+        callee.kind=ExprKind::Name("@schema:validateArray".into());
+        expr.target=Some(CallTarget::SchemaValidate);
+        Ok(Some(result))
+    }
     pub(super) fn schema_method_call(&self, context: &Context, expr: &mut Expr) -> Result<(), Diagnostic> {
         let ExprKind::Call(callee, args) = &mut expr.kind else { return Ok(()); };
         let ExprKind::Field(base, member) = &callee.kind else { return Ok(()); };
