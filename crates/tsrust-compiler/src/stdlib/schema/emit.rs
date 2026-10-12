@@ -77,3 +77,20 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         }}
     }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err))
 }
+
+pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::native_bindings::NativeBinding)->String{
+    let NativeType::Structured(signature)=binding.result else{unreachable!()};
+    let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap() else{unreachable!()};
+    let members=&program.unions[result.index()].members;
+    let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();
+    let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
+    let error=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::SchemaConstructionError)).unwrap();
+    let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
+    let operation=if binding.name=="__minString"{"min"}else{"max"};
+    format!("fn {symbol}(schema:Record{schema},limit:i64)->Union{result}{{
+        match schema.bounds.{operation}(limit){{
+            Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{bounds}}}}),
+            Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.operation),field2:error.limit}}}})
+        }}
+    }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
+}

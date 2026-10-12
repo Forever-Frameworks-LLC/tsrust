@@ -124,13 +124,28 @@ pub(crate) const SAFE_PARSE_NUMBER_INT: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number_int" }, features: &[], ..SAFE_PARSE_NUMBER
 };
 
+pub(crate) const MIN_STRING: NativeBinding = NativeBinding {
+    module: "std:schema", name: "__minString",
+    parameters: &[
+        crate::native_bindings::NativeParameter { name: "schema", access: crate::Mode::Consume, ..SAFE_PARSE.parameters[0] },
+        crate::native_bindings::NativeParameter { name: "limit", ty: NativeType::Int, access: crate::Mode::Copy, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Applied(NativeTypeId::Schema, &[Signature::String]), &Signature::Named(NativeTypeId::SchemaConstructionError))),
+    returned_borrow: None, backend: NativeBackend::Bundled { symbol: "tsrust_schema_min_string" }, features: &[],
+};
+pub(crate) const MAX_STRING: NativeBinding = NativeBinding {
+    name: "__maxString", backend: NativeBackend::Bundled { symbol: "tsrust_schema_max_string" }, ..MIN_STRING
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
+    let mut uses_bounds = false;
     for function in &mut program.functions {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             uses_safe_parse |= member == "safeParse";
+            uses_bounds |= matches!(member.as_str(),"min"|"max");
             if !matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()) { return Ok(()); }
             let binding = match member.as_str() {
                 "string" => &STRING,
@@ -165,6 +180,13 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NULL, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
+    }
+    if uses_bounds && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
+        for binding in [&MIN_STRING,&MAX_STRING] {
+            crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;
+            let wrapper=super::builders::adapter(program,binding)?;
+            program.functions.push(wrapper);
+        }
     }
     Ok(())
 }

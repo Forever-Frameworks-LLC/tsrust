@@ -14,7 +14,7 @@ executing differential cases; current web documentation alone is not a version p
 | Family | Required behavior | Status |
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
-| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
+| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max integrated; numeric source constraints pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
@@ -493,3 +493,33 @@ editor documentation and constraint workloads remain required before acceptance.
 
 SQLite: `tsrust-schema-storage-{red,native,check,generated,format,verify}-c370d757.log`.
 No new timing or consumer refresh is claimed.
+
+## Public consuming string bounds
+
+Schema<string>.min(limit) and .max(limit) now consume their receiver and return
+Schema<string>. Limits are inclusive Unicode code-point counts. Repeated limits
+retain the stricter constraint. Negative and contradictory limits throw the
+exported SchemaConstructionError { code, operation, limit }; ordinary checked
+wrapper functions unwrap backend Results and preserve normal catch/effect handling.
+Invalid input still returns SchemaError through safeParse. Source reuse after a
+builder rejects with transferred. Chaining retains Schema<string> inference in
+both compiler and editor. Construction does not rebuild plans during validation.
+
+Focused checks cover native Unicode success, JSON too-large rejection, caught
+negative and contradictory construction, original-schema reuse rejection, exact
+catalog examples, hover, parameter help and chained result types. The matched
+native_schema_string_bounds workload constructs min 2/max 6 once, validates hello
+and rejects x, then observes every result/error field. Source hashes, oracle,
+operation guards, ABI and report registration are ready. Four sizes agree across
+native and Node-after-tsc without timing. This is a handwritten counterpart, not
+the still-required pinned Zod differential reference.
+
+SQLite evidence uses `tsrust-schema-builders-*-74ac126d.log`, preserving initial
+builder rejection, chaining inference repair, signature-test correction and final
+focused acceptance. Numeric constraints, optional/nullable source integration,
+composites and fused typed decoding remain required. No S11 measured acceptance or
+installed-consumer refresh is claimed.
+
+Final focused counts: 35 internal schema-related cases, 17 compiler/native cases,
+7 editor cases and 7 benchmark-contract cases pass. Whole-project formatting is
+unchanged and all eight native/Node workload executions are untimed.

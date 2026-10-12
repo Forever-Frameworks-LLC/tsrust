@@ -6977,6 +6977,13 @@
     "signature": "SchemaPath",
     "parameters": [],
     "documentation": "One path segment. A field segment has field set and index absent; an array segment has index set and field absent. Indices are zero-based. Root issues have no segments. Ownership: owns any field name."
+  },
+  {
+    "name": "SchemaConstructionError",
+    "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int }",
+    "parameters": [],
+    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length or contradictory-bounds; operation identifies min or max; limit retains the supplied integer. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
+    "examples": []
   }
 ],
   "schemaBuilder": [
@@ -6984,7 +6991,7 @@
     "name": "string",
     "signature": "s.string(): Schema<string>",
     "parameters": [],
-    "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Use safeParse to validate owned JSON input; string-length constraint methods are still under implementation.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
+    "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Use safeParse to validate owned string or JSON input. Chain min and max to constrain Unicode code-point length.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
     "examples": [
       {
         "source": "import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}",
@@ -7051,7 +7058,7 @@
         "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
       }
     ],
-    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Strings outside stored min/max code-point limits return too-small or too-large with expected and observed string. Error data never retains input values. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
@@ -7060,6 +7067,40 @@
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();const input='hello'.repeat(2);match(schema.safeParse(input)){Ok(text)=>{console.log(text);},Err(error)=>{throw 'unexpected';}}}",
         "output": "hellohello\n"
+      }
+    ]
+  },
+  {
+    "name": "min",
+    "signature": "min(limit: int): Schema<string>",
+    "parameters": [
+      {
+        "label": "limit: int",
+        "documentation": "Inclusive minimum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
+      }
+    ],
+    "documentation": "Adds an inclusive minimum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "😀a\n"
+      }
+    ]
+  },
+  {
+    "name": "max",
+    "signature": "max(limit: int): Schema<string>",
+    "parameters": [
+      {
+        "label": "limit: int",
+        "documentation": "Inclusive maximum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
+      }
+    ],
+    "documentation": "Adds an inclusive maximum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "😀a\n"
       }
     ]
   }

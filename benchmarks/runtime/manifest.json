@@ -21882,6 +21882,30 @@
       "notes": "Parse plus validation and observation. Reusable schema outside loop. Matched explicit TypeScript contract; not Zod. Native consumes JSON input, with no hidden clone.",
       "sourceSha256": "1dd4b436f4266ef5cdab0d04164320091cb3ca46c6cbd4b1478199eedef04fc8",
       "counterpartSha256": "a3e3349642d9762e82035501e8e455a198db6663f66c3edeff13df3b0397a01f"
+    },
+    {
+      "id": "native_schema_string_bounds",
+      "category": "schema",
+      "description": "Reusable string schema with successful and failing JSON validation",
+      "source": "workloads/native_schema_string_bounds.tsr",
+      "counterpart": "workloads/native_schema_string_bounds.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "\"hello\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "String schema has min 2/max 6 code points; hello succeeds and x fails too-small. Observe successful length and every issue field; checksum adds six.",
+      "notes": "Parse plus bounded validation and observation. Construct plan outside loop. TypeScript counts code points; fixed workload uses ASCII. Handwritten counterpart, not Zod. No timing yet.",
+      "sourceSha256": "848cfc9c2430ffa89f32f1336bcfa39c88e55621b9b52506dd6e4e9f275299f1",
+      "counterpartSha256": "768cee640f1ed515be9f0a272479eb5a20fa5c07a185b4a969b06efd3fc1b7da"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -541,3 +541,18 @@ fn schema_generated_string_plan_enforces_stored_bounds() {
     let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n😀a\ntoo-large\n");
 }
+
+#[test]
+fn schema_string_builders_consume_and_throw_structured_errors() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+function main(){const schema=s.string().min(2).max(3);
+ match(schema.safeParse('😀a')){Ok(value)=>{strictEqual(value,'😀a');},Err(error)=>{throw 'valid rejected';}}
+ match(schema.safeParse(JSON.parse('"abcd"'))){Ok(value)=>{throw 'long accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ let caught=false;try{s.string().min(-1);}catch(error){caught=true;strictEqual(error.code,'negative-length');strictEqual(error.operation,'min');strictEqual(error.limit,-1);}strictEqual(caught,true);
+ caught=false;try{s.string().max(1).min(2);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'min');strictEqual(error.limit,2);}strictEqual(caught,true);
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let invalid="import {s} from 'std:schema';function main(){const original=s.string();const bounded=original.min(2);original.safeParse('abc');}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}
