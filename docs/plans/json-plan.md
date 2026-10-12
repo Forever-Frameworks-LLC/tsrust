@@ -3,7 +3,7 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were most recently refreshed through `5682a032`, including raw-field decoding, corrected lifetime hover and borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
+consumers were most recently refreshed through `a462dc76`, including raw-field decoding, corrected lifetime hover and borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
@@ -33,7 +33,7 @@ preserved in SQLite. Original runs and focused repairs remain separate records.
 | Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
 | JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes, bounded storage and installed smokes | Final contract audit |
 | Raw fragments | Validation, typed storage and exact-text encoding preserve source lifetimes; focused catalog/native/editor checks and allocation/timing/RSS evidence retained; creation regression repaired and remeasured | Final contract review, current family regressions and consumer refresh |
-| Release consumers | Installed through 5682a032; raw native cases, selective fixture and corrected LSP lifetime hover pass | Refresh after raw serialization implementation |
+| Release consumers | Installed through a462dc76; raw exact native output, raw parse/encoding hover and complete typed import hover pass; live editor restarted with zero errors | Final regression reconciliation |
 
 All timing matrices retain three fresh processes, eight warmup batches and 31
 measured batches. First-operation costs are separate from warmed batches; they do
@@ -2283,3 +2283,30 @@ JSON.parse then concatenates original text; this is preservation-policy parity,
 not ordinary JSON.stringify or validation-budget equivalence. Startup and
 compilation timing were not included. Final catalog and consumer acceptance remain
 open, including stale parse-hover wording discovered during this review.
+
+### Installed raw encoding acceptance at a462dc76
+
+Both release binaries were rebuilt with explicit CLI and LSP targets and atomically
+installed in ~/.cargo/bin and target/editor/debug. Matching SHA-256 hashes are
+retained in `tsrust-s10-consumers-installed-a462dc76.json`. Installed CLI execution
+preserves raw whitespace and exponent spelling. Installed protocol checks verify
+raw parse/encoding hover, clean diagnostics and complete nested/nullable typed
+JSON import hover. Evidence includes the executable smoke script and output under
+`tsrust-s10-installed-smoke-a462dc76`.
+
+The live VS Code language server was restarted through its status control. The
+workspace then showed zero errors and 45 warnings; this does not resolve or hide
+those warnings. Extension compilation, three executable-discovery checks and one
+grammar check pass. The isolated integration host initially used an obsolete
+executable name, then aborted under sandboxing. An unsandboxed run reached an
+intermittent immediate close/reopen diagnostic assertion; the diagnostic-enriched
+rerun passed all extension/module/std scenarios. The lifecycle test now uses the
+same bounded diagnostic settling as its other asynchronous checks; final validation
+is recorded separately. All failed attempts remain evidence, not passing results.
+The final bounded-settling run passes all extension/module/std scenarios:
+`tsrust-s10-extension-integration-settled-a462dc76.log`. Whole-project formatting
+changes no files or fingerprints. Closed consumer and extension records with this
+prefix are byte-verified in SQLite.
+
+The full compiler/editor milestone continuation remains active. Installed smokes
+and extension checks do not replace its final target inventory reconciliation.

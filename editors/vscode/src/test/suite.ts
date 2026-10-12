@@ -123,7 +123,8 @@ function main() { const user: User = { name: "Pat", age: 2 }; const result = sum
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'close clears errors');
   const reopened = await vscode.workspace.openTextDocument(uri);
   await vscode.window.showTextDocument(reopened);
-  assert.equal(vscode.languages.getDiagnostics(uri).length, 0);
+  await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'reopened document diagnostics settle');
+  assert.equal(vscode.languages.getDiagnostics(uri).length, 0, JSON.stringify(vscode.languages.getDiagnostics(uri)));
   await testModules(folder);
   // Missing executable must leave language recognition and lexical editing available.
   await vscode.workspace.getConfiguration('tsrust').update('server.path', path.join(folder.fsPath, 'missing-server'), vscode.ConfigurationTarget.Workspace);
