@@ -7027,6 +7027,18 @@
         "output": "1.5\n"
       }
     ]
+  },
+  {
+    "name": "null",
+    "signature": "s.null(): Schema<null>",
+    "parameters": [],
+    "documentation": "Constructs a reusable schema accepting only null. Takes no arguments, performs no coercion and does not mutate the namespace. Null is a present value, distinct from undefined or a missing field.\n\n```tsrust\nimport {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: null.\n\nOwnership: returns an owned immutable schema.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "null\n"
+      }
+    ]
   }
 ],
   "Schema": [
@@ -7039,7 +7051,7 @@
         "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
       }
     ],
-    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. String, boolean, integer and number schemas are currently supported. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
@@ -7109,6 +7121,25 @@
       {
         "source": "import {s} from 'std:schema';function main(){match(s.number().safeParse(9007199254740993)){Ok(value)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}}",
         "output": "number-precision\n"
+      }
+    ]
+  }
+],
+  "SchemaNull": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: null | Owned<JsonValue>): Result<null, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: null | Owned<JsonValue>",
+        "documentation": "Concrete null or owned JsonValue. JSON input is consumed on both outcomes; null is a copyable scalar."
+      }
+    ],
+    "documentation": "Returns Ok(null) for concrete null or JSON null. Other JSON kinds return Err with one type-mismatch issue, expected null, the observed kind, an empty root path and false truncation flags. Undefined and missing arguments are not null and are rejected by the checker. Mixed union inputs and unrelated concrete types are not yet supported. The schema remains unchanged and reusable.\n\n```tsrust\nimport {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: null.\n\nOwnership: borrows the schema. Concrete null copies; JSON input transfers on success and failure. Explicit clone(input) retains JSON input.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "null\n"
       }
     ]
   }

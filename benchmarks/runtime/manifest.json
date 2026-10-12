@@ -21858,6 +21858,30 @@
       "notes": "Validation only; no JSON parsing. Schema constructed outside loop. Native i64 versus exact TypeScript bigint inputs; checked conversion to floating output. Input text is a scenario identifier, not parsed data. Untimed parity only until family measurements.",
       "sourceSha256": "4163ad7ed9c0d6e9a10c0e74902cbacfc42bdb8923ce510ff59d7637c5f89f7b",
       "counterpartSha256": "269b97eb2a731aa67173916d578faee062d7ed0f4ea55c39799b5af8645113c8"
+    },
+    {
+      "id": "native_schema_null",
+      "category": "schema",
+      "description": "Reusable boolean schema with successful and failing JSON validation",
+      "source": "workloads/native_schema_null.tsr",
+      "counterpart": "workloads/native_schema_null.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "null",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "One successful null and one rejected number per iteration. Observe null and every error field; checksum adds two.",
+      "notes": "Parse plus validation and observation. Reusable schema outside loop. Matched explicit TypeScript contract; not Zod. Native consumes JSON input, with no hidden clone.",
+      "sourceSha256": "1dd4b436f4266ef5cdab0d04164320091cb3ca46c6cbd4b1478199eedef04fc8",
+      "counterpartSha256": "a3e3349642d9762e82035501e8e455a198db6663f66c3edeff13df3b0397a01f"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -507,4 +507,20 @@ function main(){const schema=s.number();
     assert!(!checked.emit_rust_with_native_features().0.contains("tsrust_native_json"));
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_null_distinguishes_null_from_missing_and_other_values() {
+    let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
+function make():Schema<null>{return s.null();}
+function main(){const schema=make();
+ match(schema.safeParse(null)){Ok(value)=>{strictEqual(value,null);},Err(error)=>{throw 'null rejected';}}
+ match(schema.safeParse(JSON.parse('null'))){Ok(value)=>{strictEqual(value,null);},Err(error)=>{throw 'JSON null rejected';}}
+ for(const text of ['false','0','""','[]','{}']){match(schema.safeParse(JSON.parse(text))){Ok(value)=>{throw 'wrong kind accepted';},Err(error)=>{strictEqual(error.issues.length,1);for(const issue of error.issues){strictEqual(issue.code,'type-mismatch');strictEqual(issue.expected,'null');}}}}
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let direct=checked_source("import {s} from 'std:schema';function main(){s.null().safeParse(null);}").unwrap();
+    assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
+    assert_eq!(checked_source("import {s} from 'std:schema';function main(){s.null().safeParse(undefined);}").err().unwrap().code,"schema-input");
 }

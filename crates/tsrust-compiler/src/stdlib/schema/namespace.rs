@@ -49,6 +49,28 @@ pub(crate) const SAFE_PARSE_BOOLEAN_VALUE: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_boolean_value" }, features: &[], ..SAFE_PARSE_BOOLEAN
 };
 
+pub(crate) const NULL: NativeBinding = NativeBinding {
+    name: "__null", result: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Null])),
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_null" }, ..STRING
+};
+pub(crate) const SAFE_PARSE_NULL: NativeBinding = NativeBinding {
+    name: "__safeParseNull",
+    parameters: &[
+        crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Null])), access: crate::Mode::Read, optional: false, rest: false },
+        SAFE_PARSE.parameters[1],
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Null, &Signature::Named(NativeTypeId::SchemaError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_null" }, ..SAFE_PARSE
+};
+pub(crate) const SAFE_PARSE_NULL_VALUE: NativeBinding = NativeBinding {
+    name: "__safeParseNullValue",
+    parameters: &[
+        SAFE_PARSE_NULL.parameters[0],
+        crate::native_bindings::NativeParameter { name: "input", ty: NativeType::Structured(&Signature::Null), access: crate::Mode::Copy, optional: false, rest: false },
+    ],
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_null_value" }, features: &[], ..SAFE_PARSE_NULL
+};
+
 pub(crate) const INT: NativeBinding = NativeBinding {
     name: "__int", result: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Int])),
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_int" }, ..STRING
@@ -113,6 +135,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             let binding = match member.as_str() {
                 "string" => &STRING,
                 "boolean" => &BOOLEAN,
+                "null" => &NULL,
                 "int" => &INT,
                 "number" => &NUMBER,
                 _ => return Err(Diagnostic::new("schema-member", format!("Unknown schema builder {member:?}."), expression.span)),
@@ -126,6 +149,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     if uses_safe_parse && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_OWNED, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_BOOLEAN_VALUE, crate::Span::default())?;
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NULL_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER_INT, crate::Span::default())?;
@@ -138,6 +162,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_BOOLEAN, crate::Span::default())?;
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NULL, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
     }

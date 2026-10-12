@@ -25,6 +25,7 @@ impl SourceIndex {
     pub(super) fn schema_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::Schema) }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
+        if self.schema_element(ty) == Some("null") { return builtins_for("SchemaNull"); }
         if self.schema_element(ty) == Some("number") { return builtins_for("SchemaNumber"); }
         if self.schema_element(ty) == Some("int") { return builtins_for("SchemaInt"); }
         if self.schema_element(ty) == Some("boolean") { return builtins_for("SchemaBoolean"); }

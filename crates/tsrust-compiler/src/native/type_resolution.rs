@@ -76,6 +76,7 @@ impl Resolver<'_> {
             Signature::Int => return Ok(named("int", span)),
             Signature::Number => return Ok(named("number", span)),
             Signature::Void => return Ok(named("void", span)),
+            Signature::Null => return Ok(named("null", span)),
             Signature::Named(id) => {
                 if !native_types::declaration(*id).type_parameters.is_empty() {
                     return Err(Diagnostic::new("native-type-arity", "Generic native types require explicit type arguments.", span));

@@ -52,6 +52,7 @@ pub enum Signature {
     Int,
     Number,
     Void,
+    Null,
     Named(NativeTypeId),
     Applied(NativeTypeId, &'static [Signature]),
     /// Index in the binding's explicit type parameter list, never a type name.
@@ -143,7 +144,7 @@ impl Signature {
     pub fn render_with_parameters(&self, mut visible: impl FnMut(NativeTypeId) -> Option<String>, mut parameter: impl FnMut(usize) -> Option<String>) -> Result<std::borrow::Cow<'static, str>, RenderError> {
         let primitive = match self {
             Self::String => Some("string"), Self::Boolean => Some("boolean"),
-            Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"),
+            Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"), Self::Null => Some("null"),
             Self::Intrinsic(Intrinsic::OwnedVoidCallback) => Some("Owned<Function<void>>"),
             Self::Intrinsic(Intrinsic::SharedCallback) => Some("Function"),
             Self::Intrinsic(Intrinsic::ObservedValue) => Some("unknown"),
@@ -167,6 +168,7 @@ impl Signature {
                         Self::Int => output.push_str("int"),
                         Self::Number => output.push_str("number"),
                         Self::Void => output.push_str("void"),
+                        Self::Null => output.push_str("null"),
                         Self::Named(id) => {
                             if !crate::native_types::declaration(*id).type_parameters.is_empty() { return Err(RenderError::Arity(*id)); }
                             output.push_str(&visible(*id).ok_or(RenderError::MissingType(*id))?);

@@ -11,11 +11,12 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let boolean = matches!(binding.name, "__safeParseBoolean" | "__safeParseBooleanValue");
     let integer = matches!(binding.name, "__safeParseInt" | "__safeParseIntValue");
     let number = matches!(binding.name, "__safeParseNumber" | "__safeParseNumberValue" | "__safeParseNumberInt");
-    let owned = !matches!(binding.parameters[1].ty, NativeType::Structured(_));
-    let native = if number { "f64" } else if integer { "i64" } else if boolean { "bool" } else { "String" };
-    let expected = if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
-    let variant = if boolean { "Bool" } else { "String" };
-    let payload = if boolean { "text" } else { "String::Owned(text)" };
+    let null = matches!(binding.name, "__safeParseNull" | "__safeParseNullValue");
+    let owned = binding.name == "__safeParseNullValue" || !matches!(binding.parameters[1].ty, NativeType::Structured(_));
+    let native = if null { "TsrNull" } else if number { "f64" } else if integer { "i64" } else if boolean { "bool" } else { "String" };
+    let expected = if null { "null" } else if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
+    let pattern = if null { "Null" } else if boolean { "Bool(text)" } else { "String(text)" };
+    let payload = if null { "TsrNull" } else if boolean { "text" } else { "String::Owned(text)" };
     if owned && number {
         let error = record(NativeTypeId::SchemaError);
         let issue = record(NativeTypeId::SchemaIssue);
@@ -56,7 +57,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     }
     format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
         match input.value {{
-            tsrust_native_json::Value::{variant}(text) => Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),
+            tsrust_native_json::Value::{pattern} => Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),
             other => {{
                 let observed=tsrust_native_json::kind(&other);
                 let issue=Record{issue}{{field0:String::Borrowed(\"type-mismatch\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(observed)}};

@@ -2444,3 +2444,19 @@ fn schema_number_editor_reports_checked_contract_and_inferred_result() {
     let help=ask(&index,&entry,"1.5)","textDocument/signatureHelp");
     assert!(help.to_string().contains("input: number | int | Owned<JsonValue>"),"{help}");
 }
+
+#[test]
+fn schema_null_editor_reports_presence_and_inferred_result() {
+    let entry=tsrust_compiler::format("import {s as rules} from 'std:schema';function main(){const schema=rules.null();const result=schema.safeParse(null);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let constructor=ask(&index,&entry,"null()","textDocument/hover");
+    assert!(constructor.to_string().contains("rules.null(): Schema<null>"),"{constructor}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<null, SchemaError>"),"{result}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("Undefined")&&hover.to_string().contains("type-mismatch"),"{hover}");
+    let help=ask(&index,&entry,"null)","textDocument/signatureHelp");
+    assert!(help.to_string().contains("input: null | Owned<JsonValue>"),"{help}");
+}

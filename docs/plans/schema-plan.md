@@ -13,7 +13,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number API checked; remaining constructors pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
@@ -423,3 +423,22 @@ setup cost. Allocation/RSS and timed family evidence remain pending.
 
 SQLite: `tsrust-schema-number-int-{red,check,editor,format,benchmark,verify}-ed9bc998.log`.
 S11 and installed-consumer refresh remain pending.
+
+## Null schema integration
+
+s.null() now infers Schema<null>. safeParse accepts concrete null or consumes a
+JsonValue, returning Result<null, SchemaError>. Only null succeeds; other JSON
+kinds produce type-mismatch with expected null. Undefined and missing arguments
+remain distinct and reject during checking. Native signature metadata now carries
+null explicitly, preserving its identity in generic results and editor help.
+Direct null validation copies the scalar and adds no JSON runtime dependency.
+
+Fifteen focused compiler/native schema tests and six editor cases pass. Exact
+catalog examples execute natively, including generic Schema<null> return values.
+The matched native_schema_null workload verifies success, every mismatch field,
+source fingerprints, operation counts, oracle and ABI/report registration. Six
+benchmark contract tests pass; four sizes agree across native and Node-after-tsc
+with zero timing samples. No S11 acceptance or installed-consumer refresh is claimed.
+Constraints, literals/enums, composites and fused typed decoding remain pending.
+
+SQLite: `tsrust-schema-null-{red,check,editor,format,benchmark,verify}-2ae15d84.log`.

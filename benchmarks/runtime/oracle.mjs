@@ -218,7 +218,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
- if(id==='native_schema_string'||id==='native_schema_boolean'||id==='native_schema_int'||id==='native_schema_number'||id==='native_schema_number_int')return schemaChecksum(n,seed,inputText);
+ if(id==='native_schema_string'||id==='native_schema_boolean'||id==='native_schema_int'||id==='native_schema_number'||id==='native_schema_number_int'||id==='native_schema_null')return schemaChecksum(n,seed,inputText);
  if(id==='native_json_import')return dataImportChecksum(n,seed);
  if(id==='native_json_raw_encoding')return rawEncodingChecksum(n,seed,inputText);
  if(id==='native_json_raw')return rawChecksum(n,seed,inputText);
