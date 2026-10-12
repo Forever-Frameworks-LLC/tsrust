@@ -107,6 +107,7 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::schema::namespace::NUMBER,
     crate::stdlib::schema::namespace::SAFE_PARSE_NUMBER,
     crate::stdlib::schema::namespace::SAFE_PARSE_NUMBER_VALUE,
+    crate::stdlib::schema::namespace::SAFE_PARSE_NUMBER_INT,
     crate::stdlib::schema::namespace::SAFE_PARSE_INT,
     crate::stdlib::schema::namespace::SAFE_PARSE_INT_VALUE,
     crate::stdlib::schema::namespace::SAFE_PARSE_BOOLEAN,

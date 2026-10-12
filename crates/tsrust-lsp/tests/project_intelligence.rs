@@ -2442,5 +2442,5 @@ fn schema_number_editor_reports_checked_contract_and_inferred_result() {
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("number-nonfinite")&&hover.to_string().contains("number-precision"),"{hover}");
     let help=ask(&index,&entry,"1.5)","textDocument/signatureHelp");
-    assert!(help.to_string().contains("input: number | Owned<JsonValue>"),"{help}");
+    assert!(help.to_string().contains("input: number | int | Owned<JsonValue>"),"{help}");
 }

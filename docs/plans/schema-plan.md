@@ -401,3 +401,25 @@ decoding and S11 family acceptance remain pending.
 
 SQLite evidence: `tsrust-schema-number-{red,check,editor,format,benchmark-tests,verify}-5fc70ac9.log`.
 No consumer refresh or measured acceptance is claimed.
+
+## Direct integer input to number schemas
+
+s.number().safeParse now accepts concrete int values through checked conversion.
+It returns number-precision when conversion would round; comparing the converted
+value in i128 avoids falsely accepting i64::MAX via a saturating cast. Primitive
+input remains reusable. No JSON allocation, parsing or dependency is introduced.
+The schema's floating result preserves exactly representable integers beyond
+JavaScript's safe-integer interval; s.int() remains the exact integer-output path.
+Mixed union and unrelated typed inputs still require subsequent integration.
+
+Fourteen focused compiler/native schema tests and five editor cases pass. Tests
+cover i64::MIN, i64::MAX, positive/negative odd values beyond 2^53, exact even values,
+root issue fields and exact catalog execution. The validation-only workload
+native_schema_number_int uses a TypeScript BigInt reference, with 42 success and
+9007199254740993 precision rejection. Five workload contract tests pass; four sizes
+agree across native and Node-after-tsc with no timing samples. This workload is
+separate from existing parse-plus-validation measurements and introduces no JSON
+setup cost. Allocation/RSS and timed family evidence remain pending.
+
+SQLite: `tsrust-schema-number-int-{red,check,editor,format,benchmark,verify}-ed9bc998.log`.
+S11 and installed-consumer refresh remain pending.

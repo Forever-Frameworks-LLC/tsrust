@@ -10,7 +10,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
     let boolean = matches!(binding.name, "__safeParseBoolean" | "__safeParseBooleanValue");
     let integer = matches!(binding.name, "__safeParseInt" | "__safeParseIntValue");
-    let number = matches!(binding.name, "__safeParseNumber" | "__safeParseNumberValue");
+    let number = matches!(binding.name, "__safeParseNumber" | "__safeParseNumberValue" | "__safeParseNumberInt");
     let owned = !matches!(binding.parameters[1].ty, NativeType::Structured(_));
     let native = if number { "f64" } else if integer { "i64" } else if boolean { "bool" } else { "String" };
     let expected = if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
@@ -20,9 +20,17 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         let error = record(NativeTypeId::SchemaError);
         let issue = record(NativeTypeId::SchemaIssue);
         let path = record(NativeTypeId::SchemaPath);
-        return format!("fn {symbol}(_schema:&Record{schema},input:f64)->Union{result} {{
-            if input.is_finite() {{ return Union{result}::V{ok_tag}(Record{ok}{{field0:input}}); }}
-            let issue=Record{issue}{{field0:String::Borrowed(\"number-nonfinite\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"number\")}};
+        let int_input = binding.name == "__safeParseNumberInt";
+        let input_type = if int_input { "i64" } else { "f64" };
+        let conversion = if int_input { "let value=input as f64;" } else { "let value=input;" };
+        // Compare in i128 so saturating casts cannot accept rounded i64::MAX.
+        let valid = if int_input { "value as i128 == input as i128" } else { "value.is_finite()" };
+        let code = if int_input { "number-precision" } else { "number-nonfinite" };
+        let observed = if int_input { "integer" } else { "number" };
+        return format!("fn {symbol}(_schema:&Record{schema},input:{input_type})->Union{result} {{
+            {conversion}
+            if {valid} {{ return Union{result}::V{ok_tag}(Record{ok}{{field0:value}}); }}
+            let issue=Record{issue}{{field0:String::Borrowed(\"{code}\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"{observed}\")}};
             Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
         }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
     }

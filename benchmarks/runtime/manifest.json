@@ -21834,6 +21834,30 @@
       "notes": "Parse plus validate and observe. Plan constructed outside loop. Matched Node domain contains only 1.5 and true; exact integer-to-number precision rejection has separate native boundary checks. Handwritten reference, not Zod. Validation-only and pinned Zod comparisons remain required.",
       "sourceSha256": "b04d0ed1e3e1a436a58569327c40b9b3d05f3643d3d6d16bf8fc63999e75fe58",
       "counterpartSha256": "9b96d0d9bddbf08233833e58bad9422c563880a8a5d8044781de4fab2ce772f7"
+    },
+    {
+      "id": "native_schema_number_int",
+      "category": "schema",
+      "description": "Reusable boolean schema with successful and failing JSON validation",
+      "source": "workloads/native_schema_number_int.tsr",
+      "counterpart": "workloads/native_schema_number_int.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "one native integer validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "native-int",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate integer 42 successfully and reject 9007199254740993 as number-precision. Observe the successful value and every issue field. Checksum adds two per iteration.",
+      "notes": "Validation only; no JSON parsing. Schema constructed outside loop. Native i64 versus exact TypeScript bigint inputs; checked conversion to floating output. Input text is a scenario identifier, not parsed data. Untimed parity only until family measurements.",
+      "sourceSha256": "4163ad7ed9c0d6e9a10c0e74902cbacfc42bdb8923ce510ff59d7637c5f89f7b",
+      "counterpartSha256": "269b97eb2a731aa67173916d578faee062d7ed0f4ea55c39799b5af8645113c8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

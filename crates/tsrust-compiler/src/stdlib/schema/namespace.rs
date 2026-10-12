@@ -93,6 +93,15 @@ pub(crate) const SAFE_PARSE_NUMBER_VALUE: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number_value" }, features: &[], ..SAFE_PARSE_NUMBER
 };
 
+pub(crate) const SAFE_PARSE_NUMBER_INT: NativeBinding = NativeBinding {
+    name: "__safeParseNumberInt",
+    parameters: &[
+        SAFE_PARSE_NUMBER.parameters[0],
+        crate::native_bindings::NativeParameter { name: "input", ty: NativeType::Int, access: crate::Mode::Copy, optional: false, rest: false },
+    ],
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number_int" }, features: &[], ..SAFE_PARSE_NUMBER
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -119,6 +128,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_BOOLEAN_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER_VALUE, crate::Span::default())?;
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER_INT, crate::Span::default())?;
     }
     // Current validation consumes JsonValue. Do not synthesize JSON storage solely
     // because an unrelated object also declares a method named safeParse.

@@ -490,3 +490,21 @@ function main(){const schema=make();
     let direct=checked_source("import {s} from 'std:schema';function main(){s.number().safeParse(1.5);}").unwrap();
     assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
 }
+
+#[test]
+fn schema_number_accepts_only_exact_native_integer_conversions() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+function main(){const schema=s.number();
+ for(const input of [0,42,9007199254740992,9007199254740994,-9223372036854775808]){
+ match(schema.safeParse(input)){Ok(value)=>{strictEqual(value,Number(input));},Err(error)=>{throw 'exact integer rejected';}}
+ strictEqual(input===input,true);
+ }
+ for(const input of [9007199254740993,-9007199254740993,9223372036854775807]){
+ match(schema.safeParse(input)){Ok(value)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');strictEqual(issue.expected,'number');strictEqual(issue.observed,'integer');strictEqual(issue.path.length,0);strictEqual(issue.pathTruncated,false);}strictEqual(error.truncated,false);}}
+ }
+}"#;
+    let checked=checked_source(source).unwrap();
+    assert!(!checked.emit_rust_with_native_features().0.contains("tsrust_native_json"));
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}

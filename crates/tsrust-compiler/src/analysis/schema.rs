@@ -20,6 +20,7 @@ impl Analyzer {
             (Some(Type::Int), Some(Type::Int), _) => "@native:std:schema#__safeParseIntValue",
             (Some(Type::Int), _, true) => "@native:std:schema#__safeParseInt",
             (Some(Type::Number), Some(Type::Number), _) => "@native:std:schema#__safeParseNumberValue",
+            (Some(Type::Number), Some(Type::Int), _) => "@native:std:schema#__safeParseNumberInt",
             (Some(Type::Number), _, true) => "@native:std:schema#__safeParseNumber",
             (Some(Type::String | Type::Boolean | Type::Int | Type::Number), _, _) => return Err(Diagnostic::new("schema-input", "safeParse requires a matching concrete scalar or owned JsonValue input.", args[0].span)),
             _ => return Err(Diagnostic::new("schema-type", "safeParse currently supports string, boolean, integer and number schemas.", callee.span)),

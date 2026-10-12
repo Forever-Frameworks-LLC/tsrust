@@ -7020,7 +7020,7 @@
     "name": "number",
     "signature": "s.number(): Schema<number>",
     "parameters": [],
-    "documentation": "Constructs a reusable finite floating-point number schema. Takes no arguments and does not mutate the namespace. safeParse accepts a concrete number or owned JsonValue. Exact JSON integers must be representable as number without precision loss. NaN and infinities are rejected. Use s.int() when exact signed 64-bit integer output is required.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.",
+    "documentation": "Constructs a reusable finite floating-point number schema. Takes no arguments and does not mutate the namespace. safeParse accepts a concrete number, int or owned JsonValue. Exact JSON integers must be representable as number without precision loss. NaN and infinities are rejected. Use s.int() when exact signed 64-bit integer output is required.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7093,18 +7093,22 @@
   "SchemaNumber": [
   {
     "name": "safeParse",
-    "signature": "safeParse(input: number | Owned<JsonValue>): Result<number, SchemaError>",
+    "signature": "safeParse(input: number | int | Owned<JsonValue>): Result<number, SchemaError>",
     "parameters": [
       {
-        "label": "input: number | Owned<JsonValue>",
-        "documentation": "Concrete number or owned JsonValue. Primitive numbers copy; JSON input is consumed on both outcomes."
+        "label": "input: number | int | Owned<JsonValue>",
+        "documentation": "Concrete number, int or owned JsonValue. Primitive numbers and integers copy; JSON input is consumed on both outcomes."
       }
     ],
-    "documentation": "Validates finite floating-point input without coercing strings or booleans. Returns Ok(number), preserving negative zero, or Err(SchemaError). Direct NaN and infinities return number-nonfinite. Exact JSON integers that would round during conversion return number-precision. Other JSON kinds return type-mismatch. Failures have one issue with expected number, the observed kind, an empty root path and false truncation flags. Mixed union inputs and other concrete types are not supported yet; use s.int() for concrete int values.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows the reusable schema. Direct numbers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
+    "documentation": "Validates finite floating-point input without coercing strings or booleans. Returns Ok(number), preserving negative zero, or Err(SchemaError). Direct NaN and infinities return number-nonfinite. Native ints and exact JSON integers that would round during conversion return number-precision. Native int failures report observed integer; JSON failures report their JSON kind. Other JSON kinds return type-mismatch. Failures have one issue with expected number, the observed kind, an empty root path and false truncation flags. Mixed union inputs and other concrete types are not supported yet. Use s.int() to retain integer output instead of requesting a floating-point result.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows the reusable schema. Direct numbers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
         "output": "1.5\n"
+      },
+      {
+        "source": "import {s} from 'std:schema';function main(){match(s.number().safeParse(9007199254740993)){Ok(value)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}}",
+        "output": "number-precision\n"
       }
     ]
   }
