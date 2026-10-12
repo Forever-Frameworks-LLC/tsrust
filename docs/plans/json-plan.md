@@ -2042,3 +2042,9 @@ navigation, completion and optional-array checks. This changes display only;
 canonical type identity, readonly access and source navigation remain intact.
 SQLite evidence: `tsrust-json-hover-{red,check,format}-dc6d1c73.log`.
 
+Installed LSP consumers were refreshed from `c3798d9b`. Both the owner-reported
+benchmark file and a nested nullable-array/empty-object fixture return complete
+hover shapes through the installed protocol, with clean diagnostics. CLI behavior
+is unchanged. The editor language server was restarted. Release build and
+installed protocol evidence are retained as `tsrust-json-hover-release.log` and
+`tsrust-json-hover-installed-c3798d9b.{py,log}` in SQLite.
