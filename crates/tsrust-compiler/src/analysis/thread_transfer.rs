@@ -1,6 +1,23 @@
 //! Owned-data transfer eligibility, separate from closure capture ownership.
 use crate::syntax::{Record,Type,UnionId};
 
+/// Returns the capture index that cannot move independently of its caller.
+/// A copied scalar is owned storage; a borrowed scalar is still a caller loan.
+/// Invocation access does not change ownership of an already moved environment.
+#[allow(dead_code)] // Connected to spawn checking after lifecycle semantics are settled.
+pub(super) fn require_owned_captures(closure:&super::CheckedClosure,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),usize>{
+ for (index,capture) in closure.captures.iter().enumerate(){
+  let binding=closure.function.bindings.get(capture.inner).ok_or(index)?;
+  match capture.storage {
+   super::Mode::Consume=>{},
+   super::Mode::Copy if binding.ty.is_copy()=>{},
+   _=>return Err(index),
+  }
+  require_owned_data(binding.ty,records,members).map_err(|_|index)?;
+ }
+ Ok(())
+}
+
 /// Returns the first unsupported type without granting callable capture transfer.
 /// Cycles terminate through checked type identity; every reachable field is inspected.
 #[allow(dead_code)] // Connected to spawn/channel checking when their API is introduced.
@@ -35,6 +52,21 @@ pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(Un
 #[cfg(test)]
 mod tests {
  use super::*;
+ #[test]
+ fn capture_storage_must_own_transferable_data(){
+  for (source,expected) in [
+   ("function factory(owner:string):Function<int>{return ():int=>owner.length;}function main(){const callback=factory('bytes');callback();}",true),
+   ("function main(){const owner='bytes';const callback=():int=>owner.length;callback();}",false),
+   ("function main(){const owner=42;const callback=():int=>owner;callback();}",true),
+   ("function main(){let owner=42;const callback=():int=>{owner+=1;return owner;};callback();}",false),
+   ("type Packet={callback:()=>int;};function factory(owner:Packet):Function<int>{return ():int=>owner.callback();}function main(){}",false),
+  ] {
+   let formatted=crate::format(source).unwrap();assert_eq!(crate::format(&formatted).unwrap(),formatted);
+   let checked=crate::check(&formatted).unwrap();let program=&checked.program;
+   let closure=program.closures.iter().find(|closure|!closure.captures.is_empty()).unwrap();
+   assert_eq!(require_owned_captures(closure,&program.records,&|id|program.unions[id.index()].members.clone()).is_ok(),expected,"{source}");
+  }
+ }
  fn accepts(source:&str)->bool {
   struct Input<'a>(&'a str);
   impl crate::project::SourceProvider for Input<'_> {

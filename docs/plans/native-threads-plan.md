@@ -67,3 +67,20 @@ Whole-project formatting changes no files or fingerprints.
 This internal helper is not yet connected to a public spawn/channel API. There
 is no source feature acceptance, timing result or consumer refresh for this step.
 Unjoined-handle semantics and subsequent capture/lifecycle checks remain open.
+
+## Capture storage eligibility
+
+The separate `require_owned_captures` helper checks actual checked environment
+storage before inspecting payload types. Consumed storage and genuinely copied
+values qualify; read and mutable caller loans reject even when the payload is
+an integer. Invocation access does not turn an owned environment into a caller
+loan. Conversely, moving a record does not make a stored callback transferable.
+The helper returns the offending capture index for future source diagnostics.
+It does not change capture inference or insert copies.
+
+Five formatted-source cases cover moved strings, borrowed strings, copied
+integers, mutably borrowed integers and moved records containing callbacks.
+All three transfer tests pass. SQLite evidence:
+`tsrust-thread-capture-{red,check,final,format}-de981df0.log`.
+This remains internal groundwork; public spawn/join, result checking, lifecycle
+checking and native source execution still require implementation and acceptance.
