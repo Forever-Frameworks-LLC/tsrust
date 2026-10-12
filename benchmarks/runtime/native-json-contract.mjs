@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_construction'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON construction identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON construction fingerprint');
+  if(row.iterations!==2000||row.inputText!=='hello'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='Five scalar constructions and five encodings')throw Error('JSON construction denominator');
+  if(kind==='native'&&!containsCodeSnippet(source," let checksum=seed;let i=0;\n while(i<n){\n  checksum+=JSON.stringify(nullValue()).length;\n  checksum+=JSON.stringify(fromBoolean(true)).length;\n  checksum+=JSON.stringify(fromInt(42)).length;\n  match(fromNumber(1.25)){Ok(value)=>{checksum+=JSON.stringify(value).length;},Err(error)=>{throw error.message;}}\n  checksum+=JSON.stringify(fromString(clone(input))).length;\n  i++;\n }\n return checksum;\n"))throw Error('JSON construction operation placement');
+  if(kind==='typescript'&&!containsCodeSnippet(source," let checksum=seed;let i=0;\n while(i<n){\n  checksum+=JSON.stringify(null).length;\n  checksum+=JSON.stringify(true).length;\n  checksum+=JSON.stringify(42).length;\n  const value=1.25;if(!Number.isFinite(value)){throw 'number-nonfinite';}\n  checksum+=JSON.stringify(value).length;\n  checksum+=JSON.stringify(input).length;\n  i++;\n }\n return checksum;\n"))throw Error('JSON construction operation placement');
+  return;
+ }
  if(row.id==='native_json_string_projection'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string projection identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string projection fingerprint');
@@ -153,4 +161,9 @@ export function refinementChecksum(n,seed,input){
 export function stringReadsChecksum(n,seed,input){
  if(input!=='"hellohello"'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*15))throw Error('JSON string reads oracle inputs');
  return seed+n*15;
+}
+
+export function constructionChecksum(n,seed,input){
+ if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*21))throw Error('JSON construction oracle inputs');
+ return seed+n*21;
 }

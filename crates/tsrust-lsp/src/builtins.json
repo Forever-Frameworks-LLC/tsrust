@@ -6201,6 +6201,86 @@
 ,
   "std:json": [
 {
+  "name": "nullValue",
+  "signature": "nullValue(): JsonValue",
+  "parameters": [],
+  "documentation": "Creates an owned JSON null value. Takes no arguments and performs no parsing. Null is a present JSON value, distinct from a missing property or undefined. No receiver is mutated.\n\n```tsrust\nimport {nullValue} from \"std:json\";function main(){console.log(JSON.stringify(nullValue()));}\n```\n\nExpected output: null.\n\nOwnership: The result owns its value and supports explicit clone.",
+  "examples": [
+    {
+      "source": "import {nullValue} from \"std:json\";function main(){console.log(JSON.stringify(nullValue()));}",
+      "output": "null\n"
+    }
+  ]
+},
+{
+  "name": "fromBoolean",
+  "signature": "fromBoolean(value: boolean): JsonValue",
+  "parameters": [
+    {
+      "label": "value: boolean",
+      "documentation": "Creates an owned JSON boolean from true or false without parsing or coercion. Copies the scalar argument; the caller may reuse it. No receiver is mutated."
+    }
+  ],
+  "documentation": "Creates an owned JSON boolean from true or false without parsing or coercion. Copies the scalar argument; the caller may reuse it. No receiver is mutated.\n\n```tsrust\nimport {fromBoolean} from \"std:json\";function main(){console.log(JSON.stringify(fromBoolean(true)));}\n```\n\nExpected output: true.\n\nOwnership: The result owns its value and supports explicit clone.",
+  "examples": [
+    {
+      "source": "import {fromBoolean} from \"std:json\";function main(){console.log(JSON.stringify(fromBoolean(true)));}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "fromInt",
+  "signature": "fromInt(value: int): JsonValue",
+  "parameters": [
+    {
+      "label": "value: int",
+      "documentation": "Creates an owned JSON integer without parsing or floating-point conversion. Accepts the full signed 64-bit int range, including both endpoints, and preserves the exact value. Copies the argument. No receiver is mutated."
+    }
+  ],
+  "documentation": "Creates an owned JSON integer without parsing or floating-point conversion. Accepts the full signed 64-bit int range, including both endpoints, and preserves the exact value. Copies the argument. No receiver is mutated.\n\n```tsrust\nimport {fromInt} from \"std:json\";function main(){console.log(JSON.stringify(fromInt(9223372036854775807)));}\n```\n\nExpected output: 9223372036854775807.\n\nOwnership: The result owns its value and supports explicit clone.",
+  "examples": [
+    {
+      "source": "import {fromInt} from \"std:json\";function main(){console.log(JSON.stringify(fromInt(9223372036854775807)));}",
+      "output": "9223372036854775807\n"
+    }
+  ]
+},
+{
+  "name": "fromNumber",
+  "signature": "fromNumber(value: number): Result<JsonValue, JsonError>",
+  "parameters": [
+    {
+      "label": "value: number",
+      "documentation": "Creates an owned JSON number from a finite floating-point value without parsing. Preserves negative zero and the supplied floating-point value. Returns Ok(JsonValue), or Err with code number-nonfinite and offset zero for NaN or either infinity. It cannot recover precision already lost before the call; use fromInt for exact integer construction. Copies the argument. No receiver is mutated."
+    }
+  ],
+  "documentation": "Creates an owned JSON number from a finite floating-point value without parsing. Preserves negative zero and the supplied floating-point value. Returns Ok(JsonValue), or Err with code number-nonfinite and offset zero for NaN or either infinity. It cannot recover precision already lost before the call; use fromInt for exact integer construction. Copies the argument. No receiver is mutated.\n\n```tsrust\nimport {fromNumber} from \"std:json\";function main(){match(fromNumber(1.25)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 1.25.\n\nOwnership: The success value owns its storage and supports explicit clone.",
+  "examples": [
+    {
+      "source": "import {fromNumber} from \"std:json\";function main(){match(fromNumber(1.25)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}",
+      "output": "1.25\n"
+    }
+  ]
+},
+{
+  "name": "fromString",
+  "signature": "fromString(value: Owned<string>): JsonValue",
+  "parameters": [
+    {
+      "label": "value: Owned<string>",
+      "documentation": "Creates a JSON string from UTF-8 text without parsing it as JSON. Empty text, Unicode, quotes and control characters remain string contents; stringify performs the required escaping. Transfers an owned string buffer without copying it; literal-backed strings allocate owned JSON text. No receiver is mutated."
+    }
+  ],
+  "documentation": "Creates a JSON string from UTF-8 text without parsing it as JSON. Empty text, Unicode, quotes and control characters remain string contents; stringify performs the required escaping. Transfers an owned string buffer without copying it; literal-backed strings allocate owned JSON text. No receiver is mutated.\n\n```tsrust\nimport {fromString} from \"std:json\";function main(){console.log(JSON.stringify(fromString(\"hello\")));}\n```\n\nExpected output: \"hello\".\n\nOwnership: Consumes value. Use fromString(clone(text)) to preserve an existing string. Use String(view) first for a borrowed StringView.",
+  "examples": [
+    {
+      "source": "import {fromString} from \"std:json\";function main(){console.log(JSON.stringify(fromString(\"hello\")));}",
+      "output": "\"hello\"\n"
+    }
+  ]
+},
+{
   "name": "StringView",
   "signature": "type StringView",
   "parameters": [],

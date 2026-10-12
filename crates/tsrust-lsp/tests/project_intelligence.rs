@@ -2184,3 +2184,9 @@ fn guarded_json_string_local_has_borrowed_type_and_read_completion() {
  let hover=ask(&index,&source,"text.includes","textDocument/hover");assert!(hover.to_string().contains("StringView"),"{hover}");
  let completion=ask(&index,&source,"includes(","textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="includes"),"{completion}");
 }
+
+#[test]
+fn json_construction_has_hover_and_parameter_help() {
+ let source=tsrust_compiler::format("import {fromInt} from 'std:json';function main(){const value=fromInt(42);console.log(JSON.stringify(value));}").unwrap();let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"fromInt(42)","textDocument/hover");assert!(hover.to_string().contains("signed 64-bit"),"{hover}");let signature=ask(&index,&source,"42)","textDocument/signatureHelp");assert!(signature.to_string().contains("value: int"),"{signature}");
+}

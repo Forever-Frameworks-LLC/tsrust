@@ -104,3 +104,30 @@ pub(crate) const AS_STRING:NativeBinding=NativeBinding {
  result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::StringView),&Signature::Named(NativeTypeId::JsonError))),
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_asString"},..AS_BOOLEAN
 };
+
+// Construction transfers strings and copies scalar values; no parsing round trip.
+pub(crate) const NULL_VALUE:NativeBinding=NativeBinding {
+ module:"std:json",name:"nullValue",returned_borrow:None,parameters:&[],
+ result:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_nullValue"},features:&["json"],
+};
+pub(crate) const FROM_BOOLEAN:NativeBinding=NativeBinding {
+ name:"fromBoolean",parameters:&[NativeParameter{name:"value",ty:NativeType::Boolean,access:Mode::Copy,optional:false,rest:false}],
+
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromBoolean"},..NULL_VALUE
+};
+pub(crate) const FROM_INT:NativeBinding=NativeBinding {
+ name:"fromInt",parameters:&[NativeParameter{name:"value",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false}],
+
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromInt"},..NULL_VALUE
+};
+pub(crate) const FROM_NUMBER:NativeBinding=NativeBinding {
+ name:"fromNumber",parameters:&[NativeParameter{name:"value",ty:NativeType::Number,access:Mode::Copy,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::JsonValue),&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromNumber"},..NULL_VALUE
+};
+pub(crate) const FROM_STRING:NativeBinding=NativeBinding {
+ name:"fromString",parameters:&[NativeParameter{name:"value",ty:NativeType::String,access:Mode::Consume,optional:false,rest:false}],
+
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromString"},..NULL_VALUE
+};

@@ -4,6 +4,16 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  if matches!(binding.name,"openJsonl"|"readJsonl"|"closeJsonl"){return super::lines_emit::bridge(program,binding);}
  let record=|id|program.records.iter().position(|r|r.native_type==Some(id)).unwrap();
  let value=record(NativeTypeId::JsonValue);
+ if matches!(binding.name,"nullValue"|"fromBoolean"|"fromInt"|"fromString"){
+  let (parameters,payload)=match binding.name {
+   "nullValue"=>("","tsrust_native_json::Value::Null"),
+   "fromBoolean"=>("value:bool","tsrust_native_json::Value::Bool(value)"),
+   "fromInt"=>("value:i64","tsrust_native_json::Value::Number(value.into())"),
+   "fromString"=>("value:String","tsrust_native_json::Value::String(value.into_owned())"),
+   _=>unreachable!(),
+  };
+  return format!("fn tsrust_std_json_{}({parameters})->Record{value}{{Record{value}{{value:{payload}}}}}\n",binding.name);
+ }
  if binding.name=="kind" {return format!("fn tsrust_std_json_kind<B:tsrust_native_json::Source>(value:&B)->String {{String::Borrowed(tsrust_native_json::kind(value.json_value()))}}\n");}
  let NativeType::Structured(signature)=binding.result else {unreachable!()};
  let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap() else {unreachable!()};
@@ -17,6 +27,8 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
    format!("(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})()"),
    format!("Record{value}{{value}}"))
+ }else if binding.name=="fromNumber" {
+  ("value:f64".into(),"tsrust_native_json::from_f64(value)".into(),format!("Record{value}{{value}}"))
  }else if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"takeString") {
   let (reader,borrow,payload)=match binding.name {
    "asBoolean"=>("read_bool","&","value"),

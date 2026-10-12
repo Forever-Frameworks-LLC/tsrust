@@ -74,7 +74,7 @@ can override them.
 The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
-The public scalar slice now covers checked extraction. Numeric construction
+The public scalar slice now covers checked extraction and scalar construction. Container construction
 and typed conversion remain pending. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
 Errors now cross the public Result boundary as JsonError records containing code,
@@ -738,3 +738,23 @@ The number-refinement decision remains open: preserving exact JSON integers can
 require checked extraction, a throwing precision check, or a new exact numeric
 representation. The existing asInt/asNumber behavior remains unchanged while the
 owner considers these choices. This does not block other S10 implementation.
+
+
+### Scalar JSON construction
+
+Imported nullValue, fromBoolean, fromInt, fromNumber and fromString construct owned
+JsonValue values without parsing. Integer construction preserves signed 64-bit
+values exactly. Number construction preserves finite floats and negative zero;
+NaN and either infinity return number-nonfinite with offset zero. String
+construction consumes its argument, transferring an owned buffer and allocating
+owned text for literal-backed strings. Explicit clone preserves a caller's source.
+
+Focused compiler/native checks cover values, errors and ownership transfer.
+Catalog examples execute through the CLI; editor hover and parameter help are
+verified. The reviewed public inventory is 418. Native and Node-after-tsc agree
+on five untimed construction/encoding workload cases with an independent checksum.
+The workload includes the explicit native string copy needed to reuse its input;
+it does not isolate constructor costs. Evidence is stored under
+`tsrust-json-construction-*` in SQLite. No family timing or consumer refresh is
+claimed. Container construction, typed conversion, streams and integrated S10
+acceptance remain open.

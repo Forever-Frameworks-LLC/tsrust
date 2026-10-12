@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryRows": 413,
+  "inventoryRows": 418,
   "status": "reviewed; discovery reconciliation accepted in globals-and-imports-audit-closure.md",
   "reviews": {
     "docs/plans/globals-and-imports-array-audit.md": [
@@ -449,6 +449,13 @@
     "docs/plans/globals-and-imports-json-string-views-audit.md": [
       "std:json::StringView",
       "std:json::asString"
+    ],
+    "docs/plans/globals-and-imports-json-construction-audit.md": [
+      "std:json::nullValue",
+      "std:json::fromBoolean",
+      "std:json::fromInt",
+      "std:json::fromNumber",
+      "std:json::fromString"
     ]
   }
 }

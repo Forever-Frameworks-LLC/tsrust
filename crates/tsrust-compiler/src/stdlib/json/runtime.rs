@@ -32,6 +32,7 @@ fn message(code: &str) -> &'static str {
         "index-range" => "JSON array index must be nonnegative",
         "integer-fractional" => "JSON number has a fractional part",
         "integer-range" => "JSON number is outside the signed integer range",
+        "number-nonfinite" => "JSON numbers must be finite",
         "number-precision" => "JSON integer cannot be represented exactly as a number",
         "io-error" => "JSON Lines input read failed",
         "position-limit" => "JSON Lines input position limit exceeded",
@@ -377,3 +378,8 @@ mod tests {
 /// Native adapters expose real shared references, never cloned JSON storage.
 pub trait Source { fn json_value(&self) -> &Value; }
 pub trait ViewSource<'a> { fn json_view(self) -> &'a Value; }
+
+/// Constructs a finite JSON number without changing its floating-point value.
+pub fn from_f64(value:f64)->Result<Value,Error>{
+ serde_json::Number::from_f64(value).map(Value::Number).ok_or_else(||failure("number-nonfinite",0))
+}
