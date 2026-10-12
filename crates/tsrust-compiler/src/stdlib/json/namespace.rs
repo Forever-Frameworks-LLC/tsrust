@@ -41,6 +41,10 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     if program.functions.iter().any(|function| function.name.text == "JSON") { return Ok(()); }
     let mut required = std::collections::BTreeMap::new();
     let mut throwing = std::collections::BTreeSet::new();
+    // Named functions have already been lifted out of their lexical bodies.
+    // Their variable-use identities retain captured receiver provenance.
+    let local_uses: std::collections::BTreeSet<_> = program.local_capture_plans.iter()
+        .flat_map(|plan| plan.uses.keys().copied()).collect();
     for function in &mut program.functions {
         if function.params.iter().any(|(name, _, _)| name.text == "JSON") { continue; }
         let mut scopes = Vec::new();
@@ -57,6 +61,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             if !matches!(&base.kind, ExprKind::Name(name) if name == "JSON")
+                || local_uses.contains(&base.span.start)
                 || scopes.iter().any(|scope| scope.start <= expression.span.start && expression.span.end <= scope.end) {
                 return Ok(());
             }

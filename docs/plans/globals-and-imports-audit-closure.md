@@ -1,10 +1,14 @@
 # Globals/imports audit closure
 
-Accepted scope: current public builtins, imported native types/functions, bundled
+Original accepted scope: public builtins, imported native types/functions, bundled
 testing exports, receiver/static members, namespace headings and language-level
 ownership/type primitives. All 399 discovered identities have exactly one review
 in globals-and-imports-coverage.json. This closes the requested placement/naming
 audit; it does not accept unimplemented JSON globals or the S10 feature milestone.
+
+The later [JSON namespace addendum](globals-and-imports-json-namespace-audit.md)
+extends the current manifest to 404 identities. Counts below describe the original
+closure evidence.
 
 ## Independent discovery reconciliation
 

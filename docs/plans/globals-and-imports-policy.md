@@ -28,12 +28,22 @@ without an import. Four catalog examples pass native execution. Evidence:
 `tsrust-json-editor-3.log` and `tsrust-json-catalog-1.log` in SQLite. Earlier editor
 harness failures and the native-name hover failure are retained separately.
 
-Complete shadowing/invalid-input diagnostics, extending the API audit inventory
-for these new entries, and matched workload support remain pending. This
-implementation checkpoint is not a completed built-in gate or consumer release.
+Six invalid-call cases produce public diagnostics. Loop, catch and named-function
+capture shadowing pass native checks. The capture witness exposed incorrect
+lowering after named-function lifting; namespace resolution now consults retained
+lexical variable-use identities. Nine focused tests pass, including all four
+catalog examples and dependency checks. A separate dependency witness confirms
+that a captured local JSON record does not select the JSON runtime.
+
+The API audit now reconciles 404 identities, adding the namespace heading and four
+methods in globals-and-imports-json-namespace-audit.md. Evidence:
+`tsrust-json-shadow-3.log`, `tsrust-json-dependency-capture.log`, and
+`tsrust-json-audit-verification.log`; failed capture and initial diagnostic records
+are retained too. Matched workload support and final focused acceptance remain
+pending. This checkpoint is not a consumer release or measured S10 acceptance.
 The complete current per-symbol audit is accepted in
 [the closure review](globals-and-imports-audit-closure.md). The family summary below
-is supplemented by 399 explicit reviewed identities; it is not the audit by itself. Existing working imports
+is supplemented by 404 explicit reviewed identities; it is not the audit by itself. Existing working imports
 remain supported. Alias and typed-data import work retains its current priority.
 
 The current [audit coverage matrix](globals-and-imports-audit.md) records discovery

@@ -1,10 +1,11 @@
 # Globals and imports audit coverage
 
-Status: the current public API placement audit is accepted. All 399 discovered
-identities have a reviewed disposition, and independent compiler/editor discovery
-reconciliation is complete. See the [closure review](globals-and-imports-audit-closure.md).
-The approved JSON namespace is authorized for implementation; it is not implemented
-or accepted by this documentation checkpoint.
+Status: the public API placement audit is accepted. The original 399 identities
+and five JSON namespace additions each have a reviewed disposition (404 total).
+See the [original closure review](globals-and-imports-audit-closure.md) and
+[JSON namespace addendum](globals-and-imports-json-namespace-audit.md).
+The JSON implementation gate remains in progress; naming acceptance does not
+replace compiler/editor, benchmark-support or consumer acceptance.
 
 ## Reproducible inventory
 

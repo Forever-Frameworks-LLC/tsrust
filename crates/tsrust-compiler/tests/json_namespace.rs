@@ -166,3 +166,36 @@ fn json_namespace_catalog_examples_execute() {
         }
     }
 }
+
+#[test]
+fn json_namespace_invalid_calls_have_public_diagnostics() {
+    let directory=support::TempDirectory::new();
+    for call in ["JSON.parse()", "JSON.parse(1)", "JSON.stringify('null')", "JSON.tryParse(1)", "JSON.parse('null',1)", "JSON.stringify(JSON.parse('null'),'big')"] {
+        let path=directory.source(&support::format_round_trip(&format!("function main(){{{call};}}")));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"accepted {call}");
+        let error=String::from_utf8(output.stderr).unwrap();
+        assert!(!error.contains("@json:") && !error.contains("@native:") && !error.contains("native#"),"{call}: {error}");
+    }
+}
+
+#[test]
+fn json_namespace_preserves_loop_catch_and_captured_receivers() {
+    run(r#"
+import {strictEqual} from 'std:testing';
+type Local={tryParse:int;};
+function main(){
+  const locals:Local[]=[{tryParse:7}];
+  for(const JSON of locals){strictEqual(JSON.tryParse,7);}
+  const thrown:Local={tryParse:9};
+  try{throw thrown;}catch(JSON){strictEqual(JSON.tryParse,9);}
+  {
+    const JSON:Local={tryParse:11};
+    function read():int{return JSON.tryParse;}
+    strictEqual(read(),11);
+  }
+  function global():string{return JSON.stringify(JSON.parse('null'));}
+  strictEqual(global(),'null');
+}
+"#);
+}
