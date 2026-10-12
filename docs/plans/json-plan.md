@@ -1725,3 +1725,32 @@ Focused evidence uses `tsrust-json-raw-*-fa4822b7` in SQLite. Installed consumer
 remain at 12a6426e. This is an implementation checkpoint for validation/borrowing;
 raw serialization, selective raw fields, complete measurements and the final S10
 consumer refresh remain outstanding.
+
+### Raw validation timing and numeric allocation baseline
+
+`native_json_raw` completed the established native/Node execution protocol: five
+correctness cases, three fresh processes per engine, eight warmups and 31 measured
+batches of 2000 validations. All six process records and 186 batches have the
+independent checksum 2007. Median batch milliseconds were native 0.145709 and
+Node-after-tsc 0.313417. This fixed ASCII valid-input result does not establish raw
+serialization speed or equivalence of parser resource policies.
+
+A separate source-retaining allocation probe covers numeric arrays of sizes
+0/1/10000, with three fresh processes per native/direct Rust/Node engine (27
+samples). The native adapter verifies the fragment pointer equals the original
+source pointer and rejects emitted ABI that substitutes a static lifetime. Native
+and direct Rust report zero allocations/reallocations/retained/peak requested
+output heap, and complete disposal. Source storage is prepared outside counters;
+stack storage and Node retained heap are different metrics. Escaped strings may
+need temporary scratch and are not covered by this zero-allocation result.
+Direct Rust uses Serde IgnoredAny plus end-of-input validation and returns the
+input slice; it does not apply native budgets. Node parses/discards its dynamic
+tree and retains the original source. Source-byte checksum arithmetic is
+independent of all parsers. Eleven adapter tests pass. After whole-project
+formatting changed the new fixture layout, only these three affected cases were
+repeated; both original and formatted evidence remain immutable.
+
+SQLite: `results/2026-10-12T06-45-51-174Z.json`, raw timing log, and
+`tsrust-json-raw-allocation*-6ea5b855` JSON/log records. The formatted record is the
+current source baseline. No RSS, Unicode/deep/raw-field matrix or serialization
+acceptance is claimed. Those and the post-raw consumer refresh remain open.

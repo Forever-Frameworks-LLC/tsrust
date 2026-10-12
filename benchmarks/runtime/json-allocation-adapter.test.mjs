@@ -101,3 +101,11 @@ test('object encoding oracle includes sorted fields, nested values and Unicode',
  assert.equal(jsonAllocationInput(1,'encode_typed_object'),expected);
  assert.equal(jsonAllocationChecksum(1,'encode_dynamic_object'),Buffer.from(expected).reduce((sum,byte)=>sum+byte,0));
 });
+
+test('raw fragment probe retains original input and checks its real lifetime ABI',()=>{
+ assert.equal(jsonAllocationChecksum(2,'raw'),5);
+ const emitted="fn tsr_result_function0<'native_input2_0>(value0: i64, value1: i64, value2: &'native_input2_0 String) -> Result<Record2<'native_input2_0>,TsrFunctionError0<String>> {}\nfn main() {}";
+ const text=adaptJsonAllocation(emitted,driver,'raw');
+ assert.match(text,/fragment.text\(\).as_ptr\(\),input.as_ptr\(\)/);
+ assert.throws(()=>adaptJsonAllocation(emitted.replace("Record2<'native_input2_0>","Record2<'static>"),driver,'raw'));
+});

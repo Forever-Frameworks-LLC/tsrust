@@ -1,0 +1,12 @@
+import { borrowRaw, JsonRaw } from 'std:json';
+
+function workload(n: int, seed: int, input: ReadOnly<string>): JsonRaw {
+  match (borrowRaw(input)) {
+    Ok(raw) => {
+      return raw;
+    },
+    Err(error) => {
+      throw error.message;
+    }
+  }
+}
