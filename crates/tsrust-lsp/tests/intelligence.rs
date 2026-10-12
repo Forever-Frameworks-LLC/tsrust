@@ -1615,6 +1615,36 @@ fn string_continuations_and_unfinished_literals_keep_editor_token_boundaries() {
     }
 }
 
+// Run complete catalog programs through automatic native dependency linking.
+fn execute_catalog_program(source: &str, expected: &str, release: bool) {
+    struct Scratch(std::path::PathBuf);
+    impl Drop for Scratch {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+    let dir = Scratch(std::env::temp_dir().join(format!("tsrust-catalog-program-{}-{}",
+        std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos())));
+    std::fs::create_dir(&dir.0).unwrap();
+    let formatted = tsrust_compiler::format(source).unwrap();
+    assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+    tsrust_compiler::check(&formatted).unwrap();
+    let input = dir.0.join("example.tsr");
+    let binary = dir.0.join(format!("example{}", std::env::consts::EXE_SUFFIX));
+    std::fs::write(&input, formatted).unwrap();
+    let cli = std::env::var_os("TSRUST").map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::env::current_exe().unwrap().parent().unwrap().parent().unwrap()
+            .join(format!("tsrust{}", std::env::consts::EXE_SUFFIX)));
+    assert!(cli.is_file(), "Build the current tsrust binary before catalog execution, or set TSRUST");
+    let mut build = std::process::Command::new(cli);
+    build.arg("build").arg(&input).arg("-o").arg(&binary).current_dir(&dir.0);
+    if release { build.arg("--release"); }
+    let compilation = build.output().unwrap();
+    assert!(compilation.status.success(), "{}", String::from_utf8_lossy(&compilation.stderr));
+    let output = std::process::Command::new(binary).current_dir(&dir.0).output().unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
+    assert!(output.stderr.is_empty(), "{}", String::from_utf8_lossy(&output.stderr));
+}
+
 // Catalog snippets may begin with named type declarations used by their example body.
 // Both the full catalog fixture and focused method fixtures use this same wrapper.
 #[derive(Default)]
@@ -3249,52 +3279,7 @@ fn nullable_union_help_and_observations_preserve_whole_value_types() {
     );
     let rejected_copy = "function main(){const value:int|null=1;clone(value);}";
     assert!(tsrust_compiler::check(rejected_copy).is_err());
-    let analysis = tsrust_compiler::check(&program).unwrap();
-    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../target/editor/nullable-union-doc-examples");
-    std::fs::create_dir_all(&dir).unwrap();
-    let input = dir.join("examples.rs");
-    std::fs::write(dir.join("examples.tsr"), &program).unwrap();
-    std::fs::write(dir.join("expected.stdout"), &expected).unwrap();
-    std::fs::write(&input, analysis.emit_rust()).unwrap();
-    for level in ["0", "3"] {
-        let binary = dir.join(format!("examples-o{level}"));
-        let compilation = std::process::Command::new("rustc")
-            .args([
-                "--edition=2024",
-                "-Awarnings",
-                "-C",
-                &format!("opt-level={level}"),
-            ])
-            .arg(&input)
-            .arg("-o")
-            .arg(&binary)
-            .output()
-            .unwrap();
-        assert!(
-            compilation.status.success(),
-            "{}",
-            String::from_utf8_lossy(&compilation.stderr)
-        );
-        let output = std::process::Command::new(binary).output().unwrap();
-        std::fs::write(
-            dir.join(format!("examples-o{level}.stdout")),
-            &output.stdout,
-        )
-        .unwrap();
-        std::fs::write(
-            dir.join(format!("examples-o{level}.stderr")),
-            &output.stderr,
-        )
-        .unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
-        assert!(output.stderr.is_empty());
-    }
+    for release in [false, true] { execute_catalog_program(&program, &expected, release); }
 }
 
 #[test]
@@ -7697,11 +7682,7 @@ fn data_unions_catalog_examples_match_native_output() {
  let mut source=CatalogExampleSource::default();let mut expected=String::new();
  let entries=catalog["globals"].as_array().unwrap().iter().filter(|entry|matches!(entry["name"].as_str(),Some("typeof"|"null"|"undefined"|"void"|"String"|"Boolean"))).chain(catalog["ArrayConstructor"].as_array().unwrap().iter().filter(|entry|entry["name"]=="isArray"));
  for entry in entries {for example in entry["examples"].as_array().unwrap(){tsrust_compiler::check(&source.push(example["source"].as_str().unwrap())).unwrap();expected.push_str(example["output"].as_str().unwrap());}}
- let analysis=tsrust_compiler::check(&source.finish()).unwrap();
- let dir=std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/editor/data-unions-doc-examples");std::fs::create_dir_all(&dir).unwrap();
- let input=dir.join("examples.rs");let binary=dir.join("examples");std::fs::write(&input,analysis.emit_rust()).unwrap();
- let compilation=std::process::Command::new("rustup").args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"rustc","--edition=2024","-Awarnings"]).arg(&input).arg("-o").arg(&binary).output().unwrap();assert!(compilation.status.success(),"{}",String::from_utf8_lossy(&compilation.stderr));
- let output=std::process::Command::new(binary).output().unwrap();assert!(output.status.success());assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+ execute_catalog_program(&source.finish(), &expected, false);
 }
 
 #[test]

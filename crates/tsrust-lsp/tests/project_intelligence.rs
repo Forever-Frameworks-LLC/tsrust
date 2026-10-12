@@ -2264,3 +2264,21 @@ fn borrowed_jsonl_writer_editor_describes_flush_and_owner_retention(){
  let hover=ask(&index,&entry,"borrowJsonlWriter(owner)","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("JsonlWriterView")&&text.contains("exclusively borrows")&&text.contains("leaves the owner open"),"{hover}");
  let hover=ask(&index,&entry,"write<int>","textDocument/hover");assert!(hover.to_string().contains("Mutable<JsonlWriter | JsonlWriterView>"),"{hover}");
 }
+
+#[test]
+fn import_exported_spelling_resolves_foreign_alias_before_local_namesake() {
+    let root = "file:///tsrust-intelligence/main.tsr";
+    let dep = "file:///tsrust-intelligence/dep.tsr";
+    let entry = "import {greet as hello} from './dep.tsr';function greet():int{return 9;}function main(){hello();greet();}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(root).unwrap(), 1, entry.into());
+    workspace.open(source_id(dep).unwrap(), 1, "export function greet():int{return 1;}".into());
+    let checked = workspace.snapshot().check(&source_id(root).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    assert_eq!(ask(&index, entry, "greet as", "textDocument/definition")["uri"], dep);
+    let refs = ask(&index, entry, "hello();", "textDocument/references");
+    assert_eq!(refs.as_array().unwrap().len(), 4, "{refs}");
+    let local = ask(&index, entry, "greet();", "textDocument/references");
+    assert_eq!(local.as_array().unwrap().len(), 2, "{local}");
+    assert!(local.as_array().unwrap().iter().all(|location|location["uri"]==root));
+}

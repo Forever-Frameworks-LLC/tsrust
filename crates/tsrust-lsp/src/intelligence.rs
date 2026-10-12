@@ -2517,6 +2517,17 @@ impl SourceIndex {
         self.infer(n, self.tokens[n].span.start, depth + 1)
     }
     fn resolve_token(&self, id: usize) -> Option<usize> {
+        // The exported spelling in `import { name as local }` refers to the
+        // same foreign declaration as the local binding, not a local namesake.
+        if self.text(id + 1) == "as"
+            && self.import_exports.iter().any(|(span, _)|
+                span.start <= self.tokens[id].span.start && self.tokens[id].span.end <= span.end)
+        {
+            let local = self.tokens.get(id + 2)?;
+            return self.symbols.iter().enumerate().find_map(|(symbol, declaration)|
+                (declaration.span == self.tokens[id].span && declaration.name == local.text
+                    && self.foreign_definitions.contains_key(&symbol)).then_some(symbol));
+        }
         if self.checked_control_labels.iter().any(|(span,_)|*span==self.tokens[id].span) {return None;}
         if let Some(s) = self
             .symbols

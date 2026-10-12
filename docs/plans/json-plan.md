@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. Public raw fragments and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw fragments and family timing/RSS/release acceptance remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
