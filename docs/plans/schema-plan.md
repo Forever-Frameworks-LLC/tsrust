@@ -1753,12 +1753,15 @@ The initial runs also preserve an overly broad literal-widening experiment and a
 rejection assertion that expected the word moved instead of diagnostic transferred.
 No runtime behavior or benchmark workload changed; no timing run was needed.
 
-Recursive schema API is awaiting the owner's decision: proposed
-`s.recursive<Tree>(self => s.object({value:s.int(), children:s.array(self)}))`.
-The proposed builder runs once; the recursion placeholder is reusable only within
-the definition, and validation borrows the frozen uniquely owned plan. Do not treat
-this proposal as approved until the pending question is answered. Independent
-pinned Zod differential acceptance work can proceed meanwhile.
+Recursive schema API approved: `s.recursive(self => ...)` infers the recursive
+output type. An optional `s.recursive<T>(self => ...)` checks the definition against
+an existing named type. The builder runs once; `self` is a temporary recursive
+schema/type reference reusable only within the definition. Reject unproductive
+cycles such as `s.recursive(self => self)` and all placeholder escapes. Freeze one
+uniquely owned plan; validation borrows it without hidden cloning or shared ownership.
+Use existing `s.int()` and `s.union([...])` builders, not type tokens or expression
+`|` overloading. Public integration is still required; this is contract approval,
+not implementation acceptance.
 
 
 ## Pinned differential corpus and JSON error encoding
@@ -2084,9 +2087,9 @@ restoration paths need review: restoration must preserve the original input fiel
 order, not substitute declaration order. This audit remains required before S11
 acceptance. Focused evidence uses `tsrust-schema-object-logging-*`.
 
-Recursive schema API status: the owner prefers explicit recursion and requested
-examples of `s.recursive<T>(self => ...)`. Examples were presented; the final
-contract remains proposed. Getter-based recursion has not been approved.
+Recursive schema API status: inferred recursion with an optional explicit generic
+is now approved; the earlier request for examples is resolved. Getter-based
+recursion is not selected. See the approved contract above.
 
 ### Retained and reversible object metadata audit
 
@@ -2116,3 +2119,28 @@ match completion derives payload types from a known Result scrutinee, never from
 an Ok/Err name alone, and leaves checked facts authoritative. Focused source and
 project tests cover unfinished members, prefixes, namespace aliases, shadowing,
 Result hover and match payload suggestions. Evidence uses `tsrust-schema-editing-*`.
+
+### Approved inferred recursion: implementation requirements
+
+Public spelling is `s.recursive(self => definition)`, with optional
+`s.recursive<T>(self => definition)` for compatibility checking against T. The
+schema is the source of the inferred type; users do not need a second declaration.
+Self references may occur more than once and compose through existing builders.
+The definition is evaluated once. The placeholder must not become a normal owned
+schema value, a clonable handle, or an escaping closure capture.
+
+Implementation must separate the temporary type knot from runtime plan storage.
+Resolve the output from the returned schema, validate productivity and data-layout
+termination, then freeze one owned plan. Generated recursive validation borrows the
+root plan through explicit parameters; no self-owned Rust reference, Rc/Arc cycle,
+unsafe lifetime erasure, or input copying may be introduced. Root arrays/unions
+must be assessed alongside object roots rather than silently narrowing the API to
+an object-only convenience wrapper. Existing ownership, callbacks, validation
+budgets and error-path limits remain authoritative.
+
+Initial public regression file: `tests/schema_recursive.rs`. It deliberately
+fails until the feature is implemented; it is not an accepted or ignored gate.
+The first baseline record is `tsrust-schema-recursive-baseline.log`. Remaining
+coverage includes owned input, termination rejection, escaped placeholders,
+explicit-type mismatch, union children, single builder evaluation, bounded deep
+input, complete editor inference and matched benchmark support.
