@@ -2310,3 +2310,18 @@ prefix are byte-verified in SQLite.
 
 The full compiler/editor milestone continuation remains active. Installed smokes
 and extension checks do not replace its final target inventory reconciliation.
+
+### Final raw metrics reconciliation
+
+The derived metrics exporter now retains ten immutable timing inputs and 387
+case/engine rows, including original raw encoding, cached-depth encoding, the
+rejected extra-scan creation cost, repaired creation and updated selective-field
+decoding. Every row names its source record so comparisons cannot silently pool
+different implementations. Original raw records and earlier exports remain intact.
+Each row validates three process identities, 31 batches per process and the result
+checksum before deriving median throughput and nearest-rank p95.
+
+`tsrust-json-final-metrics-47e25f6a.json` and its focused check log are retained in
+SQLite. Two calculation/rejection tests pass; all 387 source/case/size/engine keys
+are distinct. This derives existing samples without rerunning any workload and
+does not change the documented selective-field creation tradeoff.
