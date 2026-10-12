@@ -2101,3 +2101,20 @@ This is an implementation checkpoint, not S10 acceptance. JSONL raw output,
 expanded container/depth boundary witnesses, executable catalog examples, matched
 raw encoding workload coverage, measurements and consumer refresh remain queued.
 The output policy is approved; older pending-policy statements are historical.
+
+
+### Raw JSON Lines output boundary
+
+writeJsonl now accepts JsonRaw, including raw values nested in typed records. It
+preserves single-line raw text exactly. Because JSON Lines requires one physical
+line per record, a literal CR or LF in staged output returns `record-newline`
+before any destination bytes for that record. Escaped newline sequences remain
+valid. The writer becomes terminal, reports the current record number and retains
+existing close/flush error precedence. No implicit normalization is performed.
+
+Five writer native tests pass, including exact raw output, nested raw fields,
+multiline rejection after a successful record, and consuming close reporting the
+terminal error. A backend probe covers leading/trailing/internal CR/LF, borrowed
+owner retention, unchanged prior output, repeated terminal failure and exactly-once
+cleanup. Catalog and editor checks explain this boundary. S10 family acceptance,
+raw encoding measurements and installed consumer refresh remain outstanding.

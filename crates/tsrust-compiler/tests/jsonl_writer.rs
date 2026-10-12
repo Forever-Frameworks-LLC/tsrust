@@ -106,3 +106,30 @@ fn jsonl_writer_catalog_example_executes() {
         }
     }
 }
+
+#[test]
+fn jsonl_raw_preserves_single_line_text_and_rejects_multiline_before_output() {
+ let dir=support::TempDirectory::new();let output=dir.0.join("raw.jsonl");
+ let source=r#"
+import {createJsonl,writeJsonl,closeJsonlWriter,borrowRaw,JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Envelope={payload:JsonRaw;};
+function main(){
+ const text=' {"z":1e+02,"a":"\\n"} ';
+ const multiline='[\n7]';
+ match(createJsonl(OUTPUT)){Ok(writer)=>{
+  match(borrowRaw(text)){Ok(raw)=>{
+   const envelope:Envelope={payload:raw};
+   match(writeJsonl(writer,envelope)){Ok(_)=>{},Err(error)=>{throw error.message;}}
+  },Err(error)=>{throw error.message;}}
+  match(borrowRaw(multiline)){Ok(raw)=>{
+   match(writeJsonl(writer,raw)){Ok(_)=>{throw 'multiline accepted';},Err(error)=>{strictEqual(error.code,'record-newline');strictEqual(error.line,2);}}
+  },Err(error)=>{throw error.message;}}
+  match(closeJsonlWriter(writer)){Ok(_)=>{throw 'terminal failure lost';},Err(error)=>{strictEqual(error.code,'record-newline');}}
+ },Err(error)=>{throw error.message;}}
+}
+"#.replace("OUTPUT",&format!("{:?}",output.to_str().unwrap()));
+ let path=dir.source(&support::format_round_trip(&source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+ assert_eq!(std::fs::read_to_string(output).unwrap(),"{\"payload\": {\"z\":1e+02,\"a\":\"\\n\"} }\n");
+}

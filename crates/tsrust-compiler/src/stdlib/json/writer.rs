@@ -56,6 +56,11 @@ impl<W:Output> Writer<W> {
   let record=match encode(self.max_bytes) {Ok(record)=>record,Err(error)=>{
    return self.stop(WriteError{code:error.code,message:error.message,operation:"write",line:self.line,os_code:None});
   }};
+  // Raw fragments preserve formatting. Literal record delimiters cannot be
+  // rewritten silently or emitted as multiple physical JSON Lines records.
+  if record.bytes().any(|byte|matches!(byte,b'\r'|b'\n')) {
+   return self.stop(WriteError{code:"record-newline",message:"JSON Lines record contains a literal newline",operation:"write",line:self.line,os_code:None});
+  }
   let output=self.output.as_mut().expect("live JSON Lines writer");
   if let Err(error)=output.write_all(record.as_bytes()).and_then(|()|output.write_all(b"\n")) {
    return self.stop(self.io_error("write",error));
@@ -95,6 +100,24 @@ mod tests {
   }
   fn flush(&mut self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.flushes+=1;if s.fail_flush{Err(error())}else{Ok(())}}
   fn close(self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.closes+=1;if s.fail_close{Err(error())}else{Ok(())}}
+ }
+ #[test]
+ fn raw_record_delimiters_fail_atomically_for_owned_and_borrowed_outputs(){
+  for text in ["\nnull","null\r","[1,\n2]","{\"x\":\r\n7}"] {
+   let raw=super::super::raw::borrow(text,super::super::Limits{bytes:128,depth:64,entries:100,nodes:100}).unwrap();
+   let state=Rc::new(RefCell::new(State::default()));let mut probe=Probe(state.clone());
+   {
+    let mut writer=Writer::new(&mut probe,128);
+    writer.write(&Value::Null).unwrap();
+    let error=writer.write_typed(&super::super::raw::Encoded(&raw,0)).unwrap_err();
+    assert_eq!((error.code,error.line,error.operation),("record-newline",2,"write"));
+    assert_eq!(state.borrow().bytes,b"null\n");
+    assert_eq!(writer.write(&Value::Null).unwrap_err(),error);
+    assert_eq!(writer.close().unwrap_err(),error);
+   }
+   assert_eq!(state.borrow().flushes,1);assert_eq!(state.borrow().closes,0);
+   probe.close().unwrap();assert_eq!(state.borrow().closes,1);
+  }
  }
  #[test]
  fn typed_records_are_borrowed_and_failed_encoding_emits_no_prefix(){
