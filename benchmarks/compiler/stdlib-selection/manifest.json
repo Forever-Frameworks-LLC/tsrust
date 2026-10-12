@@ -1,11 +1,23 @@
 {
   "schemaVersion": 1,
-  "status": "registered-unmeasured",
-  "checkpoint": "next scheduled combined checkpoint",
+  "status": "measured",
+  "checkpoint": "2026-10-12 frontend/build phase acceptance",
   "samples": 11,
   "workloads": [
-    { "id": "std_module_used", "directory": "used", "stdout": "report\n", "nativeFeatures": ["path"] },
-    { "id": "std_module_unused", "directory": "unused", "stdout": "7\n", "nativeFeatures": [] }
+    {
+      "id": "std_module_used",
+      "directory": "used",
+      "stdout": "report\n",
+      "nativeFeatures": [
+        "path"
+      ]
+    },
+    {
+      "id": "std_module_unused",
+      "directory": "unused",
+      "stdout": "7\n",
+      "nativeFeatures": []
+    }
   ],
   "phases": {
     "frontendCheck": "Separate process wall time: tsrust check and TypeScript tsc --noEmit over the retained two-file projects. Includes process startup and source reads; excludes native backend. Type and ownership validation differ, so this is a frontend cost comparison, not equivalent validation coverage.",
@@ -14,5 +26,6 @@
     "warmBuild": "Same native source/backend/features with a populated isolated cache. Includes frontend and identity checks, lookup and copying the cached executable. Do not describe as frontend-only or rustc throughput.",
     "featureTransition": "After a retained used project build, build the retained unused project in the same cache and verify helper exclusion and stdout. Correctness/invalidation witness, not a matched timing ratio. Existing dedicated identity tests isolate feature bytes from changed sources."
   },
-  "acceptance": "Exact stdout from generated native executables and compiled TypeScript; emitted path helper only for used binding. Preserve complete source hashes, command/toolchain identities and samples in SQLite when measured. Never merge runs or report pending samples as measured."
+  "acceptance": "Exact stdout from generated native executables and compiled TypeScript; emitted path helper only for used binding. Preserve complete source hashes, command/toolchain identities and samples in SQLite when measured. Never merge runs or report pending samples as measured.",
+  "measurementRecord": "tsrust-stdlib-selection-timing-8eb56758.json"
 }

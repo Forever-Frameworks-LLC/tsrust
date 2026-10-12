@@ -281,3 +281,16 @@ The original six concrete increments are accepted within their explicit primitiv
 All required initial runtime/frontend/build workloads are registered but unmeasured. External dependency graph is empty; future adapters must establish their own exact lock/cache/license and platform evidence. Native callable storage now shares the existing language's limitations, documented with concrete negative witnesses and explicit S06 implementation requirements. Clearer unsupported diagnostics do not count as implementing those containers.
 
 Next implementation gate: S06 shared recursive value annotations, nominal applied type identity and bounded specialization, followed by callable containers and typed Result. See stdlib-02-types-results.md for concrete increments, acceptance contracts and current pending state.
+
+
+## Deferred frontend/build measurements completed (2026-10-12)
+
+The [stdlib selection phase run](../../benchmarks/compiler/stdlib-selection/README.md#accepted-phase-measurements-2026-10-12)
+now supplies the previously deferred two-project measurements: eleven samples for
+each of five phase/engine cells per project (110 durations). Exact native and
+compiled TypeScript output, emitted helper selection, cold misses, warm hits and
+feature transition checks passed. Original and derived records are verified in
+SQLite. Historical registration statements above describe their original state.
+This closes only these phase measurements; module fanout and separate runtime
+acceptance must be reconciled independently. No full-suite rerun or runtime
+throughput claim accompanies this build-cost baseline.
