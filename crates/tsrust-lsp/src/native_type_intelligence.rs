@@ -23,6 +23,13 @@ impl SourceIndex {
         (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
     pub(super) fn schema_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::Schema) }
+    fn schema_integer_alternative(element:&str)->Option<String> {
+        let mut leaf=element.trim();let mut depth=0;
+        while let Some(inner)=leaf.strip_suffix("[]"){leaf=inner.trim();depth+=1;}
+        if let Some(inner)=leaf.strip_prefix('(').and_then(|inner|inner.strip_suffix(')')){leaf=inner;}
+        let members=leaf.split('|').map(str::trim).collect::<Vec<_>>();
+        (members.contains(&"number")&&members.iter().all(|member|matches!(*member,"number"|"null"|"undefined"))).then(||format!("int{}","[]".repeat(depth)))
+    }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
         if self.schema_element(ty) == Some("null") { return builtins_for("SchemaNull"); }
@@ -30,7 +37,7 @@ impl SourceIndex {
         if self.schema_element(ty) == Some("int") { return builtins_for("SchemaInt"); }
         if self.schema_element(ty) == Some("boolean") { return builtins_for("SchemaBoolean"); }
         if let Some(element)=self.schema_element(ty).filter(|element|element.ends_with("[]")) {
-            let input=if element.starts_with("number[") {format!("{element} | int{} | JsonValue",&element[6..])}else{format!("{element} | JsonValue")};
+            let input=if let Some(integer)=Self::schema_integer_alternative(element) {format!("{element} | {integer} | JsonValue")}else{format!("{element} | JsonValue")};
             let mut entries=builtins_for("SchemaArray");
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
@@ -41,8 +48,8 @@ impl SourceIndex {
         if let Some(element)=self.schema_element(ty) {
             let retained=element.starts_with("__tsrust_private_schema_retained_");
             let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
-            let input=format!("{raw} | JsonValue");
-            let mut entries=builtins_for(if retained {"SchemaRetained"}else{"SchemaObject"});
+            let input=if let Some(integer)=Self::schema_integer_alternative(raw) {format!("{raw} | {integer} | JsonValue")}else{format!("{raw} | JsonValue")};
+            let mut entries=builtins_for(if retained {"SchemaRetained"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
                 if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}

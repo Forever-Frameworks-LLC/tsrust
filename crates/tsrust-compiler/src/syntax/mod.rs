@@ -640,6 +640,7 @@ pub enum CallTarget {
     SchemaValidate,
     SchemaStrip,
     SchemaRetain,
+    SchemaPresence,
     StringConversion,
     ArrayIsArray,
     ObjectIs,

@@ -7092,7 +7092,7 @@
         "documentation": "A matching owned array or dynamic JSON value. Both transfer on success and failure. JSON arrays are checked recursively without coercing strings, booleans or null. Number schemas also accept int arrays with matching nesting; every integer must convert exactly."
       }
     ],
-    "documentation": "Validates every array element against its child schema. Returns Ok with owned validated elements or Err with indexed issues in input order. Supports matching string, int, number, boolean and null arrays, including nested arrays, or an owned JsonValue. JSON input must contain arrays at each array level; mismatches return type-mismatch. JSON integer extraction rejects fractional and out-of-range values; number extraction rejects precision loss. JSON strings move their existing text storage. Empty arrays succeed. Child constraints retain their usual meaning. Keeps up to 64 issues, 32 segments per path and 1024 UTF-8 bytes of field names per path; omitted issues set truncated, shortened paths set pathTruncated. Validation continues after failure and releases partial successful output. The schema stays reusable. Number schemas also accept int arrays of the same nesting depth. Each conversion must be exact; otherwise number-precision is reported before bounds are checked. Converted-input issues report observed integer. Other typed element conversions are unsupported. Integer values remain exact; number values must be finite.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.\n\nOwnership: borrows the schema and consumes input on every outcome. No element is implicitly cloned; use clone(input) explicitly to retain the original.",
+    "documentation": "Validates every array element against its child schema. Returns Ok with owned validated elements or Err with indexed issues in input order. Supports matching scalar, object and presence-aware arrays, including nested arrays, or an owned JsonValue. Optional array elements allow explicit undefined in owned input; JSON null requires nullable. JSON input must contain arrays at each array level; mismatches return type-mismatch. JSON integer extraction rejects fractional and out-of-range values; number extraction rejects precision loss. JSON strings move their existing text storage. Empty arrays succeed. Child constraints retain their usual meaning. Keeps up to 64 issues, 32 segments per path and 1024 UTF-8 bytes of field names per path; omitted issues set truncated, shortened paths set pathTruncated. Validation continues after failure and releases partial successful output. The schema stays reusable. Number schemas also accept int arrays of the same nesting depth. Each conversion must be exact; otherwise number-precision is reported before bounds are checked. Converted-input issues report observed integer. Other typed element conversions are unsupported. Integer values remain exact; number values must be finite.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.\n\nOwnership: borrows the schema and consumes input on every outcome. No element is implicitly cloned; use clone(input) explicitly to retain the original.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
@@ -7107,7 +7107,31 @@
         "output": "number-precision\n"
       }
     ]
-  }
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<Output | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<Output | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
 ],
   "Schema": [
   {
@@ -7164,7 +7188,31 @@
         "output": "😀a\n"
       }
     ]
-  }
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<string | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<string | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
 ],
   "SchemaBoolean": [
     {
@@ -7183,8 +7231,32 @@
           "output": "false\n"
         }
       ]
+    },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<boolean | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
     }
-  ],
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<boolean | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
+],
   "SchemaInt": [
   {
     "name": "safeParse",
@@ -7270,7 +7342,31 @@
         "output": "3\n"
       }
     ]
-  }
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<int | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<int | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
 ],
   "SchemaNumber": [
   {
@@ -7361,7 +7457,31 @@
         "output": "1.5\n"
       }
     ]
-  }
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<number | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<number | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
 ],
   "SchemaNull": [
   {
@@ -7380,7 +7500,31 @@
         "output": "null\n"
       }
     ]
-  }
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<null | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<null | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
 ],
   "SchemaObject": [
   {
@@ -7400,30 +7544,54 @@
       }
     ]
   },
-{
-  "name": "strip",
-  "signature": "strip(): Schema<Output>",
-  "parameters": [],
-  "documentation": "Returns an object schema that discards unknown JSON fields during validation. Declared fields keep their types and checks; missing or invalid declared fields still fail. Takes no arguments. The default object schema rejects unknown fields until this method is called.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. Unknown input values are dropped without copying.",
-  "examples": [
-    {
-      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
-      "output": "Ada\n"
-    }
-  ]
-},
-{
-  "name": "retain",
-  "signature": "retain(): Schema<{ value: Output; extra: Map<string, JsonValue> }>",
-  "parameters": [],
-  "documentation": "Returns an object schema that preserves unknown JSON fields in an owned Map<string, JsonValue>. Successful output contains value with the declared typed fields and extra with only unknown fields. Keys such as value, extra and get cannot collide with record fields or map methods. Declared fields remain required and checked. Owned record input produces an empty extra map. Takes no arguments. Select retention once; retained plans do not accept further policy builders.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada 1.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. JSON keys and values move into the extras map without cloning.",
-  "examples": [
-    {
-      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}",
-      "output": "Ada 1\n"
-    }
-  ]
-}
+  {
+    "name": "strip",
+    "signature": "strip(): Schema<Output>",
+    "parameters": [],
+    "documentation": "Returns an object schema that discards unknown JSON fields during validation. Declared fields keep their types and checks; missing or invalid declared fields still fail. Takes no arguments. The default object schema rejects unknown fields until this method is called.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. Unknown input values are dropped without copying.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "Ada\n"
+      }
+    ]
+  },
+  {
+    "name": "retain",
+    "signature": "retain(): Schema<{ value: Output; extra: Map<string, JsonValue> }>",
+    "parameters": [],
+    "documentation": "Returns an object schema that preserves unknown JSON fields in an owned Map<string, JsonValue>. Successful output contains value with the declared typed fields and extra with only unknown fields. Keys such as value, extra and get cannot collide with record fields or map methods. Declared fields remain required and checked. Owned record input produces an empty extra map. Takes no arguments. Select retention once; retained plans do not accept further policy builders.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada 1.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. JSON keys and values move into the extras map without cloning.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "Ada 1\n"
+      }
+    ]
+  },
+  {
+    "name": "optional",
+    "signature": "optional(): Schema<Output | undefined>",
+    "parameters": [],
+    "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "true\n"
+      }
+    ]
+  },
+  {
+    "name": "nullable",
+    "signature": "nullable(): Schema<Output | null>",
+    "parameters": [],
+    "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "true\n"
+      }
+    ]
+  }
 ],
   "SchemaRetained": [
   {
@@ -7440,6 +7608,73 @@
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}",
         "output": "Ada 1\n"
+      }
+    ]
+  },
+{
+  "name": "optional",
+  "signature": "optional(): Schema<Output | undefined>",
+  "parameters": [],
+  "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "nullable",
+  "signature": "nullable(): Schema<Output | null>",
+  "parameters": [],
+  "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+}
+],
+  "SchemaPresence": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: Owned<Input>",
+        "documentation": "An owned value matching the output alternatives, or JsonValue. Input transfers on success and failure."
+      }
+    ],
+    "documentation": "Validates a presence-aware schema. Optional permits undefined and missing object fields; nullable permits null. Other values are checked against the child schema and its constraints. Number alternatives also accept exact int conversion, rejecting precision loss before checking bounds. JSON has no undefined value: an optional JSON object field can be missing, but an explicit JSON null requires nullable. Errors preserve bounded named/indexed paths.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: borrows the reusable schema and consumes input without implicit cloning.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "true\n"
+      }
+    ]
+  },
+  {
+    "name": "optional",
+    "signature": "optional(): Schema<Output | undefined>",
+    "parameters": [],
+    "documentation": "Allows missing object fields and explicit undefined values. Supplied values still pass through the child schema, including its constraints. Null remains invalid unless the child already permits null. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().optional()});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.name===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "true\n"
+      }
+    ]
+  },
+  {
+    "name": "nullable",
+    "signature": "nullable(): Schema<Output | null>",
+    "parameters": [],
+    "documentation": "Allows explicit null values in addition to the child schema output. Missing object fields remain invalid unless the child already permits missing values. Supplied non-null values still pass through child validation. Takes no arguments. Combining optional and nullable permits both missing and null values; repeated application adds no new alternative.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: true.\n\nOwnership: consumes the child schema and returns a reusable immutable plan without cloning. Validation consumes input on every outcome.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});match(schema.safeParse(JSON.parse('{\"name\":null}'))){Ok(value)=>{console.log(value.name===null);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "true\n"
       }
     ]
   }

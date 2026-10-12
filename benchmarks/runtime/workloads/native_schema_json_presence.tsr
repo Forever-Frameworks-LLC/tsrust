@@ -1,0 +1,68 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.object({
+    count: s.int().optional(), label: s.string().nullable()
+  });
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        if (value.count !== undefined || value.label !== null) {
+          throw 'Invalid presence';
+        }
+
+        checksum += 1;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('{"count":null}'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 2) {
+          throw 'Invalid count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.pathTruncated || issue.path.length !== 1) {
+            throw 'Invalid path';
+          }
+
+          for (const segment of issue.path) {
+            if (segment.index !== undefined) {
+              throw 'Unexpected index';
+            }
+
+            if (segment.field === 'count') {
+              if (issue.code !== 'type-mismatch' || issue.expected !== 'integer' || issue.observed !== 'null') {
+                throw 'Invalid null issue';
+              }
+            } else if (segment.field === 'label') {
+              if (issue.code !== 'missing-field' || issue.expected !== 'string' || issue.observed !== 'missing') {
+                throw 'Invalid missing issue';
+              }
+            } else {
+              throw 'Unexpected field';
+            }
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '{"label":null}'));
+}

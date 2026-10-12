@@ -1870,6 +1870,12 @@ impl SourceIndex {
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
+        if let Some(output)=self.schema_element(&receiver) && matches!(method,"optional"|"nullable") {
+            let added=if method=="optional"{"undefined"}else{"null"};
+            let result=if output.split('|').any(|member|member.trim()==added){output.to_owned()}else{format!("{output} | {added}")};
+            let name=receiver.split_once('<').unwrap().0;
+            return format!("{name}<{result}>");
+        }
         if self.schema_element(&receiver).is_some() && method=="strip" {return receiver;}
         if let Some(element) = self.schema_element(&receiver) && method == "safeParse" {
             return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)

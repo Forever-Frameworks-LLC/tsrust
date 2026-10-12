@@ -22122,6 +22122,30 @@
       "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
       "sourceSha256": "b7065d5f8175fa36763f3878787966b5124c795f4517c396be649dcc6d06e51c",
       "counterpartSha256": "3b255e97d19353558240f0731eea34c5ae3aa948a96a6f11ceaf4389541910a0"
+    },
+    {
+      "id": "native_schema_json_presence",
+      "category": "schema",
+      "description": "Optional and nullable typed JSON object fields with distinct missing and null failures",
+      "source": "workloads/native_schema_json_presence.tsr",
+      "counterpart": "workloads/native_schema_json_presence.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, object validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"label\":null}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Accept absent optional count and nullable label; reject null count and missing label with named issues. Checksum adds three per iteration.",
+      "notes": "Presence semantics in a fixed small JSON domain; handwritten TypeScript reference, not Zod. No timing yet.",
+      "sourceSha256": "c6511e91e236a53b5d7b9d8ad7b7be1157b2e5518782da0aa27431aaba824d22",
+      "counterpartSha256": "68314986bd7ced757a25c58c6f1ae5901b3b5ef650e68fa41e6909f639931ea9"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

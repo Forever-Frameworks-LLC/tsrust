@@ -2365,6 +2365,12 @@ impl Emitter<'_> {
                 continue;
             }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
+                && let Some(base)=record.application.as_ref().and_then(|application|self.schema_presence_element(application.resolved_arguments[0])) {
+                let child=self.schema_child(base);
+                let _=writeln!(output,"struct Record{index} {{ inner:Record{} }}",self.native_record_declaration(child));
+                continue;
+            }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
                 && let Some(Type::Array(element))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
                 let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|application|application.resolved_arguments==[element.ty()])).expect("array child schema");
                 let child=self.native_record_declaration(child);
@@ -8537,6 +8543,16 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::SchemaPresence => {
+                    let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};
+                    let Type::Record(source)=args[0].ty.unwrap() else{unreachable!()};
+                    let value=self.expr(fun,&args[0],Mode::Consume);
+                    if id==source {value}else{
+                        let output=self.program.records[source].application.as_ref().unwrap().resolved_arguments[0];
+                        let value=if self.schema_presence_element(output).is_some(){format!("({value}).inner")}else{value};
+                        format!("Record{}{{inner:{value}}}",self.native_record_declaration(id))
+                    }
+                },
                 CallTarget::SchemaRetain => {let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};format!("Record{}{{inner:{}}}",self.native_record_declaration(id),self.expr(fun,&args[0],Mode::Consume))},
                 CallTarget::SchemaStrip => format!("{{let mut schema={};schema.reject_unknown=false;schema}}",self.expr(fun,&args[0],Mode::Consume)),
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),

@@ -394,9 +394,12 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray", "SchemaObject", "SchemaRetained"] {
+    let mut seen=std::collections::BTreeMap::new();
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray", "SchemaObject", "SchemaRetained", "SchemaPresence"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
+                let text=example["source"].as_str().unwrap();let expected=example["output"].as_str().unwrap();
+                if let Some(previous)=seen.insert(text,expected){assert_eq!(previous,expected,"shared example output contract");continue;}
                 let directory = support::TempDirectory::new();
                 let source = support::format_round_trip(example["source"].as_str().unwrap());
                 let path = directory.source(&source);
@@ -859,4 +862,32 @@ fn schema_object_retains_extras_without_field_collisions() {
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_optional_and_nullable_fields_keep_missing_and_null_distinct() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){
+      const schema=s.object({nickname:s.string().min(2).optional(),note:s.string().nullable()});
+      match(schema.safeParse(JSON.parse('{"note":null}'))){Ok(value)=>{strictEqual(value.nickname===undefined,true);strictEqual(value.note===null,true);},Err(error)=>{throw 'presence failed';}}
+      match(schema.safeParse(JSON.parse('{"nickname":"Ada","note":"ready"}'))){Ok(value)=>{if(value.nickname!==undefined){strictEqual(value.nickname,'Ada');}if(value.note!==null){strictEqual(value.note,'ready');}},Err(error)=>{throw 'values failed';}}
+      match(schema.safeParse(JSON.parse('{"nickname":null}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{strictEqual(error.issues.length,2);}}
+      match(schema.safeParse({note:null})){Ok(value)=>{strictEqual(value.nickname===undefined,true);},Err(error)=>{throw 'owned optional failed';}}
+      const numeric=s.number().optional();match(numeric.safeParse(9007199254740993)){Ok(value)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
+      match(numeric.safeParse(42)){Ok(value)=>{if(value!==undefined){strictEqual(value,42.0);}},Err(error)=>{throw 'exact conversion failed';}}
+      const nulls=s.null().optional();match(nulls.safeParse(JSON.parse('null'))){Ok(value)=>{strictEqual(value===null,true);},Err(error)=>{throw 'null presence failed';}}
+      const root=s.int().optional();match(root.safeParse(undefined)){Ok(value)=>{strictEqual(value===undefined,true);},Err(error)=>{throw 'root missing failed';}}
+      match(root.safeParse(7)){Ok(value)=>{if(value!==undefined){strictEqual(value,7);}},Err(error)=>{throw 'root value failed';}}
+      const nullable=s.array(s.string().nullable());match(nullable.safeParse(JSON.parse('["ok",null]'))){Ok(values)=>{strictEqual(values.length,2);},Err(error)=>{throw 'nullable array failed';}}
+      const optional=s.array(s.string().optional());match(optional.safeParse(['ok',undefined])){Ok(values)=>{strictEqual(values.length,2);},Err(error)=>{throw 'optional array failed';}}
+      const both=s.object({value:s.int().optional().nullable()});
+      match(both.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.value===undefined,true);},Err(error)=>{throw 'combined missing failed';}}
+      match(both.safeParse(JSON.parse('{"value":null}'))){Ok(value)=>{strictEqual(value.value===null,true);},Err(error)=>{throw 'combined null failed';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let invalid="import {s} from 'std:schema';function main(){const child=s.string();const schema=child.optional();child.safeParse('reuse');}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+    let invalid="import {s} from 'std:schema';function main(){const schema=s.string().optional();const input='owned';schema.safeParse(input);console.log(input);}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
 }

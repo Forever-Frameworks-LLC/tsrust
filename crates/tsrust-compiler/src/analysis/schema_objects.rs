@@ -55,7 +55,9 @@ impl Analyzer {
             let Some(Type::Record(child))=field.ty else{return Err(Diagnostic::new("schema-type","Every object field must contain a schema.",field.name.span));};
             let child=&self.program.records[child];
             if child.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Err(Diagnostic::new("schema-type","Every object field must contain a schema.",field.name.span));}
-            field.ty=Some(child.application.as_ref().unwrap().resolved_arguments[0]);
+            let output=child.application.as_ref().unwrap().resolved_arguments[0];
+            field.optional=matches!(output,Type::Union(id) if self.unions.members(id).contains(&Type::Undefined));
+            field.ty=Some(output);
         }
         let id=self.program.records.len();
         let name=format!("@schema:object:{id}");

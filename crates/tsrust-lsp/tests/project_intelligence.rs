@@ -2605,3 +2605,17 @@ fn schema_object_retained_output_exposes_typed_value_and_map() {
     let hover=ask(&index,&entry,"retain()","textDocument/hover");assert!(hover.to_string().contains("unknown")&&hover.to_string().contains("consumes"),"{hover}");
     let hover=ask(&index,&entry,"name,","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
 }
+
+#[test]
+fn schema_presence_hover_retains_union_output_and_missing_contract() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const nickname=s.string().optional();const note=s.string().nullable();const result=nickname.safeParse(undefined);const person=s.object({nickname:s.string().optional()});const amount=s.number().optional();const converted=amount.safeParse(42);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"nickname =","textDocument/hover");assert!(hover.to_string().contains("string")&&hover.to_string().contains("undefined"),"{hover}");
+    let hover=ask(&index,&entry,"optional()","textDocument/hover");assert!(hover.to_string().contains("missing")&&hover.to_string().contains("consumes"),"{hover}");
+    let hover=ask(&index,&entry,"nullable()","textDocument/hover");assert!(hover.to_string().contains("null")&&hover.to_string().contains("missing"),"{hover}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");assert!(hover.to_string().contains("undefined")&&hover.to_string().contains("JsonValue"),"{hover}");
+    let hover=ask(&index,&entry,"person =","textDocument/hover");assert!(hover.to_string().contains("nickname?:"),"{hover}");
+    let help=ask(&index,&entry,"42);","textDocument/signatureHelp");assert!(help.to_string().contains("int")&&help.to_string().contains("number")&&help.to_string().contains("undefined"),"{help}");
+}
