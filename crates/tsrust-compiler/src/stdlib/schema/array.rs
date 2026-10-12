@@ -11,22 +11,12 @@ impl<P: Validate> Validate for ArrayPlan<P> {
             Some(Value::Array(values)) => values,
             other => { reject(other, Kind::Array, path, issues); return None; }
         };
-        let mut output = Vec::new();
-        let mut valid = true;
-        let mut element_path = path.to_vec();
+        let mut element_path=path.to_vec();
         element_path.push(Segment::Index(0));
-        for (index, value) in values.into_iter().enumerate() {
-            *element_path.last_mut().expect("array index slot") = Segment::Index(index);
-            match self.0.validate(Some(value), &element_path, issues) {
-                Some(value) if valid => output.push(value),
-                Some(_) => {}, // Drop later successful outputs once this array cannot succeed.
-                None => {
-                    valid = false;
-                    output.clear(); // Release partial output immediately, exactly once.
-                }
-            }
-        }
-        valid.then_some(output)
+        super::runtime::validate_array(values,|index,value|{
+            *element_path.last_mut().expect("array index slot")=Segment::Index(index);
+            self.0.validate(Some(value),&element_path,issues)
+        })
     }
 }
 

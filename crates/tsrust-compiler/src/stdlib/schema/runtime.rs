@@ -90,9 +90,41 @@ impl NumberBounds {
     }
 }
 
+/// Consume every element, retaining typed output only while the array is valid.
+/// The caller owns bounded issue collection and path construction.
+pub fn validate_array<I,O>(values:Vec<I>,mut validate:impl FnMut(usize,I)->Option<O>)->Option<Vec<O>> {
+    let mut output=Vec::new();
+    let mut valid=true;
+    for (index,value) in values.into_iter().enumerate() {
+        match validate(index,value) {
+            Some(value) if valid=>output.push(value),
+            Some(_)=>{},
+            None=>{valid=false;output.clear();}
+        }
+    }
+    valid.then_some(output)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn array_validation_drops_partial_output_before_later_elements() {
+        use std::{cell::Cell,rc::Rc};
+        struct Output(Rc<Cell<usize>>);
+        impl Drop for Output{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+        let drops=Rc::new(Cell::new(0));let mut visited=Vec::new();
+        let result=validate_array(vec![0,1,2,3],|index,value|{
+            assert_eq!(index,value);visited.push(index);
+            if index==1 {return None;}
+            if index==2 {assert_eq!(drops.get(),1);}
+            if index==3 {assert_eq!(drops.get(),2);}
+            Some(Output(drops.clone()))
+        });
+        assert!(result.is_none());assert_eq!(visited,[0,1,2,3]);assert_eq!(drops.get(),3);
+        let empty:Option<Vec<i64>>=validate_array(Vec::<i64>::new(),|_,_|panic!("empty input invoked validator"));
+        assert_eq!(empty,Some(vec![]));
+    }
     #[test]
     fn number_bounds_preserve_exclusive_edges_and_negative_zero() {
         let plan=NumberBounds::default().gt(1.0).unwrap().lt(2.0).unwrap().min(0.0).unwrap().max(3.0).unwrap();

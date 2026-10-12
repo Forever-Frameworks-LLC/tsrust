@@ -794,3 +794,18 @@ in SQLite under `tsrust-schema-array-construction-*-9b24a3c6.log`.
 This is constructor-only progress, not array-schema feature acceptance. Array
 safeParse, indexed bounded errors in generated execution, validation documentation,
 matched workload support and the complete composite milestone remain required.
+
+## Shared consuming array loop
+
+The typed array validation loop now lives in the runtime source included by
+generated programs. Internal ArrayPlan delegates to that same loop. It consumes
+every input element, preserves indices, clears partial output as soon as failure
+is observed, and immediately drops later successful outputs while allowing bounded
+issue collection to continue. Empty input succeeds without invoking the child.
+No runtime trait object, input clone or shared output owner is introduced.
+
+A new drop-order witness checks disposal before subsequent callbacks, not only at
+function return. Existing schema array, numeric, literal and object composition
+checks exercise the delegated path. Public array safeParse and native error-path
+conversion remain pending; the shared loop is their ownership prerequisite.
+SQLite: `tsrust-schema-array-runtime-*-ebecea06.log`.
