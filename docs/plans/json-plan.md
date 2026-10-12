@@ -685,3 +685,31 @@ consumer-smoke.py/log, consumer-lsp-build.log, consumer-lsp-install.json,
 consumer-lsp-smoke.py/log, consumer-editor.json and consumer-workloads.log (all with the
 `tsrust-json-guard-` prefix). Binary hashes and source identity are recorded.
 This installed acceptance does not close S10 or add timing measurements.
+
+### Borrowed JSON strings
+
+`std:json.asString` now returns `Result<StringView, JsonError>` for named JSON
+owners or child views. Successful values retain the source lifetime through
+locals and function returns. Wrong kinds report `expected-string` with offset
+zero; the error branch retains no source loan. `String(view)` explicitly makes
+an independent owned copy. Moving or replacing a retained source, escaping a
+local owner and cloning the view are rejected.
+
+Views support UTF-8 byte length and the five existing search methods, including
+borrowed search arguments. `typeof` reports `string`, including optional views,
+and narrows the optional alternative. `Boolean(view)` tests whether text is
+nonempty; console output displays the text. Other string methods still require
+an explicit owned conversion. Automatic projection of guarded JSON into string
+locals and exact numeric refinement remain pending.
+
+The gate also corrects string-array searches accepting guarded JSON needles:
+those alternatives belong only to string receivers. Console helper declarations
+now retain generic payload types, and opaque StringView output bypasses ordinary
+record-field inspection.
+
+Focused native, ownership, catalog, editor and matched untimed checks are retained
+under `tsrust-json-string-views-*` in SQLite. The new workload parses once outside
+its loop and compares checked borrowed extraction and three reads with Node string
+references. It has independent checksums, source guards, current fingerprints and
+ABI support; no timing samples are claimed. The reviewed API inventory is 413.
+Installed consumers remain at 818459f3 until a later explicit consumer refresh.

@@ -47,6 +47,7 @@ impl Emitter<'_> {
  pub(super) fn json_text_read(&self,ty:Type,name:&str)->String {
   let extract=|ty:Type,name:&str|match ty {
    Type::String=>format!("{name}.as_ref()"),
+   Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)=>format!("{name}.text"),
    Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView))=>format!("{name}.value.as_str().expect(\"checked JSON string proof\")"),
    _=>"unreachable!(\"checked JSON string alternative\")".into(),
   };

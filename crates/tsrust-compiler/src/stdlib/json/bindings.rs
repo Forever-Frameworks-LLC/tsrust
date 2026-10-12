@@ -97,3 +97,10 @@ pub(crate) const AT:NativeBinding=NativeBinding {
  NativeParameter{name:"index",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false}],
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_at"},..GET
 };
+
+pub(crate) const AS_STRING:NativeBinding=NativeBinding {
+ name:"asString",
+ returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::ReadOnly,payload:NativeTypeId::StringView,slot:crate::native_return_borrows::ReturnSlot::ResultOk}),
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::StringView),&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_asString"},..AS_BOOLEAN
+};

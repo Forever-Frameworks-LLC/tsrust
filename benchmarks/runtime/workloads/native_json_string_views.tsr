@@ -1,0 +1,21 @@
+import { asString } from 'std:json';
+
+function workload(n: int, seed: int, input: string): int {
+  const owner = JSON.parse(input);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (asString(owner)) {
+      Ok(text) => {
+        checksum += text.length + text.indexOf('hello') + text.lastIndexOf('hello');
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

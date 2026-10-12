@@ -110,11 +110,18 @@ impl Analyzer {
  pub(super) fn json_string_length(&mut self,context:&mut Context,expr:&mut Expr,mode:Mode,loans:&Loans)->Result<Option<Type>,Diagnostic>{
   let ExprKind::Field(base,name)=&mut expr.kind else{return Ok(None)};
   if name!="length"{return Ok(None)}
-  let Some(proof)=self.json_string_proof(context,base) else{return Ok(None)};
+  let proof=self.json_string_proof(context,base);
+  if proof.is_none() && !self.is_string_view(context,base){return Ok(None)}
   if mode==Mode::Mutate{return Err(Diagnostic::new("unsupported","String length is read-only.",expr.span));}
-  Self::use_json_string_proof(context,proof);
+  if let Some(proof)=proof{Self::use_json_string_proof(context,proof);}
   self.expression(context,base,Mode::Read,loans,None)?;
   let value=(**base).clone();let callee=Expr::new(ExprKind::Name("\0jsonStringLength".into()),expr.span);
   expr.kind=ExprKind::Call(Box::new(callee),vec![value]);expr.target=Some(CallTarget::JsonStringLength);expr.ty=Some(Type::Int);Ok(Some(Type::Int))
+ }
+}
+
+impl Analyzer {
+ pub(super) fn is_string_view(&self,context:&Context,expr:&Expr)->bool {
+  matches!(self.expression_type_hint(context,expr),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView))
  }
 }

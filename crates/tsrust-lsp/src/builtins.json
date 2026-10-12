@@ -134,12 +134,12 @@
   },
   {
     "name": "includes",
-    "signature": "includes(search: string | JsonValue | JsonView, position?: int): boolean",
+    "signature": "includes(search: string | StringView | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether search text occurs anywhere in the receiver. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".includes(\"ell\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Tests whether search text occurs anywhere in the receiver. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".includes(\"ell\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".includes(\"ell\"));",
@@ -149,12 +149,12 @@
   },
   {
     "name": "startsWith",
-    "signature": "startsWith(search: string | JsonValue | JsonView, position?: int): boolean",
+    "signature": "startsWith(search: string | StringView | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether the receiver begins with search text. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".startsWith(\"he\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Tests whether the receiver begins with search text. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".startsWith(\"he\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".startsWith(\"he\"));",
@@ -164,12 +164,12 @@
   },
   {
     "name": "endsWith",
-    "signature": "endsWith(search: string | JsonValue | JsonView, position?: int): boolean",
+    "signature": "endsWith(search: string | StringView | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether the receiver ends with search text. Optional position clamps to [0, byte length], default byte length (end of the searched prefix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to byte length.\n\n```tsrust\nconsole.log(\"hello\".endsWith(\"lo\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Tests whether the receiver ends with search text. Optional position clamps to [0, byte length], default byte length (end of the searched prefix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to byte length.\n\n```tsrust\nconsole.log(\"hello\".endsWith(\"lo\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".endsWith(\"lo\"));",
@@ -179,12 +179,12 @@
   },
   {
     "name": "indexOf",
-    "signature": "indexOf(search: string | JsonValue | JsonView, fromIndex?: int): int",
+    "signature": "indexOf(search: string | StringView | JsonValue | JsonView, fromIndex?: int): int",
     "parameters": [
       "search: string",
       "fromIndex?: int"
     ],
-    "documentation": "Returns the first matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to zero.\n\n```tsrust\nconsole.log(\"éclair\".indexOf(\"c\")); // prints \"2\"\n```\n\nfromIndex defaults to zero. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Returns the first matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to zero.\n\n```tsrust\nconsole.log(\"éclair\".indexOf(\"c\")); // prints \"2\"\n```\n\nfromIndex defaults to zero. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"éclair\".indexOf(\"c\"));",
@@ -194,12 +194,12 @@
   },
   {
     "name": "lastIndexOf",
-    "signature": "lastIndexOf(search: string | JsonValue | JsonView, fromIndex?: int): int",
+    "signature": "lastIndexOf(search: string | StringView | JsonValue | JsonView, fromIndex?: int): int",
     "parameters": [
       "search: string",
       "fromIndex?: int"
     ],
-    "documentation": "Returns the last matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to the end for backward search.\n\n```tsrust\nconsole.log(\"banana\".lastIndexOf(\"a\")); // prints \"5\"\n```\n\nfromIndex defaults to the last available position. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Returns the last matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to the end for backward search.\n\n```tsrust\nconsole.log(\"banana\".lastIndexOf(\"a\")); // prints \"5\"\n```\n\nfromIndex defaults to the last available position. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"banana\".lastIndexOf(\"a\"));",
@@ -601,7 +601,7 @@
     "name": "length",
     "signature": "length: int",
     "parameters": null,
-    "documentation": "Returns the number of bytes in the UTF-8 representation. This read-only property does not change the receiver.\n\n```tsrust\nconsole.log(\"é😊\".length); // prints \"6\"\n```\n\nThis is neither a Unicode scalar count nor JavaScript UTF-16 length. Observation borrows text and allocates nothing.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
+    "documentation": "Returns the number of bytes in the UTF-8 representation. This read-only property does not change the receiver.\n\n```tsrust\nconsole.log(\"é😊\".length); // prints \"6\"\n```\n\nThis is neither a Unicode scalar count nor JavaScript UTF-16 length. Observation borrows text and allocates nothing.\n\nA StringView supports this read directly. A JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"é😊\".length);",
@@ -6200,6 +6200,35 @@
 ]
 ,
   "std:json": [
+{
+  "name": "StringView",
+  "signature": "type StringView",
+  "parameters": [],
+  "documentation": "A read-only borrowed UTF-8 string returned by asString. Borrows the text of a JSON string without copying it. Accepts a JsonValue owner or JsonView; other JSON kinds return Err with code expected-string and offset zero. Returns Ok(StringView). The source is unchanged.\n\nThe view supports length, startsWith, endsWith, includes, indexOf and lastIndexOf. Length and search coordinates use UTF-8 bytes; explicit positions must be scalar boundaries. typeof returns string, Boolean(view) is false only for empty text, and console output displays the text. String(view) makes an independent owned string. Other string operations require that explicit conversion.\n\n```tsrust\nimport {asString} from \"std:json\";function main(){const owner=JSON.parse('\"hello\"');match(asString(owner)){Ok(text)=>{console.log(typeof text,text.length,text.includes(\"ell\"),String(text));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: string 5 true hello.\n\nOwnership: the view may be stored or returned only while its source owner remains alive. The owner cannot be moved or replaced while the view is retained. clone(view) is rejected; use String(view) to copy. An error carries no source loan.",
+  "examples": [
+    {
+      "source": "import {asString} from \"std:json\";function main(){const owner=JSON.parse('\"hello\"');match(asString(owner)){Ok(text)=>{console.log(typeof text,text.length,text.includes(\"ell\"),String(text));},Err(error)=>{throw error.message;}}}",
+      "output": "string 5 true hello\n"
+    }
+  ]
+},
+{
+  "name": "asString",
+  "signature": "asString(value: ReadOnly<JsonValue | JsonView>): Result<StringView, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue | JsonView>",
+      "documentation": "Named JSON owner or view containing string text. Non-string kinds return expected-string."
+    }
+  ],
+  "documentation": "Borrows the text of a JSON string without copying it. Accepts a JsonValue owner or JsonView; other JSON kinds return Err with code expected-string and offset zero. Returns Ok(StringView). The source is unchanged.\n\nThe view supports length, startsWith, endsWith, includes, indexOf and lastIndexOf. Length and search coordinates use UTF-8 bytes; explicit positions must be scalar boundaries. typeof returns string, Boolean(view) is false only for empty text, and console output displays the text. String(view) makes an independent owned string. Other string operations require that explicit conversion.\n\n```tsrust\nimport {asString} from \"std:json\";function main(){const owner=JSON.parse('\"hello\"');match(asString(owner)){Ok(text)=>{console.log(typeof text,text.length,text.includes(\"ell\"),String(text));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: string 5 true hello.\n\nOwnership: the view may be stored or returned only while its source owner remains alive. The owner cannot be moved or replaced while the view is retained. clone(view) is rejected; use String(view) to copy. An error carries no source loan.",
+  "examples": [
+    {
+      "source": "import {asString} from \"std:json\";function main(){const owner=JSON.parse('\"hello\"');match(asString(owner)){Ok(text)=>{console.log(typeof text,text.length,text.includes(\"ell\"),String(text));},Err(error)=>{throw error.message;}}}",
+      "output": "string 5 true hello\n"
+    }
+  ]
+},
 {
   "name": "JsonView",
   "signature": "type JsonView",

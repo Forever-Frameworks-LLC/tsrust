@@ -2167,3 +2167,12 @@ fn guarded_json_string_completion_recovers_at_incomplete_member() {
  let completion=ask(&ProjectIndex::new(&graph),source,"","textDocument/completion");
  let items=completion.as_array().unwrap();assert!(items.iter().any(|item|item["label"]=="includes"),"{completion}");assert!(!items.iter().any(|item|item["label"]=="toUpperCase"),"unsupported borrowed methods offered: {completion}");
 }
+
+#[test]
+fn borrowed_json_string_reads_have_hover_signature_and_completion() {
+ let source=tsrust_compiler::format("import {asString as readText} from 'std:json';function main(){const owner=JSON.parse('\"hello\"');match(readText(owner)){Ok(text)=>{console.log(text.length,text.includes('ell'));},Err(error)=>{throw error.message;}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"includes(","textDocument/hover");assert!(hover.to_string().contains("StringView"),"{hover}");
+ let signature=ask(&index,&source,"'ell'","textDocument/signatureHelp");assert!(signature.to_string().contains("search"),"{signature}");
+ let completion=ask(&index,&source,"includes(","textDocument/completion");let items=completion.as_array().unwrap();assert!(items.iter().any(|item|item["label"]=="includes"),"{completion}");assert!(!items.iter().any(|item|item["label"]=="toUpperCase"),"{completion}");
+}

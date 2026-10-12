@@ -1070,6 +1070,7 @@ impl Emitter<'_> {
                 let item = self.console_value("console_item", key, &format!("({depth}) + 1"), true);
                 format!("TsrConsoleValue::Set(({value}).iter().map(|console_item| {item}).collect())")
             }
+            Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)=>format!("TsrConsoleValue::Text(({value}).text.to_owned())"),
             Type::Record(id) => format!("tsr_console_record_{id}({value}, {depth})"),
             Type::Array(element) => {
                 let item = self.console_value(
@@ -1113,6 +1114,7 @@ impl Emitter<'_> {
                         Type::Enum(_, crate::syntax::EnumKind::Number) => "payload.tsr_value() != 0.0 && !payload.tsr_value().is_nan()".into(),
                         Type::Enum(_, crate::syntax::EnumKind::String) => "!payload.tsr_value().is_empty()".into(),
                         Type::String => "!payload.is_empty()".into(),
+                        Type::Record(id) if self.program.records[*id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "!payload.text.is_empty()".into(),
                         _ => "true".into(),
                     },
                     CallTarget::StringConversion | CallTarget::ObjectHasOwn => match member {
@@ -1120,6 +1122,7 @@ impl Emitter<'_> {
                         Type::Undefined => "String::Borrowed(\"undefined\")".into(),
                         Type::String if target==CallTarget::ObjectHasOwn => "String::Borrowed(payload.as_ref())".into(),
                         Type::String => "{let text: &String = payload; text.clone()}".into(),
+                        Type::Record(id) if self.program.records[*id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "String::Owned(payload.text.to_owned())".into(),
                         Type::Record(id) if self.program.records[*id].is_tuple() => "{ let mut text = std::string::String::new(); TsrJoinText::append_join_text(payload, &mut text); String::Owned(text) }".into(),
                         Type::Map(_) => "String::Borrowed(\"[object Map]\")".into(),
                         Type::Record(_) => "String::Borrowed(\"[object Object]\")".into(),
@@ -1152,6 +1155,7 @@ impl Emitter<'_> {
                     return format!("{}{}::V{index}(value)=>String::Borrowed(tsrust_native_json::type_of(&value.value))",if union.copy {"Union"} else {"ViewUnion"},union.index());
                 }
                 let label = match member {
+                    Type::Record(id) if self.program.records[*id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "string",
                     Type::Null | Type::Set(_) | Type::Map(_) | Type::Record(_) | Type::Array(_) => "object",
                     Type::Undefined => "undefined",
                     Type::String | Type::Enum(_, crate::syntax::EnumKind::String) => "string",
@@ -1564,6 +1568,7 @@ impl Emitter<'_> {
                     Some(Type::Enum(_, crate::syntax::EnumKind::Number)) => "builtin_argument_0.tsr_value() != 0.0 && !builtin_argument_0.tsr_value().is_nan()".into(),
                     Some(Type::Enum(_, crate::syntax::EnumKind::String)) => "!builtin_argument_0.tsr_value().is_empty()".into(),
                     Some(Type::String) => "!builtin_argument_0.is_empty()".into(),
+                    Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView) => "!builtin_argument_0.text.is_empty()".into(),
                     _ => "true".into(),
                 },
                 CallTarget::StringConversion => match first.map(|a| a.ty.unwrap()) {
@@ -1571,6 +1576,7 @@ impl Emitter<'_> {
                     Some(Type::Null) => "String::Borrowed(\"null\")".into(),
                     Some(Type::Undefined | Type::Void) => "String::Borrowed(\"undefined\")".into(),
                     Some(Type::String) => "(*builtin_argument_0).clone()".into(),
+                    Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)=>"String::Owned(builtin_argument_0.text.to_owned())".into(),
                     Some(Type::Record(id)) if self.program.records[id].is_tuple() => "{ let mut text = std::string::String::new(); TsrJoinText::append_join_text(builtin_argument_0, &mut text); String::Owned(text) }".into(),
                     Some(Type::Map(_)) => "String::Borrowed(\"[object Map]\")".into(),
                     Some(Type::Record(_)) => "String::Borrowed(\"[object Object]\")".into(),
@@ -2363,6 +2369,9 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_json::lines::Lines<tsrust_native_files::buffered_fs::BufferedReader> }}");
                 continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
+                let _=writeln!(output,"struct Record{index}<'a>{{text:&'a str}}");continue;
+            }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonView) {
                 let _ = writeln!(output, "struct Record{index}<'a> {{ value: &'a tsrust_native_json::Value }} impl tsrust_native_json::Source for Record{index}<'_> {{ fn json_value(&self)->&tsrust_native_json::Value {{ self.value }} }} impl<'a> tsrust_native_json::ViewSource<'a> for &Record{index}<'a> {{ fn json_view(self)->&'a tsrust_native_json::Value {{ self.value }} }}");
                 continue;
@@ -2847,7 +2856,7 @@ impl Emitter<'_> {
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") {
             for (id, record) in self.program.records.iter().enumerate() {
-                if !self.record_inspectable(id) {
+                if !self.record_inspectable(id) || record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
                     continue;
                 }
                 let borrowed_head=self.borrowed_record_console_head(id);
@@ -2855,7 +2864,7 @@ impl Emitter<'_> {
                 if let Some(head)=borrowed_head{output.push_str(&head);}else{
                 let _ = writeln!(
                     output,
-                    "fn tsr_console_record_{id}(value: &Record{id}, depth: usize) -> TsrConsoleValue {{ if depth >= 128 {{ return TsrConsoleValue::Truncated; }} let mut fields = Vec::new();"
+                    "fn tsr_console_record_{id}(value: &{}, depth: usize) -> TsrConsoleValue {{ if depth >= 128 {{ return TsrConsoleValue::Truncated; }} let mut fields = Vec::new();", self.native_type(Type::Record(id))
                 );
                 }
                 let ordered = self.record_runtime.ordered.contains(&id);
@@ -8010,6 +8019,9 @@ impl Emitter<'_> {
             {
                 let value = self.conditional_arm(fun, value, Mode::Read);
                 return Err(Self::access_wrapped(expr, mode, self.union_typeof(union, &format!("&({value})"))));
+            }
+            if *op==UnaryOp::Typeof && matches!(value.ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)) {
+                let operand=self.expr(fun,value,Mode::Read);return Err(Self::access_wrapped(expr,mode,format!("{{let _={operand};String::Borrowed(\"string\")}}")));
             }
             if *op == UnaryOp::Typeof && matches!(value.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                 let operand = self.expr(fun, value, Mode::Read);

@@ -7745,7 +7745,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         if let Some(ty) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
-            expr.json_string_view=self.json_string_proof(context,expr).is_some();
+            expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
             return Ok(ty);
         }
         if self.depth >= 128 {
@@ -7868,7 +7868,7 @@ impl Analyzer {
         expected: Option<Type>,
         result: Result<Type, Diagnostic>,
     ) -> Result<Type, Diagnostic> {
-        expr.json_string_view=result.is_ok() && self.json_string_proof(context,expr).is_some();
+        expr.json_string_view=result.is_ok() && (self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr));
         let result = match result {
             Ok(actual)=>self.rest_callable_adapter(context,expr,actual,expected,mode),
             Err(error)=>Err(error),
@@ -8384,12 +8384,16 @@ impl Analyzer {
             let dynamic_json = |ty: Type| matches!(ty, Type::Record(id) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView)));
             // Runtime JSON tags do not change the wrapper's storage type. Keep
             // its alternative on both feasible branches until scalar refinement.
+            let static_match = |ty: Type| match &guard {
+                crate::flow::Guard::Typeof(label) if matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)) => label == "string",
+                _ => guard.matches(ty),
+            };
             let may_match = |ty: Type| match &guard {
                 crate::flow::Guard::Typeof(label) if dynamic_json(ty) => matches!(label.as_str(), "string" | "number" | "boolean" | "object"),
                 crate::flow::Guard::Absent(Type::Null) if dynamic_json(ty) => true,
-                _ => guard.matches(ty),
+                _ => static_match(ty),
             };
-            let may_differ = |ty: Type| matches!(&guard, crate::flow::Guard::Typeof(_) | crate::flow::Guard::Absent(Type::Null) if dynamic_json(ty)) || !guard.matches(ty);
+            let may_differ = |ty: Type| matches!(&guard, crate::flow::Guard::Typeof(_) | crate::flow::Guard::Absent(Type::Null) if dynamic_json(ty)) || !static_match(ty);
             let equal = members
                 .iter()
                 .copied()
@@ -13216,7 +13220,8 @@ self.names_materialized_type(element.with_depth(0).ty())
         let string_proof=self.json_string_proof(context,base);
         if let Some(proof)=string_proof.clone(){Self::use_json_string_proof(context,proof);}
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
-        let element_type = if ty == Type::String || string_proof.is_some() {
+        let string_receiver=ty == Type::String || string_proof.is_some() || self.is_string_view(context,base);
+        let element_type = if string_receiver {
             Type::String
         } else {
             if method == "startsWith" || method == "endsWith" {
@@ -13265,16 +13270,17 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((Mode::Read, base.span));
         }
-        let needle_proof=if element_type==Type::String{self.json_string_proof(context,&args[0])}else{None};
+        let needle_proof=if string_receiver{self.json_string_proof(context,&args[0])}else{None};
         if let Some(proof)=needle_proof.clone(){Self::use_json_string_proof(context,proof);}
+        let borrowed_needle=string_receiver && (needle_proof.is_some() || self.is_string_view(context,&args[0]));
         let actual = self.expression(
             context,
             &mut args[0],
             Mode::Read,
             &active,
-            if needle_proof.is_some(){None}else{Some(element_type)},
+            if borrowed_needle{None}else{Some(element_type)},
         )?;
-        if needle_proof.is_none(){self.require(actual, Some(element_type), args[0].span)?;}
+        if !borrowed_needle{self.require(actual, Some(element_type), args[0].span)?;}
         if !actual.is_copy() {
             for root in Self::loan_roots(&args[0], Mode::Read) {
                 active
@@ -15683,7 +15689,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     "startsWith" | "endsWith" | "includes" | "indexOf" | "lastIndexOf"
                 ) =>
             {
-                let json_string=self.json_string_proof(context,base).is_some();
+                let json_string=self.json_string_proof(context,base).is_some() || self.is_string_view(context,base);
                 let ty = self.collection_search(context, base, args, loans, span, name)?;
                 expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty}, name.as_str()) {
                     (Some(Type::String), "startsWith") => CallTarget::StringStartsWith,

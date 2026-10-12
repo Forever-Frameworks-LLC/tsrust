@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_string_views'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string view identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string view fingerprint');
+  if(row.iterations!==2000||row.inputText!=='"hellohello"'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One checked string extraction, length and two searches')throw Error('JSON string view denominator');
+  if(kind==='native'&&!containsCodeSnippet(source," const owner=JSON.parse(input);\n let checksum=seed;let i=0;\n while(i<n){\n  match(asString(owner)){Ok(text)=>{checksum+=text.length+text.indexOf('hello')+text.lastIndexOf('hello');},Err(error)=>{throw error.message;}}\n  i++;\n }\n return checksum;\n"))throw Error('JSON string view operation placement');
+  if(kind==='typescript'&&!containsCodeSnippet(source," const owner:unknown=JSON.parse(input);\n let checksum=seed;let i=0;\n while(i<n){\n  if(typeof owner!=='string'){throw 'expected-string';}\n  const text=owner;checksum+=text.length+text.indexOf('hello')+text.lastIndexOf('hello');\n  i++;\n }\n return checksum;\n"))throw Error('JSON string view operation placement');
+  return;
+ }
  if(row.id==='native_json_string_reads'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string reads identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string reads fingerprint');
