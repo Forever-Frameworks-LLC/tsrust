@@ -2102,3 +2102,17 @@ has no console-inspection capability. The witness therefore inspects wrapper key
 and logs typed values. Array join registration also skips literal-only record
 identities, matching declaration emission. Evidence uses
 `tsrust-schema-observable-pipelines-*`; original failed checks are retained.
+
+### Incomplete editor input and Result discoverability
+
+The immediate document index now recovers explicit native imports independently
+of project analysis. This keeps `s.` and scalar `schema.` completions available
+while a following statement makes the unfinished member syntactically invalid.
+Aliases retain identity and local bindings still shadow imports. Project indexes
+continue resolving imports through the validated module graph.
+
+Result hover explains Ok/Err payload access and validation issue fields. Tolerant
+match completion derives payload types from a known Result scrutinee, never from
+an Ok/Err name alone, and leaves checked facts authoritative. Focused source and
+project tests cover unfinished members, prefixes, namespace aliases, shadowing,
+Result hover and match payload suggestions. Evidence uses `tsrust-schema-editing-*`.

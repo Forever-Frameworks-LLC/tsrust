@@ -19,6 +19,8 @@ mod data_intelligence;
 mod schema_path_intelligence;
 #[path = "schema_options_intelligence.rs"]
 mod schema_options_intelligence;
+#[path = "schema_editing.rs"]
+mod schema_editing;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -106,7 +108,7 @@ fn name(text: &str) -> bool {
 }
 impl SourceIndex {
     pub fn new(source: &str) -> Self {
-        Self::with_entry_help(source, true)
+        { let mut index = Self::with_entry_help(source, true); index.recover_native_imports(); index.finish_imports(); index }
     }
     pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {
         let mut index = Self {
@@ -2610,13 +2612,14 @@ impl SourceIndex {
     }
     fn documentation(&self, s: &Symbol) -> String {
         format!(
-            "```tsrust\n{}\n```{}",
+            "```tsrust\n{}\n```{}{}",
             self.display_type(&s.signature),
             if s.docs.is_empty() {
                 String::new()
             } else {
                 format!("\n\n{}", crate::documentation::render(&s.docs))
-            }
+            },
+            self.result_value_help(&s.ty, &s.name)
         )
     }
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
@@ -2985,6 +2988,8 @@ impl SourceIndex {
         self.refresh_native_aliases();
         self.materialize_generic_fields();
         self.refresh_checked_initializers();
+        self.refresh_result_match_bindings();
+        self.recover_result_payloads();
     }
     /// Resolved token locations and their declaration identity, for project references.
     pub(crate) fn reference_locations(&self, uri: &str) -> Vec<(Value, Value, bool)> {
@@ -3637,7 +3642,7 @@ impl SourceIndex {
                     b["documentation"].as_str().unwrap_or("").to_string(),
                     b["parameters"].as_array().map_or(vec![], |p| {
                         p.iter()
-                            .filter_map(|v| v.as_str().map(str::to_owned))
+                            .filter_map(|v| v.as_str().or_else(|| v["label"].as_str()).map(str::to_owned))
                             .collect()
                     }),
                 )
@@ -3713,8 +3718,9 @@ impl SourceIndex {
             let native_docs = self
                 .resolve_token(callee)
                 .and_then(|id| self.native_parameter_docs.get(&id));
+            let builtin_docs = self.builtin_at(callee);
             let active = self.call_argument_parameter(open, offset, &parameters);
-            let parameters=parameters.iter().enumerate().map(|(index,p)|json!({"label":p,"documentation":{"kind":"markdown","value":native_docs.and_then(|docs|docs.get(index)).cloned().unwrap_or_else(||parameter_doc(&docs,p))}})).collect::<Vec<_>>();
+            let parameters=parameters.iter().enumerate().map(|(index,p)|json!({"label":p,"documentation":{"kind":"markdown","value":native_docs.and_then(|docs|docs.get(index)).cloned().or_else(||builtin_docs.as_ref().and_then(|builtin|builtin["parameters"][index]["documentation"].as_str()).map(str::to_owned)).unwrap_or_else(||parameter_doc(&docs,p))}})).collect::<Vec<_>>();
             let mut help = json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":crate::documentation::render(&docs)},"parameters":parameters}],"activeSignature":0});
             if let Some(active) = active {
                 help["activeParameter"] = json!(active);
