@@ -2383,6 +2383,9 @@ impl Emitter<'_> {
             if record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
                 let _=writeln!(output,"struct Record{index}<'a>{{text:&'a str}}");continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonRaw) {
+                let _=writeln!(output,"struct Record{index}<'a>{{fragment:tsrust_native_json::raw::Fragment<'a>}}");continue;
+            }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonView) {
                 let _ = writeln!(output, "struct Record{index}<'a> {{ value: &'a tsrust_native_json::Value }} impl tsrust_native_json::Source for Record{index}<'_> {{ fn json_value(&self)->&tsrust_native_json::Value {{ self.value }} }} impl<'a> tsrust_native_json::ViewSource<'a> for &Record{index}<'a> {{ fn json_view(self)->&'a tsrust_native_json::Value {{ self.value }} }}");
                 continue;
@@ -2995,7 +2998,7 @@ impl Emitter<'_> {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }
         }
-        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }

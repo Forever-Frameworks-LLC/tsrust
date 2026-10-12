@@ -103,6 +103,7 @@ impl NativeBinding {
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::json::bindings::PARSE,
     crate::stdlib::json::bindings::PARSE_JSONC,
+    crate::stdlib::json::bindings::BORROW_RAW,
     crate::stdlib::json::bindings::CREATE_JSONL,
     crate::stdlib::json::bindings::BORROW_JSONL_WRITER,
     crate::stdlib::json::bindings::WRITE_JSONL,

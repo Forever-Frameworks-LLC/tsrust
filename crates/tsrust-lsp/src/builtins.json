@@ -6211,6 +6211,39 @@
 ,
   "std:json": [
 {
+  "name": "borrowRaw",
+  "signature": "borrowRaw(text: string, limits?: ReadOnly<JsonLimits>): Result<JsonRaw, JsonError>",
+  "parameters": [
+    {
+      "label": "text: string",
+      "documentation": "Named source string containing one strict JSON value, with optional surrounding whitespace. Validation does not modify or copy the source."
+    },
+    {
+      "label": "limits?: ReadOnly<JsonLimits>",
+      "documentation": "Nonnegative input limits: maxBytes defaults to 16777216, maxDepth to 64, maxEntries and maxNodes to 1000000. Depth cannot exceed 64. Whitespace and duplicate fields count toward their budgets."
+    }
+  ],
+  "documentation": "Validates one strict JSON value and returns a source-backed JsonRaw fragment. Optional limits default to maxBytes 16777216, maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative; depth cannot exceed 64. Whitespace and duplicate fields count toward budgets. Rejects comments, trailing data, malformed escapes and invalid resource limits with JsonError codes and zero-based UTF-8 byte offsets. No dynamic value tree is built. Validation can allocate temporary escape scratch; the returned fragment retains no copied source buffer. Encoding raw fragments is not yet supported.\n\n```tsrust\nimport {borrowRaw} from 'std:json';function main(){const text='{\"count\":7}';match(borrowRaw(text)){Ok(raw)=>{console.log('valid');},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: valid.\n\nOwnership: the fragment borrows text. Its source must remain alive and cannot be replaced or moved while the fragment is used. The fragment cannot be cloned or constructed directly. Errors carry no source loan.",
+  "examples": [
+    {
+      "source": "import {borrowRaw} from 'std:json';function main(){const text='{\"count\":7}';match(borrowRaw(text)){Ok(raw)=>{console.log('valid');},Err(error)=>{console.log(error.code);}}}",
+      "output": "valid\n"
+    }
+  ]
+},
+{
+  "name": "JsonRaw",
+  "signature": "type JsonRaw",
+  "parameters": [],
+  "documentation": "A validated fragment borrowing its original JSON source. Create it with borrowRaw; direct construction and clone are rejected. It is distinct from an owned JsonValue or a child JsonView. Encoding raw fragments is not yet supported.\n\nOwnership: the original source must outlive every use of this fragment.",
+  "examples": [
+    {
+      "source": "import {borrowRaw} from 'std:json';function main(){const text='{\"count\":7}';match(borrowRaw(text)){Ok(raw)=>{console.log('valid');},Err(error)=>{console.log(error.code);}}}",
+      "output": "valid\n"
+    }
+  ]
+},
+{
   "name": "JsonBuildLimits",
   "signature": "type JsonBuildLimits",
   "parameters": [],

@@ -190,3 +190,11 @@ pub(crate) const BORROW_JSONL_WRITER:NativeBinding=NativeBinding {
  returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::Exclusive,payload:NativeTypeId::JsonlWriterView,slot:crate::native_return_borrows::ReturnSlot::ResultOk}),
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_borrow_jsonl_writer"},..CREATE_JSONL
 };
+
+// Raw validation retains a real borrow of parameter zero through Result::Ok.
+pub(crate) const BORROW_RAW:NativeBinding=NativeBinding {
+ name:"borrowRaw",
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::JsonRaw),&Signature::Named(NativeTypeId::JsonError))),
+ returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::ReadOnly,payload:NativeTypeId::JsonRaw,slot:crate::native_return_borrows::ReturnSlot::ResultOk}),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_borrowRaw"},..PARSE
+};

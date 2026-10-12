@@ -2282,3 +2282,13 @@ fn import_exported_spelling_resolves_foreign_alias_before_local_namesake() {
     assert_eq!(local.as_array().unwrap().len(), 2, "{local}");
     assert!(local.as_array().unwrap().iter().all(|location|location["uri"]==root));
 }
+
+#[test]
+fn raw_json_validation_has_borrowing_and_limits_help() {
+ let source=tsrust_compiler::format("import {borrowRaw} from 'std:json';function main(){const text='null';borrowRaw(text);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"borrowRaw(text)","textDocument/hover");let docs=hover.to_string();
+ assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("16777216"),"{hover}");
+ let signature=ask(&index,&source,"text);","textDocument/signatureHelp");assert!(signature.to_string().contains("text: string"),"{signature}");
+}

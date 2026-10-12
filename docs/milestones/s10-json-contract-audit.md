@@ -1,6 +1,8 @@
 # S10 JSON contract audit before public raw fragments
 
-Audited at `81678b22`. S10 is **not accepted**. This audit reconciles implemented
+Audited at `81678b22`. Subsequent raw validation/borrowing now has focused
+acceptance documented in the JSON plan; the raw row below records the original
+audit gap, and serialization/measurement acceptance remains open. S10 is **not accepted**. This audit reconciles implemented
 behavior against the JSON contract in the standard-library roadmap; it does not
 replace executable evidence or narrow the public raw-fragment requirement.
 

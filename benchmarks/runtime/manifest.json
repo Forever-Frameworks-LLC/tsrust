@@ -21668,6 +21668,30 @@
       "sourceSha256": "d2f991edd87db9193b4195661f2b23f16304a607e801da2c55fd2a8edef14ea2",
       "counterpartSha256": "908a2cf5a0db24337054cfcfb004b56c2b08ba4ec6642ac7ee9d54203d64cc17",
       "fixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "native_json_raw",
+      "category": "json",
+      "description": "Validate JSON while borrowing original text",
+      "source": "workloads/native_json_raw.tsr",
+      "counterpart": "workloads/native_json_raw.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One strict JSON validation retaining source text",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": " { \"a\": [1,true,null], \"b\": \"hello\" } ",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Validate fixed strict JSON once per iteration and count successful validations; source text retained, no output tree retained.",
+      "notes": "Native bounded raw validation borrows source without building a dynamic tree. Node validates through JSON.parse and discards its parsed tree. Safe finite ASCII fixture; no claim of allocation equivalence or raw serialization support. Untimed registration.",
+      "sourceSha256": "988c045a1860b16c8cec3992abf552d600b63c9b9bdbeda51770fac97c7616b4",
+      "counterpartSha256": "0d078300b11ae3b314ed55c66f44ec4dd205aaca1479365f12fb67909cdebe1f"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

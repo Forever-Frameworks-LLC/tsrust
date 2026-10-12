@@ -32,7 +32,7 @@ preserved in SQLite. Original runs and focused repairs remain separate records.
 | Dynamic/typed decoding | Allocation matrix; 36 timing and 36 RSS cases versus direct Rust/Node, including failures and 32-level nesting | Final contract audit; retain documented validation overhead |
 | Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
 | JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes and bounded storage | Final installed acceptance |
-| Raw fragments | Private validation and real borrowed-source lifetime | Owner decision on preserved raw spelling, public API, editor/examples and measurements |
+| Raw fragments | JsonRaw/borrowRaw validation and real source borrowing pass focused native/editor/example checks; matched validation workload verified untimed | Owner decision on embedded output spelling, serialization, raw-field and allocation/timing/RSS acceptance |
 | Release consumers | Installed checkpoint 12a6426e; CLI borrowed reader/writer and LSP import-hover checks pass | Refresh again after remaining public raw-fragment work |
 
 All timing matrices retain three fresh processes, eight warmup batches and 31
@@ -1691,3 +1691,37 @@ writes 249–253 MiB/s. These fixture-specific rates include the documented oper
 and disposal costs; they are not universal parser throughput claims. Canonical
 result: `tsrust-json-metrics-e4705935.json`, with red/check/format logs in SQLite.
 Public raw fragments and the remaining final contract audit still block S10 closure.
+
+### Public raw-fragment validation and borrowing
+
+`std:json` now exposes opaque `JsonRaw` and `borrowRaw(text, limits?)`. This
+validation step is independent of the pending preserve-versus-normalize embedding
+decision. Serialization is deliberately not accepted yet, and the catalog states
+that limitation. No output-policy decision is inferred from elapsed time.
+
+The compiler registers a readonly Result::Ok borrow of the source string. Generated
+storage is a real `Fragment<'a>` and helper signatures preserve the source lifetime;
+there is no copied source, hidden owner or erased lifetime. Existing error effects
+register the Result-returning constructor as nonthrowing. Defaults and byte/depth/
+entry/node budgets match strict JSON; comments and trailing data are rejected.
+
+Three focused native tests pass: successful validation and failed-loan release,
+argument-return lifetime preservation, mutation/clone/escape rejection, all four
+resource budgets, invalid limits, strict syntax, exact large integer spelling and
+unchanged source. One editor hover/signature test passes. Both catalog entries
+share a verified formatted/idempotent native example. Intermediate failed test
+and missing error-effect/hover-default repairs remain retained in SQLite.
+
+`native_json_raw` registers native and TypeScript sources, hashes, ABI, independent
+success-count oracle, source-placement/denominator guards and report category.
+All 181 filtered native metadata/view unit tests and twenty JSON benchmark guards
+pass; the new workload passes five untimed cases per
+engine against Node-after-tsc. Both retain the input and count successful validation;
+Node uses JSON.parse and discards its dynamic tree, while native validation creates
+no dynamic tree. This difference is explicit; no allocation parity or timed result
+is claimed. Record: `results/2026-10-12T06-43-07-171Z-verify.json`.
+
+Focused evidence uses `tsrust-json-raw-*-fa4822b7` in SQLite. Installed consumers
+remain at 12a6426e. This is an implementation checkpoint for validation/borrowing;
+raw serialization, selective raw fields, complete measurements and the final S10
+consumer refresh remain outstanding.

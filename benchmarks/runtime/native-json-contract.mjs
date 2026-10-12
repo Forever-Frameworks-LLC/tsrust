@@ -12,6 +12,15 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_raw'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON raw identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON raw fingerprint');
+  if(row.iterations!==2000||row.inputText!==jsonInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One strict JSON validation retaining source text')throw Error('JSON raw denominator');
+  const body=kind==='native'?"while(i<n){match(borrowRaw(input)){Ok(raw)=>{checksum+=1;},Err(error)=>{throw error.message;}}i++;}":"while(i<n){JSON.parse(input);checksum+=1;i++;}";
+  for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON raw placement');
+  return;
+ }
+
  if(['native_jsonl_writer','native_jsonl_borrowed_writer'].includes(row.id)){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSONL writer identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSONL writer fingerprint');
@@ -234,4 +243,9 @@ export function typedChecksum(n,seed,input){
 export function encodingChecksum(n,seed,input){
  if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*47))throw Error('JSON encoding oracle inputs');
  return seed+n*47;
+}
+
+export function rawChecksum(n,seed,input){
+ if(input!==jsonInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n))throw Error('JSON raw oracle inputs');
+ return seed+n;
 }
