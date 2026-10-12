@@ -206,7 +206,7 @@ impl Analyzer {
                 | Type::Boolean
                 | Type::String
                 | Type::Null
-                | Type::Undefined => {}
+                | Type::Undefined | Type::Literal(_,_) | Type::Enum(_,_) => {}
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Union(id) | Type::BorrowedUnion(id) => {
                     pending.extend(self.unions.members(id))
@@ -220,6 +220,9 @@ impl Analyzer {
                             | crate::native_signatures::NativeTypeId::JsonView
                             | crate::native_signatures::NativeTypeId::StringView,
                         ) => {}
+                        Some(identity) if crate::native_types::declaration(identity).source_constructible()=>{
+                            pending.extend(record.fields.iter().filter_map(|field|field.ty))
+                        }
                         None if record.map_definition.is_none()
                             && record.set_definition.is_none()
                             && !record.application.as_ref().is_some_and(|application| {

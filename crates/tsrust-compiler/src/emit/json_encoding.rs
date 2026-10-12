@@ -17,7 +17,7 @@ impl Emitter<'_> {
         while index < types.len() {
             let children = match types[index] {
                 Type::Array(element) => vec![element.ty()],
-                Type::Record(id) if self.program.records[id].native_type.is_none() => {
+                Type::Record(id) if self.program.records[id].native_type.is_none_or(|identity|crate::native_types::declaration(identity).source_constructible()) => {
                     self.program.records[id]
                         .fields
                         .iter()
@@ -45,13 +45,22 @@ impl Emitter<'_> {
         let mut generated = String::from("use tsrust_native_json::typed::serde::{self,Serialize};");
         for (index, &ty) in types.iter().enumerate() {
             let native = self.native_type(ty).replace("'_", "'a");
-            let body = match ty {
+            let body = match ty.scalar_base() {
                 Type::Int => "serializer.serialize_i64(*self.0)".into(),
                 Type::Number => {
                     "tsrust_native_json::typed::FiniteNumber(*self.0).serialize(serializer)".into()
                 }
                 Type::Boolean => "serializer.serialize_bool(*self.0)".into(),
                 Type::String => "serializer.serialize_str(self.0.as_ref())".into(),
+                Type::Enum(id,_)=>{
+                    let arms=self.program.records[id].enum_definition.as_ref().unwrap().members.iter().enumerate().map(|(tag,member)|{
+                        let call=match &member.value{
+                            crate::syntax::EnumValue::String(value)=>format!("serializer.serialize_str({value:?})"),
+                            crate::syntax::EnumValue::Number(value)=>format!("tsrust_native_json::typed::FiniteNumber({}).serialize(serializer)",float_literal(*value)),
+                        };format!("Enum{id}::V{tag}=>{call}")
+                    }).collect::<Vec<_>>().join(",");
+                    format!("match self.0{{{arms}}}")
+                },
                 Type::Null => "serializer.serialize_unit()".into(),
                 Type::Undefined => {
                     "tsrust_native_json::typed::Undefined.serialize(serializer)".into()
@@ -68,7 +77,7 @@ impl Emitter<'_> {
       Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView)=>"tsrust_native_json::typed::Dynamic(&self.0.value,self.1).serialize(serializer)".into(),
       Some(crate::native_signatures::NativeTypeId::JsonRaw)=>"tsrust_native_json::raw::Encoded(&self.0.fragment,self.1).serialize(serializer)".into(),
       Some(crate::native_signatures::NativeTypeId::StringView)=>"serializer.serialize_str(self.0.text)".into(),
-      None=>{
+      identity if identity.is_none_or(|identity|crate::native_types::declaration(identity).source_constructible())=>{
        let mut fields:Vec<_>=record.fields.iter().enumerate().collect();
        if !record.is_tuple(){fields.sort_by(|a,b|a.1.name.text.cmp(&b.1.name.text));}
        let mut writes=String::new();

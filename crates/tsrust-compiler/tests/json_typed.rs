@@ -145,3 +145,27 @@ fn jsonc_catalog_examples_execute(){
   assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
  }
 }
+
+#[test]
+fn typed_json_encodes_public_error_records_literals_and_nominal_enums(){
+    let source=r#"
+    import {s} from 'std:schema';
+    enum Text{Ready='ready'}enum NumberTag{One=1.5}
+    function main(){
+      const literal:'fixed'='fixed';console.log(JSON.stringify(literal));
+      console.log(JSON.stringify(Text.Ready));console.log(JSON.stringify(NumberTag.One));
+      const schema=s.object({count:s.int()});
+      match(schema.safeParse(JSON.parse('{"count":"bad"}'))){
+        Ok(value)=>{throw 'Invalid value accepted';},
+        Err(error)=>{console.log(JSON.stringify(error));console.log(error.issues.length);}
+      }
+    }
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    let text=String::from_utf8_lossy(&output.stdout);let lines=text.lines().collect::<Vec<_>>();
+    assert_eq!(&lines[..3],["\"fixed\"","\"ready\"","1.5"]);
+    let error:serde_json::Value=serde_json::from_str(lines[3]).unwrap();
+    assert_eq!(error["truncated"],false);assert_eq!(error["issues"][0]["path"],serde_json::json!([{"field":"count"}]));
+    assert_eq!(error["issues"][0]["code"],"type-mismatch");assert_eq!(lines[4],"1");
+}

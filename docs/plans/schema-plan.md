@@ -1759,3 +1759,37 @@ The proposed builder runs once; the recursion placeholder is reusable only withi
 the definition, and validation borrows the frozen uniquely owned plan. Do not treat
 this proposal as approved until the pending question is answered. Independent
 pinned Zod differential acceptance work can proceed meanwhile.
+
+
+## Pinned differential corpus and JSON error encoding
+
+The untimed differential runner in `benchmarks/runtime/verify-schema-differential.mjs`
+compares the current public surface against exact Zod 4.1.12, locked with its
+registry integrity. One generated native program covers 18 families and 171
+observations across ordinary owned JSON validation and fused decoding. It compares
+acceptance, successful JSON output and normalized field/index failure locations.
+Typed coercion is exercised through fused decoding because its declared raw input
+is an array rather than JsonValue. Each family includes successful and rejected
+inputs. Reference adapters and intentional differences are recorded beside the
+corpus: strict objects, Unicode code points, validated defaults, consuming ownership,
+exact shared integer domain, error multiplicity and consuming union commitment.
+Both outputs are normalized through JavaScript JSON serialization for comparison;
+native negative zero remains preserved by native encoding. This normalization is
+explicit evidence scope, not a change to native numeric semantics.
+
+The initial corpus exposed missing JSON encoding for public validation-error data.
+Encoding now handles source-constructible native data records, singleton literals
+and nominal enums through their declared fields/scalar values. Opaque resources
+and schema plans remain rejected. The native witness verifies structured issue
+paths and borrowing the error again after encoding. JSON IntelliSense documents
+the supported shapes. The original failed corpus and signed-zero comparison runs
+remain in SQLite alongside successful checks under `tsrust-schema-zod-*.log`.
+
+Run with the documented shared Cargo target, `CARGO_INCREMENTAL=0` and `TSRUST`:
+`npm run verify:schema-differential` from `benchmarks/runtime`. The runner verifies
+the pinned dependency, formats the generated corpus twice, records source hashes
+and removes its temporary input after execution. This is correctness evidence only.
+The affected JSON encoding suite passed all eight cases, including catalog examples;
+the corpus contract suite passed both cases. Whole-project formatting changed no
+files or fingerprints. Remaining S11 families must extend the corpus before full family acceptance; no
+S11 timing, complete regression acceptance or consumer refresh is claimed here.
