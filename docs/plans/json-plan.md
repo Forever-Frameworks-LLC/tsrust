@@ -1048,3 +1048,22 @@ or silently choose either encoding policy. Public lifetime diagnostics, catalog
 entries and benchmark support remain required before exposing raw fragments.
 Evidence: tsrust-json-raw-*-1c093f36 in SQLite; two backend tests and one generated
 native namespace regression. No measurements or consumer refresh are claimed.
+
+### Installed JSON consumer refresh
+
+CLI and LSP consumers were rebuilt together from ee1e2717 and atomically installed
+in ~/.cargo/bin and target/editor/debug. All four installed files match the shared
+target binaries by SHA-256. The active VS Code language server was restarted.
+The already open native_json_import.tsr now visibly shows both readonly fields
+in the settings binding hover. Its installed CLI check passes; an installed LSP
+stdio check verifies clean document diagnostics and the complete binding shape.
+An installed CLI native typed JSON encode/decode smoke verifies emitted output.
+
+A first protocol harness incorrectly waited for an empty diagnostic publication
+from a workspace scan, which publishes error buckets rather than every clean
+file. It timed out; the corrected document-only protocol check passed. The
+workspace editor check was independently verified through the visible hover.
+After workspace analysis settled, the editor showed 14 errors and 41 warnings;
+this refresh does not claim those remaining diagnostics are resolved.
+Evidence: tsrust-json-consumers-*-ee1e2717 in SQLite. This is a focused consumer
+refresh, not S10 family regression or measurement acceptance.
