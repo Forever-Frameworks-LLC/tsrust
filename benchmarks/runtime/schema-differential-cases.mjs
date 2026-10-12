@@ -25,6 +25,10 @@ export const schemaCases=[
  {id:'readonly-union-fallback',native:'s.union([s.array(s.int()).refine(values=>values.length>2),s.array(s.int())])',reference:()=>z.union([z.array(z.int()).refine(values=>values.length>2),z.array(z.int())]),inputs:['[]','[1]','[1,2,3]','["bad"]','null']},
  {id:'cross-field-refinement',native:'s.object({low:s.int(),high:s.int()}).refine(value=>value.low<=value.high)',reference:()=>z.strictObject({low:z.int(),high:z.int()}).refine(value=>value.low<=value.high),inputs:['{"low":1,"high":2}','{"low":2,"high":2}','{"low":3,"high":2}','{"low":"bad","high":2}','{}']},
  {id:'owned-coercion',modes:['fused'],native:'s.int().min(3).coerce((values:int[]):int=>{values.push(9);return values.length;})',reference:()=>z.array(z.int()).transform(values=>{values.push(9);return values.length;}).pipe(z.int().min(3)),inputs:['[1,2]','[]','[1]','["bad"]','null']},
+ {id:'record-values',native:'s.record(s.int().min(0)).transform(values=>values.values())',reference:()=>z.record(z.string(),z.int().min(0)).transform(values=>Object.keys(values).sort().map(key=>values[key])),inputs:['{}','{"alice":1,"bob":2}','{"alice":-1}','{"nested":"bad"}','null','[]']},
+ {id:'nested-record',native:'s.object({items:s.record(s.array(s.int().min(0))).transform(values=>values.values())})',reference:()=>z.strictObject({items:z.record(z.string(),z.array(z.int().min(0))).transform(values=>Object.keys(values).sort().map(key=>values[key]))}),inputs:['{"items":{}}','{"items":{"first":[1,2],"second":[]}}','{"items":{"first":[1,-2]}}','{"items":null}','{}']},
+ {id:'record-transform',native:'s.record(s.string().transform(value=>value.length)).transform(values=>values.values())',reference:()=>z.record(z.string(),z.string().transform(value=>value.length)).transform(values=>Object.keys(values).sort().map(key=>values[key])),inputs:['{}','{"a":"hello","b":"world"}','{"a":3}','{"a":null}','42']},
+
 ];
 
 export const differences=[
@@ -36,6 +40,7 @@ export const differences=[
  'Integer comparisons stay within the shared exact JavaScript integer domain. Native signed 64-bit boundaries have separate compiler/runtime evidence.',
  'Failure comparison covers rejection and property/index locations, not identical error codes, messages, ordering or branch issue multiplicity.',
  'Consuming-transform union commitment intentionally differs; fallback after consumption is covered by native contract witnesses, not asserted equivalent.',
+ 'Record output is compared through explicit values() snapshots; the reference sorts property keys to match canonical JSON object traversal. Map/Set native-only inputs and collision commitment use separate native witnesses.',
  'Typed coercion validates its raw data shape before the callback; the reference models that with an explicit input schema, transform and pipe.',
 ];
 

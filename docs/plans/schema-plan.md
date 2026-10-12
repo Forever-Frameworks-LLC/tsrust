@@ -1939,3 +1939,21 @@ Whole-project formatting preserves tokens and refreshes the new workload hash.
 Formatted-source native witnesses execute the catalog examples. SQLite evidence
 uses `tsrust-schema-collections-*` names, including failed runs and their repairs.
 S11 full regressions, differential expansion and family measurements remain pending.
+
+
+## Collection differential extension
+
+The pinned Zod corpus now covers 27 families and 257 observations. New record,
+nested-record and record-transform cases compare complete value snapshots after
+validation, including transformed values, empty objects, invalid entries and
+property/index error paths. Both owned JsonValue and fused source decoding pass.
+The reference sorts property names to match canonical JSON object traversal;
+these checks do not assert Map insertion-order equivalence or implicit JSON Map/Set
+support. Native collection and collision semantics retain their separate witnesses.
+Evidence: `tsrust-schema-record-differential*.log` in SQLite. No timing acceptance.
+
+Cross-field diagnostic options are proposed, awaiting approval:
+`.refine(predicate, { path: ['confirm'], message: 'Passwords must match' })`.
+The predicate remains read-only. This would attach a single failure to a relative
+path; multiple custom issues would remain a separate API. Existing `.refine`
+semantics remain unchanged while this proposal is pending.
