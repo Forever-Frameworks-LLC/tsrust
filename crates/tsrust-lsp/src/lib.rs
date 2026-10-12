@@ -366,6 +366,10 @@ mod tests {
     fn diagnostics_match_compiler_including_related_locations() {
         let source =
             include_str!("../../tsrust-compiler/tests/fixtures/ownership/use_after_call.tsr");
+        assert!(tsrust_compiler::check(source).is_err(), "suppression must not permit compilation");
+        assert!(diagnostics(source, "file:///example.tsr").unwrap().is_empty());
+        let unsuppressed = source.replace("// @tsrust ignore", "// disabled ignore");
+        let source = unsuppressed.as_str();
         let error = tsrust_compiler::check(source).err().unwrap();
         let output = diagnostics(source, "file:///example.tsr").unwrap();
         assert_eq!(output[0].message, error.message);

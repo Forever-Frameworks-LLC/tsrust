@@ -59,3 +59,26 @@ Evidence prefix: `tsrust-s10-final-{regressions,inventory}-f524c755`,
 `tsrust-s10-acceptance-{repair,repair-final,format}-f524c755` and
 `tsrust-s10-resume-*-f524c755`. Closed records are verified in SQLite; active logs
 remain temporary until the corresponding process finishes.
+
+## Final reconciliation
+
+All 359 expected compiler/LSP test and doctest targets are now accounted for:
+3,436 compiler tests and 582 LSP tests pass, with three compiler and one editor
+intentional ignores. No target is missing or aborted. The four original failed
+tests remain preserved and are superseded only by their passing focused repairs.
+
+The LSP library's fixture comparison needed the same suppression distinction as
+the compiler corpus. It now verifies suppressed editor output, strict rejection
+of the original and unsuppressed diagnostic messages/ranges/related locations.
+All ten library tests pass. The catalog-wide example test caught a missing fenced
+example in JsonRaw hover; the existing executable example is now included there.
+Only that failed intelligence test was rerun (one passed, 317 filtered), retaining
+the other 317 original successes. The reconciliation matches individual test names
+before combining that repair with the original target.
+
+Evidence: `tsrust-s10-final-reconciled-5e9f86b7.json`, its reconciliation script,
+`tsrust-s10-editor-lib-repair-5e9f86b7.log`,
+`tsrust-s10-catalog-doc-repair-5e9f86b7.log` and
+`tsrust-s10-final-editor-format-5e9f86b7.log`. All are retained in SQLite along with
+the original runs. Whole-project formatting changes no files. Final installed
+hover refresh and generated-output cleanup follow this regression acceptance.
