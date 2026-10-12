@@ -68,7 +68,7 @@ S01–S09 are accepted within their documented platform and feature boundaries; 
 | S16: TLS | S15 | HTTPS client/server, certificate/key configuration, hostname verification and trust roots, handshake errors; local certificate positive/negative fixtures | pending |
 | S17: SQLite | S07, S10 | rusqlite-backed synchronous connection, prepared statements, typed rows/parameters, transactions and rollback/drop; SQLite integration without async requirement | pending |
 | S18: async SQL | S11, S14, S17 | SQLx-backed SQLite/Postgres/MySQL adapters incrementally; bounded pools, typed binding/rows, transactions, timeout/cancellation and migrations; each driver accepted separately | pending |
-| S19: caches | S08, S09 | Owned bounded LRU/TTL cache, eviction/expiration contracts and fake-clock tests; concurrent cache/loading and stampede policy follow S14 | pending |
+| S19: caches | S08, S09 | Owned bounded LRU/TTL cache, eviction/expiration contracts and fake-clock tests; concurrent cache/loading and stampede policy follow S14 | owned LRU storage and collision/recency/drop tests pass; TTL and source API pending; see [cache plan](plans/cache-plan.md) |
 | S20: queues | S08, S14 | Bounded in-memory work queue, producer/consumer ownership, backpressure, close/drain, cancellation and worker shutdown; durable/distributed adapters are separate gates | pending |
 | S21: integrated release | S04, S15–S20 | Validated HTTP service using database, cache and queue; graceful shutdown, overload, leak checks, complete IntelliSense and reproducible toolchain distribution | pending |
 
