@@ -644,3 +644,21 @@ function main(){
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"9223372036854775807\n1.5\n");
 }
+
+#[test]
+fn schema_floating_builders_validate_and_throw_typed_limits() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);
+ match(schema.safeParse(1.5)){Ok(value)=>{strictEqual(value,1.5);},Err(error)=>{throw 'fraction rejected';}}
+ match(schema.safeParse(JSON.parse('2.0'))){Ok(value)=>{throw 'endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ match(schema.safeParse(1)){Ok(value)=>{throw 'integer endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
+ let caught=false;try{s.number().min(2.5).max(1.5);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'max');strictEqual(error.limit,1.5);}strictEqual(caught,true);
+ caught=false;try{s.number().gt(1.0/0.0);}catch(error){caught=true;strictEqual(error.code,'nonfinite-limit');strictEqual(error.operation,'gt');}strictEqual(caught,true);
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    for method in ["min","max","gt","lt"] {
+        let source=format!("import {{s}} from 'std:schema';function main(){{const original=s.number();original.{method}(0.0);original.safeParse(1.0);}}");
+        assert_eq!(checked_source(&source).err().unwrap().code,"transferred");
+    }
+}

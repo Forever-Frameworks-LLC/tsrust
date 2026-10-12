@@ -7,10 +7,10 @@ impl Analyzer {
         let Some(Type::Record(id)) = self.expression_type_hint(context, base) else { return Ok(()); };
         let record = &self.program.records[id];
         if record.native_type != Some(crate::native_signatures::NativeTypeId::Schema) { return Ok(()); }
-        if matches!((member.as_str(),record.application.as_ref().and_then(|application|application.resolved_arguments.first())), ("min"|"max",Some(Type::String|Type::Int)) | ("gt"|"lt",Some(Type::Int))) {
-            if args.len()!=1 {return Err(Diagnostic::new("arity","Constraints expect one integer limit.",expr.span));}
+        if matches!((member.as_str(),record.application.as_ref().and_then(|application|application.resolved_arguments.first())), ("min"|"max",Some(Type::String|Type::Int|Type::Number)) | ("gt"|"lt",Some(Type::Int|Type::Number))) {
+            if args.len()!=1 {return Err(Diagnostic::new("arity","Constraints expect one numeric limit.",expr.span));}
             args.insert(0,(**base).clone());
-            let kind=if record.application.as_ref().unwrap().resolved_arguments[0]==Type::Int {"Int"}else{"String"};
+            let kind=match record.application.as_ref().unwrap().resolved_arguments[0] {Type::Int=>"Int",Type::Number=>"Number",_=>"String"};
             callee.kind=ExprKind::Name(format!("@schema:__{}{kind}",member));
             return Ok(());
         }

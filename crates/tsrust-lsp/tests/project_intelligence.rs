@@ -2518,3 +2518,19 @@ fn schema_construction_error_limit_keeps_numeric_union_hover() {
     let hover=ask(&index,&entry,"limit =","textDocument/hover");
     assert!(hover.to_string().contains("int | number"),"{hover}");
 }
+
+#[test]
+fn schema_floating_constraints_have_help_and_chain_types() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.number().gt(1.0).lt(2.0);const result=schema.safeParse(1.5);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"gt(1.0)","textDocument/hover");
+    assert!(hover.to_string().contains("consumes the original schema")&&hover.to_string().contains("SchemaConstructionError"),"{hover}");
+    let help=ask(&index,&entry,"2.0)","textDocument/signatureHelp");
+    assert!(help.to_string().contains("limit: number"),"{help}");
+    let value=ask(&index,&entry,"schema =","textDocument/hover");
+    assert!(value.to_string().contains("Schema<number>"),"{value}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<number, SchemaError>"),"{result}");
+}

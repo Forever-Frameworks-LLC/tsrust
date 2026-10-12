@@ -7,11 +7,17 @@ export function schemaChecksum(n,seed,input){
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
  if(row.id==='native_schema_int_exclusive'&&!containsCodeSnippet(source,kind==='native'?'s.int().gt(2).lt(10)':'input>2&&input<10'))throw Error('Schema exclusive integer bounds');
  if(row.id==='native_schema_int_bounds'&&!containsCodeSnippet(source,kind==='native'?'s.int().min(2).max(9)':'input>=2&&input<=9'))throw Error('Schema integer bounds');
  if(row.id==='native_schema_string_bounds'&&!containsCodeSnippet(source,kind==='native'?'s.string().min(2).max(6)':'length>=2&&length<=6'))throw Error('Schema bounds');
+ if(row.id==='native_schema_number_bounds'){
+  if(!containsCodeSnippet(source,kind==='native'?'s.number().min(0.0).max(3.0).gt(1.0).lt(2.0)':'input>1&&input<2'))throw Error('Floating schema bounds');
+  if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='1.5'||row.result!=='int')throw Error('Floating schema denominator');
+  for(const snippet of ['while(i<n){','schema.safeParse(JSON.parse(input))',"schema.safeParse(JSON.parse('2.0'))",'error.truncated','error.issues.length!==1',"issue.code!=='too-large'","issue.expected!=='number'","issue.observed!=='number'",'issue.path.length!==0','issue.pathTruncated',kind==='native'?"if(text!==1.5){throw 'Expected fraction';}checksum+=1;":"if(success.value!==1.5)throw 'Expected fraction';checksum+=1;",'checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Floating schema operation: '+snippet);
+  return;
+ }
  if(row.id==='native_schema_number_int'){
   if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='native-int'||row.result!=='int')throw Error('Schema denominator');
   for(const snippet of ['while(i<n){',kind==='native'?'schema.safeParse(42)':'schema.safeParse(42n)',kind==='native'?'schema.safeParse(9007199254740993)':'schema.safeParse(9007199254740993n)',kind==='native'?"if(text!==42.0){throw 'Expected exact integer';}":"if(success.value!==42)throw 'Expected exact integer';",'error.truncated','error.issues.length!==1',"issue.code!=='number-precision'","issue.expected!=='number'","issue.observed!=='integer'",'issue.path.length!==0','issue.pathTruncated','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Schema direct integer operation: '+snippet);

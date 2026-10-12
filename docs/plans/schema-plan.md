@@ -14,7 +14,7 @@ executing differential cases; current web documentation alone is not a version p
 | Family | Required behavior | Status |
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
-| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer min/max/gt/lt integrated; floating bounds pending |
+| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
@@ -665,3 +665,25 @@ Focused checks cover union rendering/projection, borrowed alternative detection,
 native integer-builder catches, explicit integer/floating error records and editor
 hover of the inferred limit. The catalog documents the union and narrowing before
 arithmetic. Evidence: `tsrust-schema-error-union-*-3451e2fd.log` in SQLite.
+
+
+## Public floating constraints
+
+Schema<number> now exposes consuming min/max/gt/lt builders with number limits.
+Inclusive and exclusive constraints intersect stored bounds. Nonfinite limits
+throw nonfinite-limit; intervals without a finite representable value throw
+contradictory-bounds. SchemaConstructionError retains the original floating limit
+in its numeric union. Validation keeps checked conversion before bound checks and
+borrows the immutable plan. Source ownership checking rejects original-schema reuse.
+
+Focused native acceptance covers fractional success, rejected JSON and integer
+endpoints, contradictory fractional limits, nonfinite construction and all four
+consuming methods. Hover, signature help and chained schema/result inference pass.
+All exact schema catalog examples execute. The native_schema_number_bounds workload
+includes TypeScript, fingerprints, source guards, oracle, ABI and report registration;
+four sizes agree across native and Node-after-tsc with zero timing samples. Ten
+benchmark contract tests pass. The handwritten counterpart is not the pending
+pinned Zod comparison. No S11 milestone or consumer refresh is claimed.
+
+SQLite: `tsrust-schema-floating-*-0c0fc2f5.log`. Literal/enum schemas, composites,
+fused decoding and the remaining S11 acceptance scope remain required.

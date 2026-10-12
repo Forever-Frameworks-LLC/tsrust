@@ -6982,7 +6982,7 @@
     "name": "SchemaConstructionError",
     "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int | number }",
     "parameters": [],
-    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied int or number without converting exact integers to floating point. Narrow the limit before arithmetic. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
+    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits, nonfinite-limit for floating limits, or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied int or number without converting exact integers to floating point. Narrow the limit before arithmetic. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
     "examples": []
   }
 ],
@@ -7230,6 +7230,74 @@
       {
         "source": "import {s} from 'std:schema';function main(){match(s.number().safeParse(9007199254740993)){Ok(value)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}}",
         "output": "number-precision\n"
+      }
+    ]
+  },
+  {
+    "name": "min",
+    "signature": "min(limit: number): Schema<number>",
+    "parameters": [
+      {
+        "label": "limit: number",
+        "documentation": "Finite floating-point inclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
+      }
+    ],
+    "documentation": "Adds an inclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation min and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
+      }
+    ]
+  },
+  {
+    "name": "max",
+    "signature": "max(limit: number): Schema<number>",
+    "parameters": [
+      {
+        "label": "limit: number",
+        "documentation": "Finite floating-point inclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
+      }
+    ],
+    "documentation": "Adds an inclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation max and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
+      }
+    ]
+  },
+  {
+    "name": "gt",
+    "signature": "gt(limit: number): Schema<number>",
+    "parameters": [
+      {
+        "label": "limit: number",
+        "documentation": "Finite floating-point exclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
+      }
+    ],
+    "documentation": "Adds an exclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation gt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
+      }
+    ]
+  },
+  {
+    "name": "lt",
+    "signature": "lt(limit: number): Schema<number>",
+    "parameters": [
+      {
+        "label": "limit: number",
+        "documentation": "Finite floating-point exclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
+      }
+    ],
+    "documentation": "Adds an exclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation lt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
       }
     ]
   }

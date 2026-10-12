@@ -3019,7 +3019,7 @@ impl Emitter<'_> {
                 let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
                 let fields=if binding.name=="__string" { "bounds: tsrust_schema_plan::StringBounds::default()" } else if binding.name=="__int" {"bounds: tsrust_schema_plan::IntBounds::default()"} else if binding.name=="__number" {"bounds: tsrust_schema_plan::NumberBounds::default()"} else { "" };
                 let _ = writeln!(output, "fn {symbol}() -> Record{id} {{ Record{id} {{{fields}}} }}");
-            } else if matches!(binding.name,"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt") {
+            } else if matches!(binding.name,"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber") {
                 output.push_str(&crate::stdlib::schema::emit::constraint(self.program,id,binding));
             } else {
                 output.push_str(&crate::stdlib::schema::emit::safe_parse(self.program, id, binding));

@@ -21954,6 +21954,30 @@
       "notes": "Parse plus constrained validation. Plan constructed outside loop. Small matched TypeScript number domain only; full int64 endpoint correctness has separate native tests. Handwritten reference, not Zod.",
       "sourceSha256": "4b40c26b425319a6a70ca189c5461b00529ff0e338bd0eaffc1fbd6db78645c0",
       "counterpartSha256": "904a21256c21e4c0a2020ae61c569e15594672a62d36262e0229ad3f9332edb8"
+    },
+    {
+      "id": "native_schema_number_bounds",
+      "category": "schema",
+      "description": "Reusable floating schema with inclusive/exclusive bounds",
+      "source": "workloads/native_schema_number_bounds.tsr",
+      "counterpart": "workloads/native_schema_number_bounds.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "1.5",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Bounds min 0/max 3/gt 1/lt 2: 1.5 succeeds and 2.0 returns too-large. Observe every result field; checksum adds two.",
+      "notes": "Parse plus validate and observe. Plan constructed outside loop. Matched Node domain contains only 1.5 and true; exact integer-to-number precision rejection has separate native boundary checks. Handwritten reference, not Zod. Validation-only and pinned Zod comparisons remain required.",
+      "sourceSha256": "5248ca9f50878977c90ab7d740fead66d548b2f1a58930357959b32d28d8f1be",
+      "counterpartSha256": "9a7cae2ae3538ec1d9059fde37760cc970e95ec73e73ad4230c0bcd3f3bdd796"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

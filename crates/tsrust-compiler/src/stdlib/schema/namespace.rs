@@ -157,6 +157,19 @@ pub(crate) const LT_INT: NativeBinding = NativeBinding {
     name: "__ltInt", backend: NativeBackend::Bundled { symbol: "tsrust_schema_lt_int" }, ..MIN_INT
 };
 
+pub(crate) const MIN_NUMBER: NativeBinding = NativeBinding {
+    name:"__minNumber",
+    parameters:&[
+        crate::native_bindings::NativeParameter{access:crate::Mode::Consume,..SAFE_PARSE_NUMBER.parameters[0]},
+        crate::native_bindings::NativeParameter{ty:NativeType::Number,..MIN_INT.parameters[1]},
+    ],
+    result:NativeType::Structured(&Signature::Result(&Signature::Applied(NativeTypeId::Schema,&[Signature::Number]),&Signature::Named(NativeTypeId::SchemaConstructionError))),
+    backend:NativeBackend::Bundled{symbol:"tsrust_schema_min_number"},..MIN_INT
+};
+pub(crate) const MAX_NUMBER: NativeBinding = NativeBinding {name:"__maxNumber",backend:NativeBackend::Bundled{symbol:"tsrust_schema_max_number"},..MIN_NUMBER};
+pub(crate) const GT_NUMBER: NativeBinding = NativeBinding {name:"__gtNumber",backend:NativeBackend::Bundled{symbol:"tsrust_schema_gt_number"},..MIN_NUMBER};
+pub(crate) const LT_NUMBER: NativeBinding = NativeBinding {name:"__ltNumber",backend:NativeBackend::Bundled{symbol:"tsrust_schema_lt_number"},..MIN_NUMBER};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -202,7 +215,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
     }
     if uses_bounds && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
-        for binding in [&MIN_STRING,&MAX_STRING,&MIN_INT,&MAX_INT,&GT_INT,&LT_INT] {
+        for binding in [&MIN_STRING,&MAX_STRING,&MIN_INT,&MAX_INT,&GT_INT,&LT_INT,&MIN_NUMBER,&MAX_NUMBER,&GT_NUMBER,&LT_NUMBER] {
             crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;
             let wrapper=super::builders::adapter(program,binding)?;
             program.functions.push(wrapper);
