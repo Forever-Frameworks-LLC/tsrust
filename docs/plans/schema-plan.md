@@ -687,3 +687,22 @@ pinned Zod comparison. No S11 milestone or consumer refresh is claimed.
 
 SQLite: `tsrust-schema-floating-*-0c0fc2f5.log`. Literal/enum schemas, composites,
 fused decoding and the remaining S11 acceptance scope remain required.
+
+## Typed literal backend
+
+The internal LiteralPlan wraps a typed consuming validator and owns its expected
+value. Validation borrows that plan and returns the existing successful input,
+without cloning strings or converting exact integers through floating point.
+Underlying missing/type/precision failures take precedence over literal comparison.
+A same-type mismatch produces literal-mismatch with bounded paths and controlled
+type summaries; neither the input nor expected literal is retained in the error.
+Finite floating literals use numeric equality, so both zero signs compare equally
+while successful output retains the input sign. Nonfinite expected values are
+rejected during private plan construction.
+
+Three focused cases cover reusable string storage transfer, redaction, exact i64
+endpoints, checked number precision, negative zero, nonfinite construction, null
+versus absence, array-index paths and failure with zero retained-issue budget.
+This remains test-only backend groundwork. Public s.literal/enum APIs, inferred
+literal output types, generated plans, editor documentation and matched workloads
+are still required. SQLite: `tsrust-schema-literal-*-70853c77.log`.

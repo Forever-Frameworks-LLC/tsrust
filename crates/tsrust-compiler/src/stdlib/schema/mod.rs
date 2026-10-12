@@ -18,3 +18,6 @@ pub(crate) mod emit;
 mod runtime;
 
 pub(crate) mod builders;
+
+#[cfg(test)]
+mod literal;

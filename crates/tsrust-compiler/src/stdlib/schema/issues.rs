@@ -3,10 +3,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Kind { Missing, Null, Boolean, Number, Integer, String, Array, Object }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, TooSmall, TooLarge }
+pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, TooSmall, TooLarge, Literal }
 impl Code {
     pub(super) fn as_str(self) -> &'static str {
         match self {
+            Self::Literal => "literal-mismatch",
             Self::Type => "type-mismatch", Self::Missing => "missing-field",
             Self::IntegerRange => "integer-range", Self::IntegerFractional => "integer-fractional",
             Self::NumberPrecision => "number-precision", Self::TooSmall => "too-small", Self::TooLarge => "too-large",
