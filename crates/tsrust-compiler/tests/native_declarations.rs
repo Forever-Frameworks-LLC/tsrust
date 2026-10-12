@@ -381,3 +381,41 @@ fn schema_safe_parse_consumes_input_and_reuses_schema() {
     let error = checked_source(invalid).err().expect("input must be consumed even on failure");
     assert_eq!(error.code, "transferred", "{error:?}");
 }
+
+#[test]
+fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
+    let source = "import {s} from 'std:schema';type Other={safeParse:(value:int)=>int;};function main(){const schema=s.string();const other:Other={safeParse:(value:int):int=>value};console.log(other.safeParse(3));}";
+    let checked = checked_source(source).unwrap();
+    let (rust, features) = checked.emit_rust_with_native_features();
+    assert!(!features.contains(&"json"));
+    assert!(!rust.contains("tsrust_native_json"), "unrelated method introduced a JSON runtime");
+}
+
+#[test]
+fn schema_string_catalog_examples_execute_exact_sources() {
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+    for family in ["schemaBuilder", "Schema"] {
+        for entry in catalog[family].as_array().unwrap() {
+            for example in entry["examples"].as_array().unwrap() {
+                let directory = support::TempDirectory::new();
+                let source = support::format_round_trip(example["source"].as_str().unwrap());
+                let path = directory.source(&source);
+                let output = support::run(support::cli().arg("run").arg(path), 60);
+                support::success(&output);
+                assert_eq!(String::from_utf8_lossy(&output.stdout), example["output"].as_str().unwrap());
+            }
+        }
+    }
+}
+
+#[test]
+fn schema_input_boundaries_reject_reuse_and_allow_explicit_clone() {
+    for literal in ["42", "true", "null", "[]", "{}", "\\\"hello\\\""] {
+        let source = format!("import {{s}} from 'std:schema';function main(){{const schema=s.string();const input=JSON.parse('{literal}');schema.safeParse(input);JSON.stringify(input);}}");
+        assert_eq!(checked_source(&source).err().expect("reuse must reject").code, "transferred");
+        let retained = source.replace("safeParse(input)", "safeParse(clone(input))");
+        assert!(checked_source(&retained).is_ok(), "explicit clone: {retained}");
+    }
+    let invalid = "import {s} from 'std:schema';function main(){s.string().safeParse(42);}";
+    assert_eq!(checked_source(invalid).err().expect("unsupported input must diagnose").code, "schema-input");
+}

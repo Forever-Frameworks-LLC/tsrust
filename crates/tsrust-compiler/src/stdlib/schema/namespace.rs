@@ -34,7 +34,12 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         })?;
     }
     for span in spans { crate::native_binding_types::prepare(&mut program.records, &STRING, span)?; }
-    if uses_safe_parse && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
+    // Current validation consumes JsonValue. Do not synthesize JSON storage solely
+    // because an unrelated object also declares a method named safeParse.
+    if uses_safe_parse
+        && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema))
+        && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::JsonValue))
+    {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE, crate::Span::default())?;
     }
     Ok(())

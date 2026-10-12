@@ -236,3 +236,19 @@ SQLite evidence: `tsrust-schema-parse-{red,check,repair,native,final,effects,for
 and `tsrust-schema-parse-editor-{red,check,final}-3ca7ebd4.log`.
 No family timing, consumer refresh or S11 acceptance is claimed. Extend public
 scalar coverage, ownership edge cases, constraints and composites next.
+
+## String validation boundary repair
+
+An unrelated record method named safeParse previously caused constructor-only
+programs to acquire unused JSON storage/runtime emission. Preparation now requires
+an existing JsonValue identity as well as a schema identity. A string-schema call
+with unsupported input and no prepared JSON signature reports schema-input instead
+of reaching native signature resolution with missing metadata. Ordinary typed-value
+validation is still required in the first tranche; this diagnostic does not narrow
+that roadmap requirement to JsonValue forever.
+
+All 27 native declaration tests pass. New checks cover no JSON runtime for an
+unrelated callback method, exact native execution of both schema catalog examples,
+input reuse rejection for six JSON kinds, explicit clone retention, and unsupported
+input diagnostics. This closes the previous exact-example execution gap. SQLite:
+`tsrust-schema-link-{red,check,format}-cdf5d6f4.log`. No timing or family acceptance.

@@ -12,6 +12,10 @@ impl Analyzer {
         if record.application.as_ref().and_then(|application| application.resolved_arguments.first()).copied() != Some(Type::String) {
             return Err(Diagnostic::new("schema-type", "safeParse currently supports string schemas.", callee.span));
         }
+        let crate::native_bindings::NativeType::Structured(signature) = crate::stdlib::schema::namespace::SAFE_PARSE.result else { unreachable!() };
+        if crate::native_binding_types::resolve(&self.program.records, signature).is_none() {
+            return Err(Diagnostic::new("schema-input", "safeParse currently requires an owned JsonValue input.", args[0].span));
+        }
         args.insert(0, (**base).clone());
         callee.kind = ExprKind::Name("@native:std:schema#__safeParseString".into());
         Ok(())
