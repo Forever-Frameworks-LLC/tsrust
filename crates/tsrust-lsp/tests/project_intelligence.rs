@@ -2230,3 +2230,13 @@ fn typed_jsonc_import_exposes_concrete_record_hover(){
  let help=ask(&index,&entry,"'{}'","textDocument/signatureHelp");
  assert!(help.to_string().contains("Result<Item, JsonError>"),"{help}");
 }
+
+#[test]
+fn typed_jsonl_import_exposes_owned_record_and_reader_contract(){
+ let entry=tsrust_compiler::format("import {JsonlReader,readJsonl as next} from 'std:json';type Item={name:string;};function read(reader:JsonlReader){match(next<Item>(reader)){Ok(item)=>{if(item!==undefined){console.log(item.name);}},Err(error)=>{console.log(error.line);}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&entry,"name);","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
+ let hover=ask(&index,&entry,"next<Item>","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();
+ assert!(text.contains("Result<Item | undefined, JsonlError>") && text.contains("Mutable<JsonlReader>") && !text.contains("@json") && !text.contains("native#"),"{hover}");
+}

@@ -65,9 +65,16 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             Ok(())
         })?;
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
-            if typed_members.contains(&(expression.span.start,expression.span.end)) && matches!(&expression.kind,ExprKind::Name(name) if name=="@native:std:json#parseJsonc") {
-                typed.insert("parseJsonc".into());required.insert("parseJsonc",expression.span);
-                expression.kind=ExprKind::Name("@json:typedparseJsonc".into());return Ok(());
+            if typed_members.contains(&(expression.span.start,expression.span.end)) {
+                let imported=match &expression.kind {
+                    ExprKind::Name(name) if name=="@native:std:json#parseJsonc"=>Some("parseJsonc"),
+                    ExprKind::Name(name) if name=="@native:std:json#readJsonl"=>Some("readJsonl"),
+                    _=>None,
+                };
+                if let Some(name)=imported {
+                    typed.insert(name.into());required.insert(name,expression.span);
+                    expression.kind=ExprKind::Name(format!("@json:typed{name}"));return Ok(());
+                }
             }
             if namespace_shadowed {return Ok(());}
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
@@ -173,6 +180,8 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     let source = format!("function adapter<T>(text:ReadOnly<string>,limits:ReadOnly<JsonLimits>={{maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}}):{result}{{{body}}}");
     let source=if name=="parseJsonc" {
         "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
+    }else if name=="readJsonl" {
+        "function adapter<T>(reader:Mutable<JsonlReader>):Result<T|undefined,JsonlError>{return backend(reader);}".to_owned()
     }else{source};
     let mut function = crate::syntax::parse(&source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
@@ -181,14 +190,15 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     shift(&mut function.name.span);shift(&mut function.scope_span);
     for (parameter, _, _) in &mut function.params { shift(&mut parameter.span); }
     for initializer in &mut function.parameter_initializers { if let ParameterInitializer::Default { span, .. } = initializer {shift(span);} }
-    let replacements = [
-        ("JsonLimits".to_owned(), crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonLimits), function.name.span)?),
-        ("JsonError".to_owned(), crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonError), function.name.span)?),
-    ].into_iter().collect();
+    let mut replacements=std::collections::HashMap::new();
+    let identities=if name=="readJsonl" {vec![NativeTypeId::JsonlReader,NativeTypeId::JsonlError,NativeTypeId::JsonLimits]}else{vec![NativeTypeId::JsonLimits,NativeTypeId::JsonError]};
+    for identity in identities {
+        replacements.insert(crate::native_types::declaration(identity).name.to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(identity),function.name.span)?);
+    }
     crate::source_walk::function_annotations(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements))?;
     crate::source_walk::function_body(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements), &mut |expression| {
         shift(&mut expression.span);
-        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else{"@json:decode"}.into()); }
+        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else if name=="readJsonl"{"@json:decodeJsonl"}else{"@json:decode"}.into()); }
         Ok(())
     })?;
     // Statement and binding spans share the adapter's synthetic source region.

@@ -11,9 +11,10 @@ impl Analyzer {
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             return Ok(None);
         };
-        if !matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@json:decode"|"@json:decodeJsonc")) {
+        if !matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@json:decode"|"@json:decodeJsonc"|"@json:decodeJsonl")) {
             return Ok(None);
         }
+        let jsonl=matches!(&callee.kind,ExprKind::Name(name) if name=="@json:decodeJsonl");
         let jsonc=matches!(&callee.kind,ExprKind::Name(name) if name=="@json:decodeJsonc");
         let span = self
             .program
@@ -71,11 +72,12 @@ impl Analyzer {
                 }
                 Type::Union(id) => {
                     let members = self.unions.members(id);
+                    let has_null=members.contains(&Type::Null);
                     let values: Vec<_> = members
                         .into_iter()
                         .filter(|ty| !matches!(ty, Type::Null | Type::Undefined))
                         .collect();
-                    if values.len() != 1 {
+                    if values.len() != 1 && !(values.is_empty() && has_null) {
                         return Err(Diagnostic::new(
                             "json-type",
                             "Typed JSON decoding currently supports nullable or optional values, not unions of multiple value shapes.",
@@ -96,7 +98,7 @@ impl Analyzer {
                 }
             }
         }
-        if args.len() != if jsonc {3}else{2} {
+        if args.len() != if jsonl {1}else if jsonc {3}else{2} {
             return Err(Diagnostic::new(
                 "arity",
                 "Typed JSON decoding expects text and limits.",
@@ -126,6 +128,10 @@ impl Analyzer {
             },
         ];
         if jsonc {contracts.insert(1,ArgumentContract{ty:Type::Boolean,mode:Mode::Copy,omission:crate::ParameterOmission::Required,rest:false});}
+        if jsonl {
+            let reader=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonlReader)).unwrap();
+            contracts=vec![ArgumentContract{ty:Type::Record(reader),mode:Mode::Mutate,omission:crate::ParameterOmission::Required,rest:false}];
+        }
         self.check_call_arguments(context, args, &contracts, loans)?;
         expr.target = Some(CallTarget::JsonDecode);
         expr.ty = Some(result);

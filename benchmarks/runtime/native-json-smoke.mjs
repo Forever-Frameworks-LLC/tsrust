@@ -1,5 +1,6 @@
 // Untimed acceptance of both JSON API surfaces using the measurement drivers.
 import fs from 'node:fs';
+import {nativeFileInput} from './native-files-input.mjs';
 import path from 'node:path';
 import os from 'node:os';
 import assert from 'node:assert/strict';
@@ -32,7 +33,7 @@ try {
   run(process.execPath,[root+'/node_modules/typescript/bin/tsc','--project',base+'.json']);
   for(const [n,seed] of [[0,0],[1,7],[2,19],[17,7],[2000,19]]){
    for(const [exe,args] of [[base,[]],[process.execPath,[base+'.js']]]){
-    const result=JSON.parse(run(exe,[...args,String(n),String(seed),'1','0',row.inputText]));
+    const result=JSON.parse(run(exe,[...args,String(n),String(seed),'1','0',nativeFileInput(row)]));
     assert.equal(result.checksum,expectedChecksum(row.id,n,seed,row.inputText));
     assert.deepEqual(result.durations,[]);
    }

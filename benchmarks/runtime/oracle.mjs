@@ -219,6 +219,7 @@ export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
  if(id==='native_json_encoding')return encodingChecksum(n,seed,inputText);
  if(id==='native_jsonc_typed'){if(!inputText.startsWith('/* header */'))throw Error('JSONC input');return typedChecksum(n,seed,inputText.slice(12));}
+ if(id==='native_jsonl_typed'){if(inputText!=='native-jsonl-typed-v1'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*84))throw Error('JSONL input');return seed+n*84;}
  if(id==='native_json_typed')return typedChecksum(n,seed,inputText);
  if(id==='native_json_containers')return containersChecksum(n,seed,inputText);
  if(id==='native_json_construction')return constructionChecksum(n,seed,inputText);

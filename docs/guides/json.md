@@ -262,3 +262,26 @@ the input byte limit, and error offsets address the original UTF-8 bytes.
 Typed field validation follows `JSON.tryParse<T>`, including missing optional
 fields, checked numeric conversion and limits on ignored fields. The result owns
 its data. JSONC normalization uses bounded scratch storage; input is unchanged.
+
+## Read typed JSON Lines
+
+`readJsonl<T>(reader)` returns `Result<T | undefined, JsonlError>`. Each call
+constructs one owned value directly; previous values remain valid after later
+reads or after closing the reader. `undefined` means EOF. A decoded JSON null
+remains null, including when the requested target is `null`.
+
+```ts
+match (readJsonl<Item>(reader)) {
+  Ok(item) => {
+    if (item !== undefined) { console.log(item.name); }
+  },
+  Err(error) => { console.log(error.code, error.line, error.offset); }
+}
+```
+
+The reader mutably borrows for each call. Its opening limits apply per record.
+Shape errors, malformed input and I/O errors are terminal: the file is released
+and subsequent reads repeat the error without more I/O. Errors retain one-based
+line and absolute UTF-8 byte offsets. Omit the type argument for dynamic
+`JsonValue` reads. Use `closeJsonl(reader)` to consume an unfinished reader and
+report close errors; scope exit also releases it.

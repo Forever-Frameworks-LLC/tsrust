@@ -42,3 +42,47 @@ fn jsonl_reader_rejects_clone_construction_and_use_after_close() {
  std::fs::write(&path,support::format_round_trip("import {JsonlReader,closeJsonl} from 'std:json';function release(reader:JsonlReader){closeJsonl(reader);}function main(){}" )).unwrap();
  support::success(&support::run(support::cli().arg("run").arg(&path),120));
 }
+
+#[test]
+fn typed_jsonl_reads_owned_records_and_preserves_terminal_errors(){
+ let dir=support::TempDirectory::new();let input=dir.0.join("typed.jsonl");
+ std::fs::write(&input,"{\"name\":\"first\"}\r\n{\"name\":\"second\"}\n{\"name\":42}\n").unwrap();
+ let source=format!(r#"import {{openJsonl,readJsonl as next,closeJsonl}} from 'std:json';import {{strictEqual}} from 'std:testing';
+ type Item={{name:string;}};
+ function main(){{match(openJsonl({path:?},{{maxBytes:256,maxDepth:8,maxEntries:16,maxNodes:32}},3)){{Ok(reader)=>{{
+  match(next<Item>(reader)){{Ok(first)=>{{if(first===undefined){{throw 'early EOF';}}
+   match(next<Item>(reader)){{Ok(second)=>{{if(second===undefined){{throw 'early EOF';}}strictEqual(second.name,'second');}},Err(error)=>{{throw error.message;}}}}
+   strictEqual(first.name,'first');
+  }},Err(error)=>{{throw error.message;}}}}
+  match(next<Item>(reader)){{Ok(_)=>{{throw 'bad shape accepted';}},Err(error)=>{{strictEqual(error.code,'shape-mismatch');strictEqual(error.line,3);strictEqual(error.operation,'read');}}}}
+  match(next<Item>(reader)){{Ok(_)=>{{throw 'failure lost';}},Err(error)=>{{strictEqual(error.code,'shape-mismatch');}}}}
+  closeJsonl(reader);
+ }},Err(error)=>{{throw error.message;}}}}}}
+ "#,path=input.to_str().unwrap());
+ let path=dir.source(&support::format_round_trip(&source));support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn typed_jsonl_distinguishes_null_from_eof(){
+ let dir=support::TempDirectory::new();let input=dir.0.join("null.jsonl");std::fs::write(&input,"null\r\n").unwrap();
+ let source=format!(r#"import {{openJsonl,readJsonl,closeJsonl}} from 'std:json';import {{strictEqual}} from 'std:testing';
+ function main(){{match(openJsonl({path:?})){{Ok(reader)=>{{
+  match(readJsonl<null>(reader)){{Ok(value)=>{{strictEqual(value===null,true);}},Err(error)=>{{throw error.message;}}}}
+  match(readJsonl<null>(reader)){{Ok(value)=>{{strictEqual(value===undefined,true);}},Err(error)=>{{throw error.message;}}}}
+  closeJsonl(reader);
+ }},Err(error)=>{{throw error.message;}}}}}}
+ "#,path=input.to_str().unwrap());
+ let path=dir.source(&support::format_round_trip(&source));support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn jsonl_typed_catalog_examples_execute(){
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ let entry=catalog["std:json"].as_array().unwrap().iter().find(|entry|entry["name"]=="readJsonl").unwrap();
+ let dir=support::TempDirectory::new();
+ for example in entry["examples"].as_array().unwrap(){
+  let path=dir.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+  let output=support::run(support::cli().arg("run").arg(path).current_dir(&dir.0),90);support::success(&output);
+  assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
+ }
+}

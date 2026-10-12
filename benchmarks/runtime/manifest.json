@@ -21568,6 +21568,31 @@
       "notes": "Native bounded normalization and direct visitors; Node comment normalization, JSON.parse and checked fields. Fixed ASCII input uses comments without trailing commas; no timing samples.",
       "sourceSha256": "38befde53d645669cb2cc80fcd131087d68fec178a0e6964cb6cd700e0f4f8d4",
       "counterpartSha256": "1dd4b9c54da9aa6dfe8cc75a09afa8b93ff10200a4134587a3af1e4897bb20c1"
+    },
+    {
+      "id": "native_jsonl_typed",
+      "category": "json",
+      "description": "Bounded typed JSON Lines file reading",
+      "source": "workloads/native_jsonl_typed.tsr",
+      "counterpart": "workloads/native_jsonl_typed.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One file open, two typed record reads, EOF and close",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "native-jsonl-typed-v1",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Two fixed ASCII records contribute 84 per iteration.",
+      "notes": "Includes synchronous file open/read/close and 8192-byte read-ahead. Node streams UTF8 and checks parsed fields; native budgets and exact integer semantics differ outside the fixed shared input. No timing samples.",
+      "sourceSha256": "29730ef45db223da00b94d7d3f95d630dca67af637a3685e66593a80f37d8a71",
+      "counterpartSha256": "5efe0194eba16952904a0130e6607a8ea6283e72c223dd2c74e41433b7fcf62e",
+      "fixtureSha256": "9c194b8d966138341ba704b40220738c86dc3d470d49dfa50379ace2a9e501c2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

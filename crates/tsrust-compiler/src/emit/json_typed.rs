@@ -16,7 +16,7 @@ impl Emitter<'_> {
             .records
             .iter()
             .position(|record| {
-                record.native_type == Some(crate::native_signatures::NativeTypeId::JsonError)
+                record.native_type == Some(if args.len()==1 {crate::native_signatures::NativeTypeId::JsonlError}else{crate::native_signatures::NativeTypeId::JsonError})
             })
             .unwrap();
         let mut types = vec![root];
@@ -142,6 +142,11 @@ impl Emitter<'_> {
                 }
                 Type::Union(id) => {
                     let members = &self.program.unions[id.index()].members;
+                    if members.iter().all(|ty|matches!(ty,Type::Null|Type::Undefined)) {
+                        let null=members.iter().position(|ty|*ty==Type::Null).unwrap();
+                        generated.push_str(&format!("struct Decode{index}({native});impl<'de> serde::Deserialize<'de> for Decode{index}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{let ()=serde::Deserialize::deserialize(decoder)?;Ok(Self(Union{}::V{null}(TsrNull)))}}}}",id.index()));
+                        continue;
+                    }
                     let (tag, value) = members
                         .iter()
                         .enumerate()
@@ -162,6 +167,19 @@ impl Emitter<'_> {
                 _ => unreachable!("validated typed JSON shape"),
             };
             generated.push_str(&format!("struct Decode{index}({native});impl<'de> serde::Deserialize<'de> for Decode{index}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));
+        }
+        if args.len()==1 {
+            let reader=self.expr(fun,&args[0],Mode::Mutate);
+            let optional=root.union().unwrap();
+            let absent=self.program.unions[optional.index()].members.iter().position(|ty|*ty==Type::Undefined).unwrap();
+            let os=self.program.records[error].fields[5].ty.unwrap().union().unwrap();
+            let os_members=&self.program.unions[os.index()].members;
+            let integer=os_members.iter().position(|ty|*ty==Type::Int).unwrap();
+            let missing=os_members.iter().position(|ty|*ty==Type::Undefined).unwrap();
+            let ok_tag=members.iter().position(|ty|*ty==Type::Record(ok)).unwrap();
+            let err_tag=members.iter().position(|ty|*ty==Type::Record(err)).unwrap();
+            let result=result.index();let optional=optional.index();let os=os.index();
+            return format!("{{{generated}let reader={reader};match reader.handle.next_with(tsrust_native_json::typed::decode::<Decode0>){{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:match value{{Some(value)=>value.0,None=>Union{optional}::V{absent}(TsrUndefined)}}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.error.code),field1:String::Borrowed(error.error.message),field2:String::Borrowed(\"read\"),field3:error.line as i64,field4:error.error.offset as i64,field5:match error.os_code{{Some(code)=>Union{os}::V{integer}(i64::from(code)),None=>Union{os}::V{missing}(TsrUndefined)}}}}}})}}}}");
         }
         let text = self.expr(fun, &args[0], Mode::Read);
         let limits = self.expr(fun, args.last().unwrap(), Mode::Read);

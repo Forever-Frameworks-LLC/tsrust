@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC has focused source acceptance. Typed JSONL adapters, borrowed adapters, public writers, allocation
+Typed JSONC and JSONL reads have focused source acceptance. Borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -972,3 +972,24 @@ comments and checks parsed fields. Its shared benchmark domain is ASCII JSONC
 without trailing commas; native budget rules remain a disclosed difference.
 Evidence: tsrust-jsonc-public-*-4da590c1 in SQLite. Public typed JSONL, bounded
 writers and S10 family measurements/consumer refresh remain pending.
+
+### Public typed JSONL reads
+
+readJsonl<T> extends the existing std:json import, including import aliases,
+with Result<T | undefined, JsonlError>. The reader mutably borrows per call;
+direct decoding produces owned fields independent of later reads and reader
+lifetime. EOF is undefined and decoded null remains null. Shape errors retain
+line/absolute-byte metadata and the existing terminal cleanup behavior.
+
+Focused evidence covers the five JSONL behavior tests, seven strict/JSONC typed
+decoder tests, executable dynamic/typed readJsonl catalog examples and typed
+editor hover through an alias. Native and Node-after-tsc agree in five untimed
+native_jsonl_typed cases; all 16 JSON workload guards pass. The registered
+streaming fixture is fingerprinted and created outside measured work. Both
+workloads include open, two checked record reads, EOF and close, using 8192-byte
+read-ahead. The independent scalar oracle is 84 per iteration. Native budgets
+and numeric policies differ outside the fixed ASCII shared input domain.
+
+Evidence: tsrust-jsonl-typed-*-0374c3d0 in SQLite. Bounded writer integration,
+remaining borrowed adapters, allocation/performance acceptance and consumer
+refresh remain open. No timing samples were collected.

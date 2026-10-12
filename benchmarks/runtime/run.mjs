@@ -417,9 +417,9 @@ function prepare(w) {
  sources.push({...(nativeDependencies.evidence?{nativeDependencies:nativeDependencies.evidence}:{}),...(isCopying(w)?{copyingABI:reductionABI}:isRange(w)?{rangeABI:reductionABI}:isHigher(w)?{higherABI:reductionABI}:isDeclared(w)?{declaredABI:reductionABI}:isConcat(w)?{concatABI:reductionABI}:isReduction(w)?{reductionABI}:reductionABI?{workloadABI:reductionABI}:{}),id: w.id, tsrSha256: hash(source), tsSha256: hash(ts), emittedSha256: hash(emitted), instrumentedSha256: hash(instrumented),...(isApproximate(w)?{approximateCompilation:{nativeCommand,tsCommand,instrumentedTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.ts'))),nativeBinarySha256:hash(fs.readFileSync(path.join(build,w.id))),compiledTSSha256:hash(fs.readFileSync(path.join(build,w.id+'.js')))}}:{})});
 }
 function execute(engine, iterations, seed, warmups, samples, inputText, workload) {
- if(workload?.family==='native-files')inputText=nativeFileInput(workload);
+ if(workload?.family==='native-files'||workload?.id==='native_jsonl_typed')inputText=nativeFileInput(workload);
  const command=[...engine.command];
- if(workload?.family==='native-files'&&engine.id==='deno')command.splice(2,0,`--allow-read=${path.dirname(inputText)}`,`--allow-write=${path.dirname(inputText)}`);
+ if((workload?.family==='native-files'||workload?.id==='native_jsonl_typed')&&engine.id==='deno')command.splice(2,0,`--allow-read=${path.dirname(inputText)}`,`--allow-write=${path.dirname(inputText)}`);
  if(workload?.family==='environment'&&engine.id==='deno')command.splice(2,0,'--allow-env=TSRUST_BENCH_ENV_TEXT,TSRUST_BENCH_ENV_EMPTY,TSRUST_BENCH_ENV_MISSING');
  const result = run(command, [iterations, seed, warmups, samples, ...(inputText === undefined ? [] : [inputText])], environmentFor(workload,env));
  const data = JSON.parse(result.stdout);
