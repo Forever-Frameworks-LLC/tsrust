@@ -107,7 +107,7 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
 }
 
 
-pub(crate) fn issue_bridge(program:&CheckedProgram)->String {
+pub(crate) fn issue_bridge(program:&CheckedProgram, ordered:&std::collections::HashSet<usize>)->String {
     let record=|kind|program.records.iter().position(|record|record.native_type==Some(kind));
     let Some(error)=record(NativeTypeId::ValidationError) else{return String::new();};
     let issue=record(NativeTypeId::SchemaIssue).unwrap();
@@ -119,18 +119,21 @@ pub(crate) fn issue_bridge(program:&CheckedProgram)->String {
     };
     let (field_union,field_tag,field_absent)=optional(0,Type::String);
     let (index_union,index_tag,index_absent)=optional(1,Type::Int);
+    let path_order=crate::records::runtime::declaration_order_suffix(program,ordered,path);
+    let issue_order=crate::records::runtime::declaration_order_suffix(program,ordered,issue);
+    let error_order=crate::records::runtime::declaration_order_suffix(program,ordered,error);
     let mut output=String::from("mod tsrust_schema_issues {\n");
     output.push_str(include_str!("issues.rs").trim_start_matches("//! Bounded validation errors containing type summaries, never input values.\n"));
     output.push_str("\n}\n");
     output.push_str(&format!("fn tsrust_schema_error(errors:tsrust_schema_issues::Issues)->Record{error} {{
         let issues=errors.items.into_iter().map(|issue|{{
             let path=issue.path.into_iter().map(|segment|match segment {{
-                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined)}},
-                tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\"))}}
+                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined){path_order}}},
+                tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\")){path_order}}}
             }}).collect();
-            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str()),field5:issue.message.map(String::Owned).unwrap_or_else(||String::Borrowed(issue.code.as_str()))}}
+            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str()),field5:issue.message.map(String::Owned).unwrap_or_else(||String::Borrowed(issue.code.as_str())){issue_order}}}
         }}).collect();
-        Record{error}{{field0:issues,field1:errors.truncated}}
+        Record{error}{{field0:issues,field1:errors.truncated{error_order}}}
     }}\n"));
     output
 }

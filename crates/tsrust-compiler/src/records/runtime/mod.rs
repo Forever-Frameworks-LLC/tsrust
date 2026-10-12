@@ -671,3 +671,10 @@ pub fn run() {{
 
 #[cfg(test)]
 mod links_tests;
+
+/// Metadata for generated records whose fields are initialized in declaration order.
+pub(crate) fn declaration_order_suffix(program: &crate::analysis::CheckedProgram, ordered: &std::collections::HashSet<usize>, id: usize) -> String {
+    if !ordered.contains(&id) { return String::new(); }
+    let indices = (0..program.records[id].fields.len()).map(|index| index.to_string()).collect::<Vec<_>>().join(",");
+    format!(",key_order:[{indices}]")
+}

@@ -2054,3 +2054,19 @@ the unchanged source in its module context. The updated pipeline workload retain
 three operations per iteration and checksum `seed + 7*n`, now observing the custom
 message. All parity runs have zero timing samples. Full S11 regressions, differential
 coverage, measurements and remaining schema requirements are not accepted here.
+
+### Schema result logging and namespace discovery repair
+
+Logging scalar `safeParse` results now initializes observable record field-order
+metadata on Result wrappers, validation errors, issues and path segments. The
+same metadata is supplied for fused JSON decoding failures and the ordinary JSON
+bridge. A regression exercises an imported greeting through a module-level schema,
+owned JSON rejection, text success, validation failure and JSON syntax failure.
+
+The `s` hover now explains composition, constraints, callbacks, messages, Result
+handling and ownership, with an executable example. Options-object completion
+suggests constructor `message` and refinement `path`/`message`, including namespace
+aliases. This does not change Copilot settings. Focused editor protocol checks
+cover these suggestions and the expanded namespace hover. Evidence records use
+`tsrust-schema-result-logging-*`, `tsrust-schema-discovery-*` and
+`tsrust-schema-namespace-*`. S11 acceptance and timing remain pending.

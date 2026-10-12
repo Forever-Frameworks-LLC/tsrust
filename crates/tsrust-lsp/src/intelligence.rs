@@ -17,6 +17,8 @@ mod native_type_intelligence;
 mod data_intelligence;
 #[path = "schema_path_intelligence.rs"]
 mod schema_path_intelligence;
+#[path = "schema_options_intelligence.rs"]
+mod schema_options_intelligence;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -3260,6 +3262,7 @@ impl SourceIndex {
         Some(entry)
     }
     fn completion(&self, offset: usize) -> Value {
+        if let Some(items) = self.schema_options_completion(offset) { return items; }
         let token = self.token_at(offset);
         let prefix_start = token
             .filter(|&id| name(self.text(id)))

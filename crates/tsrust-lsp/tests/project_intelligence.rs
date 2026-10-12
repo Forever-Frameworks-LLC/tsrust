@@ -2974,3 +2974,35 @@ fn refinement_path_completion_intersects_union_fields() {
     assert!(items.iter().any(|item|item["label"]=="name"), "{items:?}");
     assert!(items.iter().all(|item|item["label"]=="name"), "{items:?}");
 }
+
+#[test]
+fn schema_options_completion_offers_constructor_and_refinement_keys() {
+    for (entry, needle, expected) in [
+        ("import {s} from 'std:schema';function main(){const schema=s.string({});}", "});", vec!["message"]),
+        ("import {s as validate} from 'std:schema';function main(){const schema=validate.object({name:validate.string()},{});}", "});", vec!["message"]),
+        ("import {s} from 'std:schema';function main(){const schema=s.string();const checked=schema.refine(value=>true,{});}", "});", vec!["message", "path"]),
+    ] {
+        let uri = "file:///tsrust-intelligence/main.tsr";
+        let mut workspace = Workspace::default();
+        workspace.open(source_id(uri).unwrap(), 1, entry.into());
+        let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index = ProjectIndex::checked(&checked);
+        let items = ask(&index, entry, needle, "textDocument/completion");
+        let labels = items.as_array().unwrap().iter().filter_map(|item| item["label"].as_str()).collect::<Vec<_>>();
+        for key in expected { assert!(labels.contains(&key), "Missing {key}: {items}"); }
+        assert!(labels.iter().all(|label| matches!(*label, "message" | "path")), "{items}");
+    }
+}
+
+#[test]
+fn schema_namespace_hover_explains_builders_options_and_results() {
+    let entry = "import {s} from 'std:schema';function main(){const schema=s.string();}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let hover = ask(&ProjectIndex::checked(&checked), entry, "s.string", "textDocument/hover");
+    for expected in ["s.object", "s.int", "message", "safeParseJson", "Ok(value)"] {
+        assert!(hover.to_string().contains(expected), "Missing {expected}: {hover}");
+    }
+}

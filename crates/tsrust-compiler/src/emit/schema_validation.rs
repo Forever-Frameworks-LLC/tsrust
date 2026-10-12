@@ -1,6 +1,10 @@
 //! Generate consuming typed validators while borrowing reusable schema plans.
 use super::*;
 impl Emitter<'_> {
+    pub(super) fn schema_record_order(&self, id: usize) -> String {
+        crate::records::runtime::declaration_order_suffix(self.program, &self.record_runtime.ordered, id)
+    }
+
     fn schema_factory_value(&self,output:Type,factory:&str,errors:&crate::error_effects::FailureSet)->String {
         let family=self.program.schema_factories[&output];
         let source=self.result_storage.borrow().get(&family).cloned();
@@ -107,7 +111,9 @@ impl Emitter<'_> {
         let members=&self.program.unions[result.index()].members;
         let [ok,err]=crate::result_identity::variants(&self.program.records,members).unwrap();
         let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
-        let body=format!("{{ {generated} let schema={schema}; let input={input}; let mut issues=tsrust_schema_issues::Issues::new(64,32,1024); let mut path=Vec::new();let mut failure=None;let validated={validator}(schema,input,&mut path,&mut issues,&mut failure);if let Some(error)=failure{{Err(error)}}else{{Ok(match validated {{ Some(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:value}}),None=>Union{result}::V{err_tag}(Record{err}{{field0:tsrust_schema_error(issues)}}) }})}} }}",schema=self.expr(fun,&args[0],Mode::Read),input=input,result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
+        let ok_order=self.schema_record_order(ok);
+        let err_order=self.schema_record_order(err);
+        let body=format!("{{ {generated} let schema={schema}; let input={input}; let mut issues=tsrust_schema_issues::Issues::new(64,32,1024); let mut path=Vec::new();let mut failure=None;let validated={validator}(schema,input,&mut path,&mut issues,&mut failure);if let Some(error)=failure{{Err(error)}}else{{Ok(match validated {{ Some(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:value{ok_order}}}),None=>Union{result}::V{err_tag}(Record{err}{{field0:tsrust_schema_error(issues){err_order}}}) }})}} }}",schema=self.expr(fun,&args[0],Mode::Read),input=input,result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
         if fallible {
             let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
             let call=self.exception_regions.result_call(&body,&error_name,&errors,&unions,expr.span).expect("checked schema factory exception transport");

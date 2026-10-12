@@ -1,5 +1,5 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeType},native_signatures::NativeTypeId,syntax::Type};
-pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
+pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding,ordered:&std::collections::HashSet<usize>)->String {
  if binding.name=="borrowRaw" {return super::raw_emit::bridge(program,binding);}
  if matches!(binding.name,"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter"){return super::writer_emit::bridge(program,binding);}
  if matches!(binding.name,"get"|"at"|"asString"){return super::views_emit::bridge(program,binding);}
@@ -49,5 +49,7 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
   ("value:&B,max_bytes:Option<i64>".to_string(),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
  };
  let generic=if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"stringify"){"<B:tsrust_native_json::Source>"}else{""};
- format!("fn tsrust_std_json_{name}{generic}({parameters})->Union{result} {{match {call} {{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}\n",name=if binding.name=="parseJsonc" {"parse_jsonc"}else{binding.name},result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
+ let order=|id|crate::records::runtime::declaration_order_suffix(program,ordered,id);
+ let ok_order=order(ok);let err_order=order(err);let error_order=order(error);
+ format!("fn tsrust_std_json_{name}{generic}({parameters})->Union{result} {{match {call} {{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}{ok_order}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64{error_order}}}{err_order}}})}}}}\n",name=if binding.name=="parseJsonc" {"parse_jsonc"}else{binding.name},result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
 }

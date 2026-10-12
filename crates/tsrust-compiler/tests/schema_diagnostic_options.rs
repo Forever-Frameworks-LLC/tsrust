@@ -172,3 +172,30 @@ function main() {
     let file = directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(file), 60));
 }
+
+#[test]
+fn logging_schema_results_initializes_observable_record_metadata() {
+    let directory = support::TempDirectory::new();
+    std::fs::write(directory.0.join("greeting.tsr"), "export function greeting():string{return 'Hello schema';}").unwrap();
+    let source = r#"
+import { greeting } from './greeting.tsr';
+import { s } from 'std:schema';
+const schema = s.string();
+function main() {
+  const parsed = schema.safeParse(greeting());
+  console.log(parsed);
+  console.log(schema.safeParse(JSON.parse('7')));
+  console.log(schema.safeParseJson('"Hello JSON"'));
+  console.log(schema.safeParseJson('7'));
+  console.log(schema.safeParseJson('broken'));
+}
+"#;
+    let file = directory.0.join("main.tsr");
+    std::fs::write(&file, support::format_round_trip(source)).unwrap();
+    let output = support::run(support::cli().arg("run").arg(file), 60);
+    support::success(&output);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for expected in ["Hello schema", "Hello JSON", "issues:", "validation", "invalid-json"] {
+        assert!(stdout.contains(expected), "Missing {expected}: {stdout}");
+    }
+}
