@@ -620,3 +620,19 @@ integer/string callers retain an i64 limit. Public floating builders and the pub
 construction-error representation are not yet integrated. No new source API,
 editor acceptance, benchmark measurement or consumer refresh is claimed.
 SQLite: `tsrust-schema-number-bounds-*-c998cad1.log`.
+
+## Generated number-schema storage
+
+Generated Schema<number> values now own NumberBounds. Direct floating input,
+checked native integer conversion and checked JSON extraction consult the stored
+plan before producing successful output. Conversion failures retain priority over
+bounds: an inexact integer reports number-precision rather than a range error.
+Direct integer bound failures report observed integer; JSON number failures report
+observed number. Validation borrows the plan without copying or rebuilding it.
+
+A formatted-source native witness injects exclusive floating bounds into generated
+storage, verifying both rejected endpoints, fractional success, direct integer
+bounds and conversion-error precedence. Existing number tests retain nonfinite,
+negative-zero, JSON and exact-conversion behavior. This is generated backend
+integration, not acceptance of public floating builders or their error signature.
+SQLite: `tsrust-schema-number-storage-*-b7db8d7b.log`.

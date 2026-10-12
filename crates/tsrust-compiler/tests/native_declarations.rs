@@ -612,3 +612,22 @@ function main(){const schema=s.int().gt(9007199254740992).lt(9007199254740994);
     }
     assert_eq!(checked_source("import {s} from 'std:schema';function main(){s.string().gt(0);}").err().unwrap().code,"schema-member");
 }
+
+#[test]
+fn schema_generated_number_bounds_check_direct_and_integer_input() {
+    let source=r#"import {s} from 'std:schema';function main(){const schema=s.number();
+ for(const input of [1.0,1.5,2.0]){match(schema.safeParse(input)){Ok(value)=>{console.log(value);},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}}
+ match(schema.safeParse(1)){Ok(value)=>{throw 'integer bound bypass';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);console.log(issue.observed);}}}
+ match(schema.safeParse(9007199254740993)){Ok(value)=>{throw 'precision bypass';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+}"#;
+    let checked=checked_source(&support::format_round_trip(source)).unwrap();
+    let (rust,features)=checked.emit_rust_with_native_features();assert!(features.is_empty());
+    let marker="bounds: tsrust_schema_plan::NumberBounds::default()";
+    assert_eq!(rust.matches(marker).count(),1);
+    let rust=rust.replace(marker,"bounds: tsrust_schema_plan::NumberBounds::default().gt(1.0).unwrap().lt(2.0).unwrap()");
+    let directory=support::TempDirectory::new();let file=directory.0.join("schema.rs");let binary=directory.0.join("schema");
+    std::fs::write(&file,rust).unwrap();
+    support::success(&support::run(support::rustc().arg("--edition=2024").arg(file).arg("-o").arg(&binary),60));
+    let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n1.5\ntoo-large\ntoo-small\ninteger\nnumber-precision\n");
+}

@@ -17,6 +17,15 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let expected = if null { "null" } else if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
     let pattern = if null { "Null" } else if boolean { "Bool(text)" } else { "String(text)" };
     let payload = if null { "TsrNull" } else if boolean { "text" } else { "String::Owned(text)" };
+    let bounds_guard = |input: &str, expected: &str, observed: &str| {
+        let error = record(NativeTypeId::SchemaError);
+        let issue = record(NativeTypeId::SchemaIssue);
+        let path = record(NativeTypeId::SchemaPath);
+        format!("if let Some(code)=_schema.bounds.check({input}) {{
+            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\")}};
+            return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
+        }}",result=result.index(),err_tag=tag(err))
+    };
     if owned && number {
         let error = record(NativeTypeId::SchemaError);
         let issue = record(NativeTypeId::SchemaIssue);
@@ -28,22 +37,14 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         let valid = if int_input { "value as i128 == input as i128" } else { "value.is_finite()" };
         let code = if int_input { "number-precision" } else { "number-nonfinite" };
         let observed = if int_input { "integer" } else { "number" };
+        let guard=bounds_guard("value","number",observed);
         return format!("fn {symbol}(_schema:&Record{schema},input:{input_type})->Union{result} {{
             {conversion}
-            if {valid} {{ return Union{result}::V{ok_tag}(Record{ok}{{field0:value}}); }}
+            if {valid} {{ {guard} return Union{result}::V{ok_tag}(Record{ok}{{field0:value}}); }}
             let issue=Record{issue}{{field0:String::Borrowed(\"{code}\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"{observed}\")}};
             Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
         }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
     }
-    let bounds_guard = |input: &str, expected: &str, observed: &str| {
-        let error = record(NativeTypeId::SchemaError);
-        let issue = record(NativeTypeId::SchemaIssue);
-        let path = record(NativeTypeId::SchemaPath);
-        format!("if let Some(code)=_schema.bounds.check({input}) {{
-            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\")}};
-            return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
-        }}",result=result.index(),err_tag=tag(err))
-    };
     if owned {
         let guard=if binding.name=="__safeParseOwnedString" {bounds_guard("input.as_ref()","string","string")}else if integer {bounds_guard("input","integer","integer")}else{String::new()};
         return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
@@ -54,7 +55,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let path = record(NativeTypeId::SchemaPath);
     if integer || number {
         let reader = if integer { "read_i64" } else { "read_f64" };
-        let guard=if integer {bounds_guard("value","integer","number")}else{String::new()};
+        let guard=bounds_guard("value",expected,"number");
         return format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
             match tsrust_native_json::{reader}(&input.value) {{
                 Ok(value) => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:value}}) }},

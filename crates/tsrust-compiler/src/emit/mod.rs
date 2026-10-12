@@ -2350,7 +2350,7 @@ impl Emitter<'_> {
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
-        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int)))) {
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number)))) {
             output.push_str("mod tsrust_schema_plan {\n");
             output.push_str(include_str!("../stdlib/schema/runtime.rs").trim_start_matches("//! Scalar schema plan storage shared by generated programs and backend tests.\n"));
             output.push_str("\n}\n");
@@ -2358,8 +2358,8 @@ impl Emitter<'_> {
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.native_record_declaration(index) != index { continue; }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int))) {
-                let plan=if record.application.as_ref().unwrap().resolved_arguments[0]==Type::Int {"IntBounds"}else{"StringBounds"};
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number))) {
+                let plan=match record.application.as_ref().unwrap().resolved_arguments[0] {Type::Int=>"IntBounds",Type::Number=>"NumberBounds",_=>"StringBounds"};
                 let _=writeln!(output,"struct Record{index} {{ bounds: tsrust_schema_plan::{plan} }}");
                 continue;
             }
@@ -3017,7 +3017,7 @@ impl Emitter<'_> {
             let id = self.native_record_declaration(id);
             if constructor {
                 let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
-                let fields=if binding.name=="__string" { "bounds: tsrust_schema_plan::StringBounds::default()" } else if binding.name=="__int" {"bounds: tsrust_schema_plan::IntBounds::default()"} else { "" };
+                let fields=if binding.name=="__string" { "bounds: tsrust_schema_plan::StringBounds::default()" } else if binding.name=="__int" {"bounds: tsrust_schema_plan::IntBounds::default()"} else if binding.name=="__number" {"bounds: tsrust_schema_plan::NumberBounds::default()"} else { "" };
                 let _ = writeln!(output, "fn {symbol}() -> Record{id} {{ Record{id} {{{fields}}} }}");
             } else if matches!(binding.name,"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt") {
                 output.push_str(&crate::stdlib::schema::emit::constraint(self.program,id,binding));
