@@ -35,6 +35,8 @@ it does not repeat timing. Both verify exact output and remove temporary builds.
 RSS includes startup, input preparation, output observation and runtime overhead.
 `node json-decoding-timing.mjs` and its `--rss` mode cover numeric, Unicode,
 nested/selective, malformed and deep decoding with matching direct Rust baselines.
+`node json-stream-timing.mjs` and `--rss` cover owned/borrowed JSONL readers
+and writers; each timed batch processes one complete file.
 Capture stdout as JSON and stderr as the run log; import closed records into
 SQLite and verify exact restoration before deleting loose copies.
 

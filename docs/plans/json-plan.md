@@ -1609,3 +1609,36 @@ SQLite evidence uses prefix `tsrust-json-decoding-` and suffix `-ec9c4b41`:
 and red/check/format logs. Eleven focused adapter/driver tests pass. Source and
 input hashes and individual measurements remain immutable. Streaming direct-Rust
 latency/RSS, public raw fragments and final installed consumers remain open.
+
+### JSONL streaming latency and peak RSS
+
+Four owned/borrowed reader/writer variants at 0/1/10000 records now have direct
+Rust and Node baselines. Each timed batch is one complete file pass, including
+open, processing, flush/close; fixture preparation and final file verification are
+outside timing. Three processes, eight warmups and 31 batches retain the established
+protocol: 108 process samples and 3,348 measured file passes. First-pass latency is
+separate; OS page cache is uncontrolled, so no disk cold-cache claim is made.
+Writer files match exact expected bytes after every process. Reader checksum
+oracles and buffer contracts are reused from accepted allocation probes.
+
+At 10000 records, median milliseconds per file pass (native/direct Rust/Node):
+owned read 2.822/1.806/2.340; borrowed read 2.815/1.746/2.385; owned write
+1.812/1.163/5.653; borrowed write 1.836/1.189/5.645. Native enforces bounded
+record validation; direct baselines assume this valid fixture. All use bounded
+buffering; no durability sync is included. Similar owned/borrowed costs provide no
+signal requiring an adapter-specific optimization. Native validation/encoding
+costs remain visible against direct Rust and must retain safety contracts.
+
+A separate 108-process RSS matrix performs one pass per process. At 10000 records,
+native/direct Rust median MiB: owned read 1.88/1.83, borrowed read 1.84/1.83,
+owned write 1.78/1.78, borrowed write 1.75/1.77. Node peaks are about 51 MiB.
+These include process/runtime overhead. Requested allocation evidence independently
+establishes bounded buffer storage and complete disposal; RSS alone is not a leak
+or allocation-count proof.
+
+Four focused adapter/protocol tests pass. SQLite evidence uses prefix
+`tsrust-json-stream-` and suffix `-ad4f3224`: timing/RSS JSON and log pairs,
+audit JSON/Python source, red/check/format logs. Sources, adapters, direct baselines,
+inputs and drivers are hashed in the raw records. Prior timing and allocation
+records remain unchanged. Public raw fragments, final performance/contract audit,
+installed refresh and release acceptance remain open.
