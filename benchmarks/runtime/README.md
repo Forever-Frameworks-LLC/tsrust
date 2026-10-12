@@ -37,6 +37,8 @@ RSS includes startup, input preparation, output observation and runtime overhead
 nested/selective, malformed and deep decoding with matching direct Rust baselines.
 `node json-stream-timing.mjs` and `--rss` cover owned/borrowed JSONL readers
 and writers; each timed batch processes one complete file.
+`python3 json_metrics.py` derives throughput and p50/p95 from accepted SQLite
+records without running benchmarks. Its focused test is `python3 json_metrics_test.py`.
 Capture stdout as JSON and stderr as the run log; import closed records into
 SQLite and verify exact restoration before deleting loose copies.
 

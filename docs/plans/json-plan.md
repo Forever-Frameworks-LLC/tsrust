@@ -1665,3 +1665,27 @@ Evidence prefix `tsrust-json-consumers-`, suffix `-12a6426e`, includes build,
 installation hashes, native and LSP logs plus their executable smoke scripts.
 Raw-fragment API work still requires its own affected checks and refresh. The
 consumer update accepts the current measured implementation, not complete S10.
+
+### Derived throughput and latency metrics
+
+`python3 benchmarks/runtime/json_metrics.py` reads the accepted optimized encoding,
+decoding and streaming timing records directly from SQLite. It produces 207
+case/engine rows with p50/p95 batch latency, p50 per-operation latency and median
+bytes/sec. Three process identities, 31 batches each, positive finite durations,
+consistent operation counts and independent expected checksums are required.
+Nearest-rank p95 uses all 93 batches within one source record; no measurements
+from different source records are pooled. Two focused tests cover known percentiles,
+byte-rate arithmetic, empty payloads and incomplete/invalid sample rejection.
+
+Byte counts mean offered JSON input for decoding, exact encoded output for
+encoding, and complete file bytes for streaming. Failed decoding throughput is
+explicitly an offered-byte rate, not proof of full consumption. First-operation
+samples remain separately available in original records. This derivation runs no
+benchmarks and does not alter earlier evidence.
+
+Representative native rates: typed numeric encoding at size 1000 is 480.9 MiB/s,
+typed numeric decoding 238.9 MiB/s; 10000-record JSONL reads about 162 MiB/s and
+writes 249–253 MiB/s. These fixture-specific rates include the documented operation
+and disposal costs; they are not universal parser throughput claims. Canonical
+result: `tsrust-json-metrics-e4705935.json`, with red/check/format logs in SQLite.
+Public raw fragments and the remaining final contract audit still block S10 closure.
