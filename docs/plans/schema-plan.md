@@ -1,7 +1,7 @@
 # S11 schema validation
 
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
-Only internal bounded issue collection is under focused verification. No public
+Internal bounded issue collection and checked numeric plans have focused verification. No public
 schema API, type inference, decoder fusion or performance acceptance is claimed.
 
 ## Required surface and coverage
@@ -14,12 +14,12 @@ executing differential cases; current web documentation alone is not a version p
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
-| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Default unknown-key policy awaiting owner decision |
+| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
-| safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Input ownership awaiting owner decision |
+| safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Second tranche, still required |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Second tranche, still required |
 | Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Second tranche, still required |
@@ -34,18 +34,23 @@ an intermediate dynamic tree or stringify/reparse. Ordinary in-memory validation
 and text decoding need separate benchmark scopes. Reusable runtime schema values
 must work alongside compiler-specialized literal plans, with explicit ownership.
 
-## Decisions pending
+## Approved contracts
 
-1. Recommend rejecting unknown object fields by default, with explicit stripping
-   and retention policies. Rejection catches misspellings; stripping accommodates
-   extra producer fields but discards data. The owner is choosing the default.
-2. Recommend consuming existing owned input on both success and failure, moving
-   reusable storage into successful output. Explicit clone retains the original.
-   The alternative borrows input and builds an independent output copy. This
-   question does not concern decoding borrowed JSON text.
+The owner approved both contracts on 2026-10-12:
 
-Keep these choices out of implemented public signatures until answered. String
-length units, default factories and public builder spellings need a concrete
+1. Object schemas reject unknown fields by default. Explicit stripping and
+   retention policies remain available; no silent field removal in the default mode.
+2. Validation of an existing owned value consumes the input on both success and
+   failure. Move reusable storage into successful output. Callers must explicitly
+   use `clone(input)` when they need to retain the original. Decoding borrowed JSON
+   text is a separate operation and does not consume the source string.
+
+Acceptance must verify default rejection, explicit alternate policies, nested
+unknown-field paths, successful storage transfer, failure cleanup, and checker/LSP
+rejection of input reuse after either outcome. Signatures, hover and examples must
+state the consuming contract. No implicit clone or shared mutable output is allowed.
+
+String length units, default factories and public builder spellings need a concrete
 contract review before their individual implementation gates. The existing checked
 JSON numeric extraction must not be bypassed by schema validation.
 
@@ -89,3 +94,24 @@ No public defaults or schema parsing behavior is accepted by this checkpoint.
 SQLite evidence: `tsrust-schema-issues-{red,check,format}-32db45b4.log`. The red
 witness fails because the issue backend is absent; the passing run executes only
 the five schema tests, not the full compiler suite. No timing run was performed.
+
+## Internal numeric validation checkpoint
+
+Reusable integer/number plans now validate JSON scalar input through the accepted
+checked extraction functions. Integer comparisons remain i64 operations; no
+floating conversion can weaken an exact bound. The number path retains precision
+rejection and negative-zero bits. Inclusive/exclusive endpoints are explicit;
+reversed bounds, equal exclusive endpoints and nonfinite number bounds are rejected
+by the private plan constructor. Public builder behavior is not yet frozen.
+
+Six focused numeric cases plus the five issue cases pass. They cover exact i64
+boundaries, unsigned overflow, fractions, wrong types, lossy integer-to-number
+conversion, negative zero, repeated plan reuse, range edges, invalid construction
+and zero retained-error budget. Plans keep their representation private so callers
+cannot bypass constructor checks. Errors retain only controlled type summaries.
+
+This backend reads an existing JsonValue for scalar validation. It does not yet implement
+the approved consuming public contract or inferred source schemas, or substitute
+dynamic-tree parsing for the required fused decoder. SQLite evidence uses
+`tsrust-schema-numeric-{red,check,final,format}-65abb4b2.log`. No measurement or public
+API acceptance is claimed.

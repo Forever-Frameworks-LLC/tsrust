@@ -1,12 +1,16 @@
 //! Bounded validation errors containing type summaries, never input values.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Kind { Missing, Null, Boolean, Number, String, Array, Object }
+pub(super) enum Kind { Missing, Null, Boolean, Number, Integer, String, Array, Object }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Code { Type, Missing }
+pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, TooSmall, TooLarge }
 impl Code {
     pub(super) fn as_str(self) -> &'static str {
-        match self { Self::Type => "type-mismatch", Self::Missing => "missing-field" }
+        match self {
+            Self::Type => "type-mismatch", Self::Missing => "missing-field",
+            Self::IntegerRange => "integer-range", Self::IntegerFractional => "integer-fractional",
+            Self::NumberPrecision => "number-precision", Self::TooSmall => "too-small", Self::TooLarge => "too-large",
+        }
     }
 }
 #[derive(Debug, Clone, Copy)]
