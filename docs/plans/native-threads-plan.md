@@ -46,3 +46,24 @@ error otherwise. Automatic join can deadlock with bounded-channel ownership;
 silent detach allows work to outlive its caller. No option is implemented or
 assumed approved. Native threads cannot be forcibly cancelled safely; any future
 cancellation is cooperative and separately specified.
+
+## Owned-data transfer classifier
+
+`analysis/thread_transfer.rs` now provides a finite graph walk over checked data
+types. Owned scalars, arrays, maps, sets and recursive records inspect every
+reachable payload. Native values require explicit thread_transfer capability and
+must not be borrowed representations. Missing field/type facts reject rather
+than silently permitting transfer. Borrowed unions and all callable forms reject
+at this boundary; spawn's separate capture analysis remains to be implemented.
+The classifier does not grant arbitrary closures Send-like capability.
+
+Two focused tests cover seven checked source shapes: recursive owned arrays,
+map payloads and owned Bytes pass; nested ByteView/JsonRaw, File arrays and stored
+callbacks reject. Tests load standard-library imports through the real project
+loader. The initial missing implementation and a single-file test setup failure
+remain preserved. SQLite evidence: `tsrust-thread-transfer-*-dc78ffdd`.
+Whole-project formatting changes no files or fingerprints.
+
+This internal helper is not yet connected to a public spawn/channel API. There
+is no source feature acceptance, timing result or consumer refresh for this step.
+Unjoined-handle semantics and subsequent capture/lifecycle checks remain open.
