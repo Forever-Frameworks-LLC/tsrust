@@ -1432,3 +1432,22 @@ Evidence: tsrust-json-object-alloc-*-59abe08d in SQLite. Prior records are uncha
 The current matrix totals 69 cases and 621 process samples. Public raw fragments,
 full regression, latency/throughput/RSS and wrapper-cost review, justified
 optimization and final installed-consumer acceptance remain required for S10.
+
+### Family regression progress and catalog repair
+
+The complete workspace regression started at 6d40badf, with Cargo metadata listing
+355 executable test/doctest targets. The run is still in progress; no full-pass
+acceptance is claimed. VS Code build, executable discovery, grammar and isolated
+integration checks pass, including cross-file diagnostics, hover/completion,
+restart, CLI checking and native execution. Their closed logs are verified in
+SQLite under tsrust-s10-extension-*-6d40badf.
+
+The first compiler failure was an obsolete catalog-size assertion: std:json grew
+from 12 entries to 39. The runner now requires nonempty entries, unique names and
+nonempty examples, then executes every example instead of freezing catalog size.
+Failure diagnostics identify the catalog entry. All 41 current examples pass in
+the focused repaired test; the three other tests already passed in the original
+full run and were not repeated. The original failure remains in the active full
+log; the repaired result is tsrust-s10-json-catalog-repair-6d40badf in SQLite.
+Remaining targets and the final completeness audit must finish before regression
+acceptance. Raw fragments and performance/release acceptance remain open.

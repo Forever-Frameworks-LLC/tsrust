@@ -31,10 +31,15 @@ fn json_rejects_invalid_calls_and_forged_values() {
 fn json_catalog_examples_execute_through_cli() {
  let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
  let dir=support::TempDirectory::new();let path=dir.0.join("example.tsr");
- let entries=catalog["std:json"].as_array().unwrap();assert_eq!(entries.len(),12);
- for entry in entries {for example in entry["examples"].as_array().unwrap() {
+ let entries=catalog["std:json"].as_array().unwrap();assert!(!entries.is_empty());
+ let mut names=std::collections::BTreeSet::new();
+ for entry in entries {
+  assert!(names.insert(entry["name"].as_str().unwrap()),"duplicate JSON catalog entry");
+  let examples=entry["examples"].as_array().unwrap();assert!(!examples.is_empty(),"missing examples for {}",entry["name"]);
+  for example in examples {
   std::fs::write(&path,support::format_round_trip(example["source"].as_str().unwrap())).unwrap();
-  let output=support::run(support::cli().arg("run").arg(&path).current_dir(&dir.0),90);support::success(&output);
+  let output=support::run(support::cli().arg("run").arg(&path).current_dir(&dir.0),90);
+  assert!(output.status.success(),"{}: {}",entry["name"],String::from_utf8_lossy(&output.stderr));
   assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap(),"{}",entry["name"]);
  }}
 }
