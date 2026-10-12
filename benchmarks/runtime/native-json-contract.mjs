@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_refinement'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON refinement identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON refinement fingerprint');
+  if(row.iterations!==2000||row.inputText!=='true'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One parse, boolean guard and boolean payload branch')throw Error('JSON refinement denominator');
+  if(!containsCodeSnippet(source,"  let checksum = seed;\n  let i = 0;\n  while (i < n) {\n    const value = JSON.parse(input);\n    if (typeof value !== 'boolean') { throw 'Expected boolean'; }\n    if (value) { checksum += 1; }\n    i++;\n  }\n  return checksum;\n"))throw Error('JSON refinement operation placement');
+  return;
+ }
+
  if(row.id==='native_json_views'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON view identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON view fingerprint');
@@ -111,4 +119,9 @@ export function inspectionChecksum(n,seed,input){
 export function viewChecksum(n,seed,input){
  if(input!=='{"items":[42,null]}'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*42))throw Error('JSON view oracle inputs');
  return seed+n*42;
+}
+
+export function refinementChecksum(n,seed,input){
+ if(input!=='true'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n))throw Error('JSON refinement oracle inputs');
+ return seed+n;
 }

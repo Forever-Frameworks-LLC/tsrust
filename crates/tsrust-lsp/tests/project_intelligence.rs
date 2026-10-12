@@ -2141,3 +2141,12 @@ fn json_child_view_hover_and_signatures_preserve_lifetimes_and_absence() {
  let signature=ask(&index,&source,"value, 0","textDocument/signatureHelp");
  assert!(signature.to_string().contains("JsonValue | JsonView"),"{signature}");
 }
+
+#[test]
+fn json_boolean_refinement_checks_and_reports_boolean_local() {
+ let source=tsrust_compiler::format("function main(){const value=JSON.parse('true');if(typeof value==='boolean'){const result:boolean=value;console.log(result);}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"result);","textDocument/hover");assert!(hover.to_string().contains("boolean"),"{hover}");
+ let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("boolean guard"),"{hover}");
+}

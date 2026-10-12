@@ -631,6 +631,8 @@ pub enum CallTarget {
     Number,
     StoredCallableField(usize),
     BooleanConversion,
+    /// Checked projection after a stable JSON boolean guard.
+    JsonBoolean,
     StringConversion,
     ArrayIsArray,
     ObjectIs,

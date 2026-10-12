@@ -1,3 +1,4 @@
+mod json_refinement;
 mod nullable_link_emit;
 mod native_view_record_parameters;
 mod native_view_family_emit;
@@ -8521,6 +8522,7 @@ impl Emitter<'_> {
                         self.typed_native_result(&call,expr.span,None,"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))
                     }else{crate::native_emit::call(binding, arguments)}
                 }
+                CallTarget::JsonBoolean => self.json_boolean_projection(fun, &args[0]),
                 target @ (CallTarget::BooleanConversion
                 | CallTarget::StringConversion
                 | CallTarget::ArrayIsArray) => self.value_builtin_call(fun, target, args),

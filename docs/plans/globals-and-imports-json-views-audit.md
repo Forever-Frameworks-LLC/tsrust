@@ -24,3 +24,10 @@ unchecked cast. Native dependencies are selected from usage automatically.
 Compiler/native ownership tests, executable catalog examples, editor hover and
 signature checks, inventory reconciliation and matched untimed workload evidence
 are recorded in [the acceptance milestone](../milestones/json-views.md).
+
+
+The existing typeof keyword now also supplies a stable boolean proof. Payload
+access copies a boolean while preserving JSON storage. Mutation invalidates the
+proof; joins and loop back edges must preserve it. This adds no public identity
+or import and does not convert exact JSON integers to floating point. String and
+numeric refinement remain deferred with explicit checked readers available.

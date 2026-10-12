@@ -1,3 +1,4 @@
+mod json_refinement;
 mod native_view_mutations;
 mod native_view_expression_calls;
 mod native_view_family_provenance;
@@ -7801,6 +7802,10 @@ impl Analyzer {
         context
             .condition_flows
             .remove(&(expr.span.start, expr.span.end));
+        if mode != Mode::Mutate && expected != crate::flow::place(expr,&context.names).and_then(|place|self.place_type(context,&place)) {
+            if let Some(proof)=self.json_boolean_proof(context,expr) {return self.project_json_boolean(context,expr,loans,proof).map(Some);}
+        }
+
         if !matches!(
             expr.kind,
             ExprKind::Project { .. } | ExprKind::Selected { .. }
@@ -8416,6 +8421,7 @@ impl Analyzer {
                 );
             }
         }
+        self.remember_json_boolean(context,expr_span,op,left,right,&mut yes,&mut no);
         context
             .condition_flows
             .insert((expr_span.start, expr_span.end), (yes, no));
@@ -10165,6 +10171,7 @@ impl Analyzer {
         if let ExprKind::Project { narrowed, .. } = &expr.kind {
             return Some(*narrowed);
         }
+        if self.json_boolean_proof(context,expr).is_some(){return Some(Type::Boolean);}
         if let Some((_, _, narrowed)) = self.flow_view(context, expr) {
             return Some(narrowed);
         }

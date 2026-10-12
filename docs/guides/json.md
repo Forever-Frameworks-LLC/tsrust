@@ -87,8 +87,10 @@ consuming it. JSON strings, numbers and booleans report `"string"`, `"number"` a
 `"boolean"`. JSON null, arrays and objects report `"object"`, matching the keyword's
 ordinary categories. Optional JSON values report `"undefined"` when absent.
 
-This inspection does not yet convert the wrapper into a scalar type. Continue
-using checked scalar extraction for access. `Array.isArray(value)` inspects whether the contained JSON value is an array.
+A stable `typeof value === "boolean"` guard permits boolean access, including
+copying the payload into a local or returning it. The original JSON storage stays
+unchanged. String and numeric guards still require checked scalar extraction;
+there is no implicit rounding of exact JSON integers. `Array.isArray(value)` inspects whether the contained JSON value is an array.
 `value === null` (and reversed/negated comparisons) recognizes contained JSON null
 without confusing it with undefined. Both operations borrow their inputs. Richer
 safe refinement remains tracked in the S10 plan. The existing
@@ -127,5 +129,21 @@ owned JsonValue.
 
 A retained view prevents moving or replacing its owner and cannot outlive it.
 Views cannot be constructed or cloned. Missing and error branches carry no child
-loan; a present JSON null still retains its owner. Checking a category does not
-yet expose direct property, index or scalar operations on the wrapper.
+loan; a present JSON null still retains its owner. Boolean guards permit boolean payload access. Other category checks do not yet
+expose direct property, index or scalar operations on the wrapper.
+
+
+```tsrust
+function readFlag(text: string): boolean {
+  const value = JSON.parse(text);
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return false;
+}
+```
+
+`readFlag("true")` returns true. Refinement applies to stable bindings and record
+fields, including optional JsonValue and JsonView. Replacing or mutating the
+source invalidates the proof. A loop must recheck the category after a change;
+a proof from a path that does not reach the use cannot justify access.

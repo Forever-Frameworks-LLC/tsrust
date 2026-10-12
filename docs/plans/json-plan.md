@@ -591,3 +591,17 @@ See [focused acceptance](../milestones/json-views.md) and
 are not yet in the installed consumers. Safe scalar refinement, borrowed string
 projections and dynamic construction remain open. The matched child workload is
 ready and passed untimed parity checks; no timing acceptance is claimed.
+
+
+### Boolean refinement source acceptance
+
+A stable typeof boolean guard now permits native boolean payload access from
+JsonValue and JsonView, including optional carriers. Access borrows the wrapper
+and copies a boolean. The proof uses ordinary place invalidation, branch joins
+and loop back-edge validation. Explicit owning wrapper transport remains possible
+when its declared type is expected. Strings and numbers still require checked
+extraction; borrowed string projection and exact numeric refinement remain open.
+
+[Focused acceptance](../milestones/json-boolean-refinement.md) records native,
+editor, regression and untimed matched-workload checks. Installed consumers still
+predate child views and refinement. This does not close S10 or its measurements.

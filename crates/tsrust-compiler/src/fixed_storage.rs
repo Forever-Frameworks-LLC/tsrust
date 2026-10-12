@@ -854,7 +854,7 @@ impl<'a> Proof<'a> {
                     .iter()
                     .zip(crate::native_bindings::BINDINGS[binding].parameters)
                     .all(|(argument, parameter)| self.expr(id, argument, parameter.access)),
-                CallTarget::BooleanConversion | CallTarget::ArrayIsArray | CallTarget::ObjectHasOwn | CallTarget::ObjectIs | CallTarget::ObjectKeys | CallTarget::ObjectValues | CallTarget::ObjectEntries(_)
+                CallTarget::JsonBoolean | CallTarget::BooleanConversion | CallTarget::ArrayIsArray | CallTarget::ObjectHasOwn | CallTarget::ObjectIs | CallTarget::ObjectKeys | CallTarget::ObjectValues | CallTarget::ObjectEntries(_)
                 | CallTarget::StringRaw | CallTarget::StringFromCodePoint | CallTarget::StringFromCharCode => {
                     args.iter().all(|a| self.expr(id, a, Mode::Read))
                 }

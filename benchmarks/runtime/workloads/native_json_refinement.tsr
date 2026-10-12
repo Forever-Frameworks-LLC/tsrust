@@ -1,0 +1,18 @@
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = JSON.parse(input);
+    if (typeof value !== 'boolean') {
+      throw 'Expected boolean';
+    }
+
+    if (value) {
+      checksum += 1;
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
