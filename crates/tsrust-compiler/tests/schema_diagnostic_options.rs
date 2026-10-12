@@ -199,3 +199,25 @@ function main() {
         assert!(stdout.contains(expected), "Missing {expected}: {stdout}");
     }
 }
+
+#[test]
+fn logging_typed_object_schema_results_keeps_field_metadata() {
+    let source = r#"
+import { s } from 'std:schema';
+function main() {
+  const schema = s.object({ name: s.string(), age: s.int() });
+  console.log(schema.safeParse({ name: 'Pat', age: 7 }));
+  console.log(schema.safeParseJson('{"name":"Sam","age":8}'));
+  console.log(schema.safeParse(JSON.parse('{"name":"Lee","age":9}')));
+  const empty = s.object({});
+  console.log(empty.safeParse({}));
+  console.log(empty.safeParseJson('{}'));
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let file = directory.source(&support::format_round_trip(source));
+    let output = support::run(support::cli().arg("run").arg(file), 60);
+    support::success(&output);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Pat") && stdout.contains("Sam") && stdout.contains("Lee"), "{stdout}");
+}

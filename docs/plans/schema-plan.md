@@ -2070,3 +2070,20 @@ aliases. This does not change Copilot settings. Focused editor protocol checks
 cover these suggestions and the expanded namespace hover. Evidence records use
 `tsrust-schema-result-logging-*`, `tsrust-schema-discovery-*` and
 `tsrust-schema-namespace-*`. S11 acceptance and timing remain pending.
+
+### Observable typed schema outputs
+
+The scalar-result repair exposed the same missing field-order metadata on typed
+object outputs. Object construction now uses a shared emitter helper for direct
+owned validation, JSON value validation and fused text decoding, including empty
+objects. The regression logs all three input forms and empty-object results.
+
+The remaining acceptance audit must cover observable retained objects, callback
+pipelines and reversible union projections. Their handwritten constructors and
+restoration paths need review: restoration must preserve the original input field
+order, not substitute declaration order. This audit remains required before S11
+acceptance. Focused evidence uses `tsrust-schema-object-logging-*`.
+
+Recursive schema API status: the owner prefers explicit recursion and requested
+examples of `s.recursive<T>(self => ...)`. Examples were presented; the final
+contract remains proposed. Getter-based recursion has not been approved.

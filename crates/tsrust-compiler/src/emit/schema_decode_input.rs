@@ -54,7 +54,7 @@ impl Emitter<'_> {
                     values.push(format!("field{index}"));
                 }
                 body.push_str("if !fields.is_empty(){for(key,value)in &fields{let mut unknown_path=path.clone();unknown_path.push(tsrust_schema_issues::Segment::Field(key));issues.push(&unknown_path,Code::UnknownField,Kind::Missing,tsrust_source_kind(*value));}return None;}");
-                body.push_str(&format!("Some(Record{}{{{}}})",self.native_record_declaration(id),values.join(",")));body
+                body.push_str(&format!("Some({})",self.schema_output_record(id,&values.join(","))));body
             },
             _=>mismatch("Object"),
         };

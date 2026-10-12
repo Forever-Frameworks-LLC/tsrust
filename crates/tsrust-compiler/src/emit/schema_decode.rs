@@ -129,7 +129,7 @@ impl Emitter<'_> {
                     values.push(format!("field{field}:field{field}.unwrap()"));
                 }
                 code.push_str("if policy.unwrap_or(schema.reject_unknown){for(key,value)in &fields{valid=false;let mut unknown=path.clone();unknown.push(tsrust_schema_issues::Segment::Field(key));issues.push(&unknown,Code::UnknownField,Kind::Missing,tsrust_source_kind(*value));}}if !valid{return None;}*remaining=Some(fields);");
-                code.push_str(&format!("Some(Record{}{{{}}})",self.native_record_declaration(object),values.join(",")));code
+                code.push_str(&format!("Some({})",self.schema_output_record(object,&values.join(","))));code
             },
             _=>unreachable!("checked schema text output"),
         };

@@ -5,6 +5,12 @@ impl Emitter<'_> {
         crate::records::runtime::declaration_order_suffix(self.program, &self.record_runtime.ordered, id)
     }
 
+    pub(super) fn schema_output_record(&self, id: usize, fields: &str) -> String {
+        let order = self.schema_record_order(id);
+        let order = if fields.is_empty() { order.trim_start_matches(',') } else { &order };
+        format!("Record{}{{{fields}{order}}}", self.native_record_declaration(id))
+    }
+
     fn schema_factory_value(&self,output:Type,factory:&str,errors:&crate::error_effects::FailureSet)->String {
         let family=self.program.schema_factories[&output];
         let source=self.result_storage.borrow().get(&family).cloned();
@@ -202,7 +208,7 @@ impl Emitter<'_> {
                     body.push_str(&format!("if !valid{{{}}}",(0..=field).map(|field|format!("field{field}.take();")).collect::<String>()));
                 }
                 let fields=(0..self.program.records[object].fields.len()).map(|field|format!("field{field}:field{field}.unwrap()")).collect::<Vec<_>>().join(",");
-                body.push_str(&format!("if valid{{Some(Record{}{{{fields}}})}}else{{None}}",self.native_record_declaration(object)));
+                body.push_str(&format!("if valid{{Some({})}}else{{None}}",self.schema_output_record(object,&fields)));
                 body
             },
             Type::Number if input_type==Type::Int=>{
@@ -277,7 +283,7 @@ impl Emitter<'_> {
                     let extra=self.native_type(self.program.records[output_object].fields[1].ty.unwrap());
                     let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
                     format!("Record{}{{field0:Record{}{{{fields}}},field1:<{extra}>::from_values(input.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}})))}}",self.native_record_declaration(output_object),self.native_record_declaration(object),self.native_record_declaration(json))
-                }else{format!("Record{}{{{fields}}}",self.native_record_declaration(object))};
+                }else{self.schema_output_record(object,&fields)};
                 body.push_str(&format!("return if valid{{Some({result})}}else{{None}};}}"));
                 ("Object",body)
             },
