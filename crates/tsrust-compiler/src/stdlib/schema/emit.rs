@@ -35,8 +35,18 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
             Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
         }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
     }
+    let string_guard = |input: &str| {
+        let error = record(NativeTypeId::SchemaError);
+        let issue = record(NativeTypeId::SchemaIssue);
+        let path = record(NativeTypeId::SchemaPath);
+        format!("if let Some(code)=_schema.bounds.check({input}) {{
+            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"string\"),field4:String::Borrowed(\"string\")}};
+            return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
+        }}",result=result.index(),err_tag=tag(err))
+    };
     if owned {
-        return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
+        let guard=if binding.name=="__safeParseOwnedString" {string_guard("input.as_ref()")}else{String::new()};
+        return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
     }
     let value = record(NativeTypeId::JsonValue);
     let error = record(NativeTypeId::SchemaError);
@@ -55,9 +65,10 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
             }}
         }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err));
     }
+    let guard=if binding.name=="__safeParseString" {string_guard("&text")}else{String::new()};
     format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
         match input.value {{
-            tsrust_native_json::Value::{pattern} => Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),
+            tsrust_native_json::Value::{pattern} => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}) }},
             other => {{
                 let observed=tsrust_native_json::kind(&other);
                 let issue=Record{issue}{{field0:String::Borrowed(\"type-mismatch\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(observed)}};

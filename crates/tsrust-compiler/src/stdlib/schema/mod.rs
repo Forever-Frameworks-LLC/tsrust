@@ -13,3 +13,6 @@ mod array;
 mod presence;
 pub(crate) mod namespace;
 pub(crate) mod emit;
+
+#[cfg(test)]
+mod runtime;

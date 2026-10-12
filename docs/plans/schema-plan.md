@@ -472,3 +472,24 @@ acceptance of optional/nullable schemas.
 Four focused presence cases join the internal schema suite. Evidence:
 `tsrust-schema-presence-{red,check,format}-b3bd707a.log` in SQLite. No timing or
 consumer refresh is claimed.
+
+## Generated string-schema plan storage
+
+Generated Schema<string> records now own native StringBounds storage. Constructors
+initialize unconstrained bounds; both owned-string and JsonValue validation read
+that same stored plan before producing typed output. Other scalar schemas retain
+their existing representation. Runtime construction checks use signed limits,
+reject negatives and contradictions with structured internal errors, and combine
+repeated constraints by retaining the stricter bound. No shared owner, clone or
+per-validation plan reconstruction is introduced.
+
+The focused compiler selection passes 35 internal schema-related tests and 15
+source/native tests. A separate generated-code witness injects a constrained plan
+into the emitted constructor and executes too-small, valid multibyte and too-large
+cases. That injection is backend evidence only: it does not accept public .min()
+or .max() syntax. The representative string benchmark retains untimed native/Node
+parity. Public builder lowering, source construction-error identity and catches,
+editor documentation and constraint workloads remain required before acceptance.
+
+SQLite: `tsrust-schema-storage-{red,native,check,generated,format,verify}-c370d757.log`.
+No new timing or consumer refresh is claimed.

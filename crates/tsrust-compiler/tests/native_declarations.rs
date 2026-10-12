@@ -524,3 +524,20 @@ function main(){const schema=make();
     assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
     assert_eq!(checked_source("import {s} from 'std:schema';function main(){s.null().safeParse(undefined);}").err().unwrap().code,"schema-input");
 }
+
+#[test]
+fn schema_generated_string_plan_enforces_stored_bounds() {
+    // Backend injection only: public consuming builders are not implemented yet.
+    let calls=["a","😀a","abcd"].map(|input|format!("match(schema.safeParse('{input}')){{Ok(value)=>{{console.log(value);}},Err(error)=>{{for(const issue of error.issues){{console.log(issue.code);}}}}}}" )).join("");
+    let source=format!("import {{s}} from 'std:schema';function main(){{const schema=s.string();{calls}}}");
+    let checked=checked_source(&source).unwrap();let (rust,features)=checked.emit_rust_with_native_features();
+    assert!(features.is_empty());
+    let marker="bounds: tsrust_schema_plan::StringBounds::default()";
+    assert_eq!(rust.matches(marker).count(),1);
+    let rust=rust.replace(marker,"bounds: tsrust_schema_plan::StringBounds::default().min(2).unwrap().max(3).unwrap()");
+    let directory=support::TempDirectory::new();let file=directory.0.join("schema.rs");let binary=directory.0.join("schema");
+    std::fs::write(&file,rust).unwrap();
+    support::success(&support::run(support::rustc().arg("--edition=2024").arg(file).arg("-o").arg(&binary),60));
+    let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n😀a\ntoo-large\n");
+}
