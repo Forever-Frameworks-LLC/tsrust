@@ -1,7 +1,9 @@
 # Program-owned module state
 
-Status: focused globals implementation checks pass. Source checkpoint and consumer
-refresh are next. S11 remains in progress.
+Status: globals checkpoint `99f5e306` passed focused checks and installed smoke
+checks. A subsequent editor workspace scan exposed private function-expression
+recursion qualification; the repair passes its focused regression suite. Final
+replacement checkpoint and consumer refresh are in progress. S11 remains open.
 
 ## Approved direction
 
@@ -85,3 +87,14 @@ This is focused globals acceptance, not S11 or release acceptance. Diagnostic-op
 drafts at `8d47c02b` remain unfinished. Installed-consumer refresh follows the source
 checkpoint; then resume S11. Full family regressions and measurement remain due at
 the S11 milestone. See [module variables](../guides/module-state.md) for usage.
+
+## Consumer integration follow-up
+
+Release CLI check/run and installed LSP imported-schema hover passed. Restarting
+VS Code cleared the globals syntax/export diagnostics. Its broader workspace scan
+then found private recursive function-expression names qualified as module names.
+The linker now preserves each function expression's private written name inside
+its body. Both named-function-expression tests and all ten globals tests pass after
+the repair. The complete `benchmarks/runtime/workloads` checker scan passes with no diagnostics.
+Consumers are being rebuilt from the repair checkpoint. This supersedes the earlier
+readiness claim.

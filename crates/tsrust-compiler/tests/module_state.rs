@@ -122,11 +122,13 @@ function add(n: int): void {
 }
 function apply(action: Mutable<Function<void, []>>) { action(); }
 function shadow(): int { function read():int{return count;} const count = 99; return read(); }
+function factorial():int{const recur=function fact(n:int):int{return n<=1?1:n*fact(n-1);};return recur(4);}
 function main() {
   add(3);
   apply(() => { count++; });
   strictEqual(count, 4);
   strictEqual(shadow(), 99);
+  strictEqual(factorial(), 24);
   const size = () => values.length;
   strictEqual(size(), 3);
 }

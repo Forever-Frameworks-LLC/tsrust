@@ -684,6 +684,9 @@ impl Linker<'_> {
                         self.span(&mut parameter.span);
                     }
                     let mut scope = locals.clone();
+                    // A named function expression's written name is private to
+                    // its own body; preserve it until lexical resolution.
+                    scope.insert(crate::local_functions::written_name(&function.name.text).to_owned());
                     for ((name, annotation, callback), initializer) in function.params.iter_mut().zip(&mut function.parameter_initializers) {
                         self.initializer(initializer, &scope);
                         parameter_pattern_names(name, &function.body, &mut scope);
