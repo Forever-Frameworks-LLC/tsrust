@@ -70,3 +70,20 @@ eager cleanup, default TTL, duration units, overflow behavior or byte accounting
 The source-facing layer must invoke expiration before relying on live-entry
 results; the raw LRU core deliberately requires an explicit supplied clock value.
 Source/compiler/editor integration and matched workloads remain outstanding.
+
+## Source key compatibility
+
+The core now separates storage from key hash/equality/normalization policy.
+Ordinary Rust-key tests keep their randomized Hash/Eq policy. The source adapter
+in `key_policy.rs` reuses existing Map/Set operations directly, so floating-point
+keys do not accidentally inherit Rust's unavailable f64 Eq/Hash contract or a
+different equality rule. Neither policy clones keys. The adapter uses the existing
+source key eligibility contract; it does not expand supported source key types.
+
+A compiled native witness combines the actual Map/Set key runtime, cache core
+and adapter. It verifies equivalent NaN payloads, canonical positive zero after
+inserting negative zero, infinity, and distinct exact integers above 2^53 whose
+hashes may collide. All six cache backend tests pass. SQLite evidence:
+`tsrust-cache-keys-{red,check,final,format}-dfbb70eb.log`.
+This closes a native integration mismatch; public registry/type checking,
+expiration policy, editor surface and matched workloads remain outstanding.

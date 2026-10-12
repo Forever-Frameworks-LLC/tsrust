@@ -3,9 +3,20 @@ use std::{collections::{BTreeSet,HashMap,hash_map::RandomState},hash::{BuildHash
 
 struct Entry<K,V> { key:K,value:V,hash:u64,deadline:Option<Instant>,previous:Option<usize>,next:Option<usize> }
 
-pub struct Lru<K,V> {
+pub trait KeyPolicy<K> {
+ fn hash(&self,key:&K)->u64;
+ fn same(&self,left:&K,right:&K)->bool;
+ fn normalize(&self,key:K)->K {key}
+}
+pub struct RustKeys(RandomState);
+impl<K:Hash+Eq> KeyPolicy<K> for RustKeys {
+ fn hash(&self,key:&K)->u64{self.0.hash_one(key)}
+ fn same(&self,left:&K,right:&K)->bool{left==right}
+}
+
+pub struct Lru<K,V,P=RustKeys> {
  capacity:usize,
- hash:RandomState,
+ keys:P,
  // Hash buckets hold slot indices; the only owned key lives in its entry.
  index:HashMap<u64,Vec<usize>>,
  deadlines:BTreeSet<(Instant,usize)>,
@@ -16,11 +27,16 @@ pub struct Lru<K,V> {
 }
 impl<K:Hash+Eq,V> Lru<K,V> {
  pub fn new(capacity:NonZeroUsize)->Self {
-  Self{capacity:capacity.get(),hash:RandomState::new(),index:HashMap::new(),deadlines:BTreeSet::new(),slots:Vec::new(),free:Vec::new(),first:None,last:None}
+  Self::with_policy(capacity,RustKeys(RandomState::new()))
+ }
+}
+impl<K,V,P:KeyPolicy<K>> Lru<K,V,P> {
+ pub fn with_policy(capacity:NonZeroUsize,keys:P)->Self {
+  Self{capacity:capacity.get(),keys,index:HashMap::new(),deadlines:BTreeSet::new(),slots:Vec::new(),free:Vec::new(),first:None,last:None}
  }
  pub fn len(&self)->usize {self.slots.len()-self.free.len()}
  fn find(&self,key:&K)->Option<usize>{
-  self.index.get(&self.hash.hash_one(key))?.iter().copied().find(|&slot|self.slots[slot].as_ref().is_some_and(|entry|entry.key==*key))
+  self.index.get(&self.keys.hash(key))?.iter().copied().find(|&slot|self.slots[slot].as_ref().is_some_and(|entry|self.keys.same(&entry.key,key)))
  }
  pub fn peek(&self,key:&K)->Option<&V>{self.slots[self.find(key)?].as_ref().map(|entry|&entry.value)}
  pub fn get(&mut self,key:&K)->Option<&V>{
@@ -33,7 +49,7 @@ impl<K:Hash+Eq,V> Lru<K,V> {
  }
  /// Stores an absolute monotonic deadline; the caller drives expiration explicitly.
  pub fn insert_until(&mut self,key:K,value:V,deadline:Option<Instant>)->Option<(K,V)>{
-  let hash=self.hash.hash_one(&key);
+  let key=self.keys.normalize(key);let hash=self.keys.hash(&key);
   let replaced=if let Some(slot)=self.find(&key){Some(self.remove_slot(slot))}
    else if self.len()==self.capacity {Some(self.remove_slot(self.first.expect("full cache has an oldest entry")))} else {None};
   let slot=self.free.pop().unwrap_or_else(||{self.slots.push(None);self.slots.len()-1});

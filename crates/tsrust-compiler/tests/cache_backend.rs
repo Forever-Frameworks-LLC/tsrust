@@ -1,11 +1,37 @@
 #[path = "../src/stdlib/cache/lru.rs"]
 mod lru;
+mod support;
+#[path = "../src/runtime/sets.rs"]
+mod source_keys;
 use lru::Lru;
 use std::{hash::{Hash,Hasher},num::NonZeroUsize};
 
 #[derive(PartialEq,Eq,Debug)]
 struct Key(u32);
 impl Hash for Key {fn hash<H:Hasher>(&self,state:&mut H){0u8.hash(state);}}
+
+#[test]
+fn cache_uses_existing_source_key_equality_and_normalization(){
+ let source=format!("mod tsr_cache {{ {} }}\n{}\n{}\n{}",include_str!("../src/stdlib/cache/lru.rs"),source_keys::SET_RUNTIME,include_str!("../src/stdlib/cache/key_policy.rs"),r#"
+type String=std::borrow::Cow<'static,str>;
+#[derive(Clone)] struct TsrNull;
+#[derive(Clone)] struct TsrUndefined;
+fn main(){
+ let mut cache=tsr_cache::Lru::with_policy(std::num::NonZeroUsize::new(3).unwrap(),TsrCacheKeys);
+ cache.insert(-0.0,11);assert_eq!(cache.get(&0.0),Some(&11));
+ let old=cache.insert(0.0,22).unwrap();assert_eq!(old.0.to_bits(),0.0f64.to_bits());
+ let first=f64::from_bits(0x7ff8000000000001);let second=f64::from_bits(0x7ff8000000000002);
+ cache.insert(first,33);assert_eq!(cache.get(&second),Some(&33));assert_eq!(cache.insert(second,44).unwrap().1,33);
+ cache.insert(f64::INFINITY,55);assert_eq!(cache.len(),3);assert_eq!(cache.remove(&f64::NAN).unwrap().1,44);
+ let mut exact=tsr_cache::Lru::with_policy(std::num::NonZeroUsize::new(2).unwrap(),TsrCacheKeys);
+ exact.insert(9007199254740992i64,1);exact.insert(9007199254740993i64,2);
+ assert_eq!(exact.get(&9007199254740992),Some(&1));assert_eq!(exact.get(&9007199254740993),Some(&2));
+}
+"#);
+ let directory=support::TempDirectory::new();let path=directory.0.join("keys.rs");std::fs::write(&path,source).unwrap();let binary=directory.0.join("keys");
+ support::success(&support::run(support::rustc().args(["--edition=2024","--error-format=short"]).arg(path).arg("-o").arg(&binary),60));
+ support::success(&support::run(&mut std::process::Command::new(binary),10));
+}
 
 #[test]
 fn deadlines_expire_at_boundary_without_stale_replacement_entries(){
