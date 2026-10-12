@@ -605,3 +605,20 @@ extraction; borrowed string projection and exact numeric refinement remain open.
 [Focused acceptance](../milestones/json-boolean-refinement.md) records native,
 editor, regression and untimed matched-workload checks. Installed consumers still
 predate child views and refinement. This does not close S10 or its measurements.
+
+
+### Borrowed text reader preparation
+
+The native length and five search helpers now accept ordinary borrowed UTF-8
+slices instead of requiring the owned/static string carrier. Existing generated
+string calls retain their behavior through dereference coercion. No public API
+or projection is added by this preparatory change. A local borrowed slice cannot
+be substituted into the static owned-string representation; public refinement
+must still retain its actual source lifetime or perform a scoped read.
+
+SQLite records tsrust-borrowed-string-readers-red.log and green.log retain the
+initial native signature rejection and nine passing checks: a local-slice,
+zero-allocation witness plus eight existing search/last-index regressions. These
+cover Unicode byte boundaries, extreme positions, empty/missing needles,
+evaluation order and ownership. tsrust-borrowed-string-readers-format.log records
+whole-project formatting. No new workload semantics or timing are introduced.

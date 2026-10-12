@@ -446,7 +446,7 @@ pub fn tsr_string_add(left: &String, right: &String, failure: &'static str) -> S
     String::Owned(output)
 }
 
-pub fn tsr_length(value: &String) -> i64 {
+pub fn tsr_length(value: &str) -> i64 {
     i64::try_from(value.len()).expect("string length exceeds int range")
 }
 
@@ -575,42 +575,42 @@ pub fn string_search_position(len: usize, position: Option<i64>, default: usize)
     })
 }
 
-pub fn tsr_string_starts_with(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_starts_with(value: &str, needle: &str, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
         .expect("string search position is not on a UTF-8 boundary")
-        .starts_with(needle.as_ref())
+        .starts_with(needle)
 }
 
-pub fn tsr_string_ends_with(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_ends_with(value: &str, needle: &str, position: Option<i64>) -> bool {
     let end = string_search_position(value.len(), position, value.len());
     value
         .get(..end)
         .expect("string search position is not on a UTF-8 boundary")
-        .ends_with(needle.as_ref())
+        .ends_with(needle)
 }
 
-pub fn tsr_string_includes(value: &String, needle: &String, position: Option<i64>) -> bool {
+pub fn tsr_string_includes(value: &str, needle: &str, position: Option<i64>) -> bool {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
         .expect("string search position is not on a UTF-8 boundary")
-        .contains(needle.as_ref())
+        .contains(needle)
 }
 
-pub fn tsr_string_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
+pub fn tsr_string_index_of(value: &str, needle: &str, position: Option<i64>) -> i64 {
     let start = string_search_position(value.len(), position, 0);
     value
         .get(start..)
         .expect("string search position is not on a UTF-8 boundary")
-        .find(needle.as_ref())
+        .find(needle)
         .map_or(-1, |offset| {
             i64::try_from(start + offset).expect("string search index exceeds int range")
         })
 }
 
-pub fn tsr_string_last_index_of(value: &String, needle: &String, position: Option<i64>) -> i64 {
+pub fn tsr_string_last_index_of(value: &str, needle: &str, position: Option<i64>) -> i64 {
     let position = string_search_position(value.len(), position, value.len());
     assert!(
         value.is_char_boundary(position),
@@ -622,7 +622,7 @@ pub fn tsr_string_last_index_of(value: &String, needle: &String, position: Optio
     // Bound match starts, retaining an entire match that begins at position.
     // Only the internal endpoint is rounded; the selected boundary is checked.
     let end = value.floor_char_boundary(position.saturating_add(needle.len()).min(value.len()));
-    value[..end].rfind(needle.as_ref()).map_or(-1, |offset| {
+    value[..end].rfind(needle).map_or(-1, |offset| {
         i64::try_from(offset).expect("string search index exceeds int range")
     })
 }
