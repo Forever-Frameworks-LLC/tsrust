@@ -1,0 +1,5 @@
+import { JsonValue } from 'std:json';
+
+function workload(n: int, seed: int, input: JsonValue): string {
+  return JSON.stringify(input);
+}

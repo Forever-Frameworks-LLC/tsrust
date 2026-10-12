@@ -1264,3 +1264,29 @@ Evidence: tsrust-json-failure-*-3b36da2c in SQLite, including the failing guard 
 eight passing focused checks. Prior successful-case records are unchanged.
 Encoding, streaming and raw-fragment allocation coverage, full family regressions,
 and S10 timing acceptance remain open.
+
+### Numeric-array encoding allocation baselines
+
+The allocation harness adds `--only=encode_dynamic,encode_typed`, measuring
+JSON.stringify over preconstructed dynamic JSON values or typed integer arrays.
+Input preparation finishes before operation counters reset; native typed inputs
+use the generated array's ordinary push behavior. Direct Rust serializes a Value
+or Vec<i64>, and Node serializes equivalent prepared values. The existing driver
+retains output until counters are sampled, then verifies exact canonical JSON
+bytes and a byte-sum oracle before disposal. Input heap storage is reported
+separately; it is not equated with source-text byte length for these cases.
+
+Six cases (0, 1 and 1000 integers for each representation), totaling 54 fresh
+process samples, pass exact output, deterministic Rust counts and input/output
+disposal checks. Both native representations use one allocation and retain eight
+requested bytes for empty/single-value arrays; direct serde_json::to_string
+retains 128 bytes. At 1000 values all retain 4096 bytes, while native uses nine
+reallocations versus direct Rust's five. The smaller initial native capacity
+trades tiny-output memory for additional growth; CPU impact remains unmeasured.
+Node post-GC heap deltas remain distinct from requested-byte allocation metrics.
+
+Evidence: tsrust-json-encoding-*-bf30f66b in SQLite. Eight existing focused guards
+pass; the new encoding guard passes after repairing its initial test syntax error.
+The original failed log is retained. No previous allocation cases were rerun.
+Broader encoding shapes, streaming and raw-fragment coverage, full S10 regressions
+and timing acceptance remain open. Installed consumers are unchanged.

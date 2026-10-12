@@ -1,3 +1,4 @@
+import {nativeEncodingAllocation,directEncodingAllocation,nodeEncodingAllocation} from './json-encoding-allocation.mjs';
 // Focused numeric and Unicode-array allocation evidence; no elapsed-time measurements.
 // Native requested-byte counters and Node post-GC heap deltas are distinct metrics.
 import fs from 'node:fs';
@@ -36,7 +37,8 @@ try {
   const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${sourceId}.ts`,'utf8');
   const emitted=run(compiler,['emit',file]);
   const dependencies=prepareNativeDependencies({emitted,compiler,source:file,build,rustVersion:pins.rust,targetDirectory:target,env});
-  const generated=adaptJsonAllocation(emitted,driver,kind),direct=directJsonAllocation(driver,kind),typescript=nodeJsonAllocation(counterpart,nodeDriver,kind);
+  const encoding=kind.startsWith('encode_');
+  const generated=encoding?nativeEncodingAllocation(emitted,driver,kind):adaptJsonAllocation(emitted,driver,kind),direct=encoding?directEncodingAllocation(driver,kind):directJsonAllocation(driver,kind),typescript=encoding?nodeEncodingAllocation(counterpart,nodeDriver):nodeJsonAllocation(counterpart,nodeDriver,kind);
   const commands=[];
   for(const [engine,text] of [['native',generated],['directRust',direct]]){
    const stem=path.join(build,`${id}_${engine}`);fs.writeFileSync(stem+'.rs',text);
@@ -52,7 +54,7 @@ try {
     const native=JSON.parse(run(stem+'_native',[String(n),input]));
     const directRust=JSON.parse(run(stem+'_directRust',[String(n),input]));
     const node=JSON.parse(run(process.execPath,['--expose-gc',stem+'.js',String(n),input]));
-    for(const result of [native,directRust]){assert.equal(result.checksum,expected);assert.equal(result.liveBytesAfterOutputDrop,0);assert.equal(result.liveBytesAfterDrop,0);assert.equal(result.inputRequestedBytes,Buffer.byteLength(input));if(kind.endsWith('_invalid')||kind.endsWith('_mismatch'))assert.equal(result.retainedRequestedBytes,0);}
+    for(const result of [native,directRust]){assert.equal(result.checksum,expected);assert.equal(result.liveBytesAfterOutputDrop,0);assert.equal(result.liveBytesAfterDrop,0);if(!encoding)assert.equal(result.inputRequestedBytes,Buffer.byteLength(input));if(kind.endsWith('_invalid')||kind.endsWith('_mismatch'))assert.equal(result.retainedRequestedBytes,0);}
     assert.equal(node.checksum,expected);samples.push({native,directRust,node});
    }
    for(const engine of ['native','directRust'])for(const key of ['allocations','reallocations','deallocationsDuringWork','requestedBytes','retainedRequestedBytes','peakRequestedBytes'])assert.equal(new Set(samples.map(row=>row[engine][key])).size,1,`${id}/${n}/${engine}/${key}`);
@@ -60,6 +62,6 @@ try {
   }
   console.error(`Verified ${id}: three sizes, three fresh-process samples, native/direct Rust/Node`);
  }
- const data={schemaVersion:1,scope:'json-decoding-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,kinds,semantics:'Valid arrays of exact integers 7 through n+6, or n pairs of Unicode and escaped strings (12 decoded UTF-8 bytes per pair), nested integer pairs, or records selecting nested items while ignoring a payload of strings and objects. Nested checksums sum 2n integers starting at 7. Failure inputs contain n strings followed by invalid syntax or a number incompatible with string[]. Failure probes return 1 only on rejection and drop errors before sampling counters; no output heap bytes may remain. Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked typed array. Input retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
+ const data={schemaVersion:1,scope:'json-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,kinds,semantics:'Valid arrays of exact integers 7 through n+6, or n pairs of Unicode and escaped strings (12 decoded UTF-8 bytes per pair), nested integer pairs, or records selecting nested items while ignoring a payload of strings and objects. Nested checksums sum 2n integers starting at 7. Failure inputs contain n strings followed by invalid syntax or a number incompatible with string[]. Failure probes return 1 only on rejection and drop errors before sampling counters; no output heap bytes may remain. Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked typed array. Encoding cases prepare numeric arrays outside counters and compare exact JSON output bytes after sampling; inputRequestedBytes measures owned input heap storage. Decoding input is retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),encodingAdapterSha256:hash(fs.readFileSync(here+'/json-encoding-allocation.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
  console.log(JSON.stringify(data,null,2));
 } finally {fs.rmSync(build,{recursive:true,force:true});}
