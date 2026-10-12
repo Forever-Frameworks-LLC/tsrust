@@ -2144,3 +2144,11 @@ The first baseline record is `tsrust-schema-recursive-baseline.log`. Remaining
 coverage includes owned input, termination rejection, escaped placeholders,
 explicit-type mismatch, union children, single builder evaluation, bounded deep
 input, complete editor inference and matched benchmark support.
+
+The incomplete-editor regression also covers the documented module-level
+`s.string({ message: 'Expected a greeting' }).min(1)` chain. Tolerant initializer
+inference previously rejected scalar constructors with arguments despite their
+approved options parameter, losing the receiver type before reaching min. The
+fallback now recognizes scalar constructor arguments; compiler validation remains
+unchanged. Both immediate source and project-header completion are checked.
+Evidence uses `tsrust-schema-chain-editing-*`.

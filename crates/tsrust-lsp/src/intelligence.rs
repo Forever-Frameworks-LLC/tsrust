@@ -1950,7 +1950,7 @@ impl SourceIndex {
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
         let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
-        if receiver=="@namespace:std:schema#s" && matches!(method,"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
+        if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
         if matches!((self.schema_element(receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return true;}
         if self.schema_element(receiver).is_some() { return matches!(method,"safeParse"|"safeParseJson"); }
         if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}

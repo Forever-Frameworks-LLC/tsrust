@@ -38,3 +38,16 @@ fn native_recovery_respects_aliases_and_local_shadowing() {
     assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="local"));
     assert!(!items.as_array().unwrap().iter().any(|item|item["label"]=="string"));
 }
+#[test]
+fn chained_global_schema_keeps_completion_with_options_and_constraints() {
+    let source="import {s} from 'std:schema';const greeting=s.string({message:'Expected a greeting'}).min(1);function main(){\ngreeting.\nmatch(greeting.safeParse('Hello')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues);}}}";
+    let result=request(source,"\ngreeting.","textDocument/completion");
+    assert!(result.as_array().unwrap().iter().any(|item|item["label"]=="safeParse"),"{result}");
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    let uri="file:///schema-editing.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
+    let offset=source.find("\ngreeting.").unwrap()+"\ngreeting.".len();let prefix=&source[..offset];
+    let result=ProjectIndex::new(&graph).request("textDocument/completion",&json!({"position":{"line":prefix.matches('\n').count(),"character":prefix.rsplit('\n').next().unwrap().len()}}),uri).unwrap().unwrap();
+    assert!(result.as_array().unwrap().iter().any(|item|item["label"]=="safeParse"),"{result}");
+}
