@@ -1912,3 +1912,21 @@ native success, ownership, editor, affected native suites and formatting logs.
 This is an implementation checkpoint, not selective-field measured acceptance.
 Matched selective workload/driver support, allocation/timing/RSS measurements,
 additional projection precision review and consumer refresh remain outstanding.
+
+### Recursive and extracted raw-field lifetime checks
+
+A focused native witness now decodes a nullable recursive Link containing raw
+payloads and returns an extracted raw field from a function borrowing its input.
+Both compile and execute. Two negative cases independently retain a direct field
+projection or a function-returned raw field, then attempt to replace the source;
+both reject with native-view-conflict. These supplement record-level provenance
+checks without changing implementation or loosening borrowing rules.
+
+The first recursive witness incorrectly used strictEqual on a union containing
+an opaque raw value; the supported undefined guard replaces that comparison.
+The original failure remains in SQLite alongside passing checks. Whole-project
+formatting changes no files or fingerprints. Evidence records:
+`tsrust-json-raw-recursive-{check,recheck}-4d7bffab`,
+`tsrust-json-raw-extracted-check-4d7bffab` and
+`tsrust-json-raw-projections-format-4d7bffab`. Selective-field benchmark support,
+output policy and consumer refresh remain outstanding.

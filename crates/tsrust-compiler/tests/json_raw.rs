@@ -144,3 +144,39 @@ function main(){
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
  support::success(&support::run(support::cli().arg("run").arg(path),90));
 }
+
+#[test]
+fn typed_recursive_raw_records_and_field_returns_execute() {
+ let source=r#"
+import {JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Link={payload:JsonRaw;next?:Link;};
+function extract(source:ReadOnly<string>):JsonRaw{
+ const value=JSON.parse<Link>(source);return value.payload;
+}
+function main(){
+ const source='{"payload":null,"next":{"payload":{"n":7}}}';
+ const value=JSON.parse<Link>(source);
+ if(value.next!==undefined){const child=value.next;if(child.next!==undefined){throw 'unexpected tail';}}
+ const raw=extract(source);
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn extracted_raw_fields_keep_input_owner_borrowed() {
+ for projection in ["value.payload", "extract(source)"] {
+  let source=format!(r#"
+import {{JsonRaw}} from 'std:json';
+type Envelope={{payload:JsonRaw;}};
+function extract(source:ReadOnly<string>):JsonRaw{{const value=JSON.parse<Envelope>(source);return value.payload;}}
+function consume(value:ReadOnly<JsonRaw>){{}}
+function main(){{let source='{{"payload":null}}';const value=JSON.parse<Envelope>(source);const raw={projection};source='null';consume(raw);}}
+"#);
+  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+  let output=support::run(support::cli().arg("check").arg(path),60);let stderr=String::from_utf8_lossy(&output.stderr);
+  assert!(!output.status.success()&&stderr.contains("error[native-view-conflict]"),"{stderr}");
+ }
+}
