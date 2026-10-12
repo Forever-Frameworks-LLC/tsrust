@@ -3,7 +3,7 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were refreshed from `ee1e2717`, including typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
+consumers were most recently refreshed from `12a6426e`, including borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
@@ -22,23 +22,29 @@ is accepted; continue the remaining runtime APIs and S10 acceptance below.
 
 ## Current acceptance gaps
 
-The allocation batches below preserve immutable original records in SQLite.
-They measure Rust requested heap allocations and Node post-GC retained heap;
-neither metric establishes process peak RSS or latency.
+The implemented-feature regression checkpoint and measured baseline matrices are
+preserved in SQLite. Original runs and focused repairs remain separate records.
 
 | Requirement | Current evidence | Remaining acceptance |
 | --- | --- | --- |
-| Dynamic/typed decoding | Numeric, Unicode, nested/selective and failure allocation cases; dynamic 32-level nesting | Full throughput/latency and wrapper-cost matrix |
-| Encoding | Numeric/Unicode arrays, mixed-field objects and deep dynamic trees; exact output bytes | Full timing/RSS and wrapper-cost coverage |
-| JSONL streaming | Owned/borrowed readers and writers, 0/1/10000 records, bounded peak requested heap | Timing/RSS and full family regression review |
+| Dynamic/typed decoding | Allocation matrix; 36 timing and 36 RSS cases versus direct Rust/Node, including failures and 32-level nesting | Final contract audit; retain documented validation overhead |
+| Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
+| JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes and bounded storage | Final installed acceptance |
 | Raw fragments | Private validation and real borrowed-source lifetime | Owner decision on preserved raw spelling, public API, editor/examples and measurements |
-| Release consumers | Installed checkpoint ee1e2717 | Refresh borrowed adapters and remaining accepted features after final source verification |
+| Release consumers | Installed checkpoint 12a6426e; CLI borrowed reader/writer and LSP import-hover checks pass | Refresh again after remaining public raw-fragment work |
 
-Review measured native staging growth (three reallocations per fixed writer
-record) and typed mismatch error overhead during family timing. Preserve all
-original allocation records before optimization. Family acceptance also requires
-warm/cold separation and direct Rust comparisons with matching retained output;
-selective typed and full dynamic trees have different retention semantics.
+All timing matrices retain three fresh processes, eight warmup batches and 31
+measured batches. First-operation costs are separate from warmed batches; they do
+not establish filesystem cold-cache latency. Peak RSS includes process/runtime
+and observer overhead. Native requested allocations and Node post-GC retained heap
+are separate metrics. Selective typed and full dynamic trees retain different data;
+each is compared against a direct baseline with matching output retention.
+
+The accepted encoding optimization removes three growth reallocations per fixed
+JSONL record. Its original and updated evidence, pre-review budget, tiny-output
+memory tradeoff and complete disposal checks are retained below. Larger decoding
+and Unicode encoding costs remain visible; checks were not weakened to improve
+ratios. No blanket efficiency or completed S10 claim is made.
 
 ## Public naming review
 
@@ -1642,3 +1648,20 @@ audit JSON/Python source, red/check/format logs. Sources, adapters, direct basel
 inputs and drivers are hashed in the raw records. Prior timing and allocation
 records remain unchanged. Public raw fragments, final performance/contract audit,
 installed refresh and release acceptance remain open.
+
+### Refreshed measured-feature consumers
+
+Release CLI and LSP were rebuilt from `12a6426e` using the shared target with
+incremental compilation disabled. Atomic replacements in ~/.cargo/bin and
+target/editor/debug match the release artifacts by SHA-256. Installed CLI smokes
+reuse accepted borrowed JSONL reader/writer witnesses, including owner reuse,
+exact writer bytes, formatting idempotence and native execution. The installed
+CLI checks native_json_import.tsr. An isolated installed LSP session publishes
+clean diagnostics and the complete readonly settings shape. VS Code's restart
+control was invoked; the visible editor retains the complete settings hover.
+This does not claim all workspace Problems are resolved.
+
+Evidence prefix `tsrust-json-consumers-`, suffix `-12a6426e`, includes build,
+installation hashes, native and LSP logs plus their executable smoke scripts.
+Raw-fragment API work still requires its own affected checks and refresh. The
+consumer update accepts the current measured implementation, not complete S10.
