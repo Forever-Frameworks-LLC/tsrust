@@ -2292,3 +2292,12 @@ fn raw_json_validation_has_borrowing_and_limits_help() {
  assert!(docs.contains("JsonRaw")&&docs.contains("source must remain alive")&&docs.contains("16777216"),"{hover}");
  let signature=ask(&index,&source,"text);","textDocument/signatureHelp");assert!(signature.to_string().contains("text: string"),"{signature}");
 }
+
+#[test]
+fn raw_json_record_field_hover_preserves_public_type() {
+ let source=tsrust_compiler::format("import {borrowRaw,JsonRaw} from 'std:json';type Envelope={payload:JsonRaw;tag:int;};function wrap(source:ReadOnly<string>):Envelope{match(borrowRaw(source)){Ok(raw)=>{return {payload:raw,tag:7};},Err(error)=>{throw error.message;}}}function inspect(value:ReadOnly<Envelope>){const raw=value.payload;}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"payload;","textDocument/hover");
+ let text=hover["contents"]["value"].as_str().unwrap();
+ assert!(text.contains("payload: JsonRaw")&&!text.contains("native#"),"{hover}");
+}

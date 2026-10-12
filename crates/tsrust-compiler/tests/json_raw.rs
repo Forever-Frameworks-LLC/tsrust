@@ -60,3 +60,38 @@ function main(){
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
  support::success(&support::run(support::cli().arg("run").arg(path),90));
 }
+
+#[test]
+fn raw_record_fields_preserve_source_borrows_through_returns() {
+ let source=r#"
+import {borrowRaw,JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Envelope={payload:JsonRaw;tag:int;};
+function wrap(source:ReadOnly<string>):Envelope{
+ match(borrowRaw(source)){Ok(raw)=>{return {payload:raw,tag:7};},Err(error)=>{throw error.message;}}
+}
+function inspect(value:ReadOnly<Envelope>):int{return value.tag;}
+function main(){
+ let source='{"value":7}';
+ {const value=wrap(source);strictEqual(inspect(value),7);}
+ source='null';strictEqual(source,'null');
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn raw_record_fields_reject_owner_invalidation_and_escape() {
+ for (body,expected) in [
+  ("function main(){let source='null';const value=wrap(source);source='1';inspect(value);}","native-view-conflict"),
+  ("function bad():Envelope{const source='null';return wrap(source);}function main(){}","native-view-escape"),
+  ("function main(){const source='null';const value=wrap(source);clone(value);}","clone-type"),
+ ] {
+  let source=format!("import {{borrowRaw,JsonRaw}} from 'std:json';type Envelope={{payload:JsonRaw;tag:int;}};function wrap(source:ReadOnly<string>):Envelope{{match(borrowRaw(source)){{Ok(raw)=>{{return {{payload:raw,tag:7}};}},Err(error)=>{{throw error.message;}}}}}}function inspect(value:ReadOnly<Envelope>):int{{return value.tag;}}{body}");
+  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+  let output=support::run(support::cli().arg("check").arg(path),60);
+  let stderr=String::from_utf8_lossy(&output.stderr);
+  assert!(!output.status.success()&&stderr.contains(&format!("error[{expected}]")),"{stderr}");
+ }
+}

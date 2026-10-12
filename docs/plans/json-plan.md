@@ -32,7 +32,7 @@ preserved in SQLite. Original runs and focused repairs remain separate records.
 | Dynamic/typed decoding | Allocation matrix; 36 timing and 36 RSS cases versus direct Rust/Node, including failures and 32-level nesting | Final contract audit; retain documented validation overhead |
 | Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
 | JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes and bounded storage | Final installed acceptance |
-| Raw fragments | JsonRaw/borrowRaw validation and real source borrowing pass focused native/editor/example checks; matched validation workload verified untimed | Owner decision on embedded output spelling, serialization, raw-field and allocation/timing/RSS acceptance |
+| Raw fragments | JsonRaw/borrowRaw validation and record storage preserve source lifetimes in native/editor checks; numeric/Unicode/deep/rejection allocation, timing and RSS evidence retained | Owner decision on embedded output spelling, serialization, selective raw-field decoding and final consumer acceptance |
 | Release consumers | Installed checkpoint 12a6426e; CLI borrowed reader/writer and LSP import-hover checks pass | Refresh again after remaining public raw-fragment work |
 
 All timing matrices retain three fresh processes, eight warmup batches and 31
@@ -1826,3 +1826,18 @@ no files or fingerprints. SQLite evidence uses `tsrust-json-raw-timing*-07331fe6
 and `tsrust-json-raw-rss-07331fe6` JSON/log records, including the original
 unsupported-flag witness. Existing decoding records remain unchanged. Raw-field
 support, output policy, post-raw consumer refresh and S10 closure remain open.
+
+### Raw fragments stored in records
+
+Two compiler tests and one editor test verify existing JsonRaw record storage.
+A function returns an Envelope containing a raw fragment borrowed from its input;
+native execution verifies the envelope and permits source replacement after its
+scope ends. Negative checks reject source replacement while the record remains
+live, return of a record borrowing a local source, and cloning the record. Editor
+field hover retains the public JsonRaw spelling. Positive and negative sources
+exercise formatting round trips. No compiler implementation change was needed.
+
+This proves storage of an already validated fragment, not selective decoding of
+raw fields from a larger JSON document. Selective decoding and serialization
+remain open. Whole-project formatting changes no files or fingerprints. SQLite
+evidence: `tsrust-json-raw-records-*-aac23a39` compiler, editor and format logs.
