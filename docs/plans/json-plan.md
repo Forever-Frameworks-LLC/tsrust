@@ -1511,3 +1511,33 @@ SQLite evidence: `tsrust-json-encoding-timing-8ba777db.json` and matching run lo
 focused red/check logs and whole-project formatting log retain implementation
 verification. Raw evidence hashes the harness, both drivers, adapters, compiler
 inputs, emitted programs, TypeScript counterparts and dependency artifacts.
+
+### Bounded encoding buffer optimization
+
+After preserving the original timing/allocation records, the bounded output writer
+now reserves min(maxBytes,128) bytes and implements write_all directly. Byte-limit
+checks, offsets, UTF-8 validation, nonfinite/undefined rejection and depth checks
+remain intact. The pre-review budget required fewer growth allocations, explicit
+bounded small-output storage, and investigation of any >10% native median slowdown.
+
+All 21 timing cases were repeated with the same protocol and exact output checks
+(189 process samples, 5,859 batches). No native case exceeded the slowdown budget.
+Small Unicode/object medians fell about 40–42%; large cases changed little, so this
+accepts a small-output improvement and does not resolve the large Unicode overhead.
+Unchanged direct Rust and Node controls remain in both raw records.
+
+The affected allocation rerun covers 27 cases and 243 fresh-process samples across
+seven encoding shapes and owned/borrowed JSONL writers. Fixed writer records now
+need zero growth reallocations, previously three per record; 10,000 records remove
+30,000 reallocations. Large encodings shed four growth reallocations and retain the
+same final requested capacity. Small output capacity increases to 128 bytes, capped
+by maxBytes. Writer peak requested bytes increase from 8,256 to 8,320, independent
+of whether one or 10,000 records are written. Output disposal remains complete.
+
+Validation: 42 JSON runtime tests, three native encoding tests, exact-output timing
+and allocation probes, and whole-project formatting pass. No LSP surface changed.
+SQLite records use prefix `tsrust-json-encoding-opt-` and suffix `-b162df03`:
+`budget` (pre-review thresholds), `timing` (raw JSON/log), `review` (paired ratios),
+`alloc` (raw JSON/log), `tests`, `json-tests`, `native-tests`, `build` and `format`.
+Original baselines remain immutable. The changed runtime still needs final consumer
+refresh; broader S10 performance and public raw-fragment acceptance remain open.

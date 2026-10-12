@@ -138,12 +138,15 @@ fn serialize_bounded<T:serde::Serialize + ?Sized>(value:&T,max_bytes:usize)->Res
     struct Output { bytes: Vec<u8>, limit: usize, exceeded: bool }
     impl std::io::Write for Output {
         fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.write_all(bytes)?;Ok(bytes.len())
+        }
+        fn write_all(&mut self, bytes: &[u8]) -> std::io::Result<()> {
             if bytes.len() > self.limit - self.bytes.len() { self.exceeded=true;return Err(std::io::Error::other("JSON output limit")); }
-            self.bytes.extend_from_slice(bytes);Ok(bytes.len())
+            self.bytes.extend_from_slice(bytes);Ok(())
         }
         fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
     }
-    let mut output=Output{bytes:Vec::new(),limit:max_bytes,exceeded:false};
+    let mut output=Output{bytes:Vec::with_capacity(max_bytes.min(128)),limit:max_bytes,exceeded:false};
     if let Err(error)=serde_json::to_writer(&mut output,value) {
         let code=if output.exceeded {"output-limit"} else {
             match error.to_string().as_str() {
