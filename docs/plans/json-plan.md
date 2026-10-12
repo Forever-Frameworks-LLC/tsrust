@@ -2164,3 +2164,35 @@ Adapter contracts and the original test-setup syntax failure are preserved in
 branches from non-encoding adapters after measurement; the measured encoding
 path is unchanged. Raw timing/RSS, executable documentation expansion and final
 S10 acceptance/consumer refresh remain pending.
+
+
+### Raw encoding timing/RSS baseline and optimization review
+
+Selective runner `7b4ffb6f` preserves seven existing default kinds and adds explicit
+selection of the three raw shapes. No unrelated timing matrix was repeated.
+`tsrust-raw-encoding-timing-7b4ffb6f.json` retains nine cases, 81 fresh processes
+and 2,511 batch durations (100 operations, eight warmups, 31 samples per process).
+`tsrust-raw-encoding-review-7b4ffb6f.json` derives per-case median/p95 without
+combining different input sizes or engines. All checksums and exact outputs pass.
+
+For 1,000-element numeric/escaped-Unicode/deep cases, native median encoding costs
+are 2.685/21.268/2.649 microseconds per operation; direct Serde costs are
+0.088/0.322/0.088 microseconds. Native currently rescans raw nesting on every
+encoding, whereas direct Serde writes already validated raw text. Node returns an
+existing immutable string and is not an equivalent output-copy implementation.
+This is a current engine comparison, not a historical regression claim.
+
+Separate `tsrust-raw-encoding-rss-7b4ffb6f.json` retains 81 fresh-process RSS samples
+at sizes 0, 1 and 10,000. Whole-process peaks span 1.75–2.50 MiB native,
+1.72–2.48 MiB direct Rust and 43.72–50.22 MiB Node. These include runtime startup,
+input preparation, output and observer costs; they are not incremental heap counts.
+
+Justified next optimization: compute maximum fragment nesting once at validated
+construction, including typed raw field extraction, and store one usize beside
+the source borrow. Encoding can compare stored depth against remaining depth
+without rescanning. Budget: one machine word per fragment, no added heap owner,
+no source copying or shared ownership. Preserve exact text, validation budgets,
+combined-depth rejection and lifetime behavior. Repeat only affected raw checks
+and measurements, preserving this original baseline. Initial preparation cost
+must remain visible in end-to-end workload measurements; moving work outside the
+prepared-input timer must not be presented as eliminating validation cost.
