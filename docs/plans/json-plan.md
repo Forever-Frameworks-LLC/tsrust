@@ -7,8 +7,8 @@ consumers were refreshed from `818459f3`, including child views, boolean refinem
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
-Direct typed JSON decoding now has focused source acceptance. Typed encoding,
-typed JSONC/JSONL adapters, borrowed adapters, public writers, allocation
+Direct typed JSON decoding and encoding now have focused source acceptance.
+Typed JSONC/JSONL adapters, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -76,7 +76,7 @@ The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
 The public dynamic slice now covers checked extraction and scalar/container construction.
-Typed decoding has focused source acceptance; public typed encoding remains pending. Null is a JSON
+Typed decoding and public typed encoding have focused source acceptance. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
 Errors now cross the public Result boundary as JsonError records containing code,
 message and a byte offset. Their editor documentation and examples are checked.
@@ -933,3 +933,25 @@ JSON workload guards pass. Evidence uses tsrust-json-encoding-*-fc30a5f9;
 preceding failures and the dynamic-depth witness are retained in SQLite. No
 measurements or installed-consumer refresh are claimed. JSONC/JSONL typed
 adapters, bounded writer integration and the S10 family milestone remain open.
+
+### Typed JSONC and JSONL backend adapters
+
+The private typed JSONC boundary reuses the dynamic parser's bounded comment
+normalizer, then constructs the requested owned type with direct visitors. It
+allocates one input-sized normalization buffer; it does not construct a dynamic
+JSON tree. Same-length whitespace preserves original byte offsets. Strict JSON
+stays strict, and trailing commas remain opt-in. Original input bytes count
+against the limit, including comments; malformed comments fail before decoding.
+
+The existing JSONL next_with boundary now has a checked typed-decoder witness:
+owned strings survive later reads, CRLF contributes to absolute byte offsets,
+shape failures are terminal, and the underlying reader is released exactly once.
+This is backend readiness, not public generic parseJsonc/readJsonl acceptance.
+Public specialization, editor documentation, examples and matched workloads are
+still required. JSONC retains normalization plus the existing two-pass typed
+validation/decoding cost; no single-pass performance claim is made.
+
+Acceptance: 37 JSON backend tests and the existing JSONC native fixture in debug
+and release modes. Whole-project formatting changed no sources or fingerprints.
+Original red/repair checks are retained as tsrust-json*-e00c40d0 records in SQLite.
+No timing or consumer refresh was performed.

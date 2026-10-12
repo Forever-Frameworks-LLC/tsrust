@@ -77,6 +77,10 @@ pub fn parse(input: &[u8], limits: Limits) -> Result<Value, Error> {
 /// Replace comments with same-length whitespace so backend offsets still address
 /// the original document. This bounded scratch buffer never mutates caller input.
 pub fn parse_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result<Value, Error> {
+    parse(&normalize_jsonc(input,limits,trailing_comma)?,limits)
+}
+
+fn normalize_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result<Vec<u8>, Error> {
     if input.len()>limits.bytes {return Err(failure("byte-limit",limits.bytes));}
     if limits.depth>64 {return Err(invalid_limits());}
     if let Err(error)=std::str::from_utf8(input) {return Err(failure("invalid-utf8",error.valid_up_to()));}
@@ -122,7 +126,7 @@ pub fn parse_jsonc(input: &[u8], limits: Limits, trailing_comma: bool) -> Result
             index+=1;
         }
     }
-    parse(&normalized,limits)
+    Ok(normalized)
 }
 
 pub fn stringify(value: &Value, max_bytes: usize) -> Result<std::string::String, Error> {

@@ -7,6 +7,22 @@ mod tests {
  use super::*;
  fn limits()->Limits{Limits{bytes:1024,depth:4,entries:3,nodes:12}}
  #[test]
+ fn typed_jsonc_preserves_offsets_limits_and_strict_policy(){
+  let input=b"/* header */ {\"items\":[1,2,],}";
+  let value:Record=decode_jsonc(input,limits(),true).unwrap();
+  assert_eq!(value,Record{items:vec![1,2]});
+  assert!(decode_jsonc::<Record>(input,limits(),false).is_err());
+  assert!(decode::<Record>(input,limits()).is_err());
+  let bad=b"/* header */ {\"items\":[1,\"secret\"]}";
+  let normalized=b"             {\"items\":[1,\"secret\"]}";
+  let error=decode_jsonc::<Record>(bad,limits(),false).unwrap_err();
+  assert_eq!(error,decode::<Record>(normalized,limits()).unwrap_err());
+  assert_eq!(error.code,"shape-mismatch");assert!(!error.message.contains("secret"));
+  assert_eq!(decode_jsonc::<Record>(input,Limits{bytes:4,..limits()},true).unwrap_err().code,"byte-limit");
+  assert_eq!(decode_jsonc::<Record>(b"{\"items\":[1,2,3,4]}",limits(),false).unwrap_err().code,"entry-limit");
+  assert_eq!(decode_jsonc::<Record>(b"/* open",limits(),false).unwrap_err().code,"unterminated-comment");
+ }
+ #[test]
  fn typed_arrays_and_maps_decode_without_dynamic_values(){
   let values:Vec<(String,Vec<i64>)>=decode(br#"[["hello",[42,-1]]]"#,limits()).unwrap();
   assert_eq!(values,vec![("hello".into(),vec![42,-1])]);
@@ -112,6 +128,12 @@ impl<'de> serde::Deserialize<'de> for ExactInt {
   }
   decoder.deserialize_any(IntVisitor)
  }
+}
+
+/// Normalize bounded JSONC while retaining source offsets, then decode directly.
+pub fn decode_jsonc<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits,trailing_comma:bool)->Result<T,Error>{
+ let normalized=super::normalize_jsonc(input,limits,trailing_comma)?;
+ decode(&normalized,limits)
 }
 
 /// Internal boundary for generated typed visitors. Primitive number fields must use ExactNumber.

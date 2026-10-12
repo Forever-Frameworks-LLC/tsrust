@@ -187,6 +187,22 @@ mod tests {
   assert_eq!(reader.next_with(integer).unwrap(),Some(42));assert_eq!(reader.next_with(integer).unwrap(),Some(7));assert_eq!(reader.next_with(integer).unwrap(),None);
  }
  #[test]
+ fn typed_lines_own_values_and_release_reader_on_shape_failure() {
+  let reads=std::rc::Rc::new(std::cell::Cell::new(0));
+  let drops=std::rc::Rc::new(std::cell::Cell::new(0));
+  let input=Counted{reads:reads.clone(),drops:drops.clone(),bytes:b"[\"first\"]\r\n[\"second\"]\n[42]\n"};
+  let mut reader=Lines::new(std::io::BufReader::with_capacity(3,input),limits()).unwrap();
+  let first=reader.next_with(super::super::typed::decode::<Vec<String>>).unwrap().unwrap();
+  let second=reader.next_with(super::super::typed::decode::<Vec<String>>).unwrap().unwrap();
+  assert_eq!(first,vec!["first"]);assert_eq!(second,vec!["second"]);
+  let error=reader.next_with(super::super::typed::decode::<Vec<String>>).unwrap_err();
+  assert_eq!(error.line,3);assert_eq!(error.error.code,"shape-mismatch");
+  // Two completed records occupy 22 bytes; the numeric token ends at byte 24.
+  assert_eq!(error.error.offset,24);assert_eq!(drops.get(),1);
+  assert_eq!(reader.next_with(super::super::typed::decode::<Vec<String>>).unwrap_err(),error);
+  drop(reader);assert_eq!(drops.get(),1);assert_eq!(first[0],"first");
+ }
+ #[test]
  fn reads_and_retention_are_bounded_and_owned_readers_close() {
   let reads=std::rc::Rc::new(std::cell::Cell::new(0));let drops=std::rc::Rc::new(std::cell::Cell::new(0));
   let input=Counted{reads:reads.clone(),drops:drops.clone(),bytes:b"0\n123456789012345678901234567890"};
