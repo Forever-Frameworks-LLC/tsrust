@@ -21738,6 +21738,30 @@
       "notes": "Includes validation, output creation and full equality observation. Native uses bounded raw validation and typed serialization. Node validates with JSON.parse then explicitly concatenates original text; ordinary JSON.stringify would normalize it. No allocation, validation-coverage or JSON.stringify implementation equivalence claim. Native/Node execution timing is retained in SQLite.",
       "sourceSha256": "4a67bd7b9c33ebde717aa8e60ff0037780d96172b03dd3b4c7a85cad9475fc45",
       "counterpartSha256": "80ffb0963ffc6536abe98e3ee7cec85515bc1290ce5c7b81a7732301e086a3c8"
+    },
+    {
+      "id": "native_schema_string",
+      "category": "schema",
+      "description": "Reusable string schema with successful and failing JSON validation",
+      "source": "workloads/native_schema_string.tsr",
+      "counterpart": "workloads/native_schema_string.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "\"hello\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "One successful string and one rejected number per iteration. Observe successful length and every error field; checksum adds six.",
+      "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
+      "sourceSha256": "547845a5db138900cba7bc5d5b0e4c3ef36bd1643bca739806dde9ccc861ed01",
+      "counterpartSha256": "873e7355c5b3e32c060a8823896e3741b440ad41cba2bee8b7b9658da6490c35"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

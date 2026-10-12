@@ -21,8 +21,9 @@ export function dependencyArtifacts(stdout,target) {
  for(const name of names)if(!result[name])throw new Error(`Missing dependency artifact: ${name}`);
  return result;
 }
+export function needsJsonDependencies(emitted) { return /(?:^|[;}]\s*)mod\s+tsrust_native_json\s*\{/m.test(emitted); }
 export function prepareNativeDependencies({emitted,compiler,source,build,rustVersion,targetDirectory,env=process.env}) {
- if(!/^mod tsrust_native_json \{/m.test(emitted))return {args:[],evidence:null};
+ if(!needsJsonDependencies(emitted))return {args:[],evidence:null};
  const scratch=fs.mkdtempSync(path.join(build,'package-'));
  const packageRoot=path.join(scratch,'source');
  const target=targetDirectory??(env.CARGO_TARGET_DIR?path.resolve(env.CARGO_TARGET_DIR):path.join(build,'native-dependencies'));

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {prepareNativeDependencies, dependencyArtifacts} from './native-dependencies.mjs';
+import {prepareNativeDependencies, dependencyArtifacts, needsJsonDependencies} from './native-dependencies.mjs';
 
 test('ordinary native workloads need no dependency preparation',()=>{
  assert.deepEqual(prepareNativeDependencies({emitted:'fn main() {}'}),{args:[],evidence:null});
@@ -42,4 +42,9 @@ test('exported JSON dependencies link a separately instrumented native program o
   assert.throws(()=>prepareNativeDependencies({...options,emitted:emitted+'\n// changed'}),/differs/);
   assert.ok(!fs.readdirSync(root).some(name=>name.startsWith('package-')));
  } finally {fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('JSON dependency discovery tolerates adjacent generated modules',()=>{
+ for(const source of ['mod tsrust_native_json {', '}mod tsrust_native_json {', '}  mod tsrust_native_json{'])assert.equal(needsJsonDependencies(source),true);
+ for(const source of ['fn main() {}', '// mod tsrust_native_json {', 'mod other {'])assert.equal(needsJsonDependencies(source),false);
 });

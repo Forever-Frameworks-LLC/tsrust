@@ -252,3 +252,26 @@ unrelated callback method, exact native execution of both schema catalog example
 input reuse rejection for six JSON kinds, explicit clone retention, and unsupported
 input diagnostics. This closes the previous exact-example execution gap. SQLite:
 `tsrust-schema-link-{red,check,format}-cdf5d6f4.log`. No timing or family acceptance.
+
+## String validation benchmark preparation
+
+Registered native_schema_string with a separately authored TypeScript counterpart,
+source fingerprints, source/operation guards, integer ABI support, independent
+checksum oracle, report category and an untimed verifier. Each iteration parses
+and validates one string and one number, observes successful text length, and
+checks every exposed mismatch issue field. Two operations are recorded per
+iteration. Schema construction is outside the loop. This is parse-plus-validation,
+not validation-only or fused decoding. The handwritten Node contract is explicitly
+not a Zod measurement; pinned Zod differential coverage remains required.
+
+The verifier uses the production benchmark adapters and offline dependency linker,
+compiles TypeScript before Node execution, and checks zero timing samples. Native
+and Node agree for (n, seed) = (0, 0), (1, 0), (17, 7), (2000, 1000000).
+The run exposed JSON dependency detection assuming a module began a line. Detection
+now also handles adjacent generated declarations, with focused regression coverage.
+Four benchmark tests pass; the separate legacy dependency integration test is
+skipped without TSRUST, while the new verifier directly exercises dependency linking.
+
+SQLite evidence: `tsrust-schema-workload-{red,check,format,final,verify,verify-detail,tests,verify-final,final-format}-e04a2818.log`.
+The manifest remains unmeasured. Validation-only workloads, allocation/disposal
+probes, fused decoding and the rest of S11 remain required.
