@@ -2677,3 +2677,26 @@ fn literal_string_access_and_iteration_infer_string_results() {
         let hover=ask(&index,&entry,needle,"textDocument/hover");assert!(hover.to_string().contains(expected),"{hover}");
     }
 }
+
+#[test]
+fn schema_literal_chains_preserve_singleton_output_and_scalar_input_help() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.literal('ready').default(()=>'ready');const result=schema.safeParse('ready');const integer=s.literal(9007199254740993);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"schema =","textDocument/hover");assert!(hover.to_string().contains("ready")&&hover.to_string().contains("Schema<"),"{hover}");
+    let hover=ask(&index,&entry,"integer =","textDocument/hover");assert!(hover.to_string().contains("9007199254740993"),"{hover}");
+    let help=ask(&index,&entry,"'ready');","textDocument/signatureHelp");assert!(help.to_string().contains("string")&&help.to_string().contains("JsonValue"),"{help}");
+    let hover=ask(&index,&entry,"literal(","textDocument/hover");assert!(hover.to_string().contains("literal-mismatch"),"{hover}");
+    let items=ask(&index,&entry,"safeParse(","textDocument/completion");assert!(!items.to_string().contains("\"label\":\"strip\""),"{items}");
+}
+
+#[test]
+fn schema_literal_presence_and_array_help_separates_input_from_output() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const optional=s.literal('ready').optional();const result=optional.safeParse('waiting');const array=s.array(s.literal(7));array.safeParse([8]);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let help=ask(&index,&entry,"'waiting'","textDocument/signatureHelp");assert!(help.to_string().contains("string")&&help.to_string().contains("undefined")&&help.to_string().contains("ready"),"{help}");
+    let help=ask(&index,&entry,"[8]","textDocument/signatureHelp");assert!(help.to_string().contains("int[]")&&help.to_string().contains("7[]"),"{help}");
+}

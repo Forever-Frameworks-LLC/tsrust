@@ -4,6 +4,7 @@ mod schema;
 mod schema_objects;
 mod schema_presence;
 mod schema_defaults;
+mod schema_literals;
 mod json_refinement;
 mod native_view_mutations;
 mod native_view_expression_calls;
@@ -14333,6 +14334,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_literal_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(ty);}

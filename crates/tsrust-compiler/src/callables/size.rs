@@ -80,7 +80,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     .map(|bytes| bytes & !(alignment - 1))
                     .ok_or_else(failure)
             };
-            let size = match ty {
+            let size = match ty.scalar_base() {
                 Type::Record(_) | Type::Closure(_) => {
                     let mut total = 0usize;
                     for child in dependencies {

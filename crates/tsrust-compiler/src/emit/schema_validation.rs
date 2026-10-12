@@ -69,10 +69,19 @@ impl Emitter<'_> {
         let native=self.native_type(output);
         let input_native=self.native_type(input_type);
         let body=match output {
+            Type::Literal(_,_)=>{
+                let kind=self.schema_kind(output);
+                let conversion=if output.scalar_base()==Type::Number&&input_type.scalar_base()==Type::Int {
+                    "let number=input as f64;if number as i128!=input as i128{issues.push(path,tsrust_schema_issues::Code::NumberPrecision,tsrust_schema_issues::Kind::Number,tsrust_schema_issues::Kind::Integer);return None;}let input=number;"
+                }else if output.scalar_base()==Type::Number {
+                    "if !input.is_finite(){issues.push(path,tsrust_schema_issues::Code::NumberNonfinite,tsrust_schema_issues::Kind::Number,tsrust_schema_issues::Kind::Number);return None;}"
+                }else{""};
+                format!("{conversion}if input==schema.expected{{Some(input)}}else{{issues.push(path,tsrust_schema_issues::Code::Literal,tsrust_schema_issues::Kind::{kind},tsrust_schema_issues::Kind::{kind});None}}")
+            },
             Type::Union(union)=>{
                 let base=self.schema_presence_element(output).expect("presence schema union");let child=self.schema_child(base);
                 let members=&self.program.unions[union.index()].members;
-                if input_type==Type::Int&&base==Type::Number {
+                if input_type.scalar_base()==Type::Int&&base.scalar_base()==Type::Number {
                     let validator=self.schema_owned_validator(child,Type::Int,generated,seen,errors);
                     let tag=members.iter().position(|ty|*ty==base).unwrap();
                     format!("{validator}(&schema.inner,input,path,issues,failure).map(Union{}::V{tag})",union.index())
@@ -80,7 +89,7 @@ impl Emitter<'_> {
                 let validator=self.schema_owned_validator(child,base,generated,seen,errors);
                 let Type::Union(input)=input_type else{unreachable!("presence input is injected")};
                 let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,ty)|{
-                    let target=members.iter().position(|member|member==ty).unwrap();
+                    let target=members.iter().position(|member|member==ty||member.scalar_base()==ty.scalar_base()).unwrap();
                     if matches!(ty,Type::Null|Type::Undefined){format!("Union{}::V{tag}(value)=>Some(Union{}::V{target}(value))",input.index(),union.index())}
                     else{format!("Union{}::V{tag}(value)=>{validator}(&schema.inner,value,path,issues,failure).map(Union{}::V{target})",input.index(),union.index())}
                 }).collect::<Vec<_>>().join(",");
@@ -139,6 +148,15 @@ impl Emitter<'_> {
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);
         let (expected,success)=match output {
+            Type::Literal(_,kind)=>{
+                let validator=self.schema_owned_validator(id,kind.base(),generated,owned_seen,errors);
+                let expected=self.schema_kind(output);
+                let code=match kind {
+                    crate::literal_types::LiteralKind::String=>format!("if let tsrust_native_json::Value::String(value)=input{{return {validator}(schema,String::Owned(value),path,issues,failure);}}"),
+                    crate::literal_types::LiteralKind::Boolean=>format!("if let tsrust_native_json::Value::Bool(value)=input{{return {validator}(schema,value,path,issues,failure);}}"),
+                    _=>{let reader=if kind==crate::literal_types::LiteralKind::Int{"read_i64"}else{"read_f64"};format!("match tsrust_native_json::{reader}(&input){{Ok(value)=>return {validator}(schema,value,path,issues,failure),Err(error)=>{{let code=match error.code{{\"integer-range\"=>Code::IntegerRange,\"integer-fractional\"=>Code::IntegerFractional,\"number-precision\"=>Code::NumberPrecision,\"number-nonfinite\"=>Code::NumberNonfinite,_=>Code::Type}};issues.push(path,code,Kind::{expected},observed);return None;}}}}")}
+                };(expected,code)
+            },
             Type::Union(union)=>{
                 let base=self.schema_presence_element(output).expect("presence schema union");let child=self.schema_child(base);
                 self.schema_json_validator(child,generated,seen,owned_seen,errors);
@@ -204,7 +222,7 @@ impl Emitter<'_> {
         self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[output])).expect("checked schema child")
     }
     fn schema_kind(&self,ty:Type)->&'static str {
-        match ty{Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
+        match ty.scalar_base(){Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
     }
 
 }

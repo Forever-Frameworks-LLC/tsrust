@@ -30,14 +30,39 @@ impl SourceIndex {
         let members=leaf.split('|').map(str::trim).collect::<Vec<_>>();
         (members.contains(&"number")&&members.iter().all(|member|matches!(*member,"number"|"null"|"undefined"))).then(||format!("int{}","[]".repeat(depth)))
     }
+    fn schema_scalar_input_text(element:&str)->String {
+        use tsrust_compiler::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind};
+        fn collect(value:&ValueAnnotation,source:&str,replacements:&mut Vec<(usize,usize,String)>){
+            match &value.kind {
+                Kind::Literal(_)=>{if let Some(base)=literal_scalar_family(&source[value.span.start..value.span.end]){replacements.push((value.span.start,value.span.end,base.into()));}},
+                Kind::Array(inner)|Kind::Group(inner)=>collect(inner,source,replacements),
+                Kind::Union(members)=>for member in members{collect(member,source,replacements);},
+                _=>{},
+            }
+        }
+        let Ok(annotation)=tsrust_compiler::type_syntax::parse(element)else{return element.into()};
+        let mut replacements=Vec::new();collect(&annotation,element,&mut replacements);
+        let mut result=element.to_owned();for(start,end,replacement)in replacements.into_iter().rev(){result.replace_range(start..end,&replacement);}result
+    }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
         if self.schema_element(ty) == Some("null") { return builtins_for("SchemaNull"); }
         if self.schema_element(ty) == Some("number") { return builtins_for("SchemaNumber"); }
         if self.schema_element(ty) == Some("int") { return builtins_for("SchemaInt"); }
         if self.schema_element(ty) == Some("boolean") { return builtins_for("SchemaBoolean"); }
+        if let Some(element)=self.schema_element(ty) && let Some(base)=literal_scalar_family(element) {
+            let input=if base=="number"{"number | int | JsonValue"}else{base};
+            let input=if base=="number"{input.to_owned()}else{format!("{input} | JsonValue")};
+            let mut entries=builtins_for("SchemaLiteral");
+            for entry in &mut entries {
+                if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
+                if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}
+            }
+            return entries;
+        }
         if let Some(element)=self.schema_element(ty).filter(|element|element.ends_with("[]")) {
-            let input=if let Some(integer)=Self::schema_integer_alternative(element) {format!("{element} | {integer} | JsonValue")}else{format!("{element} | JsonValue")};
+            let scalar=Self::schema_scalar_input_text(element);
+            let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
             let mut entries=builtins_for("SchemaArray");
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
@@ -48,7 +73,8 @@ impl SourceIndex {
         if let Some(element)=self.schema_element(ty) {
             let retained=element.starts_with("__tsrust_private_schema_retained_");
             let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
-            let input=if let Some(integer)=Self::schema_integer_alternative(raw) {format!("{raw} | {integer} | JsonValue")}else{format!("{raw} | JsonValue")};
+            let scalar=Self::schema_scalar_input_text(raw);
+            let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
             let mut entries=builtins_for(if retained {"SchemaRetained"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}

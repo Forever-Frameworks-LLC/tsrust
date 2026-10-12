@@ -24,14 +24,14 @@ impl Analyzer {
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable"|"default")));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object"|"@schema:literal")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable"|"default")));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
-        if !matches!(output,Type::Array(_)|Type::Record(_)|Type::Union(_)){return Ok(None);}
+        if !matches!(output,Type::Array(_)|Type::Record(_)|Type::Union(_)|Type::Literal(_,_)|Type::Null){return Ok(None);}
         let validation_output=if let Type::Record(object)=output && self.program.records[object].name.text.starts_with("@schema:retained:"){self.program.records[object].fields[0].ty.unwrap()}else{output};
         let mut pending=vec![validation_output];let mut seen=HashSet::new();
         while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
@@ -39,20 +39,23 @@ impl Analyzer {
             Type::Union(id)=>pending.extend(self.unions.members(id)),
             Type::Record(id) if self.program.records[id].name.text.starts_with("@schema:retained:")=>pending.push(self.program.records[id].fields[0].ty.unwrap()),
             Type::Record(id) if self.program.records[id].native_type.is_none()&&!self.program.records[id].is_tuple()=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
-            Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined=>{},
+            Type::Literal(_,_)|Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined=>{},
             _=>return Err(Diagnostic::new("schema-type","Composite validation requires supported scalar, array or object fields.",callee.span)),
         }}
         if args.len()!=1{return Err(Diagnostic::new("arity","safeParse expects one input value.",expr.span));}
         if !constructing {self.expression(context,&mut receiver,Mode::Read,loans,Some(Type::Record(id)))?;}
         let hint=self.expression_type_hint(context,&args[0]);
         let json=matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
+        if output==Type::Null && !json && hint!=Some(Type::Null){return Err(Diagnostic::new("schema-input","A null schema accepts null or an owned JsonValue.",args[0].span));}
         let conversion=hint.is_some_and(|input|{
             let (mut from,mut to)=(input,output);
             while let (Type::Array(a),Type::Array(b))=(from,to){from=a.ty();to=b.ty();}
-            from==Type::Int && (to==Type::Number || matches!(to,Type::Union(id) if self.unions.members(id).contains(&Type::Number) && self.unions.members(id).iter().all(|ty|matches!(ty,Type::Number|Type::Null|Type::Undefined))))
+            from.scalar_base()==Type::Int && (to.scalar_base()==Type::Number || matches!(to,Type::Union(id) if self.unions.members(id).iter().any(|ty|ty.scalar_base()==Type::Number) && self.unions.members(id).iter().all(|ty|matches!(ty.scalar_base(),Type::Number|Type::Null|Type::Undefined))))
         });
         let owned_input=if json||conversion {validation_output}else{self.schema_default_input(context,validation_output,&args[0])?};
-        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(owned_input)})?;
+        let expected_input=if json||conversion {hint}else{Some(owned_input)};
+        let actual=self.expression(context,&mut args[0],Mode::Consume,loans,expected_input)?;
+        self.require(actual,expected_input,args[0].span)?;
         let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

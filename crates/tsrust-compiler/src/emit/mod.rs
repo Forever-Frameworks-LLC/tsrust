@@ -2385,6 +2385,11 @@ impl Emitter<'_> {
         for (index, record) in self.program.records.iter().enumerate() {
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
+                && let Some(Type::Literal(_,kind))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
+                let factory=self.schema_factory_declaration(index);let native=self.native_type(kind.base());
+                let _=writeln!(output,"struct Record{index} {{ {factory} expected:{native} }}");continue;
+            }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number))) {
                 let plan=match record.application.as_ref().unwrap().resolved_arguments[0] {Type::Int=>"IntBounds",Type::Number=>"NumberBounds",_=>"StringBounds"};
                 let factory=self.schema_factory_declaration(index);
@@ -2948,6 +2953,7 @@ impl Emitter<'_> {
         output.push_str(&self.record_runtime.emit_with_storage(&self.program.records, &self.program.stored_contracts));
         if output.contains("tsr_console_record_") {
             for (id, record) in self.program.records.iter().enumerate() {
+                if record.literal_definition.is_some(){continue;}
                 if !self.record_inspectable(id) || record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
                     continue;
                 }
@@ -7506,7 +7512,7 @@ impl Emitter<'_> {
             let ExprKind::NativeConstructor(args,_)=&expr.kind else{unreachable!()};
             let factory=self.schema_factory_initializer(id);
             let child=self.expr(fun,&args[0],Mode::Consume);
-            let code=if let Type::Record(object)=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0] {
+            let code=if matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Literal(_,_)) {format!("Record{id}{{{factory}expected:{child}}}")}else if self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]==Type::Null{format!("{{let _={child};Record{id}{{{factory}}}}}")}else if let Type::Record(object)=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0] {
                 let Type::Record(shape)=args[0].ty.unwrap() else{unreachable!()};
                 let fields=self.program.records[object].fields.iter().enumerate().map(|(field,value)|{
                     let source=self.program.records[shape].fields.iter().position(|candidate|candidate.name.text==value.name.text).unwrap();

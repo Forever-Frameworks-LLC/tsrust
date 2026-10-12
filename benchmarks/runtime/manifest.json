@@ -22170,6 +22170,30 @@
       "notes": "Small exact integer domain. Handwritten TypeScript reference; default factory reused across validations. Untimed parity only; unmeasured.",
       "sourceSha256": "3c3581fd940431367fe226e8e35f9e8509d593dc6454e6ac76348502d4fcdcbb",
       "counterpartSha256": "9077b759f325055e0d5969eff266fc9949d2e324997bdbd4e04caa0acf4e16b0"
+    },
+    {
+      "id": "native_schema_json_literal",
+      "category": "schema",
+      "description": "Reusable exact string literal validation with success and mismatch observations",
+      "source": "workloads/native_schema_json_literal.tsr",
+      "counterpart": "workloads/native_schema_json_literal.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, object validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "\"ready\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate exact ready and reject waiting with a root literal-mismatch issue. Checksum adds six per iteration.",
+      "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
+      "sourceSha256": "6f05fb767ea91888551a8e8076764e3d30862c870afb2f90aff07ec27e0bc588",
+      "counterpartSha256": "8a05bb75258106736ff2d953d5e3447b58cdabc3fbfd4cc91ccf76331a5e35c7"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

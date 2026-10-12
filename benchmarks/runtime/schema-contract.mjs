@@ -1,14 +1,20 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 export function schemaChecksum(n,seed,input){
- const weight=input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:input==='"hello"'?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
+ const weight=input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:(input==='"hello"'||input==='"ready"')?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
  if(weight===undefined||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*weight))throw Error('Schema oracle inputs');
  // Each successful scalar contributes its scenario value, plus one observed root issue.
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_json_literal'){
+  if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='"ready"'||row.result!=='int')throw Error('Literal schema denominator');
+  for(const snippet of [kind==='native'?"s.literal('ready')":"literalSchema()",'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('"waiting"'))`,"value!=='ready'",'checksum+=value.length;','checksum+=1;','error.truncated','error.issues.length!==1',"issue.code!=='literal-mismatch'","issue.expected!=='string'","issue.observed!=='string'",'issue.pathTruncated','issue.path.length!==0','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Literal schema operation: '+snippet);
+  if(kind==='typescript'&&!containsCodeSnippet(source,"if(input==='ready')"))throw Error('Literal reference equality');
+  return;
+ }
  if(row.id==='native_schema_json_defaults'){
   if(kind==='typescript')for(const snippet of ['const factory=()=>7;',"Object.hasOwn(input,'count')?input.count:factory()",'else if(count<5)'])if(!containsCodeSnippet(source,snippet))throw Error('Default reference operation: '+snippet);
   if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='{"label":"ready"}'||row.result!=='int')throw Error('Presence schema denominator');

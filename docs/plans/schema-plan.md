@@ -4,7 +4,7 @@ Status: implementation started after [S10 acceptance](../milestones/s10-json-acc
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
 matching owned input or JsonValue. Reusable default factories are integrated.
-Literal/enum schemas, remaining composite APIs, fused decoding and family acceptance
+Enum schemas, remaining composite APIs, fused decoding and family acceptance
 remain pending.
 
 ## Required surface and coverage
@@ -15,7 +15,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null and exact literal API checked; enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
@@ -1172,7 +1172,7 @@ implemented by the default work.
 
 ## Literal annotation prerequisite in progress
 
-Public literal and enum schemas still require checked singleton type identities.
+Public literal and enum schemas require checked singleton type identities.
 The syntax layer now retains string, boolean, integer and number literal
 annotations as distinct literal nodes rather than nominal type names. It preserves
 exact numeric spelling (including integers beyond JavaScript's safe range and the
@@ -1196,9 +1196,9 @@ arrays do not gain unsafe covariance. Dynamic comparison operands do not prove a
 particular literal. Editor facts preserve exact values; method hover, completion,
 and parameter help use the corresponding scalar API.
 
-This remains prerequisite work, not acceptance of public `s.literal`, enum schemas,
-or discriminated unions. Before exposing those APIs, complete the literal type
-integration audit: collection key and element contracts, contextual inference, and remaining
+This prerequisite checkpoint preceded public `s.literal` integration below; enum
+schemas and discriminated unions remain pending. Continue the literal type
+integration audit through those APIs: collection key and element contracts, contextual inference, and remaining
 wildcard type matches. Add focused
 regressions for each supported boundary; reject unsupported cases in the checker
 rather than allowing native failures. Preserve exact output types throughout schema
@@ -1226,9 +1226,8 @@ attempt to introduce implicit scalar borrowing was rejected by existing ownershi
 and temporary-lifetime regressions and removed. Union payloads retain their ordinary
 native representation with no hidden clone. Mutable collection covariance remains rejected.
 
-These changes remain prerequisites for schema literals and enums. The public
-constructors, owned/JSON validation, chained output types, executable catalog
-examples and matched workloads still need implementation. Focused evidence uses
+This dispatch checkpoint preceded the public literal integration recorded below.
+Enum constructors remain pending. Focused evidence uses
 `tsrust-literal-{conversions,string-access,typeof,widening,readonly-widening,access-editor,dispatch-regression}*`
 in SQLite. No full regression or timing acceptance is claimed.
 
@@ -1237,3 +1236,42 @@ union, numeric-conversion, string-indexing and string-iteration cases, and three
 literal editor cases pass. Failed exploration records remain alongside repaired
 checks; no expected failure was ignored. The original ownership contract remains
 in force. Whole-project formatting reported no source or fingerprint changes.
+
+
+## Public literal schema integration
+
+`s.literal(value)` now produces `Schema<Literal>` for a statically known string,
+integer, finite number, boolean or null. Literal expressions and values already
+carrying a singleton type are supported; broad scalar values cannot select a
+static output identity. A constructor argument is evaluated once. Owned literal
+strings transfer into reusable immutable plans.
+
+Validation accepts the underlying owned scalar or JsonValue and consumes input on
+both outcomes. Success preserves the singleton output type and moves successful
+owned string storage without cloning. Different values produce `literal-mismatch`;
+wrong JSON kinds produce `type-mismatch`. Exact signed 64-bit integers, checked
+integer-to-number conversion, nonfinite rejection, and bounded redacted issues
+remain in force. Positive and negative zero compare equal. Null is equivalent to
+`s.null()` and remains distinct from undefined.
+
+Literal children compose with typed objects, arrays, default factories and
+optional/nullable wrappers. Matching broad owned records and arrays are validated
+against literal children at runtime. Output types remain precise through these
+chains; editor completion, hover and parameter help distinguish scalar input from
+literal output. Literal plans do not expose primitive constraint builders such as
+`.min()`; use a broader scalar schema when its output should remain broad.
+
+Focused evidence is stored under `tsrust-schema-literal-*` in SQLite. Nine new
+compiler/native cases cover scalar and JSON success/failure, exact numeric output,
+owned composite mismatches, defaults, presence, checked numeric conversion,
+constructor evaluation, ownership rejection and executable catalog examples. The
+45 existing schema checks completed with one null-input rejection defect repaired
+and rerun; completed passing checks are retained. Two editor chain cases and 19
+workload contract cases pass. `native_schema_json_literal` has a matched handwritten
+TypeScript reference, independent checksum oracle, ABI/driver support, guards,
+source hashes and reporting registration. Four untimed native/Node-after-tsc cases
+agree; no timing or full S11 acceptance is claimed.
+
+Next: enum schemas and remaining first-tranche unions/discriminated unions, then
+fused decoding and the approved second tranche. Extend literal integration checks
+along those paths rather than erasing literal output identities to scalar types.

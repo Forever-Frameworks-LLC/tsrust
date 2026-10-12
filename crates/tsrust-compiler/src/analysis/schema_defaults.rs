@@ -6,7 +6,30 @@ impl Analyzer {
         self.schema_factories.contains_key(&output) || !crate::stdlib::schema::defaults::inherited_factories(output,&self.schema_factories,|id|self.unions.members(id).to_vec()).is_empty() || matches!(output,Type::Union(id) if self.unions.members(id).iter().any(|ty|self.schema_factories.contains_key(ty)))
     }
 
+    fn schema_owned_input_compatible(&self,output:Type,input:Type)->bool {
+        if output==input || matches!(output,Type::Literal(_,_))&&output.scalar_base()==input.scalar_base(){return true;}
+        match (output,input) {
+            (Type::Array(output),Type::Array(input))=>self.schema_owned_input_compatible(output.ty(),input.ty()),
+            (Type::Record(output),Type::Record(input)) if self.program.records[output].native_type.is_none()&&self.program.records[input].native_type.is_none()=>{
+                let expected=&self.program.records[output].fields;let actual=&self.program.records[input].fields;
+                actual.iter().all(|field|expected.iter().any(|target|target.name.text==field.name.text&&self.schema_owned_input_compatible(target.ty.unwrap(),field.ty.unwrap())))
+                    && expected.iter().all(|field|actual.iter().any(|actual|actual.name.text==field.name.text)||self.schema_may_default(field.ty.unwrap()))
+            },
+            _=>false,
+        }
+    }
+    fn schema_scalar_input(&self,output:Type,span:Span)->Result<Type,Diagnostic> {
+        Ok(match output {
+            Type::Literal(_,_)=>output.scalar_base(),
+            Type::Array(element)=>Type::Array(ArrayElement::from_value_type(self.schema_scalar_input(element.ty(),span)?).expect("schema input array")),
+            Type::Union(id)=>self.unions.intern(self.unions.members(id).into_iter().map(|ty|self.schema_scalar_input(ty,span)).collect::<Result<Vec<_>,_>>()?,span)?,
+            _=>output,
+        })
+    }
+
     pub(super) fn schema_default_input(&mut self,context:&Context,output:Type,input:&Expr)->Result<Type,Diagnostic>{
+        if let Some(input_type)=self.expression_type_hint(context,input) && self.schema_owned_input_compatible(output,input_type){return Ok(input_type);}
+        if matches!(output,Type::Literal(_,_)|Type::Array(_)|Type::Union(_)){return self.schema_scalar_input(output,input.span);}
         let Type::Record(object)=output else{return Ok(output)};
         let original=self.program.records[object].fields.clone();
         let provided=if let ExprKind::Record(values)=&input.kind {values.iter().map(|(name,_)|name.text.clone()).collect::<HashSet<_>>()}else if let Some(Type::Record(actual))=self.expression_type_hint(context,input) {
