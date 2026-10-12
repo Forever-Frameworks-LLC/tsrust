@@ -47,3 +47,23 @@ test('Unicode allocation input keeps escaped source and counts decoded UTF-8 byt
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeJsonAllocation('',nodeDriver,'typed_strings'),/TextEncoder/);
 });
+
+test('nested and selective inputs retain nested integer values with independent sums',()=>{
+ assert.equal(jsonAllocationInput(2,'typed_nested'),'[[7,8],[9,10]]');
+ assert.equal(jsonAllocationChecksum(2,'typed_nested'),34);
+ const selected=jsonAllocationInput(2,'typed_selective');
+ assert.match(selected,/"items":\[\[7,8\],\[9,10\]\]/);
+ assert.match(selected,/"ignored":/);
+ assert.equal(jsonAllocationChecksum(2,'typed_selective'),34);
+ const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<Array<NumericArray<i64>>,TsrFunctionError0> { todo!() }\nfn main() {}';
+ assert.match(adaptJsonAllocation(emitted,driver,'typed_nested'),/flat_map/);
+ assert.throws(()=>adaptJsonAllocation(emitted,driver,'typed'));
+ assert.match(directJsonAllocation(driver,'typed_nested'),/Vec<Vec<i64>>/);
+});
+
+test('selective record instrumentation fails closed when its field ABI changes',()=>{
+ const emitted='struct Record0 { field0: Array<NumericArray<i64>> }\nfn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<Record0,TsrFunctionError0> { todo!() }\nfn main() {}';
+ assert.match(adaptJsonAllocation(emitted,driver,'typed_selective'),/value.field0.iter/);
+ assert.throws(()=>adaptJsonAllocation(emitted.replace('field0:','field1:'),driver,'typed_selective'));
+ assert.match(directJsonAllocation(driver,'typed_selective'),/IgnoredAny/);
+});

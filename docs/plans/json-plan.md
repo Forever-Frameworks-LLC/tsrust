@@ -1206,3 +1206,32 @@ Evidence: tsrust-json-unicode-*-e19e66bb in SQLite. The original numeric evidenc
 is preserved and was not rerun. These are allocation measurements, not timing
 acceptance. Nested/selective, invalid, encoding, streaming and raw-fragment
 allocation coverage and S10 family acceptance remain open.
+
+### Nested and selective decoding allocation baselines
+
+The same allocation protocol now covers nested integer pairs and records with
+selected `items` plus an ignored payload containing escaped strings, arrays and
+objects. Sizes are 0, 1 and 1000 pairs, with three fresh processes per engine per
+case. `--only=dynamic_nested,typed_nested,dynamic_selective,typed_selective` runs
+this batch without repeating earlier measurements. The independent oracle sums
+2n consecutive integers starting at 7. Generated record instrumentation verifies
+the concrete field ABI before accessing it. Direct selective Rust uses a Serde
+map visitor with owned string keys and IgnoredAny for discarded values; Node
+validates parsed items and returns only the selected field. Dynamic cases retain
+the complete tree, so dynamic-versus-typed differences include distinct retained
+output semantics rather than equivalent work.
+
+All 12 cases and 108 process samples pass. Rust allocation counts are stable,
+and every Rust sample releases all tracked output and input memory. At 1000
+pairs, nested native typed output uses one allocation/seven reallocations and
+retains 49152 requested bytes, versus direct Vec<Vec<i64>> at 1001/eight and
+56576 bytes. Inner two-element native arrays fit inline. Selective typed output
+retains the same amounts; native uses five allocations/seven reallocations and
+direct Rust 1004/eight. Validation and ignored-field scratch allocations are
+included. Dynamic native and direct Rust counts match for both shapes; full
+selective-input trees retain 972180 bytes in each. These results do not establish
+CPU performance or general memory superiority; Node heap deltas remain separate.
+
+Evidence: tsrust-json-nested-*-f9ef1461 in SQLite. Prior numeric and Unicode records
+remain unchanged. Failure paths, encoding, streaming and raw-fragment allocation
+coverage, plus full S10 regression and timing acceptance, remain open.

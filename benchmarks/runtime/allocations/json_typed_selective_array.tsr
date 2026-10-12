@@ -1,0 +1,7 @@
+type Selected = {
+  items: int[][];
+};
+
+function workload(n: int, seed: int, input: string): Selected {
+  return JSON.parse<Selected>(input);
+}
