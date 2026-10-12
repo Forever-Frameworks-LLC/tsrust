@@ -2059,3 +2059,28 @@ protocol checks verify binding and property shapes with clean diagnostics. The
 editor server was restarted. Build, smoke script and results are retained as
 `tsrust-json-property-hover-release.log` and
 `tsrust-json-property-hover-installed-f6c46082.{py,log}`.
+
+
+## Owner decision (2026-10-12)
+
+Approved: JsonRaw embedding preserves original validated text, including whitespace, key order and number spelling. Implement and verify serialization before accepting S10.
+
+
+### Exact raw output backend
+
+The raw serializer now writes validated fragment text directly through the bounded
+output writer. It preserves surrounding whitespace, internal formatting, key
+order, escape spelling and numeric spelling. An allocation-free scan of validated
+text counts unquoted containers against the enclosing typed serializer depth.
+It constructs no dynamic tree and introduces no shared owner or unsafe cast.
+
+The implementation uses the pinned serde_json raw-value serialization protocol;
+tests lock down that dependency boundary. Four raw backend tests pass, including
+exact embedded output, output-byte rejection and combined nesting limits. This
+is internal groundwork: compiler encoding integration, public catalog updates,
+source/native examples and measurement acceptance remain outstanding. JSONL
+integration must preserve its one-record-per-line invariant when raw source has
+literal newlines; no silent rewriting policy is accepted by this backend test.
+Evidence: `tsrust-raw-serialize-{red,check}-864fc43c.log` in SQLite. The red witness
+also initially used the input-side byte-limit spelling; the output contract is
+`output-limit`, matching existing serialization behavior.

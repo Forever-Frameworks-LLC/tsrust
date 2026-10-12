@@ -155,3 +155,8 @@ The ownership restriction and operation-driven cleanup are the material review
 decision. After that decision, implement the complete constructor/operations as
 one source integration family with diagnostics, catalog help, examples, source
 ownership tests and matched workloads. Backend evidence alone cannot close S19.
+
+
+## Owner decision (2026-10-12)
+
+Approved: get/peek borrow stored values; explicit clone creates an owned copy when supported. Expiration cleanup occurs during cache operations. Further operations are rejected while an outstanding borrowed result is still used.

@@ -120,3 +120,8 @@ transfer eligibility only; they do not decide how public join exposes failure.
 The focused transfer suite has five passing tests. SQLite evidence:
 `tsrust-thread-completion-{red,check,final,format}-d4facb53.log`.
 Public source integration and lifecycle acceptance remain outstanding.
+
+
+## Owner decision (2026-10-12)
+
+Approved: every native thread handle requires explicit join or detach. The checker must reject abandoned handles; do not inherit automatic detach-on-drop.

@@ -78,3 +78,30 @@ The decision requested before parser/type integration is the lazy, single-use
 Task surface. This section records a recommendation, not owner approval or
 implemented source support. Runtime/library APIs and cancellation must not be
 inferred as accepted from approval of the Task spelling/execution contract alone.
+
+
+## Owner decisions (2026-10-12)
+
+Approved: lazy, uniquely owned Task<T>; await consumes the result once; concurrency
+requires an explicit scheduling operation. Arguments transfer and retained loans
+begin at task construction. Ordinary calls do not start the async body.
+
+Cancellation does not promise execution of source finally blocks. Owned resources
+must still be released exactly once. Ordinary completion and throwing retain
+normal finally behavior. Cancellation triggers, propagation and scheduling races
+remain S14 implementation work; this decision does not permit leaked resources.
+
+Unused tasks produce warnings in the checker and LSP. Track task ownership through
+control flow: warn when an unstarted task is discarded, overwritten or leaves
+scope on a reachable path without being awaited, returned or transferred to an
+operation that takes responsibility for it. Returning a task or storing it in a
+live owner is not itself an unused-task error. Arbitrary whole-program reachability
+is not promised. Diagnostics should identify creation and abandonment sites and
+explain conditional paths where practical. Never auto-start tasks to silence a
+warning. Tests must cover branches, loops, early return, throw, moves and shadowing.
+
+The owner approves explicit scheduling but questions the name spawn for async
+work. Proposed spelling: task.start(); final spelling remains open. Do not freeze
+a public spawn function for tasks. Native thread/process naming remains separate.
+JSON completion has priority before this source integration. These decisions
+supersede the proposal's pending execution/cancellation statements above.

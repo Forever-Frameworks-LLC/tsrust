@@ -1,4 +1,4 @@
-//! Validated source-backed JSON fragments; output policy is handled separately.
+//! Validated source-backed JSON fragments with exact-text serialization.
 use super::{Error, Limits};
 
 /// Holds only a real borrow of the validated UTF-8 input. No dynamic tree or
@@ -21,10 +21,58 @@ pub fn borrow(input: &str, limits: Limits) -> Result<Fragment<'_>, Error> {
     Ok(Fragment { text: input })
 }
 
+/// Internal serializer for an already validated fragment at its enclosing depth.
+/// This uses the pinned serde_json raw-value serialization protocol because
+/// deserializing a RawValue discards surrounding whitespace. No unsafe cast or
+/// owned intermediate string is needed; the bounded output writer counts bytes.
+pub struct Encoded<'a, 'source>(pub &'a Fragment<'source>, pub usize);
+impl serde::Serialize for Encoded<'_, '_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::{Error, SerializeStruct};
+        let mut depth=self.1;
+        let mut quoted=false;
+        let mut escaped=false;
+        // Input is validated before Fragment construction. Only unquoted brackets
+        // affect depth; escaped quotes and bracket characters in strings do not.
+        for byte in self.0.text.bytes() {
+            if quoted {
+                if escaped { escaped=false; }
+                else if byte==b'\\' { escaped=true; }
+                else if byte==b'"' { quoted=false; }
+            } else {
+                match byte {
+                    b'"'=>quoted=true,
+                    b'['|b'{'=>{
+                        if depth>=64 { return Err(S::Error::custom("tsrust:depth-limit")); }
+                        depth+=1;
+                    },
+                    b']'|b'}'=>depth-=1,
+                    _=>{},
+                }
+            }
+        }
+        const TOKEN:&str="$serde_json::private::RawValue";
+        let mut raw=serializer.serialize_struct(TOKEN,1)?;
+        raw.serialize_field(TOKEN,self.0.text)?;
+        raw.end()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn limits() -> Limits { Limits { bytes: 128, depth: 4, entries: 4, nodes: 12 } }
+    #[test]
+    fn embedded_serialization_preserves_text_and_combined_limits() {
+        let text=" \n{\"z\":1e+02,\"a\":\"\\u0061\"} \t";
+        let raw=borrow(text,limits()).unwrap();
+        assert_eq!(super::super::typed::encode(&Encoded(&raw,0),128).unwrap(),text);
+        assert_eq!(super::super::typed::encode(&vec![Encoded(&raw,1)],128).unwrap(),format!("[{text}]"));
+        assert_eq!(super::super::typed::encode(&Encoded(&raw,0),text.len()-1).unwrap_err().code,"output-limit");
+        assert_eq!(super::super::typed::encode(&Encoded(&raw,64),128).unwrap_err().code,"depth-limit");
+        let scalar=borrow("null",limits()).unwrap();
+        assert_eq!(super::super::typed::encode(&Encoded(&scalar,64),128).unwrap(),"null");
+    }
     #[test]
     fn selective_fields_borrow_exact_source_tokens() {
         let source=String::from(r#"{"payload": { "n":18446744073709551615, "s":"\u0061" }}"#);
