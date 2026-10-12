@@ -2005,3 +2005,18 @@ SQLite evidence: `tsrust-json-raw-consumers-*-cbdbfd7a` includes builds, origina
 and corrected installation hashes, executable native/LSP smoke scripts, passing
 checks, the original failed hover check, editor regression and formatting logs.
 Raw output semantics and corresponding serialization acceptance remain open.
+
+### Raw evidence and naming reconciliation
+
+The metrics exporter now derives 252 case/engine rows from five immutable timing
+records, including 45 raw validation/selective-field rows. Two metric tests pass;
+all source protocols and independent checksums validate during derivation. No
+workloads were rerun or samples pooled. The fresh compiled API inventory exposed
+two unreviewed identities, JsonRaw and borrowRaw; their naming/ownership addendum
+now reconciles all 433 public identities exactly once. The original missing-review
+result remains in SQLite. The S10 contract audit retains its historical table and
+adds a current reconciliation; roadmap consumer/raw status is updated accordingly.
+
+Evidence: `tsrust-json-raw-{metrics*,api*,audit-format}-5682a032` in SQLite.
+Whole-project formatting changes no files or fingerprints. Raw serialization
+still awaits the owner's decision and is not accepted by this reconciliation.

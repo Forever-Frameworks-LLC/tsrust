@@ -32,7 +32,9 @@ def main():
     import store
     records = [('encoding', 'tsrust-json-encoding-opt-timing-b162df03.json'),
                ('decoding', 'tsrust-json-decoding-timing-ec9c4b41.json'),
-               ('streaming', 'tsrust-json-stream-timing-ad4f3224.json')]
+               ('streaming', 'tsrust-json-stream-timing-ad4f3224.json'),
+               ('raw', 'tsrust-json-raw-timing-07331fe6.json'),
+               ('raw-selective', 'tsrust-json-selective-timing-510cae62.json')]
     rows, inputs = [], []
     for family, name in records:
         data = io.BytesIO()
@@ -53,7 +55,7 @@ def main():
                 rows.append({'family': family, 'case': case['id'], 'size': case['n'],
                              'engine': engine, **summarize(samples, count)})
     print(json.dumps({'schemaVersion': 1, 'scope': 'derived-json-timing',
-          'method': 'Nearest-rank p95 over 93 retained batches; byte rate uses median batch latency. Bytes are offered input for decoding (including failed input), exact encoded output for encoding, and complete file bytes for streaming. No claim that rejected input was fully consumed. No samples combined across source records. Cold samples stay in original records.',
+          'method': 'Nearest-rank p95 over 93 retained batches; byte rate uses median batch latency. Bytes are offered input for decoding and raw validation (including failed input and ignored fields), exact encoded output for encoding, and complete file bytes for streaming. No claim that rejected input was fully consumed. No samples combined across source records. Cold samples stay in original records.',
           'inputs': inputs, 'scriptSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'rows': rows}, indent=2))
 
 

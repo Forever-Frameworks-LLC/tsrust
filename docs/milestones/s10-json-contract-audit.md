@@ -1,10 +1,10 @@
 # S10 JSON contract audit before public raw fragments
 
-Audited at `81678b22`. Subsequent raw validation/borrowing now has focused
-acceptance documented in the JSON plan; the raw row below records the original
-audit gap, and serialization/measurement acceptance remains open. S10 is **not accepted**. This audit reconciles implemented
-behavior against the JSON contract in the standard-library roadmap; it does not
-replace executable evidence or narrow the public raw-fragment requirement.
+The table below preserves the audit at `81678b22`. The current reconciliation
+at `5682a032` follows it; earlier raw gaps must not be read as current status.
+S10 is **not accepted**: raw serialization still awaits its public output policy
+and subsequent implementation/acceptance. Existing source and measured evidence
+remain canonical in SQLite.
 
 | Contract requirement | Source and executable witnesses | Assessment |
 | --- | --- | --- |
@@ -35,3 +35,25 @@ more than direct Serde. This is documented cost, not a hidden claim of parity or
 reason to weaken checks. Further optimization requires evidence and preserved
 correctness. S10 closure requires the missing raw feature and its acceptance, then
 a final audit incorporating that work; S11–S21 remain outside this audit.
+
+## Reconciliation at 5682a032
+
+- Raw validation and typed raw-field decoding are implemented with real source
+  lifetimes. Compiler witnesses cover arrays, optional/recursive records, field
+  extraction, borrowed returns, owner conflicts, escapes and clone rejection.
+- Raw numeric, Unicode, deep, rejection and selective-field allocation evidence
+  is retained alongside native/direct-Rust/Node timing and separate RSS matrices.
+  The metrics exporter includes 45 raw case/engine rows, for 252 total derived
+  rows from five immutable records. It does not pool samples between records.
+- The catalog now has four JSON namespace entries and 41 std:json entries. The
+  two raw imported identities are explicitly reviewed in the raw API addendum;
+  fresh compiled discovery reconciles all 433 identities exactly once.
+- Installed CLI/LSP consumers contain raw decoding. Native installed witnesses,
+  source hashes and LSP diagnostics/hover are verified. The hover placement defect
+  found by the installed smoke was repaired at 5682a032; its failed evidence stays.
+- Original full regression totals remain historical. Subsequent focused tests
+  supplement them; they do not constitute a new complete regression pass.
+- Remaining S10 work: decide and implement raw serialization semantics, verify
+  its ownership/limits/examples/editor behavior and matched measurements, then
+  perform the final affected acceptance and integrated contract review. S11–S21
+  remain pending. No current measurement proves serialization acceptance.
