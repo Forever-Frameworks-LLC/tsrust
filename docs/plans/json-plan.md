@@ -542,3 +542,21 @@ formatting. Installed consumers have not yet been refreshed for this slice.
 Array.isArray over JsonValue, equality with JSON null and safe scalar/collection
 refinement remain required follow-up work. This checkpoint does not accept that
 entire inspection family or S10.
+
+### Array and null inspection source acceptance
+
+Array.isArray now inspects contained JSON data, including optional unions. Strict
+comparison with null recognizes contained JSON null in either operand position;
+undefined remains distinct. Inputs are borrowed, expressions evaluate once, and
+union guard analysis retains the JsonValue alternative on all feasible branches.
+Existing array/tuple behavior and kind imports remain compatible. These observations
+do not yet grant unchecked scalar or child access; richer refinement remains open.
+
+SQLite evidence: tsrust-json-inspection-red.log, tsrust-json-inspection-green.log
+(native JSON fixture plus four existing nullable-union regressions),
+tsrust-json-inspection-example.log, tsrust-json-inspection-editor.log,
+tsrust-json-inspection-benchmark-contract.log and tsrust-json-inspection-smoke.log.
+The matched workload has source hashes, operation guards, an independent checksum,
+driver support and report registration. Five native/Node-after-tsc cases agree;
+there are zero timing samples. Whole-project formatting is retained in
+tsrust-json-inspection-format.log. Installed refresh is tracked separately below.

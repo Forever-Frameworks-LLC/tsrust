@@ -21304,6 +21304,30 @@
       "notes": "Includes parse allocation and cleanup. Fixed numeric input; other JSON categories have native acceptance fixtures. Does not measure scalar conversion or flow refinement.",
       "sourceSha256": "1407c1c262bf7d6aef5fbef9bf1d419aa67716ce834a0262f0ea485b1cae3168",
       "counterpartSha256": "a2e83815f5ff370a1ac68b84831ffef67e461260bef0783388f6a4fd2ed81eb1"
+    },
+    {
+      "id": "native_json_inspection",
+      "category": "json",
+      "description": "JSON array and null runtime inspection",
+      "source": "workloads/native_json_inspection.tsr",
+      "counterpart": "workloads/native_json_inspection.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "Two parses, array inspection and two null comparisons",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "[null]",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse the fixed array and null inputs, check runtime categories, add two per successful iteration.",
+      "notes": "Includes parsing, allocation and cleanup. Fixed array/null domain; does not measure access or refinement.",
+      "sourceSha256": "fb2e1f20302f5847c4589cf00d7a40d2286513d5241bb42a3e85c3607f9cd916",
+      "counterpartSha256": "688148e3d3a9c0ff89d25ed2d2dbc298a31721941ebb2506d4b85308eefb8072"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

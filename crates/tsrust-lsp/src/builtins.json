@@ -3173,7 +3173,7 @@
     "name": "null",
     "signature": "null: null",
     "parameters": null,
-    "documentation": "Represents an explicitly empty value. Takes no arguments and has its own singleton type, distinct from undefined and void. Use null in variable/parameter/return annotations, record fields and homogeneous null[] arrays. Strict equality with null is true only for null; member access and arithmetic are rejected. Union annotations combine supported data alternatives with null and undefined, such as int|string|null. A strict null guard removes the null alternative at a stable named place. Optional fields follow their declared missing-value contract. Union array elements remain unsupported. Ownership: null itself has no owner to transfer; owned alternatives retain their ordinary ownership rules.\n\n```tsrust\nconst value:null=null;console.log(value===null,typeof value,Number(value)); // true object 0\n```\n\nMatches JavaScript null semantics for supported operations, including typeof null returning object. This is a zero-sized copy value with no owned allocation.",
+    "documentation": "Represents an explicitly empty value. Takes no arguments and has its own singleton type, distinct from undefined and void. Use null in variable/parameter/return annotations, record fields and homogeneous null[] arrays. Strict equality with null is also true for a JsonValue containing JSON null, including through optional unions; JSON null remains distinct from undefined. Comparisons borrow the JSON value and do not extract or consume it. Otherwise strict equality with null is true only for null; member access and arithmetic are rejected. Union annotations combine supported data alternatives with null and undefined, such as int|string|null. A strict null guard removes the null alternative at a stable named place. Optional fields follow their declared missing-value contract. Union array elements remain unsupported. Ownership: null itself has no owner to transfer; owned alternatives retain their ordinary ownership rules.\n\n```tsrust\nconst value:null=null;console.log(value===null,typeof value,Number(value)); // true object 0\n```\n\nMatches JavaScript null semantics for supported operations, including typeof null returning object. This is a zero-sized copy value with no owned allocation.",
     "examples": [
       {
         "source": "const value:null=null;console.log(value===null,typeof value,Number(value));",
@@ -3504,23 +3504,27 @@
 ],
   "ArrayConstructor": [
   {
-    "name": "isArray",
-    "signature": "isArray(value?: unknown): boolean",
-    "parameters": [
-      "value?: unknown"
-    ],
-    "documentation": "Tests whether a supported value is an array. Returns true for any native homogeneous array, including empty/nested arrays and fixed typed tuple values; false for scalars, null, undefined, records, callables and void call results. For a data union, inspects its active alternative: an array or fixed tuple is true and any other alternative is false. Omission returns false. The operand is evaluated once; additional arguments evaluate left to right and are ignored. Inputs are unchanged.\n\n@param value - Optional value to classify; defaults to undefined.\n\n```tsrust\nconsole.log(Array.isArray([]),Array.isArray({a:1}),Array.isArray(undefined)); // true false false\n```\n\nDoes not implement proxies, boxed values, dynamic heterogeneous arrays or the Array constructor. This observation by itself does not narrow a union or permit member/index projection. Strict null/undefined guards can prove a payload at a stable named place; replacing or consuming it invalidates that proof. The boolean result does not allocate; owned operands are borrowed for the call.",
-    "examples": [
-      {
-        "source": "console.log(Array.isArray([]),Array.isArray({a:1}),Array.isArray(undefined));",
-        "output": "true false false\n"
-      },
-      {
-        "source": "let value:int[]|null|undefined=[1,2];console.log(Array.isArray(value),String(value));value=null;console.log(Array.isArray(value),String(value));value=undefined;console.log(Array.isArray(value),String(value));",
-        "output": "true 1,2\nfalse null\nfalse undefined\n"
-      }
-    ]
-  },
+  "name": "isArray",
+  "signature": "isArray(value?: unknown): boolean",
+  "parameters": [
+    "value?: unknown"
+  ],
+  "documentation": "Tests whether a supported value is an array. JsonValue is inspected by its contained data: JSON arrays return true; all other JSON kinds return false. Returns true for any native homogeneous array, including empty/nested arrays and fixed typed tuple values; false for scalars, null, undefined, records, callables and void call results. For a data union, inspects its active alternative: an array or fixed tuple is true and any other alternative is false. Omission returns false. The operand is evaluated once; additional arguments evaluate left to right and are ignored. Inputs are unchanged.\n\n@param value - Optional value to classify; defaults to undefined.\n\n```tsrust\nconsole.log(Array.isArray([]),Array.isArray({a:1}),Array.isArray(undefined)); // true false false\n```\n\nDoes not implement proxies, boxed values, dynamic heterogeneous arrays or the Array constructor. This observation by itself does not narrow a union or permit member/index projection. Strict null/undefined guards can prove a payload at a stable named place; replacing or consuming it invalidates that proof. The boolean result does not allocate; owned operands are borrowed for the call.\n\n```tsrust\nfunction main(){const value=JSON.parse(\"[null]\");console.log(Array.isArray(value),value===null,JSON.parse(\"null\")===null);}\n```\n\nExpected output: true false true. JSON arrays may contain mixed JSON kinds; inspection does not grant unchecked element access.",
+  "examples": [
+    {
+      "source": "console.log(Array.isArray([]),Array.isArray({a:1}),Array.isArray(undefined));",
+      "output": "true false false\n"
+    },
+    {
+      "source": "let value:int[]|null|undefined=[1,2];console.log(Array.isArray(value),String(value));value=null;console.log(Array.isArray(value),String(value));value=undefined;console.log(Array.isArray(value),String(value));",
+      "output": "true 1,2\nfalse null\nfalse undefined\n"
+    },
+    {
+      "source": "function main(){const value=JSON.parse(\"[null]\");console.log(Array.isArray(value),value===null,JSON.parse(\"null\")===null);}",
+      "output": "true false true\n"
+    }
+  ]
+},
   {
     "name": "of",
     "signature": "of<T>(...items: T[]): T[]",

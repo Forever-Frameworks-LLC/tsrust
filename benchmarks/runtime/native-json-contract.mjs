@@ -12,6 +12,19 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_inspection'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON inspection identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON inspection fingerprint');
+  if(row.iterations!==2000||row.inputText!=='[null]'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='Two parses, array inspection and two null comparisons')throw Error('JSON inspection denominator');
+  for(const snippet of ['let checksum = seed;','let i = 0;',`while (i < n) {
+    const value = JSON.parse(input);
+    if (!Array.isArray(value) || value === null) { throw 'Expected array'; }
+    if (JSON.parse('null') !== null) { throw 'Expected null'; }
+    checksum += 2;
+    i++;
+  }`,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON inspection operation placement');
+  return;
+ }
  if(row.id==='native_json_typeof'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typeof identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typeof fingerprint');
@@ -79,4 +92,9 @@ export function assertNativeJsonSource(source,row,kind){
 export function typeofChecksum(n,seed,input){
  if(input!=='42'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*6))throw Error('JSON typeof oracle inputs');
  return seed+n*6;
+}
+
+export function inspectionChecksum(n,seed,input){
+ if(input!=='[null]'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*2))throw Error('JSON inspection oracle inputs');
+ return seed+n*2;
 }

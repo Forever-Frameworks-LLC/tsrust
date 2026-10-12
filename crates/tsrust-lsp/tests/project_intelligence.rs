@@ -2117,3 +2117,13 @@ fn json_typeof_hover_explains_runtime_contents_and_refinement_boundary() {
     let docs=hover.to_string();
     assert!(docs.contains("contained JSON data")&&docs.contains("remains a JsonValue"),"{hover}");
 }
+
+#[test]
+fn json_array_inspection_hover_explains_contained_data() {
+    let source="function main(){const value=JSON.parse('[]');Array.isArray(value);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let hover=ask(&ProjectIndex::checked(&checked),source,"isArray(value)","textDocument/hover");
+    assert!(hover.to_string().contains("JSON arrays return true"),"{hover}");
+}

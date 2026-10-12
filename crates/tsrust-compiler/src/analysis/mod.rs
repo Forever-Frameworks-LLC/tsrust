@@ -8378,9 +8378,10 @@ impl Analyzer {
             // its alternative on both feasible branches until scalar refinement.
             let may_match = |ty: Type| match &guard {
                 crate::flow::Guard::Typeof(label) if dynamic_json(ty) => matches!(label.as_str(), "string" | "number" | "boolean" | "object"),
+                crate::flow::Guard::Absent(Type::Null) if dynamic_json(ty) => true,
                 _ => guard.matches(ty),
             };
-            let may_differ = |ty: Type| matches!(&guard, crate::flow::Guard::Typeof(_) if dynamic_json(ty)) || !guard.matches(ty);
+            let may_differ = |ty: Type| matches!(&guard, crate::flow::Guard::Typeof(_) | crate::flow::Guard::Absent(Type::Null) if dynamic_json(ty)) || !guard.matches(ty);
             let equal = members
                 .iter()
                 .copied()

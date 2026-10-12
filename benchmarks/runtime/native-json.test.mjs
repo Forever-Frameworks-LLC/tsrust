@@ -7,7 +7,7 @@ import {expectedChecksum} from './oracle.mjs';
 import {assertABI} from './adapters.mjs';
 import {reportCategory} from './report.mjs';
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
-for(const id of ['native_json_roundtrip','native_json_namespace','native_json_scalars','native_json_typeof'])test(`${id} preserves registration, operation count and independent oracle`,()=>{
+for(const id of ['native_json_roundtrip','native_json_namespace','native_json_scalars','native_json_typeof','native_json_inspection'])test(`${id} preserves registration, operation count and independent oracle`,()=>{
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
  assert.equal(rows.length,1);const row=rows[0];
  assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'json');
@@ -19,7 +19,7 @@ for(const id of ['native_json_roundtrip','native_json_namespace','native_json_sc
   const key=kind==='native'?'sourceSha256':'counterpartSha256';
   assert.throws(()=>assertNativeJsonSource(changed,{...row,[key]:createHash('sha256').update(changed).digest('hex')},kind));
  }
- for(const n of [0,1,2,17,2000])for(const seed of [0,7,19])assert.equal(expectedChecksum(row.id,n,seed,row.inputText),seed+n*(id==='native_json_scalars'?42:id==='native_json_typeof'?6:31));
+ for(const n of [0,1,2,17,2000])for(const seed of [0,7,19])assert.equal(expectedChecksum(row.id,n,seed,row.inputText),seed+n*(id==='native_json_scalars'?42:id==='native_json_typeof'?6:id==='native_json_inspection'?2:31));
  assert.throws(()=>jsonChecksum(1,0,'invalid'));
  assert.throws(()=>jsonChecksum(-1,0,jsonInput));
  assert.equal(assertABI('fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<i64, TsrFunctionError0> { todo!() }\nfn main() {}',row,{source:read('./'+row.source)}).fallible,true);

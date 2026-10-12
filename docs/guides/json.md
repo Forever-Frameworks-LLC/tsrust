@@ -88,6 +88,8 @@ consuming it. JSON strings, numbers and booleans report `"string"`, `"number"` a
 ordinary categories. Optional JSON values report `"undefined"` when absent.
 
 This inspection does not yet convert the wrapper into a scalar type. Continue
-using checked scalar extraction for access. JSON-aware Array.isArray, equality
-with null and richer safe refinement remain tracked in the S10 plan. The existing
+using checked scalar extraction for access. `Array.isArray(value)` inspects whether the contained JSON value is an array.
+`value === null` (and reversed/negated comparisons) recognizes contained JSON null
+without confusing it with undefined. Both operations borrow their inputs. Richer
+safe refinement remains tracked in the S10 plan. The existing
 imported kind function remains available for its six distinct JSON categories.

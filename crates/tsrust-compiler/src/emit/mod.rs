@@ -1102,6 +1102,7 @@ impl Emitter<'_> {
                         Type::Enum(_, crate::syntax::EnumKind::String) => "tsr_number_from_text(payload.tsr_value())".into(),
                         _ => unreachable!("checked scalar Number union"),
                     },
+                    CallTarget::ArrayIsArray if matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) => "payload.value.is_array()".into(),
                     CallTarget::ArrayIsArray => (matches!(member, Type::Array(_)) || matches!(member,Type::Record(id) if self.program.records[*id].is_tuple())).to_string(),
                     CallTarget::BooleanConversion => match member {
                         Type::Null | Type::Undefined => "false".into(),
@@ -1548,6 +1549,7 @@ impl Emitter<'_> {
             )
         } else {
             match target {
+                CallTarget::ArrayIsArray if first.is_some_and(|arg| matches!(arg.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue))) => "builtin_argument_0.value.is_array()".into(),
                 CallTarget::ArrayIsArray => first
                     .is_some_and(|a| matches!(a.ty, Some(Type::Array(_))) || matches!(a.ty,Some(Type::Record(id)) if self.program.records[id].is_tuple()))
                     .to_string(),
@@ -8246,30 +8248,15 @@ impl Emitter<'_> {
                 } else {
                     ("equality_right", left.ty.unwrap())
                 };
-                if let Some(index) = self.program.unions[union.index()]
-                    .members
-                    .iter()
-                    .position(|ty| *ty == sentinel)
-                {
-                    format!(
-                        "matches!(&{name},{}{}::V{index}(_))",
-                        if union.copy { "Union" } else { "ViewUnion" },
-                        union.index()
-                    )
-                } else {
-                    "false".into()
-                }
-            } else if let Some(Type::Union(union)) = right.ty {
-                let index = self.program.unions[union.index()]
-                    .members
-                    .iter()
-                    .position(|ty| Some(*ty) == left.ty);
-                index.map_or("false".to_owned(), |index| {
-                    format!(
-                        "matches!(&equality_right,Union{}::V{index}(_))",
-                        union.index()
-                    )
-                })
+                let arms = self.program.unions[union.index()].members.iter().enumerate().map(|(index, member)| {
+                    let test = if *member == sentinel { "true" } else if sentinel == Type::Null && matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) { "payload.value.is_null()" } else { "false" };
+                    format!("{}{}::V{index}(payload)=>{test}",if union.copy {"Union"}else{"ViewUnion"},union.index())
+                }).collect::<Vec<_>>().join(",");
+                format!("match &{name} {{{arms}}}")
+            } else if left.ty == Some(Type::Null) && matches!(right.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+                "equality_right.value.is_null()".into()
+            } else if right.ty == Some(Type::Null) && matches!(left.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+                "equality_left.value.is_null()".into()
             } else {
                 (left.ty == right.ty).to_string()
             };
