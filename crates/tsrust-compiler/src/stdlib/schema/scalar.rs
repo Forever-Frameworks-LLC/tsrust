@@ -14,7 +14,7 @@ pub(super) struct StringPlan;
 pub(super) struct BooleanPlan;
 pub(super) struct NullPlan;
 
-fn reject(input: Option<Value>, expected: Kind, path: &[Segment<'_>], issues: &mut Issues) {
+pub(super) fn reject(input: Option<Value>, expected: Kind, path: &[Segment<'_>], issues: &mut Issues) {
     let observed = match input.as_ref() {
         None => Kind::Missing,
         Some(Value::Null) => Kind::Null,

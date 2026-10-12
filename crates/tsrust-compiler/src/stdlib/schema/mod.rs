@@ -2,3 +2,4 @@
 mod issues;
 mod numeric;
 mod scalar;
+mod array;

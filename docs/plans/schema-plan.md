@@ -136,3 +136,21 @@ functions (`native/exports.rs`), and module linking handles those two identities
 import aliases and lexical shadowing must remain correct. Public builder spelling
 and default string-length units are awaiting owner review. Neither blocks the
 approved consuming validator backend.
+
+## Consuming array checkpoint
+
+Generic internal array plans compose typed validators, consume input elements, and
+produce Vec of the element output type. Original indices are preserved in nested
+issue paths. Successful string elements retain their allocations. On the first
+invalid element, partial output is dropped; later elements still validate for
+bounded issue collection, but successful values are immediately dropped. Empty
+arrays succeed; missing and null inputs fail independently of retained-error budget.
+
+Four focused cases cover allocation/order preservation, nested indexed errors with
+truncation, empty/missing/null distinctions, and exact-once disposal of successful
+outputs on both sides of a failing element. All 19 schema backend cases pass.
+SQLite evidence: `tsrust-schema-array-{red,check,format}-c641b6d9.log`.
+
+This remains internal groundwork. Public source inference, schema recursion and
+collection limits, native emission, IntelliSense and matched benchmarks remain
+required. No public array schema or S11 acceptance is claimed.
