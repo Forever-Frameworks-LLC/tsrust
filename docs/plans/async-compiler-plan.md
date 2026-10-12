@@ -50,3 +50,31 @@ source async support, generated-future acceptance or performance measurements.
    At the family milestone, run complete regressions, measure affected workloads,
    review performance and refresh installed consumers. Do not claim backend
    feasibility as S13 acceptance.
+
+## Proposed source contract for review
+
+Recommend `async function work(...): Task<T>` with a uniquely owned, lazy result.
+Calling the function evaluates arguments and constructs the task; its body starts
+when awaited or explicitly spawned. This does not promise JavaScript Promise
+eager execution, shared settlement or repeated awaiting. Use Task rather than
+Promise so the spelling signals that distinction.
+
+Await consumes the task once and yields T. Body throws propagate at the await
+site through the existing checked error model; argument-evaluation errors still
+occur at the call site. Tasks cannot be cloned or implicitly shared. Ownership
+transfers and retained parameter borrows happen when constructing the task, with
+real lifetimes retained until completion or disposal. Local await does not impose
+thread-transfer capability; a spawn boundary does. An async main is driven by
+the selected runtime, while synchronous main keeps the synchronous build path.
+
+An unpolled task can release its owned inputs without running its body. Diagnostics
+must make accidentally unused tasks visible. This proposal does not settle
+cancellation of a running task or finally execution during cancellation; those
+remain explicit S14 lifecycle decisions. Ordinary completion, return and throw
+must retain existing finally behavior in S13. Backend future drop is not a
+substitute for that source control-flow implementation.
+
+The decision requested before parser/type integration is the lazy, single-use
+Task surface. This section records a recommendation, not owner approval or
+implemented source support. Runtime/library APIs and cancellation must not be
+inferred as accepted from approval of the Task spelling/execution contract alone.
