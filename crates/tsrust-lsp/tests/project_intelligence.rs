@@ -2903,3 +2903,21 @@ fn imported_module_schema_preserves_checked_output_and_methods() {
     let definition = ask(&index, entry, "validator.safeParseJson", "textDocument/definition");
     assert!(definition.to_string().contains("schema.tsr"), "{definition}");
 }
+
+#[test]
+fn imported_module_arrow_keeps_callable_hover_and_definition() {
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let entry = "import {workload} from './work.tsr';function main(){console.log(workload(41));}";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    workspace.open(source_id("file:///tsrust-intelligence/work.tsr").unwrap(), 1,
+        "export const workload=(value:int):int=>{return value+1;};".into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, entry, "workload(41)", "textDocument/hover");
+    assert!(hover.to_string().contains("int"), "{hover}");
+    let definition = ask(&index, entry, "workload(41)", "textDocument/definition");
+    assert!(definition.to_string().contains("work.tsr"), "{definition}");
+    let help = ask(&index, entry, "41)", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("int"), "{help}");
+}

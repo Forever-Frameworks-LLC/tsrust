@@ -1,9 +1,9 @@
 # Program-owned module state
 
-Status: globals checkpoint `99f5e306` passed focused checks and installed smoke
-checks. A subsequent editor workspace scan exposed private function-expression
-recursion qualification; the repair passes its focused regression suite. Final
-replacement checkpoint and consumer refresh are in progress. S11 remains open.
+Status: globals checkpoint `99f5e306` and linker repair `c8aea8c7` passed focused
+checks. Installed CLI and configured LSP now use the repair checkpoint. Installed
+check/run and imported-schema hover pass; the active user project reports no
+problems after restarting its server. S11 remains open.
 
 ## Approved direction
 
@@ -96,5 +96,8 @@ then found private recursive function-expression names qualified as module names
 The linker now preserves each function expression's private written name inside
 its body. Both named-function-expression tests and all ten globals tests pass after
 the repair. The complete `benchmarks/runtime/workloads` checker scan passes with no diagnostics.
-Consumers are being rebuilt from the repair checkpoint. This supersedes the earlier
-readiness claim.
+Consumers were atomically refreshed from `c8aea8c7`, with matching SHA-256 hashes.
+Installed check/run and imported-schema hover pass. The active `tsrust_test` editor
+reports no problems after restart. A focused imported-arrow editor witness also
+passes hover, definition and signature-help checks. Exported arrow native execution
+was verified across two modules. These checks do not replace S11 milestone acceptance.
