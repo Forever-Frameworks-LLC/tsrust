@@ -1,8 +1,5 @@
-#[path="named_function_syntax.rs"]
 mod named_function_syntax;
-#[path="numeric_literals.rs"]
 mod numeric_literals;
-#[path="match_syntax.rs"]
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
 
@@ -4713,7 +4710,7 @@ mod exception_syntax_tests {
     use super::*;
     #[test]
     fn exception_regions_and_completion_fixtures_parse() {
-        for source in [include_str!("../tests/fixtures/exception-handling/basic.tsr"),include_str!("../tests/fixtures/exception-handling/completions.tsr")] {
+        for source in [include_str!("../../tests/fixtures/exception-handling/basic.tsr"),include_str!("../../tests/fixtures/exception-handling/completions.tsr")] {
             parse(source.split_once('\n').expect("fixture import line").1).unwrap();
         }
     }
@@ -4752,10 +4749,8 @@ fn hostile_default_call_nesting_returns_a_source_error() {
     assert_eq!(error.code,"unsupported");
 }
 
-#[path = "enum_syntax.rs"]
 mod enum_syntax;
 
-#[path = "set_syntax.rs"]
 mod set_syntax;
 
 /// Returns the validated numeric literal range at a UTF-8 source offset.

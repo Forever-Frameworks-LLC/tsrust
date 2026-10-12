@@ -69,3 +69,13 @@ Compiler-wide cleanup and the final structural regression milestone remain open.
 Current inventory: 327 source-root files. Analysis has 98 root-level child files,
 emission 68 and syntax five, attached through path attributes. These existing
 module boundaries provide the next concrete relocation batches.
+
+## Syntax batch
+
+The parser parent and its five children now live under `src/syntax/`. Ordinary
+module declarations replace all five path attributes; the public match_syntax
+re-export retains its identity. Child files retain exact bytes. Parent edits are
+limited to module paths and two embedded test fixture paths.
+
+The same 14 match/type-syntax integration tests pass before and after relocation.
+SQLite records use the tsrust-syntax-organization prefix. All 11 parser unit tests also pass; the syntax batch is accepted. The source root now has 321 files.
