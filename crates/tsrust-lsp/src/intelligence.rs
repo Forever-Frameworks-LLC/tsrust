@@ -80,6 +80,7 @@ pub struct SourceIndex {
     /// Import name regions with the completion items of the imported module.
     import_exports: Vec<(Span, Vec<Value>)>,
     checked_views: Vec<(Span, String)>,
+    json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
     checked_optional_receivers: Vec<(Span, String)>,
     checked_generic_calls: Vec<CheckedGenericCall>,
@@ -129,6 +130,7 @@ impl SourceIndex {
             import_exports: vec![],
             type_aliases: Default::default(),
             checked_views: vec![],
+            json_string_receivers: vec![],
             checked_method_results: vec![],
             checked_optional_receivers: vec![],
             checked_generic_calls: vec![],
@@ -360,6 +362,13 @@ impl SourceIndex {
             }
         }
         let facts = analysis.checked_type_facts();
+        self.json_string_receivers=facts.json_string_receivers.iter().filter_map(|span|{
+            let mut span=*span;
+            if let Some((start,added,original_end))=inserted {
+                if span.end<=start {}else if span.start>=start+added && span.end<=original_end+added {span.start-=added;span.end-=added;}else{return None;}
+            }
+            Some(span)
+        }).collect();
         for &(mut span, mut declaration) in &facts.generic_values {
             if facts.generic_values.iter().any(|(other_span, other_declaration)| *other_span == span && *other_declaration != declaration) { continue; }
             let remap = |span: &mut Span| {
@@ -2356,6 +2365,7 @@ impl SourceIndex {
         if self.text(dot) == "?." {
             return self.checked_optional_receiver(dot - 1).unwrap_or("").into();
         }
+        if self.json_string_receivers.iter().any(|span|span.start<=self.tokens[dot-1].span.start && span.end==self.tokens[dot-1].span.end){return "__tsrust_json_string_read".into();}
         // A successful contiguous hop has its own checked payload view.
         if let Some(ty) = self.checked_view(dot - 1) {
             return ty.into();

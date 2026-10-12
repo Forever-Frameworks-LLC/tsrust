@@ -21376,6 +21376,30 @@
       "notes": "Parses the same boolean per iteration, proves its category and branches on the payload. Exact common domain; no timing samples yet.",
       "sourceSha256": "0b0edda5ed19a7d987e5aaea6678d9b4e6a48384bb66fd66a299cf35b61bc4c8",
       "counterpartSha256": "8a81c96734890483c95ce8a6983478bf7313eb528809ec3312558667b4ffe7e8"
+    },
+    {
+      "id": "native_json_string_reads",
+      "category": "json",
+      "description": "Guarded JSON string length and searches",
+      "source": "workloads/native_json_string_reads.tsr",
+      "counterpart": "workloads/native_json_string_reads.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One parse, string guard, length and five searches",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "\"hellohello\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse the fixed ASCII text, check all six read operations and add fifteen per iteration.",
+      "notes": "ASCII common domain makes native UTF-8 byte coordinates and Node UTF-16 coordinates identical. Includes parsing; does not isolate search cost. No timing samples yet.",
+      "sourceSha256": "3f084bfb96570a572ad8bf115c33b26eddee9c6cef17df4bd586973e948d32dc",
+      "counterpartSha256": "6f704fe6e4a447b1c05aafaa2920546e2f5eadcdca2b78337d00248ed5cc11a9"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -134,12 +134,12 @@
   },
   {
     "name": "includes",
-    "signature": "includes(search: string, position?: int): boolean",
+    "signature": "includes(search: string | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether search text occurs anywhere in the receiver. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".includes(\"ell\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.",
+    "documentation": "Tests whether search text occurs anywhere in the receiver. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".includes(\"ell\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".includes(\"ell\"));",
@@ -149,12 +149,12 @@
   },
   {
     "name": "startsWith",
-    "signature": "startsWith(search: string, position?: int): boolean",
+    "signature": "startsWith(search: string | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether the receiver begins with search text. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".startsWith(\"he\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.",
+    "documentation": "Tests whether the receiver begins with search text. Optional position clamps to [0, byte length], default zero (start of the searched suffix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to zero.\n\n```tsrust\nconsole.log(\"hello\".startsWith(\"he\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".startsWith(\"he\"));",
@@ -164,12 +164,12 @@
   },
   {
     "name": "endsWith",
-    "signature": "endsWith(search: string, position?: int): boolean",
+    "signature": "endsWith(search: string | JsonValue | JsonView, position?: int): boolean",
     "parameters": [
       "search: string",
       "position?: int"
     ],
-    "documentation": "Tests whether the receiver ends with search text. Optional position clamps to [0, byte length], default byte length (end of the searched prefix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to byte length.\n\n```tsrust\nconsole.log(\"hello\".endsWith(\"lo\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.",
+    "documentation": "Tests whether the receiver ends with search text. Optional position clamps to [0, byte length], default byte length (end of the searched prefix). The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param position - UTF-8 byte boundary, clamped to the string bounds; defaults to byte length.\n\n```tsrust\nconsole.log(\"hello\".endsWith(\"lo\")); // prints \"true\"\n```\n\nSearch coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"hello\".endsWith(\"lo\"));",
@@ -179,27 +179,27 @@
   },
   {
     "name": "indexOf",
-    "signature": "indexOf(search: string, fromIndex?: int): int",
+    "signature": "indexOf(search: string | JsonValue | JsonView, fromIndex?: int): int",
     "parameters": [
       "search: string",
       "fromIndex?: int"
     ],
-    "documentation": "Returns the first matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to zero.\n\n```tsrust\nconsole.log(\"\u00e9clair\".indexOf(\"c\")); // prints \"2\"\n```\n\nfromIndex defaults to zero. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.",
+    "documentation": "Returns the first matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to zero.\n\n```tsrust\nconsole.log(\"éclair\".indexOf(\"c\")); // prints \"2\"\n```\n\nfromIndex defaults to zero. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
-        "source": "console.log(\"\u00e9clair\".indexOf(\"c\"));",
+        "source": "console.log(\"éclair\".indexOf(\"c\"));",
         "output": "2\n"
       }
     ]
   },
   {
     "name": "lastIndexOf",
-    "signature": "lastIndexOf(search: string, fromIndex?: int): int",
+    "signature": "lastIndexOf(search: string | JsonValue | JsonView, fromIndex?: int): int",
     "parameters": [
       "search: string",
       "fromIndex?: int"
     ],
-    "documentation": "Returns the last matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to the end for backward search.\n\n```tsrust\nconsole.log(\"banana\".lastIndexOf(\"a\")); // prints \"5\"\n```\n\nfromIndex defaults to the last available position. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.",
+    "documentation": "Returns the last matching byte offset, or -1 when absent. The search argument is a string; the receiver remains unchanged.\n\n@param search - Text to find; matched literally, without regular expressions or Unicode normalization.\n@param fromIndex - Byte offset; negative values clamp to zero, large values clamp to byte length. Defaults to the end for backward search.\n\n```tsrust\nconsole.log(\"banana\".lastIndexOf(\"a\")); // prints \"5\"\n```\n\nfromIndex defaults to the last available position. Search coordinates use UTF-8 bytes, not UTF-16 units. Explicit search boundaries must be valid scalar boundaries. String operands are borrowed.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The search argument may also be a JSON value proven to contain a string. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
         "source": "console.log(\"banana\".lastIndexOf(\"a\"));",
@@ -601,10 +601,10 @@
     "name": "length",
     "signature": "length: int",
     "parameters": null,
-    "documentation": "Returns the number of bytes in the UTF-8 representation. This read-only property does not change the receiver.\n\n```tsrust\nconsole.log(\"\u00e9\ud83d\ude0a\".length); // prints \"6\"\n```\n\nThis is neither a Unicode scalar count nor JavaScript UTF-16 length. Observation borrows text and allocates nothing.",
+    "documentation": "Returns the number of bytes in the UTF-8 representation. This read-only property does not change the receiver.\n\n```tsrust\nconsole.log(\"é😊\".length); // prints \"6\"\n```\n\nThis is neither a Unicode scalar count nor JavaScript UTF-16 length. Observation borrows text and allocates nothing.\n\nA JsonValue or JsonView proven to contain a string by a stable typeof guard also supports this read without copying or consuming its text. The source owner stays borrowed for the complete operation; later arguments cannot invalidate it.",
     "examples": [
       {
-        "source": "console.log(\"\u00e9\ud83d\ude0a\".length);",
+        "source": "console.log(\"é😊\".length);",
         "output": "6\n"
       }
     ]
@@ -3203,7 +3203,7 @@
     "parameters": [
       "value: unknown"
     ],
-    "documentation": "Returns the JavaScript type name as text. This is a unary operator, not a function. JsonValue reports the category of its contained JSON data: string, number, boolean or object. JSON null, arrays and objects all report object. The wrapper remains a JsonValue in storage. A stable boolean guard permits copying its boolean payload, including from JsonView or optional JSON values. String and numeric payloads still require checked extraction; no integer is implicitly rounded. number/int produce number; strings string; booleans boolean; undefined and void call results undefined; null, records and arrays object; callables function. A bare undeclared identifier produces undefined, while lexical use before declaration and unknown member/call expressions still fail. Namespace console/Math report object; Number and clone report function.\n\n@param value - Expression evaluated once; its value is not consumed.\n\n```tsrust\nconsole.log(typeof null,typeof undefined,typeof [1],typeof absent); // object undefined object undefined\n```\n\nA union reports the category of its active alternative. Strict comparisons such as typeof value === \"string\", \"number\" === typeof value, or typeof value !== \"boolean\" narrow stable named bindings and record fields in the corresponding branches. Negation, logical guards and loop conditions retain the same stable-place rules. Replacing or mutating the place invalidates its proof. A computed array position is not a stable guard place; bind its value first. The \"object\" category includes null, arrays, tuples and all records, so this guard cannot distinguish them from one another.\n\nData unions may combine int, number, boolean, string, records, arrays, tuples, null and undefined. Member order and duplicate alternatives do not change identity. Callable unions still require one callable payload with optional null/undefined. Access members only after proving the required alternative. An optional member operation requires one proven present type; common methods across different alternatives are not inferred. A union value compares with `===` and `!==` against an int, number, boolean or string, or against another union of such values; values with different alternatives are unequal, except that int and number compare by value. Where the comparison with one value is true, the union variable is narrowed to that value's type, so `if (value === \"yes\") { value.toUpperCase(); }` is accepted. Arithmetic on a union and ambiguous inference across several unresolved generic patterns remain unsupported; narrow first. Supply explicit type arguments when inference is ambiguous.\n\n```tsrust\nconst value:int|string|boolean=\"text\";\nif(typeof value===\"string\"){console.log(value.toUpperCase());} // prints \"TEXT\"\n```\n\nNative int and number both report \"number\"; this does not change int arithmetic or distinguish these alternatives. Use Number(value) when a numeric union needs a common numeric result. Non-null assertions remove only null and undefined and preserve every other alternative. The argument remains unchanged and the result is static text.\n\nOwnership: Owned union alternatives retain their owners. typeof and readonly observations borrow them; clone() copies supported owning data independently. Mutable data parameters borrow supplied owners, including staged spread arguments. Defaulted parameters use fresh local default owners when omitted.\n\n```tsrust\nfunction main(){const value=JSON.parse('\"hello\"');console.log(typeof value,typeof JSON.parse(\"null\"));const flag=JSON.parse('true');if(typeof flag==='boolean'){const result:boolean=flag;console.log(result);}}\n```\n\nExpected output: string object, then true on the next line. The JSON value is borrowed and remains usable.",
+    "documentation": "Returns the JavaScript type name as text. This is a unary operator, not a function. JsonValue reports the category of its contained JSON data: string, number, boolean or object. JSON null, arrays and objects all report object. The wrapper remains a JsonValue in storage. A stable boolean guard permits copying its boolean payload, including from JsonView or optional JSON values. A stable string guard enables length, startsWith, endsWith, includes, indexOf and lastIndexOf as borrowed text reads. First-class string extraction and numeric payloads still require checked extraction; no integer is implicitly rounded. number/int produce number; strings string; booleans boolean; undefined and void call results undefined; null, records and arrays object; callables function. A bare undeclared identifier produces undefined, while lexical use before declaration and unknown member/call expressions still fail. Namespace console/Math report object; Number and clone report function.\n\n@param value - Expression evaluated once; its value is not consumed.\n\n```tsrust\nconsole.log(typeof null,typeof undefined,typeof [1],typeof absent); // object undefined object undefined\n```\n\nA union reports the category of its active alternative. Strict comparisons such as typeof value === \"string\", \"number\" === typeof value, or typeof value !== \"boolean\" narrow stable named bindings and record fields in the corresponding branches. Negation, logical guards and loop conditions retain the same stable-place rules. Replacing or mutating the place invalidates its proof. A computed array position is not a stable guard place; bind its value first. The \"object\" category includes null, arrays, tuples and all records, so this guard cannot distinguish them from one another.\n\nData unions may combine int, number, boolean, string, records, arrays, tuples, null and undefined. Member order and duplicate alternatives do not change identity. Callable unions still require one callable payload with optional null/undefined. Access members only after proving the required alternative. An optional member operation requires one proven present type; common methods across different alternatives are not inferred. A union value compares with `===` and `!==` against an int, number, boolean or string, or against another union of such values; values with different alternatives are unequal, except that int and number compare by value. Where the comparison with one value is true, the union variable is narrowed to that value's type, so `if (value === \"yes\") { value.toUpperCase(); }` is accepted. Arithmetic on a union and ambiguous inference across several unresolved generic patterns remain unsupported; narrow first. Supply explicit type arguments when inference is ambiguous.\n\n```tsrust\nconst value:int|string|boolean=\"text\";\nif(typeof value===\"string\"){console.log(value.toUpperCase());} // prints \"TEXT\"\n```\n\nNative int and number both report \"number\"; this does not change int arithmetic or distinguish these alternatives. Use Number(value) when a numeric union needs a common numeric result. Non-null assertions remove only null and undefined and preserve every other alternative. The argument remains unchanged and the result is static text.\n\nOwnership: Owned union alternatives retain their owners. typeof and readonly observations borrow them; clone() copies supported owning data independently. Mutable data parameters borrow supplied owners, including staged spread arguments. Defaulted parameters use fresh local default owners when omitted.\n\n```tsrust\nfunction main(){const value=JSON.parse('\"hello\"');console.log(typeof value,typeof JSON.parse(\"null\"));const flag=JSON.parse('true');if(typeof flag==='boolean'){const result:boolean=flag;console.log(result);}const text=JSON.parse('\"hello\"');if(typeof text==='string'){console.log(text.length,text.includes('ell'));}}\n```\n\nExpected output: string object, then true, then 5 true on separate lines. The JSON value is borrowed and remains usable.",
     "examples": [
       {
         "source": "console.log(typeof null,typeof undefined,typeof [1],typeof absent);",
@@ -3214,8 +3214,8 @@
         "output": "TEXT\n"
       },
       {
-        "source": "function main(){const value=JSON.parse('\"hello\"');console.log(typeof value,typeof JSON.parse(\"null\"));const flag=JSON.parse('true');if(typeof flag==='boolean'){const result:boolean=flag;console.log(result);}}",
-        "output": "string object\ntrue\n"
+        "source": "function main(){const value=JSON.parse('\"hello\"');console.log(typeof value,typeof JSON.parse(\"null\"));const flag=JSON.parse('true');if(typeof flag==='boolean'){const result:boolean=flag;console.log(result);}const text=JSON.parse('\"hello\"');if(typeof text==='string'){console.log(text.length,text.includes('ell'));}}",
+        "output": "string object\ntrue\n5 true\n"
       }
     ]
   },

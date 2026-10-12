@@ -8523,6 +8523,11 @@ impl Emitter<'_> {
                     }else{crate::native_emit::call(binding, arguments)}
                 }
                 CallTarget::JsonBoolean => self.json_boolean_projection(fun, &args[0]),
+                CallTarget::JsonStringLength => {
+                    let receiver=self.expr(fun,&args[0],Mode::Read);
+                    let text=self.json_text_read(args[0].ty.unwrap(),"json_source");
+                    format!("{{let json_source={receiver};let text:&str={text};tsr_length(text)}}")
+                }
                 target @ (CallTarget::BooleanConversion
                 | CallTarget::StringConversion
                 | CallTarget::ArrayIsArray) => self.value_builtin_call(fun, target, args),
@@ -8734,8 +8739,10 @@ impl Emitter<'_> {
                         Some(CallTarget::StringLastIndexOf) => "tsr_string_last_index_of",
                         _ => unreachable!("checked string search"),
                     };
+                    let text=self.json_text_read(base.ty.unwrap(),"string_source");
+                    let needle_text=self.json_text_read(args[0].ty.unwrap(),"needle_source");
                     format!(
-                        "{{ let string_receiver: &String = {receiver}; let string_needle: &String = {needle}; let string_position = {position}; {method}(string_receiver, string_needle, string_position) }}"
+                        "{{ let string_source = {receiver}; let string_receiver: &str = {text}; let needle_source = {needle}; let string_needle: &str = {needle_text}; let string_position = {position}; {method}(string_receiver, string_needle, string_position) }}"
                     )
                 }
                 CallTarget::ArrayReduce | CallTarget::ArrayReduceRight => {

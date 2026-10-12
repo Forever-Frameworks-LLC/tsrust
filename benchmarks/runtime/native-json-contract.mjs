@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_string_reads'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string reads identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string reads fingerprint');
+  if(row.iterations!==2000||row.inputText!=='"hellohello"'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One parse, string guard, length and five searches')throw Error('JSON string reads denominator');
+  if(!containsCodeSnippet(source,"  let checksum = seed;\n  let i = 0;\n  while (i < n) {\n    const value = JSON.parse(input);\n    if (typeof value !== 'string') { throw 'Expected string'; }\n    if (!value.startsWith('hello') || !value.endsWith('hello') || !value.includes('ell')) { throw 'Expected matches'; }\n    checksum += value.length + value.indexOf('hello') + value.lastIndexOf('hello');\n    i++;\n  }\n  return checksum;\n"))throw Error('JSON string reads operation placement');
+  return;
+ }
+
  if(row.id==='native_json_refinement'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON refinement identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON refinement fingerprint');
@@ -124,4 +132,9 @@ export function viewChecksum(n,seed,input){
 export function refinementChecksum(n,seed,input){
  if(input!=='true'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n))throw Error('JSON refinement oracle inputs');
  return seed+n;
+}
+
+export function stringReadsChecksum(n,seed,input){
+ if(input!=='"hellohello"'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*15))throw Error('JSON string reads oracle inputs');
+ return seed+n*15;
 }

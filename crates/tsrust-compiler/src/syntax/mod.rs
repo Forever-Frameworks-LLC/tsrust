@@ -633,6 +633,7 @@ pub enum CallTarget {
     BooleanConversion,
     /// Checked projection after a stable JSON boolean guard.
     JsonBoolean,
+    JsonStringLength,
     StringConversion,
     ArrayIsArray,
     ObjectIs,
@@ -985,6 +986,8 @@ pub struct Expr {
     pub ty: Option<Type>,
     pub binding: Option<usize>,
     pub target: Option<CallTarget>,
+    /// A checked string-category proof for this JSON read, without changing storage.
+    pub(crate) json_string_view: bool,
     /// Original source argument count, before optional padding or rest packing.
     pub supplied_count: Option<CallArgumentCount>,
     /// Specialized callback body used by the enclosing array traversal.
@@ -1411,6 +1414,7 @@ impl Expr {
             supplied_count,
             binding: None,
             target: None,
+            json_string_view: false,
             traversal_method: None,
             may_fail: false,
             own_may_fail: false,

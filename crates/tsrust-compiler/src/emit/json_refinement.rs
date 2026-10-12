@@ -42,3 +42,17 @@ impl Emitter<'_> {
     }
   }
 }
+
+impl Emitter<'_> {
+ pub(super) fn json_text_read(&self,ty:Type,name:&str)->String {
+  let extract=|ty:Type,name:&str|match ty {
+   Type::String=>format!("{name}.as_ref()"),
+   Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView))=>format!("{name}.value.as_str().expect(\"checked JSON string proof\")"),
+   _=>"unreachable!(\"checked JSON string alternative\")".into(),
+  };
+  if let Some(union)=ty.union(){
+   let arms=self.program.unions[union.index()].members.iter().enumerate().map(|(i,ty)|format!("{}{}::V{i}(payload)=>{}",if union.copy{"Union"}else{"ViewUnion"},union.index(),extract(*ty,"payload"))).collect::<Vec<_>>().join(",");
+   format!("match &{name}{{{arms}}}")
+  }else{extract(ty,name)}
+ }
+}

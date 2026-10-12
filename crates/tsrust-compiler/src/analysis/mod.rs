@@ -7745,6 +7745,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         if let Some(ty) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
+            expr.json_string_view=self.json_string_proof(context,expr).is_some();
             return Ok(ty);
         }
         if self.depth >= 128 {
@@ -7778,6 +7779,7 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Option<Type>, Diagnostic> {
+        if let Some(result)=self.json_string_length(context,expr,mode,loans)?{return Ok(Some(result));}
         if let Some(result) = self.result_match_intrinsic(context, expr, loans)? {
             return Ok(Some(result));
         }
@@ -7866,6 +7868,7 @@ impl Analyzer {
         expected: Option<Type>,
         result: Result<Type, Diagnostic>,
     ) -> Result<Type, Diagnostic> {
+        expr.json_string_view=result.is_ok() && self.json_string_proof(context,expr).is_some();
         let result = match result {
             Ok(actual)=>self.rest_callable_adapter(context,expr,actual,expected,mode),
             Err(error)=>Err(error),
@@ -8421,7 +8424,7 @@ impl Analyzer {
                 );
             }
         }
-        self.remember_json_boolean(context,expr_span,op,left,right,&mut yes,&mut no);
+        self.remember_json_category(context,expr_span,op,left,right,&mut yes,&mut no);
         context
             .condition_flows
             .insert((expr_span.start, expr_span.end), (yes, no));
@@ -13210,8 +13213,10 @@ self.names_materialized_type(element.with_depth(0).ty())
             ));
         }
         let index_of = method == "indexOf" || method == "lastIndexOf";
+        let string_proof=self.json_string_proof(context,base);
+        if let Some(proof)=string_proof.clone(){Self::use_json_string_proof(context,proof);}
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
-        let element_type = if ty == Type::String {
+        let element_type = if ty == Type::String || string_proof.is_some() {
             Type::String
         } else {
             if method == "startsWith" || method == "endsWith" {
@@ -13260,14 +13265,16 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((Mode::Read, base.span));
         }
+        let needle_proof=if element_type==Type::String{self.json_string_proof(context,&args[0])}else{None};
+        if let Some(proof)=needle_proof.clone(){Self::use_json_string_proof(context,proof);}
         let actual = self.expression(
             context,
             &mut args[0],
             Mode::Read,
             &active,
-            Some(element_type),
+            if needle_proof.is_some(){None}else{Some(element_type)},
         )?;
-        self.require(actual, Some(element_type), args[0].span)?;
+        if needle_proof.is_none(){self.require(actual, Some(element_type), args[0].span)?;}
         if !actual.is_copy() {
             for root in Self::loan_roots(&args[0], Mode::Read) {
                 active
@@ -15676,8 +15683,9 @@ self.names_materialized_type(element.with_depth(0).ty())
                     "startsWith" | "endsWith" | "includes" | "indexOf" | "lastIndexOf"
                 ) =>
             {
+                let json_string=self.json_string_proof(context,base).is_some();
                 let ty = self.collection_search(context, base, args, loans, span, name)?;
-                expr.target = Some(match (base.ty, name.as_str()) {
+                expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty}, name.as_str()) {
                     (Some(Type::String), "startsWith") => CallTarget::StringStartsWith,
                     (Some(Type::String), "endsWith") => CallTarget::StringEndsWith,
                     (Some(Type::String), "includes") => CallTarget::StringIncludes,

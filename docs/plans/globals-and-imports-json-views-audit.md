@@ -31,3 +31,11 @@ access copies a boolean while preserving JSON storage. Mutation invalidates the
 proof; joins and loop back edges must preserve it. This adds no public identity
 or import and does not convert exact JSON integers to floating point. String and
 numeric refinement remain deferred with explicit checked readers available.
+
+
+A stable string guard now enables the existing length and five search members
+through scoped JSON text borrows. Guarded JSON search arguments are also accepted.
+The source must remain stable through all later arguments. Existing UTF-8 byte
+coordinates and errors are unchanged. Completion exposes only these six reads;
+this is not a general string conversion or a new public type identity. First-class
+borrowed strings, other string methods and numeric refinement remain pending.

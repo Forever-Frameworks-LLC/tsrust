@@ -230,6 +230,7 @@ impl SourceIndex {
                 symbol.docs = source.docs.clone();
             }
         }
+        self.json_string_receivers=facts.json_string_receivers.iter().filter(|location|location.source==*current).map(|location|location.span).collect();
         let mut views = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         let mut optional = std::collections::BTreeMap::<(usize, usize), Option<String>>::new();
         // Successful project metadata is authoritative, including suppressed
@@ -352,5 +353,23 @@ fn project_callable_value(ty: &ProjectType) -> bool {
         ProjectType::Callable { .. } => true,
         ProjectType::Union(members) => members.iter().any(project_callable_value),
         _ => false,
+    }
+}
+
+
+impl SourceIndex {
+    pub(crate) fn recover_project_json_string_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
+        let Some((probe,start,added,original_end))=self.receiver_probe() else{return};
+        let mut graph=graph.clone();let Some(module)=graph.modules.get_mut(id) else{return};
+        // The probe changes only a trailing expression; retain validated header
+        // masking and import identities from the same source snapshot.
+        module.declaration_source=format!("{}{}",&module.declaration_source[..start],&probe[start..]);
+        module.source.text=probe;
+        let Ok(analysis)=tsrust_compiler::project::check_graph(graph) else{return};
+        self.json_string_receivers=analysis.checked_type_facts().json_string_receivers.into_iter().filter_map(|location|{
+            if location.source!=*id{return None;}let mut span=location.span;
+            if span.end<=start{}else if span.start>=start+added && span.end<=original_end+added{span.start-=added;span.end-=added;}else{return None;}
+            Some(span)
+        }).collect();
     }
 }

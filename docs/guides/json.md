@@ -89,7 +89,8 @@ ordinary categories. Optional JSON values report `"undefined"` when absent.
 
 A stable `typeof value === "boolean"` guard permits boolean access, including
 copying the payload into a local or returning it. The original JSON storage stays
-unchanged. String and numeric guards still require checked scalar extraction;
+unchanged. String guards enable the borrowed reads below. First-class string extraction and
+numeric guards still require checked scalar extraction;
 there is no implicit rounding of exact JSON integers. `Array.isArray(value)` inspects whether the contained JSON value is an array.
 `value === null` (and reversed/negated comparisons) recognizes contained JSON null
 without confusing it with undefined. Both operations borrow their inputs. Richer
@@ -147,3 +148,30 @@ function readFlag(text: string): boolean {
 fields, including optional JsonValue and JsonView. Replacing or mutating the
 source invalidates the proof. A loop must recheck the category after a change;
 a proof from a path that does not reach the use cannot justify access.
+
+
+## Borrowed string reads after a guard
+
+After `typeof value === "string"`, an owned JsonValue or borrowed JsonView supports
+`length`, `startsWith`, `endsWith`, `includes`, `indexOf` and `lastIndexOf`. The
+search argument can be an ordinary string or another JSON value guarded as a
+string. Both operands remain borrowed through evaluation of later arguments.
+
+```tsrust
+function main() {
+  const value = JSON.parse('"hello"');
+  if (typeof value === "string") {
+    console.log(value.length, value.includes("ell")); // 5 true
+  }
+}
+```
+
+Reads use the same UTF-8 byte coordinates, clamping, defaults and invalid-boundary
+errors as ordinary Tsrust strings. Length is read-only. Missing optional values do
+not satisfy the string guard. Replacing the source invalidates the proof; loops
+must recheck after replacement. No text buffer is copied for these reads.
+
+The wrapper still owns or borrows JSON storage. This does not yet permit assigning
+the payload to a string local, returning a borrowed string, or invoking other
+string methods. Use the explicit consuming `takeString` when independent owned
+string storage is needed; borrowed views cannot be consumed by that operation.

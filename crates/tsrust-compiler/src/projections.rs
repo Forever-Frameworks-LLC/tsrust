@@ -77,6 +77,7 @@ pub struct GenericParameterInfo {
 /// Checked editor facts collected in one iterative walk, without reanalysis.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CheckedTypeFacts {
+    pub json_string_receivers: Vec<Span>,
     /// Generic value bindings retain their original declaration identity.
     pub generic_values: Vec<(Span, Span)>,
     pub(crate) identities: CheckedTypeIdentities,
@@ -177,6 +178,7 @@ impl Analysis {
     /// Conflicting specializations remain explicit; callers must not pick one.
     pub fn checked_type_facts(&self) -> CheckedTypeFacts {
         let program = &self.program;
+        let mut json_string_receivers=Vec::new();
         let wrapper_spans = program.closures.iter().filter_map(|closure| {
             let [statement] = closure.function.body.as_slice() else { return None; };
             let StmtKind::Return(Some(call)) = &statement.kind else { return None; };
@@ -295,6 +297,7 @@ impl Analysis {
                     StmtKind::Return(None) | StmtKind::Break | StmtKind::Continue => {}
                 },
                 Node::Expression(expression) | Node::Successful(expression, _) => {
+                    if expression.json_string_view {json_string_receivers.push(expression.span);}
                     let successful_span = match node {
                         Node::Successful(_, span) => Some(span),
                         _ => None,
@@ -667,6 +670,7 @@ impl Analysis {
             }
         }
         CheckedTypeFacts {
+            json_string_receivers,
             generic_values,
             rest_record_fields,
             identities,

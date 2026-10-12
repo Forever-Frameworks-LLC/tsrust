@@ -74,6 +74,7 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    pub json_string_receivers: Vec<SourceLocation>,
     /// Fixed nominal annotation use and declaration locations in generic headers.
     pub generic_nominals: Vec<(SourceLocation, SourceLocation)>,
     /// Checked generic value binding and original declaration source locations.
@@ -180,6 +181,7 @@ impl ProjectAnalysis {
             })
         }).collect();
         ProjectCheckedTypeFacts {
+            json_string_receivers: facts.json_string_receivers.iter().filter_map(|span|self.source_location(*span)).collect(),
             generic_nominals: self.analysis.program.deferred_generic_nominals.iter().filter_map(|(span, declaration)|
                 Some((self.source_location(*span)?, self.source_location(*declaration)?))).collect(),
             generic_values,

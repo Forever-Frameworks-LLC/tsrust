@@ -2150,3 +2150,20 @@ fn json_boolean_refinement_checks_and_reports_boolean_local() {
  let hover=ask(&index,&source,"result);","textDocument/hover");assert!(hover.to_string().contains("boolean"),"{hover}");
  let hover=ask(&index,&source,"typeof value","textDocument/hover");assert!(hover.to_string().contains("boolean guard"),"{hover}");
 }
+
+#[test]
+fn guarded_json_string_reads_have_hover_signature_and_completion() {
+ let source=tsrust_compiler::format("function main(){const value=JSON.parse('\"hello\"');if(typeof value==='string'){console.log(value.length,value.includes('ell'));}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"includes(","textDocument/hover");assert!(hover.to_string().contains("includes"),"{hover}");
+ let signature=ask(&index,&source,"'ell'","textDocument/signatureHelp");assert!(signature.to_string().contains("search"),"{signature}");
+ let completion=ask(&index,&source,"includes(","textDocument/completion");assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="includes")),"{completion}");
+}
+
+#[test]
+fn guarded_json_string_completion_recovers_at_incomplete_member() {
+ let source="function main(){const value=JSON.parse('\"hello\"');if(typeof value==='string'){value.";
+ let uri=source_id("file:///tsrust-intelligence/main.tsr").unwrap();let mut workspace=Workspace::default();workspace.open(uri.clone(),1,source.into());let input=workspace.snapshot();let graph=tsrust_compiler::project::load_project_headers(&input,&uri.0).unwrap();
+ let completion=ask(&ProjectIndex::new(&graph),source,"","textDocument/completion");
+ let items=completion.as_array().unwrap();assert!(items.iter().any(|item|item["label"]=="includes"),"{completion}");assert!(!items.iter().any(|item|item["label"]=="toUpperCase"),"unsupported borrowed methods offered: {completion}");
+}

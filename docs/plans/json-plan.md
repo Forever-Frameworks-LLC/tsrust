@@ -622,3 +622,42 @@ zero-allocation witness plus eight existing search/last-index regressions. These
 cover Unicode byte boundaries, extreme positions, empty/missing needles,
 evaluation order and ownership. tsrust-borrowed-string-readers-format.log records
 whole-project formatting. No new workload semantics or timing are introduced.
+
+
+### Guarded string read integration
+
+The current source batch connects stable typeof string proofs to length and five
+search operations on JsonValue/JsonView, including optional views and guarded
+JSON search arguments. Native reads use scoped UTF-8 borrows; no string carrier is
+created. Ordinary mutation invalidation and loop proof checks apply. This is not
+first-class borrowed string projection: string locals/returns, remaining string
+methods and numeric refinement remain pending.
+
+Editor facts retain proof spans without relabeling native storage. Completion
+uses only the six accepted reads; incomplete trailing members are checked through
+a readonly project probe with original import identities and header masking.
+The matched native_json_string_reads workload uses ASCII so byte and UTF-16
+coordinates coincide. It includes parsing and does not isolate search cost.
+
+
+Focused source acceptance evidence is retained in benchmarks/records.sqlite:
+
+- tsrust-json-string-refinement-red.log and green.log: initial rejection, then
+  native owner/optional-view length and five searches pass.
+- tsrust-json-string-refinement-safety.log: two new string checks, two boolean
+  refinement checks and eight existing search regressions pass. Missing/wrong
+  guards, reassignment, length writes and invalidated loop proofs reject.
+- tsrust-json-string-refinement-needle.log and final.log: guarded JSON needles,
+  updated typeof catalog example and existing inspection execution pass.
+- tsrust-json-string-refinement-editor-final.log: both complete-source hover,
+  signatures/completion and incomplete-member recovery pass. Earlier failed
+  probes remain retained; recovery now keeps string facts during readonly probes.
+- tsrust-json-string-refinement-contract.log: eight workload contracts pass.
+  tsrust-json-string-refinement-smoke.log: five native/Node-after-tsc cases agree,
+  with zero timing samples.
+- tsrust-json-string-refinement-format.log and format-final.log: whole-project
+  token-preserving formatting and source fingerprint refresh.
+
+Installed consumers still predate this batch. S10 acceptance and measurements
+remain open; the scoped string reads do not substitute for first-class borrowed
+string storage or exact numeric refinement.
