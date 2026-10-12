@@ -95,3 +95,9 @@ test('Unicode and deep encoding oracles describe exact canonical output',()=>{
  assert.equal(jsonAllocationChecksum(1,'encode_typed_strings'),Buffer.from(expected).reduce((sum,byte)=>sum+byte,0));
  assert.equal(jsonAllocationInput(1,'encode_dynamic_deep'),'['.repeat(32)+'7'+']'.repeat(32));
 });
+
+test('object encoding oracle includes sorted fields, nested values and Unicode',()=>{
+ const expected='{"active":true,"items":[[7,8]],"name":"é🦀"}';
+ assert.equal(jsonAllocationInput(1,'encode_typed_object'),expected);
+ assert.equal(jsonAllocationChecksum(1,'encode_dynamic_object'),Buffer.from(expected).reduce((sum,byte)=>sum+byte,0));
+});

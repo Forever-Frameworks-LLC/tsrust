@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/deep encoding and owned/borrowed JSONL reading/writing: 63 cases and 567 fresh-process samples. Public raw fragments, broader encoding coverage and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. Public raw fragments and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -29,7 +29,7 @@ neither metric establishes process peak RSS or latency.
 | Requirement | Current evidence | Remaining acceptance |
 | --- | --- | --- |
 | Dynamic/typed decoding | Numeric, Unicode, nested/selective and failure allocation cases; dynamic 32-level nesting | Full throughput/latency and wrapper-cost matrix |
-| Encoding | Numeric/Unicode dynamic and typed arrays, deep dynamic trees; exact output bytes | Object encoding allocation and full timing coverage |
+| Encoding | Numeric/Unicode arrays, mixed-field objects and deep dynamic trees; exact output bytes | Full timing/RSS and wrapper-cost coverage |
 | JSONL streaming | Owned/borrowed readers and writers, 0/1/10000 records, bounded peak requested heap | Timing/RSS and full family regression review |
 | Raw fragments | Private validation and real borrowed-source lifetime | Owner decision on preserved raw spelling, public API, editor/examples and measurements |
 | Release consumers | Installed checkpoint ee1e2717 | Refresh borrowed adapters and remaining accepted features after final source verification |
@@ -1408,3 +1408,27 @@ Evidence: tsrust-json-encoding-shapes-*-132cbdf5 in SQLite. Prior records were n
 rerun. The current allocation matrix totals 63 cases and 567 process samples.
 Object encoding, raw-fragment publication/measurement, full family regressions,
 latency/throughput/RSS review and final installed acceptance remain open.
+
+### Mixed-field object encoding allocation baselines
+
+`--only=encode_dynamic_object,encode_typed_object` covers records with an active
+boolean, nested integer-pair arrays and a Unicode name. Dynamic trees and owned
+typed records use equivalent field values and canonical sorted output. Temporary
+preparation trees are dropped before counter reset; the native adapter checks the
+complete concrete record layout before constructing it. Direct Rust uses an
+explicit SerializeStruct implementation, with preparation outside measurement.
+The independent output oracle specifies every byte, including key order and UTF-8.
+
+All six cases (0, 1 and 1000 nested pairs) and 54 fresh-process samples pass exact
+output, stable Rust counts and complete input/output disposal. Sixteen focused
+checks pass across the preserved batch and repaired encoding test file; its
+initial syntax failure remains recorded. Empty/single-pair records retain 64
+requested bytes natively versus 128 for direct Rust; native uses three growth
+operations versus zero. At 1000 pairs both retain 16384 bytes, with eleven/seven
+reallocations. Dynamic and typed output allocation metrics match in this fixture.
+These are encoding-only allocation results, not parse or CPU measurements.
+
+Evidence: tsrust-json-object-alloc-*-59abe08d in SQLite. Prior records are unchanged.
+The current matrix totals 69 cases and 621 process samples. Public raw fragments,
+full regression, latency/throughput/RSS and wrapper-cost review, justified
+optimization and final installed-consumer acceptance remain required for S10.

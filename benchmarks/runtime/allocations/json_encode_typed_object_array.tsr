@@ -1,0 +1,9 @@
+type Item = {
+  active: boolean;
+  items: int[][];
+  name: string;
+};
+
+function workload(n: int, seed: int, input: Item): string {
+  return JSON.stringify(input);
+}

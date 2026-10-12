@@ -20,3 +20,11 @@ test('Unicode typed encoding keeps strings owned and rejects numeric ABI',()=>{
  assert.throws(()=>nativeEncodingAllocation(emitted,driver,'encode_typed'));
  assert.match(directEncodingAllocation(driver,'encode_typed_strings'),/Vec<String>/);
 });
+
+test('object encoding checks record layout and drops preparation trees before counters',()=>{
+ const emitted='struct Record0 { field0: bool, field1: Array<NumericArray<i64>>, field2: String }\nfn tsr_result_function0(value0: i64, value1: i64, value2: &Record0) -> Result<String,TsrFunctionError0> {}\nfn main() {}';
+ const adapted=nativeEncodingAllocation(emitted,driver,'encode_typed_object');
+ assert.ok(adapted.indexOf('drop(raw)')<adapted.indexOf('ALLOCS.store(0'));
+ assert.throws(()=>nativeEncodingAllocation(emitted.replace('field0: bool','field0: i64'),driver,'encode_typed_object'));
+ assert.match(directEncodingAllocation(driver,'encode_typed_object'),/serialize_struct/);
+});
