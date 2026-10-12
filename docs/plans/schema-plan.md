@@ -12,7 +12,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean API checked; remaining constructors pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
@@ -292,3 +292,23 @@ The exact catalog example for owned text executes natively. SQLite evidence:
 The existing registered workload still measures JSON parse-plus-validation;
 a separate validation-only ownership/setup protocol remains required. No timing,
 consumer refresh or S11 acceptance is claimed.
+
+## Boolean schema integration
+
+s.boolean() now infers Schema<boolean>. safeParse accepts a concrete boolean or an
+owned JsonValue, preserving false as successful output and rejecting non-boolean
+JSON without truthiness coercion. Direct booleans retain primitive copy semantics;
+JSON inputs transfer ownership. The schema is borrowed and reusable. Scalar native
+emission is now shared by string/boolean bindings instead of assuming a string
+constructor exists in every schema program. Other typed inputs/unions remain pending.
+
+Eleven focused schema compiler/native tests, three editor protocol tests and two
+benchmark contract tests pass. Catalog examples execute exact source natively.
+The new native_schema_boolean workload includes matched TypeScript, source hashes,
+operation guards, oracle and ABI/report registration. Native and Node-after-tsc
+agree on four input sizes each with zero timing samples. It measures parse plus
+validation and error observation; it is not validation-only or a Zod comparison.
+
+SQLite evidence: `tsrust-schema-boolean-{red,check,final,editor,format,benchmark-tests,verify}-621ea809.log`.
+Both registered schema workloads remain unmeasured. Constraints, numeric/null
+constructors, composite schemas, broader typed inputs and S11 acceptance remain.

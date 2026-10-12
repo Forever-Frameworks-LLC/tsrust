@@ -9,14 +9,16 @@ impl Analyzer {
         if record.native_type != Some(crate::native_signatures::NativeTypeId::Schema) { return Ok(()); }
         if member != "safeParse" { return Err(Diagnostic::new("schema-member", "Unsupported schema method.", callee.span)); }
         if args.len() != 1 { return Err(Diagnostic::new("arity", "safeParse expects one input value.", expr.span)); }
-        if record.application.as_ref().and_then(|application| application.resolved_arguments.first()).copied() != Some(Type::String) {
-            return Err(Diagnostic::new("schema-type", "safeParse currently supports string schemas.", callee.span));
-        }
+        let output = record.application.as_ref().and_then(|application| application.resolved_arguments.first()).copied();
         let input = self.expression_type_hint(context, &args[0]);
-        let symbol = match input {
-            Some(Type::String) => "@native:std:schema#__safeParseOwnedString",
-            Some(Type::Record(input)) if self.program.records[input].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue) => "@native:std:schema#__safeParseString",
-            _ => return Err(Diagnostic::new("schema-input", "safeParse currently requires an owned string or JsonValue input.", args[0].span)),
+        let json = matches!(input, Some(Type::Record(input)) if self.program.records[input].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue));
+        let symbol = match (output, input, json) {
+            (Some(Type::String), Some(Type::String), _) => "@native:std:schema#__safeParseOwnedString",
+            (Some(Type::String), _, true) => "@native:std:schema#__safeParseString",
+            (Some(Type::Boolean), Some(Type::Boolean), _) => "@native:std:schema#__safeParseBooleanValue",
+            (Some(Type::Boolean), _, true) => "@native:std:schema#__safeParseBoolean",
+            (Some(Type::String | Type::Boolean), _, _) => return Err(Diagnostic::new("schema-input", "safeParse requires a matching concrete scalar or owned JsonValue input.", args[0].span)),
+            _ => return Err(Diagnostic::new("schema-type", "safeParse currently supports string and boolean schemas.", callee.span)),
         };
         args.insert(0, (**base).clone());
         callee.kind = ExprKind::Name(symbol.into());

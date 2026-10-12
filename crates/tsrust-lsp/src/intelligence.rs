@@ -1862,14 +1862,14 @@ impl SourceIndex {
         None
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if self.schema_element(&receiver) == Some("string") && method == "safeParse" {
+        if let Some(element @ ("string" | "boolean")) = self.schema_element(&receiver) && method == "safeParse" {
             return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)
-                .map(|(name, _)| format!("Result<string, {name}>")).unwrap_or_default();
+                .map(|(name, _)| format!("Result<{element}, {name}>")).unwrap_or_default();
         }
-        if receiver == "@namespace:std:schema#s" && method == "string" {
+        if receiver == "@namespace:std:schema#s" && matches!(method, "string" | "boolean") {
             return self.native_type_aliases.iter()
                 .find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::Schema)
-                .map(|(name, _)| format!("{name}<string>")).unwrap_or_default();
+                .map(|(name, _)| format!("{name}<{method}>")).unwrap_or_default();
         }
         if self.deque_element(&receiver).is_some() || self.heap_element(&receiver).is_some() || self.ordered_set_element(&receiver).is_some() || self.ordered_map_types(&receiver).is_some() {
             return self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
@@ -1912,7 +1912,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
-        if self.schema_element(receiver) == Some("string") { return method == "safeParse"; }
+        if matches!(self.schema_element(receiver), Some("string" | "boolean")) { return method == "safeParse"; }
         if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}
         if self.ordered_set_element(receiver).is_some(){return matches!(method,"add"|"has"|"delete");}
         if self.heap_element(receiver).is_some() { return method=="push"; }

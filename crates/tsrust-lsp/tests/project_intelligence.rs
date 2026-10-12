@@ -2398,3 +2398,17 @@ fn schema_safe_parse_help_explains_consumption_and_result() {
     let result = ask(&index, &entry, "result =", "textDocument/hover");
     assert!(result.to_string().contains("Result<string, SchemaError>"), "{result}");
 }
+
+#[test]
+fn schema_boolean_editor_preserves_inferred_result_and_copy_contract() {
+    let entry=tsrust_compiler::format("import {s as rules} from 'std:schema';function main(){const schema=rules.boolean();const result=schema.safeParse(false);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let constructor=ask(&index,&entry,"boolean()","textDocument/hover");
+    assert!(constructor.to_string().contains("rules.boolean(): Schema<boolean>"),"{constructor}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<boolean, SchemaError>"),"{result}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("Direct booleans copy")&&hover.to_string().contains("without truthiness coercion"),"{hover}");
+}

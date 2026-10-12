@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -439,4 +439,14 @@ fn schema_validation_cannot_consume_a_borrowed_string() {
     let source="import {s} from 'std:schema';function inspect(input:ReadOnly<string>){const schema=s.string();schema.safeParse(input);}function main(){const input='hello'.repeat(2);inspect(input);console.log(input);}";
     let error=checked_source(source).err().expect("borrowed parameter must not be consumed");
     assert!(error.message.contains("consume") || error.message.contains("transfer") || error.message.contains("ReadOnly"), "{error:?}");
+}
+
+#[test]
+fn schema_boolean_infers_and_validates_without_truthiness() {
+    let source="import {s,Schema} from 'std:schema';function make():Schema<boolean>{return s.boolean();}function main(){const schema=make();const input=false;match(schema.safeParse(input)){Ok(value)=>{console.log(value,input);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse(JSON.parse('true'))){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse(JSON.parse('0'))){Ok(value)=>{throw 'coerced';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}}";
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"false false\ntrue\ntype-mismatch boolean number\n");
+    assert!(checked_source("import {s,Schema} from 'std:schema';function make():Schema<string>{return s.boolean();}function main(){}").is_err());
 }

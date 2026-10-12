@@ -9,7 +9,7 @@ import {adaptRustDriver,adaptTSDriver,assertABI} from './adapters.mjs';
 import {prepareNativeDependencies} from './native-dependencies.mjs';
 import {assertSchemaSource,schemaChecksum} from './schema-contract.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url));
-const row=JSON.parse(fs.readFileSync(path.join(here,'manifest.json'),'utf8')).workloads.find(row=>row.id==='native_schema_string');
+const row=JSON.parse(fs.readFileSync(path.join(here,'manifest.json'),'utf8')).workloads.find(row=>row.id===(process.argv[2]??'native_schema_string'));
 const pins=JSON.parse(fs.readFileSync(path.join(here,'versions.json'),'utf8'));
 assert(process.env.TSRUST,'Set TSRUST to the verified compiler');
 assert(process.env.CARGO_TARGET_DIR,'Reuse the shared Cargo target');
