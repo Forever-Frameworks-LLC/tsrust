@@ -1862,6 +1862,11 @@ impl SourceIndex {
         None
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if receiver == "@namespace:std:schema#s" && method == "string" {
+            return self.native_type_aliases.iter()
+                .find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::Schema)
+                .map(|(name, _)| format!("{name}<string>")).unwrap_or_default();
+        }
         if self.deque_element(&receiver).is_some() || self.heap_element(&receiver).is_some() || self.ordered_set_element(&receiver).is_some() || self.ordered_map_types(&receiver).is_some() {
             return self.receiver_builtins(&receiver).into_iter().find(|entry| entry["name"] == method)
                 .and_then(|entry| entry["signature"].as_str().and_then(|signature| signature.rsplit_once("): ").map(|(_, result)| result.to_owned())))
@@ -2565,6 +2570,18 @@ impl SourceIndex {
         )
     }
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
+        if matches!(tsrust_compiler::native_exports::lookup(module, exported), Ok(tsrust_compiler::native_exports::Export::Namespace(tsrust_compiler::native_exports::Namespace::Schema))) {
+            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented schema namespace");
+            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
+            self.symbols.push(Symbol {
+                name: local.into(), kind: 3, span, extent: span, scope: 0,
+                ty: "@namespace:std:schema#s".into(),
+                signature: format!("{local}: schema builder namespace"),
+                docs: catalog["documentation"].as_str().unwrap_or("").into(),
+                parameters: vec![], owner: None,
+            });
+            return;
+        }
         if let Some(declaration) = tsrust_compiler::native_types::lookup(module, exported) {
             self.import_native_type(declaration, local, span);
             return;
@@ -3153,6 +3170,11 @@ impl SourceIndex {
         let mut entry = self.receiver_builtins(&receiver)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
+        if receiver == "@namespace:std:schema#s" {
+            if let Some(signature) = entry["signature"].as_str() {
+                entry["signature"] = json!(signature.replacen("s.", &format!("{}.", self.text(token - 2)), 1));
+            }
+        }
         if receiver == "JSON" && self.text(token + 1) == "<"
             && let Some(signature) = entry["typedSignature"].as_str()
             && let Some(open) = self.member_call_open(token)

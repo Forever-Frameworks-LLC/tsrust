@@ -2358,3 +2358,29 @@ fn raw_json_encoding_hover_describes_exact_output() {
   for text in ["preserve raw source text exactly","output byte limit","64-container","JSONL"] {assert!(docs.contains(text),"{hover}");}
  }
 }
+
+#[test]
+fn schema_builder_alias_has_member_help_and_respects_shadowing() {
+    let entry = tsrust_compiler::format("import {s as schema} from 'std:schema'; function main(){const value=schema.string();}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "string()", "textDocument/hover");
+    assert!(hover.to_string().contains("Schema<string>") && hover.to_string().contains("Takes no arguments"), "{hover}");
+    let help = ask(&index, &entry, ");", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("schema.string(): Schema<string>"), "{help}");
+    let value_hover = ask(&index, &entry, "value =", "textDocument/hover");
+    assert!(value_hover.to_string().contains("Schema<string>"), "{value_hover}");
+    for response in [&hover, &help, &value_hover] { assert!(!response.to_string().contains("@namespace") && !response.to_string().contains("__string"), "{response}"); }
+    let completion = ask(&index, &entry, "string()", "textDocument/completion");
+    assert!(completion.as_array().unwrap().iter().any(|item|item["label"]=="string"), "{completion}");
+    let namespace = ask(&index, &entry, "schema.string", "textDocument/hover");
+    assert!(namespace.to_string().contains("Imported namespace"), "{namespace}");
+    let shadowed = "import {s as schema} from 'std:schema';function inspect(schema:int){schema.string();}function main(){}";
+    workspace.open(source_id(uri).unwrap(), 2, shadowed.into());
+    let graph = tsrust_compiler::project::load_project_headers(&workspace.snapshot(), &source_id(uri).unwrap().0).unwrap();
+    let completion = ask(&ProjectIndex::new(&graph), shadowed, "string()", "textDocument/completion");
+    assert!(!completion.as_array().unwrap().iter().any(|item|item["label"]=="string"), "{completion}");
+}

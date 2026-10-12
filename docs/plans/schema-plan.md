@@ -193,3 +193,18 @@ Next required work: editor routing and public consuming safeParse with structure
 errors, followed by constrained and composite plans. Do not refresh installed
 consumers or call this a completed public feature gate yet. Matched benchmark
 registration and public API audit are still required before feature acceptance.
+
+## Constructor editor routing checkpoint
+
+Imported schema namespaces now use identity-based member completion, hover and
+signature help. Aliased calls show the local spelling, and inferred constructor
+variables show Schema<string> without internal binding/namespace names. A parameter
+shadowing the namespace does not receive schema completions. Output type mapping
+materializes the native Schema identity even without an explicit type import.
+
+One focused project protocol test covers these behaviors. The first run exposed
+missing namespace routing; a stronger follow-up exposed absent inferred-value hover.
+Both failures and passing repairs are retained. SQLite evidence:
+`tsrust-schema-editor-{red,check,detail,final,format,final-format}-e10898d4.log`.
+Full editor regression, public safeParse, constraints, benchmark support and consumer
+refresh remain pending; this is not S11 acceptance.
