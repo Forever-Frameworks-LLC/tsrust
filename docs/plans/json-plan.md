@@ -3,12 +3,12 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were most recently refreshed from `12a6426e`, including borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
+consumers were most recently refreshed through `5682a032`, including raw-field decoding, corrected lifetime hover and borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw fragments and family timing/RSS/release acceptance remain open. The initial 20-workload native/Node execution baseline is measured; full timing/RSS acceptance remains open.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw validation and typed-field borrowing have focused acceptance and numeric/Unicode/deep/rejection/selective allocation, timing and RSS evidence. Raw serialization and final S10 acceptance remain open. The initial 20-workload native/Node execution baseline is preserved.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -31,9 +31,9 @@ preserved in SQLite. Original runs and focused repairs remain separate records.
 | --- | --- | --- |
 | Dynamic/typed decoding | Allocation matrix; 36 timing and 36 RSS cases versus direct Rust/Node, including failures and 32-level nesting | Final contract audit; retain documented validation overhead |
 | Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
-| JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes and bounded storage | Final installed acceptance |
-| Raw fragments | JsonRaw/borrowRaw validation and record storage preserve source lifetimes in native/editor checks; numeric/Unicode/deep/rejection allocation, timing and RSS evidence retained | Owner decision on embedded output spelling, serialization, selective raw-field decoding and final consumer acceptance |
-| Release consumers | Installed checkpoint 12a6426e; CLI borrowed reader/writer and LSP import-hover checks pass | Refresh again after remaining public raw-fragment work |
+| JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes, bounded storage and installed smokes | Final contract audit |
+| Raw fragments | JsonRaw/borrowRaw validation and record storage preserve source lifetimes in native/editor checks; numeric/Unicode/deep/rejection allocation, timing and RSS evidence retained | Owner decision on embedded output spelling, serialization implementation and acceptance |
+| Release consumers | Installed through 5682a032; raw native cases, selective fixture and corrected LSP lifetime hover pass | Refresh after raw serialization implementation |
 
 All timing matrices retain three fresh processes, eight warmup batches and 31
 measured batches. First-operation costs are separate from warmed batches; they do
@@ -2020,3 +2020,14 @@ adds a current reconciliation; roadmap consumer/raw status is updated accordingl
 Evidence: `tsrust-json-raw-{metrics*,api*,audit-format}-5682a032` in SQLite.
 Whole-project formatting changes no files or fingerprints. Raw serialization
 still awaits the owner's decision and is not accepted by this reconciliation.
+
+### Generated-output cleanup
+
+Removed 142 older duplicate test executables from the shared Cargo target,
+reclaiming 3.71 GiB while retaining the newest executable per target and all
+installed consumers. No source or analytics records were removed. Rebuilding an
+older test variant may now require compilation. The workspace editor target was
+left intact because its active usage could not be established from the sandbox.
+The exact removed paths and sizes are retained in SQLite as
+`tsrust-obsolete-test-outputs-243b012b.json`. Current S10 overview text is reconciled
+with the already recorded raw implementation, measurements and consumer refresh.
