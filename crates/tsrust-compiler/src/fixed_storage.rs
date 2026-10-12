@@ -855,6 +855,7 @@ impl<'a> Proof<'a> {
                     .zip(crate::native_bindings::BINDINGS[binding].parameters)
                     .all(|(argument, parameter)| self.expr(id, argument, parameter.access)),
                 // Generated JSON visitors borrow the ordinary aggregate ABI.
+                CallTarget::SchemaStrip => self.expr(id,&args[0],Mode::Consume),
                 CallTarget::SchemaValidate => self.expr(id,&args[0],Mode::Read) && self.expr(id,&args[1],Mode::Consume),
                 CallTarget::JsonEncode => args.iter().all(|a| self.expr(id, a, Mode::Consume)),
                 CallTarget::JsonDecode | CallTarget::JsonStringLength | CallTarget::JsonStringView | CallTarget::JsonBoolean | CallTarget::BooleanConversion | CallTarget::ArrayIsArray | CallTarget::ObjectHasOwn | CallTarget::ObjectIs | CallTarget::ObjectKeys | CallTarget::ObjectValues | CallTarget::ObjectEntries(_)

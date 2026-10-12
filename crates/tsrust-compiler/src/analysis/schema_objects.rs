@@ -1,6 +1,23 @@
 //! Owned object-schema construction uses ordinary typed record specialization.
 use super::*;
 impl Analyzer {
+    pub(super) fn schema_object_policy(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+        let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
+        let ExprKind::Field(base,method)=&callee.kind else{return Ok(None)};
+        if method!="strip"{return Ok(None);}
+        let hinted=self.expression_type_hint(context,base);
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object"));
+        if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
+        if !args.is_empty(){return Err(Diagnostic::new("arity","strip expects no arguments.",expr.span));}
+        let mut receiver=(**base).clone();
+        let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
+        let Type::Record(id)=ty else{unreachable!()};
+        if !matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Record(_)){return Err(Diagnostic::new("schema-member","strip requires an object schema.",expr.span));}
+        self.require(ty,expected,expr.span)?;
+        args.push(receiver);callee.kind=ExprKind::Name("@schema:strip".into());expr.target=Some(CallTarget::SchemaStrip);
+        Ok(Some(ty))
+    }
+
     pub(super) fn schema_object_constructor(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         if !matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object"){return Ok(None);}

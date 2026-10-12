@@ -24,7 +24,7 @@ impl Analyzer {
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if method=="strip"));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};

@@ -14287,7 +14287,8 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
-        if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
+if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}
+                if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(ty);}
         self.schema_method_call(context, expr)?;

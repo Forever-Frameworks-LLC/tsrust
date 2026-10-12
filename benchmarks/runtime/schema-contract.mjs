@@ -1,14 +1,20 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 export function schemaChecksum(n,seed,input){
- const weight=(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:input==='"hello"'?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
+ const weight=input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:input==='"hello"'?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
  if(weight===undefined||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*weight))throw Error('Schema oracle inputs');
  // Each successful scalar contributes its scenario value, plus one observed root issue.
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_json_object_strip'){
+  if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='{"count":2,"extra":true}'||row.result!=='int')throw Error('Strip schema denominator');
+  for(const snippet of [kind==='native'?'s.object({count:s.int().min(2)}).strip()':'objectSchema()', 'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('{"extra":true}'))`,'error.truncated','error.issues.length!==1','issue.pathTruncated','issue.path.length!==1','segment.index!==undefined',"issue.code==='missing-field'","segment.field!=='count'","issue.expected!=='integer'","issue.observed!=='missing'",kind==='native'?'checksum+=value.count;':'checksum+=success.value.count;','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Strip schema operation: '+snippet);
+  if(kind==='typescript'&&containsCodeSnippet(source,'Object.keys(input)'))throw Error('Strip reference must discard extras');
+  return;
+ }
  if(row.id==='native_schema_json_object'){
   if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='{"count":2}'||row.result!=='int')throw Error('Object schema denominator');
   for(const snippet of [kind==='native'?'s.object({count:s.int().min(2)})':'objectSchema()', 'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('{"extra":true}'))`,'error.truncated','error.issues.length!==2','issue.pathTruncated','issue.path.length!==1','segment.index!==undefined',"issue.code==='missing-field'","segment.field!=='count'","issue.expected!=='integer'","issue.observed!=='missing'","issue.code==='unknown-field'","segment.field!=='extra'","issue.expected!=='missing'","issue.observed!=='boolean'",kind==='native'?'checksum+=value.count;':'checksum+=success.value.count;','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Object schema operation: '+snippet);

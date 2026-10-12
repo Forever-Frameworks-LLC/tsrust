@@ -3,7 +3,7 @@
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
-matching owned input or JsonValue. Explicit object policies, presence/defaults,
+matching owned input or JsonValue. Retained-field object policy, presence/defaults,
 literal/enum types, remaining composite APIs, fused decoding and family acceptance
 remain pending.
 
@@ -17,7 +17,7 @@ executing differential cases; current web documentation alone is not a version p
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
-| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain pending |
+| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip integrated; retain pending |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
@@ -920,8 +920,9 @@ independent checksum, source guards, ABI/report registration and untimed parity
 at four input sizes. It is unmeasured, as are the other S11 workloads.
 
 Explicit strip/retain policies, presence/defaults and the remaining S11 families
-are still required. Retained-field public output shape is awaiting the owner's
-choice; internal object policy prototypes do not accept those public APIs.
+are still required. The owner approved explicit retention returning `{ value: T, extra: Map<string,
+JsonValue> }`, preserving ordinary typed field access and avoiding collisions.
+Internal object policy prototypes do not accept those public APIs.
 No S11 family acceptance or installed-consumer refresh is claimed.
 
 Focused acceptance: 31 schema compiler/native checks (including executable catalog
@@ -931,3 +932,21 @@ was formatted and its source fingerprint refreshed. SQLite retains exact logs
 `tsrust-schema-object-native-batch.log`, `tsrust-schema-object-editor-batch.log`,
 `tsrust-schema-object-contract-formatted.log`, `tsrust-schema-object-parity.log`
 and `tsrust-schema-object-format.log`, together with original red and repair logs.
+
+## Explicit object stripping
+
+`.strip()` consumes an object schema and returns an immutable reusable schema of
+its same output type. Unknown JSON fields are dropped; declared fields remain
+required and checked. Default rejection is unchanged. Empty shapes work, and
+receiver consumption is diagnosed. The policy lives in the owned plan, so nested
+schemas preserve their individual policies. `.retain()` remains the next public
+policy, with its approved separate typed value and dynamic extras.
+
+Three affected object native checks and the focused strip editor check passed.
+Executable schema catalog examples passed. The additional matched stripping
+workload has four-size native/Node untimed parity and all 15 schema benchmark
+contracts pass. Whole-project formatting passed. SQLite retains original red and
+repair evidence plus `tsrust-schema-object-strip-native-green.log`,
+`tsrust-schema-object-strip-editor-green.log`, `tsrust-schema-strip-catalog.log`,
+`tsrust-schema-strip-contract-green.log`, `tsrust-schema-strip-parity.log` and
+`tsrust-schema-strip-format.log`. No timing or S11 family acceptance is claimed.

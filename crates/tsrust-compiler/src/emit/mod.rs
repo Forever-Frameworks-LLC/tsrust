@@ -2377,7 +2377,7 @@ impl Emitter<'_> {
                     let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|a|a.resolved_arguments==[value.ty.unwrap()])).expect("object child schema");
                     format!("field{field}:Record{}",self.native_record_declaration(child))
                 }).collect::<Vec<_>>().join(",");
-                let _=writeln!(output,"struct Record{index} {{ {fields} }}");
+                let _=writeln!(output,"struct Record{index} {{ reject_unknown: bool, {fields} }}");
                 continue;
             }
             if let Some(definition) = &record.enum_definition {
@@ -7459,7 +7459,7 @@ impl Emitter<'_> {
                     let source=self.program.records[shape].fields.iter().position(|candidate|candidate.name.text==value.name.text).unwrap();
                     format!("field{field}:plan.field{source}")
                 }).collect::<Vec<_>>().join(",");
-                format!("{{let plan={child};Record{id}{{{fields}}} }}")
+                format!("{{let plan={child};Record{id}{{reject_unknown:true,{fields}}} }}")
             }else{format!("Record{id} {{ element: {child} }}")};
             return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
         }
@@ -8532,6 +8532,7 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::SchemaStrip => format!("{{let mut schema={};schema.reject_unknown=false;schema}}",self.expr(fun,&args[0],Mode::Consume)),
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),

@@ -2584,3 +2584,13 @@ fn schema_object_constructor_exposes_inferred_fields() {
     let hover=ask(&index,&entry,"name);","textDocument/hover");
     assert!(hover.to_string().contains("string"),"{hover}");
 }
+
+#[test]
+fn schema_object_strip_documents_policy_and_keeps_inference() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string()}).strip();const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'));}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"person =","textDocument/hover");assert!(hover.to_string().contains("name: string"),"{hover}");
+    let hover=ask(&index,&entry,"strip()","textDocument/hover");assert!(hover.to_string().contains("unknown")&&hover.to_string().contains("consumes"),"{hover}");
+}

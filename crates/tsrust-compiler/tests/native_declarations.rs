@@ -824,3 +824,19 @@ fn schema_objects_support_named_empty_and_nested_error_paths() {
     let source="import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});const input=JSON.parse('{}');schema.safeParse(input);console.log(typeof input);}";
     assert_eq!(checked_source(source).err().unwrap().code,"transferred");
 }
+
+#[test]
+fn schema_object_strip_is_explicit_consuming_and_reusable() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){
+      const original=s.object({name:s.string()});const schema=original.strip();
+      match(schema.safeParse(JSON.parse('{"name":"Ada","extra":true}'))){Ok(value)=>{strictEqual(value.name,'Ada');},Err(error)=>{throw 'strip rejected extras';}}
+      match(schema.safeParse(JSON.parse('{"name":"Al","other":null}'))){Ok(value)=>{strictEqual(value.name,'Al');},Err(error)=>{throw 'reuse failed';}}
+      match(s.object({name:s.string()}).safeParse(JSON.parse('{"name":"Ada","extra":true}'))){Ok(value)=>{throw 'default changed';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      match(s.object({}).strip().safeParse(JSON.parse('{"any":1}'))){Ok(value)=>{},Err(error)=>{throw 'empty strip failed';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let source="import {s} from 'std:schema';function main(){const original=s.object({name:s.string()});const schema=original.strip();original.safeParse(JSON.parse('{}'));}";
+    assert_eq!(checked_source(source).err().unwrap().code,"transferred");
+}

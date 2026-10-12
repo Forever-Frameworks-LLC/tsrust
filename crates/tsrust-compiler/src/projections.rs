@@ -357,6 +357,7 @@ impl Analysis {
                             CallTarget::SetMethod(_) | CallTarget::MapMethod(_)
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
+                                | CallTarget::SchemaStrip
                                 | CallTarget::JsonStringView
                                 | CallTarget::RecordSpread(_)
                                 | CallTarget::ObjectHasOwn

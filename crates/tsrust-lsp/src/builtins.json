@@ -7392,13 +7392,25 @@
         "documentation": "An owned matching record or JsonValue. Input transfers on success and failure."
       }
     ],
-    "documentation": "Validates declared fields and returns Ok with an owned typed record. JSON objects require all declared fields and reject unknown fields. Invalid fields, missing fields and unknown fields produce separate issues with named paths; nested arrays add indices. Scalars are checked without coercion. JSON integers remain exact; number extraction rejects precision loss. Validation retains at most 64 issues, 32 path segments and 1024 UTF-8 bytes of field names per path. Omitted issues set truncated; shortened paths set pathTruncated. Partial successful output is released on failure.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: borrows the reusable schema and consumes input. Use clone(input) explicitly to retain the original.",
+    "documentation": "Validates declared fields and returns Ok with an owned typed record. JSON objects require all declared fields. Default schemas reject unknown fields; strip schemas discard them. Invalid fields, missing fields and unknown fields produce separate issues with named paths; nested arrays add indices. Scalars are checked without coercion. JSON integers remain exact; number extraction rejects precision loss. Validation retains at most 64 issues, 32 path segments and 1024 UTF-8 bytes of field names per path. Omitted issues set truncated; shortened paths set pathTruncated. Partial successful output is released on failure.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: borrows the reusable schema and consumes input. Use clone(input) explicitly to retain the original.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
         "output": "Ada\n"
       }
     ]
-  }
+  },
+{
+  "name": "strip",
+  "signature": "strip(): Schema<Output>",
+  "parameters": [],
+  "documentation": "Returns an object schema that discards unknown JSON fields during validation. Declared fields keep their types and checks; missing or invalid declared fields still fail. Takes no arguments. The default object schema rejects unknown fields until this method is called.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. Unknown input values are dropped without copying.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).strip();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"extra\":true}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "Ada\n"
+    }
+  ]
+}
 ]
 }
