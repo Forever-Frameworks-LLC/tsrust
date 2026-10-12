@@ -1841,3 +1841,24 @@ This proves storage of an already validated fragment, not selective decoding of
 raw fields from a larger JSON document. Selective decoding and serialization
 remain open. Whole-project formatting changes no files or fingerprints. SQLite
 evidence: `tsrust-json-raw-records-*-aac23a39` compiler, editor and format logs.
+
+### Borrowing decoder boundary for selective fields
+
+The internal typed backend now exposes decode_borrowed with Deserialize tied to
+the input lifetime. A heap-owned input witness decodes borrowed keys and values,
+checks source-pointer identity, rejects escaped text that cannot be represented
+as a direct string slice, and retains byte-budget enforcement. This is groundwork
+for selective source-backed fields, not a new public string or raw-field API.
+The existing owned decode boundary delegates to it; JSONC normalization and
+streaming continue to require independently owned results.
+
+The initial borrowed witness failed under DeserializeOwned as expected. Replacing
+the existing boundary directly exposed higher-ranked function-item requirements
+in streaming; retaining the owned wrapper resolves that compatibility issue.
+Both failed attempts are retained in SQLite. All 43 JSON backend tests pass.
+Public raw-field visitors, analyzer provenance and editor support remain open;
+serialization policy remains awaiting the owner.
+The generated-native typed record/array/checked-number regression also passes.
+Whole-project formatting changes no files or fingerprints. SQLite evidence:
+`tsrust-json-borrowed-decoder-*-57682ac0` red, first check, repaired check,
+native and format logs. No new performance measurements are claimed.

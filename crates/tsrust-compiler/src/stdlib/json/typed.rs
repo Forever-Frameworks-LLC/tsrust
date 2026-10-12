@@ -7,6 +7,15 @@ mod tests {
  use super::*;
  fn limits()->Limits{Limits{bytes:1024,depth:4,entries:3,nodes:12}}
  #[test]
+ fn typed_borrowed_fields_retain_input_and_reject_escaped_replacements(){
+  let input=String::from(r#"{"name":"hello"}"#);
+  let value:std::collections::BTreeMap<&str,&str>=decode_borrowed(input.as_bytes(),limits()).unwrap();
+  assert_eq!(value["name"],"hello");
+  assert_eq!(value["name"].as_ptr(),input[9..].as_ptr());
+  assert_eq!(decode_borrowed::<std::collections::BTreeMap<&str,&str>>(br#"{"name":"he\u006clo"}"#,limits()).unwrap_err().code,"shape-mismatch");
+  assert_eq!(decode_borrowed::<&str>(br#""hello""#,Limits{bytes:2,..limits()}).unwrap_err().code,"byte-limit");
+ }
+ #[test]
  fn typed_jsonc_preserves_offsets_limits_and_strict_policy(){
   let input=b"/* header */ {\"items\":[1,2,],}";
   let value:Record=decode_jsonc(input,limits(),true).unwrap();
@@ -138,6 +147,12 @@ pub fn decode_jsonc<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits,tra
 
 /// Internal boundary for generated typed visitors. Primitive number fields must use ExactNumber.
 pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<T,Error>{
+ decode_borrowed(input,limits)
+}
+
+/// Borrowing boundary for source-backed fields. Returned borrows cannot outlive input.
+/// JSONC normalization and streaming retain the owned boundary above.
+pub fn decode_borrowed<'de,T:serde::Deserialize<'de>>(input:&'de [u8],limits:Limits)->Result<T,Error>{
  validate(input,limits)?;
  serde_json::from_slice(input).map_err(|error|{
   let text=error.to_string();
