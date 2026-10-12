@@ -232,3 +232,27 @@ function main(){
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
  support::success(&support::run(support::cli().arg("run").arg(path),90));
 }
+
+#[test]
+fn raw_catalog_documents_and_executes_exact_encoding() {
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ for name in ["parse","tryParse"] {
+  let entry=catalog["JSON"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();
+  assert!(!entry["documentation"].as_str().unwrap().contains("Encoding JsonRaw is not yet supported"));
+ }
+ let mut sources=std::collections::HashSet::new();
+ for name in ["borrowRaw","JsonRaw"] {
+  let entry=catalog["std:json"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();
+  let examples=entry["examples"].as_array().unwrap();
+  assert!(examples.iter().any(|example|example["source"].as_str().unwrap().contains("JSON.stringify")),"{name} needs an encoding example");
+  for example in examples {
+   let source=example["source"].as_str().unwrap();
+   if !sources.insert(source){continue;}
+   let directory=support::TempDirectory::new();
+   let path=directory.source(&support::format_round_trip(source));
+   let output=support::run(support::cli().arg("run").arg(path),90);
+   support::success(&output);
+   assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
+  }
+ }
+}

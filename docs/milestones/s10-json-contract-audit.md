@@ -57,3 +57,28 @@ a final audit incorporating that work; S11–S21 remain outside this audit.
   its ownership/limits/examples/editor behavior and matched measurements, then
   perform the final affected acceptance and integrated contract review. S11–S21
   remain pending. No current measurement proves serialization acceptance.
+
+## Raw serialization reconciliation after 35619be8
+
+The preservation policy is approved and implemented. Raw encoding preserves exact
+source text, enforces combined depth/output limits and retains real source borrows.
+JSONL rejects literal record newlines before writing that record. Focused native
+and backend witnesses cover these behaviors; prepared encoding allocation/timing/
+RSS, repaired creation timing, selective decoding and end-to-end native/Node timing
+are retained in SQLite as detailed in the JSON plan. The earlier pending-policy
+and missing-implementation statements above are historical.
+
+The catalog correction removes stale unsupported-encoding text from parse and
+tryParse hover. Raw constructor/type examples now execute encoding and verify
+preserved whitespace and number spelling. The focused catalog regression and
+actual parse hover guard prevent that contradiction from returning.
+Focused acceptance passes one native catalog test (two distinct executable
+examples) and four editor tests. SQLite retains
+`tsrust-raw-catalog-{red,native,editor,format}-35619be8.log`, including the original
+stale-documentation failure. Whole-project formatting changes no files.
+
+S10 is still not accepted. Complete the final public contract review, current
+feature-family regressions and installed CLI/editor refresh before closing it.
+Existing regression totals remain historical and must not be counted as a current
+full pass. The measured selected-subtree creation cost remains visible; do not
+claim all raw paths are faster than their earlier baselines.

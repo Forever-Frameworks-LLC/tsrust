@@ -2344,6 +2344,8 @@ fn typed_raw_json_hover_documents_input_lifetime() {
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"parse<Envelope>","textDocument/hover");
  assert!(hover.to_string().contains("source text must outlive"),"{hover}");
+ assert!(hover.to_string().contains("preserve raw source text exactly"),"{hover}");
+ assert!(!hover.to_string().contains("Encoding JsonRaw is not yet supported"),"{hover}");
 }
 
 #[test]

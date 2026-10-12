@@ -153,9 +153,39 @@ Recommended initial contracts, pending detailed acceptance:
 - `all([...])` is a possible follow-up, not a requirement inferred from this
   naming decision.
 
-Before implementation, specify whether combinators accept lazy tasks, started
-jobs or both; when their lazy wrapper begins polling inputs; cancellation of the
-combinator itself; heterogeneous result typing; empty inputs; simultaneous
+Before implementation, specify cancellation of the combinator itself;
+heterogeneous result typing; empty inputs; simultaneous
 completion; and timeout argument validation. Preserve single-use ownership and
 unused-task diagnostics through combinators. Do not silently introduce eager
 execution or shared, repeatedly awaitable results.
+
+## Mixed inputs and strict started-job obligations approved (2026-10-12)
+
+The owner approves accepting both lazy tasks and started jobs in combinators.
+Lazy inputs begin together when the combinator is awaited; already started inputs
+continue running. Constructing a combinator does not eagerly start its lazy inputs.
+
+The checker must reject abandonment of started work as an error, not a warning.
+A started job must be awaited, explicitly cancelled with completion accounted for,
+or transferred to an owner that inherits the same settlement obligation. Merely
+finishing in the background does not discharge that obligation: its result or
+failure still needs handling. The earlier unused-task warning policy applies only
+to never-started work without inherited running-job obligations.
+
+This is a static ownership obligation, not a claim that the checker proves eventual
+termination. Returning a job transfers responsibility to the caller. Moving it
+into a record, collection, closure, timeout or combinator must not erase the
+obligation. In particular, constructing and then discarding a lazy combinator that
+owns started jobs is an error. No implicit detach or fire-and-forget fallback is
+authorized. A cancellation request alone must not count as completed cleanup.
+
+Acceptance must cover discarded expressions, unused bindings, overwrite,
+shadowing, conditional branches, loops, early return, throw, aggregate ownership,
+function boundaries, double await, use after transfer, and abandoned combinators.
+Check diagnostics in both CLI and LSP, including creation and abandonment sites.
+Strict build analysis must enforce the rule even when an editor/check suppression
+directive hides the diagnostic. Native witnesses must verify that combinator
+failure, timeout and parent cancellation cannot silently leave child jobs running.
+Cancellation cleanup cannot rely on source finally blocks, which are not promised
+to execute. Specify and verify the runtime cleanup mechanism before accepting
+S13/S14; do not weaken the error to accommodate backend limitations.
