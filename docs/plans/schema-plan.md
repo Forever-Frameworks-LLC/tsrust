@@ -601,3 +601,22 @@ SQLite: `tsrust-schema-exclusive-public-*-b75065bb.log`, including the initial
 source rejection and missing report registration caught by benchmark tests.
 Floating constraints, composites, fused decoding and S11 acceptance remain pending.
 Consumers remain at accepted S10; no measurement or refresh is claimed here.
+
+## Floating constraint runtime groundwork
+
+NumberBounds now owns reusable inclusive/exclusive floating constraints. Builders
+consume the plan, intersect prior limits and return structured construction errors
+for nonfinite limits or intervals with no finite representable value. Exclusive
+bounds use the adjacent representable value, without an arbitrary epsilon. Both
+zero signs compare equally; successful validation does not rewrite input bits.
+Errors preserve the supplied floating limit and operation. The internal numeric
+validator also uses these construction checks, preventing divergent empty-range
+acceptance between its plan and the generated runtime backend.
+
+Focused cases cover finite extrema, adjacent values, subnormal neighbors of zero,
+NaN/infinity rejection, repeated intersections, negative zero and original error
+fields. The runtime error container is generic internally; existing generated
+integer/string callers retain an i64 limit. Public floating builders and the public
+construction-error representation are not yet integrated. No new source API,
+editor acceptance, benchmark measurement or consumer refresh is claimed.
+SQLite: `tsrust-schema-number-bounds-*-c998cad1.log`.

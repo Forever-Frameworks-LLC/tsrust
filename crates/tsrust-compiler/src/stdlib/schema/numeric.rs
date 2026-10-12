@@ -49,6 +49,9 @@ impl NumericPlan {
     }
     pub(super) fn number(lower: Option<Bound<f64>>, upper: Option<Bound<f64>>) -> Result<Self, InvalidBounds> {
         if lower.into_iter().chain(upper).any(|bound| !bound.value.is_finite()) { return Err(InvalidBounds); }
+        let mut plan=super::runtime::NumberBounds::default();
+        if let Some(bound)=lower {plan=if bound.inclusive {plan.min(bound.value)}else{plan.gt(bound.value)}.map_err(|_|InvalidBounds)?;}
+        if let Some(bound)=upper {let _=if bound.inclusive {plan.max(bound.value)}else{plan.lt(bound.value)}.map_err(|_|InvalidBounds)?;}
         Bounds::new(lower, upper).map(|bounds| Self(NumericKind::Number(bounds)))
     }
     pub(super) fn validate_json(&self, value: &json::Value, path: &[Segment<'_>], errors: &mut Issues) -> Option<Numeric> {
@@ -196,6 +199,9 @@ mod tests {
     }
     #[test]
     fn invalid_plan_bounds_are_rejected_before_input_validation() {
+        assert!(NumericPlan::number(Some(Bound { value: f64::MAX, inclusive: false }), None).is_err());
+        assert!(NumericPlan::number(None, Some(Bound { value: -f64::MAX, inclusive: false })).is_err());
+        assert!(NumericPlan::number(Some(Bound { value: 1.0, inclusive: false }), Some(Bound { value: 1.0_f64.next_up(), inclusive: false })).is_err());
         assert!(NumericPlan::int(Some(Bound { value: 4, inclusive: true }), Some(Bound { value: 3, inclusive: true })).is_err());
         assert!(NumericPlan::int(Some(Bound { value: 3, inclusive: false }), Some(Bound { value: 3, inclusive: true })).is_err());
         for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
