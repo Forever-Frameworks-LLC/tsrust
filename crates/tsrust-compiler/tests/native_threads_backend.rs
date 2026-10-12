@@ -42,3 +42,57 @@ fn backend_rejects_borrowed_and_non_send_captures(){
   let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains(&format!("error[{code}]")),"{stderr}");
  }
 }
+
+fn generated_module(name:&str,source:&str,witness:&str)->String {
+ let source=support::format_round_trip(source);
+ let generated=tsrust_compiler::check(&source).unwrap().emit_rust();
+ // Keep the generated environment, factory and invocation bodies unchanged.
+ // The handwritten witness supplies only the not-yet-public thread boundary.
+ format!("mod {name} {{\n{generated}\npub fn verify(){{{witness}}}\n}}\n")
+}
+
+#[test]
+fn generated_owned_closures_cross_threads_and_preserve_results(){
+ let mut native=String::from("#![recursion_limit=\"512\"]\n");
+ for (name,source,witness) in [
+  ("moved","function factory(owner:string):Function<string>{return ():string=>owner;}function main(){}",r#"
+   let input=std::string::String::from("owned worker payload");let pointer=input.as_ptr() as usize;
+   let callback=function0(String::Owned(input));let caller=std::thread::current().id();
+   let result=std::thread::spawn(move||{assert_ne!(std::thread::current().id(),caller);callback.call()}).join().unwrap();
+   assert_eq!(result,"owned worker payload");assert_eq!(result.as_ptr() as usize,pointer);
+  "#),
+  ("read","function factory(owner:string):Function<int>{return ():int=>owner.length;}function main(){}",r#"
+   let callback=function0(String::Owned("owned worker payload".to_owned()));
+   let result=std::thread::spawn(move||(callback.call(),callback.call())).join().unwrap();
+   assert_eq!(result,(20,20));
+  "#),
+  ("throws","function factory(owner:string):Function<int>{return ():int=>{throw owner;};}function main(){}",r#"
+   let input=std::string::String::from("worker failure");let pointer=input.as_ptr() as usize;
+   let callback=function0(String::Owned(input));
+   // Source throws remain checked errors; they do not become backend panics.
+   let result=std::thread::spawn(move||callback.call()).join().expect("source throw must not panic");
+   match result {Err(TsrClosureError0::V0(value))=>{assert_eq!(value,"worker failure");assert_eq!(value.as_ptr() as usize,pointer);},_=>panic!("lost source throw")}
+  "#),
+ ] {native.push_str(&generated_module(name,source,witness));}
+ native.push_str("fn main(){moved::verify();read::verify();throws::verify();}");
+ let (_directory,compiled,binary)=compile(&native);support::success(&compiled);
+ let output=support::run(&mut Command::new(binary),10);support::success(&output);assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn generated_borrowed_closures_cannot_escape_on_threads(){
+ for (source,witness) in [
+  ("function main(){const owner='bytes';const callback=():int=>owner.length;callback();}",r#"
+   let owner=String::Owned("borrowed".to_owned());let callback=Closure0{capture0:&owner};
+   std::thread::spawn(move||callback.call()).join().unwrap();
+  "#),
+  ("function main(){let owner=42;const callback=():int=>{owner+=1;return owner;};callback();}",r#"
+   let mut owner=42;let mut callback=Closure0{capture0:&mut owner};
+   std::thread::spawn(move||callback.call()).join().unwrap();
+  "#),
+ ] {
+  let native=generated_module("borrowed",source,witness)+"fn main(){borrowed::verify();}";
+  let (_directory,output,_)=compile(&native);assert!(!output.status.success());
+  let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains("error[E0597]"),"{stderr}");
+ }
+}

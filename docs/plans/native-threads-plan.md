@@ -84,3 +84,22 @@ All three transfer tests pass. SQLite evidence:
 `tsrust-thread-capture-{red,check,final,format}-de981df0.log`.
 This remains internal groundwork; public spawn/join, result checking, lifecycle
 checking and native source execution still require implementation and acceptance.
+
+## Generated closure backend checks
+
+`native_threads_backend` now tests compiler-emitted closure environments and
+invocation bodies, with only the thread boundary supplied by a Rust harness.
+Three successful source cases share one native compilation: consuming an owned
+string returns the same allocation; reading an owned environment repeatedly
+returns the expected values; throwing an owned string crosses join as the
+generated checked error, with its allocation preserved and no backend panic.
+Inputs use runtime-owned strings rather than static literals. The worker thread
+identity differs from its caller. Two negative compilations reject generated
+read-borrowed string and mutable-borrowed integer environments with E0597.
+
+All four backend tests pass, including the prior raw backend controls. Every
+Tsrust source undergoes formatting, idempotence checking and normal analysis
+before emission. SQLite evidence: `tsrust-thread-generated-a80cc17a.log` and
+`tsrust-thread-generated-format-a80cc17a.log`. This closes the emitted-closure
+feasibility question without exposing a source thread API or deciding unjoined
+handle semantics. Multicore throughput remains unmeasured.
