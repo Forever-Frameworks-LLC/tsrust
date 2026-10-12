@@ -1,6 +1,25 @@
 //! Owned-data transfer eligibility, separate from closure capture ownership.
 use crate::syntax::{Record,Type,UnionId};
 
+#[derive(Debug,PartialEq,Eq)]
+pub(super) enum CompletionFailure { Result(Type), Thrown(Type), UnknownError }
+
+/// Both successful and exceptional completion cross the same thread boundary.
+/// Unknown error contracts must be resolved before transfer can be accepted.
+#[allow(dead_code)] // Connected to join transport when the source API is introduced.
+pub(super) fn require_owned_completion(result:Type,errors:&crate::error_effects::FailureSet,runtime:Option<Type>,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),CompletionFailure>{
+ require_owned_data(result,records,members).map_err(CompletionFailure::Result)?;
+ if errors.opaque {return Err(CompletionFailure::UnknownError);}
+ for &ty in &errors.explicit {
+  require_owned_data(ty,records,members).map_err(CompletionFailure::Thrown)?;
+ }
+ if errors.runtime {
+  let ty=runtime.ok_or(CompletionFailure::UnknownError)?;
+  require_owned_data(ty,records,members).map_err(CompletionFailure::Thrown)?;
+ }
+ Ok(())
+}
+
 /// Returns the capture index that cannot move independently of its caller.
 /// A copied scalar is owned storage; a borrowed scalar is still a caller loan.
 /// Invocation access does not change ownership of an already moved environment.
@@ -52,6 +71,32 @@ pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(Un
 #[cfg(test)]
 mod tests {
  use super::*;
+ #[test]
+ fn unresolved_failure_contracts_cannot_transfer(){
+  let members=|_:UnionId|panic!("scalar contract has no unions");
+  for errors in [
+   crate::error_effects::FailureSet{opaque:true,..Default::default()},
+   crate::error_effects::FailureSet{runtime:true,..Default::default()},
+  ] {
+   assert_eq!(require_owned_completion(Type::Int,&errors,None,&[],&members),Err(CompletionFailure::UnknownError));
+  }
+ }
+ #[test]
+ fn completion_transfer_checks_returned_and_thrown_payloads(){
+  for (source,expected) in [
+   ("function probe():string{return 'result';}function main(){}",true),
+   ("function probe():int{throw 'failure';}function main(){}",true),
+   ("function probe(values:int[],index:int):int{return values[index];}function main(){}",true),
+   ("function probe():Function<int>{return ():int=>1;}function main(){}",false),
+   ("function probe():int{throw ():int=>1;}function main(){}",false),
+  ] {
+   let source=crate::format(source).unwrap();assert_eq!(crate::format(&source).unwrap(),source);
+   let mut program=crate::check(&source).unwrap().program;
+   let runtime=crate::error_effects::materialize_runtime_record(&mut program);
+   let index=program.functions.iter().position(|f|f.name=="probe").unwrap();
+   assert_eq!(require_owned_completion(program.functions[index].result,&program.error_effects.function_errors[index],Some(runtime),&program.records,&|id|program.unions[id.index()].members.clone()).is_ok(),expected,"{source}");
+  }
+ }
  #[test]
  fn capture_storage_must_own_transferable_data(){
   for (source,expected) in [

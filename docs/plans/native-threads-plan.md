@@ -103,3 +103,20 @@ before emission. SQLite evidence: `tsrust-thread-generated-a80cc17a.log` and
 `tsrust-thread-generated-format-a80cc17a.log`. This closes the emitted-closure
 feasibility question without exposing a source thread API or deciding unjoined
 handle semantics. Multicore throughput remains unmeasured.
+
+## Completion transfer eligibility
+
+`require_owned_completion` applies the same owned-data rules to the worker's
+result and every explicit thrown payload. It also checks the materialized runtime
+error type when the checked error contract includes runtime failures. Opaque
+error effects or missing runtime error types reject until resolved; an unknown
+contract is never treated as an empty error set. Failures distinguish returned
+data, thrown data and unresolved error contracts for subsequent diagnostics.
+
+Five formatted-source cases exercise owned string returns, string throws,
+runtime index failures, returned callbacks and thrown callbacks. Separate
+controls reject opaque and missing-runtime contracts. These checks concern
+transfer eligibility only; they do not decide how public join exposes failure.
+The focused transfer suite has five passing tests. SQLite evidence:
+`tsrust-thread-completion-{red,check,final,format}-d4facb53.log`.
+Public source integration and lifecycle acceptance remain outstanding.
