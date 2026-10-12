@@ -72,7 +72,7 @@ static SCHEMA_CONSTRUCTION_ERROR: Declaration = Declaration {
     fields: &[
         Field { name: "code", signature: Signature::String, optional: false },
         Field { name: "operation", signature: Signature::String, optional: false },
-        Field { name: "limit", signature: Signature::Int, optional: false },
+        Field { name: "limit", signature: Signature::Union(&[Signature::Int,Signature::Number]), optional: false },
     ], ..FS_ERROR
 };
 static SCHEMA_ERROR: Declaration = Declaration {

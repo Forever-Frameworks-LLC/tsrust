@@ -61,6 +61,7 @@ pub enum Signature {
     /// Absence uses the ordinary undefined alternative, including borrowed values.
     Optional(&'static Signature),
     Array(&'static Signature),
+    Union(&'static [Signature]),
     Result(&'static Signature, &'static Signature),
     Intrinsic(Intrinsic),
 }
@@ -125,6 +126,7 @@ impl Signature {
                     pending.extend(arguments.iter().map(|argument| (argument, depth + 1)));
                     pending.extend(declaration.fields.iter().map(|field| (&field.signature, depth + 1)));
                 }
+                Self::Union(members) => pending.extend(members.iter().map(|member| (member, depth + 1))),
                 Self::Array(element) | Self::Optional(element) => pending.push((element, depth + 1)),
                 Self::Result(value, error) => {
                     pending.push((error, depth + 1));
@@ -193,6 +195,14 @@ impl Signature {
                         Self::Array(element) => {
                             pending.push(Work::Text("[]"));
                             pending.push(Work::Type(element, depth + 1));
+                        }
+                        Self::Union(members) => {
+                            output.push('(');
+                            pending.push(Work::Text(")"));
+                            for (index,member) in members.iter().enumerate().rev() {
+                                pending.push(Work::Type(member,depth+1));
+                                if index>0 {pending.push(Work::Text(" | "));}
+                            }
                         }
                         Self::Optional(element) => {
                             output.push('(');

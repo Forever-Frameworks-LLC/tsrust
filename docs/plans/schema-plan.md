@@ -651,3 +651,17 @@ The ordinary throwing adapter now projects its limit parameter from the binding,
 rather than hardcoding int. This independent prerequisite supports both scalar
 limit types; it does not yet change the public error field or expose builders.
 Evidence: `tsrust-schema-limit-adapter-*-c35028ae.log` in SQLite.
+
+## Shared numeric construction-error field
+
+SchemaConstructionError.limit now uses the approved int | number field. Native
+signature metadata projects explicit union alternatives into the ordinary checked
+union arena; borrowed-shape traversal also visits each alternative. Integer builder
+errors inject an exact integer variant without floating conversion. Existing
+exclusive-builder catches retain their signed endpoint assertions. Public number
+builders remain pending; this checkpoint establishes their shared error contract.
+
+Focused checks cover union rendering/projection, borrowed alternative detection,
+native integer-builder catches, explicit integer/floating error records and editor
+hover of the inferred limit. The catalog documents the union and narrowing before
+arithmetic. Evidence: `tsrust-schema-error-union-*-3451e2fd.log` in SQLite.

@@ -6980,9 +6980,9 @@
   },
   {
     "name": "SchemaConstructionError",
-    "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int }",
+    "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int | number }",
     "parameters": [],
-    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied integer. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
+    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied int or number without converting exact integers to floating point. Narrow the limit before arithmetic. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
     "examples": []
   }
 ],

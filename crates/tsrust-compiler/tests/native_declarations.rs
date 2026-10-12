@@ -631,3 +631,16 @@ fn schema_generated_number_bounds_check_direct_and_integer_input() {
     let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n1.5\ntoo-large\ntoo-small\ninteger\nnumber-precision\n");
 }
+
+#[test]
+fn schema_construction_error_preserves_integer_and_float_payloads() {
+    let source=r#"import {SchemaConstructionError} from 'std:schema';
+function report(error:SchemaConstructionError){console.log(error.limit);}
+function main(){
+ const integer:SchemaConstructionError={code:'contradictory-bounds',operation:'gt',limit:9223372036854775807};report(integer);
+ const floating:SchemaConstructionError={code:'contradictory-bounds',operation:'lt',limit:1.5};report(floating);
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"9223372036854775807\n1.5\n");
+}

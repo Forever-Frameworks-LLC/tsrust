@@ -60,6 +60,22 @@ mod tests {
     use crate::native_bindings::{NativeBackend, NativeParameter};
     use crate::native_signatures::NativeTypeId;
     #[test]
+    fn numeric_union_signature_preserves_distinct_checked_variants() {
+        static LIMIT: Signature=Signature::Union(&[Signature::Int,Signature::Number]);
+        assert_eq!(LIMIT.render(|_|None).unwrap(),"(int | number)");
+        assert!(!LIMIT.contains_borrowed_native().unwrap());
+        let binding=NativeBinding{module:"std:schema",name:"probe",parameters:&[],result:NativeType::Structured(&LIMIT),returned_borrow:None,backend:NativeBackend::Bundled{symbol:"unused"},features:&[]};
+        let mut program=crate::syntax::parse("function main(){}").unwrap();
+        prepare(&mut program.records,&binding,Span::default()).unwrap();
+        let checked=crate::analysis::analyze(program).unwrap();
+        let Type::Union(id)=resolve(&checked.records,&LIMIT).unwrap() else{panic!("numeric alternatives collapsed")};
+        assert_eq!(checked.unions[id.index()].members.len(),2);
+        assert!(checked.unions[id.index()].members.contains(&Type::Int));
+        assert!(checked.unions[id.index()].members.contains(&Type::Number));
+        assert!(Signature::Union(&[Signature::Int,Signature::Named(NativeTypeId::ByteView)]).contains_borrowed_native().unwrap());
+    }
+
+    #[test]
     fn native_view_factory_bindings_are_valid_and_published() {
         for (name,access,payload) in [
             ("view",crate::native_return_borrows::BorrowAccess::ReadOnly,NativeTypeId::ByteView),

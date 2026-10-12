@@ -87,12 +87,15 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
     let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();
     let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
     let error=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::SchemaConstructionError)).unwrap();
+    let Type::Union(limit_union)=program.records[error].fields[2].ty.unwrap() else{unreachable!("numeric limit union")};
+    let limit_tag=program.unions[limit_union.index()].members.iter().position(|ty|*ty==Type::Int).unwrap();
+    let limit=format!("Union{}::V{limit_tag}(error.limit)",limit_union.index());
     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
     let operation=match binding.name {"__minString"|"__minInt"=>"min","__maxString"|"__maxInt"=>"max","__gtInt"=>"gt","__ltInt"=>"lt",_=>unreachable!("unknown schema constraint")};
     format!("fn {symbol}(schema:Record{schema},limit:i64)->Union{result}{{
         match schema.bounds.{operation}(limit){{
             Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{bounds}}}}),
-            Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.operation),field2:error.limit}}}})
+            Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.operation),field2:{limit}}}}})
         }}
     }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
 }
