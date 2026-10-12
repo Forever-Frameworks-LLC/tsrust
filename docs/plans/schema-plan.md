@@ -729,3 +729,19 @@ public object construction must enforce this. Strip/retain policies, source APIs
 generated records, editor inference, fused decoding and matched workloads remain
 required. This backend is test-only groundwork, not public object acceptance.
 SQLite: `tsrust-schema-object-*-5eb9891a.log`.
+
+## Object construction and disposal checks
+
+ObjectPlan now has a checked constructor and private field storage. Construction
+rejects duplicate field names before consuming validation input; the reusable plan
+does not rebuild the name set during validation. Names compare exact strings,
+including empty names; canonically equivalent Unicode spellings remain distinct.
+This closes the earlier backend assumption about unique field names.
+
+Explicit drop counters verify each successful field output is released exactly
+once when a required sibling fails or an unknown field rejects the object. On
+success, outputs remain owned by the caller until that caller drops them. These
+checks also exercise zero retained-error budget without accepting invalid input.
+Five focused object tests pass. Public builders, policies, record inference and
+fused decoding remain pending. SQLite evidence:
+`tsrust-schema-object-construction-*-b5d20026.log`.
