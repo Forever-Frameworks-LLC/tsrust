@@ -2812,12 +2812,16 @@ impl Emitter<'_> {
                 self.emit_native_view_family(&mut output,id,layout,contract).expect("checked scoped owning native callable family");
                 continue;
             }
-            let family = crate::callable_dispatch::Family::checked_results(
+            let family = if self.program.stored_contracts.is_owned_read(id) {
+                crate::callable_dispatch::Family::checked_owned_read(contract,&self.program.callable_shapes,origins.iter().copied(),&self.program.closures,crate::Span::default()).expect("checked owned readonly family")
+            } else {
+                crate::callable_dispatch::Family::checked_results(
                 contract, &self.program.callable_shapes, origins.iter().copied(),
                 &self.program.closures, crate::Span::default(),
                 |actual,expected|self.program.stored_contracts.equivalent_result(actual,expected),
             )
-            .expect("checked native callable storage family");
+            .expect("checked native callable storage family")
+            };
             let result_layout=self.result_storage.borrow().get(&id).cloned();
             let native_result=match &result_layout {Some((name,_))=>format!("Result<{},{}>",self.native_type(contract.result),name),None=>self.native_type(contract.result)};
             // A lifetime-free family whose result is a byte view can only return a

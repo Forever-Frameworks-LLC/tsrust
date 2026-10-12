@@ -7,7 +7,7 @@ use crate::{Diagnostic, Mode, Span};
 /// Owned/shared construction proves structural storage eligibility. Borrowed
 /// identities additionally retain concrete alternatives and never certify ownership.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub(crate) enum StorageContract { Owned(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>), ScopedOwned(ContractId, Vec<usize>), RecursiveScopedOwned(ContractId, usize, usize) }
+pub(crate) enum StorageContract { Owned(ContractId), OwnedRead(ContractId), SharedRead(ContractId), Borrowed(ContractId, Vec<usize>), ScopedOwned(ContractId, Vec<usize>), RecursiveScopedOwned(ContractId, usize, usize) }
 
 impl StorageContract {
     pub(crate) fn checked(signatures: &Contracts, signature: ContractId) -> Option<Self> {
@@ -16,6 +16,11 @@ impl StorageContract {
             .kind
             .filter(|kind| matches!(kind, CallbackKind::Owned | CallbackKind::OwnedOnce))
             .map(|_| Self::Owned(signature))
+    }
+
+    /// Owns a readonly environment without reference counting or implicit cloning.
+    pub(crate) fn checked_owned_read(signatures: &Contracts, signature: ContractId) -> Option<Self> {
+        (signatures.get(signature).kind == Some(CallbackKind::Read)).then_some(Self::OwnedRead(signature))
     }
 
     /// Shared handles own the environment but expose only readonly invocation.
@@ -56,8 +61,9 @@ impl StorageContract {
             )
             .related(closure.span, "Borrowed environment is created here."));
         }
-        if matches!(self, Self::SharedRead(_)) && closure.invocation != Mode::Read {
-            return Err(Diagnostic::new("callback-access", "Shared callback storage requires readonly invocation; mutable captures cannot be shared.", span)
+        if matches!(self, Self::SharedRead(_) | Self::OwnedRead(_)) && closure.invocation != Mode::Read {
+            let message=if matches!(self,Self::SharedRead(_)){"Shared callback storage requires readonly invocation; mutable captures cannot be shared."}else{"Owned readonly callback storage requires readonly invocation; mutable captures are not permitted."};
+            return Err(Diagnostic::new("callback-access", message, span)
                 .related(closure.span, "Mutable environment is created here."));
         }
         Ok(OwnedEnvironment(closure))
@@ -179,6 +185,7 @@ pub(crate) struct Registry {
     declarations: Vec<usize>,
     origins: Vec<Vec<usize>>,
     borrowed: std::collections::HashSet<usize>,
+    owned_read: std::collections::HashSet<usize>,
     nested_results: std::collections::HashSet<(usize,usize)>,
     native_views: Option<Box<crate::native_view_family_registry::Registry>>,
     scoped_native: std::collections::HashSet<usize>,
@@ -208,6 +215,18 @@ impl Registry {
         let contract = StorageContract::checked(signatures, callback.structural)?;
         Some(self.intern_contract(contract, declaration))
     }
+    pub(crate) fn intern_owned_read(
+        &mut self, signatures: &Contracts, callback: &crate::analysis::CallbackContract,
+        declaration: usize,
+    ) -> Option<crate::syntax::Type> {
+        let contract=StorageContract::checked_owned_read(signatures,callback.structural)?;
+        let value=self.intern_contract(contract,declaration);
+        let crate::syntax::Type::StoredCallable(id)=value else{unreachable!()};
+        self.owned_read.insert(id);
+        Some(value)
+    }
+    pub(crate) fn is_owned_read(&self,id:usize)->bool {self.owned_read.contains(&id)}
+
     #[allow(dead_code)] // Checked compiler bridge integration follows storage acceptance.
     pub(crate) fn intern_shared(
         &mut self,
@@ -280,7 +299,11 @@ impl Registry {
                     .related(closures[origin].span,"Carried byte-view environment is created here."));
             }
         }
-        crate::callable_dispatch::Family::checked_results(declaration,signatures,[origin],closures,span,|actual,expected|self.equivalent_result(actual,expected))?;
+        if self.is_owned_read(family) {
+            crate::callable_dispatch::Family::checked_owned_read(declaration,signatures,[origin],closures,span)?;
+        } else {
+            crate::callable_dispatch::Family::checked_results(declaration,signatures,[origin],closures,span,|actual,expected|self.equivalent_result(actual,expected))?;
+        }
         let origins = &mut self.origins[family];
         if let Err(index) = origins.binary_search(&origin) {
             origins.insert(index, origin);
@@ -611,4 +634,38 @@ fn native_view_scoped_owning_identity_is_separate_and_remaps_atomically() {
     let crate::syntax::Type::StoredCallable(ordinary)=ordinary else {unreachable!()};
     assert!(registry.origins(ordinary).unwrap().is_empty());
     assert!(registry.scoped_native_family(ordinary).is_none());
+}
+
+#[cfg(test)]
+#[test]
+fn readonly_owned_storage_is_distinct_from_shared_and_borrowed_storage() {
+    let mut signatures=Contracts::default();
+    let id=signatures.intern([],crate::syntax::Type::Int,Some(CallbackKind::Read));
+    let owned=StorageContract::checked_owned_read(&signatures,id).unwrap();
+    assert_eq!(owned.invocation(&signatures),Mode::Read);
+    assert!(StorageContract::checked(&signatures,id).is_none());
+    assert!(StorageContract::checked_shared(&signatures,id).is_none());
+    let shared=signatures.intern([],crate::syntax::Type::Int,Some(CallbackKind::SharedRead));
+    assert!(StorageContract::checked_owned_read(&signatures,shared).is_none());
+    assert_ne!(owned,StorageContract::Borrowed(id,vec![]));
+    let borrowed=crate::check("function main(){const values=[1];const reader=():int=>{return values.length;};console.log(reader());}").unwrap();
+    assert_eq!(owned.environment(&signatures,&borrowed.program.closures[0],Span::default()).err().unwrap().code,"callback-escape");
+    let consuming=crate::check("function take(actual:string):Once<Function<string>>{return():string=>{return actual;};}function main(){}").unwrap();
+    assert_eq!(owned.environment(&signatures,&consuming.program.closures[0],Span::default()).err().unwrap().code,"callback-once");
+}
+
+#[cfg(test)]
+#[test]
+fn unique_readonly_registry_rejects_mutable_origins_without_changing_family() {
+    let checked=crate::check("function reader(actual:int[]):Function<int>{return():int=>{return actual.length;};}function writer(actual:int[]):Function<int>{return():int=>{actual.push(1);return actual.length;};}function main(){}").unwrap();
+    let mut signatures=Contracts::default();
+    let callback=crate::analysis::CallbackContract{structural:signatures.intern([],crate::syntax::Type::Int,Some(CallbackKind::Read)),parameter_names:vec![],params:vec![],result:crate::syntax::Type::Int,kind:CallbackKind::Read};
+    let mut registry=Registry::default();
+    let crate::syntax::Type::StoredCallable(family)=registry.intern_owned_read(&signatures,&callback,0).unwrap() else{unreachable!()};
+    assert!(!registry.is_borrowed(family));
+    let borrowed=registry.intern_borrowed(callback.structural,0,[0]);
+    assert_ne!(borrowed,family);
+    registry.register_origin(family,0,std::slice::from_ref(&callback),&signatures,&checked.program.closures,Span::default()).unwrap();
+    assert_eq!(registry.register_origin(family,1,std::slice::from_ref(&callback),&signatures,&checked.program.closures,Span::default()).unwrap_err().code,"callback-access");
+    assert_eq!(registry.origins(family),Some([0].as_slice()));
 }

@@ -58,8 +58,8 @@ The owner also approved `import { s } from "std:schema"`, constructors such as
 with inferred output types. String-length constraints count Unicode code points:
 `😀` has length one; `e` followed by a combining acute accent has length two.
 These are not grapheme-cluster counts. UTF-8 byte and UTF-16 unit constraints, if
-exposed, must use explicit alternatives. Default factories still need a concrete
-contract review before their implementation gate. The existing checked
+exposed, must use explicit alternatives. Default factories use the approved deferred, reusable factory contract
+described below; their implementation gate remains pending. The existing checked
 JSON numeric extraction must not be bypassed by schema validation.
 
 ### Approved schema builder ownership and construction errors
@@ -1023,3 +1023,74 @@ idempotence. SQLite retains original red/repair evidence and
 `tsrust-schema-presence-native-batch.log`, `tsrust-schema-presence-editor-final.log`,
 `tsrust-schema-presence-contract-formatted.log`, `tsrust-schema-presence-parity.log`,
 `tsrust-schema-presence-format.log` and `tsrust-schema-presence-format-final.log`.
+
+## Default factory implementation witness
+
+The focused public native test
+`schema_defaults_validate_fresh_factory_results_only_for_missing_fields` currently
+fails with `unsupported` at `.default(fresh)`. It covers named factories, fresh
+owned array output on repeated validation, supplied values bypassing defaults,
+explicit null rejection, and validation of an inline factory result against bounds.
+The exact failing check is retained in SQLite as
+`tsrust-schema-default-red.log`. This is a red TDD witness, not accepted behavior.
+
+Implementation must retain reusable factory environments without hidden cloning
+or sharing. Existing owned callback storage requires mutable invocation, while
+readonly owning storage currently uses an explicitly shared callback contract.
+Schema validation borrows an immutable plan. Resolve that representation boundary
+with checked ownership before exposing defaults; accepting only capture-free
+functions does not satisfy the full approved runtime-factory contract.
+
+### Factory capture and pipeline contracts
+
+The owner approved readonly factory captures and ordinary side effects such as
+logging and fresh allocation. Factories must not mutate or consume captured state.
+Factory exceptions propagate normally; invalid returned data produces schema
+validation errors. This restriction concerns captured environments, not the owned
+input of later transformation stages.
+
+Preserve chainable refinement, transformation and explicit coercion APIs.
+Refinements inspect values and report issues; transformations can consume or
+mutate owned input and return the next typed value. Explicit coercion precedes
+subsequent validation. The owner requested a path for mutation in these pipelines;
+readonly default factories must not accidentally prohibit it. Exact coercion
+syntax and refinement mutation semantics are not accepted by this note.
+
+### Unique readonly factory storage prerequisite
+
+A distinct internal storage proof now admits readonly callable signatures only
+when the checked closure owns its environment. It rejects borrowed, mutable and
+single-use captures. Native family emission retains captures directly and invokes
+through immutable references, without shared handles or a generated Clone
+implementation. Existing explicitly shared callback storage keeps its behavior.
+
+This is an internal prerequisite, not public default support. Schema plan storage,
+source lowering, factory error propagation, editor documentation and matched
+workload acceptance still remain required. A separate generic-function witness
+confirmed ordinary array-schema construction and validation currently execute
+through specialization; that observation does not prove all reanalysis paths.
+
+Six focused readonly-related checks passed, including generated-native family
+execution and rejection of borrowed, mutable and consuming environments. Exact
+logs, including original red and repair checks, are verified in SQLite under
+`tsrust-schema-owned-read-*.log`. No public default, S11 milestone, performance
+measurement or consumer refresh acceptance is claimed.
+
+The unique readonly proof now participates in callable registry identity, origin
+validation and production native family emission. Registry tests distinguish it
+from borrowed storage with the same invocation signature and verify rejected
+mutable origins leave the existing family unchanged. A production witness returns
+a uniquely owned callback with array captures and invokes it repeatedly.
+
+Factory exception acceptance must also exercise the saved per-family error ABI.
+The initial throwing backend witness added a family after source checking without
+retaining its checked error contract; the emitter correctly rejected the incomplete
+graph. The repaired witness retains the sole origin's checked exception contract.
+Public default lowering must happen before ordinary error-effect analysis so
+those contracts are derived through the normal compiler path.
+
+Eight focused readonly checks passed after registry integration. The repaired
+production exception witness also passed generated native execution, preserving
+success and failure through the family ABI. SQLite retains exact original and
+repair records as `tsrust-schema-factory-*.log`. Whole-project formatting changed
+zero files. Public defaults remain pending; no feature-family acceptance is claimed.

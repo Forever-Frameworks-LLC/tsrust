@@ -31,6 +31,16 @@ impl<'a> Family<'a> {
         Self::checked_storage(contract, signatures, origins, closures, span, storage, |actual, expected| actual == expected)
     }
 
+    /// The caller selects unique owning storage independently of readonly invocation.
+    pub(crate) fn checked_owned_read(
+        contract: &'a CallbackContract, signatures: &Contracts,
+        origins: impl IntoIterator<Item=usize>, closures: &[CheckedClosure], span: Span,
+    )->Result<Self,Diagnostic> {
+        let storage=StorageContract::checked_owned_read(signatures,contract.structural)
+            .ok_or_else(||Diagnostic::new("callback-access","Owned readonly storage requires readonly invocation.",span))?;
+        Self::checked_storage(contract,signatures,origins,closures,span,storage,|actual,expected|actual==expected)
+    }
+
     #[cfg(test)]
     pub(crate) fn checked_shared(
         contract: &'a CallbackContract,
@@ -163,7 +173,7 @@ impl<'a> Family<'a> {
         adapt:impl Fn(usize,String)->String,
     ) {
         let name = crate::emit::ty(Type::StoredCallable(id));
-        if self.invocation == Mode::Read {
+        if self.contract.kind == crate::syntax::CallbackKind::SharedRead {
             self.emit_shared(output, &name, id, counted, &parameter_type, &result_type, &adapt);
         } else {
             self.emit_named(output, &name, counted, parameter_type, result_type, &adapt);
@@ -746,4 +756,44 @@ fn counted_shared_family_forwards_supplied_count_through_cloned_handles() {
     family.emit_counted(&mut rust,99,true,|_|"i64".into(), |_|"i64".into());
     rust.push_str("fn main(){let original=StoredCallable99::from_origin_0(Closure0(Box::new(20)));let alias=original.clone();assert_eq!(original.call(10),30);assert_eq!(alias.call_with_count(2,10),32);drop(original);assert_eq!(alias.call_with_count(0,10),30);println!(\"shared counts preserved\");}");
     tests::execute(&rust,"shared counts preserved\n");
+}
+
+#[cfg(test)]
+#[test]
+fn owned_readonly_family_keeps_unique_captures_and_rejects_mutation() {
+    let checked=crate::check("function reader(actual:int[]):Function<int>{return():int=>{return actual.length;};}function writer(actual:int[]):Function<int>{return():int=>{actual.push(1);return actual.length;};}function main(){}").unwrap();
+    let mut signatures=Contracts::default();
+    let contract=CallbackContract{structural:signatures.intern([],Type::Int,Some(crate::syntax::CallbackKind::Read)),parameter_names:vec![],params:vec![],result:Type::Int,kind:crate::syntax::CallbackKind::Read};
+    assert_eq!(Family::checked_owned_read(&contract,&signatures,[1],&checked.program.closures,Span::default()).err().unwrap().code,"callback-access");
+    let family=Family::checked_owned_read(&contract,&signatures,[0],&checked.program.closures,Span::default()).unwrap();
+    let mut storage=String::new();
+    family.emit(&mut storage,99,|_|unreachable!(), |_|"i64".into());
+    assert!(!storage.contains("TsrShared"));
+    assert!(!storage.contains("impl Clone"));
+    let mut rust=checked.emit_rust().replace("fn main()","fn source_main()");
+    rust.push_str(&storage);
+    rust.push_str("fn main(){let factory=StoredCallable99(function0(NumericArray::from([1i64,2i64])));assert_eq!(factory.call(),2);assert_eq!(factory.call(),2);println!(\"unique readonly family\");}");
+    tests::execute(&rust,"unique readonly family\n");
+}
+
+#[cfg(test)]
+#[test]
+fn checked_unique_readonly_factory_uses_production_storage_and_emission() {
+    let mut checked=crate::check("function reader(actual:int[]):Function<int>{return():int=>{if(actual.length===0){throw 'empty';}return actual.length;};}function main(){}").unwrap();
+    let program=&mut checked.program;
+    let declaration=program.callback_contracts.len();
+    let contract=CallbackContract{structural:program.callable_shapes.intern([],Type::Int,Some(crate::syntax::CallbackKind::Read)),parameter_names:vec![],params:vec![],result:Type::Int,kind:crate::syntax::CallbackKind::Read};
+    let Type::StoredCallable(family)=program.stored_contracts.intern_owned_read(&program.callable_shapes,&contract,declaration).unwrap() else{unreachable!()};
+    assert!(program.stored_contracts.is_owned_read(family));
+    program.callback_contracts.push(contract);
+    program.stored_contracts.register_origin(family,0,&program.callback_contracts,&program.callable_shapes,&program.closures,Span::default()).unwrap();
+    // This witness adds storage after source checking, so retain its sole
+    // origin's already checked exception contract for the new family ABI.
+    program.error_effects.storage_errors.insert(family,program.error_effects.closure_errors[0].clone());
+    program.functions[0].result=Type::StoredCallable(family);
+    let crate::syntax::StmtKind::Return(Some(expression))=&mut program.functions[0].body[0].kind else{unreachable!()};
+    expression.wrap_storage(family);
+    let mut rust=checked.emit_rust().replace("fn main()","fn source_main()");
+    rust.push_str("fn main(){let factory=function0(NumericArray::from([1i64,2i64]));assert!(matches!(factory.call(),Ok(2)));assert!(matches!(factory.call(),Ok(2)));let failing=function0(NumericArray::from([]));assert!(matches!(failing.call(),Err(_)));println!(\"checked unique readonly construction\");}");
+    tests::execute(&rust,"checked unique readonly construction\n");
 }
