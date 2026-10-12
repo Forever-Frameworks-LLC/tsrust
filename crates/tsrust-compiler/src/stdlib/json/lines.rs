@@ -127,7 +127,7 @@ mod tests {
  }
  #[test]
  fn file_reader_preserves_read_ahead_across_jsonl_and_byte_reads() {
-  use crate::stdlib::{buffered_fs,fs};
+  use crate::stdlib::fs::runtime::{buffered_fs,fs};
   let path=std::env::temp_dir().join(format!("tsrust-jsonl-borrowed-{}",std::process::id()));
   std::fs::write(&path,b"0\n1\nnull").unwrap();
   let mut input=buffered_fs::buffer_reader(fs::open(path.to_str().unwrap()).unwrap(),8).unwrap();
@@ -139,13 +139,12 @@ mod tests {
  }
  #[test]
  fn owned_file_reader_closes_on_eof_error_and_early_drop() {
-  use crate::stdlib::{buffered_fs,fs};
-  use std::os::fd::AsRawFd;
+  use crate::stdlib::fs::runtime::{buffered_fs,fs};
   unsafe extern "C" {fn fcntl(fd:i32,command:i32,...)->i32;}
   let path=std::env::temp_dir().join(format!("tsrust-jsonl-owned-{}",std::process::id()));
   for (input,mode) in [(b"null".as_slice(),0),(b"bad\n",1),(b"0\n1\n",2)] {
    std::fs::write(&path,input).unwrap();
-   let file=fs::open(path.to_str().unwrap()).unwrap();let fd=file.get().0.as_raw_fd();
+   let file=fs::open(path.to_str().unwrap()).unwrap();let fd=crate::stdlib::fs::runtime::raw_fd(&file);
    let mut lines=Lines::new(buffered_fs::buffer_reader(file,2).unwrap(),limits()).unwrap();
    match mode {
     0=>{assert_eq!(lines.next().unwrap(),Some(Value::Null));assert_eq!(unsafe{fcntl(fd,1)},-1);},

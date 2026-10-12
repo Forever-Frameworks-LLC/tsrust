@@ -16,7 +16,7 @@ pub(crate) fn bytes_module(views:bool,utf8:bool)->String {
     text.push_str("}\n");text
 }
 pub(crate) fn files_module()->String {
-    format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n",include_str!("stdlib/resource.rs"),include_str!("stdlib/fs.rs"),include_str!("stdlib/buffered_fs.rs"))
+    format!("mod tsrust_native_files {{ mod resource {{\n{}\n}} pub mod fs {{\n{}\n}} pub mod buffered_fs {{\n{}\n}} }}\n",include_str!("stdlib/fs/runtime/resource.rs"),include_str!("stdlib/fs/runtime/fs.rs"),include_str!("stdlib/fs/runtime/buffered_fs.rs"))
 }
 pub(crate) fn path_module()->String {
     format!("mod tsrust_native_path {{\n{}{}\n}}\n",include_str!("stdlib/path/runtime.rs"),include_str!("stdlib/path/relative.rs"))

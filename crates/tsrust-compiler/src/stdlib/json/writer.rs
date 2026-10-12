@@ -1,6 +1,6 @@
 //! Bounded JSON Lines output with consuming ownership and explicit flush errors.
 use super::{Value,stringify};
-use crate::stdlib::{buffered_fs::{self,BufferedWriter},fs::FsFailure};
+use crate::stdlib::fs::runtime::{buffered_fs::{self,BufferedWriter},fs::FsFailure};
 
 /// Output errors preserve stable codes, never backend messages or record contents.
 #[derive(Debug,Clone,PartialEq,Eq)]
@@ -134,7 +134,7 @@ mod tests {
  }
  #[test]
  fn buffered_files_flush_close_and_borrowed_writers_remain_usable() {
-  use crate::stdlib::{buffered_fs,fs};
+  use crate::stdlib::fs::runtime::{buffered_fs,fs};
   let path=std::env::temp_dir().join(format!("tsrust-jsonl-writer-{}",std::process::id()));
   let mut file=buffered_fs::buffer_writer(fs::create(path.to_str().unwrap()).unwrap(),16).unwrap();
   {let mut writer=Writer::new(&mut file,8);writer.write(&Value::Null).unwrap();

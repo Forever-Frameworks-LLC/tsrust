@@ -3,8 +3,8 @@ mod support;
 #[test]
 fn file_backend_reads_errors_and_real_descriptor_release_at_o0_o3() {
     let directory = support::TempDirectory::new();
-    let resource = include_str!("../src/stdlib/resource.rs").replace("//!", "//");
-    let file = include_str!("../src/stdlib/fs.rs").replace("//!", "//");
+    let resource = include_str!("../src/stdlib/fs/runtime/resource.rs").replace("//!", "//");
+    let file = include_str!("../src/stdlib/fs/runtime/fs.rs").replace("//!", "//");
     let runtime = format!("mod resource {{ {resource} }}\nmod fs {{ {file} }}\n");
     let source = directory.0.join("file.rs");
     std::fs::write(&source, &runtime).unwrap();
@@ -45,7 +45,7 @@ pub fn witness(path: &str) {
 fn private_resource_backend_releases_once_at_o0_and_o3() {
     let directory = support::TempDirectory::new();
     let source = directory.0.join("resource.rs");
-    std::fs::write(&source, include_str!("../src/stdlib/resource.rs")).unwrap();
+    std::fs::write(&source, include_str!("../src/stdlib/fs/runtime/resource.rs")).unwrap();
     for level in ["0", "3"] {
         let binary = directory.0.join(format!("resource-{level}"));
         support::success(&support::run(support::rustc().args(["--edition=2024", "--test"])
@@ -57,7 +57,7 @@ fn private_resource_backend_releases_once_at_o0_and_o3() {
 #[test]
 fn private_resource_backend_cannot_be_reused_cloned_compared_or_hashed() {
     let directory = support::TempDirectory::new();
-    let runtime = include_str!("../src/stdlib/resource.rs").replace("//!", "//");
+    let runtime = include_str!("../src/stdlib/fs/runtime/resource.rs").replace("//!", "//");
     let backend = "struct Handle; impl Backend for Handle { type Error = (); fn close(self)->Result<(),()>{Ok(())} }";
     for (body, error) in [
         ("let owner=Resource::new(Handle); owner.close().unwrap(); owner.close().unwrap();", "use of moved value"),

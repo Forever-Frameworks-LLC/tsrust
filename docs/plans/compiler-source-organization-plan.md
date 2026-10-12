@@ -1,7 +1,7 @@
 # Compiler source organization
 
-Status: owner-requested, scheduled. Begin after focused acceptance of the approved
-JSON namespace and before additional S10 API expansion. This is a required cleanup
+Status: in progress after focused JSON namespace acceptance, before additional
+S10 API expansion. This is a required cleanup
 checkpoint, not an optional task deferred until the project ends.
 
 ## Scope
@@ -12,7 +12,8 @@ Group modules by responsibility and use ordinary Rust module boundaries. Keep
 LSP, tests and tools.
 
 The initial inspection confirms inconsistent organization inside `stdlib`:
-`fs.rs`, `buffered_fs.rs` and `resource.rs` are test modules, while
+`fs.rs`, `buffered_fs.rs` and `resource.rs` contain embedded runtime code compiled
+as modules for host-side tests, while
 `fs_bindings.rs` and `fs_emit.rs` are implementation modules beside feature
 directories. Consolidate filesystem implementation and related tests under
 `stdlib/fs/`; place shared resource tests according to their actual dependencies.
@@ -43,3 +44,28 @@ Avoid replacing a flat directory with a collection of path-attribute shims.
 
 Acceptance requires working module boundaries, updated references, retained public
 API compatibility and passing checks. A directory proposal alone is not completion.
+
+## Filesystem batch
+
+Filesystem binding metadata and emission now live in `stdlib/fs/bindings.rs` and
+`stdlib/fs/emit.rs`. Runtime ownership is explicit under `stdlib/fs/runtime/`,
+with file, buffered-file and resource lifecycle modules. The five relocated files
+retain exact bytes. Public compiler APIs and generated native module names remain
+unchanged. JSONL tests use the new module paths and a test-only descriptor accessor;
+the backend field stays private.
+
+Four backend integration tests pass before and after the move. Two generated file
+programs retain identical SHA-256 hashes. All 87 standard-library unit checks pass, including JSONL reader/writer integration.
+SQLite evidence: tsrust-fs-organization-before.log, tsrust-fs-organization-after.log,
+tsrust-fs-organization-preservation.log, tsrust-fs-organization-hashes.json and
+tsrust-fs-organization-unit-3.log. Failed path/visibility compilation attempts are
+retained in the preceding unit logs. The filesystem batch is accepted.
+
+Next inspect the analysis/emission child modules currently held at the source root
+through path attributes. Move each existing module family into its actual owner
+directory, preserving Rust module identity before considering deeper regrouping.
+Compiler-wide cleanup and the final structural regression milestone remain open.
+
+Current inventory: 327 source-root files. Analysis has 98 root-level child files,
+emission 68 and syntax five, attached through path attributes. These existing
+module boundaries provide the next concrete relocation batches.

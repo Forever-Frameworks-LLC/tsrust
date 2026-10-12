@@ -2,7 +2,7 @@ mod support;
 #[test]
 fn buffered_file_backend_lifecycle_and_partial_io_at_o0_o3() {
  let directory=support::TempDirectory::new();
- let source=format!("mod resource {{ {} }}\nmod fs {{ {} }}\nmod buffered_fs {{ {} }}",include_str!("../src/stdlib/resource.rs"),include_str!("../src/stdlib/fs.rs"),include_str!("../src/stdlib/buffered_fs.rs")).replace("//!","//");
+ let source=format!("mod resource {{ {} }}\nmod fs {{ {} }}\nmod buffered_fs {{ {} }}",include_str!("../src/stdlib/fs/runtime/resource.rs"),include_str!("../src/stdlib/fs/runtime/fs.rs"),include_str!("../src/stdlib/fs/runtime/buffered_fs.rs")).replace("//!","//");
  let path=directory.0.join("buffered.rs");std::fs::write(&path,source).unwrap();
  for level in ["0","3"] {
   let binary=directory.0.join(format!("buffered-{level}"));
