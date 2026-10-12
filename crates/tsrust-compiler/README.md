@@ -29,7 +29,7 @@ The library retains the checked syntax tree, so emission reuses analysis. The fr
 ## Pipeline and modules
 
 - `syntax/`: UTF-8-aware tokenization, string decoding, source ranges, parsing, and syntax nodes.
-- `analysis.rs`: name/type resolution, record and call checks, callee-first analysis and recursive access inference, binding availability, argument conflicts, and parameter contracts.
+- `analysis/`: name/type resolution, record and call checks, callee-first analysis and recursive access inference, binding availability, argument conflicts, and parameter contracts.
 - `diagnostic.rs`: structured errors, related ranges, text formatting, and JSON serialization.
 - `emit.rs`: Rust generation from the checked AST with generated identifiers.
 - `lib.rs`: reusable in-process analysis entry point.

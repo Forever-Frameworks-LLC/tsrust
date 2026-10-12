@@ -66,7 +66,7 @@ through path attributes. Move each existing module family into its actual owner
 directory, preserving Rust module identity before considering deeper regrouping.
 Compiler-wide cleanup and the final structural regression milestone remain open.
 
-Current inventory: 327 source-root files. Analysis has 98 root-level child files,
+Inventory after filesystem relocation: 327 source-root files. Analysis has 98 root-level child files,
 emission 68 and syntax five, attached through path attributes. These existing
 module boundaries provide the next concrete relocation batches.
 
@@ -79,3 +79,16 @@ limited to module paths and two embedded test fixture paths.
 
 The same 14 match/type-syntax integration tests pass before and after relocation.
 SQLite records use the tsrust-syntax-organization prefix. All 11 parser unit tests also pass; the syntax batch is accepted. The source root now has 321 files.
+
+## Analysis batch
+
+The analyzer parent and 98 child modules now live under `src/analysis/`. All 98
+child files retain exact bytes. Parent edits only remove obsolete path overrides
+and adjust the three shared stdlib collection checker paths. Internal Rust module
+identities, visibility and public APIs are preserved.
+
+The same 31 focused integration checks pass before and after the move: callback
+returns, recursive storage, JSON namespace and match syntax. Full unit-test
+compilation and two callee-transport witnesses are checked before checkpointing.
+SQLite evidence uses tsrust-analysis-organization and tsrust-analysis-ownership
+prefixes. Root file count is now 222; emission modules are next.

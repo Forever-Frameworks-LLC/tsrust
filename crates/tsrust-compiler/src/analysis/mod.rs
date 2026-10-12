@@ -1,198 +1,102 @@
-#[path = "native_view_mutations.rs"]
 mod native_view_mutations;
-#[path = "native_view_expression_calls.rs"]
 mod native_view_expression_calls;
-#[path = "native_view_family_provenance.rs"]
 mod native_view_family_provenance;
 #[cfg(test)]
-#[path = "native_view_callee_transport_tests.rs"]
 mod native_view_callee_transport_tests;
-#[path = "native_view_scopes.rs"]
 mod native_view_scopes;
-#[path = "native_view_calls.rs"]
 mod native_view_calls;
-#[path = "native_view_environments.rs"]
 mod native_view_environments;
-#[path = "native_view_storage_epochs.rs"]
 mod native_view_storage_epochs;
-#[path = "native_view_storage_contracts.rs"]
 mod native_view_storage_contracts;
-#[path = "native_view_parameters.rs"]
 mod native_view_parameters;
-#[path = "native_view_returns.rs"]
 mod native_view_returns;
-#[path = "native_view_places.rs"]
 mod native_view_places;
-#[path = "native_view_projections.rs"]
 mod native_view_projections;
-#[path = "native_view_recursive.rs"]
 mod native_view_recursive;
-#[path = "native_view_loans.rs"]
 pub(crate) mod native_view_loans;
-#[path = "native_capabilities.rs"]
 mod native_capabilities;
-#[path = "retained_capture_projection.rs"]
 mod retained_capture_projection;
-#[path = "result_construction.rs"]
 mod result_construction;
-#[path = "result_matching.rs"]
 mod result_matching;
-#[path = "installer_value_uses.rs"]
 mod installer_value_uses;
-#[path = "captured_record_borrows.rs"]
 mod captured_record_borrows;
-#[path = "record_callable_identity.rs"]
 mod record_callable_identity;
-#[path="map_cleanup_phase_plan.rs"]
 mod map_cleanup_phase_plan;
-#[path="map_entry_moves.rs"]
 mod map_entry_moves;
-#[path="map_block_storage_plan.rs"]
 mod map_block_storage_plan;
-#[path = "capture_loan_binding.rs"]
 mod capture_loan_binding;
-#[path = "array_capture_owners.rs"]
 mod array_capture_owners;
-#[path = "array_storage_epochs.rs"]
 mod array_storage_epochs;
-#[path = "array_result_storage.rs"]
 mod array_result_storage;
-#[path = "nullable_record_storage.rs"]
 mod nullable_record_storage;
-#[path = "nullable_record_fields.rs"]
 mod nullable_record_fields;
-#[path = "discarded_sequence.rs"]
 mod discarded_sequence;
-#[path="map_entry_capture_owners.rs"]
 mod map_entry_capture_owners;
-#[path="map_entry_epochs.rs"]
 mod map_entry_epochs;
-#[path = "map_iteration_plan.rs"]
 mod map_iteration_plan;
-#[path = "map_iteration_shape.rs"]
 mod map_iteration_shape;
-#[path = "map_exception_storage_types.rs"]
 mod map_exception_storage_types;
-#[path="map_completion_payloads.rs"]
 mod map_completion_payloads;
-#[path="map_completion_layouts.rs"]
 mod map_completion_layouts;
-#[path = "map_entry_branch_transport.rs"]
 mod map_entry_branch_transport;
-#[path = "map_entry_demand.rs"]
 mod map_entry_demand;
-#[path = "map_entry_completion_release.rs"]
 mod map_entry_completion_release;
-#[path = "loop_body_completion.rs"]
 mod loop_body_completion;
-#[path = "assignment_callee.rs"]
 mod assignment_callee;
-#[path = "owned_array_patterns.rs"]
 mod owned_array_patterns;
-#[path = "inferred_callable_arrays.rs"]
 mod inferred_callable_arrays;
-#[path = "return_type_inference.rs"]
 mod return_type_inference;
-#[path = "named_capture_layout.rs"]
 mod named_capture_layout;
-#[path = "named_capture_access.rs"]
 mod named_capture_access;
-#[path = "checked_callable_storage.rs"]
 mod checked_callable_storage;
-#[path = "conditional_callable_carriers.rs"]
 mod conditional_callable_carriers;
-#[path = "borrowed_conditional_carriers.rs"]
 mod borrowed_conditional_carriers;
-#[path = "record_call_capture_release.rs"]
 mod record_call_capture_release;
-#[path = "record_parameter_carriers.rs"]
 mod record_parameter_carriers;
-#[path = "direct_callback_stores.rs"]
 mod direct_callback_stores;
-#[path = "caller_error_origins.rs"]
 mod caller_error_origins;
-#[path = "record_parameter_borrows.rs"]
 pub(crate) mod record_parameter_borrows;
-#[path = "nullable_parameter_stores.rs"]
 mod nullable_parameter_stores;
-#[path = "nullable_parameter_environments.rs"]
 mod nullable_parameter_environments;
-#[path = "scoped_record_containers.rs"]
 mod scoped_record_containers;
-#[path = "empty_scoped_maps.rs"]
 mod empty_scoped_maps;
-#[path = "scoped_map_carriers.rs"]
 mod scoped_map_carriers;
-#[path="map_storage_edges.rs"]
 mod map_storage_edges;
-#[path="storage_exit_availability.rs"]
 mod storage_exit_availability;
 pub(crate) use storage_exit_availability::MapEntryEpoch;
 pub(crate) use map_completion_payloads::Phase as MapCompletionPhase;
-#[path = "record_array_carriers.rs"]
 mod record_array_carriers;
-#[path = "record_value_carriers.rs"]
 mod record_value_carriers;
-#[path = "record_storage_writes.rs"]
 mod record_storage_writes;
-#[path = "record_branch_carriers.rs"]
 mod record_branch_carriers;
-#[path = "named_capture_context.rs"]
 mod named_capture_context;
-#[path = "capture_context.rs"]
 mod capture_context;
-#[path = "callable_expression.rs"]
 mod callable_expression;
-#[path = "scoped_record_construction.rs"]
 mod scoped_record_construction;
-#[path = "exception_state.rs"]
 mod exception_state;
-#[path = "labeled_control.rs"]
 mod labeled_control;
-#[path = "object_spread.rs"]
 mod object_spread;
-#[path = "destructuring_rest.rs"]
 mod destructuring_rest;
-#[path = "object_keys.rs"]
 mod object_keys;
-#[path = "object_values.rs"]
 mod object_values;
-#[path = "array_entries.rs"]
 mod array_entries;
-#[path = "logical_values.rs"]
 mod logical_values;
-#[path = "generic_function_values.rs"]
 pub(crate) mod generic_function_values;
-#[path = "closure_methods.rs"]
 mod closure_methods;
-#[path = "capture_restoration.rs"]
 mod capture_restoration;
-#[path = "generic_value_adapters.rs"]
 mod generic_value_adapters;
-#[path = "checked_value_annotations.rs"]
 mod checked_value_annotations;
-#[path = "generic_expression_adapters.rs"]
 mod generic_expression_adapters;
-#[path = "generic_value_metadata.rs"]
 mod generic_value_metadata;
-#[path = "deferred_generic_values.rs"]
 mod deferred_generic_values;
-#[path = "deferred_generic_preparation.rs"]
 mod deferred_generic_preparation;
-#[path = "deferred_generic_methods.rs"]
 mod deferred_generic_methods;
-#[path = "generic_calls.rs"]
 mod generic_calls;
-#[path = "polymorphic_argument_hints.rs"]
 mod polymorphic_argument_hints;
-#[path = "optional_chain.rs"]
 mod optional_chain;
-#[path = "rest_calls.rs"]
 mod rest_calls;
-#[path = "spread_calls.rs"]
 mod spread_calls;
 pub(crate) use spread_calls::spread_position_range;
-#[path = "spread_builtins.rs"]
 mod spread_builtins;
 
 use crate::diagnostic::{Diagnostic, Span};
@@ -17155,13 +17059,11 @@ mod exception_callable_boundary_tests {
     }
 }
 
-#[path = "sets.rs"]
 mod sets;
-#[path = "maps.rs"]
 mod maps;
-#[path = "stdlib/collections/check.rs"]
+#[path = "../stdlib/collections/check.rs"]
 mod deques;
-#[path = "stdlib/collections/heap_check.rs"]
+#[path = "../stdlib/collections/heap_check.rs"]
 mod heaps;
 
 impl Analyzer {
@@ -17370,5 +17272,5 @@ fn native_callback_graph_retains_selected_generic_method_identity() {
     assert_eq!(calls.len(),1,"inactive receiver method must not remain a call edge");
 }
 
-#[path = "stdlib/collections/ordered_set_check.rs"]
+#[path = "../stdlib/collections/ordered_set_check.rs"]
 mod ordered_sets;
