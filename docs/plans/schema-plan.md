@@ -636,3 +636,18 @@ bounds and conversion-error precedence. Existing number tests retain nonfinite,
 negative-zero, JSON and exact-conversion behavior. This is generated backend
 integration, not acceptance of public floating builders or their error signature.
 SQLite: `tsrust-schema-number-storage-*-b7db8d7b.log`.
+
+
+### Approved floating construction-error payload
+
+The owner approved retaining one SchemaConstructionError identity and changing
+its limit field to int | number. Integer bounds must retain exact signed 64-bit
+payloads; floating bounds retain their floating payloads. Never convert integer
+limits to floating point merely to unify the error shape. Callers may need to
+narrow the union before arithmetic. Compiler, native error emission and editor
+documentation must agree before public floating builders are accepted.
+
+The ordinary throwing adapter now projects its limit parameter from the binding,
+rather than hardcoding int. This independent prerequisite supports both scalar
+limit types; it does not yet change the public error field or expose builders.
+Evidence: `tsrust-schema-limit-adapter-*-c35028ae.log` in SQLite.
