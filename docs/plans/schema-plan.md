@@ -2162,3 +2162,12 @@ self branch without consuming input structure. The existing emitter's
 `schema_child_type` embeds ordinary child plans by output type, so a self edge
 cannot reuse that representation unchanged: it needs a distinct plan reference
 and an explicitly borrowed root during validation.
+
+The compiler-side recursion graph now separates two checks: every self edge must
+follow descent into an input container, and a least fixed point must establish a
+finite output value. This accepts empty-array termination and nullable object
+links, rejects required self-only records, and checks shared nodes under both
+progress states. The graph is currently test-only groundwork in
+`stdlib/schema/recursive.rs`; source lowering and runtime validation do not use it
+yet. It is not public recursive-schema acceptance. Validation remains deferred
+until the recursive section is integrated.

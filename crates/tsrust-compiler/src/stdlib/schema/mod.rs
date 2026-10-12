@@ -34,3 +34,8 @@ mod trial;
 
 pub(crate) mod plans;
 pub(crate) mod pipelines;
+
+// The graph is exercised independently while recursive expression lowering is
+// integrated. It is not yet a public schema implementation.
+#[cfg(test)]
+mod recursive;
