@@ -110,3 +110,19 @@ capacity checks, unchanged live entries on invalid TTL, and allocation identity
 of returned failed inputs. SQLite evidence:
 `tsrust-cache-timed-{red,check,final,format}-b4eee6a3.log`.
 The namespace is still not exposed; source acceptance and performance remain open.
+
+## Borrowed read boundary
+
+Three negative native compilations use the actual timed/core modules and reject
+length/expiration, replacement and owner destruction while a borrowed result is
+subsequently used. A positive fake-clock witness releases the borrow, expires the
+entry and verifies exactly one disposal. All ten cache backend tests pass.
+SQLite evidence: `tsrust-cache-loans-566e6a9a.log` and
+`tsrust-cache-loans-format-566e6a9a.log`.
+
+The current timed get/peek signatures require a mutable receiver and retain that
+receiver loan through their borrowed result. Source integration must model that
+exclusive owner loan even though the returned value itself is read-only. Do not
+classify these as ordinary Map.get reads or allow an operation that would fail
+only in native compilation. These checks establish the backend boundary; they
+do not yet prove Tsrust diagnostics or source-level lifetime inference.

@@ -13,6 +13,33 @@ struct Key(u32);
 impl Hash for Key {fn hash<H:Hasher>(&self,state:&mut H){0u8.hash(state);}}
 
 #[test]
+fn retained_cache_reads_prevent_expiration_replacement_and_owner_drop(){
+ for (operation,code) in [
+  ("cache.len();","E0499"),
+  ("cache.insert(1,Box::new(22),None).unwrap();","E0499"),
+  ("drop(cache);","E0505"),
+ ] {
+  let source=format!("mod lru {{ {} }}\nmod timed {{ {} }}\nfn main(){{let now=std::time::Instant::now();let mut cache=timed::Timed::new(lru::Lru::new(std::num::NonZeroUsize::new(1).unwrap()),move||now);cache.insert(1,Box::new(11),None).unwrap();let borrowed=cache.get(&1).unwrap();{operation}assert_eq!(**borrowed,11);}}",include_str!("../src/stdlib/cache/lru.rs"),include_str!("../src/stdlib/cache/timed.rs"));
+  let directory=support::TempDirectory::new();let path=directory.0.join("borrow.rs");std::fs::write(&path,source).unwrap();
+  let output=support::run(support::rustc().args(["--edition=2024","--error-format=short"]).arg(path).arg("-o").arg(directory.0.join("borrow")),60);
+  assert!(!output.status.success());let stderr=String::from_utf8_lossy(&output.stderr);assert!(stderr.contains(&format!("error[{code}]")),"{stderr}");
+ }
+}
+
+#[test]
+fn releasing_cache_read_allows_expiration_and_drops_value_once(){
+ use std::time::{Instant,Duration};
+ struct Value(std::rc::Rc<std::cell::Cell<usize>>);
+ impl Drop for Value{fn drop(&mut self){self.0.set(self.0.get()+1);}}
+ let drops=std::rc::Rc::new(std::cell::Cell::new(0));let now=std::rc::Rc::new(std::cell::Cell::new(Instant::now()));let clock=now.clone();
+ let mut cache=timed::Timed::new(Lru::new(NonZeroUsize::new(1).unwrap()),move||clock.get());
+ assert!(cache.insert(1,Value(drops.clone()),Some(Duration::from_secs(1))).is_ok());
+ {let borrowed=cache.get(&1).unwrap();assert_eq!(borrowed.0.get(),0);}
+ now.set(now.get()+Duration::from_secs(1));assert_eq!(cache.len(),0);assert_eq!(drops.get(),1);
+ assert!(cache.get(&1).is_none());drop(cache);assert_eq!(drops.get(),1);
+}
+
+#[test]
 fn timed_operations_never_return_expired_values_or_evict_live_values_first(){
  use std::time::{Instant,Duration};
  let now=std::rc::Rc::new(std::cell::Cell::new(Instant::now()));let clock=now.clone();
