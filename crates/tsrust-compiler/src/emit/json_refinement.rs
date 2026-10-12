@@ -3,7 +3,7 @@ use super::*;
 impl Emitter<'_> {
   pub(super) fn json_boolean_projection(&self, fun: &CheckedFunction, value: &Expr) -> String {
     let emitted = self.expr(fun, value, Mode::Read);
-    let extraction = |ty: Type, name: &str| match ty {
+    let extraction = |ty: Type, name: &str| match ty.scalar_base() {
       Type::Boolean => format!("*{name}"),
       Type::Record(id)
         if matches!(
@@ -45,7 +45,7 @@ impl Emitter<'_> {
 
 impl Emitter<'_> {
  pub(super) fn json_text_read(&self,ty:Type,name:&str)->String {
-  let extract=|ty:Type,name:&str|match ty {
+  let extract=|ty:Type,name:&str|match ty.scalar_base() {
    Type::String=>format!("{name}.as_ref()"),
    Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)=>format!("{name}.text"),
    Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView))=>format!("{name}.value.as_str().expect(\"checked JSON string proof\")"),

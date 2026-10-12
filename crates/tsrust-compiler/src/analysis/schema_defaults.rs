@@ -29,7 +29,7 @@ impl Analyzer {
         if fields.len()==original.len()&&fields.iter().zip(&original).all(|(a,b)|a.ty==b.ty){return Ok(output);}
         let id=self.program.records.len();let name=format!("@schema:input:{id}");
         self.record_names.insert(name.clone(),id);self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
-        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:name,span:input.span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
+        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:name,span:input.span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
         Ok(Type::Record(id))
     }
 

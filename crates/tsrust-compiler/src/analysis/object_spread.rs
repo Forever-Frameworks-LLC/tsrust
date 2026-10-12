@@ -12,7 +12,7 @@ impl Analyzer {
         if let Some(id)=self.program.records.iter().position(|record|record.native_type.is_none()&&!record.is_tuple()&&record.enum_definition.is_none() && record.set_definition.is_none() && record.map_definition.is_none()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.name.text==b.name.text&&a.ty==b.ty)){return id;}
         let id=self.program.records.len();
         self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.expect("checked spread field"))).collect());
-        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:format!("rest#record{id}"),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});id
+        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:format!("rest#record{id}"),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});id
     }
     #[inline(never)]
     pub(super) fn object_spread(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{

@@ -346,6 +346,7 @@ impl ProjectAnalysis {
                 name: "Set".into(), declaration: None,
                 arguments: vec![self.project_type_inner(self.analysis.program.records[id].set_definition.as_ref()?.key, names, active)?],
             }),
+            Type::Literal(id,_)=>return Some(ProjectType::Named{name:self.analysis.program.records[id].literal_definition.as_ref()?.text(),declaration:None,arguments:vec![]}),
             Type::Record(id) | Type::Enum(id, _) => return self.project_record(id, names),
             Type::Array(element) => {
                 return Some(ProjectType::Array(Box::new(self.project_type_inner(

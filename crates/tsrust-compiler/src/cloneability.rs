@@ -60,7 +60,7 @@ impl Cloneability {
                     Type::Array(element) => pending.push(element.ty()),
                     Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
                     Type::String
-                    | Type::Enum(_, _) | Type::Int
+                    | Type::Literal(_,_) | Type::Enum(_, _) | Type::Int
                     | Type::Number
                     | Type::Boolean
                     | Type::Null
@@ -101,7 +101,7 @@ impl Cloneability {
         match leaf {
             Type::Record(id) | Type::Set(id) | Type::Map(id) => return self.record(id),
             Type::String
-            | Type::Enum(_, _) | Type::Int
+            | Type::Literal(_,_) | Type::Enum(_, _) | Type::Int
             | Type::Number
             | Type::Boolean
             | Type::Null
@@ -125,7 +125,7 @@ impl Cloneability {
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
                 Type::String
-                | Type::Enum(_, _) | Type::Int
+                | Type::Literal(_,_) | Type::Enum(_, _) | Type::Int
                 | Type::Number
                 | Type::Boolean
                 | Type::Null
@@ -153,7 +153,7 @@ pub(crate) mod tests {
     pub(crate) fn record(types: &[Type]) -> Record {
             let span = Span::new(0, 1);
         Record {
-            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,literal_definition:None,
             name: Token {
                 text: "Schema".into(),
                 span,

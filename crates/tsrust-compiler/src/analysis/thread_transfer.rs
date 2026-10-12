@@ -45,7 +45,7 @@ pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(Un
  while let Some(ty)=pending.pop(){
   if !seen.insert(ty){continue;}
   match ty {
-   Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Void|Type::Enum(..)=>{},
+   Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null|Type::Undefined|Type::Void|Type::Enum(..)|Type::Literal(..)=>{},
    Type::Array(element)=>pending.push(element.ty()),
    Type::Union(id)=>pending.extend(members(id)),
    Type::Record(id)=>{

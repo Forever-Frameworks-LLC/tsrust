@@ -1,6 +1,6 @@
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
-mod numeric_literals;
+pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
 
@@ -406,6 +406,7 @@ pub enum Type {
     Void,
     Record(usize),
     Enum(usize, EnumKind),
+    Literal(usize, crate::literal_types::LiteralKind),
     Set(usize),
     Map(usize),
     Array(ArrayElement),
@@ -431,6 +432,7 @@ pub enum ArrayElement {
     String(u8),
     Record(usize, u8),
     Enum(usize, EnumKind, u8),
+    Literal(usize, crate::literal_types::LiteralKind, u8),
     Set(usize, u8),
     Map(usize, u8),
     StoredCallable(usize, u8),
@@ -450,6 +452,7 @@ impl ArrayElement {
             Type::String => Self::String(0),
             Type::Record(id) => Self::Record(id, 0),
             Type::Enum(id, kind) => Self::Enum(id, kind, 0),
+            Type::Literal(id, kind) => Self::Literal(id, kind, 0),
             Type::Set(id) => Self::Set(id, 0),
             Type::Map(id) => Self::Map(id, 0),
             Type::StoredCallable(id) => Self::StoredCallable(id, 0),
@@ -467,7 +470,7 @@ impl ArrayElement {
             | Self::Null(depth)
             | Self::Undefined(depth)
             | Self::String(depth)
-            | Self::Enum(_, _, depth) | Self::Set(_, depth) | Self::Map(_, depth)
+            | Self::Literal(_, _, depth) | Self::Enum(_, _, depth) | Self::Set(_, depth) | Self::Map(_, depth)
             | Self::Record(_, depth)
             | Self::StoredCallable(_, depth)
             | Self::Union(_, depth) => depth,
@@ -483,6 +486,7 @@ impl ArrayElement {
             Self::String(_) => Self::String(depth),
             Self::Record(id, _) => Self::Record(id, depth),
             Self::Enum(id, kind, _) => Self::Enum(id, kind, depth),
+            Self::Literal(id, kind, _) => Self::Literal(id, kind, depth),
             Self::Set(id, _) => Self::Set(id, depth),
             Self::Map(id, _) => Self::Map(id, depth),
             Self::StoredCallable(id, _) => Self::StoredCallable(id, depth),
@@ -502,6 +506,7 @@ impl ArrayElement {
             Self::String(_) => Type::String,
             Self::Record(id, _) => Type::Record(id),
             Self::Enum(id, kind, _) => Type::Enum(id, kind),
+            Self::Literal(id, kind, _) => Type::Literal(id, kind),
             Self::Set(id, _) => Type::Set(id),
             Self::Map(id, _) => Type::Map(id),
             Self::StoredCallable(id, _) => Type::StoredCallable(id),
@@ -524,6 +529,7 @@ impl UnionId {
 }
 
 impl Type {
+    pub fn scalar_base(self)->Self {if let Self::Literal(_,kind)=self{kind.base()}else{self}}
     pub fn union(self) -> Option<UnionId> {
         match self {
             Self::Union(id) | Self::BorrowedUnion(id) => Some(id),
@@ -540,7 +546,7 @@ impl Type {
         matches!(
             self,
             Self::Int | Self::Number | Self::Boolean | Self::Null | Self::Undefined | Self::Enum(_, _)
-        ) || matches!(self, Self::Union(id) if id.copy)
+        ) || matches!(self, Self::Literal(_,kind) if kind!=crate::literal_types::LiteralKind::String) || matches!(self, Self::Union(id) if id.copy)
     }
 }
 
@@ -1544,6 +1550,7 @@ pub struct Record {
     pub set_definition: Option<SetDefinition>,
     pub map_definition: Option<MapDefinition>,
     pub enum_definition: Option<EnumDefinition>,
+    pub literal_definition: Option<crate::literal_types::LiteralValue>,
     pub application: Option<Box<RecordApplication>>,
     pub name: Token,
     pub type_parameters: Vec<crate::type_syntax::TypeName>,
@@ -2121,7 +2128,7 @@ impl Parser<'_> {
             Record {
                 native_type: None, map_definition: None,
                 set_definition: None,
-                enum_definition: None,
+                enum_definition: None,literal_definition:None,
                 name,
                 type_parameters,
                 fields,
@@ -2339,7 +2346,7 @@ impl Parser<'_> {
                 }
                 self.expect(";")?;
                 program.records.push(Record {
-                    native_type: None, map_definition: None, set_definition: None,                    enum_definition: None,
+                    native_type: None, map_definition: None, set_definition: None,                    enum_definition: None,literal_definition:None,
                     name,
                     type_parameters,
                     fields,

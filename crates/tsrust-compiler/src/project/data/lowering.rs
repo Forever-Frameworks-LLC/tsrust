@@ -44,7 +44,7 @@ fn annotation(shape: &Shape, samples: &[&Value], identity: &str, records: &mut V
         Shape::Object(fields) => {
             let index = records.len();
             let name = format!("@data-record:{identity}:{index}");
-            records.push(Record { native_type: None, set_definition: None, map_definition: None, enum_definition: None,
+            records.push(Record { native_type: None, set_definition: None, map_definition: None, enum_definition: None,literal_definition:None,
                 application: None, name: Token { text: name.clone(), span, kind: TokenKind::Symbol }, type_parameters: vec![], fields: vec![] });
             let fields = fields.iter().map(|(name, field)| {
                 let properties: Vec<_> = samples.iter().filter_map(|value| match &value.kind { Kind::Object(values) => values.get(name), _ => None }).collect();

@@ -234,7 +234,7 @@ fn validate_inline_layout_with_indirection(
                 } else {
                     0
                 };
-                let payload_bytes = alternatives(field_type).into_iter().map(|ty| match ty {
+                let payload_bytes = alternatives(field_type).into_iter().map(|ty| match ty.scalar_base() {
                     Type::Int => std::mem::size_of::<i64>(),
                     Type::Number => std::mem::size_of::<f64>(),
                     Type::Boolean => std::mem::size_of::<bool>(),

@@ -1869,6 +1869,7 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}
         if let Some(output)=self.schema_element(&receiver) && matches!(method,"optional"|"nullable") {
@@ -1928,6 +1929,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
+        let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
         if matches!((self.schema_element(receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return true;}
         if self.schema_element(receiver).is_some() { return method == "safeParse"; }
         if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}
@@ -4183,7 +4185,16 @@ fn builtin_type_substitution(text:&str,types:&[(&str,&str)])->String {
     output
 }
 
+// Literal identities stay precise in hover; member lookup uses their scalar API.
+fn literal_scalar_family(ty: &str) -> Option<&'static str> {
+    use tsrust_compiler::type_syntax::{ValueAnnotationKind, LiteralAnnotation};
+    let ValueAnnotationKind::Literal(value) = tsrust_compiler::type_syntax::parse(ty).ok()?.kind else { return None; };
+    Some(match value { LiteralAnnotation::String(_) => "string", LiteralAnnotation::Int(_) => "int",
+        LiteralAnnotation::Number(_) => "number", LiteralAnnotation::Boolean(_) => "boolean" })
+}
+
 fn builtins_for(ty: &str) -> Vec<Value> {
+    let ty = literal_scalar_family(ty).unwrap_or(ty);
     let set_key = ty.strip_prefix("Set<").and_then(|text| text.strip_suffix('>'));
     let ordered_map=ty.starts_with("OrderedMap<");
     let map_types = ty.strip_prefix("Map<").or_else(||ty.strip_prefix("OrderedMap<")).and_then(|text| text.strip_suffix('>')).and_then(|text| text.split_once(',')).map(|(key,value)|(key.trim(),value.trim()));

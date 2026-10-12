@@ -738,6 +738,7 @@ fn type_name(
         }
     }
     let name = match ty {
+        Type::Literal(id,_)=>Some(program.records[id].literal_definition.as_ref().unwrap().text()),
         Type::Int => Some("int".into()),
         Type::Number => Some("number".into()),
         Type::Boolean => Some("boolean".into()),

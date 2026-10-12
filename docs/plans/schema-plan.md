@@ -3,8 +3,8 @@
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
-matching owned input or JsonValue. Defaults,
-literal/enum types, remaining composite APIs, fused decoding and family acceptance
+matching owned input or JsonValue. Reusable default factories are integrated.
+Literal/enum schemas, remaining composite APIs, fused decoding and family acceptance
 remain pending.
 
 ## Required surface and coverage
@@ -59,7 +59,7 @@ with inferred output types. String-length constraints count Unicode code points:
 `😀` has length one; `e` followed by a combining acute accent has length two.
 These are not grapheme-cluster counts. UTF-8 byte and UTF-16 unit constraints, if
 exposed, must use explicit alternatives. Default factories use the approved deferred, reusable factory contract
-described below; their implementation gate remains pending. The existing checked
+described below; their focused implementation gate is complete. The existing checked
 JSON numeric extraction must not be bypassed by schema validation.
 
 ### Approved schema builder ownership and construction errors
@@ -1181,23 +1181,32 @@ with arrays, unions, callable signatures and generic arguments. Generic identity
 substitution, alias/link traversal and editor canonical spelling preserve these
 values; a quoted `"T"` is not a reference to a type parameter named T.
 
-This is a preparatory syntax checkpoint, not public `s.literal` or enum acceptance.
-Checked resolution deliberately reports `literal-type` until the checked literal
-representation and assignment rules are integrated. Do not widen literal outputs
-to primitive types to bypass that work. No runtime workload or measurement is
-claimed for this syntax prerequisite.
+Checked singleton identities now preserve exact integer normalization, separate
+int/number identities, and finite floating-point values. Equivalent zero spellings
+share a type identity while native values preserve their original sign. Underlying
+scalar storage and ownership stay unchanged; literal strings are owned strings,
+not static enum tags replacing input. Proven values widen to their corresponding
+scalar. Arbitrary scalar values cannot narrow to a literal without proof.
 
-Next implementation must add canonical checked identities for literal values,
-with exact integer normalization and separate int/number identity. Native storage
-must retain the underlying scalar representation and ownership: in particular,
-validated owned strings must remain owned strings, not static enum tags replacing
-the input. Allow proven literal values to widen to the corresponding scalar;
-reject arbitrary scalar values where a literal is required. Carry these identities
-through aliases, generic specializations, arrays, unions and projected editor
-facts before accepting public literal schemas or discriminated unions.
+Focused checks cover aliases, generic specializations, records, arrays, literal
+union injection, stable equality narrowing on both branches, explicit string
+cloning, arithmetic returning scalar types, scalar string/number methods, and
+rejection of assignments or updates that break the declared literal. Mutable
+arrays do not gain unsafe covariance. Dynamic comparison operands do not prove a
+particular literal. Editor facts preserve exact values; method hover, completion,
+and parameter help use the corresponding scalar API.
 
-Focused evidence covers exact values/spans, malformed expression rejection,
-formatting idempotence, generic substitution/identity and editor rendering. The
-existing 128-level syntax nesting limit remains enforced. Full type checking,
-flow narrowing, native execution, public schema docs/examples and matched workload
-support remain required. Evidence prefix: `tsrust-literal-*` in SQLite.
+This remains prerequisite work, not acceptance of public `s.literal`, enum schemas,
+or discriminated unions. Before exposing those APIs, complete the literal type
+integration audit: scalar-to-union widening and union remapping, scalar conversion
+and observation dispatch, indexed/iterated strings, collection key and element
+contracts, contextual inference, and remaining wildcard type matches. Add focused
+regressions for each supported boundary; reject unsupported cases in the checker
+rather than allowing native failures. Preserve exact output types throughout schema
+chains and projected editor facts.
+
+Checked evidence: 10 focused compiler/native cases, two numeric identity unit
+cases, two editor cases, and six affected existing union regression cases. These
+are bounded checks, not full compiler/LSP acceptance. Evidence prefix:
+`tsrust-literal-*` in SQLite. Public schema docs/examples, matched workload support,
+full family regressions and measurements remain required. No timing is claimed.

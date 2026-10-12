@@ -48,7 +48,7 @@ impl Resolver<'_> {
         self.records.push(Record {
             native_type: Some(id), name: Token { text: linked_name(id), kind: TokenKind::Symbol, span },
             application: None, type_parameters: item.type_parameters.iter().map(|name| TypeName { text: (*name).into(), span }).collect(), fields: Vec::new(),
-            map_definition: None, set_definition: None, enum_definition: None,
+            map_definition: None, set_definition: None, enum_definition: None,literal_definition:None,
         });
         let mut fields = Vec::new();
         for field in item.fields {

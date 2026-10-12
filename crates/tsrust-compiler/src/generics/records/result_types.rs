@@ -51,7 +51,7 @@ impl Context<'_> {
                         declaration: Token { text: key.0.clone(), span: value.span, kind: TokenKind::Symbol },
                         arguments: arguments.clone(),
                     })),
-                    fields, type_parameters: Vec::new(), map_definition: None, set_definition: None, enum_definition: None,
+                    fields, type_parameters: Vec::new(), map_definition: None, set_definition: None, enum_definition: None,literal_definition:None,
                 });
                 self.names.insert(name, id);
                 self.instances.insert(key.clone(), id);

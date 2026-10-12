@@ -53,7 +53,7 @@ pub(super) fn scan(source:&str,start:usize)->Result<(Token,usize),Diagnostic>{
 /// Once the magnitude exceeds 400 decimal digits it is above finite f64 range;
 /// a bounded overflow spelling preserves both number infinity and int rejection.
 #[inline(never)]
-pub(super) fn integer_spelling(raw:&str)->String{
+pub(crate) fn integer_spelling(raw:&str)->String{
     let radix=if raw.starts_with("0b")||raw.starts_with("0B"){2}else if raw.starts_with("0o")||raw.starts_with("0O"){8}else if raw.starts_with("0x")||raw.starts_with("0X"){16}else{return raw.replace('_',"");};
     let mut decimal=vec![0u8];
     for character in raw[2..].chars().filter(|&ch|ch!='_'){

@@ -149,7 +149,7 @@ pub(crate) fn runtime_error_schema()->Record {
             annotation:ValueAnnotation{kind:ValueAnnotationKind::Named(TypeName{text:if ty==Type::String {"string"}else{"int"}.to_owned(),span}),span},
             ty:Some(ty),callable_declaration:None,optional:false,
         }).collect();
-    Record {native_type: None, map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:"#RuntimeError".to_owned(),span,kind:TokenKind::Symbol},type_parameters:vec![],fields}
+    Record {native_type: None, map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:"#RuntimeError".to_owned(),span,kind:TokenKind::Symbol},type_parameters:vec![],fields}
 }
 
 pub(crate) fn materialize_runtime_record(program:&mut CheckedProgram)->Type {

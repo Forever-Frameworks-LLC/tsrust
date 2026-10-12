@@ -2644,3 +2644,25 @@ fn schema_default_chains_track_intermediate_and_final_output_types() {
     let hover=ask(&index,&entry,"retained =","textDocument/hover");assert!(hover.to_string().contains("value:")&&hover.to_string().contains("count: int")&&hover.to_string().contains("Map<string,JsonValue>"),"{hover}");
     let hover=ask(&index,&entry,"object =","textDocument/hover");assert!(hover.to_string().contains("count: int")&&hover.to_string().contains("note?:"),"{hover}");
 }
+
+#[test]
+fn literal_hover_preserves_exact_types_through_generics_and_records() {
+    let entry=tsrust_compiler::format("type Row={tag:'ready';count:9007199254740993;};function identity<T>(value:T):T{return value;}function main(){const row:Row={tag:'ready',count:9007199254740993};const tag=identity<'ready'>('ready');const count:9007199254740993=9007199254740993;console.log(row.tag,tag,count);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"tag =","textDocument/hover");assert!(hover.to_string().contains("ready")&&!hover.to_string().contains("tag: string"),"{hover}");
+    let hover=ask(&index,&entry,"count:","textDocument/hover");assert!(hover.to_string().contains("9007199254740993"),"{hover}");
+}
+
+#[test]
+fn literal_string_methods_keep_scalar_help_and_result_types() {
+    let entry=tsrust_compiler::format("function main(){const tag:'ready'='ready';const upper=tag.toUpperCase();const found=tag.includes('ad');console.log(upper,found);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"upper,","textDocument/hover");assert!(hover.to_string().contains("upper: string"),"{hover}");
+    let hover=ask(&index,&entry,"includes(","textDocument/hover");assert!(hover.to_string().contains("boolean"),"{hover}");
+    let completion=ask(&index,&entry,"toUpperCase()","textDocument/completion");assert!(completion.as_array().is_some_and(|items|items.iter().any(|item|item["label"]=="includes")),"{completion}");
+    let help=ask(&index,&entry,"'ad'","textDocument/signatureHelp");assert!(help.to_string().contains("string"),"{help}");
+}

@@ -18,7 +18,7 @@ pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,pa
     if records.iter().any(|record|record.name.text==name){return Ok(());}
     let annotation=crate::native_type_resolution::project_with_parameters(records,signature,parameters,span)?;
     records.push(Record {
-        native_type:None,map_definition:None,set_definition:None,enum_definition:None,
+        native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,
         application:None,name:Token{text:name,kind:TokenKind::Symbol,span},type_parameters:Vec::new(),
         fields:vec![RecordField{name:Token{text:"signature#value".into(),kind:TokenKind::Symbol,span},annotation,ty:None,callable_declaration:None,optional:false}],
     });

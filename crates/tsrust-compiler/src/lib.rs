@@ -95,6 +95,7 @@ pub(crate) use callables::local_functions as local_functions;
 pub(crate) use callables::local_capture_plan as local_capture_plan;
 pub(crate) use callables::local_readiness as local_readiness;
 pub use types::syntax as type_syntax;
+pub use types::literals as literal_types;
 pub use syntax::match_syntax;
 pub(crate) use callables::named_capture_lowering as named_capture_lowering;
 pub(crate) use types::aliases as type_aliases;

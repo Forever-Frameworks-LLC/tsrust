@@ -38,11 +38,13 @@ impl UnionArena {
         for (id, record) in records.iter().enumerate() {
             if record.map_definition.is_some() { state.named_types.insert(id, Type::Map(id)); }
             if record.set_definition.is_some() { state.named_types.insert(id, Type::Set(id)); }
+            if let Some(definition)=&record.literal_definition {state.named_types.insert(id,Type::Literal(id,definition.kind()));}
             if let Some(definition) = &record.enum_definition {
                 state.named_types.insert(id, Type::Enum(id, definition.kind));
             }
         }
     }
+    pub(crate) fn register_literal_type(&self,id:usize,kind:crate::literal_types::LiteralKind){self.0.borrow_mut().named_types.insert(id,Type::Literal(id,kind));}
     pub(crate) fn register_map_type(&self, id: usize) { self.0.borrow_mut().named_types.insert(id, Type::Map(id)); }
     pub(crate) fn register_set_type(&self, id: usize) { self.0.borrow_mut().named_types.insert(id, Type::Set(id)); }
     pub(crate) fn named_type(&self, id: usize) -> Type {
@@ -148,6 +150,7 @@ impl UnionArena {
     }
 
     pub fn accepts(&self, expected: Type, actual: Type) -> bool {
+        if actual!=actual.scalar_base()&&expected==actual.scalar_base(){return true;}
         if expected == actual {
             return true;
         }

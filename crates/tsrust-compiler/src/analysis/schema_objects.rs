@@ -34,7 +34,7 @@ impl Analyzer {
         let fields=[("value",output),("extra",extra)].into_iter().map(|(name,ty)|Ok(crate::syntax::RecordField{name:Token{text:name.into(),span,kind:TokenKind::Name},annotation:types.annotation(ty,span)?,ty:Some(ty),callable_declaration:None,optional:false})).collect::<Result<Vec<_>,Diagnostic>>()?;
         let wrapper=self.program.records.len();let name=format!("@schema:retained:{wrapper}");
         self.record_names.insert(name.clone(),wrapper);self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
-        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:name.clone(),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
+        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:name.clone(),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
         let mut annotation=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Schema),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:name,span})}]}};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
@@ -72,7 +72,7 @@ impl Analyzer {
             }else{
                 self.record_names.insert(name.clone(),id);
                 self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
-                self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:name,span:expr.span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
+                self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:name,span:expr.span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
                 id
             };
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};

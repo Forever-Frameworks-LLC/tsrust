@@ -297,6 +297,7 @@ fn float_literal(value: f64) -> String {
 
 pub(crate) fn ty(value: Type) -> String {
     match value {
+        Type::Literal(_,kind)=>ty(kind.base()),
         Type::String => "String".into(),
         Type::Int => "i64".into(),
         Type::Number => "f64".into(),
@@ -1063,6 +1064,7 @@ impl Emitter<'_> {
     fn console_value(&self, value: &str, kind: Type, depth: &str, nested: bool) -> String {
         let _ = nested;
         match kind {
+            Type::Literal(_,kind)=>self.console_value(value,kind.base(),depth,nested),
             Type::String => format!("TsrConsoleValue::Text(({value}).as_ref().to_owned())"),
             Type::Enum(_, crate::syntax::EnumKind::Number) => format!("TsrConsoleValue::Number(({value}).tsr_value())"),
             Type::Enum(_, crate::syntax::EnumKind::String) => format!("TsrConsoleValue::Text(({value}).tsr_value().to_owned())"),
@@ -2378,6 +2380,7 @@ impl Emitter<'_> {
         }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number))) {
                 let plan=match record.application.as_ref().unwrap().resolved_arguments[0] {Type::Int=>"IntBounds",Type::Number=>"NumberBounds",_=>"StringBounds"};
@@ -5247,7 +5250,7 @@ impl Emitter<'_> {
         let from = args
             .get(1)
             .map_or_else(|| "0i64".to_owned(), |arg| self.expr(fun, arg, Mode::Copy));
-        let string = args[0].ty == Some(Type::String);
+        let string = args[0].ty.map(Type::scalar_base) == Some(Type::String);
         let value_reference = if string {
             "search_value"
         } else {
@@ -5369,7 +5372,7 @@ impl Emitter<'_> {
                 "search_array.values.iter()",
                 "*item == search_value.as_ref()",
             )
-        } else if args[0].ty == Some(Type::String) {
+        } else if args[0].ty.map(Type::scalar_base) == Some(Type::String) {
             ("search_array.iter()", "item == search_value")
         } else {
             ("search_array.iter()", "item == &search_value")
@@ -7837,7 +7840,7 @@ impl Emitter<'_> {
                 let receiver = self.conditional_arm(fun, base, Mode::Read);
                 format!("{{ let _tuple = {receiver}; {}i64 }}",self.program.records[id].fields.len())
             }
-            ExprKind::Field(base, name) if base.ty == Some(Type::String) && name == "length" => {
+            ExprKind::Field(base, name) if base.ty.map(Type::scalar_base) == Some(Type::String) && name == "length" => {
                 // Fresh receivers survive the complete consuming expression,
                 // including console argument staging, then dispose normally.
                 let value = self.conditional_arm(fun, base, Mode::Read);
@@ -8171,6 +8174,7 @@ impl Emitter<'_> {
                 }
             } else {
                 match value.ty.expect("checked typeof") {
+                    Type::Literal(_,kind)=>match kind{crate::literal_types::LiteralKind::String=>"string",crate::literal_types::LiteralKind::Boolean=>"boolean",_=>"number"},
                     Type::Null | Type::Set(_) | Type::Map(_) | Type::Record(_) | Type::Array(_) => "object",
                     Type::Undefined | Type::Void => "undefined",
                     Type::Boolean => "boolean",
@@ -8301,6 +8305,7 @@ impl Emitter<'_> {
         let mut arms = String::new();
         for (lp, lt) in side(left, "left") {
             for (rp, rt) in side(right, "right") {
+                let (lt, rt) = (lt.scalar_base(), rt.scalar_base());
                 let comparison = if lt == rt && matches!(lt, Type::Int | Type::Boolean) { "*left == *right" }
                 else if lt == rt && matches!(lt, Type::Enum(_, crate::syntax::EnumKind::Number)) {
                     "{let l = left.tsr_value(); let r = right.tsr_value(); l.to_bits() == r.to_bits() || (l.is_nan() && r.is_nan())}"
@@ -8336,7 +8341,7 @@ impl Emitter<'_> {
         let mut arms = String::new();
         for (left_pattern, left_member) in side(left, "left") {
             for (right_pattern, right_member) in side(right, "right") {
-                let compare = match (left_member, right_member) {
+                let compare = match (left_member.scalar_base(), right_member.scalar_base()) {
                     (Type::Enum(a, _), Type::Enum(b, _)) if a == b => "**left == **right",
                     (Type::String, Type::String) => "**left == **right",
                     (Type::Int, Type::Int) | (Type::Boolean, Type::Boolean) | (Type::Number, Type::Number) => "*left == *right",
@@ -8418,8 +8423,8 @@ impl Emitter<'_> {
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }
             ));
         }
-        let string = left.ty == Some(Type::String);
-        let number = left.ty == Some(Type::Number);
+        let string = left.ty.map(Type::scalar_base) == Some(Type::String);
+        let number = left.ty.map(Type::scalar_base) == Some(Type::Number);
         let left = self.expr(fun, left, if string { Mode::Read } else { Mode::Copy });
         let right = self.expr(fun, right, if string { Mode::Read } else { Mode::Copy });
         let checked = Self::checked_operator(*op);
@@ -8563,7 +8568,7 @@ impl Emitter<'_> {
             ExprKind::EnumMember { enumeration, member } => format!("Enum{enumeration}::V{member}"),
             ExprKind::String(value) => self.string_literal(value),
 
-            ExprKind::Integer(value) if expr.ty == Some(Type::Number) => {
+            ExprKind::Integer(value) if expr.ty.map(Type::scalar_base) == Some(Type::Number) => {
                 float_literal(value.parse::<f64>().expect("checked number literal"))
             }
             ExprKind::Integer(value) => format!("{value}i64"),
@@ -8762,7 +8767,7 @@ impl Emitter<'_> {
                 CallTarget::MapMethod(method) => self.map_method_expression(fun,expr,callee,args,method),
                     CallTarget::SetMethod(method) => self.set_method_expression(fun, expr, callee, args, method),
                 CallTarget::ObjectIs => {
-                    let (left_type, right_type) = (args[0].ty.expect("checked operand"), args[1].ty.expect("checked operand"));
+                    let (left_type, right_type) = (args[0].ty.expect("checked operand").scalar_base(), args[1].ty.expect("checked operand").scalar_base());
                     let numeric = |ty: Type| matches!(ty, Type::Int | Type::Number);
                     let union_compare;
                     let compare = if left_type.union().is_some() || right_type.union().is_some() {

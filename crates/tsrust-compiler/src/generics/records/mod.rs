@@ -271,7 +271,16 @@ impl Context<'_> {
             return self.result_annotation(value);
         }
         match &mut value.kind {
-            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+            Kind::Literal(literal) => {
+                let definition=crate::literal_types::LiteralValue::checked(literal,value.span)?;
+                let name=definition.key();let kind=definition.kind();
+                let id=if let Some(&id)=self.names.get(&name){id}else{
+                    let id=self.records.len();self.names.insert(name.clone(),id);
+                    self.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:Some(definition),application:None,name:Token{text:name,span:value.span,kind:TokenKind::Symbol},type_parameters:Vec::new(),fields:Vec::new()});id
+                };
+                self.unions.register_literal_type(id,kind);
+            },
+            Kind::Polymorphic { .. } => {},
             Kind::Named(name) => {
                 if name.text == "Result" {
                     return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));
@@ -301,7 +310,7 @@ impl Context<'_> {
                         name: Token { kind: TokenKind::Symbol, text: index.to_string(), span: annotation.span },
                         annotation: annotation.clone(), ty: None, callable_declaration: None, optional: false,
                     }).collect();
-                    self.records.push(Record { native_type: None, map_definition: None, set_definition: None, enum_definition: None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
+                    self.records.push(Record { native_type: None, map_definition: None, set_definition: None, enum_definition: None,literal_definition:None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
                     self.names.insert(label.clone(), id);
                     id
                 };
@@ -390,7 +399,7 @@ impl Context<'_> {
         let label = format!("Set<{}>", self.label(key));
         if let Some(&id) = self.names.get(&label) { return Ok(id); }
         let id = self.records.len();
-        self.records.push(Record { native_type: None, map_definition: None, set_definition: Some(SetDefinition { key }), enum_definition: None,
+        self.records.push(Record { native_type: None, map_definition: None, set_definition: Some(SetDefinition { key }), enum_definition: None,literal_definition:None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
             application: Some(Box::new(RecordApplication { resolved_arguments: vec![key], declaration: Token { text: "Set".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id);
@@ -406,7 +415,7 @@ impl Context<'_> {
         let label = format!("Map<{}, {}>", self.label(key), self.label(value));
         if let Some(&id) = self.names.get(&label) { return Ok(id); }
         let id = self.records.len();
-        self.records.push(Record { native_type: None, map_definition: Some(MapDefinition { key, value, entry: None }), set_definition: None, enum_definition: None,
+        self.records.push(Record { native_type: None, map_definition: Some(MapDefinition { key, value, entry: None }), set_definition: None, enum_definition: None,literal_definition:None,
             name: Token { text: label.clone(), span, kind: TokenKind::Symbol }, type_parameters: Vec::new(), fields: Vec::new(),
             application: Some(Box::new(RecordApplication { resolved_arguments: vec![key, value], declaration: Token { text: "Map".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id); self.unions.register_map_type(id); Ok(id)
@@ -459,7 +468,7 @@ impl Context<'_> {
         self.records.push(Record {
             native_type: template.native_type,
             map_definition: (template.native_type==Some(crate::native_signatures::NativeTypeId::OrderedMap)).then(||MapDefinition{key:types[0],value:types[1],entry:None}),
-            set_definition: None, enum_definition: None,
+            set_definition: None, enum_definition: None,literal_definition:None,
             application: Some(Box::new(RecordApplication { resolved_arguments: types, declaration: template.name.clone(), arguments: arguments.to_vec() })),
             name: Token {
                 text: label,
@@ -486,6 +495,7 @@ impl Context<'_> {
     }
     fn label(&self, ty: Type) -> String {
         match ty {
+            Type::Literal(id,_) => self.records[id].literal_definition.as_ref().unwrap().text(),
             Type::Int => "int".into(),
             Type::Number => "number".into(),
             Type::Boolean => "boolean".into(),
@@ -502,6 +512,7 @@ impl Context<'_> {
                 .join("|"),
             Type::Array(element) => {
                 let base = match element {
+                    ArrayElement::Literal(id,_,_) => self.records[id].literal_definition.as_ref().unwrap().text(),
                     ArrayElement::Int(_) => "int".into(),
                     ArrayElement::Number(_) => "number".into(),
                     ArrayElement::Boolean(_) => "boolean".into(),

@@ -463,6 +463,7 @@ impl Types<'_> {
             return Ok(annotation);
         }
         let kind = match ty {
+            Type::Literal(id,_)=>Kind::Literal(self.records[id].literal_definition.as_ref().unwrap().annotation()),
             Type::Int => Kind::Named(crate::type_syntax::TypeName {
                 text: "int".into(),
                 span,

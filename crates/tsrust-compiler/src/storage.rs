@@ -1,7 +1,11 @@
 //! Backend storage policy and conservative source record layout accounting.
 use crate::syntax::{ArrayElement, Type};
 
+fn scalar_array(value:Type)->Type {
+    if let Type::Array(ArrayElement::Literal(_,kind,depth))=value {Type::Array(ArrayElement::from_value_type(kind.base()).unwrap().with_depth(depth))}else{value}
+}
 pub(crate) fn inline_array(value: Type) -> bool {
+    let value=scalar_array(value);
     matches!(
         value,
         Type::Array(
@@ -11,6 +15,7 @@ pub(crate) fn inline_array(value: Type) -> bool {
 }
 
 pub(crate) fn numeric_array(value: Type) -> bool {
+    let value=scalar_array(value);
     matches!(
         value,
         Type::Array(ArrayElement::Int(0) | ArrayElement::Boolean(0))
@@ -21,6 +26,7 @@ pub(crate) fn numeric_array(value: Type) -> bool {
 /// tag. Record eligibility caps element layout at 64 bytes; recursive records
 /// still use Vec, but charging the inline bound is safe for either choice.
 pub(crate) fn array_storage_bound(element: ArrayElement) -> usize {
+    let Type::Array(element)=scalar_array(Type::Array(element)) else{unreachable!()};
     let alignment = std::mem::align_of::<usize>().max(std::mem::align_of::<i64>());
     let inline =
         |bytes: usize| (bytes + alignment).div_ceil(alignment) * alignment * 4 + alignment * 4;

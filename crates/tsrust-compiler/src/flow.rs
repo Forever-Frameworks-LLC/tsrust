@@ -69,6 +69,7 @@ impl Guard {
         match self {
             Self::Absent(sentinel) => ty == *sentinel,
             Self::Typeof(label) => label == match ty {
+                Type::Literal(_,kind)=>return self.matches(kind.base()),
                 Type::Int | Type::Number | Type::Enum(_, crate::syntax::EnumKind::Number) => "number",
                 Type::String | Type::Enum(_, crate::syntax::EnumKind::String) => "string",
                 Type::Boolean => "boolean",

@@ -856,7 +856,10 @@ pub(crate) fn resolve_value_type(
 ) -> Result<Type, Diagnostic> {
     use crate::type_syntax::ValueAnnotationKind as Kind;
     match &annotation.kind {
-        Kind::Literal(_) => Err(Diagnostic::new("literal-type", "Literal-value type checking is not yet implemented.", annotation.span)),
+        Kind::Literal(value) => {
+            let literal=crate::literal_types::LiteralValue::checked(value,annotation.span)?;
+            record_names.get(&literal.key()).map(|&id|Type::Literal(id,literal.kind())).ok_or_else(||Diagnostic::new("literal-type","Literal type identity has not been materialized.",annotation.span))
+        },
         Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
         Kind::Group(inner) => resolve_value_type(inner, allow_void, record_names, unions),
         Kind::Union(members) => {
@@ -932,6 +935,7 @@ fn resolve_array_annotation(
     }
     let depth = (dimensions - 1) as u8;
     let element = match &inner.kind {
+        Kind::Literal(_) => ArrayElement::from_value_type(resolve_value_type(inner,false,record_names,unions)?).map(|leaf|leaf.with_depth(depth)),
         Kind::Named(name) => match name.text.as_str() {
             "int" => Some(ArrayElement::Int(depth)),
             "number" => Some(ArrayElement::Number(depth)),
@@ -3074,6 +3078,7 @@ impl Analyzer {
     fn type_name(&self, ty: Type) -> std::borrow::Cow<'_, str> {
         if let Some(name) = self.result_type_name(ty) { return name.into(); }
         let name = match ty {
+            Type::Literal(id,_) => return self.program.records[id].literal_definition.as_ref().unwrap().text().into(),
             Type::Int => "int",
             Type::Number => "number",
             Type::Boolean => "boolean",
@@ -3101,6 +3106,7 @@ impl Analyzer {
             }
             Type::Array(element) => {
                 let leaf = match element {
+                    ArrayElement::Literal(id,_,_)=>return format!("{}{}",self.program.records[id].literal_definition.as_ref().unwrap().text(),"[]".repeat(usize::from(element.depth())+1)).into(),
                     ArrayElement::Int(_) => "int",
                     ArrayElement::Number(_) => "number",
                     ArrayElement::Boolean(_) => "boolean",
@@ -6636,9 +6642,9 @@ impl Analyzer {
     #[inline(never)]
     fn string_concatenation_operand(&self, context: &Context, value: &mut Expr) -> Result<(), Diagnostic> {
         let Some(ty) = self.expression_type_hint(context, value) else { return Ok(()); };
-        let scalar = |ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String);
+        let scalar = |ty: Type| matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String);
         let supported = ty.union().map_or_else(|| scalar(ty), |id| self.unions.members(id).iter().copied().all(scalar));
-        if ty == Type::String { return Ok(()); }
+        if ty.scalar_base() == Type::String { return Ok(()); }
         if !supported { return Err(Diagnostic::new("type", "String concatenation accepts only string or scalar data operands. Convert arrays or records explicitly with String() or a template literal; functions are unsupported.", value.span)); }
         let span = value.span;
         let original = std::mem::replace(value, Expr::new(ExprKind::Undefined, span));
@@ -7634,6 +7640,18 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
+        if let Some(Type::Union(union))=expected {
+            let literal=self.unions.members(union).into_iter().find(|ty|if let Type::Literal(id,kind)=*ty {
+                crate::literal_types::LiteralValue::expression(expr,kind).is_some_and(|value|value.is_ok_and(|value|self.program.records[id].literal_definition.as_ref()==Some(&value)))
+            }else{false});
+            if let Some(literal)=literal{self.expression(context,expr,mode,loans,Some(literal))?;expr.inject(union);expr.ty=expected;return Ok(expected.unwrap());}
+        }
+        if let Some(Type::Literal(id,kind))=expected && let Some(value)=crate::literal_types::LiteralValue::expression(expr,kind) {
+            let value=value?;
+            if self.program.records[id].literal_definition.as_ref()!=Some(&value){return Err(Diagnostic::new("literal-type",format!("Expected {}, found {}.",self.type_name(Type::Literal(id,kind)),value.text()),expr.span));}
+            self.expression(context,expr,mode,loans,Some(kind.base()))?;
+            expr.ty=expected;return Ok(expected.unwrap());
+        }
         let checked = if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }
             if !matches!(value.kind, ExprKind::SpreadValue(_))) {
             self.rest_pack_expression(context, expr, mode, loans, expected)
@@ -8586,7 +8604,7 @@ impl Analyzer {
         capture_boundary.unwind(&mut context.capture_loans);
         let (left_type, right_type, stable) = result?;
         let primitive = |ty: Type| {
-            matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined)
+            matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined)
         };
         let comparable = |ty: Type| match ty.union() {
             Some(id) => self.unions.members(id).into_iter().all(primitive),
@@ -8608,32 +8626,42 @@ impl Analyzer {
         // Equality with one primitive value proves the alternative of a
         // stable union place on the equal path.
         let guarded = match (left_type.union(), right_type.union()) {
-            (Some(union), None) if stable => crate::flow::place(left, &context.names).map(|place| (place, union, right_type)),
-            (None, Some(union)) => crate::flow::place(right, &context.names).map(|place| (place, union, left_type)),
+            (Some(union), None) if stable => crate::flow::place(left, &context.names).map(|place| (place, union, right_type, &*right)),
+            (None, Some(union)) => crate::flow::place(right, &context.names).map(|place| (place, union, left_type, &*left)),
             _ => None,
         };
-        if let Some((place, union, value)) = guarded {
-            let numeric = |ty: Type| matches!(ty, Type::Int | Type::Number);
-            let matching = context
-                .flow
-                .get(&place)
-                .map(|fact| fact.members.clone())
-                .unwrap_or_else(|| self.unions.members(union))
-                .into_iter()
-                .filter(|member| *member == value || numeric(*member) && numeric(value))
-                .collect::<Vec<_>>();
-            if !matching.is_empty() {
-                let mut equal = context.flow.clone();
-                equal.insert(
-                    place,
-                    crate::flow::Fact { members: matching, origin: Some((expr_span.start, expr_span.end)) },
-                );
-                let other = context.flow.clone();
-                context.condition_flows.insert(
-                    (expr_span.start, expr_span.end),
-                    if op == BinaryOp::Equal { (equal, other) } else { (other, equal) },
-                );
+        if let Some((place, union, value, compared)) = guarded {
+            let numeric = |ty: Type| matches!(ty.scalar_base(), Type::Int | Type::Number);
+            let members = context.flow.get(&place).map(|fact| fact.members.clone())
+                .unwrap_or_else(|| self.unions.members(union));
+            let exact = |member: Type| -> Option<bool> {
+                let Type::Literal(id, kind) = member else { return None; };
+                let actual = if let Type::Literal(other, _) = value {
+                    self.program.records[other].literal_definition.clone()
+                } else {
+                    crate::literal_types::LiteralValue::expression(compared, kind).and_then(Result::ok)
+                }?;
+                // Mixed numeric comparisons keep both paths conservatively: runtime
+                // comparison can round an integer while its literal identity stays exact.
+                if actual.kind() != kind { return None; }
+                Some(self.program.records[id].literal_definition.as_ref() == Some(&actual))
+            };
+            let matching = members.iter().copied().filter(|member| {
+                exact(*member).unwrap_or_else(|| member.scalar_base() == value.scalar_base()
+                    || numeric(*member) && numeric(value))
+            }).collect::<Vec<_>>();
+            let remaining = members.into_iter().filter(|member| exact(*member) != Some(true)).collect::<Vec<_>>();
+            let mut equal = context.flow.clone();
+            let mut other = context.flow.clone();
+            for (flow, members) in [(&mut equal, matching), (&mut other, remaining)] {
+                if !members.is_empty() {
+                    flow.insert(place.clone(), crate::flow::Fact {
+                        members, origin: Some((expr_span.start, expr_span.end)),
+                    });
+                }
             }
+            context.condition_flows.insert((expr_span.start, expr_span.end),
+                if op == BinaryOp::Equal { (equal, other) } else { (other, equal) });
         }
         Ok(Type::Boolean)
     }
@@ -9958,7 +9986,7 @@ impl Analyzer {
             }
             let id = self.program.records.len();
             self.program.records.push(Record {
-            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,
+            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,literal_definition:None,
                 application: None,
                 name: Token {
                     text: format!("BuiltinObject{id}"),
@@ -11007,7 +11035,7 @@ impl Analyzer {
             context.projection = None;
         }
         let base_type = base_type?;
-        if (matches!(base_type, Type::Array(_) | Type::String) || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple())) && name == "length" {
+        if (matches!(base_type.scalar_base(), Type::Array(_) | Type::String) || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple())) && name == "length" {
             if mode == Mode::Mutate {
                 return Err(Diagnostic::new(
                     "unsupported",
@@ -11103,7 +11131,7 @@ impl Analyzer {
             loans,
             None,
         )?;
-        if matches!(ty, Type::String | Type::Array(_)) && name == "length" {
+        if matches!(ty.scalar_base(), Type::String | Type::Array(_)) && name == "length" {
             if mode == Mode::Mutate {
                 return Err(Diagnostic::new(
                     "unsupported",
@@ -12318,7 +12346,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         }
         // Dispatch on the checked receiver, not an optional pure type hint.
         // Factory-returned callbacks can produce strings without a precheck hint.
-        if receiver == Type::String {
+        if receiver.scalar_base() == Type::String {
             for arg in args {
                 let actual =
                     self.expression(context, arg, Mode::Read, &active, Some(Type::String))?;
@@ -13256,7 +13284,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let string_proof=self.json_string_proof(context,base);
         if let Some(proof)=string_proof.clone(){Self::use_json_string_proof(context,proof);}
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
-        let string_receiver=ty == Type::String || string_proof.is_some() || self.is_string_view(context,base);
+        let string_receiver=ty.scalar_base() == Type::String || string_proof.is_some() || self.is_string_view(context,base);
         let element_type = if string_receiver {
             Type::String
         } else {
@@ -13928,7 +13956,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         while let Some(ty) = pending.pop() {
             if !seen.insert(ty) { continue; }
             match ty {
-                Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined => {},
+                Type::Literal(_,_) | Type::String | Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined => {},
                 Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(self.unions.members(id)),
                 Type::Array(element) => pending.push(element.ty()),
                 Type::Set(id) => pending.push(self.program.records[id].set_definition.as_ref().unwrap().key),
@@ -15173,7 +15201,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     ExprKind::Project { narrowed, .. } => *narrowed,
                     _ => actual,
                 };
-                if !matches!(ty, Type::String | Type::Record(_) | Type::Set(_) | Type::Map(_) | Type::Array(_))
+                if !matches!(ty.scalar_base(), Type::String | Type::Record(_) | Type::Set(_) | Type::Map(_) | Type::Array(_))
                     && !matches!(ty,Type::Union(id) | Type::BorrowedUnion(id) if !id.copy)
                     && !self.shared_callable_handle(ty)
                 {
@@ -15734,7 +15762,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             {
                 let json_string=self.json_string_proof(context,base).is_some() || self.is_string_view(context,base);
                 let ty = self.collection_search(context, base, args, loans, span, name)?;
-                expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty}, name.as_str()) {
+                expr.target = Some(match (if json_string{Some(Type::String)}else{base.ty.map(Type::scalar_base)}, name.as_str()) {
                     (Some(Type::String), "startsWith") => CallTarget::StringStartsWith,
                     (Some(Type::String), "endsWith") => CallTarget::StringEndsWith,
                     (Some(Type::String), "includes") => CallTarget::StringIncludes,
@@ -16278,19 +16306,19 @@ self.names_materialized_type(element.with_depth(0).ty())
                 );
                 let comparison = equality || ordering;
                 let logical = matches!(op, BinaryOp::And | BinaryOp::Or);
-                if *op == BinaryOp::Add && (self.expression_type_hint(context, left) == Some(Type::String)
-                    || self.expression_type_hint(context, right) == Some(Type::String)) {
+                if *op == BinaryOp::Add && (self.expression_type_hint(context, left).map(Type::scalar_base) == Some(Type::String)
+                    || self.expression_type_hint(context, right).map(Type::scalar_base) == Some(Type::String)) {
                     self.string_concatenation_operand(context, left)?;
                     self.string_concatenation_operand(context, right)?;
                 }
                 let string_addition = *op == BinaryOp::Add
                     && (expected == Some(Type::String)
-                        || self.expression_type_hint(context, left) == Some(Type::String)
-                        || self.expression_type_hint(context, right) == Some(Type::String));
+                        || self.expression_type_hint(context, left).map(Type::scalar_base) == Some(Type::String)
+                        || self.expression_type_hint(context, right).map(Type::scalar_base) == Some(Type::String));
                 let number = expected != Some(Type::Int)
                     && ((!comparison && expected == Some(Type::Number))
-                        || self.expression_type_hint(context, left) == Some(Type::Number)
-                        || self.expression_type_hint(context, right) == Some(Type::Number));
+                        || self.expression_type_hint(context, left).map(Type::scalar_base) == Some(Type::Number)
+                        || self.expression_type_hint(context, right).map(Type::scalar_base) == Some(Type::Number));
                 let expected = if op.bitwise_or_power() {
                     Some(self.bitwise_or_power_type(context, left, Some(right), expected))
                 } else if logical {
@@ -16314,7 +16342,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     },
                     loans,
                     expected,
-                )?;
+                )?.scalar_base();
                 if (equality
                     && !matches!(
                         left_type,
