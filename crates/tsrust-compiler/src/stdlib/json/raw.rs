@@ -45,8 +45,8 @@ impl<'a> Fragment<'a> {
 }
 
 pub fn borrow(input: &str, limits: Limits) -> Result<Fragment<'_>, Error> {
-    super::typed::validate(input.as_bytes(), limits)?;
-    Ok(Fragment::validated(input))
+    let depth=super::typed::validate_depth(input.as_bytes(), limits)?;
+    Ok(Fragment{text:input,depth})
 }
 
 /// Internal serializer for an already validated fragment at its enclosing depth.

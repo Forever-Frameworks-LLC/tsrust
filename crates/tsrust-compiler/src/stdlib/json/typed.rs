@@ -7,6 +7,16 @@ mod tests {
  use super::*;
  fn limits()->Limits{Limits{bytes:1024,depth:4,entries:3,nodes:12}}
  #[test]
+ fn validation_reports_structural_depth_with_existing_limits(){
+  for (input,depth) in [("null",0),("[]",1),("{}",1),(r#"{"x":[{},[0]],"s":"[\"]"}"#,3)] {
+   assert_eq!(validate_depth(input.as_bytes(),limits()).unwrap(),depth);
+  }
+  let deep="[".repeat(64)+"0"+&"]".repeat(64);
+  assert_eq!(validate_depth(deep.as_bytes(),Limits{depth:64,nodes:100,..limits()}).unwrap(),64);
+  assert_eq!(validate_depth(b"[[]]",Limits{depth:1,..limits()}).unwrap_err().code,"depth-limit");
+  assert_eq!(validate_depth(b"null null",limits()).unwrap_err().code,"trailing-data");
+ }
+ #[test]
  fn typed_borrowed_fields_retain_input_and_reject_escaped_replacements(){
   let input=String::from(r#"{"name":"hello"}"#);
   let value:std::collections::BTreeMap<&str,&str>=decode_borrowed(input.as_bytes(),limits()).unwrap();
@@ -161,15 +171,20 @@ pub fn decode_borrowed<'de,T:serde::Deserialize<'de>>(input:&'de [u8],limits:Lim
  })
 }
 pub(super) fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
+ validate_depth(input,limits).map(|_|())
+}
+pub(super) fn validate_depth(input:&[u8],limits:Limits)->Result<usize,Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}
  let mut budget=Budget{limits,nodes:0,failed:None};
  let mut decoder=serde_json::Deserializer::from_slice(input);
- serde::de::DeserializeSeed::deserialize(ValidateSeed{budget:&mut budget,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;
- decoder.end().map_err(|error|located(input,error,Some("trailing-data")))
+ let mut maximum=0;
+ serde::de::DeserializeSeed::deserialize(ValidateSeed{budget:&mut budget,maximum:&mut maximum,depth:0,permitted:true},&mut decoder).map_err(|error|located(input,error,budget.failed))?;
+ decoder.end().map_err(|error|located(input,error,Some("trailing-data")))?;
+ Ok(maximum)
 }
-struct ValidateSeed<'a>{budget:&'a mut Budget,depth:usize,permitted:bool}
+struct ValidateSeed<'a>{budget:&'a mut Budget,maximum:&'a mut usize,depth:usize,permitted:bool}
 impl<'de> serde::de::DeserializeSeed<'de> for ValidateSeed<'_>{
  type Value=();
  fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<(),D::Error>{
@@ -191,17 +206,19 @@ impl<'de> serde::de::Visitor<'de> for ValidateSeed<'_>{
  fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut sequence:A)->Result<(),A::Error>{
   use serde::de::Error;
   if self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
+  *self.maximum=(*self.maximum).max(self.depth+1);
   let mut entries=0;
-  loop{let permitted=entries<self.budget.limits.entries;match sequence.next_element_seed(ValidateSeed{budget:self.budget,depth:self.depth+1,permitted})?{Some(())=>entries+=1,None=>return Ok(())}}
+  loop{let permitted=entries<self.budget.limits.entries;match sequence.next_element_seed(ValidateSeed{budget:self.budget,maximum:self.maximum,depth:self.depth+1,permitted})?{Some(())=>entries+=1,None=>return Ok(())}}
  }
  fn visit_map<A:serde::de::MapAccess<'de>>(self,mut object:A)->Result<(),A::Error>{
   use serde::de::Error;
   if self.depth>=self.budget.limits.depth{return Err(A::Error::custom(self.budget.fail("depth-limit")));}
+  *self.maximum=(*self.maximum).max(self.depth+1);
   let mut entries=0;
   loop{
    let permitted=entries<self.budget.limits.entries;
    if object.next_key_seed(ValidateKey{budget:self.budget,permitted})?.is_none(){return Ok(());}
-   object.next_value_seed(ValidateSeed{budget:self.budget,depth:self.depth+1,permitted:true})?;entries+=1;
+   object.next_value_seed(ValidateSeed{budget:self.budget,maximum:self.maximum,depth:self.depth+1,permitted:true})?;entries+=1;
   }
  }
 }

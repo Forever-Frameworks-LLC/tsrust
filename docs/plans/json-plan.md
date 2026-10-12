@@ -2240,3 +2240,16 @@ borrowRaw, eliminating its second scan. Typed field extraction still needs its
 own subtree depth; measure that path independently and retain actual lifetime
 provenance. Do not discard either original or cached-depth measurements. Verify
 creation, repeated encoding and end-to-end behavior before final acceptance.
+
+### Validation-pass depth repair
+
+The bounded validation visitor now returns maximum container depth to borrowRaw,
+removing the extra scan during fragment creation. The existing unit-returning
+validation entry point retains its behavior. Typed raw-field extraction still
+computes depth for the selected subtree and remains a separate measurement case.
+
+Focused checks pass: 48 JSON backend tests and 24 raw, typed JSON and JSONL writer
+native tests. The new regression covers scalar and empty-container depth, escaped
+brackets, the 64-level boundary, depth errors and trailing input. SQLite evidence:
+`tsrust-raw-validation-depth-{red,backend,native,format}-3c208e25.log`.
+Performance acceptance remains pending measurements of this repaired source.

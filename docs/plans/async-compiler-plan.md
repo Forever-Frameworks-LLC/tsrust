@@ -115,3 +115,47 @@ the proposed awaited completion, completed-job races and result/error contract
 still require specification. Do not infer approval of the illustrative race/timer
 APIs from the example. Keep ordinary try/catch as the initial error-handling
 recommendation; Promise-style `.catch()` chaining is not part of this approval.
+
+
+## Race/deadline discussion (2026-10-12)
+
+The owner prefers operations on jobs over a standalone race function, and proposed
+`await job.race(delay(200))` with cancellation when the timer wins. A dedicated
+`job.timeout(200)` was recommended for deadlines, and `job.race(otherJob)` for
+competing operations. These are proposals, not approved APIs. The recommendation
+was first completion including failure, consumed inputs, and cancellation/cleanup
+of the losing job before returning. Same-result-type restrictions, timeout error
+spelling and cleanup races remain unspecified. Do not publish the earlier match
+variants or standalone race pseudo-code as a supported contract.
+
+## Deadline and combinator direction (2026-10-12)
+
+The owner accepts `.timeout(...)` for deadlines and now prefers imported functions
+such as `race([job1, job2])` and `allSettled([job1, job2])` for operations involving
+multiple tasks. This supersedes the earlier preference against standalone race.
+Keep `.start()` and `.cancel()` as lifecycle methods. These are planned source
+APIs, not implemented support; JSON completion remains the first priority.
+
+Recommend `std:futures` rather than `std:promise`, because the approved tasks are
+lazy and uniquely owned. The owner suggested both module names; the final module
+name has not been separately approved. Familiar combinator names must document
+their ownership, scheduling, error and cancellation behavior explicitly.
+
+Recommended initial contracts, pending detailed acceptance:
+- `await job.timeout(milliseconds)` yields the job result or reports a timeout,
+  cancels timed-out work and waits for resource release. The duration triggers
+  cancellation; it is not a hard bound on cleanup time.
+- `race([...])` consumes its inputs, returns the first completion (including
+  failure), and cancels and drains remaining work.
+- `allSettled([...])` consumes its inputs, waits for every outcome without stopping
+  on an individual failure, and returns typed success/failure outcomes in input
+  order.
+- `all([...])` is a possible follow-up, not a requirement inferred from this
+  naming decision.
+
+Before implementation, specify whether combinators accept lazy tasks, started
+jobs or both; when their lazy wrapper begins polling inputs; cancellation of the
+combinator itself; heterogeneous result typing; empty inputs; simultaneous
+completion; and timeout argument validation. Preserve single-use ownership and
+unused-task diagnostics through combinators. Do not silently introduce eager
+execution or shared, repeatedly awaitable results.
