@@ -24,7 +24,7 @@ impl Analyzer {
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if method=="strip"));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain")));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
@@ -32,9 +32,11 @@ impl Analyzer {
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
         if !matches!(output,Type::Array(_)|Type::Record(_)){return Ok(None);}
-        let mut pending=vec![output];let mut seen=HashSet::new();
+        let validation_output=if let Type::Record(object)=output && self.program.records[object].name.text.starts_with("@schema:retained:"){self.program.records[object].fields[0].ty.unwrap()}else{output};
+        let mut pending=vec![validation_output];let mut seen=HashSet::new();
         while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
             Type::Array(element)=>pending.push(element.ty()),
+            Type::Record(id) if self.program.records[id].name.text.starts_with("@schema:retained:")=>pending.push(self.program.records[id].fields[0].ty.unwrap()),
             Type::Record(id) if self.program.records[id].native_type.is_none()&&!self.program.records[id].is_tuple()=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
             Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null=>{},
             _=>return Err(Diagnostic::new("schema-type","Composite validation requires supported scalar, array or object fields.",callee.span)),
@@ -48,7 +50,7 @@ impl Analyzer {
             while let (Type::Array(a),Type::Array(b))=(from,to){from=a.ty();to=b.ty();}
             from==Type::Int && to==Type::Number
         });
-        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(output)})?;
+        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(validation_output)})?;
         let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

@@ -25,7 +25,7 @@ pub enum ProjectType {
         declaration: Option<SourceLocation>,
         arguments: Vec<ProjectType>,
     },
-    Structural { identity: usize, fields: Vec<(String, ProjectType)> },
+    Structural { identity: usize, retained: bool, fields: Vec<(String, ProjectType)> },
     Array(Box<ProjectType>),
     Union(Vec<ProjectType>),
     Tuple(Vec<ProjectType>),
@@ -393,8 +393,8 @@ impl ProjectAnalysis {
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
         }
-        if record.name.text.starts_with("@schema:object:") {
-            return Some(ProjectType::Structural { identity: id, fields: record.fields.iter().map(|field| Some((field.name.text.clone(), self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
+        if record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:retained:") {
+            return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
         }
         let declaration = self.source_location(
             record

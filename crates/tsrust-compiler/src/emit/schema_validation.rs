@@ -6,8 +6,7 @@ impl Emitter<'_> {
         let mut generated=String::new();
         let json=matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
         let mut seen=std::collections::HashSet::new();
-        self.schema_owned_validator(root,if json {self.program.records[root].application.as_ref().unwrap().resolved_arguments[0]}else{args[1].ty.unwrap()},&mut generated,&mut seen);
-        if json {seen.clear();self.schema_json_validator(root,&mut generated,&mut seen);}
+        if json {self.schema_json_validator(root,&mut generated,&mut seen);}else{self.schema_owned_validator(root,args[1].ty.unwrap(),&mut generated,&mut seen);}
         let validator=if json {format!("validate_json{root}")}else{format!("validate{root}")};
         let input=self.expr(fun,&args[1],Mode::Consume);
         let input=if json {format!("({input}).value")}else{input};
@@ -28,6 +27,12 @@ impl Emitter<'_> {
                 let Type::Array(input_element)=input_type else{unreachable!()};
                 self.schema_owned_validator(child,input_element.ty(),generated,seen);
                 format!("tsrust_schema_plan::validate_array(input.tsr_owned_items(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result=validate{child}(&schema.element,value,path,issues);path.pop();result}}).map(|values|{{let mut output=<{native}>::from([]);for value in values{{output.push(value);}}output}})")
+            },
+            Type::Record(object) if self.program.records[object].name.text.starts_with("@schema:retained:")=>{
+                let value=self.program.records[object].fields[0].ty.unwrap();let extra=self.native_type(self.program.records[object].fields[1].ty.unwrap());
+                let (child_input,input,extras)=if input_type==output {(value,"input.field0",String::from("input.field1"))}else{(input_type,"input",format!("<{extra}>::new()"))};
+                let child=self.schema_child(value);self.schema_owned_validator(child,child_input,generated,seen);
+                format!("validate{child}(&schema.inner,{input},path,issues).map(|value|Record{}{{field0:value,field1:{extras}}})",self.native_record_declaration(object))
             },
             Type::Record(object)=>{
                 let mut body=String::from("let mut valid=true;");
@@ -63,21 +68,32 @@ impl Emitter<'_> {
                 self.schema_json_validator(child,generated,seen);
                 ("Array",format!("if let tsrust_native_json::Value::Array(values)=input {{return tsrust_schema_plan::validate_array(values,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let result=validate_json{child}(&schema.element,value,path,issues);path.pop();result}}).map(|values|{{let mut output=<{native}>::from([]);for value in values{{output.push(value);}}output}});}}"))
             },
-            Type::Record(object)=>{
+            Type::Record(output_object)=>{
+                let retained=self.program.records[output_object].name.text.starts_with("@schema:retained:");
+                let object=if retained {let Some(Type::Record(object))=self.program.records[output_object].fields[0].ty else{unreachable!()};object}else{output_object};
+                let plan=if retained {"schema.inner"}else{"schema"};
                 let mut body=String::from("if let tsrust_native_json::Value::Object(mut input)=input {let mut valid=true;");
                 for (field,value) in self.program.records[object].fields.iter().enumerate(){
                     let ty=value.ty.unwrap();let child=self.schema_child(ty);
                     self.schema_json_validator(child,generated,seen);
                     let kind=self.schema_kind(ty);
-                    body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({name:?}));let mut field{field}=match input.remove({name:?}){{Some(value)=>validate_json{child}(&schema.field{field},value,path,issues),None=>{{issues.push(path,Code::Missing,Kind::{kind},Kind::Missing);None}}}};path.pop();if field{field}.is_none(){{valid=false;}}",name=value.name.text));
+                    body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({name:?}));let mut field{field}=match input.remove({name:?}){{Some(value)=>validate_json{child}(&{plan}.field{field},value,path,issues),None=>{{issues.push(path,Code::Missing,Kind::{kind},Kind::Missing);None}}}};path.pop();if field{field}.is_none(){{valid=false;}}",name=value.name.text));
                     body.push_str(&format!("if !valid{{{}}}",(0..=field).map(|field|format!("field{field}.take();")).collect::<String>()));
                 }
-                body.push_str("if schema.reject_unknown {for (name,value) in input {valid=false;let mut unknown_path=path.clone();unknown_path.push(tsrust_schema_issues::Segment::Field(&name));let observed=match value{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object};issues.push(&unknown_path,Code::UnknownField,Kind::Missing,observed);}}");
+                if !retained {body.push_str("if schema.reject_unknown {for (name,value) in input {valid=false;let mut unknown_path=path.clone();unknown_path.push(tsrust_schema_issues::Segment::Field(&name));let observed=match value{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object};issues.push(&unknown_path,Code::UnknownField,Kind::Missing,observed);}}");}
                 let fields=(0..self.program.records[object].fields.len()).map(|field|format!("field{field}:field{field}.unwrap()")).collect::<Vec<_>>().join(",");
-                body.push_str(&format!("return if valid{{Some(Record{}{{{fields}}})}}else{{None}};}}",self.native_record_declaration(object)));
+                let result=if retained {
+                    let extra=self.native_type(self.program.records[output_object].fields[1].ty.unwrap());
+                    let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
+                    format!("Record{}{{field0:Record{}{{{fields}}},field1:<{extra}>::from_values(input.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}})))}}",self.native_record_declaration(output_object),self.native_record_declaration(object),self.native_record_declaration(json))
+                }else{format!("Record{}{{{fields}}}",self.native_record_declaration(object))};
+                body.push_str(&format!("return if valid{{Some({result})}}else{{None}};}}"));
                 ("Object",body)
             },
-            Type::String=>("String",format!("if let tsrust_native_json::Value::String(value)=input {{return validate{id}(schema,String::Owned(value),path,issues);}}")),
+            Type::String=>{
+                self.schema_owned_validator(id,Type::String,generated,&mut std::collections::HashSet::new());
+                ("String",format!("if let tsrust_native_json::Value::String(value)=input {{return validate{id}(schema,String::Owned(value),path,issues);}}"))
+            },
             Type::Boolean=>("Boolean","if let tsrust_native_json::Value::Bool(value)=input {return Some(value);}".into()),
             Type::Null=>("Null","if let tsrust_native_json::Value::Null=input {return Some(TsrNull);}".into()),
             Type::Int|Type::Number=>{
@@ -89,7 +105,7 @@ impl Emitter<'_> {
         generated.push_str(&format!("fn validate_json{id}(schema:&Record{id},input:tsrust_native_json::Value,path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues)->Option<{native}>{{use tsrust_schema_issues::{{Kind,Code}};let observed=match &input{{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object}};{success} issues.push(path,Code::Type,Kind::{expected},observed);None}}"));
     }
 
-    fn schema_child(&self,output:Type)->usize {
+    pub(super) fn schema_child(&self,output:Type)->usize {
         self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[output])).expect("checked schema child")
     }
     fn schema_kind(&self,ty:Type)->&'static str {

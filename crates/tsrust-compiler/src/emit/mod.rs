@@ -2373,6 +2373,11 @@ impl Emitter<'_> {
             }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
                 && let Some(Type::Record(object))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
+                if self.program.records[*object].name.text.starts_with("@schema:retained:") {
+                    let child=self.schema_child(self.program.records[*object].fields[0].ty.unwrap());
+                    let _=writeln!(output,"struct Record{index} {{ inner:Record{} }}",self.native_record_declaration(child));
+                    continue;
+                }
                 let fields=self.program.records[*object].fields.iter().enumerate().map(|(field,value)|{
                     let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|a|a.resolved_arguments==[value.ty.unwrap()])).expect("object child schema");
                     format!("field{field}:Record{}",self.native_record_declaration(child))
@@ -8532,6 +8537,7 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::SchemaRetain => {let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};format!("Record{}{{inner:{}}}",self.native_record_declaration(id),self.expr(fun,&args[0],Mode::Consume))},
                 CallTarget::SchemaStrip => format!("{{let mut schema={};schema.reject_unknown=false;schema}}",self.expr(fun,&args[0],Mode::Consume)),
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),

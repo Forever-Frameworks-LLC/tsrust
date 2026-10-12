@@ -4,18 +4,41 @@ impl Analyzer {
     pub(super) fn schema_object_policy(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,method)=&callee.kind else{return Ok(None)};
-        if method!="strip"{return Ok(None);}
+        if !matches!(method.as_str(),"strip"|"retain"){return Ok(None);}
         let hinted=self.expression_type_hint(context,base);
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object"));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object") || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain")));
         if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
-        if !args.is_empty(){return Err(Diagnostic::new("arity","strip expects no arguments.",expr.span));}
+        if !args.is_empty(){return Err(Diagnostic::new("arity","Object policy methods expect no arguments.",expr.span));}
         let mut receiver=(**base).clone();
         let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
         let Type::Record(id)=ty else{unreachable!()};
-        if !matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Record(_)){return Err(Diagnostic::new("schema-member","strip requires an object schema.",expr.span));}
-        self.require(ty,expected,expr.span)?;
-        args.push(receiver);callee.kind=ExprKind::Name("@schema:strip".into());expr.target=Some(CallTarget::SchemaStrip);
-        Ok(Some(ty))
+        if !matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Record(_)){return Err(Diagnostic::new("schema-member","Object policy methods require an object schema.",expr.span));}
+        let retaining=method=="retain";
+        let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
+        let Type::Record(object)=output else{unreachable!()};
+        if self.program.records[object].name.text.starts_with("@schema:retained:"){return Err(Diagnostic::new("schema-member","Object policy is already retained.",expr.span));}
+        let result=if retaining {self.schema_retained_type(output,expr.span)?}else{ty};
+        self.require(result,expected,expr.span)?;
+        args.push(receiver);callee.kind=ExprKind::Name(if retaining {"@schema:retain"}else{"@schema:strip"}.into());expr.target=Some(if retaining {CallTarget::SchemaRetain}else{CallTarget::SchemaStrip});
+        Ok(Some(result))
+    }
+
+    fn schema_retained_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
+        use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
+        let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).expect("schema JSON type");
+        let mut map=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:"Map".into(),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:"string".into(),span})},ValueAnnotation{span,kind:Kind::Named(TypeName{text:self.program.records[json].name.text.clone(),span})}]}};
+        self.generic_records.materialize(&mut map,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
+        append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
+        let extra=self.resolve_value_annotation(&map,false)?;
+        let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        let fields=[("value",output),("extra",extra)].into_iter().map(|(name,ty)|Ok(crate::syntax::RecordField{name:Token{text:name.into(),span,kind:TokenKind::Name},annotation:types.annotation(ty,span)?,ty:Some(ty),callable_declaration:None,optional:false})).collect::<Result<Vec<_>,Diagnostic>>()?;
+        let wrapper=self.program.records.len();let name=format!("@schema:retained:{wrapper}");
+        self.record_names.insert(name.clone(),wrapper);self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
+        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,application:None,name:Token{text:name.clone(),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
+        let mut annotation=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Schema),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:name,span})}]}};
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
+        append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
+        self.resolve_value_annotation(&annotation,false)
     }
 
     pub(super) fn schema_object_constructor(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{

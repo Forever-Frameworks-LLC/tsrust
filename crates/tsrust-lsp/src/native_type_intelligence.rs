@@ -39,8 +39,10 @@ impl SourceIndex {
             return entries;
         }
         if let Some(element)=self.schema_element(ty) {
-            let input=format!("{element} | JsonValue");
-            let mut entries=builtins_for("SchemaObject");
+            let retained=element.starts_with("__tsrust_private_schema_retained_");
+            let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
+            let input=format!("{raw} | JsonValue");
+            let mut entries=builtins_for(if retained {"SchemaRetained"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
                 if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}

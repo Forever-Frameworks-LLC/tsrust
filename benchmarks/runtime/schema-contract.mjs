@@ -1,14 +1,20 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 export function schemaChecksum(n,seed,input){
- const weight=input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:input==='"hello"'?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
+ const weight=input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:input==='"hello"'?6:(input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
  if(weight===undefined||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*weight))throw Error('Schema oracle inputs');
  // Each successful scalar contributes its scenario value, plus one observed root issue.
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_json_object_retain'){
+  if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='{"count":3,"extra":true}'||row.result!=='int')throw Error('Retained schema denominator');
+  for(const snippet of [kind==='native'?'s.object({count:s.int().min(2)}).retain()':'objectSchema()', 'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('{"extra":true}'))`,'error.truncated','error.issues.length!==1','issue.pathTruncated','issue.path.length!==1','segment.index!==undefined',"issue.code==='missing-field'","segment.field!=='count'","issue.expected!=='integer'","issue.observed!=='missing'",kind==='native'?'checksum+=value.value.count+value.extra.size;':'checksum+=success.value.value.count+success.value.extra.size;',kind==='native'?"value.extra.has('extra')":"success.value.extra.has('extra')",kind==='native'?'value.extra.size!==1':'success.value.extra.size!==1','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Retained schema operation: '+snippet);
+  if(kind==='typescript'&&!containsCodeSnippet(source,'new Map(Object.entries(input))'))throw Error('Retained reference must preserve extras');
+  return;
+ }
  if(row.id==='native_schema_json_object_strip'){
   if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='{"count":2,"extra":true}'||row.result!=='int')throw Error('Strip schema denominator');
   for(const snippet of [kind==='native'?'s.object({count:s.int().min(2)}).strip()':'objectSchema()', 'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('{"extra":true}'))`,'error.truncated','error.issues.length!==1','issue.pathTruncated','issue.path.length!==1','segment.index!==undefined',"issue.code==='missing-field'","segment.field!=='count'","issue.expected!=='integer'","issue.observed!=='missing'",kind==='native'?'checksum+=value.count;':'checksum+=success.value.count;','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Strip schema operation: '+snippet);

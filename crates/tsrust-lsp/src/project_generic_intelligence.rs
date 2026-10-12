@@ -79,9 +79,10 @@ impl SourceIndex {
                     &self.project_type_spelling(graph, current, result, dependencies)?,
                 ))
             }
-            ProjectType::Structural { identity, fields } => {
+            ProjectType::Structural { identity, retained, fields } => {
                 let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
-                let owner=format!("__tsrust_private_schema_{source}_{identity}");
+                let flavor=if *retained {"retained_"}else{""};
+                let owner=format!("__tsrust_private_schema_{flavor}{source}_{identity}");
                 let fields=fields.iter().map(|(name,ty)|Some((name.clone(),self.project_type_spelling(graph,current,ty,dependencies)?))).collect::<Option<Vec<_>>>()?;
                 let display=format!("{{ {} }}",fields.iter().map(|(name,ty)|format!("{name}: {};",self.generic_display_names.get(ty).unwrap_or(ty))).collect::<Vec<_>>().join(" "));
                 self.generic_display_names.insert(owner.clone(),display);

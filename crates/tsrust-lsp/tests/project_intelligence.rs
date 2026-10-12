@@ -2594,3 +2594,14 @@ fn schema_object_strip_documents_policy_and_keeps_inference() {
     let hover=ask(&index,&entry,"person =","textDocument/hover");assert!(hover.to_string().contains("name: string"),"{hover}");
     let hover=ask(&index,&entry,"strip()","textDocument/hover");assert!(hover.to_string().contains("unknown")&&hover.to_string().contains("consumes"),"{hover}");
 }
+
+#[test]
+fn schema_object_retained_output_exposes_typed_value_and_map() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string()}).retain();const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'));match(result){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.truncated);}}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"person =","textDocument/hover");assert!(hover.to_string().contains("value:")&&hover.to_string().contains("name: string")&&hover.to_string().contains("Map<string,JsonValue>"),"{hover}");
+    let hover=ask(&index,&entry,"retain()","textDocument/hover");assert!(hover.to_string().contains("unknown")&&hover.to_string().contains("consumes"),"{hover}");
+    let hover=ask(&index,&entry,"name,","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
+}

@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray", "SchemaObject"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray", "SchemaObject", "SchemaRetained"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -839,4 +839,24 @@ fn schema_object_strip_is_explicit_consuming_and_reusable() {
     support::success(&support::run(support::cli().arg("run").arg(path),60));
     let source="import {s} from 'std:schema';function main(){const original=s.object({name:s.string()});const schema=original.strip();original.safeParse(JSON.parse('{}'));}";
     assert_eq!(checked_source(source).err().unwrap().code,"transferred");
+}
+
+#[test]
+fn schema_object_retains_extras_without_field_collisions() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){
+      const schema=s.object({name:s.string()}).retain();
+      match(schema.safeParse(JSON.parse('{"name":"Ada","value":true,"extra":null,"get":7}'))){Ok(output)=>{
+        strictEqual(output.value.name,'Ada');strictEqual(output.extra.size,3);
+        strictEqual(output.extra.has('name'),false);strictEqual(output.extra.has('get'),true);
+        const extra=output.extra.get('get');if(extra!==undefined){strictEqual(JSON.stringify(extra),'7');}else{throw 'lost extra';}
+      },Err(error)=>{throw 'retention failed';}}
+      match(schema.safeParse({name:'Owned'})){Ok(output)=>{strictEqual(output.value.name,'Owned');strictEqual(output.extra.size,0);},Err(error)=>{throw 'owned retain failed';}}
+      const nested=s.array(s.object({name:s.string()}).retain());
+      match(nested.safeParse(JSON.parse('[{"name":"Nested","other":true}]'))){Ok(outputs)=>{match(nested.safeParse(outputs)){Ok(again)=>{for(const output of again){strictEqual(output.value.name,'Nested');strictEqual(output.extra.size,1);}},Err(error)=>{throw 'owned nested retain failed';}}},Err(error)=>{throw 'nested retain failed';}}
+      match(schema.safeParse(JSON.parse('{"name":"Al"}'))){Ok(output)=>{strictEqual(output.extra.size,0);},Err(error)=>{throw 'reuse failed';}}
+      match(schema.safeParse(JSON.parse('{"other":true}'))){Ok(output)=>{throw 'missing accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
 }

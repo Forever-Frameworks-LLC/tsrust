@@ -639,6 +639,7 @@ pub enum CallTarget {
     JsonEncode,
     SchemaValidate,
     SchemaStrip,
+    SchemaRetain,
     StringConversion,
     ArrayIsArray,
     ObjectIs,

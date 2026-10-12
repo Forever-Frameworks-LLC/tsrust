@@ -218,7 +218,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Independent expected-result calculations from the workload specifications.
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
- if(id==='native_schema_string'||id==='native_schema_boolean'||id==='native_schema_int'||id==='native_schema_number'||id==='native_schema_number_int'||id==='native_schema_null'||id==='native_schema_string_bounds'||id==='native_schema_int_bounds'||id==='native_schema_int_exclusive'||id==='native_schema_number_bounds'||id==='native_schema_owned_array'||id==='native_schema_json_array'||id==='native_schema_number_array_int'||id==='native_schema_json_object'||id==='native_schema_json_object_strip')return schemaChecksum(n,seed,inputText);
+ if(id==='native_schema_string'||id==='native_schema_boolean'||id==='native_schema_int'||id==='native_schema_number'||id==='native_schema_number_int'||id==='native_schema_null'||id==='native_schema_string_bounds'||id==='native_schema_int_bounds'||id==='native_schema_int_exclusive'||id==='native_schema_number_bounds'||id==='native_schema_owned_array'||id==='native_schema_json_array'||id==='native_schema_number_array_int'||id==='native_schema_json_object'||id==='native_schema_json_object_strip'||id==='native_schema_json_object_retain')return schemaChecksum(n,seed,inputText);
  if(id==='native_json_import')return dataImportChecksum(n,seed);
  if(id==='native_json_raw_encoding')return rawEncodingChecksum(n,seed,inputText);
  if(id==='native_json_raw')return rawChecksum(n,seed,inputText);

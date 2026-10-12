@@ -7411,6 +7411,37 @@
       "output": "Ada\n"
     }
   ]
+},
+{
+  "name": "retain",
+  "signature": "retain(): Schema<{ value: Output; extra: Map<string, JsonValue> }>",
+  "parameters": [],
+  "documentation": "Returns an object schema that preserves unknown JSON fields in an owned Map<string, JsonValue>. Successful output contains value with the declared typed fields and extra with only unknown fields. Keys such as value, extra and get cannot collide with record fields or map methods. Declared fields remain required and checked. Owned record input produces an empty extra map. Takes no arguments. Select retention once; retained plans do not accept further policy builders.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada 1.\n\nOwnership: consumes the original schema and returns a reusable immutable plan. JSON keys and values move into the extras map without cloning.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "Ada 1\n"
+    }
+  ]
 }
+],
+  "SchemaRetained": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: Owned<Input>",
+        "documentation": "A matching owned record or owned JsonValue. Input transfers on success and failure."
+      }
+    ],
+    "documentation": "Validates declared object fields and returns Ok with separate value and extra fields. value contains typed declared fields; extra is an owned Map<string, JsonValue> containing unknown JSON fields. Owned record input has no unknown fields and returns an empty extra map. Missing and invalid declared fields still fail with bounded named/indexed issues. Unknown fields do not produce errors. The schema remains reusable.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada 1.\n\nOwnership: borrows the schema and consumes input. Keys and JSON values move into extras without cloning; failure releases partial output.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()}).retain();match(schema.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'))){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "Ada 1\n"
+      }
+    ]
+  }
 ]
 }

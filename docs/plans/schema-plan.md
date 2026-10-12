@@ -3,7 +3,7 @@
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
-matching owned input or JsonValue. Retained-field object policy, presence/defaults,
+matching owned input or JsonValue. Presence/defaults,
 literal/enum types, remaining composite APIs, fused decoding and family acceptance
 remain pending.
 
@@ -17,7 +17,7 @@ executing differential cases; current web documentation alone is not a version p
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
-| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip integrated; retain pending |
+| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
@@ -919,7 +919,7 @@ executable examples. `native_schema_json_object` has a matched TypeScript refere
 independent checksum, source guards, ABI/report registration and untimed parity
 at four input sizes. It is unmeasured, as are the other S11 workloads.
 
-Explicit strip/retain policies, presence/defaults and the remaining S11 families
+Presence/defaults and the remaining S11 families
 are still required. The owner approved explicit retention returning `{ value: T, extra: Map<string,
 JsonValue> }`, preserving ordinary typed field access and avoiding collisions.
 Internal object policy prototypes do not accept those public APIs.
@@ -950,3 +950,45 @@ repair evidence plus `tsrust-schema-object-strip-native-green.log`,
 `tsrust-schema-object-strip-editor-green.log`, `tsrust-schema-strip-catalog.log`,
 `tsrust-schema-strip-contract-green.log`, `tsrust-schema-strip-parity.log` and
 `tsrust-schema-strip-format.log`. No timing or S11 family acceptance is claimed.
+
+## Explicit unknown-field retention
+
+`.retain()` consumes an object schema and returns a reusable schema whose inferred
+output is `{ value: T, extra: Map<string, JsonValue> }`. Declared fields remain
+required and checked. JSON keys and values left after declared-field extraction
+move into `extra` without cloning. Missing or invalid declared fields still fail;
+unknown fields do not produce issues. Ordinary owned record input returns an empty
+extras map. Nested JSON plans preserve each child's retention policy, and matching
+owned nested retained values keep their extras during validation. Retained plans
+are terminal with respect to policy builders; selecting another object policy
+requires a fresh schema. Default object rejection is unchanged.
+
+Separate storage prevents keys such as `value`, `extra`, and `get` from colliding
+with typed fields or map methods. Compiler project facts distinguish retained
+outputs so editor help displays the raw input contract and inferred output shape.
+Catalog examples and a matched retained-object workload cover the public API.
+The family now has 16 registered unmeasured workloads. Presence/default factories,
+remaining composites, fused decoding and S11 milestone acceptance remain pending.
+
+Focused retention acceptance: 33 schema compiler/native checks including executable
+catalog examples, 17 schema editor checks, and 16 schema benchmark contract checks
+passed. Retention native/Node untimed parity passed at four input sizes. SQLite
+retains original red/repair logs and `tsrust-schema-retain-native-batch.log`,
+`tsrust-schema-retain-editor-batch.log`, `tsrust-schema-retain-contract-formatted.log`,
+`tsrust-schema-retain-parity.log` and `tsrust-schema-retain-format.log`.
+
+## Approved default factory contract
+
+The owner approved factory-based defaults: a reusable zero-argument factory runs
+only when validation finds a missing field. Its result is validated against the
+child schema. Explicit null and invalid supplied values do not invoke the factory.
+This avoids hidden cloning of owned defaults. Both inline callbacks and named
+functions should work. Implementation remains pending.
+
+Recommended spelling is `.default(factory)`, consistent with the factory-accepting
+names in [Zod](https://zod.dev/api#defaults) and
+[Joi](https://joi.dev/api/#anydefaultvalue). The owner requested this naming review;
+no additional alias is introduced. Document the semantic difference explicitly:
+Zod default values bypass parsing, while Tsrust validates generated defaults
+(similar to Zod's prefault behavior). Reference documentation is naming evidence,
+not a pinned differential test baseline.

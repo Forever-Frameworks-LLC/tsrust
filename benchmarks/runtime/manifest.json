@@ -22098,6 +22098,30 @@
       "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
       "sourceSha256": "ccd3edf85da9c72c6158f2a41360b063dbba75f07834dce34703ec6ea47cccee",
       "counterpartSha256": "36de74f9879673de26dad5e2a197e2a0797ac441db8573f29aa698eba8ccc141"
+    },
+    {
+      "id": "native_schema_json_object_retain",
+      "category": "schema",
+      "description": "Explicit JSON object retention with typed fields and owned dynamic extras",
+      "source": "workloads/native_schema_json_object_retain.tsr",
+      "counterpart": "workloads/native_schema_json_object_retain.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, object validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"count\":3,\"extra\":true}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate count 3 and retain extra in a map; reject missing count. Checksum adds five per iteration.",
+      "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
+      "sourceSha256": "b7065d5f8175fa36763f3878787966b5124c795f4517c396be649dcc6d06e51c",
+      "counterpartSha256": "3b255e97d19353558240f0731eea34c5ae3aa948a96a6f11ceaf4389541910a0"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
