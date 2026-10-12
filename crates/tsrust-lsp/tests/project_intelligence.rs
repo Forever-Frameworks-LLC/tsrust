@@ -2492,3 +2492,19 @@ fn schema_integer_constraints_have_exact_help_and_chain_types() {
     let result=ask(&index,&entry,"result =","textDocument/hover");
     assert!(result.to_string().contains("Result<int, SchemaError>"),"{result}");
 }
+
+#[test]
+fn schema_exclusive_integer_constraints_have_help_and_chain_types() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);const result=schema.safeParse(3);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"gt(2)","textDocument/hover");
+    assert!(hover.to_string().contains("consumes the original schema")&&hover.to_string().contains("SchemaConstructionError"),"{hover}");
+    let help=ask(&index,&entry,"4)","textDocument/signatureHelp");
+    assert!(help.to_string().contains("limit: int"),"{help}");
+    let value=ask(&index,&entry,"schema =","textDocument/hover");
+    assert!(value.to_string().contains("Schema<int>"),"{value}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<int, SchemaError>"),"{result}");
+}

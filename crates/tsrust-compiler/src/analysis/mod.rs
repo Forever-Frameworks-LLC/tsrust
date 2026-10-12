@@ -10184,7 +10184,7 @@ impl Analyzer {
     fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
         if let ExprKind::Call(callee, _) = &expr.kind
             && let ExprKind::Field(base, member) = &callee.kind
-            && matches!(member.as_str(),"min"|"max")
+            && matches!(member.as_str(),"min"|"max"|"gt"|"lt")
             && let Some(Type::Record(id)) = self.expression_type_hint(context,base)
             && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)
             && matches!(self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first()),Some(Type::String|Type::Int)) {

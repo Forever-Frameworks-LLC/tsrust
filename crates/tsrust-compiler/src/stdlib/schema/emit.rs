@@ -87,7 +87,7 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
     let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
     let error=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::SchemaConstructionError)).unwrap();
     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
-    let operation=if matches!(binding.name,"__minString"|"__minInt"){"min"}else{"max"};
+    let operation=match binding.name {"__minString"|"__minInt"=>"min","__maxString"|"__maxInt"=>"max","__gtInt"=>"gt","__ltInt"=>"lt",_=>unreachable!("unknown schema constraint")};
     format!("fn {symbol}(schema:Record{schema},limit:i64)->Union{result}{{
         match schema.bounds.{operation}(limit){{
             Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{bounds}}}}),

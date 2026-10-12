@@ -21930,6 +21930,30 @@
       "notes": "Parse plus constrained validation. Plan constructed outside loop. Small matched TypeScript number domain only; full int64 endpoint correctness has separate native tests. Handwritten reference, not Zod.",
       "sourceSha256": "369957e05c465650131be0857e3354669672b36a8cceb26b63ae92b2863e28a1",
       "counterpartSha256": "2c40454d55d94caa02d1c927067238956c5b33288676669c6771aa4d8d9491cc"
+    },
+    {
+      "id": "native_schema_int_exclusive",
+      "category": "schema",
+      "description": "Reusable integer schema with exclusive bounds and JSON validation",
+      "source": "workloads/native_schema_int_exclusive.tsr",
+      "counterpart": "workloads/native_schema_int_exclusive.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, schema validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "7",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Integer schema gt 2/lt 10: 7 succeeds, 10 returns too-large. Observe value and every issue field; checksum adds eight.",
+      "notes": "Parse plus constrained validation. Plan constructed outside loop. Small matched TypeScript number domain only; full int64 endpoint correctness has separate native tests. Handwritten reference, not Zod.",
+      "sourceSha256": "4b40c26b425319a6a70ca189c5461b00529ff0e338bd0eaffc1fbd6db78645c0",
+      "counterpartSha256": "904a21256c21e4c0a2020ae61c569e15594672a62d36262e0229ad3f9332edb8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

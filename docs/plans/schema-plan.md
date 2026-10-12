@@ -14,7 +14,7 @@ executing differential cases; current web documentation alone is not a version p
 | Family | Required behavior | Status |
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
-| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String/int min/max integrated; exclusive and floating bounds pending |
+| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer min/max/gt/lt integrated; floating bounds pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
@@ -576,3 +576,28 @@ exact integer 9007199254740993 succeeds while both neighboring endpoints fail.
 This is backend acceptance only: source syntax, editor/catalog support and matched
 exclusive workloads remain pending. No timing or consumer refresh is claimed.
 SQLite: `tsrust-schema-exclusive-runtime-{red,check,native,format}-525b4d9f.log`.
+
+
+## Public exclusive integer constraints
+
+Schema<int>.gt(limit) and .lt(limit) consume the original schema and return a new
+immutable integer schema. They exclude the supplied endpoint, intersect existing
+bounds and preserve exact signed 64-bit comparisons. Empty intervals throw
+SchemaConstructionError immediately, retaining the original operation and limit.
+Validation borrows the schema and returns ordinary too-small/too-large issues.
+String schemas do not gain numeric exclusive methods.
+
+Focused native tests verify chaining, exact output beyond JavaScript's safe range,
+JSON endpoint rejection, both impossible signed endpoints, empty adjacent ranges,
+caught error fields and original-schema reuse rejection. Editor hover, signature
+help and inferred schema/result types pass; exact catalog examples execute natively.
+The new native_schema_int_exclusive workload validates 7 and rejects 10 under
+exclusive bounds 2 and 10, observes every exposed issue field, and matches Node
+after TypeScript compilation on four sizes with no timing samples. Source hashes,
+guards, independent checksum, ABI and report registration are included. Its small
+matched domain does not replace native full-range coverage or pinned Zod evidence.
+
+SQLite: `tsrust-schema-exclusive-public-*-b75065bb.log`, including the initial
+source rejection and missing report registration caught by benchmark tests.
+Floating constraints, composites, fused decoding and S11 acceptance remain pending.
+Consumers remain at accepted S10; no measurement or refresh is claimed here.

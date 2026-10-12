@@ -150,6 +150,13 @@ pub(crate) const MAX_INT: NativeBinding = NativeBinding {
     name: "__maxInt", backend: NativeBackend::Bundled { symbol: "tsrust_schema_max_int" }, ..MIN_INT
 };
 
+pub(crate) const GT_INT: NativeBinding = NativeBinding {
+    name: "__gtInt", backend: NativeBackend::Bundled { symbol: "tsrust_schema_gt_int" }, ..MIN_INT
+};
+pub(crate) const LT_INT: NativeBinding = NativeBinding {
+    name: "__ltInt", backend: NativeBackend::Bundled { symbol: "tsrust_schema_lt_int" }, ..MIN_INT
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -158,7 +165,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             uses_safe_parse |= member == "safeParse";
-            uses_bounds |= matches!(member.as_str(),"min"|"max");
+            uses_bounds |= matches!(member.as_str(),"min"|"max"|"gt"|"lt");
             if !matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()) { return Ok(()); }
             let binding = match member.as_str() {
                 "string" => &STRING,
@@ -195,7 +202,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
     }
     if uses_bounds && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
-        for binding in [&MIN_STRING,&MAX_STRING,&MIN_INT,&MAX_INT] {
+        for binding in [&MIN_STRING,&MAX_STRING,&MIN_INT,&MAX_INT,&GT_INT,&LT_INT] {
             crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;
             let wrapper=super::builders::adapter(program,binding)?;
             program.functions.push(wrapper);

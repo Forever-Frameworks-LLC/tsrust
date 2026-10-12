@@ -1,0 +1,44 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.int().gt(2).lt(10);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(text) => {
+        checksum += text;
+      },
+      Err(error) => {
+        throw 'Expected integer success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('10'))) {
+      Ok(text) => {
+        throw 'Expected upper-bound rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid error count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'too-large' || issue.expected !== 'integer' || issue.observed !== 'number' || issue.path.length !== 0 || issue.pathTruncated) {
+            throw 'Invalid issue';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '7'));
+}

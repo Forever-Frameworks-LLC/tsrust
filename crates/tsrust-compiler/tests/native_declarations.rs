@@ -593,3 +593,22 @@ function main(){const schema=s.int();
     let output=support::run(&mut std::process::Command::new(binary),10);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"too-small\n9007199254740993\ntoo-large\n");
 }
+
+#[test]
+fn schema_exclusive_integer_builders_consume_and_throw() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+function main(){const schema=s.int().gt(9007199254740992).lt(9007199254740994);
+ match(schema.safeParse(9007199254740993)){Ok(value)=>{strictEqual(value,9007199254740993);},Err(error)=>{throw 'exact rejected';}}
+ match(schema.safeParse(JSON.parse('9007199254740994'))){Ok(value)=>{throw 'endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ let caught=false;try{s.int().gt(9223372036854775807);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'gt');strictEqual(error.limit,9223372036854775807);}strictEqual(caught,true);
+ caught=false;try{s.int().lt(-9223372036854775808);}catch(error){caught=true;strictEqual(error.operation,'lt');strictEqual(error.limit,-9223372036854775808);}strictEqual(caught,true);
+ caught=false;try{s.int().gt(2).lt(3);}catch(error){caught=true;strictEqual(error.operation,'lt');strictEqual(error.limit,3);}strictEqual(caught,true);
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    for method in ["gt","lt"] {
+        let source=format!("import {{s}} from 'std:schema';function main(){{const original=s.int();original.{method}(0);original.safeParse(1);}}");
+        assert_eq!(checked_source(&source).err().unwrap().code,"transferred");
+    }
+    assert_eq!(checked_source("import {s} from 'std:schema';function main(){s.string().gt(0);}").err().unwrap().code,"schema-member");
+}
