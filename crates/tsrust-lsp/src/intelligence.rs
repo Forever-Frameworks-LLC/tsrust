@@ -55,6 +55,7 @@ struct CheckedGenericCall {
     result: Option<String>,
 }
 pub struct SourceIndex {
+    enum_scalar_types: std::collections::BTreeMap<String,String>,
     /// `type Name = Type;` declarations: name to fully expanded type text.
     type_aliases: std::collections::BTreeMap<String, String>,
     generic_display_names: std::collections::BTreeMap<String, String>,
@@ -104,6 +105,7 @@ impl SourceIndex {
     }
     pub(crate) fn with_entry_help(source: &str, entry_help: bool) -> Self {
         let mut index = Self {
+            enum_scalar_types: Default::default(),
             generic_display_names: Default::default(),
             nominal_definitions: Default::default(),
             generic_parameters: Default::default(),
@@ -362,6 +364,7 @@ impl SourceIndex {
             }
         }
         let facts = analysis.checked_type_facts();
+        self.enum_scalar_types=facts.enum_scalars.iter().cloned().collect();
         self.json_string_receivers=facts.json_string_receivers.iter().filter_map(|span|{
             let mut span=*span;
             if let Some((start,added,original_end))=inserted {

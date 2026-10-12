@@ -77,6 +77,8 @@ pub struct GenericParameterInfo {
 /// Checked editor facts collected in one iterative walk, without reanalysis.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CheckedTypeFacts {
+    /// Nominal enum display names and their checked scalar representation.
+    pub enum_scalars: Vec<(String, String)>,
     pub json_string_receivers: Vec<Span>,
     /// Generic value bindings retain their original declaration identity.
     pub generic_values: Vec<(Span, Span)>,
@@ -674,7 +676,9 @@ impl Analysis {
                 }
             }
         }
+        let enum_scalars=program.records.iter().enumerate().filter_map(|(id,record)|{let definition=record.enum_definition.as_ref()?;let name=type_name(program,Type::Enum(id,definition.kind),&mut names)?;Some((name,if definition.kind==crate::syntax::EnumKind::String{"string"}else{"number"}.to_owned()))}).collect();
         CheckedTypeFacts {
+            enum_scalars,
             json_string_receivers,
             generic_values,
             rest_record_fields,

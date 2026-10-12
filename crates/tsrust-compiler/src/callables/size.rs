@@ -125,6 +125,7 @@ pub(crate) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     let tag = if alternatives > 1 { alignment } else { 0 };
                     padded(largest)?.checked_add(tag).ok_or_else(failure)?
                 }
+                Type::Enum(_, _) => std::mem::size_of::<u32>(),
                 Type::Int => std::mem::size_of::<i64>(),
                 Type::Number => std::mem::size_of::<f64>(),
                 Type::Boolean => std::mem::size_of::<bool>(),

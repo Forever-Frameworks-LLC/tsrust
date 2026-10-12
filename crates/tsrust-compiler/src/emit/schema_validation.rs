@@ -75,6 +75,21 @@ impl Emitter<'_> {
                 for (tag,_) in self.program.unions[union.index()].members.iter().enumerate(){body.push_str(&format!("if input==schema.field{tag}.expected{{return Some(Union{}::V{tag}(input));}}",union.index()));}
                 body.push_str("issues.push(path,tsrust_schema_issues::Code::Literal,tsrust_schema_issues::Kind::String,tsrust_schema_issues::Kind::String);None");body
             },
+            Type::Enum(enumeration,kind)=>{
+                if output==input_type {String::from("Some(input)")}else if let Type::Union(input)=input_type {
+                    let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,ty)|{let validator=self.schema_owned_validator(id,*ty,generated,seen,errors);format!("Union{}::V{tag}(value)=>{validator}(schema,value,path,issues,failure)",input.index())}).collect::<Vec<_>>().join(",");format!("match input{{{arms}}}")
+                }else{
+                    let definition=self.program.records[enumeration].enum_definition.as_ref().unwrap();
+                    let expected=self.schema_kind(output);
+                    let mut body=if kind==crate::syntax::EnumKind::Number&&input_type.scalar_base()==Type::Int {
+                        String::from("let number=input as f64;if number as i128!=input as i128{issues.push(path,tsrust_schema_issues::Code::NumberPrecision,tsrust_schema_issues::Kind::Number,tsrust_schema_issues::Kind::Integer);return None;}let input=number;")
+                    }else if kind==crate::syntax::EnumKind::Number {
+                        String::from("if !input.is_finite(){issues.push(path,tsrust_schema_issues::Code::NumberNonfinite,tsrust_schema_issues::Kind::Number,tsrust_schema_issues::Kind::Number);return None;}")
+                    }else{String::new()};
+                    for (tag,member) in definition.members.iter().enumerate(){let value=match &member.value{crate::syntax::EnumValue::String(value)=>format!("{value:?}"),crate::syntax::EnumValue::Number(value)=>float_literal(*value)};body.push_str(&format!("if input=={value}{{return Some(Enum{enumeration}::V{tag});}}"));}
+                    body.push_str(&format!("issues.push(path,tsrust_schema_issues::Code::Literal,tsrust_schema_issues::Kind::{expected},tsrust_schema_issues::Kind::{expected});None"));body
+                }
+            },
             Type::Literal(_,_)=>{
                 let kind=self.schema_kind(output);
                 let conversion=if output.scalar_base()==Type::Number&&input_type.scalar_base()==Type::Int {
@@ -87,7 +102,8 @@ impl Emitter<'_> {
             Type::Union(union)=>{
                 let base=self.schema_presence_element(output).expect("presence schema union");let child=self.schema_child(base);
                 let injection=self.schema_widen_value(base,union,"value");
-                if let Type::Union(input)=input_type {
+                if matches!(input_type,Type::Null|Type::Undefined){let tag=self.program.unions[union.index()].members.iter().position(|member|*member==input_type).expect("checked absent schema input");format!("Some(Union{}::V{tag}(input))",union.index())}
+                else if let Type::Union(input)=input_type {
                     let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,ty)|{
                         if matches!(ty,Type::Null|Type::Undefined){let target=self.program.unions[union.index()].members.iter().position(|member|member==ty).unwrap();format!("Union{}::V{tag}(value)=>Some(Union{}::V{target}(value))",input.index(),union.index())}
                         else{let validator=self.schema_owned_validator(child,*ty,generated,seen,errors);format!("Union{}::V{tag}(value)=>{validator}(&schema.inner,value,path,issues,failure).map(|value|{injection})",input.index())}
@@ -149,6 +165,11 @@ impl Emitter<'_> {
             Type::Union(_) if self.schema_enum_members(output).is_some()=>{
                 let validator=self.schema_owned_validator(id,Type::String,generated,owned_seen,errors);
                 ("String",format!("if let tsrust_native_json::Value::String(value)=input{{return {validator}(schema,String::Owned(value),path,issues,failure);}}"))
+            },
+            Type::Enum(_,kind)=>{
+                let base=if kind==crate::syntax::EnumKind::String{Type::String}else{Type::Number};let validator=self.schema_owned_validator(id,base,generated,owned_seen,errors);
+                if kind==crate::syntax::EnumKind::String {("String",format!("if let tsrust_native_json::Value::String(value)=input{{return {validator}(schema,String::Owned(value),path,issues,failure);}}"))}
+                else {("Number",format!("match tsrust_native_json::read_f64(&input){{Ok(value)=>return {validator}(schema,value,path,issues,failure),Err(error)=>{{let code=match error.code{{\"number-precision\"=>Code::NumberPrecision,\"number-nonfinite\"=>Code::NumberNonfinite,_=>Code::Type}};issues.push(path,code,Kind::Number,observed);return None;}}}}"))}
             },
             Type::Literal(_,kind)=>{
                 let validator=self.schema_owned_validator(id,kind.base(),generated,owned_seen,errors);
@@ -236,7 +257,7 @@ impl Emitter<'_> {
     }
     fn schema_kind(&self,ty:Type)->&'static str {
         if self.schema_enum_members(ty).is_some(){return "String";}
-        match ty.scalar_base(){Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
+        match ty.scalar_base(){Type::Enum(_,crate::syntax::EnumKind::String)=>"String",Type::Enum(_,crate::syntax::EnumKind::Number)=>"Number",Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
     }
 
 }

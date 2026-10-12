@@ -10,6 +10,11 @@ impl Analyzer {
         if output==input || matches!(output,Type::Literal(_,_))&&output.scalar_base()==input.scalar_base(){return true;}
         if matches!(output,Type::Union(_)) && self.schema_scalar_input(output,Span::default()).is_ok_and(|wide|wide.accepts_scalar_value(input)){return true;}
         match (output,input) {
+            (Type::Enum(_,_),Type::Union(input))=>self.unions.members(input).iter().all(|input|self.schema_owned_input_compatible(output,*input)),
+            (Type::Enum(_,crate::syntax::EnumKind::String),_)=>input.scalar_base()==Type::String,
+            (Type::Enum(_,crate::syntax::EnumKind::Number),_)=>matches!(input.scalar_base(),Type::Int|Type::Number),
+            (Type::Union(output),Type::Union(input))=>self.unions.members(input).iter().all(|input|self.unions.members(output).iter().any(|output|self.schema_owned_input_compatible(*output,*input))),
+            (Type::Union(output),_)=>self.unions.members(output).iter().any(|output|self.schema_owned_input_compatible(*output,input)),
             (Type::Array(output),Type::Array(input))=>self.schema_owned_input_compatible(output.ty(),input.ty()),
             (Type::Record(output),Type::Record(input)) if self.program.records[output].native_type.is_none()&&self.program.records[input].native_type.is_none()=>{
                 let expected=&self.program.records[output].fields;let actual=&self.program.records[input].fields;
@@ -22,6 +27,8 @@ impl Analyzer {
     fn schema_scalar_input(&self,output:Type,span:Span)->Result<Type,Diagnostic> {
         Ok(match output {
             Type::Literal(_,_)=>output.scalar_base(),
+            Type::Enum(_,crate::syntax::EnumKind::String)=>Type::String,
+            Type::Enum(_,crate::syntax::EnumKind::Number)=>Type::Number,
             Type::Array(element)=>Type::Array(ArrayElement::from_value_type(self.schema_scalar_input(element.ty(),span)?).expect("schema input array")),
             Type::Union(id)=>self.unions.intern(self.unions.members(id).into_iter().map(|ty|self.schema_scalar_input(ty,span)).collect::<Result<Vec<_>,_>>()?,span)?,
             _=>output,
@@ -30,7 +37,7 @@ impl Analyzer {
 
     pub(super) fn schema_default_input(&mut self,context:&Context,output:Type,input:&Expr)->Result<Type,Diagnostic>{
         if let Some(input_type)=self.expression_type_hint(context,input) && self.schema_owned_input_compatible(output,input_type){return Ok(input_type);}
-        if matches!(output,Type::Literal(_,_)|Type::Array(_)|Type::Union(_)){return self.schema_scalar_input(output,input.span);}
+        if matches!(output,Type::Literal(_,_)|Type::Enum(_,_)|Type::Array(_)|Type::Union(_)){return self.schema_scalar_input(output,input.span);}
         let Type::Record(object)=output else{return Ok(output)};
         let original=self.program.records[object].fields.clone();
         let provided=if let ExprKind::Record(values)=&input.kind {values.iter().map(|(name,_)|name.text.clone()).collect::<HashSet<_>>()}else if let Some(Type::Record(actual))=self.expression_type_hint(context,input) {

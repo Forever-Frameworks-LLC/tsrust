@@ -1,0 +1,51 @@
+import { s } from 'std:schema';
+enum Code {
+  Low = 1, High = 2.5
+}
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.enum(Code);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        if (value !== Code.High) {
+          throw 'Invalid enum value';
+        }
+
+        checksum += 1;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('3.0'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid issue count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'literal-mismatch' || issue.expected !== 'number' || issue.observed !== 'number' || issue.pathTruncated || issue.path.length !== 0) {
+            throw 'Invalid issue';
+          }
+        }
+
+        checksum += 1;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, '2.5'), workload(1, 0, '2.5'), workload(17, 7, '2.5'), workload(2000, 1, '2.5'));
+}

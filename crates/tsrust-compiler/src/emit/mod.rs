@@ -7525,6 +7525,9 @@ impl Emitter<'_> {
                 }
                 let code=format!("{{{setup}Record{id}{{{factory}{}}}}}",fields.join(","));return match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
             }
+            if matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Enum(_,_)) {
+                let code=format!("Record{id}{{{factory}}}");return match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
+            }
             let child=self.expr(fun,&args[0],Mode::Consume);
             let code=if matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Literal(_,_)) {format!("Record{id}{{{factory}expected:{child}}}")}else if self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]==Type::Null{format!("{{let _={child};Record{id}{{{factory}}}}}")}else if let Type::Record(object)=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0] {
                 let Type::Record(shape)=args[0].ty.unwrap() else{unreachable!()};

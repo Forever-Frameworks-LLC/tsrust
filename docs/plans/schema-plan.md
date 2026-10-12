@@ -4,7 +4,7 @@ Status: implementation started after [S10 acceptance](../milestones/s10-json-acc
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
 matching owned input or JsonValue. Reusable default factories are integrated.
-Exact literals and string-list enum schemas preserve inferred alternatives.
+Exact literals, string-list enums and declared enum schemas preserve inferred types.
 Remaining composite APIs, fused decoding and family acceptance remain pending.
 
 ## Required surface and coverage
@@ -15,7 +15,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null, exact literals and string-list enums checked; language-enum inputs remain pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null, exact literals, string-list enums and declared string/numeric enums checked |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
@@ -1311,3 +1311,49 @@ Next: remaining enum input forms, ordered unions and discriminated unions, fused
 text decoding and the required second tranche. Refinement preserves type; transform
 owns its input and determines the next type. Keep checker/editor chain tracking in
 each implementation gate.
+
+
+## Declared enum schema integration
+
+`s.enum(State)` accepts an enum declaration and produces `Schema<State>`, preserving
+nominal identity through defaults, presence, arrays, objects and imported aliases.
+The declaration must be nonempty and numeric members must be finite. String-list
+construction remains supported and deliberately remains string-only; numeric enums
+use the existing language declaration syntax. Declarations are compile-time
+identities, not new runtime reflection values. Local value shadowing does not grant
+access to the shadowed declaration.
+
+A declared enum schema accepts its own enum values, matching underlying scalars or
+JsonValue. Numeric inputs use finite number semantics and checked exact int-to-number
+conversion, including within owned arrays/records and presence wrappers. Lossy
+integers produce `number-precision`, nonfinite input produces `number-nonfinite`,
+wrong scalar values produce `literal-mismatch`, and wrong JSON kinds produce
+`type-mismatch`. An unrelated nominal enum remains rejected even if its values match.
+Successful output is the existing Copy enum representation. Raw strings are consumed
+and released; there is no retained string allocation or implicit clone. Equal-valued
+aliases select the first declaration member and keep ordinary enum equality.
+
+Compiler facts expose checked enum scalar representations with nominal declaration
+identities. The editor remaps those identities across import aliases, preserving
+output names and displaying enum/scalar/int/JSON input alternatives through nested
+presence and array chains. This metadata avoids guessing representation from source
+initializer text. Stored callback layout now accounts for enum discriminants, enabling
+reusable default factories returning enums.
+
+The `native_schema_json_declared_enum` workload validates a finite numeric enum and
+observes success and a rejected value. It has a handwritten TypeScript counterpart,
+independent checksum oracle, guards and hashes, ABI/driver support and reporting
+registration. Large-integer precision is tested separately and is not claimed as a
+JavaScript JSON.parse equivalence. Four untimed native/Node-after-tsc cases agree.
+Evidence prefix: `tsrust-schema-declared-enum-*` in SQLite. No timing, installed
+consumer refresh or S11 family acceptance is claimed. Remaining first-tranche work:
+ordered unions and discriminated unions, followed by fused decoding and the required
+second tranche.
+
+
+Declared enum focused acceptance: 10 enum/schema cases (including all executable
+catalog examples), nine literal/schema cases, 11 default cases and five existing
+enum cases pass. All 25 schema editor cases and 21 workload contract cases pass.
+Whole-project formatting verified token preservation and idempotence; formatted
+native workload output remains `0 2 41 4001`. These are bounded affected checks,
+not complete compiler/LSP regressions or performance measurements.

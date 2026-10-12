@@ -22218,6 +22218,30 @@
       "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
       "sourceSha256": "d72df405f498a3e38980b96b08a78356fb713def350d7734df16872ea0d43a4e",
       "counterpartSha256": "9270059c1a9ec4fc799249b28ac367669ba748627384463dc0fc337de82f2446"
+    },
+    {
+      "id": "native_schema_json_declared_enum",
+      "category": "schema",
+      "description": "Declared numeric enum validation retaining nominal output",
+      "source": "workloads/native_schema_json_declared_enum.tsr",
+      "counterpart": "workloads/native_schema_json_declared_enum.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, enum validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "2.5",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Accept Code.High and reject 3.0 with a root literal-mismatch issue. Checksum adds two per iteration.",
+      "notes": "Handwritten TypeScript enum validator; small finite numeric domain. Exact large-integer rejection covered separately by native correctness checks. Untimed parity only; unmeasured.",
+      "sourceSha256": "b8c4d0c2dbacc5eba5789311a9c0ffe76aa84e155a17b13d3a81e25cc93a52ce",
+      "counterpartSha256": "9d2bd8af79d544f100344b2b029029cbdbfd0864c9829dc5138d48ecb1dc13dd"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -201,6 +201,7 @@ impl SourceIndex {
         facts: &ProjectCheckedTypeFacts,
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) {
+        for (ty,base) in &facts.enum_scalars {if let Some(name)=self.project_type_spelling(graph,current,ty,dependencies){self.enum_scalar_types.insert(name,base.clone());}}
         self.apply_project_generic_facts(graph, current, &facts.generic_calls, &facts.generic_parameter_calls, dependencies);
         for (location, declaration) in facts.generic_values.iter().filter(|(location, _)| location.source == *current) {
             if facts.generic_values.iter().any(|(other, target)| other == location && target != declaration) { continue; }

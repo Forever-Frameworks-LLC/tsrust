@@ -2711,3 +2711,23 @@ fn schema_enum_chains_show_literal_alternatives_and_string_input() {
     let help=ask(&index,&entry,"'waiting'","textDocument/signatureHelp");assert!(help.to_string().contains("string")&&help.to_string().contains("JsonValue")&&help.to_string().contains("done"),"{help}");
     let hover=ask(&index,&entry,"enum(","textDocument/hover");assert!(hover.to_string().contains("literal-mismatch"),"{hover}");
 }
+
+#[test]
+fn declared_enum_schema_help_keeps_nominal_output_and_checked_numeric_inputs() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum Code{Low=1,High=2.5}function main(){const schema=s.enum(Code).optional();const result=schema.safeParse(1);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"schema =","textDocument/hover");assert!(hover.to_string().contains("Code")&&hover.to_string().contains("undefined"),"{hover}");
+    let help=ask(&index,&entry,"1);","textDocument/signatureHelp");assert!(help.to_string().contains("number")&&help.to_string().contains("int")&&help.to_string().contains("Code")&&help.to_string().contains("JsonValue"),"{help}");
+}
+
+#[test]
+fn imported_enum_schema_help_retains_aliases_through_array_and_presence_chains() {
+    let entry=tsrust_compiler::format("import {Code as Status} from './enum.tsr';import {s} from 'std:schema';function main(){const scalar=s.enum(Status);scalar.safeParse(2.5);const schema=s.array(s.enum(Status).optional());schema.safeParse([1]);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());workspace.open(source_id("file:///tsrust-intelligence/enum.tsr").unwrap(),1,"export enum Code{Low=1,High=2.5}".into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let help=ask(&index,&entry,"2.5);","textDocument/signatureHelp");assert!(help.to_string().contains("number-precision")&&help.to_string().contains("Status")&&help.to_string().contains("number")&&help.to_string().contains("int"),"{help}");
+    let help=ask(&index,&entry,"[1]","textDocument/signatureHelp");assert!(help.to_string().contains("Status")&&help.to_string().contains("number")&&help.to_string().contains("undefined"),"{help}");
+    let items=ask(&index,&entry,"safeParse([1]","textDocument/completion");assert!(!items.to_string().contains("\"label\":\"strip\""),"{items}");
+}

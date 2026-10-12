@@ -75,6 +75,8 @@ pub struct ProjectExpressionTypeInfo {
 /// receiver facts describe successful hops; they do not authorize ordinary access.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ProjectCheckedTypeFacts {
+    /// Enum identities retain their declaration across import aliases.
+    pub enum_scalars: Vec<(ProjectType, String)>,
     pub json_string_receivers: Vec<SourceLocation>,
     /// Fixed nominal annotation use and declaration locations in generic headers.
     pub generic_nominals: Vec<(SourceLocation, SourceLocation)>,
@@ -181,7 +183,9 @@ impl ProjectAnalysis {
                     }).collect(),
             })
         }).collect();
+        let enum_scalars=self.analysis.program.records.iter().enumerate().filter_map(|(id,record)|{let definition=record.enum_definition.as_ref()?;let ty=self.project_type(Type::Enum(id,definition.kind),&names)?;Some((ty,if definition.kind==crate::syntax::EnumKind::String{"string"}else{"number"}.to_owned()))}).collect();
         ProjectCheckedTypeFacts {
+            enum_scalars,
             json_string_receivers: facts.json_string_receivers.iter().filter_map(|span|self.source_location(*span)).collect(),
             generic_nominals: self.analysis.program.deferred_generic_nominals.iter().filter_map(|(span, declaration)|
                 Some((self.source_location(*span)?, self.source_location(*declaration)?))).collect(),

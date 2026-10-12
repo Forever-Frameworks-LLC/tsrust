@@ -30,18 +30,19 @@ impl SourceIndex {
         let members=leaf.split('|').map(str::trim).collect::<Vec<_>>();
         (members.contains(&"number")&&members.iter().all(|member|matches!(*member,"number"|"null"|"undefined"))).then(||format!("int{}","[]".repeat(depth)))
     }
-    fn schema_scalar_input_text(element:&str)->String {
+    fn schema_scalar_input_text(&self,element:&str)->String {
         use tsrust_compiler::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind};
-        fn collect(value:&ValueAnnotation,source:&str,replacements:&mut Vec<(usize,usize,String)>){
+        fn collect(value:&ValueAnnotation,source:&str,enums:&std::collections::BTreeMap<String,String>,replacements:&mut Vec<(usize,usize,String)>){
             match &value.kind {
                 Kind::Literal(_)=>{if let Some(base)=literal_scalar_family(&source[value.span.start..value.span.end]){replacements.push((value.span.start,value.span.end,base.into()));}},
-                Kind::Array(inner)|Kind::Group(inner)=>collect(inner,source,replacements),
-                Kind::Union(members)=>for member in members{collect(member,source,replacements);},
+                Kind::Named(name)=>{if let Some(base)=enums.get(&name.text){replacements.push((value.span.start,value.span.end,format!("({}|{})",name.text,if base=="number"{"number|int"}else{base})));}},
+                Kind::Array(inner)|Kind::Group(inner)=>collect(inner,source,enums,replacements),
+                Kind::Union(members)=>for member in members{collect(member,source,enums,replacements);},
                 _=>{},
             }
         }
         let Ok(annotation)=tsrust_compiler::type_syntax::parse(element)else{return element.into()};
-        let mut replacements=Vec::new();collect(&annotation,element,&mut replacements);
+        let mut replacements=Vec::new();collect(&annotation,element,&self.enum_scalar_types,&mut replacements);
         let mut result=element.to_owned();for(start,end,replacement)in replacements.into_iter().rev(){result.replace_range(start..end,&replacement);}generic_intelligence::canonical(&result).unwrap_or(result)
     }
     fn schema_is_string_enum(element:&str)->bool {
@@ -66,7 +67,7 @@ impl SourceIndex {
             return entries;
         }
         if let Some(element)=self.schema_element(ty).filter(|element|element.ends_with("[]")) {
-            let scalar=Self::schema_scalar_input_text(element);
+            let scalar=self.schema_scalar_input_text(element);
             let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
             let mut entries=builtins_for("SchemaArray");
             for entry in &mut entries {
@@ -78,9 +79,9 @@ impl SourceIndex {
         if let Some(element)=self.schema_element(ty) {
             let retained=element.starts_with("__tsrust_private_schema_retained_");
             let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
-            let scalar=Self::schema_scalar_input_text(raw);
+            let scalar=self.schema_scalar_input_text(raw);
             let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
-            let mut entries=builtins_for(if retained {"SchemaRetained"}else if Self::schema_is_string_enum(element){"SchemaEnum"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
+            let mut entries=builtins_for(if retained {"SchemaRetained"}else if self.enum_scalar_types.contains_key(element){"SchemaDeclaredEnum"}else if Self::schema_is_string_enum(element){"SchemaEnum"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
                 if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}
