@@ -19,7 +19,7 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
     if inputs.is_empty(){inputs.push(super::project_config::default_root()?);}
     let files=tsrust_compiler::source_discovery::discover(&inputs)?;
     let color=color=="always" || (color=="auto" && std::io::stderr().is_terminal() && env::var_os("NO_COLOR").is_none() && env::var("TERM").as_deref()!=Ok("dumb"));
-    let mut diagnostics=BTreeMap::new();let mut single_result=None;
+    let mut diagnostics=BTreeMap::new();let mut single_result=None;let mut suppressions=BTreeMap::new();
     for path in files {
         let (source,errors)=match fs::read_to_string(&path) {
             Ok(source)=>{let error=match check_input_diagnostics(&path,&source){Ok(analysis)=>{if single{single_result=Some(analysis);}Vec::new()},Err(errors)=>errors};(source,error)},
@@ -30,6 +30,11 @@ pub(super) fn run(mut args: impl Iterator<Item=String>) -> Result<u8,String> {
             InputDiagnostic::Single(error)=>(path.to_string_lossy().into_owned(),error.span,error.code),
             InputDiagnostic::Project(error)=>(error.location.source.0.clone(),error.location.span,error.code),
         };
+        let directives = suppressions.entry(file.clone()).or_insert_with(|| {
+            if file == path.to_string_lossy() { tsrust_compiler::DiagnosticSuppressions::new(&source) }
+            else { fs::read_to_string(&file).map(|text| tsrust_compiler::DiagnosticSuppressions::new(&text)).unwrap_or_default() }
+        });
+        if directives.suppresses(span) { continue; }
         let encoded=error.to_json(&source);
         let encoded=if single { encoded } else { format!("{{\"file\":{},{}",json_string(&file),&encoded[1..]) };
         let rendered=error.render(&path.to_string_lossy(),&source,color);

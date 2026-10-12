@@ -1,3 +1,4 @@
+pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
 mod numeric_literals;
 pub mod match_syntax;

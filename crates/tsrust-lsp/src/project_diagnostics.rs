@@ -118,7 +118,9 @@ pub fn convert_all<'a>(
             LineIndex::new(source).range(source, location.span)?,
         ))
     };
+    let suppressions = sources.iter().map(|(id, source)| (id, tsrust_compiler::DiagnosticSuppressions::new(source))).collect::<BTreeMap<_, _>>();
     for error in errors {
+        if suppressions.get(&error.location.source).is_some_and(|directives| directives.suppresses(error.location.span)) { continue; }
         let primary = location(&error.location)?;
         let related = error
             .related

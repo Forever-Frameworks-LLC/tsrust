@@ -51,7 +51,8 @@ impl LineIndex {
 }
 
 pub fn diagnostics(source: &str, uri: &str) -> Result<Vec<Diagnostic>, String> {
-    tsrust_compiler::diagnostics(source).into_iter().map(|error| {
+    let suppressions = tsrust_compiler::DiagnosticSuppressions::new(source);
+    tsrust_compiler::diagnostics(source).into_iter().filter(|error| !suppressions.suppresses(error.span)).map(|error| {
             let index = LineIndex::new(source);
             let uri: Uri = uri.parse().map_err(|_| "invalid document URI")?;
             let related = error
