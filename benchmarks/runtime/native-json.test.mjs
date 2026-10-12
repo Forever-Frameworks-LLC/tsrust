@@ -11,7 +11,7 @@ for(const id of ['native_json_raw_encoding','native_json_raw','native_json_round
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
  assert.equal(rows.length,1);const row=rows[0];
  assert.equal(typeof row.measured,'boolean');
- if(row.measured){assert.equal(row.measurementStatus,'measured-native-node');assert.match(row.measurementRecord,/^runtime\/results\/.+\.json$/);}
+ if(row.measured){assert.equal(row.measurementStatus,'measured-native-node');assert.match(row.measurementRecord,/^(?:runtime\/)?results\/.+\.json$/);}
  else{assert.equal(row.measurementStatus,'unmeasured-json-family');}
  assert.equal(reportCategory(row.id),'json');
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){

@@ -2325,3 +2325,17 @@ checksum before deriving median throughput and nearest-rank p95.
 SQLite. Two calculation/rejection tests pass; all 387 source/case/size/engine keys
 are distinct. This derives existing samples without rerunning any workload and
 does not change the documented selective-field creation tradeoff.
+
+### Measured workload labels reconciled
+
+The manifest now links all 22 JSON workloads to retained native/Node measurements.
+Twenty existing workloads match `results/2026-10-12T06-04-29-404Z.json`; raw
+validation matches `results/2026-10-12T06-45-51-174Z.json`; raw encoding already
+links its later record. The reconciliation verifies exact current source and
+counterpart hashes, operation counts, three process identities per engine,
+31 finite positive samples per process and observed checksums. It does not claim
+the earlier compiler implementation was remeasured after optimization.
+
+Evidence: `tsrust-json-measurement-labels-680993f5.json` and red/check/format logs.
+The registration tests now accept linked measurement evidence rather than freezing
+the original unmeasured state. No source or measurement bytes were rewritten.

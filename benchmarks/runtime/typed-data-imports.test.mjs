@@ -8,7 +8,7 @@ import {reportCategory} from './report.mjs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 test('typed data imports pin source, input, operations and independent oracle',()=>{
  const row=JSON.parse(read('./manifest.json')).workloads.find(w=>w.id==='native_json_import');
- assert.ok(row);assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'json');
+ assert.ok(row);assert.equal(row.measured,true);assert.equal(row.measurementStatus,'measured-native-node');assert.match(row.measurementRecord,/^(?:runtime\/)?results\/.+\.json$/);assert.equal(reportCategory(row.id),'json');
  for(const [kind,key] of [['native','source'],['typescript','counterpart']]){
   const source=read('./'+row[key]);assertDataImportSource(source,row,kind);
   assert.throws(()=>assertDataImportSource(source+' ',row,kind));
