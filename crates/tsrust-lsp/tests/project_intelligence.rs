@@ -2384,3 +2384,17 @@ fn schema_builder_alias_has_member_help_and_respects_shadowing() {
     let completion = ask(&ProjectIndex::new(&graph), shadowed, "string()", "textDocument/completion");
     assert!(!completion.as_array().unwrap().iter().any(|item|item["label"]=="string"), "{completion}");
 }
+
+#[test]
+fn schema_safe_parse_help_explains_consumption_and_result() {
+    let entry = tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.string();const result=schema.safeParse(JSON.parse('42'));}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "safeParse(", "textDocument/hover");
+    assert!(hover.to_string().contains("Result<string, SchemaError>") && hover.to_string().contains("consumes input on every outcome"), "{hover}");
+    let result = ask(&index, &entry, "result =", "textDocument/hover");
+    assert!(result.to_string().contains("Result<string, SchemaError>"), "{result}");
+}

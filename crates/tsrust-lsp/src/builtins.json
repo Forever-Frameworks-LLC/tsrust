@@ -6948,25 +6948,43 @@
 }
 ],
   "std:schema": [
-    {
-      "name": "s",
-      "signature": "s: schema builder namespace",
-      "parameters": [],
-      "documentation": "Imported namespace for constructing reusable validation schemas. Import aliases preserve its identity. Currently string() constructs a string schema; validation methods are still under implementation. Importing the namespace alone adds no runtime dependency. Ownership: the namespace itself owns no runtime value."
-    },
-    {
-      "name": "Schema",
-      "signature": "Schema<T>",
-      "parameters": [],
-      "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. Validation methods are still under implementation."
-    }
-  ],
+  {
+    "name": "s",
+    "signature": "s: schema builder namespace",
+    "parameters": [],
+    "documentation": "Imported namespace for constructing reusable validation schemas. Import aliases preserve its identity. Currently string() constructs a string schema; string-schema safeParse validates owned JSON input. Importing the namespace alone adds no runtime dependency. Ownership: the namespace itself owns no runtime value."
+  },
+  {
+    "name": "Schema",
+    "signature": "Schema<T>",
+    "parameters": [],
+    "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. String-schema safeParse returns a typed Result."
+  },
+  {
+    "name": "SchemaError",
+    "signature": "SchemaError",
+    "parameters": [],
+    "documentation": "Validation failure containing issues and a truncated flag. Issues contain controlled type summaries and paths; input values are never retained. Current string validation emits one root issue on mismatch. Ownership: the error owns its issue collection."
+  },
+  {
+    "name": "SchemaIssue",
+    "signature": "SchemaIssue",
+    "parameters": [],
+    "documentation": "One validation issue: code, path, pathTruncated, expected and observed. The root path is empty. expected and observed describe types rather than input contents. Ownership: owns its strings and path."
+  },
+  {
+    "name": "SchemaPath",
+    "signature": "SchemaPath",
+    "parameters": [],
+    "documentation": "One path segment. A field segment has field set and index absent; an array segment has index set and field absent. Indices are zero-based. Root issues have no segments. Ownership: owns any field name."
+  }
+],
   "schemaBuilder": [
     {
       "name": "string",
       "signature": "s.string(): Schema<string>",
       "parameters": [],
-      "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Validation and string-length constraint methods are still under implementation.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
+      "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Use safeParse to validate owned JSON input; string-length constraint methods are still under implementation.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
       "examples": [
         {
           "source": "import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}",
@@ -6974,5 +6992,24 @@
         }
       ]
     }
-  ]
+  ],
+  "Schema": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: Owned<JsonValue>): Result<string, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: Owned<JsonValue>",
+        "documentation": "Owned dynamic JSON value to validate. Consumed on success and failure; use clone(input) beforehand to retain it."
+      }
+    ],
+    "documentation": "Validates an owned JsonValue against a string schema. Returns Ok(string) for a JSON string, moving its existing text storage, or Err(SchemaError) for every other JSON kind. Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. Currently only string schemas are supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
+        "output": "1 false\n"
+      }
+    ]
+  }
+]
 }

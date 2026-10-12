@@ -8,3 +8,4 @@ mod scalar;
 #[cfg(test)]
 mod array;
 pub(crate) mod namespace;
+pub(crate) mod emit;

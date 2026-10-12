@@ -22,7 +22,9 @@ impl SourceIndex {
         let (name, arguments) = ty.split_once('<')?;
         (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
+    pub(super) fn schema_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::Schema) }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
+        if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}

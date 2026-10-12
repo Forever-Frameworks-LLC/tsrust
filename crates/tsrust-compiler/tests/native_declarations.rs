@@ -368,3 +368,16 @@ fn schema_string_constructor_executes_natively() {
     support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout), "schema created\n");
 }
+
+#[test]
+fn schema_safe_parse_consumes_input_and_reuses_schema() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip("import {s} from 'std:schema'; function main(){const schema=s.string();const input=JSON.parse('\"hello\"');match(schema.safeParse(input)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length);}}match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}}");
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "hello\n1 false\ntype-mismatch string number 0\n");
+    let invalid = "import {s} from 'std:schema';function main(){const schema=s.string();const input=JSON.parse('42');schema.safeParse(input);console.log(JSON.stringify(input));}";
+    let error = checked_source(invalid).err().expect("input must be consumed even on failure");
+    assert_eq!(error.code, "transferred", "{error:?}");
+}

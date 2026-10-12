@@ -208,3 +208,31 @@ Both failures and passing repairs are retained. SQLite evidence:
 `tsrust-schema-editor-{red,check,detail,final,format,final-format}-e10898d4.log`.
 Full editor regression, public safeParse, constraints, benchmark support and consumer
 refresh remain pending; this is not S11 acceptance.
+
+## String safeParse integration checkpoint
+
+String schemas now expose safeParse for owned JsonValue input. It borrows the
+schema, consumes input on both outcomes, moves successful string storage and
+returns Result<string, SchemaError>. Non-string input produces one root issue
+with type-mismatch, controlled expected/observed names, an empty path and false
+truncation flags. The source checker rejects reuse of consumed input. This initial
+method does not yet validate ordinary typed records or other schema output types.
+
+Public error declarations are SchemaError (issues, truncated), SchemaIssue (code,
+path, pathTruncated, expected, observed), and SchemaPath (optional field/index).
+A path segment uses exactly one of field or index; root errors have no segments.
+The current native scalar bridge constructs one bounded issue directly; composite
+validators must connect the bounded collector and enforce its limits when landed.
+
+Native execution verifies successful output, schema reuse, mismatch details and
+failure-path input reuse rejection. All 24 native declaration tests pass. Two
+schema project editor tests verify constructor and validation hover/inference;
+one focused error-effect registry test passes. The error-effect declaration and
+native array constructor repairs retain their original failed evidence. Catalog
+entries include ownership, error fields, limitations and a safeParse example;
+exact catalog-example execution and matched benchmark support remain pending.
+
+SQLite evidence: `tsrust-schema-parse-{red,check,repair,native,final,effects,format}-3ca7ebd4.log`
+and `tsrust-schema-parse-editor-{red,check,final}-3ca7ebd4.log`.
+No family timing, consumer refresh or S11 acceptance is claimed. Extend public
+scalar coverage, ownership edge cases, constraints and composites next.
