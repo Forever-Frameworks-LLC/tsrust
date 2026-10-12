@@ -34,7 +34,16 @@ impl<P:Validate,T:ObjectFields> ObjectFields for Fields<P,T> {
 #[derive(Debug)]
 pub(super) struct DuplicateField;
 pub(super) struct ObjectPlan<F>(F);
+pub(super) struct StripObjectPlan<F>(ObjectPlan<F>);
+pub(super) struct RetainObjectPlan<F>(ObjectPlan<F>);
 impl<F:ObjectFields> ObjectPlan<F> {
+    pub(super) fn strip(self)->StripObjectPlan<F>{StripObjectPlan(self)}
+    pub(super) fn retain(self)->RetainObjectPlan<F>{RetainObjectPlan(self)}
+    fn split(&self,input:Option<Value>,path:&[Segment<'_>],issues:&mut Issues)->Option<(Option<F::Output>,serde_json::Map<String,Value>)>{
+        let mut fields=match input {Some(Value::Object(fields))=>fields,other=>{reject(other,Kind::Object,path,issues);return None;}};
+        let output=self.0.take(&mut fields,path,issues);
+        Some((output,fields))
+    }
     pub(super) fn new(fields:F)->Result<Self,DuplicateField>{
         if !fields.unique_names(&mut std::collections::BTreeSet::new()){return Err(DuplicateField);}
         Ok(Self(fields))
@@ -43,8 +52,7 @@ impl<F:ObjectFields> ObjectPlan<F> {
 impl<F:ObjectFields> Validate for ObjectPlan<F> {
     type Output=F::Output;
     fn validate(&self,input:Option<Value>,path:&[Segment<'_>],issues:&mut Issues)->Option<Self::Output>{
-        let mut fields=match input {Some(Value::Object(fields))=>fields,other=>{reject(other,Kind::Object,path,issues);return None;}};
-        let output=self.0.take(&mut fields,path,issues);
+        let (output,fields)=self.split(input,path,issues)?;
         let unknown=!fields.is_empty();
         for (name,value) in fields {
             let observed=match value {Value::Null=>Kind::Null,Value::Bool(_)=>Kind::Boolean,Value::Number(_)=>Kind::Number,Value::String(_)=>Kind::String,Value::Array(_)=>Kind::Array,Value::Object(_)=>Kind::Object};
@@ -55,12 +63,56 @@ impl<F:ObjectFields> Validate for ObjectPlan<F> {
     }
 }
 
+impl<F:ObjectFields> Validate for StripObjectPlan<F> {
+    type Output=F::Output;
+    fn validate(&self,input:Option<Value>,path:&[Segment<'_>],issues:&mut Issues)->Option<Self::Output>{
+        let (output,_unknown)=self.0.split(input,path,issues)?;
+        output
+    }
+}
+impl<F:ObjectFields> Validate for RetainObjectPlan<F> {
+    type Output=(F::Output,serde_json::Map<String,Value>);
+    fn validate(&self,input:Option<Value>,path:&[Segment<'_>],issues:&mut Issues)->Option<Self::Output>{
+        let (output,unknown)=self.0.split(input,path,issues)?;
+        output.map(|output|(output,unknown))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use super::super::{scalar::{Validate,StringPlan},presence::OptionalPlan,issues::{Code,Issues,OwnedSegment}};
     use crate::stdlib::json::Value;
     fn object<F:ObjectFields>(fields:F)->ObjectPlan<F>{ObjectPlan::new(fields).unwrap()}
+    #[test]
+    fn explicit_policies_strip_or_move_unknown_storage() {
+        let fields=||Fields::new("name",StringPlan,End);
+        let stripped=object(fields()).strip();
+        let mut errors=Issues::new(4,8,128);
+        let input=serde_json::from_str(r#"{"name":"Ada","extra":[1,2]}"#).unwrap();
+        assert_eq!(stripped.validate(Some(input),&[],&mut errors),Some(("Ada".into(),())));
+        assert!(errors.is_valid());
+        let retained=object(fields()).retain();
+        let text="retained allocation".to_owned();let pointer=text.as_ptr();
+        let input=Value::Object(serde_json::Map::from_iter([
+            ("name".into(),Value::String("Ada".into())),("extra".into(),Value::String(text))
+        ]));
+        let ((name,()),mut extra)=retained.validate(Some(input),&[],&mut errors).unwrap();
+        assert_eq!(name,"Ada");assert_eq!(extra.len(),1);assert!(!extra.contains_key("name"));
+        let Value::String(text)=extra.remove("extra").unwrap() else{panic!("string changed")};
+        assert_eq!(text.as_ptr(),pointer);assert!(errors.is_valid());
+    }
+    #[test]
+    fn alternate_policies_still_reject_invalid_declared_fields() {
+        let input=||serde_json::from_str(r#"{"name":false,"extra":"private"}"#).unwrap();
+        let mut issues=Issues::new(0,0,0);
+        assert!(object(Fields::new("name",StringPlan,End)).strip().validate(Some(input()),&[],&mut issues).is_none());
+        assert!(!issues.is_valid());
+        let mut issues=Issues::new(4,8,128);
+        assert!(object(Fields::new("name",StringPlan,End)).retain().validate(Some(input()),&[],&mut issues).is_none());
+        assert_eq!(issues.items.len(),1);assert_eq!(issues.items[0].code,Code::Type);
+        assert!(!format!("{issues:?}").contains("private"));
+    }
     #[test]
     fn duplicate_fields_reject_before_validation() {
         assert!(ObjectPlan::new(Fields::new("name",StringPlan,Fields::new("name",StringPlan,End))).is_err());

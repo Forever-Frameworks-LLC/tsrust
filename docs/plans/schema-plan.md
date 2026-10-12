@@ -745,3 +745,19 @@ checks also exercise zero retained-error budget without accepting invalid input.
 Five focused object tests pass. Public builders, policies, record inference and
 fused decoding remain pending. SQLite evidence:
 `tsrust-schema-object-construction-*-b5d20026.log`.
+
+## Explicit object policy backend
+
+Checked object plans now support consuming transitions to strip or retain unknown
+fields. Default construction still rejects unknown keys. Strip returns only typed
+declared-field output and drops unknown storage. Retain moves unknown entries into
+an owned map alongside typed declared fields, without cloning values or including
+known keys twice. Both alternate policies preserve ordinary declared-field failures
+and bounded issue handling; neither can convert invalid known input into success.
+
+Seven focused object cases pass, including pointer identity for retained string
+storage, stripping, invalid known fields under both policies and previous default
+rejection/disposal coverage. This is an internal representation: public retained
+output spelling and source builder integration remain unimplemented. No dynamic
+map replaces the typed declared-field output. SQLite evidence:
+`tsrust-schema-object-policies-*-a23e2996.log`. No timing or consumer refresh.
