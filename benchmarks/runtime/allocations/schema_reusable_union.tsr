@@ -1,0 +1,16 @@
+import { s, Schema } from "std:schema";
+
+function createSchema(): Schema<int[]> {
+  return s.union([s.array(s.int().min(0).max(0)), s.array(s.int())]);
+}
+
+function workload(schema: Schema<int[]>, input: string): int[] {
+  match (schema.safeParseJson(input)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw "validation failed";
+    }
+  }
+}

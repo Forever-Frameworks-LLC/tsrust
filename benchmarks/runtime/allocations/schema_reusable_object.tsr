@@ -1,0 +1,22 @@
+import { s, Schema } from "std:schema";
+
+type Payload = {
+  items: int[];
+};
+
+function createSchema(): Schema<Payload> {
+  return s.object({
+    items: s.array(s.int())
+  });
+}
+
+function workload(schema: Schema<Payload>, input: string): int[] {
+  match (schema.safeParseJson(input)) {
+    Ok(value) => {
+      return value.items;
+    },
+    Err(error) => {
+      throw "validation failed";
+    }
+  }
+}

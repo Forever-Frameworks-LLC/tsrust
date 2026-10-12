@@ -1871,3 +1871,36 @@ owned fields through a narrowed union; the final witness uses supported read-onl
 field access. Those failures are retained, not represented as runtime defects.
 S11 remains in progress; these are focused boundary checks, not full regressions
 or performance acceptance.
+
+
+## Reusable-plan allocation acceptance
+
+Three additional probes build schemas before resetting allocation counters and
+validate borrowed text through a borrowed plan: an integer array, a strict object
+with an integer-array field, and an ordered array union whose first all-zero branch
+rejects the positive fixture before the unrestricted branch succeeds. Every output
+integer contributes to the checksum. Direct Rust and checked Node counterparts
+produce the same output for these finite fixtures; they do not reproduce native
+union speculation or all native resource budgets.
+
+All nine cases (sizes 0, 1, 1000; three fresh-process samples per engine) pass
+checksum, deterministic operation counters and disposal checks. At 1000 elements,
+native requested bytes are 16192 for the array, 16648 for the object and 26304 for
+the union. Each retains 8192 bytes of output capacity. `schemaRequestedBytes`
+reports retained plan heap storage before operation counters: zero for the array
+and object, 80 bytes for the union. It does not report cumulative construction
+allocations. Output disposal preserves the plan baseline; dropping the input and
+plan leaves zero additional live bytes. These results expose union speculation
+cost without claiming a timed regression or zero-cost plan construction.
+
+The allocation harness now emits a complete source/rows record to stderr after
+each completed probe, in addition to the final JSON report. This permits resuming
+remaining probes after a later failure without discarding successful measurements.
+The array result is retained in `tsrust-schema-reusable-run3.log`; only object and
+union reran in `tsrust-schema-reusable-results4.json`. Original failed runs preserve
+a test syntax error, an overly broad reset-marker check, a missing field semicolon
+and unavailable Serde derive support. The direct object baseline now uses the same
+manual visitor approach as existing baselines. Fifteen existing adapter tests and
+two reusable-adapter cases pass. Whole-project formatting precedes the final runs
+and checkpoint. All `tsrust-schema-reusable-*` evidence is saved in SQLite.
+No timing samples or full S11 acceptance are claimed.
