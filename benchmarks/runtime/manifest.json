@@ -22338,6 +22338,30 @@
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
       "sourceSha256": "bb3adc4884dbd8ea6607f0048acc82978f773d3ddcea7a27d2c35bb4aeaeecb7",
       "counterpartSha256": "15493c39c5a290055987c1a9292edbc8463ffd810fe6c886d1044ad4b6452440"
+    },
+    {
+      "id": "native_schema_collections",
+      "category": "schema",
+      "description": "Record, native Map/Set validation and transformed-key collision rejection",
+      "source": "workloads/native_schema_collections.tsr",
+      "counterpart": "workloads/native_schema_collections.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 5,
+      "operationUnit": "One collection validation with output or collision observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"x\":2}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Three successful collection validations add six; two collisions add two. Checksum seed + 8*n.",
+      "notes": "Handwritten TypeScript reference. Includes input construction, JSON record decoding and Map/Set collisions. Unmeasured; parity pending.",
+      "sourceSha256": "4c6824710f8040db6231f0e98d18c35710569d43f2276d77bf355f89ccec0fbf",
+      "counterpartSha256": "64bb06fb4df7bb565e296f671fa3a0d99c48bdeb6517a7366f5b726877fa2018"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

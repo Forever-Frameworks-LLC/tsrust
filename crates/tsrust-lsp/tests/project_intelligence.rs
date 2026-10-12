@@ -2846,3 +2846,21 @@ fn schema_direct_union_constraint_chain_has_scalar_help(){
     let method=ask(&index,&entry,"min(2)","textDocument/hover");assert!(method.to_string().contains("min("),"{method}");
     let result=ask(&index,&entry,"result =","textDocument/hover");assert!(result.to_string().replace(' ',"").contains("Result<string,ValidationError>"),"{result}");
 }
+
+#[test]
+fn collection_schema_types_and_json_completion_follow_input_contracts(){
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const dictionary=s.record(s.int());const decoded=dictionary.safeParseJson('{\"x\":1}');const native=s.map(s.string(),s.int());const input=new Map<string,int>();const result=native.safeParse(input);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"dictionary =","textDocument/hover");
+    assert!(hover.to_string().replace(' ',"").contains("Schema<Map<string,int>>"),"{hover}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().replace(' ',"").contains("Result<Map<string,int>,ValidationError>"),"{result}");
+    let native=ask(&index,&entry,"safeParse(input)","textDocument/completion");
+    assert!(!native.as_array().unwrap().iter().any(|entry|entry["label"]=="safeParseJson"),"{native}");
+    let record=ask(&index,&entry,"safeParseJson(","textDocument/completion");
+    assert!(record.as_array().unwrap().iter().any(|entry|entry["label"]=="safeParseJson"),"{record}");
+    let help=ask(&index,&entry,"record(s.int())","textDocument/hover");
+    assert!(help.to_string().contains("arbitrary string keys"),"{help}");
+}

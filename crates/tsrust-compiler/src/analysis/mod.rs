@@ -9,6 +9,7 @@ mod schema_literals;
 mod schema_enums;
 mod schema_unions;
 mod schema_pipelines;
+mod schema_collections;
 mod schema_pipeline_objects;
 mod schema_pipeline_unions;
 mod schema_pipeline_wrappers;
@@ -14373,6 +14374,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_enum_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_literal_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_collection_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(ty);}
         self.schema_method_call(context, expr)?;

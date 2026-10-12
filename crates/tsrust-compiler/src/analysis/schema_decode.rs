@@ -13,6 +13,9 @@ impl Analyzer {
         let output=if let Some((_,output,_))=self.schema_pipelines.types(root){output}
             else if self.program.records[root].native_type==Some(crate::native_signatures::NativeTypeId::Schema){self.program.records[root].application.as_ref().unwrap().resolved_arguments[0]}
             else{return Err(Diagnostic::new("schema-type","safeParseJson requires a schema receiver.",callee.span));};
+        if !self.schema_pipelines.accepts_text(root){
+            return Err(Diagnostic::new("schema-json-input","Native Map/Set schemas have no implicit JSON encoding. Decode a JSON array or record and convert explicitly.",expr.span));
+        }
         self.schema_decode_inputs(root,expr.span)?;
         if args.len()!=1{return Err(Diagnostic::new("arity","safeParseJson expects one borrowed JSON string.",expr.span));}
         let actual=self.expression(context,&mut args[0],Mode::Read,loans,Some(Type::String))?;

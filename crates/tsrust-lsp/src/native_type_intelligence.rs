@@ -51,9 +51,10 @@ impl SourceIndex {
         tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
-        if let Some((input, output, object_policy, json_input)) = self.schema_pipeline_types.get(ty) {
+        if let Some((input, output, object_policy, json_input, text_input)) = self.schema_pipeline_types.get(ty) {
             let accepted = if *json_input {format!("{input} | JsonValue")}else{input.clone()};
             let mut entries = self.schema_pipeline_entries(&accepted, input, output);
+            if !*text_input { entries.retain(|entry|entry["name"]!="safeParseJson"); }
             if *object_policy {
                 for mut entry in builtins_for("SchemaObject").into_iter().filter(|entry| matches!(entry["name"].as_str(), Some("strip" | "retain"))) {
                     if let Some(signature) = entry["signature"].as_str() {

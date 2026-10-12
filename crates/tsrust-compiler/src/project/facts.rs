@@ -20,7 +20,7 @@ pub struct ProjectLocalFunctionInfo {
 pub enum ProjectType {
     Native(crate::native_signatures::NativeTypeId),
     AppliedNative(crate::native_signatures::NativeTypeId, Vec<ProjectType>),
-    SchemaPipeline { identity: usize, input: Box<ProjectType>, output: Box<ProjectType>, json_input: bool, object_policy: bool },
+    SchemaPipeline { identity: usize, input: Box<ProjectType>, output: Box<ProjectType>, json_input: bool, text_input: bool, object_policy: bool },
     Named {
         name: String,
         declaration: Option<SourceLocation>,
@@ -387,6 +387,7 @@ impl ProjectAnalysis {
             return Some(ProjectType::SchemaPipeline {
                 identity: id, input: Box::new(self.project_type(input, names)?),
                 output: Box::new(self.project_type(output, names)?), json_input,
+                text_input: self.analysis.program.schema_pipelines.accepts_text(id),
                 object_policy: self.analysis.program.schema_pipelines.object(id)
                     .is_some_and(|plan| plan.policy != crate::stdlib::schema::pipelines::ObjectPolicy::Retain),
             });

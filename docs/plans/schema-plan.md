@@ -29,7 +29,7 @@ executing differential cases; current web documentation alone is not a version p
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; richer cross-field issue APIs remain required |
 | Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Second tranche, still required |
-| Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Second tranche, still required |
+| Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Public record/map/set constructors, reversible validation, collision rejection, editor types and matched workload checked; family acceptance pending |
 | JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Second tranche, still required |
 | Async refinements | approved task semantics and cancellation/ownership checks | Follows S14 |
 | Regex/date/format validators | corresponding verified runtime semantics | Follow their dependency gates |
@@ -1812,12 +1812,12 @@ run are retained in SQLite as `tsrust-schema-composite-{differential1,differenti
 contracts,format}.log`. This expands correctness evidence only; S11 family
 acceptance and measurements remain open.
 
-Collection representation is also awaiting an owner decision. Proposed
+Collection representation is approved by the owner.
 `s.record(valueSchema)` validates arbitrary string-key JSON objects into
 `Map<string, T>`; `s.map(keySchema, valueSchema)` and `s.set(elementSchema)` validate
 existing native collections and reject JSON text rather than choosing an implicit
-wire representation. Do not treat these proposed contracts as approved before the
-pending question is answered.
+wire representation. Map/Set key or element collisions introduced by transforms return validation
+errors. Explicit array-to-Set conversions may intentionally deduplicate.
 
 
 ## Fused versus owned allocation probes
@@ -1904,3 +1904,38 @@ manual visitor approach as existing baselines. Fifteen existing adapter tests an
 two reusable-adapter cases pass. Whole-project formatting precedes the final runs
 and checkpoint. All `tsrust-schema-reusable-*` evidence is saved in SQLite.
 No timing samples or full S11 acceptance are claimed.
+
+
+## Collection implementation section
+
+Approved constructors: `s.record(valueSchema)` for arbitrary string-key JSON
+objects with `Map<string, T>` output; `s.map(keySchema, valueSchema)` and
+`s.set(elementSchema)` for existing native collections. Map/Set do not accept
+JSON text through safeParseJson. Record decoding retains the existing checked
+JSON numeric and last-duplicate-key contracts. Builders own their child plans;
+validation borrows the reusable parent and consumes existing owned input.
+
+Transforms must not silently overwrite a Map entry or collapse Set elements.
+A collision is a validation failure. Explicit array-to-Set conversion remains an
+intentional operation outside this rule. Collection plan identities must preserve
+input/output types and exact child plans through wrappers, objects, arrays and
+unions, including callback exception effects and consumption commitment.
+
+Focused collection acceptance: four compiler/native witnesses pass, including
+catalog examples, consumed-input checks, nested record decoding, ordered rollback,
+committed collisions and callback exceptions. One registry dependency test and one
+editor inference/completion test pass. All 27 schema workload contract checks pass.
+The first native runs exposed missing collection kind handling and trial-runtime
+linking; both are repaired. All failed and passing logs are retained as evidence.
+
+The matched `native_schema_collections` workload performs five operations per
+iteration: fused record decoding, native Map validation, native Set validation,
+Map collision rejection and Set collision rejection. Native and Node-after-tsc
+benchmark drivers agree with the independent `seed + 8*n` oracle at 0, 1, 2, 17 and
+2,000 iterations. These are correctness checks, not timing acceptance. The reference
+is handwritten and makes no Zod allocation-equivalence claim.
+
+Whole-project formatting preserves tokens and refreshes the new workload hash.
+Formatted-source native witnesses execute the catalog examples. SQLite evidence
+uses `tsrust-schema-collections-*` names, including failed runs and their repairs.
+S11 full regressions, differential expansion and family measurements remain pending.

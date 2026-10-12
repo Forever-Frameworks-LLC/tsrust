@@ -31,6 +31,7 @@ impl Analyzer {
             return if stage.operation==Operation::Coerce{Ok(stage.callback_input)}
                 else{self.schema_pipeline_input_type(context,stage.source,value)};
         }
+        if let Some(plan)=self.schema_pipelines.collection(id){return Ok(plan.input);}
         if let Some(plan)=self.schema_pipelines.object(id).cloned() {
             let Type::Record(shape)=plan.input else{unreachable!()};
             let fields=self.program.records[shape].fields.clone();

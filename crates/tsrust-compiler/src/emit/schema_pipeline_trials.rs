@@ -92,6 +92,8 @@ impl Emitter<'_> {
                 format!("Trial::Prepared{{value:Union{}::V{tag}(TsrUndefined),restoration:Box::new(|_|TsrUndefined)}}",union.index())
             } else { String::from("Trial::Absent") };
             format!("match {fallback}{{Some(Some(value))=>Trial::Prepared{{value,restoration:Box::new(|_|TsrUndefined)}},Some(None)=>match failure.take(){{Some(error)=>Trial::Aborted(error),None=>Trial::Rejected(input)}},None=>{{{absent}}}}}")
+        } else if self.program.schema_pipelines.collection(id).is_some() {
+            self.schema_collection_trial_body(id,input,generated,seen,errors)
         } else if self.program.schema_pipelines.array(id).is_some() {
             self.schema_pipeline_array_trial_body(id,input,generated,seen,errors)
         } else if self.program.schema_pipelines.object(id).is_some() {

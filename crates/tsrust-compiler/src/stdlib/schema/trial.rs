@@ -159,6 +159,36 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
     }
 }
 
+/// Validate a key before its value without cloning either input. A consuming
+/// key callback commits the pair even if the value subsequently rejects.
+pub(super) fn pair<'a, K:'a, V:'a, A:'a, B:'a, RK:Restore<K,A>+'a, RV:Restore<V,B>+'a, E>(
+    left:Trial<K,A,RK,E>,
+    right:V,
+    value:impl FnOnce(V)->Trial<V,B,RV,E>,
+)->Trial<(K,V),(A,B),Box<dyn FnOnce((A,B))->(K,V)+'a>,E>{
+    let (left,restore_left)=match left{
+        Trial::Prepared{value,restoration}=>(value,Some(restoration)),
+        Trial::Committed(Some(value))=>(value,None),
+        Trial::Rejected(left)=>return Trial::Rejected((left,right)),
+        Trial::Committed(None)=>return Trial::Committed(None),
+        Trial::Aborted(error)=>return Trial::Aborted(error),
+        Trial::Absent=>unreachable!("collection keys are present"),
+    };
+    match value(right){
+        Trial::Prepared{value:right,restoration:restore_right}=>match restore_left{
+            Some(restore_left)=>Trial::Prepared{value:(left,right),restoration:Box::new(move |(left,right)|(restore_left.restore(left),restore_right.restore(right)))},
+            None=>Trial::Committed(Some((left,right))),
+        },
+        Trial::Committed(right)=>Trial::Committed(right.map(|right|(left,right))),
+        Trial::Rejected(right)=>match restore_left{
+            Some(restore)=>Trial::Rejected((restore.restore(left),right)),
+            None=>Trial::Committed(None),
+        },
+        Trial::Aborted(error)=>Trial::Aborted(error),
+        Trial::Absent=>unreachable!("collection values are present"),
+    }
+}
+
 /// Visit callback-bearing array elements in order. A rejected element stops
 /// later callbacks. Earlier readonly projections are restored before fallback;
 /// any earlier consuming callback makes the whole array committed instead.

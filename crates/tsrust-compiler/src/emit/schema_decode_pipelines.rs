@@ -41,6 +41,14 @@ impl Emitter<'_> {
             }
             return body;
         }
+        if let Some(plan)=self.program.schema_pipelines.collection(id){
+            assert_eq!(plan.kind,crate::stdlib::schema::pipelines::CollectionKind::Record,"checked text collection domain");
+            let child=self.schema_text_validator(plan.element,generated,owned,errors);
+            let native=self.native_type(plan.output);
+            // Dynamic names borrow each local key only for that validation call.
+            // The outer path must not retain a reference to the temporary index.
+            return format!("let fields=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{issues.push(path,Code::Type,Kind::Object,observed);return None;}}}};let mut values=Vec::new();for(key,input)in fields{{let mut field_path=path.clone();field_path.push(tsrust_schema_issues::Segment::Field(key.as_ref()));let value={child}(&schema.field0,input,&mut field_path,issues,failure,None,&mut None,committed);let Some(value)=value else{{return None;}};values.push((String::Owned(key.into_owned()),value));}}Some(<{native}>::from_values(values))");
+        }
         if let Some(plan)=self.program.schema_pipelines.array(id){
             let child=self.schema_text_validator(plan.element,generated,owned,errors);
             let native=self.native_type(plan.output);

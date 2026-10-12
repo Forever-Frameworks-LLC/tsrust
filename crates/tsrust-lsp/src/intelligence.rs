@@ -83,7 +83,7 @@ pub struct SourceIndex {
     checked_views: Vec<(Span, String)>,
     json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
-    schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool)>,
+    schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool, bool)>,
     checked_optional_receivers: Vec<(Span, String)>,
     checked_generic_calls: Vec<CheckedGenericCall>,
     /// Commas that separate declarators in a const or let declaration, with
@@ -1874,7 +1874,7 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if let Some((_, output, _, _)) = self.schema_pipeline_types.get(&receiver) {
+        if let Some((_, output, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "refine" { return receiver; }
             if method == "safeParseJson" { return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
             if method == "safeParse" {

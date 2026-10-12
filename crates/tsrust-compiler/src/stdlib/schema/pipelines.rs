@@ -35,6 +35,22 @@ pub(crate) struct ArrayPlan {
     pub json_input: bool,
 }
 
+/// Collection shape is distinct from its output: a record decoder and a native
+/// Map validator can produce the same Map without accepting the same inputs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CollectionKind { Record, Map, Set }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct CollectionPlan {
+    pub kind: CollectionKind,
+    /// Native Map key schema; record keys remain untransformed strings.
+    pub key: Option<usize>,
+    pub element: usize,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ObjectPlan {
     pub shape: usize,
@@ -79,16 +95,43 @@ pub(crate) struct Pipelines {
     wrappers: std::collections::BTreeMap<usize, Wrapper>,
     stages: std::collections::BTreeMap<usize, Stage>,
     arrays: std::collections::BTreeMap<usize, ArrayPlan>,
+    collections: std::collections::BTreeMap<usize, CollectionPlan>,
     objects: std::collections::BTreeMap<usize, ObjectPlan>,
     unions: std::collections::BTreeMap<usize, UnionPlan>,
 }
 
 impl Pipelines {
+    pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
     pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {
         self.wrapper(record).map(|plan|(plan.input,plan.output,plan.json_input)).or_else(||self.get(record).map(|stage| (stage.input, stage.output, stage.json_input)))
+            .or_else(|| self.collection(record).map(|plan| (plan.input, plan.output, plan.json_input)))
             .or_else(|| self.array(record).map(|plan| (plan.input, plan.output, plan.json_input)))
             .or_else(|| self.object(record).map(|plan| (plan.input, plan.output, plan.json_input)))
             .or_else(|| self.union(record).map(|plan| (plan.input, plan.output, plan.json_input)))
+    }
+    /// Text decoding is separate from accepting an already built JsonValue.
+    /// Explicit coercion supplies a native child input after decoding its own raw
+    /// input shape, so a Map/Set underneath that boundary needs no wire encoding.
+    pub(crate) fn accepts_text(&self,record:usize)->bool {
+        if let Some(stage)=self.get(record) {
+            return stage.operation==Operation::Coerce || self.accepts_text(stage.source);
+        }
+        if let Some(plan)=self.wrapper(record){return self.accepts_text(plan.source);}
+        if let Some(plan)=self.collection(record){return plan.kind==CollectionKind::Record&&self.accepts_text(plan.element);}
+        if let Some(plan)=self.array(record){return self.accepts_text(plan.element);}
+        if let Some(plan)=self.object(record){return plan.fields.iter().all(|child|self.accepts_text(*child));}
+        if let Some(plan)=self.union(record){return plan.branches.iter().all(|child|self.accepts_text(*child));}
+        true
+    }
+    pub(crate) fn collection(&self, record: usize) -> Option<&CollectionPlan> { self.collections.get(&record) }
+    pub(crate) fn collection_record(&self, plan: &CollectionPlan) -> Option<usize> {
+        self.collections.iter().find_map(|(record,existing)|(existing==plan).then_some(*record))
+    }
+    pub(crate) fn insert_collection(&mut self, record: usize, plan: CollectionPlan) {
+        assert!(self.types(record).is_none());
+        assert_eq!(plan.key.is_some(),plan.kind==CollectionKind::Map);
+        assert!(!plan.json_input || plan.kind==CollectionKind::Record);
+        self.collections.insert(record,plan);
     }
     pub(crate) fn wrapper(&self, record: usize) -> Option<&Wrapper> { self.wrappers.get(&record) }
     pub(crate) fn wrapper_record(&self, plan: &Wrapper) -> Option<usize> {
@@ -121,6 +164,8 @@ impl Pipelines {
         if let Some(plan)=self.wrapper(record) { self.has_coercion(plan.source) }
         else if let Some(stage) = self.get(record) {
             stage.operation == Operation::Coerce || self.has_coercion(stage.source)
+        } else if let Some(plan)=self.collection(record) {
+            plan.key.is_some_and(|key|self.has_coercion(key)) || self.has_coercion(plan.element)
         } else { self.array(record).is_some_and(|plan| self.has_coercion(plan.element))
             || self.object(record).is_some_and(|plan| plan.fields.iter().any(|child| self.has_coercion(*child)))
             || self.union(record).is_some_and(|plan| plan.branches.iter().any(|child| self.has_coercion(*child))) }
@@ -146,6 +191,7 @@ impl Pipelines {
                 if let WrapperKind::Default(family)=plan.kind { callbacks.push(family); }
             }
             else if let Some(stage) = self.get(record) { callbacks.push(stage.callback); pending.push(stage.source); }
+            else if let Some(plan) = self.collection(record) { pending.extend(plan.key); pending.push(plan.element); }
             else if let Some(plan) = self.array(record) { pending.push(plan.element); }
             else if let Some(plan) = self.object(record) { pending.extend(plan.fields.iter().copied()); }
             else if let Some(plan) = self.union(record) { pending.extend(plan.branches.iter().copied()); }
@@ -189,6 +235,25 @@ mod tests {
             callback_input: input, callback_output: Type::Int,
             input, output: Type::Int, json_input: false,
         }
+    }
+
+    #[test]
+    fn collections_preserve_input_domain_and_child_callback_dependencies() {
+        let mut plans=Pipelines::default();
+        plans.insert(10,stage(Type::String));
+        let record=CollectionPlan{kind:CollectionKind::Record,key:None,element:10,input:Type::String,output:Type::Int,json_input:true};
+        plans.insert_collection(20,record.clone());
+        let map=CollectionPlan{kind:CollectionKind::Map,key:Some(3),json_input:false,..record.clone()};
+        plans.insert_collection(21,map.clone());
+        assert_eq!(plans.collection_record(&record),Some(20));
+        assert_eq!(plans.collection_record(&map),Some(21));
+        assert_eq!(plans.types(20),Some((Type::String,Type::Int,true)));
+        assert_eq!(plans.types(21),Some((Type::String,Type::Int,false)));
+        let (callbacks,leaves)=plans.dependencies(21);
+        assert_eq!(callbacks,vec![4]);
+        assert!(leaves.contains(&2)&&leaves.contains(&3));
+        assert!(plans.has_coercion(20));
+        assert!(plans.has_coercion(21));
     }
 
     #[test]

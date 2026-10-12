@@ -8,7 +8,7 @@ impl Kind {
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, NumberNonfinite, TooSmall, TooLarge, Literal, UnknownField, Discriminator, Refinement }
+pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, NumberNonfinite, TooSmall, TooLarge, Literal, UnknownField, Discriminator, Refinement, Collision }
 impl Code {
     pub(super) fn as_str(self) -> &'static str {
         match self {
@@ -16,6 +16,7 @@ impl Code {
             Self::UnknownField => "unknown-field",
             Self::Literal => "literal-mismatch",
             Self::Discriminator => "discriminator-mismatch",
+            Self::Collision => "collection-collision",
             Self::Refinement => "refinement-failed",
             Self::Type => "type-mismatch", Self::Missing => "missing-field",
             Self::IntegerRange => "integer-range", Self::IntegerFractional => "integer-fractional",

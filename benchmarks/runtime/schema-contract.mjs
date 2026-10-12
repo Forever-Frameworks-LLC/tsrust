@@ -1,14 +1,21 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 export function schemaChecksum(n,seed,input){
- const weight=input==='owned-pipeline'?7:input==='\"union-value\"'?13:input==='{\"kind\":\"count\",\"count\":4}'?5:input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:(input==='"hello"'||input==='"ready"')?6:(input==='2.5'||input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
+ const weight=input==='{"x":2}'?8:input==='owned-pipeline'?7:input==='\"union-value\"'?13:input==='{\"kind\":\"count\",\"count\":4}'?5:input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:(input==='"hello"'||input==='"ready"')?6:(input==='2.5'||input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
  if(weight===undefined||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*weight))throw Error('Schema oracle inputs');
  // Each successful scalar contributes its scenario value, plus one observed root issue.
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_collections','native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_collections'){
+  if(row.operationsPerIteration!==5||row.inputText!=='{"x":2}'||row.iterations!==2000)throw Error('Collection schema denominator');
+  const snippets=['while(i<n)','i++;','checksum+=2;','checksum+=3;','checksum+=1;',"'collection-collision'"];
+  snippets.push(...(kind==='native'?['record.safeParseJson(input)','map.safeParse(entries)','set.safeParse(elements)','collisionMap.safeParse(keys)','collisionSet.safeParse(tags)']:['JSON.parse(input)','validateMap(new Map','validateSet(new Set','output.has(result)']));
+  for(const snippet of snippets)if(!containsCodeSnippet(source,snippet))throw Error('Collection schema observation: '+snippet);
+  return;
+ }
  if(row.id==='native_schema_json_fused'){
   if(row.operationsPerIteration!==2||!containsCodeSnippet(source,'while(i<n)')||!containsCodeSnippet(source,'i++;'))throw Error('Fused schema loop');
   const required=kind==='native'?['schema.safeParseJson(input)',`schema.safeParseJson('{"extra":true}')`,'checksum+=value.count;','checksum+=1;',`error.kind!=='validation'`,'error.error.issues.length!==2']:['schema.safeParse(JSON.parse(input))','checksum+=success.value.count;','checksum+=1;','error.issues.length!==2'];

@@ -1,0 +1,95 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const record = s.record(s.int());
+  const map = s.map(s.string(), s.int());
+  const set = s.set(s.string());
+  const collisionMap = s.map(s.string().transform(value => value.toLowerCase()), s.int());
+  const collisionSet = s.set(s.string().transform(value => value.toLowerCase()));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (record.safeParseJson(input)) {
+      Ok(value) => {
+        if (value.size !== 1 || value.get('x') !== 2) {
+          throw 'Wrong record';
+        }
+
+        checksum += 2;
+      },
+      Err(error) => {
+        throw 'Record rejected';
+      }
+    }
+
+    const entries = new Map<string, int>();
+    entries.set('x', 3);
+    match (map.safeParse(entries)) {
+      Ok(value) => {
+        if (value.size !== 1 || value.get('x') !== 3) {
+          throw 'Wrong map';
+        }
+
+        checksum += 3;
+      },
+      Err(error) => {
+        throw 'Map rejected';
+      }
+    }
+
+    const elements = new Set<string>();
+    elements.add('ready');
+    match (set.safeParse(elements)) {
+      Ok(value) => {
+        if (value.size !== 1 || !value.has('ready')) {
+          throw 'Wrong set';
+        }
+
+        checksum += 1;
+      },
+      Err(error) => {
+        throw 'Set rejected';
+      }
+    }
+
+    const keys = new Map<string, int>();
+    keys.set('A', 1);
+    keys.set('a', 2);
+    match (collisionMap.safeParse(keys)) {
+      Ok(value) => {
+        throw 'Map collision accepted';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
+          throw 'Wrong collision';
+        }
+
+        checksum += 1;
+      }
+    }
+
+    const tags = new Set<string>();
+    tags.add('A');
+    tags.add('a');
+    match (collisionSet.safeParse(tags)) {
+      Ok(value) => {
+        throw 'Set collision accepted';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
+          throw 'Wrong collision';
+        }
+
+        checksum += 1;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '{"x":2}'));
+}

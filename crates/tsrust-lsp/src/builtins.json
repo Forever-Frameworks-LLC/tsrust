@@ -7115,6 +7115,61 @@
   }
 ],
   "schemaBuilder": [
+    {
+      "name": "record",
+      "signature": "record<Element>(element: Owned<Schema<Element>>): Schema<Map<string, Element>>",
+      "parameters": [
+        {
+          "label": "element: Owned<Schema<Element>>",
+          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+        }
+      ],
+      "documentation": "Validates every value of a JSON object against one child schema, returning an owned Map with arbitrary string keys. safeParse accepts matching owned Maps or JsonValue when the child accepts JSON; safeParseJson decodes directly from text. Keys are preserved and failures identify their property names. Empty objects produce empty Maps. Duplicate JSON keys use the last value before validation, after checking the entire document. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}\n```\n\nExpected output: 2.",
+      "examples": [
+        {
+          "source": "import {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}",
+          "output": "2\n"
+        }
+      ]
+    },
+    {
+      "name": "map",
+      "signature": "map<Key, Element>(key: Owned<Schema<Key>>, element: Owned<Schema<Element>>): Schema<Map<Key, Element>>",
+      "parameters": [
+        {
+          "label": "key: Owned<Schema<Key>>",
+          "documentation": "Schema for each native Map key. Transformed keys must remain valid Map key types and distinct."
+        },
+        {
+          "label": "element: Owned<Schema<Element>>",
+          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+        }
+      ],
+      "documentation": "Validates an existing native Map, checking each key before its value in insertion order. Returns an owned Map with inferred transformed key and value types. A transformed-key collision returns a collection-collision validation issue rather than overwriting data. Entry paths use the insertion index followed by key or value. This constructor does not assign a JSON wire representation; use an explicit conversion when decoding JSON. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.",
+      "examples": [
+        {
+          "source": "import {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
+          "output": "1\n"
+        }
+      ]
+    },
+    {
+      "name": "set",
+      "signature": "set<Element>(element: Owned<Schema<Element>>): Schema<Set<Element>>",
+      "parameters": [
+        {
+          "label": "element: Owned<Schema<Element>>",
+          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+        }
+      ],
+      "documentation": "Validates an existing native Set in insertion order and returns an owned Set with the inferred element output type. A transform that makes distinct elements equal returns a collection-collision validation issue rather than silently deduplicating. Failure paths use the insertion index. This constructor does not decode JSON arrays implicitly; use an explicit array-to-Set transform when deduplication is intended. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.",
+      "examples": [
+        {
+          "source": "import {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
+          "output": "1\n"
+        }
+      ]
+    },
   {
     "name": "string",
     "signature": "s.string(): Schema<string>",
