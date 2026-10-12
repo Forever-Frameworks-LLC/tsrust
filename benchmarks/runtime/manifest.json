@@ -22002,6 +22002,30 @@
       "notes": "Validation of small exact integers with a reusable min-2 plan. Handwritten TypeScript reference, not Zod. JSON parsing excluded; no timings collected.",
       "sourceSha256": "8aa9db522911ee1af0cd520d494dfa1f765d09bca7fcf5a0e46758b3851a46af",
       "counterpartSha256": "0664d225258160fa72cb3db3a265711ee2d850d59d419ef3af656399033e6a88"
+    },
+    {
+      "id": "native_schema_json_array",
+      "category": "schema",
+      "description": "JSON array validation with exact integer extraction and indexed errors",
+      "source": "workloads/native_schema_json_array.tsr",
+      "counterpart": "workloads/native_schema_json_array.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, array validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "[2,3]",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Parse and validate [2,3]; reject [1,0] with two indexed too-small errors. Checksum adds four per iteration.",
+      "notes": "Parse plus validation in a small exact-integer domain. Handwritten TypeScript reference, not Zod. Full signed-64 endpoints and precision failures have separate native checks. Unmeasured.",
+      "sourceSha256": "969f16b6c64cf7c8181540ff852e7afd3b0e938f56e442ecd4aa369a6c925885",
+      "counterpartSha256": "69dc548002d1800f6cd1d455e1e3057eb168ae41dd0d0be9a6f01d9a137d2052"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

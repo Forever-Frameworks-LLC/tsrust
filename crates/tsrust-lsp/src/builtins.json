@@ -7056,7 +7056,7 @@
         "documentation": "One element schema, consumed into the array plan. Nested array plans are supported."
       }
     ],
-    "documentation": "Constructs an immutable array schema that owns its element plan. Existing element constraints are retained without cloning. Returns Schema<T[]>; nesting produces nested array output types. safeParse validates owned arrays of matching scalar types, including nested arrays; JsonValue input is not supported yet. Construction requires exactly one schema and has no optional arguments.\n\n```tsrust\nimport {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}\n```\n\nExpected output: constructed.\n\nOwnership: consumes the element schema. Use the returned plan; the original child cannot be reused.",
+    "documentation": "Constructs an immutable array schema that owns its element plan. Existing element constraints are retained without cloning. Returns Schema<T[]>; nesting produces nested array output types. safeParse validates owned matching arrays or JsonValue, including nested arrays. Construction requires exactly one schema and has no optional arguments.\n\n```tsrust\nimport {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}\n```\n\nExpected output: constructed.\n\nOwnership: consumes the element schema. Use the returned plan; the original child cannot be reused.",
     "examples": [
       {
         "source": "import {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}",
@@ -7068,18 +7068,22 @@
   "SchemaArray": [
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Output>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Output | JsonValue>): Result<Output, SchemaError>",
     "parameters": [
       {
-        "label": "input: Owned<Output>",
-        "documentation": "An owned array with the same element type and nesting as the schema. Consumed on success and failure."
+        "label": "input: Owned<Output | JsonValue>",
+        "documentation": "A matching owned array or dynamic JSON value. Both transfer on success and failure. JSON arrays are checked recursively without coercing strings, booleans or null."
       }
     ],
-    "documentation": "Validates every array element against its child schema. Returns Ok with owned validated elements or Err with indexed issues in input order. Supports matching string, int, number, boolean and null arrays, including nested arrays. Empty arrays succeed. Child constraints retain their usual meaning. Keeps up to 64 issues, 32 segments per path and 1024 UTF-8 bytes of field names per path; omitted issues set truncated, shortened paths set pathTruncated. Validation continues after failure and releases partial successful output. The schema stays reusable. JsonValue input and element-type conversions are not supported yet. Integer values remain exact; number values must be finite.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.\n\nOwnership: borrows the schema and consumes input on every outcome. No element is implicitly cloned; use clone(input) explicitly to retain the original.",
+    "documentation": "Validates every array element against its child schema. Returns Ok with owned validated elements or Err with indexed issues in input order. Supports matching string, int, number, boolean and null arrays, including nested arrays, or an owned JsonValue. JSON input must contain arrays at each array level; mismatches return type-mismatch. JSON integer extraction rejects fractional and out-of-range values; number extraction rejects precision loss. JSON strings move their existing text storage. Empty arrays succeed. Child constraints retain their usual meaning. Keeps up to 64 issues, 32 segments per path and 1024 UTF-8 bytes of field names per path; omitted issues set truncated, shortened paths set pathTruncated. Validation continues after failure and releases partial successful output. The schema stays reusable. Conversions between differently typed owned arrays are not supported yet. Integer values remain exact; number values must be finite.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.\n\nOwnership: borrows the schema and consumes input on every outcome. No element is implicitly cloned; use clone(input) explicitly to retain the original.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));match(schema.safeParse([1,3])){Ok(value)=>{console.log(value.length);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
         "output": "1 false\n"
+      },
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.array(s.int());match(schema.safeParse(JSON.parse('[1,1.5]'))){Ok(value)=>{console.log(value.length);},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.path.length);}}}}",
+        "output": "integer-fractional 1\n"
       }
     ]
   }

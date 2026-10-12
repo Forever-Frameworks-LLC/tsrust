@@ -1,0 +1,52 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.array(s.int().min(2));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        checksum += value.length;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('[1,0]'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 2) {
+          throw 'Invalid count';
+        }
+
+        let index = 0;
+        for (const issue of error.issues) {
+          if (issue.code !== 'too-small' || issue.expected !== 'integer' || issue.observed !== 'number' || issue.path.length !== 1 || issue.pathTruncated) {
+            throw 'Invalid issue';
+          }
+
+          for (const segment of issue.path) {
+            if (segment.index !== index || segment.field !== undefined) {
+              throw 'Invalid path';
+            }
+          }
+
+          checksum += 1;
+          index++;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '[2,3]'));
+}

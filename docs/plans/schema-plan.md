@@ -1,9 +1,10 @@
 # S11 schema validation
 
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
-Public string and boolean schemas have focused compiler, native and editor verification.
-Internal bounded issues, consuming arrays and checked numeric plans are also verified.
-Other constructors, composite source APIs, decoder fusion and family acceptance remain pending.
+Public scalar schemas, constraints and nested scalar arrays have focused compiler,
+native and editor verification. Arrays accept matching owned arrays or JsonValue.
+Literal/enum types, objects and other composite APIs, decoder fusion and family
+acceptance remain pending.
 
 ## Required surface and coverage
 
@@ -16,7 +17,7 @@ executing differential cases; current web documentation alone is not a version p
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
-| Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
+| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested arrays integrated for matching owned and JSON input; other composite elements and typed numeric conversions pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
@@ -851,3 +852,25 @@ This completes the matching-owned-input path only. JsonValue arrays, checked
 numeric conversion between element types, broader composite schemas and the
 remaining S11 milestone acceptance are still required. Installed consumers remain
 at the accepted S10 checkpoint.
+
+
+## JSON array validation integration
+
+Array safeParse also consumes JsonValue and validates each nested array level.
+Successful strings move their storage; integer extraction preserves signed 64-bit
+values and rejects fractional or out-of-range values. Number extraction rejects
+precision loss before applying bounds. Structural mismatches report the expected
+and observed kind at the current indexed path. Existing error-count and path
+budgets apply, with no retained input payloads.
+
+Focused native checks cover all scalar JSON kinds, nested success and failure,
+non-array roots, both int64 endpoints, unsigned overflow, fractional integers,
+number precision rejection and consumed-input reuse. Catalog signatures and an
+executed JSON-array example cover the public contract; editor signature checks pass.
+The native_schema_json_array workload includes source guards, independent result
+checks, ABI registration and a matched handwritten TypeScript reference. Four
+untimed cases agree with Node-after-tsc; all 12 schema workload contracts pass.
+SQLite evidence: `tsrust-schema-json-array-*-5ad48447.log`.
+
+Typed array numeric conversions and the broader S11 surface remain pending. This
+checkpoint does not constitute family measurement or a consumer refresh.

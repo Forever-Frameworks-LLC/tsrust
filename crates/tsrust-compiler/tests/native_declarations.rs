@@ -738,3 +738,28 @@ fn schema_owned_array_validation_handles_nested_and_scalar_storage() {
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"1\n1\n2 too-small\n2\n2\n2\n64 true\n0\n");
 }
+
+#[test]
+fn schema_json_arrays_preserve_exact_values_and_indexed_failures() {
+    let source=r#"import {s} from 'std:schema';function main(){
+      const flags=s.array(s.boolean());match(flags.safeParse(JSON.parse('[true,false]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'boolean failure';}}
+      const nulls=s.array(s.null());match(nulls.safeParse(JSON.parse('[null]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'null failure';}}
+      const texts=s.array(s.string());match(texts.safeParse(JSON.parse('["hello","😀"]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'string failure';}}
+      const fractions=s.array(s.number().min(1.0));match(fractions.safeParse(JSON.parse('[1.5]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'number failure';}}
+      const integers=s.array(s.int());
+      match(integers.safeParse(JSON.parse('[9223372036854775807,-9223372036854775808]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'integer range';}}
+      match(integers.safeParse(JSON.parse('[1.5,18446744073709551615,true]'))){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+      const rows=s.array(s.array(s.string().min(2)));
+      match(rows.safeParse(JSON.parse('[["yes"]]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'nested success';}}
+      match(rows.safeParse(JSON.parse('[["hello"],["x",true],null]'))){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}
+      const numbers=s.array(s.number());
+      match(numbers.safeParse(JSON.parse('[9007199254740993]'))){Ok(values)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+      match(integers.safeParse(JSON.parse('{}'))){Ok(values)=>{throw 'object accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.expected,issue.observed,issue.path.length);}}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"2\n1\nhello\n😀\n1.5\n9223372036854775807\n-9223372036854775808\ninteger-fractional number 1\ninteger-range number 1\ntype-mismatch boolean 1\n1\ntoo-small string string 2\ntype-mismatch string boolean 2\ntype-mismatch array null 1\nnumber-precision\narray object 0\n");
+    let invalid="import {s} from 'std:schema';function main(){const schema=s.array(s.int());const input=JSON.parse('[1]');schema.safeParse(input);console.log(typeof input);}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+
+}

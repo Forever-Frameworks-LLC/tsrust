@@ -37,7 +37,9 @@ impl Analyzer {
         if !matches!(leaf,Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null){return Err(Diagnostic::new("schema-type","Array validation requires a supported scalar element schema.",callee.span));}
         if args.len()!=1{return Err(Diagnostic::new("arity","safeParse expects one input value.",expr.span));}
         if !constructing {self.expression(context,&mut receiver,Mode::Read,loans,Some(Type::Record(id)))?;}
-        self.expression(context,&mut args[0],Mode::Consume,loans,Some(output))?;
+        let hint=self.expression_type_hint(context,&args[0]);
+        let json=matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
+        self.expression(context,&mut args[0],Mode::Consume,loans,if json {hint}else{Some(output)})?;
         let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

@@ -2554,5 +2554,5 @@ fn schema_array_validation_infers_result_and_documents_input() {
     let hover=ask(&index,&entry,"result =","textDocument/hover");
     assert!(hover.to_string().contains("Result<string[][], SchemaError>"),"{hover}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
-    assert!(hover.to_string().contains("64")&&hover.to_string().contains("Owned<string[][]>"),"{hover}");
+    assert!(hover.to_string().contains("64")&&hover.to_string().contains("Owned<string[][] | JsonValue>"),"{hover}");
 }
