@@ -1870,6 +1870,7 @@ impl SourceIndex {
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
+        if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}
         if let Some(output)=self.schema_element(&receiver) && matches!(method,"optional"|"nullable") {
             let added=if method=="optional"{"undefined"}else{"null"};
             let result=if output.split('|').any(|member|member.trim()==added){output.to_owned()}else{format!("{output} | {added}")};

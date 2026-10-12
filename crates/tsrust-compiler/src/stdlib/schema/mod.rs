@@ -24,3 +24,5 @@ mod literal;
 
 #[cfg(test)]
 mod object;
+
+pub(crate) mod defaults;

@@ -19,7 +19,7 @@ executing differential cases; current web documentation alone is not a version p
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
-| Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable integrated for scalars and composite fields; default factories pending |
+| Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable and reusable default factories integrated for owned/JSON object fields; S11 family acceptance pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
@@ -983,7 +983,8 @@ The owner approved factory-based defaults: a reusable zero-argument factory runs
 only when validation finds a missing field. Its result is validated against the
 child schema. Explicit null and invalid supplied values do not invoke the factory.
 This avoids hidden cloning of owned defaults. Both inline callbacks and named
-functions should work. Implementation remains pending.
+functions are required. Partial working-tree implementation is described below;
+the default gate remains unaccepted.
 
 Recommended spelling is `.default(factory)`, consistent with the factory-accepting
 names in [Zod](https://zod.dev/api#defaults) and
@@ -1053,8 +1054,24 @@ Preserve chainable refinement, transformation and explicit coercion APIs.
 Refinements inspect values and report issues; transformations can consume or
 mutate owned input and return the next typed value. Explicit coercion precedes
 subsequent validation. The owner requested a path for mutation in these pipelines;
-readonly default factories must not accidentally prohibit it. Exact coercion
-syntax and refinement mutation semantics are not accepted by this note.
+readonly default factories must not accidentally prohibit it. The subsequent approval below settles refinement versus transformation roles;
+exact coercion arguments remain open.
+
+Pipeline acceptance must include a callback that changes owned input, a subsequent
+validation stage that observes the changed value, and editor inference for the
+resulting output type. Keep callbacks reusable without allowing mutation or
+consumption of their captured environments. Test early failure and exceptions:
+later stages must not run, and partially transformed owned values must be dropped
+exactly once. These requirements apply to runtime schema plans as well as literals.
+The owner approved separating predicate checks (`.refine`, preserving the input
+type) from value-producing transformations (`.transform`, inferring the returned
+type), with explicit `.coerce` conversion before subsequent validation. Checkers,
+hover, completion and signature help must track the input and output of every
+stage, including intermediate variables and reusable runtime plans. Negative
+tests must reject downstream operations valid only for an earlier stage's type.
+The precise arguments and placement of `.coerce` remain to be settled before that
+implementation gate. Do not treat readonly default factories
+as a decision to remove mutation-capable transformation pipelines.
 
 ### Unique readonly factory storage prerequisite
 
@@ -1094,3 +1111,60 @@ production exception witness also passed generated native execution, preserving
 success and failure through the family ABI. SQLite retains exact original and
 repair records as `tsrust-schema-factory-*.log`. Whole-project formatting changed
 zero files. Public defaults remain pending; no feature-family acceptance is claimed.
+
+## Default integration in progress
+
+Source `.default(factory)` lowering now consumes the child and factory, retains
+a uniquely owned readonly environment, and attaches it to the runtime plan.
+Attaching a factory allocates one owned box; schema values never share captures.
+Constraint reconstruction moves the existing factory into the replacement plan.
+Plans of the same output type retain separate optional factory instances.
+
+Missing JSON object fields invoke the attached factory and validate its returned
+value. Supplied null or invalid data does not invoke it. Executed witnesses cover
+fresh arrays, named and inline factories, readonly captured arrays, repeated
+validation, invalid generated values, boolean/null/presence defaults, and
+independence from ordinary required-field plans. Mutable/consuming captures and
+reuse of consumed child plans are rejected. Owned-record omissions now construct
+required output through the same validation path, including explicit missing
+errors when a runtime plan has no factory.
+
+Hover/signature entries and an executable example have been added with current
+limits stated explicitly. A focused editor witness and the distinct catalog-source
+execution check passed before the owned-record extension.
+
+Factory exceptions now propagate through the checked family error ABI, preserving
+concrete payloads. Validators stop invoking later factories after an exception;
+partial outputs are dropped. Focused native witnesses cover nested short-circuiting,
+structured errors, forwarded plans and later-discovered factory error alternatives.
+The earlier native failure and repairs remain part of the diagnostic evidence.
+
+Default integration now has focused implementation acceptance. Missing owned and
+JSON fields use fresh validated values; constraints, optional/nullable widening,
+stripping and retention preserve factories without copying their environments.
+Heterogeneous owned input shapes select separate typed validator helpers. Inferred
+record-producing callbacks receive their schema output as contextual type.
+Returned runtime factories with readonly owned captures execute repeatedly.
+Existing callable-return restrictions still apply: a function returning different
+closure definitions is diagnosed by the general checker. This gate does not
+expand that separate callback representation boundary.
+
+Focused compiler/native verification: 45 schema checks passed, including all 11
+default-specific checks and executable catalog examples. Editor verification:
+19 checks passed initially; the remaining new test expected a space in a rendered
+Map type. Correcting that assertion passed the retained/default chain test without
+changing editor behavior. All 20 schema editor cases therefore passed across the
+preserved runs. Tests verify intermediate/final types, parameter help, required
+narrowing and rejection of incompatible inputs and factory results.
+
+The `native_schema_json_defaults` workload has matched TypeScript support,
+independent checksum, source guards, fingerprints, report registration and ABI
+checks. All 18 schema workload contract tests and four untimed cases per engine
+passed. Whole-project formatting changed zero files and fingerprints. Exact red,
+repair and green records are retained in SQLite under `tsrust-schema-default-*`.
+There is no timing, S11 family acceptance or installed-consumer refresh.
+
+Next required S11 work includes public literal/enum and union families, then the
+remaining second-tranche APIs. The approved chain contracts above are required
+for refinement, transformation and explicit coercion acceptance; they are not
+implemented by the default work.

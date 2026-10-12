@@ -95,9 +95,11 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
     let limit=format!("Union{}::V{limit_tag}(error.limit)",limit_union.index());
     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
     let operation=match binding.name {"__minString"|"__minInt"|"__minNumber"=>"min","__maxString"|"__maxInt"|"__maxNumber"=>"max","__gtInt"|"__gtNumber"=>"gt","__ltInt"|"__ltNumber"=>"lt",_=>unreachable!("unknown schema constraint")};
+    let output=program.records[schema].application.as_ref().unwrap().resolved_arguments[0];
+    let factory=if program.schema_factories.contains_key(&output){"factory:schema.factory,"}else{""};
     format!("fn {symbol}(schema:Record{schema},limit:{rust_type})->Union{result}{{
         match schema.bounds.{operation}(limit){{
-            Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{bounds}}}}),
+            Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{{factory}bounds}}}}),
             Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.operation),field2:{limit}}}}})
         }}
     }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))

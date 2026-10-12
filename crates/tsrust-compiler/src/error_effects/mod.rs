@@ -224,7 +224,43 @@ pub(crate) fn materialize_catch_types(program:&mut CheckedProgram)->Result<(),cr
     Ok(())
 }
 
+/// Schema values can be constructed after an earlier reusable validation function
+/// is checked. Refresh invocation identities before solving the final effects.
+fn refresh_schema_invocations(program:&mut CheckedProgram) {
+    if program.schema_factories.is_empty(){return;}
+    let mut by_record=std::collections::HashMap::new();
+    for (id,record) in program.records.iter().enumerate(){
+        if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){continue;}
+        let mut pending=vec![record.application.as_ref().unwrap().resolved_arguments[0]];
+        let mut seen=std::collections::HashSet::new();let mut families=Vec::new();
+        while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}
+            if let Some(&family)=program.schema_factories.get(&ty){families.push(family);}
+            families.extend(crate::stdlib::schema::defaults::inherited_factories(ty,&program.schema_factories,|id|program.unions[id.index()].members.clone()).into_iter().map(|(_,family)|family));
+            match ty{
+                Type::Array(element)=>pending.push(element.ty()),
+                Type::Union(union)=>pending.extend(program.unions[union.index()].members.iter().copied()),
+                Type::Record(id) if program.records[id].name.text.starts_with("@schema:retained:")=>pending.push(program.records[id].fields[0].ty.unwrap()),
+                Type::Record(id)=>pending.extend(program.records[id].fields.iter().filter_map(|field|field.ty)),
+                _=>{}
+            }
+        }
+        families.sort_unstable();families.dedup();by_record.insert(id,families.into_boxed_slice());
+    }
+    let mut visit=|expression:&mut Expr|->Result<(),crate::Diagnostic>{
+        if expression.target==Some(CallTarget::SchemaValidate)&&let ExprKind::Call(_,arguments)=&expression.kind&&let Some(Type::Record(id))=arguments.first().and_then(|value|value.ty){
+            let families=by_record.get(&id).map(|families|&**families).unwrap_or_default();
+            if expression.schema_invocations.as_deref().unwrap_or_default()!=families {expression.schema_invocations=(!families.is_empty()).then(||families.into());}
+        }
+        Ok(())
+    };
+    for function in program.functions.iter_mut().chain(program.closures.iter_mut().flat_map(|closure|std::iter::once(&mut closure.function).chain(closure.methods.iter_mut().map(|method|&mut method.function)))){
+        crate::source_walk::body(&mut function.body,&mut |_|Ok(()),&mut visit).expect("infallible schema effect refresh");
+        for binding in &mut function.bindings {if let Some(initializer)=&mut binding.initializer{crate::source_walk::expression(initializer,&mut visit).expect("infallible schema initializer refresh");}}
+    }
+}
+
 pub(crate) fn annotate(program:&mut CheckedProgram)->ErrorEffects {
+    refresh_schema_invocations(program);
     let families=program.stored_contracts.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
     annotate_parts_with_storage(&mut program.functions.iter_mut().collect::<Vec<_>>(),&mut program.closures,&families,&program.polymorphic_invocations)
 }
@@ -498,6 +534,7 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
 /// Missing declarations remain opaque; supplied contracts are not inferred from types.
 #[inline(never)]
 pub(crate) fn annotate_with_callbacks(program:&mut CheckedProgram,callbacks:&std::collections::HashMap<usize,FailureSet>)->ErrorEffects {
+    refresh_schema_invocations(program);
     let families=program.stored_contracts.families().map(|(id,_,origins)|(id,origins.iter().copied().collect())).collect::<Vec<_>>();
     let mut functions=program.functions.iter_mut().map(Some).collect::<Vec<_>>();
     annotate_partial_with_contracts(&mut functions,&mut program.closures,&families,callbacks,&program.polymorphic_invocations)
@@ -773,9 +810,10 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
             origin.and_then(|id|effects.method_errors.get(&(id,method)).cloned()).unwrap_or_else(FailureSet::unknown)
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
+        SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
-        SchemaPresence|SchemaRetain|SchemaStrip|SchemaValidate|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
+        SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
         ArrayMap|MapGroupBy|ArrayFlatMap|ArrayFilter|ArrayForEach|ArraySome|ArrayEvery|
         ArrayFind|ArrayFindLast|ArrayFindIndex|ArrayFindLastIndex|ArrayReduce|
         ArrayReduceRight|ArraySort|ArrayToSorted=>{

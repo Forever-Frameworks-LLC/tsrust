@@ -7083,6 +7083,23 @@
 }
   ],
   "SchemaArray": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<Output>): Schema<Output>",
+  "parameters": [
+    {
+      "label": "factory: Function<Output>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
@@ -7134,6 +7151,23 @@
 }
 ],
   "Schema": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<string>): Schema<string>",
+  "parameters": [
+    {
+      "label": "factory: Function<string>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: Owned<string | JsonValue>): Result<string, SchemaError>",
@@ -7215,6 +7249,23 @@
 }
 ],
   "SchemaBoolean": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<boolean>): Schema<boolean>",
+  "parameters": [
+    {
+      "label": "factory: Function<boolean>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
     {
       "name": "safeParse",
       "signature": "safeParse(input: boolean | Owned<JsonValue>): Result<boolean, SchemaError>",
@@ -7258,6 +7309,23 @@
 }
 ],
   "SchemaInt": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<int>): Schema<int>",
+  "parameters": [
+    {
+      "label": "factory: Function<int>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: int | Owned<JsonValue>): Result<int, SchemaError>",
@@ -7369,6 +7437,23 @@
 }
 ],
   "SchemaNumber": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<number>): Schema<number>",
+  "parameters": [
+    {
+      "label": "factory: Function<number>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: number | int | Owned<JsonValue>): Result<number, SchemaError>",
@@ -7484,6 +7569,23 @@
 }
 ],
   "SchemaNull": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<null>): Schema<null>",
+  "parameters": [
+    {
+      "label": "factory: Function<null>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: null | Owned<JsonValue>): Result<null, SchemaError>",
@@ -7527,6 +7629,23 @@
 }
 ],
   "SchemaObject": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<Output>): Schema<Output>",
+  "parameters": [
+    {
+      "label": "factory: Function<Output>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
@@ -7594,6 +7713,23 @@
   }
 ],
   "SchemaRetained": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<Output>): Schema<Output>",
+  "parameters": [
+    {
+      "label": "factory: Function<Output>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
@@ -7637,6 +7773,23 @@
 }
 ],
   "SchemaPresence": [
+{
+  "name": "default",
+  "signature": "default(factory: Function<Output>): Schema<Output>",
+  "parameters": [
+    {
+      "label": "factory: Function<Output>",
+      "documentation": "Reusable zero-argument factory returning a fresh child value. Captures are owned and readonly; the returned value is validated."
+    }
+  ],
+  "documentation": "Supplies a fresh value when an owned or JSON object field is missing. The zero-argument factory runs only for missing fields; supplied null and invalid values still pass through ordinary validation. The generated value is validated against the child schema, including constraints. Repeated validation calls the factory again. Captures must permit readonly reusable invocation; mutating or consuming captures is rejected. Factory exceptions propagate to the caller; safeParse returns validation errors only for invalid data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 7.\n\nOwnership: consumes the child schema and factory, returning a reusable immutable plan. Factory storage is uniquely owned and allocated once when attached; values and captures are not implicitly cloned or shared.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.int().default(()=>7)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "7\n"
+    }
+  ]
+},
   {
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",

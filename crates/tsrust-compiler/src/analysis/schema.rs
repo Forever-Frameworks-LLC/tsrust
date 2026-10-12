@@ -24,7 +24,7 @@ impl Analyzer {
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable")));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable"|"default")));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
@@ -51,7 +51,8 @@ impl Analyzer {
             while let (Type::Array(a),Type::Array(b))=(from,to){from=a.ty();to=b.ty();}
             from==Type::Int && (to==Type::Number || matches!(to,Type::Union(id) if self.unions.members(id).contains(&Type::Number) && self.unions.members(id).iter().all(|ty|matches!(ty,Type::Number|Type::Null|Type::Undefined))))
         });
-        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(validation_output)})?;
+        let owned_input=if json||conversion {validation_output}else{self.schema_default_input(context,validation_output,&args[0])?};
+        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(owned_input)})?;
         let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
@@ -62,6 +63,21 @@ impl Analyzer {
         self.require(result,expected,expr.span)?;
         args.insert(0,receiver);
         callee.kind=ExprKind::Name("@schema:validate".into());
+        let mut pending=vec![output];let mut visited=HashSet::new();let mut factories=Vec::new();
+        while let Some(ty)=pending.pop(){
+            if !visited.insert(ty){continue;}
+            if let Some(&family)=self.schema_factories.get(&ty){factories.push(family);}
+            factories.extend(crate::stdlib::schema::defaults::inherited_factories(ty,&self.schema_factories,|id|self.unions.members(id).to_vec()).into_iter().map(|(_,family)|family));
+            match ty {
+                Type::Array(element)=>pending.push(element.ty()),
+                Type::Union(id)=>pending.extend(self.unions.members(id)),
+                Type::Record(id) if self.program.records[id].name.text.starts_with("@schema:retained:")=>pending.push(self.program.records[id].fields[0].ty.unwrap()),
+                Type::Record(id)=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+                _=>{}
+            }
+        }
+        factories.sort_unstable();factories.dedup();
+        expr.schema_invocations=(!factories.is_empty()).then(||factories.into_boxed_slice());
         expr.target=Some(CallTarget::SchemaValidate);
         Ok(Some(result))
     }

@@ -891,3 +891,149 @@ fn schema_optional_and_nullable_fields_keep_missing_and_null_distinct() {
     let invalid="import {s} from 'std:schema';function main(){const schema=s.string().optional();const input='owned';schema.safeParse(input);console.log(input);}";
     assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
 }
+
+#[test]
+fn schema_defaults_validate_fresh_factory_results_only_for_missing_fields() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function fresh(): string[] { return ['fresh']; }
+    function main(){
+      const schema=s.object({items:s.array(s.string()).default(fresh)});
+      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{value.items.push('changed');strictEqual(value.items.length,2);},Err(error)=>{throw 'missing default failed';}}
+      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.items.length,1);},Err(error)=>{throw 'fresh default failed';}}
+      match(schema.safeParse(JSON.parse('{"items":[]}'))){Ok(value)=>{strictEqual(value.items.length,0);},Err(error)=>{throw 'supplied value failed';}}
+      match(schema.safeParse(JSON.parse('{"items":null}'))){Ok(value)=>{throw 'null accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      const captured=[1,2,3];
+      const reusable=s.object({count:s.int().default(()=>captured.length)});
+      match(reusable.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'captured default failed';}}
+      match(reusable.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'reused capture failed';}}
+      const required=s.object({count:s.int()});
+      match(required.safeParse(JSON.parse('{}'))){Ok(value)=>{throw 'default leaked between plans';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      const presence=s.object({flag:s.boolean().default(()=>true),nothing:s.null().default(()=>null),note:s.string().nullable().default(()=>null)});
+      match(presence.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.flag,true);strictEqual(value.nothing===null,true);strictEqual(value.note===null,true);},Err(error)=>{throw 'presence defaults failed';}}
+      const invalid=s.object({count:s.int().min(1).default(()=>0)});
+      match(invalid.safeParse(JSON.parse('{}'))){Ok(value)=>{throw 'invalid factory accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+    }"#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    for (source,code) in [
+      ("import {s} from 'std:schema';function main(){const values=[1];const plan=s.int().default(()=>{values.push(2);return values.length;});}","callback-access"),
+      ("import {s} from 'std:schema';function main(){const text='owned';const plan=s.string().default(()=>text);}","callback-once"),
+      ("import {s} from 'std:schema';function main(){const original=s.int();const plan=original.default(()=>1);original.safeParse(1);}","transferred"),
+    ] {assert_eq!(checked_source(source).err().unwrap().code,code);}
+
+}
+
+#[test]
+fn schema_default_factory_exceptions_propagate_without_becoming_validation_issues() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    type FactoryError={code:string;};
+    function failing():int{throw 'factory failed';}
+    function later():string{throw 'later factory ran';}
+    function structured():int{const error:FactoryError={code:'factory'};throw error;}
+    function main(){
+      const schema=s.object({nested:s.object({value:s.int().default(failing)}),later:s.string().default(later)});
+      const input=JSON.parse('{"nested":{}}');
+      const typed=s.object({value:s.int().default(structured)});const typedInput=JSON.parse('{}');
+      try{schema.safeParse(input);throw 'factory did not throw';}catch(error){strictEqual(error,'factory failed');}
+      try{typed.safeParse(typedInput);throw 'structured factory did not throw';}catch(error){if(typeof error==='string'){throw error;}strictEqual(error.code,'factory');}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_owned_record_omission_builds_required_output() {
+    let source="import {s} from 'std:schema';import {strictEqual} from 'std:testing';function main(){const schema=s.object({value:s.int().default(()=>7)});match(schema.safeParse({})){Ok(value)=>{strictEqual(value.value,7);},Err(error)=>{throw 'owned omission failed';}}}";
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_late_factory_error_widening_rechecks_catch_calls() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    type FactoryError={code:string;};
+    function first():int{throw 'first';}
+    function second():int{const error:FactoryError={code:'second'};throw error;}
+    function main(){const earlier=s.object({value:s.int().default(first)});const input=JSON.parse('{}');try{earlier.safeParse(input);throw 'missing failure';}catch(error){strictEqual(error,'first');}const later=s.object({value:s.int().default(second)});}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_forwarded_plan_refreshes_factory_exception_effects() {
+    let source=r#"import {s,Schema} from 'std:schema';import {JsonValue} from 'std:json';import {strictEqual} from 'std:testing';
+    type Payload={value:int;};type ForwardError={code:string;};
+    function forward(schema:ReadOnly<Schema<Payload>>,input:JsonValue):int{match(schema.safeParse(input)){Ok(value)=>{return value.value;},Err(error)=>{throw 'invalid';}}}
+    function failing():int{const error:ForwardError={code:'factory failed'};throw error;}
+    function main(){const schema:Schema<Payload>=s.object({value:s.int().default(failing)});const input=JSON.parse('{}');try{forward(schema,input);throw 'missing failure';}catch(error){if(typeof error==='string'){throw error;}strictEqual(error.code,'factory failed');}}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_defaults_preserve_factories_through_presence_and_constraints() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){
+      const schema=s.object({count:s.int().default(()=>7).min(5),note:s.string().default(()=>'ready').optional(),other:s.string().default(()=>'ok').nullable()});
+      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,7);if(value.note===undefined){throw 'optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'nullable erased default';}strictEqual(value.other,'ok');},Err(error)=>{throw 'composed defaults failed';}}
+      match(schema.safeParse({})){Ok(value)=>{strictEqual(value.count,7);if(value.note===undefined){throw 'owned optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'owned nullable erased default';}strictEqual(value.other,'ok');},Err(error)=>{throw 'owned composed defaults failed';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_defaults_validate_distinct_owned_input_shapes_for_same_output() {
+    let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
+    type Item={value:int;};
+    function main(){const left:Schema<Item>=s.object({value:s.int().default(()=>7)});const right:Schema<Item>=s.object({value:s.int().default(()=>9)});const schema=s.object({left:left,right:right});
+      match(schema.safeParse({left:{},right:{value:11}})){Ok(value)=>{strictEqual(value.left.value,7);strictEqual(value.right.value,11);},Err(error)=>{throw 'owned shapes failed';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_chains_reject_incompatible_input_and_unnarrowed_output() {
+    for source in [
+      "import {s} from 'std:schema';function main(){const schema=s.int().default(()=>7).min(5);schema.safeParse('seven');}",
+      "import {s} from 'std:schema';function main(){const schema=s.string().default(()=>'ready').optional();match(schema.safeParse(undefined)){Ok(value)=>{const size=value.length;},Err(error)=>{}}}",
+      "import {s} from 'std:schema';function main(){const schema=s.int().default(()=>'wrong').min(5);}",
+    ] {assert!(checked_source(source).is_err(),"accepted incompatible chain: {source}");}
+}
+
+#[test]
+fn schema_defaults_survive_presence_widening_without_copying_factories() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function fail():int|undefined{throw 'widened factory error';}
+    function main(){
+      const schema=s.object({left:s.string().optional().default(()=>'left').nullable(),right:s.string().nullable().default(()=>'right').optional()});
+      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{if(value.left===null||value.left===undefined){throw 'left default lost';}if(value.right===null||value.right===undefined){throw 'right default lost';}strictEqual(value.left,'left');strictEqual(value.right,'right');},Err(error)=>{throw 'widening failed';}}
+      const throwing=s.object({value:s.int().optional().default(fail).nullable()});const input=JSON.parse('{}');try{throwing.safeParse(input);throw 'missing exception';}catch(error){strictEqual(error,'widened factory error');}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_accepts_owned_runtime_factory_with_readonly_captures() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function make():Function<int>{const values=[1,2,3];return ()=>values.length;}
+    function main(){const factory=make();const schema=s.object({count:s.int().default(factory)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'runtime factory failed';}}match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'runtime reuse failed';}}}
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}
+
+#[test]
+fn schema_default_object_factory_survives_retention_and_stripping() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){const schema=s.object({retained:s.object({count:s.int()}).default(()=>({count:7})).retain(),stripped:s.object({count:s.int()}).default(()=>({count:9})).strip()});
+      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.retained.value.count,7);strictEqual(value.retained.extra.size,0);strictEqual(value.stripped.count,9);},Err(error)=>{throw 'policy default failed';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+}

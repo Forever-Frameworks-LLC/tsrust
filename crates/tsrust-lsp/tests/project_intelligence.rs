@@ -2619,3 +2619,28 @@ fn schema_presence_hover_retains_union_output_and_missing_contract() {
     let hover=ask(&index,&entry,"person =","textDocument/hover");assert!(hover.to_string().contains("nickname?:"),"{hover}");
     let help=ask(&index,&entry,"42);","textDocument/signatureHelp");assert!(help.to_string().contains("int")&&help.to_string().contains("number")&&help.to_string().contains("undefined"),"{help}");
 }
+
+#[test]
+fn schema_default_hover_preserves_output_and_factory_contract() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const count=s.int().default(()=>7);const record=s.object({count:count});const result=record.safeParse(JSON.parse('{}'));}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"count =","textDocument/hover");assert!(hover.to_string().contains("Schema<int>"),"{hover}");
+    let hover=ask(&index,&entry,"default(","textDocument/hover");assert!(hover.to_string().contains("missing")&&hover.to_string().contains("readonly")&&hover.to_string().contains("Function<int>"),"{hover}");
+    let help=ask(&index,&entry,"() => 7","textDocument/signatureHelp");assert!(help.to_string().contains("factory: Function<int>"),"{help}");
+}
+
+#[test]
+fn schema_default_chains_track_intermediate_and_final_output_types() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const constrained=s.int().default(()=>7).min(5);const optional=s.string().default(()=>'ready').optional();const nullable=s.string().default(()=>'ok').nullable();const object=s.object({count:constrained,note:optional,other:nullable});const result=object.safeParse(JSON.parse('{}'));const retained=s.object({count:s.int()}).default(()=>({count:7})).retain();}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"constrained =","textDocument/hover");assert!(hover.to_string().contains("Schema<int>"),"{hover}");
+    let hover=ask(&index,&entry,"optional =","textDocument/hover");assert!(hover.to_string().contains("string")&&hover.to_string().contains("undefined"),"{hover}");
+    let hover=ask(&index,&entry,"nullable =","textDocument/hover");assert!(hover.to_string().contains("string")&&hover.to_string().contains("null"),"{hover}");
+    let help=ask(&index,&entry,"5);","textDocument/signatureHelp");assert!(help.to_string().contains("int"),"{help}");
+    let hover=ask(&index,&entry,"retained =","textDocument/hover");assert!(hover.to_string().contains("value:")&&hover.to_string().contains("count: int")&&hover.to_string().contains("Map<string,JsonValue>"),"{hover}");
+    let hover=ask(&index,&entry,"object =","textDocument/hover");assert!(hover.to_string().contains("count: int")&&hover.to_string().contains("note?:"),"{hover}");
+}

@@ -641,6 +641,7 @@ pub enum CallTarget {
     SchemaStrip,
     SchemaRetain,
     SchemaPresence,
+    SchemaDefault,
     StringConversion,
     ArrayIsArray,
     ObjectIs,
@@ -993,6 +994,8 @@ pub struct Expr {
     pub ty: Option<Type>,
     pub binding: Option<usize>,
     pub target: Option<CallTarget>,
+    /// Owning schema factories that this validation may invoke.
+    pub(crate) schema_invocations: Option<Box<[usize]>>,
     /// A checked string-category proof for this JSON read, without changing storage.
     pub(crate) json_string_view: bool,
     /// Original source argument count, before optional padding or rest packing.
@@ -1421,6 +1424,7 @@ impl Expr {
             supplied_count,
             binding: None,
             target: None,
+            schema_invocations: None,
             json_string_view: false,
             traversal_method: None,
             may_fail: false,

@@ -22146,6 +22146,30 @@
       "notes": "Presence semantics in a fixed small JSON domain; handwritten TypeScript reference, not Zod. No timing yet.",
       "sourceSha256": "c6511e91e236a53b5d7b9d8ad7b7be1157b2e5518782da0aa27431aaba824d22",
       "counterpartSha256": "68314986bd7ced757a25c58c6f1ae5901b3b5ef650e68fa41e6909f639931ea9"
+    },
+    {
+      "id": "native_schema_json_defaults",
+      "category": "schema",
+      "description": "Reusable missing-field default factory followed by integer constraints",
+      "source": "workloads/native_schema_json_defaults.tsr",
+      "counterpart": "workloads/native_schema_json_defaults.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, object validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"label\":\"ready\"}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Generate and validate missing count 7; reject supplied null count and missing label. Checksum adds nine per iteration.",
+      "notes": "Small exact integer domain. Handwritten TypeScript reference; default factory reused across validations. Untimed parity only; unmeasured.",
+      "sourceSha256": "3c3581fd940431367fe226e8e35f9e8509d593dc6454e6ac76348502d4fcdcbb",
+      "counterpartSha256": "9077b759f325055e0d5969eff266fc9949d2e324997bdbd4e04caa0acf4e16b0"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

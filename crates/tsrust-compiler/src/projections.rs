@@ -358,6 +358,7 @@ impl Analysis {
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
                                 | CallTarget::SchemaPresence
+                                | CallTarget::SchemaDefault
                                 | CallTarget::SchemaRetain
                                 | CallTarget::SchemaStrip
                                 | CallTarget::JsonStringView

@@ -10,7 +10,7 @@ impl Analyzer {
         while let ExprKind::Call(callee,_)=&root.kind {
             match &callee.kind {
                 ExprKind::Name(name)=>{constructing=name.starts_with("@schema:")||name.starts_with("@native:std:schema#");break;},
-                ExprKind::Field(receiver,method) if matches!(method.as_str(),"min"|"max"|"gt"|"lt"|"optional"|"nullable"|"strip"|"retain")=>{
+                ExprKind::Field(receiver,method) if matches!(method.as_str(),"min"|"max"|"gt"|"lt"|"optional"|"nullable"|"strip"|"retain"|"default")=>{
                     if matches!(self.expression_type_hint(context,receiver),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){constructing=true;break;}
                     root=receiver;
                 },

@@ -6,7 +6,7 @@ impl Analyzer {
         let ExprKind::Field(base,method)=&callee.kind else{return Ok(None)};
         if !matches!(method.as_str(),"strip"|"retain"){return Ok(None);}
         let hinted=self.expression_type_hint(context,base);
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object") || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain")));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:object") || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"default")));
         if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
         if !args.is_empty(){return Err(Diagnostic::new("arity","Object policy methods expect no arguments.",expr.span));}
         let mut receiver=(**base).clone();

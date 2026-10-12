@@ -3,6 +3,7 @@ mod json_typed;
 mod schema;
 mod schema_objects;
 mod schema_presence;
+mod schema_defaults;
 mod json_refinement;
 mod native_view_mutations;
 mod native_view_expression_calls;
@@ -276,6 +277,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) schema_factories: HashMap<Type,usize>,
     pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) closure_record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) closure_record_capture_borrows: HashMap<usize,Vec<record_parameter_borrows::CapturedBorrow>>,
@@ -690,6 +692,7 @@ mod exception_escape_tests {
 }
 
 struct Analyzer {
+    schema_factories: HashMap<Type,usize>,
     native_borrow_types: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
@@ -1615,6 +1618,7 @@ impl Analyzer {
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
+            schema_factories: HashMap::new(),
             native_borrow_types,
             named_captures,
             assumed_capture_access: Default::default(),
@@ -3268,7 +3272,15 @@ impl Analyzer {
         // failures to the same field; check such a function again.
         {
             loop {
-                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len();
+                // Default plans hide readonly callback fields. Their finite source
+                // origins can widen catch contracts just like public callback fields.
+                // Rechecking may recreate an environment, so count source sites,
+                // not transient closure IDs.
+                let schema_origins=self.schema_factories.values()
+                    .flat_map(|family|self.callables.storage.origins(*family).unwrap_or_default())
+                    .filter_map(|origin|self.closures.get(*origin))
+                    .map(|closure|(closure.span.start,closure.span.end)).collect::<HashSet<_>>();
+                let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()+schema_origins.len();
                 let stale = (0..sources.len())
                     .filter(|&index| sources[index].is_some() && field_origins[index] < known && self.checked[index].as_ref().is_some_and(|function| !function.template))
                     .collect::<Vec<_>>();
@@ -3391,6 +3403,7 @@ impl Analyzer {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
         let checked = CheckedProgram {
+            schema_factories: self.schema_factories,
             record_parameter_borrows,
             closure_record_parameter_borrows,
             closure_record_capture_borrows,
@@ -10186,10 +10199,10 @@ impl Analyzer {
     fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
         if let ExprKind::Call(callee, _) = &expr.kind
             && let ExprKind::Field(base, member) = &callee.kind
-            && matches!(member.as_str(),"min"|"max"|"gt"|"lt")
+            && matches!(member.as_str(),"min"|"max"|"gt"|"lt"|"default")
             && let Some(Type::Record(id)) = self.expression_type_hint(context,base)
             && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-            && matches!(self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first()),Some(Type::String|Type::Int|Type::Number)) {
+            && (member=="default" || matches!(self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first()),Some(Type::String|Type::Int|Type::Number))) {
             return Some(Type::Record(id));
         }
 
@@ -14288,6 +14301,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
+        if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
