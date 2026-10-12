@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw validation and typed-field borrowing have focused acceptance and numeric/Unicode/deep/rejection/selective allocation, timing and RSS evidence. Raw serialization and final S10 acceptance remain open. The initial 20-workload native/Node execution baseline is preserved.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw validation and typed-field borrowing have focused acceptance and numeric/Unicode/deep/rejection/selective allocation, timing and RSS evidence. Exact-text raw serialization and JSONL newline rejection pass focused acceptance. Prepared encoding, repaired creation, selective decoding and end-to-end timing are retained. Final S10 contract review, current regressions and consumer refresh remain open. The initial 20-workload native/Node execution baseline is preserved.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -20,7 +20,7 @@ including editor documentation and untimed matched workload checks. The required
 [compiler source organization checkpoint](../milestones/compiler-source-organization.md)
 is accepted; continue the remaining runtime APIs and S10 acceptance below.
 
-See the [requirement-by-requirement contract audit](../milestones/s10-json-contract-audit.md) for the implemented evidence and the explicit raw-fragment gap.
+See the [requirement-by-requirement contract audit](../milestones/s10-json-contract-audit.md) for the implemented evidence and remaining acceptance checks.
 
 ## Current acceptance gaps
 
@@ -32,7 +32,7 @@ preserved in SQLite. Original runs and focused repairs remain separate records.
 | Dynamic/typed decoding | Allocation matrix; 36 timing and 36 RSS cases versus direct Rust/Node, including failures and 32-level nesting | Final contract audit; retain documented validation overhead |
 | Encoding | Allocation matrix; 21 timing and 21 RSS cases; measured bounded-buffer optimization | Final contract audit; large Unicode overhead remains documented |
 | JSONL streaming | Owned/borrowed reader/writer allocation, timing and RSS matrices; exact writer bytes, bounded storage and installed smokes | Final contract audit |
-| Raw fragments | JsonRaw/borrowRaw validation and record storage preserve source lifetimes in native/editor checks; numeric/Unicode/deep/rejection allocation, timing and RSS evidence retained | Owner decision on embedded output spelling, serialization implementation and acceptance |
+| Raw fragments | Validation, typed storage and exact-text encoding preserve source lifetimes; focused catalog/native/editor checks and allocation/timing/RSS evidence retained; creation regression repaired and remeasured | Final contract review, current family regressions and consumer refresh |
 | Release consumers | Installed through 5682a032; raw native cases, selective fixture and corrected LSP lifetime hover pass | Refresh after raw serialization implementation |
 
 All timing matrices retain three fresh processes, eight warmup batches and 31
@@ -58,15 +58,14 @@ Complete the per-symbol audit before introducing the convention. Alias and typed
 file-import work remains first; global JSON follows before S10 acceptance. No
 naming decision remains open for the approved parsing pair.
 
-## Immediate priority: typed imports and aliases
+## Completed priority: typed imports and aliases
 
 Owner approved JSON/JSONC file imports and project path aliases on 2026-10-11,
 including compiler-derived data types in editor completion, hover and diagnostics.
 Implement shared alias/extension/index resolution, then typed data modules and
 editor/dev integration before further runtime API or benchmark expansion. See
 [the implementation and acceptance plan](typed-data-imports-and-aliases-plan.md).
-Existing JSON support and evidence remain accepted within their documented scope;
-the additions and remaining S10 work are not yet accepted.
+Typed imports and aliases now have compiler, editor and installed acceptance, as recorded above. The original implementation sequence below is retained for scope; remaining S10 work is listed in the current acceptance table.
 
 ## Implementation sequence
 
