@@ -9,5 +9,7 @@ mod scalar;
 mod string;
 #[cfg(test)]
 mod array;
+#[cfg(test)]
+mod presence;
 pub(crate) mod namespace;
 pub(crate) mod emit;

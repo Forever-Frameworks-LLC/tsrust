@@ -60,6 +60,22 @@ exposed, must use explicit alternatives. Default factories still need a concrete
 contract review before their implementation gate. The existing checked
 JSON numeric extraction must not be bypassed by schema validation.
 
+### Approved schema builder ownership and construction errors
+
+The owner approved consuming schema-building methods such as .min(), .max() and
+.optional(). Each takes ownership of the original schema and returns a new immutable
+schema; using the original afterward must fail ownership checking. Validation
+continues to borrow the schema, so repeated safeParse calls remain valid. Do not
+insert hidden plan clones or shared owners when builders contain nested schemas,
+callbacks or other owned data.
+
+Invalid runtime constraints, including negative lengths and contradictory bounds,
+throw a structured schema-construction error immediately. Constraint builders do
+not return Result. Input validation through safeParse continues to return Result;
+construction errors and input-validation errors are distinct contracts. Define
+and document the concrete construction-error fields with source/checker/editor
+and native catch coverage when exposing these methods.
+
 ## Implementation and acceptance sequence
 
 1. Establish bounded issue collection independently of object policy or ownership:
@@ -442,3 +458,17 @@ with zero timing samples. No S11 acceptance or installed-consumer refresh is cla
 Constraints, literals/enums, composites and fused typed decoding remain pending.
 
 SQLite: `tsrust-schema-null-{red,check,editor,format,benchmark,verify}-2ae15d84.log`.
+
+## Optional and nullable backend composition
+
+Internal OptionalPlan and NullablePlan preserve missing and explicit null as
+distinct states. Optional accepts absence and delegates present values; nullable
+accepts explicit null and delegates missing input. Composition retains the
+presence layers in typed output without cloning successful string storage.
+Indexed array failures and suppressed issue budgets remain failures. Public
+methods and generated composite types are still pending; this is not source-level
+acceptance of optional/nullable schemas.
+
+Four focused presence cases join the internal schema suite. Evidence:
+`tsrust-schema-presence-{red,check,format}-b3bd707a.log` in SQLite. No timing or
+consumer refresh is claimed.
