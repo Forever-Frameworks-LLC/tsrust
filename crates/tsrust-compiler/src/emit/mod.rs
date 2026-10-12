@@ -1,109 +1,57 @@
-#[path = "nullable_link_emit.rs"]
 mod nullable_link_emit;
-#[path = "native_view_record_parameters.rs"]
 mod native_view_record_parameters;
-#[path = "native_view_family_emit.rs"]
 mod native_view_family_emit;
-#[path = "native_view_lifetime_emit.rs"]
 mod native_view_lifetime_emit;
-#[path = "native_view_environment_emit.rs"]
 mod native_view_environment_emit;
-#[path = "closure_owner_uses.rs"]
 mod closure_owner_uses;
-#[path = "closure_record_signature_emit.rs"]
 mod closure_record_signature_emit;
-#[path = "forwarded_owner_uses.rs"]
 mod forwarded_owner_uses;
-#[path = "forwarded_record_signature_emit.rs"]
 mod forwarded_record_signature_emit;
-#[path = "native_function_signature_emit.rs"]
 mod native_function_signature_emit;
-#[path = "local_borrowed_family_emit.rs"]
 mod local_borrowed_family_emit;
-#[path = "record_store_branches_emit.rs"]
 mod record_store_branches_emit;
-#[path = "borrowed_owner_provenance.rs"]
 mod borrowed_owner_provenance;
-#[path = "borrowed_owner_emit.rs"]
 mod borrowed_owner_emit;
-#[path = "record_point_call_emit.rs"]
 mod record_point_call_emit;
-#[path = "direct_record_store_emit.rs"]
 mod direct_record_store_emit;
-#[path = "record_callback_reification_emit.rs"]
 mod record_callback_reification_emit;
-#[path = "nullable_callback_clear_emit.rs"]
 mod nullable_callback_clear_emit;
-#[path = "nullable_callback_replacement_emit.rs"]
 mod nullable_callback_replacement_emit;
-#[path = "native_capture_storage.rs"]
 mod native_capture_storage;
-#[path = "borrowed_payload_emit.rs"]
 mod borrowed_payload_emit;
-#[path = "callback_capture_emit.rs"]
 mod callback_capture_emit;
-#[path = "record_parameter_borrow_emit.rs"]
 mod record_parameter_borrow_emit;
-#[path = "nullable_record_parameter_emit.rs"]
 mod nullable_record_parameter_emit;
-#[path="map_error_storage_emit.rs"]
 mod map_error_storage_emit;
-#[path="map_block_storage_emit.rs"]
 mod map_block_storage_emit;
-#[path = "restored_capture_slots.rs"]
 mod restored_capture_slots;
-#[path = "finally_move_slots.rs"]
 mod finally_move_slots;
-#[path = "field_completion_transport.rs"]
 mod field_completion_transport;
-#[path = "field_control_transport.rs"]
 mod field_control_transport;
-#[path = "polymorphic_storage_emit.rs"]
 mod polymorphic_storage_emit;
-#[path = "callback_family_result_adapters.rs"]
 mod callback_family_result_adapters;
-#[path = "borrowed_callable_emit.rs"]
 mod borrowed_callable_emit;
-#[path = "scoped_record_emit.rs"]
 mod scoped_record_emit;
-#[path = "record_parameter_replacement_emit.rs"]
 mod record_parameter_replacement_emit;
-#[path = "nullable_parameter_store_emit.rs"]
 mod nullable_parameter_store_emit;
-#[path = "scoped_record_parameter_views.rs"]
 mod scoped_record_parameter_views;
-#[path = "record_join_emit.rs"]
 mod record_join_emit;
-#[path = "scoped_record_copy_emit.rs"]
 mod scoped_record_copy_emit;
-#[path = "scoped_record_owned_places.rs"]
 mod scoped_record_owned_places;
-#[path = "record_carrier_emit.rs"]
 mod record_carrier_emit;
-#[path = "scoped_record_capture_views.rs"]
 mod scoped_record_capture_views;
-#[path = "scoped_record_console_emit.rs"]
 mod scoped_record_console_emit;
-#[path = "scoped_record_support_emit.rs"]
 mod scoped_record_support_emit;
-#[path = "exception_contract_emit.rs"]
 mod exception_contract_emit;
-#[path = "map_exception_storage_plan.rs"]
 mod map_exception_storage_plan;
-#[path = "native_storage_availability.rs"]
 mod native_storage_availability;
-#[path = "exception_emit.rs"]
 mod exception_emit;
-#[path = "spread_emit.rs"]
 mod spread_emit;
-#[path = "spread_builtin_emit.rs"]
 mod spread_builtin_emit;
-#[path = "logical_values_emit.rs"]
 mod logical_values_emit;
 use crate::analysis::{ArgumentContract, CheckedFunction, CheckedProgram, ClosureForward, Mode};
 use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
-#[path = "native_view_emit.rs"]
 mod native_view_emit;
 
 use std::cell::{Cell, RefCell};
@@ -2382,10 +2330,10 @@ impl Emitter<'_> {
             output.push_str("impl<F:Callback<A,R>+?Sized,A,R> Callback<A,R> for &mut F { fn invoke(&mut self,args:A)->R { (**self).invoke(args) } fn invoke_with_count(&mut self,args:A,count:usize)->R { (**self).invoke_with_count(args,count) } }\n");
         }
         if self.program.records.iter().any(|record| record.native_element().is_some()) {
-            output.push_str(include_str!("stdlib/collections/deque_runtime.rs"));
+            output.push_str(include_str!("../stdlib/collections/deque_runtime.rs"));
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
-        if has_heap { output.push_str(include_str!("stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("stdlib/collections/ordered_key_runtime.rs")); }
+        if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
@@ -2758,7 +2706,7 @@ impl Emitter<'_> {
         }
         let declared_families = crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
-            output.push_str(include_str!("stdlib/testing/shared_callback_runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/shared_callback_runtime.rs"));
         }
         // A lifetime-free family without environments cannot hold a callback whose
         // contract mentions a byte view; such callbacks live in scoped families. The
@@ -2952,7 +2900,7 @@ impl Emitter<'_> {
             }
         }
         if output.contains("TsrNull") || output.contains("TsrUndefined") {
-            output.push_str(include_str!("runtime_values.rs"));
+            output.push_str(include_str!("../runtime_values.rs"));
         }
         // Support is emitted once per program, only when its representation is used.
         if output.contains("String")
@@ -2996,17 +2944,17 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing")
         }) {
-            output.push_str(include_str!("stdlib/testing/assertion_runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/assertion_runtime.rs"));
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
-            output.push_str(include_str!("stdlib/testing/runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime.rs"));
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerHook") {
-                output.push_str(include_str!("stdlib/testing/hooks_runtime.rs"));
+                output.push_str(include_str!("../stdlib/testing/hooks_runtime.rs"));
             }
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerTest") {
-                output.push_str(include_str!("stdlib/testing/registration_runtime.rs"));
+                output.push_str(include_str!("../stdlib/testing/registration_runtime.rs"));
             }
         }
         for &id in self.native_bindings.borrow().iter() {
@@ -3043,7 +2991,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
         {
-            output.push_str(include_str!("runtime_console.rs"));
+            output.push_str(include_str!("../runtime_console.rs"));
         }
         if numeric_support {
             output.push_str(crate::runtime::NUMERIC_ARRAYS);
@@ -10250,15 +10198,12 @@ mod exception_region_tests {
     }
 }
 
-#[path = "set_emit.rs"]
 mod set_emit;
-#[path="map_emit.rs"]
 mod map_emit;
-#[path = "stdlib/collections/emit.rs"]
+#[path = "../stdlib/collections/emit.rs"]
 mod deque_emit;
-#[path = "stdlib/collections/heap_emit.rs"]
+#[path = "../stdlib/collections/heap_emit.rs"]
 mod heap_emit;
-#[path="map_storage_epochs.rs"]
 mod map_storage_epochs;
 
 impl Emitter<'_> {
@@ -10294,39 +10239,26 @@ impl Emitter<'_>{
     }
 }
 
-#[path="map_return_storage.rs"]
 mod map_return_storage;
-#[path="map_catch_finally_storage.rs"]
 mod map_catch_finally_storage;
-#[path="map_exception_epochs.rs"]
 mod map_exception_epochs;
-#[path = "map_finally_storage_epochs.rs"]
 mod map_finally_storage_epochs;
 
-#[path="map_loop_storage_epochs.rs"]
 mod map_loop_storage_epochs;
-#[path="iteration_emit.rs"]
 mod iteration_emit;
-#[path="map_entry_epoch_emit.rs"]
 mod map_entry_epoch_emit;
-#[path="array_storage_epoch_emit.rs"]
 mod array_storage_epoch_emit;
 
-#[path="map_iteration_emit.rs"]
 mod map_iteration_emit;
 
-#[path="map_cleanup_control_emit.rs"]
 mod map_cleanup_control_emit;
 
-#[path="map_control_storage.rs"]
 mod map_control_storage;
 
-#[path="map_cleanup_storage.rs"]
 mod map_cleanup_storage;
 
 #[cfg(test)]
-#[path = "nullable_recursive_emit.rs"]
 mod nullable_recursive_tests;
 
-#[path = "stdlib/collections/ordered_set_emit.rs"]
+#[path = "../stdlib/collections/ordered_set_emit.rs"]
 mod ordered_set_emit;

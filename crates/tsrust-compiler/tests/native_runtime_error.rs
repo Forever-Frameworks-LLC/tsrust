@@ -1,7 +1,7 @@
 mod support;
 // This witness includes the shared emitter but exercises only its own helpers.
 #[allow(dead_code)]
-#[path = "../src/exception_emit.rs"]
+#[path = "../src/emit/exception_emit.rs"]
 mod exception_emit;
 
 #[test]

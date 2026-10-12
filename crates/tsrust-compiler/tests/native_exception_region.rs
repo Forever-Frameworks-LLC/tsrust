@@ -1,7 +1,7 @@
 mod support;
 // This witness includes the shared emitter but exercises only its own helpers.
 #[allow(dead_code)]
-#[path="../src/exception_emit.rs"] mod exception_emit;
+#[path="../src/emit/exception_emit.rs"] mod exception_emit;
 
 #[test]
 fn nested_regions_preserve_return_and_allow_finally_to_replace_it() {

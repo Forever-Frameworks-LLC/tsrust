@@ -1,6 +1,6 @@
 //! Ordered collection emission, outside the shared expression frame.
 use super::*;
-#[path = "runtime_sets.rs"]
+#[path = "../runtime_sets.rs"]
 mod runtime;
 
 impl Emitter<'_> {

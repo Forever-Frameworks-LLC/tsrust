@@ -1,6 +1,6 @@
 //! Ordered Map emission, separate from recursive dispatch.
 use super::*;
-#[path="runtime_maps.rs"] mod runtime;
+#[path="../runtime_maps.rs"] mod runtime;
 impl Emitter<'_> {
     pub(super) fn ordered_map_entry_view(&self,id:usize,key:&str,value:&str)->String {
         let map=self.program.records[id].map_definition.as_ref().expect("checked ordered map");
@@ -147,7 +147,7 @@ mod ordered_tests {
     }
     #[test]
     fn ordered_map_entries_borrow_recursive_view_records() {
-        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let helpers=include_str!("../../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
         let source=format!("{helpers}\n{}",r#"
 type Chain={data:ByteView;next?:Chain;};
 type Tree={data:ByteView;children:Tree[];};
@@ -169,7 +169,7 @@ function main(){
     }
     #[test]
     fn ordered_map_callback_entries_keep_captured_view_owners() {
-        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let helpers=include_str!("../../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
         let source=format!("{helpers}\n{}",r#"
 type Reader={read:ReadOnly<Function<int>>;};
 function main(){
@@ -184,7 +184,7 @@ function main(){
     }
     #[test]
     fn ordered_map_entries_preserve_byte_view_payloads() {
-        let helpers=include_str!("../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
+        let helpers=include_str!("../../tests/fixtures/collections/projected-views.tsr").split("function fill(").next().unwrap();
         let source=format!("{helpers}\n{}",r#"
 function inspect(entry:ReadOnly<[int,ByteView]>):int{return length(entry[1]);}
 function selected(entry:ReadOnly<[int,ByteView]>):ByteView{match(view(entry[1],0,length(entry[1]))){Ok(result)=>{return result;},Err(error)=>{throw error.message;}}}

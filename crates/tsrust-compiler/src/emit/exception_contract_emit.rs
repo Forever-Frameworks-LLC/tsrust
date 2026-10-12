@@ -549,7 +549,7 @@ fn main() {{
  }}
  assert_eq!(calls.get(),2);assert_eq!(drops.get(),2);
 }}
-"#,include_str!("runtime_completion.rs"));
+"#,include_str!("../runtime_completion.rs"));
         let directory=std::env::temp_dir().join(format!("tsrust-contextual-result-call-{}",std::process::id()));
         std::fs::create_dir_all(&directory).unwrap();let path=directory.join("call.rs");let binary=directory.join("call");std::fs::write(&path,rust).unwrap();
         let compiler=std::env::var_os("RUSTC").unwrap_or_else(||"rustc".into());
@@ -589,7 +589,7 @@ fn main() {{
  }};
  assert!(matches!(escaped,TsrCompletion::Continue(TsrControlTarget::Loop(11))));
 }}
-"#,include_str!("runtime_completion.rs"));
+"#,include_str!("../runtime_completion.rs"));
         let directory=std::env::temp_dir().join(format!("tsrust-control-dispatch-{}",std::process::id()));std::fs::create_dir_all(&directory).unwrap();let source=directory.join("dispatch.rs");let binary=directory.join("dispatch");std::fs::write(&source,rust).unwrap();
         let compiler=std::env::var_os("RUSTC").unwrap_or_else(||"rustc".into());let compiled=std::process::Command::new(compiler).arg("--edition=2024").arg(source).arg("-o").arg(&binary).output().unwrap();assert!(compiled.status.success(),"{}",String::from_utf8_lossy(&compiled.stderr));assert!(std::process::Command::new(binary).status().unwrap().success());std::fs::remove_dir_all(directory).unwrap();
     }

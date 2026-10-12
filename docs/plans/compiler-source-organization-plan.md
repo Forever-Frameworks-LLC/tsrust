@@ -92,3 +92,20 @@ returns, recursive storage, JSON namespace and match syntax. Full unit-test
 compilation and two callee-transport witnesses are checked before checkpointing.
 SQLite evidence uses tsrust-analysis-organization and tsrust-analysis-ownership
 prefixes. Root file count is now 222; emission modules are next.
+
+## Emission batch
+
+The emitter parent and 68 child modules now live under `src/emit/`. Sixty-five
+children retain exact bytes; three children and the parent only adjust module or
+embedded-source paths. The nullable recursive test file now matches its existing
+module name, eliminating its old path alias. Two integration tests follow the
+relocated exception helper. Generated runtime names and public APIs are unchanged.
+
+All 35 focused integration checks pass, including the preceding 31-test baseline
+and four exception/runtime helper checks. Four generated native programs retain
+identical hashes. All 158 emitter-related unit checks pass; this batch is accepted. Evidence
+uses the tsrust-emission-organization prefix in SQLite, including the initial
+unit compilation failure from the test-file alias and its verified repair. Root file count is 153.
+
+Next review the remaining generic/type, callable, native/runtime and project/CLI
+modules by dependency ownership. Full structural acceptance remains pending.
