@@ -214,6 +214,7 @@ impl Analyzer {
                 Type::Record(id) => {
                     let record = &self.program.records[id];
                     match record.native_type {
+                        Some(crate::native_signatures::NativeTypeId::JsonRaw) if !writing => {}
                         Some(
                             crate::native_signatures::NativeTypeId::JsonValue
                             | crate::native_signatures::NativeTypeId::JsonView

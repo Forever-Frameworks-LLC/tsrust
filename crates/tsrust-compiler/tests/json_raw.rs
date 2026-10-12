@@ -180,3 +180,33 @@ function main(){{let source='{{"payload":null}}';const value=JSON.parse<Envelope
   assert!(!output.status.success()&&stderr.contains("error[native-view-conflict]"),"{stderr}");
  }
 }
+
+#[test]
+fn raw_encoding_preserves_exact_text_and_borrowed_record_fields() {
+ let source=r#"
+import {borrowRaw,JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Envelope={payload:JsonRaw;};
+function main(){
+ let text=' \n{"z":1e+02,"a":"\\u0061"} \t';
+ {
+  match(borrowRaw(text)){
+   Ok(raw)=>{
+    strictEqual(JSON.stringify(raw),text);
+    match(JSON.tryStringify(raw,1)){Ok(value)=>{throw 'limit ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
+    const envelope:Envelope={payload:raw};
+    strictEqual(JSON.stringify(envelope),'{"payload":'+text+'}');
+    strictEqual(JSON.stringify(envelope),'{"payload":'+text+'}');
+   },
+   Err(error)=>{throw error.message;}
+  }
+ }
+ text='null';strictEqual(text,'null');
+ const document='{"payload": { "n":18446744073709551615 }}';
+ const decoded=JSON.parse<Envelope>(document);
+ strictEqual(JSON.stringify(decoded),'{"payload":{ "n":18446744073709551615 }}');
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}

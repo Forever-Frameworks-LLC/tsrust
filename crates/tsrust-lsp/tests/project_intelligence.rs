@@ -2345,3 +2345,14 @@ fn typed_raw_json_hover_documents_input_lifetime() {
  let hover=ask(&index,&source,"parse<Envelope>","textDocument/hover");
  assert!(hover.to_string().contains("source text must outlive"),"{hover}");
 }
+
+#[test]
+fn raw_json_encoding_hover_describes_exact_output() {
+ let source=tsrust_compiler::format("import {borrowRaw} from 'std:json';function main(){const text='null';match(borrowRaw(text)){Ok(raw)=>{JSON.stringify(raw);JSON.tryStringify(raw);},Err(error)=>{}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ for needle in ["stringify(raw)","tryStringify(raw)"] {
+  let hover=ask(&index,&source,needle,"textDocument/hover");let docs=hover.to_string();
+  for text in ["preserve raw source text exactly","output byte limit","64-container","JSONL"] {assert!(docs.contains(text),"{hover}");}
+ }
+}

@@ -66,6 +66,7 @@ impl Emitter<'_> {
                     let record = &self.program.records[id];
                     match record.native_type {
       Some(crate::native_signatures::NativeTypeId::JsonValue|crate::native_signatures::NativeTypeId::JsonView)=>"tsrust_native_json::typed::Dynamic(&self.0.value,self.1).serialize(serializer)".into(),
+      Some(crate::native_signatures::NativeTypeId::JsonRaw)=>"tsrust_native_json::raw::Encoded(&self.0.fragment,self.1).serialize(serializer)".into(),
       Some(crate::native_signatures::NativeTypeId::StringView)=>"serializer.serialize_str(self.0.text)".into(),
       None=>{
        let mut fields:Vec<_>=record.fields.iter().enumerate().collect();

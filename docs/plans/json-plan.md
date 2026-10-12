@@ -2084,3 +2084,20 @@ literal newlines; no silent rewriting policy is accepted by this backend test.
 Evidence: `tsrust-raw-serialize-{red,check}-864fc43c.log` in SQLite. The red witness
 also initially used the input-side byte-limit spelling; the output contract is
 `output-limit`, matching existing serialization behavior.
+
+
+### Raw encoding source integration
+
+JSON.stringify and JSON.tryStringify now accept JsonRaw directly and inside typed
+records, using the bounded raw serializer. A native witness checks exact source
+whitespace/escape/number spelling, repeated borrowed encoding, typed-decoded raw
+fields, output-limit errors and source reuse after fragment scope ends. All eleven
+raw source/native tests pass. Catalog documentation explains preserved raw ordering
+and formatting as an exception to ordinary sorted/compact output, combined depth
+limits and current JSONL exclusion. Focused editor coverage checks actual raw
+encoding calls and their hover text.
+
+This is an implementation checkpoint, not S10 acceptance. JSONL raw output,
+expanded container/depth boundary witnesses, executable catalog examples, matched
+raw encoding workload coverage, measurements and consumer refresh remain queued.
+The output policy is approved; older pending-policy statements are historical.
