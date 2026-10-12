@@ -1,12 +1,12 @@
 //! Default factories are retained as uniquely owned readonly environments.
 use super::*;
 impl Analyzer {
-    fn schema_may_default(&self,output:Type)->bool {
+    pub(super) fn schema_may_default(&self,output:Type)->bool {
         if let Type::Record(id)=output && self.program.records[id].name.text.starts_with("@schema:retained:") && self.schema_may_default(self.program.records[id].fields[0].ty.unwrap()){return true;}
         self.schema_factories.contains_key(&output) || !crate::stdlib::schema::defaults::inherited_factories(output,&self.schema_factories,|id|self.unions.members(id).to_vec()).is_empty() || matches!(output,Type::Union(id) if self.unions.members(id).iter().any(|ty|self.schema_factories.contains_key(ty)))
     }
 
-    fn schema_owned_input_compatible(&self,output:Type,input:Type)->bool {
+    pub(super) fn schema_owned_input_compatible(&self,output:Type,input:Type)->bool {
         if output==input || matches!(output,Type::Literal(_,_))&&output.scalar_base()==input.scalar_base(){return true;}
         if matches!(output,Type::Union(_)) && self.schema_scalar_input(output,Span::default()).is_ok_and(|wide|wide.accepts_scalar_value(input)){return true;}
         match (output,input) {
@@ -74,14 +74,15 @@ impl Analyzer {
             match &callee.kind {ExprKind::Field(receiver,_)=>root=receiver,_=>{root=callee;break;}}
         }
         let constructing=matches!(&root.kind,ExprKind::Name(name) if name.starts_with("@schema:")||name.starts_with("@native:std:schema#"));
-        if !constructing&&!matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
+        if !constructing&&!matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.types(id).is_some()){return Ok(None);}
         if args.len()!=1 {return Err(Diagnostic::new("arity","Schema defaults expect one reusable zero-argument factory.",expr.span));}
         let mut receiver=(**base).clone();
         let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
         let Type::Record(id)=ty else{return Ok(None)};
-        if self.program.records[id].native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
-        let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
-        self.require(ty,expected,expr.span)?;
+        let pipeline=self.schema_pipelines.types(id);
+        if self.program.records[id].native_type!=Some(crate::native_signatures::NativeTypeId::Schema)&&pipeline.is_none(){return Ok(None);}
+        let output=pipeline.map(|(input,_,_)|input).unwrap_or_else(||self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]);
+        if pipeline.is_none(){self.require(ty,expected,expr.span)?;}
         let structural=self.callables.shapes.intern_rest(vec![],output.into(),Some(CallbackKind::Owned),0,false);
         let declaration=self.callables.callbacks.len();
         self.callables.callbacks.push(CallbackContract{structural,parameter_names:vec![],params:vec![],result:output,kind:CallbackKind::Owned});
@@ -100,8 +101,12 @@ impl Analyzer {
         }else if self.speculative_access_run&&!context.template&&!self.discovering_results {
             self.callables.storage.note_speculative_origin(family,origin);
         }
-        self.schema_factories.insert(output,family);
         factory.wrap_storage(family);
+        if pipeline.is_some() {
+            let factory=args.remove(0);
+            return self.schema_pipeline_wrapper(expr,id,receiver,crate::stdlib::schema::pipelines::WrapperKind::Default(family),Some(factory),expected).map(Some);
+        }
+        self.schema_factories.insert(output,family);
         args.insert(0,receiver);
         callee.kind=ExprKind::Name("@schema:default".into());
         expr.target=Some(CallTarget::SchemaDefault);

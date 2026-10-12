@@ -5,7 +5,10 @@ use std::collections::HashSet;
 impl Emitter<'_> {
     pub(super) fn schema_owned_prepared_validator(&self,id:usize,input:Type,generated:&mut String,seen:&mut HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
         let name=format!("owned{id}_{input:?}").chars().map(|c|if c.is_ascii_alphanumeric(){c}else{'_'}).collect::<String>();
-        if !seen.insert((id,input)){return name;}
+        let marker=format!("/*schema_owned_prepared_{name}*/");
+        if generated.contains(&marker){return name;}
+        generated.push_str(&marker);
+        seen.insert((id,input));
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let record=self.native_record_declaration(id);
         let mut variants=Vec::new();let mut prepare=String::new();let mut commits=Vec::new();

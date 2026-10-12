@@ -51,6 +51,47 @@ impl SourceIndex {
         tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
+        if let Some((input, output, object_policy, json_input)) = self.schema_pipeline_types.get(ty) {
+            let accepted = if *json_input {format!("{input} | JsonValue")}else{input.clone()};
+            let mut entries = self.schema_pipeline_entries(&accepted, input, output);
+            if *object_policy {
+                for mut entry in builtins_for("SchemaObject").into_iter().filter(|entry| matches!(entry["name"].as_str(), Some("strip" | "retain"))) {
+                    if let Some(signature) = entry["signature"].as_str() {
+                        entry["signature"] = json!(builtin_type_substitution(signature, &[("Output", output)]));
+                    }
+                    entries.push(entry);
+                }
+            }
+            return entries;
+        }
+        let mut entries = self.receiver_base_builtins(ty);
+        if let Some(output) = self.schema_element(ty) {
+            let input = entries.iter().find(|entry| entry["name"] == "safeParse")
+                .and_then(|entry| entry["parameters"][0]["label"].as_str())
+                .and_then(|label| label.strip_prefix("input: "))
+                .map(str::to_owned).unwrap_or_else(|| format!("{output} | JsonValue"));
+            entries.extend(self.schema_pipeline_entries(&input, output, output).into_iter()
+                .filter(|entry| matches!(entry["name"].as_str(),Some("refine"|"transform"|"coerce"))));
+        }
+        entries
+    }
+    fn schema_pipeline_entries(&self, input: &str, raw_input: &str, output: &str) -> Vec<Value> {
+        let mut entries = builtins_for("SchemaPipeline");
+        for entry in &mut entries {
+            if let Some(signature) = entry["signature"].as_str() {
+                entry["signature"] = json!(builtin_type_substitution(signature, &[("Input", input), ("RawInput", raw_input), ("Output", output)]));
+            }
+            if let Some(parameters) = entry["parameters"].as_array_mut() {
+                for parameter in parameters {
+                    if let Some(label) = parameter["label"].as_str() {
+                        parameter["label"] = json!(builtin_type_substitution(label, &[("Input", input), ("RawInput", raw_input), ("Output", output)]));
+                    }
+                }
+            }
+        }
+        entries
+    }
+    fn receiver_base_builtins(&self, ty: &str) -> Vec<Value> {
         if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
         if self.schema_element(ty) == Some("null") { return builtins_for("SchemaNull"); }
         if self.schema_element(ty) == Some("number") { return builtins_for("SchemaNumber"); }

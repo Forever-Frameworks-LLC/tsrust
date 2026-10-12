@@ -24,12 +24,18 @@ impl Analyzer {
             let actual = self.expression(context, branch, Mode::Consume, loans, None)?;
             let Type::Record(id) = actual else { return Err(Diagnostic::new("schema-union", "Every union branch must be an owned schema.", branch.span)); };
             let record = &self.program.records[id];
-            if record.native_type != Some(crate::native_signatures::NativeTypeId::Schema) { return Err(Diagnostic::new("schema-union", "Every union branch must be an owned schema.", branch.span)); }
-            let output = record.application.as_ref().unwrap().resolved_arguments[0];
+            if record.native_type != Some(crate::native_signatures::NativeTypeId::Schema) && self.schema_pipelines.types(id).is_none() { return Err(Diagnostic::new("schema-union", "Every union branch must be an owned schema.", branch.span)); }
+            let output = self.schema_pipelines.types(id).map(|(_, output, _)| output)
+                .unwrap_or_else(|| record.application.as_ref().unwrap().resolved_arguments[0]);
             if let Some(field) = &field {
-                let Type::Record(object) = output else { return Err(Diagnostic::new("schema-discriminator", "Discriminated union branches require object schemas.", branch.span)); };
+                // Selection inspects raw input before any consuming conversion.
+                // A transform may return a scalar without losing the original
+                // object's discriminator. A coercion must expose closed tags on
+                // its own raw input; converted tags cannot choose a branch.
+                let discriminator_input = self.schema_pipelines.types(id).map(|(input, _, _)| input).unwrap_or(output);
+                let Type::Record(object) = discriminator_input else { return Err(Diagnostic::new("schema-discriminator", "Discriminated union branches require object inputs with closed discriminator values.", branch.span)); };
                 let record = &self.program.records[object];
-                if record.native_type.is_some() || record.name.text.starts_with("@schema:retained:") { return Err(Diagnostic::new("schema-discriminator", "The discriminator must belong to the direct typed object output.", branch.span)); }
+                if record.native_type.is_some() || record.name.text.starts_with("@schema:retained:") { return Err(Diagnostic::new("schema-discriminator", "The discriminator must belong to the direct typed object input.", branch.span)); }
                 let Some(member) = record.fields.iter().find(|member| &member.name.text == field) else { return Err(Diagnostic::new("schema-discriminator", "Every branch must declare the discriminator field.", branch.span)); };
                 if member.optional { return Err(Diagnostic::new("schema-discriminator", "A discriminator field must be required.", member.name.span)); }
                 let values = self.schema_discriminator_tags(member.ty.unwrap(), member.name.span)?;
@@ -43,6 +49,11 @@ impl Analyzer {
                 tags.push(branch_tags);
             }
             outputs.push(output);
+        }
+        if branches.iter().any(|branch| matches!(branch.ty,Some(Type::Record(id)) if self.schema_pipelines.types(id).is_some())) {
+            let branches = std::mem::take(branches);
+            let selector = field.map(|field| Selector { field, tags });
+            return self.schema_pipeline_union(expr, branches, selector, expected).map(Some);
         }
         let output = self.unions.intern(outputs.clone(), expr.span)?;
         let plan = self.schema_choices.intern(Choice { output, branches: outputs, selector: field.map(|field| Selector { field, tags }), presence: None });

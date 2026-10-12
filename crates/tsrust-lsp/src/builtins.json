@@ -1,4 +1,115 @@
 {
+  "SchemaPipeline": [
+  {
+    "name": "refine",
+    "signature": "refine(predicate: (value: ReadOnly<Output>) => boolean): Schema<Output>",
+    "parameters": [
+      {
+        "label": "predicate: (value: ReadOnly<Output>) => boolean",
+        "documentation": "Reusable predicate. Reads the validated value and returns true to accept or false to report refinement-failed. Exceptions propagate."
+      }
+    ],
+    "documentation": "Checks a validated value without changing its output type. False returns a schema validation issue; a thrown exception propagates. Later pipeline stages do not run after either failure. Predicates may log or allocate but cannot mutate or consume input or captures.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 3.\n\nConsumes the receiving schema and returns a reusable immutable plan. Validation consumes owned input; the predicate only borrows its typed value.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "3\n"
+      }
+    ]
+  },
+  {
+    "name": "transform",
+    "signature": "transform<Next>(convert: (value: Owned<Output>) => Next): Schema<Next>",
+    "parameters": [
+      {
+        "label": "convert: (value: Owned<Output>) => Next",
+        "documentation": "Reusable conversion callback. May mutate or consume its owned value and returns the next output. Captured state remains readonly."
+      }
+    ],
+    "documentation": "Converts a successfully validated value and infers the next output type. The callback runs only after earlier validation succeeds. It may mutate its owned input. Exceptions propagate and skip later stages. Within a union, the first consuming stage commits the branch; later failure does not retry another branch.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int()).transform(values=>values.length);match(schema.safeParse([2,4])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 2.\n\nConsumes the receiving schema. The returned plan retains its original accepted input type and uniquely owns a reusable callback with readonly captures.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.array(s.int()).transform(values=>values.length);match(schema.safeParse([2,4])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "2\n"
+      }
+    ]
+  },
+  {
+    "name": "coerce",
+    "signature": "coerce<Raw>(convert: (input: Owned<Raw>) => Input): Schema<Output>",
+    "parameters": [
+      {
+        "label": "convert: (input: Owned<Raw>) => Input",
+        "documentation": "Conversion before receiving-schema validation. Annotate raw input to define the accepted type; return a value that the receiving schema accepts."
+      }
+    ],
+    "documentation": "Explicitly converts raw input before validating it with this schema. The callback parameter defines the accepted raw input type. Invalid converted data produces validation issues; conversion exceptions propagate. No implicit string, number or boolean conversion occurs. A consuming coercion inside a union commits that branch before conversion.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(2).coerce((values:int[]):int=>values.length);match(schema.safeParse([3,5])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 2.\n\nConsumes the receiving schema and raw input. The callback may mutate owned input; captures remain readonly and reusable.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(2).coerce((values:int[]):int=>values.length);match(schema.safeParse([3,5])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "2\n"
+      }
+    ]
+  },
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: Input): Result<Output, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: Input",
+        "documentation": "Owned input accepted by this chain. Earlier conversions determine its type; later transformations determine the successful output."
+      }
+    ],
+    "documentation": "Validates through each stage in order. Returns Ok with the final typed output or Err with bounded validation issues. Callback exceptions propagate rather than becoming validation issues. Failure skips later stages.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.array(s.int()).transform(values=>values.length);match(schema.safeParse([1,2,3])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 3.\n\nBorrows the reusable schema and consumes input on success or failure. No hidden clone preserves input.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.array(s.int()).transform(values=>values.length);match(schema.safeParse([1,2,3])){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "3\n"
+      }
+    ]
+  },
+  {
+    "name": "optional",
+    "signature": "optional(): Schema<Output | undefined>",
+    "parameters": [],
+    "documentation": "Accepts undefined without invoking inner pipeline callbacks. Other supplied values retain the original input contract and produce the transformed output. For missing object fields, an inner default still runs and is validated; otherwise the field becomes undefined. Failed defaults and factory exceptions are not suppressed.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().transform(value=>value.length).optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: undefined.\n\nConsumes the receiving schema and returns a reusable immutable plan. No payloads are cloned.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().transform(value=>value.length).optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "undefined\n"
+      }
+    ]
+  },
+  {
+    "name": "nullable",
+    "signature": "nullable(): Schema<Output | null>",
+    "parameters": [],
+    "documentation": "Accepts null without invoking inner pipeline callbacks. Other supplied values retain the original input contract and produce the transformed output. Missing object fields are distinct from null and still require an optional rule or default.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().transform(value=>value.length).nullable();match(schema.safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: null.\n\nConsumes the receiving schema and returns a reusable immutable plan. No payloads are cloned.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().transform(value=>value.length).nullable();match(schema.safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+        "output": "null\n"
+      }
+    ]
+  },
+  {
+    "name": "default",
+    "signature": "default(factory: () => RawInput): Schema<Output>",
+    "parameters": [
+      {
+        "label": "factory: () => RawInput",
+        "documentation": "Reusable zero-argument factory producing input for the receiving pipeline. Runs only for a missing object field. Captures remain readonly."
+      }
+    ],
+    "documentation": "Supplies input when an object field is missing, then validates it through the receiving pipeline. The factory produces the original accepted input type; transformations determine the final output type. Supplied null, undefined and invalid values do not trigger the factory. Factories run once per missing field per attempted branch. Invalid generated data returns schema issues; exceptions propagate. An outer optional rule does not hide a failing default.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({count:s.string().transform(value=>value.length).default(()=> 'hello')});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 5.\n\nConsumes the schema and uniquely owns a reusable factory. Fresh owned arrays or records need no hidden clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({count:s.string().transform(value=>value.length).default(()=> 'hello')});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{console.log('rejected');}}}",
+        "output": "5\n"
+      }
+    ]
+  }
+],
   "string": [
   {
     "name": "isWellFormed",

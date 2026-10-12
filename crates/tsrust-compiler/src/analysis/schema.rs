@@ -7,6 +7,10 @@ impl Analyzer {
         if args.len()!=1{return Err(Diagnostic::new("arity","s.array expects one owned element schema.",expr.span));}
         let child=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;
         let Type::Record(id)=child else{return Err(Diagnostic::new("schema-type","s.array requires an element schema.",args[0].span));};
+        if self.schema_pipelines.types(id).is_some() {
+            let child=args.remove(0);
+            return self.schema_pipeline_array(expr,id,child,expected).map(Some);
+        }
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Err(Diagnostic::new("schema-type","s.array requires an element schema.",args[0].span));}
         let element=record.application.as_ref().unwrap().resolved_arguments[0];
@@ -28,6 +32,9 @@ impl Analyzer {
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
+        if constructing && self.schema_pipelines.types(id).is_some() {
+            return self.schema_pipeline_validation_receiver(context,expr,receiver,loans,expected);
+        }
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];

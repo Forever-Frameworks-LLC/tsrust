@@ -13,6 +13,16 @@ impl SourceIndex {
         dependencies: &std::collections::BTreeMap<SourceId, SourceIndex>,
     ) -> Option<String> {
         match ty {
+            ProjectType::SchemaPipeline { identity, input, output, json_input, object_policy } => {
+                let input = self.project_type_spelling(graph, current, input, dependencies)?;
+                let output = self.project_type_spelling(graph, current, output, dependencies)?;
+                let source = current.0.as_bytes().iter().map(|byte| format!("{byte:02x}")).collect::<String>();
+                let owner = format!("__tsrust_private_pipeline_{source}_{identity}");
+                self.schema_pipeline_types.insert(owner.clone(), (input, output.clone(), *object_policy, *json_input));
+                let schema = self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
+                self.generic_display_names.insert(owner.clone(), format!("{schema}<{}>", self.display_type(&output)));
+                Some(owner)
+            }
             ProjectType::Native(identity) => Some(self.native_type_spelling(*identity)),
             ProjectType::AppliedNative(identity, arguments) => {
                 let name = self.native_type_spelling(*identity);

@@ -7,6 +7,11 @@ mod schema_defaults;
 mod schema_literals;
 mod schema_enums;
 mod schema_unions;
+mod schema_pipelines;
+mod schema_pipeline_objects;
+mod schema_pipeline_unions;
+mod schema_pipeline_wrappers;
+mod schema_pipeline_inputs;
 mod record_union_fields;
 mod json_refinement;
 mod native_view_mutations;
@@ -282,6 +287,7 @@ impl CallbackContract {
 
 pub struct CheckedProgram {
     pub(crate) schema_choices: crate::stdlib::schema::plans::Choices,
+    pub(crate) schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
     pub(crate) schema_factories: HashMap<Type,usize>,
     pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) closure_record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
@@ -698,6 +704,7 @@ mod exception_escape_tests {
 
 struct Analyzer {
     schema_choices: crate::stdlib::schema::plans::Choices,
+    schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
     schema_factories: HashMap<Type,usize>,
     native_borrow_types: bool,
     named_captures: named_capture_context::Contexts,
@@ -1630,6 +1637,7 @@ impl Analyzer {
         let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
             schema_choices: Default::default(),
+            schema_pipelines: Default::default(),
             schema_factories: HashMap::new(),
             native_borrow_types,
             named_captures,
@@ -3286,12 +3294,12 @@ impl Analyzer {
         // failures to the same field; check such a function again.
         {
             loop {
-                // Default plans hide readonly callback fields. Their finite source
+                // Schema plans hide readonly callback fields. Their finite source
                 // origins can widen catch contracts just like public callback fields.
                 // Rechecking may recreate an environment, so count source sites,
                 // not transient closure IDs.
-                let schema_origins=self.schema_factories.values()
-                    .flat_map(|family|self.callables.storage.origins(*family).unwrap_or_default())
+                let schema_origins=self.schema_factories.values().copied().chain(self.schema_pipelines.callbacks())
+                    .flat_map(|family|self.callables.storage.origins(family).unwrap_or_default())
                     .filter_map(|origin|self.closures.get(*origin))
                     .map(|closure|(closure.span.start,closure.span.end)).collect::<HashSet<_>>();
                 let known = crate::error_effects::record_field_origins(&self.unions,&self.program.records, &self.scoped_records).len()+schema_origins.len();
@@ -3418,6 +3426,7 @@ impl Analyzer {
         }
         let checked = CheckedProgram {
             schema_choices: self.schema_choices,
+            schema_pipelines: self.schema_pipelines,
             schema_factories: self.schema_factories,
             record_parameter_borrows,
             closure_record_parameter_borrows,
@@ -14352,6 +14361,8 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
+        if let Some(ty)=self.schema_pipeline_constructor(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_pipeline_validation(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}

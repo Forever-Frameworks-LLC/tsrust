@@ -1,0 +1,64 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.int().min(3).coerce((values: int[]): int => {
+    values.push(7); return values.length;
+  }).refine(value => value < 10).transform(value => value + 1);
+  const retry = s.union([s.array(s.int()).refine(values => values.length > 3).transform(values => 0), s.array(s.int()).transform(values => values.length)]);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse([2, 3])) {
+      Ok(value) => {
+        if (value !== 4) {
+          throw 'Wrong transformed value';
+        }
+
+        checksum += value;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse([])) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Wrong issue count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'too-small' || issue.expected !== 'integer' || issue.observed !== 'integer' || issue.pathTruncated || issue.path.length !== 0) {
+            throw 'Wrong issue';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    match (retry.safeParse(JSON.parse('[2,3]'))) {
+      Ok(value) => {
+        if (value !== 2) {
+          throw 'Wrong rollback';
+        }
+
+        checksum += value;
+      },
+      Err(error) => {
+        throw 'Expected rollback success';
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, 'owned-pipeline'), workload(1, 0, 'owned-pipeline'), workload(17, 7, 'owned-pipeline'), workload(2000, 1, 'owned-pipeline'));
+}

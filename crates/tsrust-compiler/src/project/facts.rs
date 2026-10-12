@@ -20,6 +20,7 @@ pub struct ProjectLocalFunctionInfo {
 pub enum ProjectType {
     Native(crate::native_signatures::NativeTypeId),
     AppliedNative(crate::native_signatures::NativeTypeId, Vec<ProjectType>),
+    SchemaPipeline { identity: usize, input: Box<ProjectType>, output: Box<ProjectType>, json_input: bool, object_policy: bool },
     Named {
         name: String,
         declaration: Option<SourceLocation>,
@@ -382,6 +383,14 @@ impl ProjectAnalysis {
     }
     fn project_record(&self, id: usize, names: &HashMap<&str, usize>) -> Option<ProjectType> {
         let record = &self.analysis.program.records[id];
+        if let Some((input, output, json_input)) = self.analysis.program.schema_pipelines.types(id) {
+            return Some(ProjectType::SchemaPipeline {
+                identity: id, input: Box::new(self.project_type(input, names)?),
+                output: Box::new(self.project_type(output, names)?), json_input,
+                object_policy: self.analysis.program.schema_pipelines.object(id)
+                    .is_some_and(|plan| plan.policy != crate::stdlib::schema::pipelines::ObjectPolicy::Retain),
+            });
+        }
         if let Some(identity) = record.native_type {
             if let Some(application) = &record.application {
                 let arguments = application.resolved_arguments.iter().map(|ty| self.project_type(*ty, names)).collect::<Option<Vec<_>>>()?;
@@ -398,7 +407,7 @@ impl ProjectAnalysis {
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
         }
-        if record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:retained:") {
+        if record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
             return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), field.optional, self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
         }
         let declaration = self.source_location(

@@ -1,0 +1,237 @@
+//! Pipeline identity retains callback input separately from validated output.
+use crate::syntax::Type;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Operation {
+    /// Inspect a typed borrowed value before any consuming stage.
+    Refine,
+    /// Consume the receiving schema's validated output.
+    Transform,
+    /// Consume raw input before the receiving schema validates the result.
+    Coerce,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Stage {
+    /// Exact receiving schema record, not merely its output type.
+    pub source: usize,
+    pub operation: Operation,
+    /// Unique readonly callable storage; its argument can still be owned.
+    pub callback: usize,
+    pub callback_input: Type,
+    pub callback_output: Type,
+    /// Accepted owned input of the whole chain.
+    pub input: Type,
+    /// Successful output of the whole chain.
+    pub output: Type,
+    pub json_input: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ArrayPlan {
+    pub element: usize,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ObjectPlan {
+    pub shape: usize,
+    /// Exact field schema identities in shape declaration order.
+    pub fields: Vec<usize>,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+    pub policy: ObjectPolicy,
+    /// The typed fields before a retaining wrapper is applied.
+    pub value: Type,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ObjectPolicy { Reject, Strip, Retain }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct UnionPlan {
+    pub branches: Vec<usize>,
+    pub selector: Option<super::plans::Selector>,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Wrapper {
+    pub source: usize,
+    pub kind: WrapperKind,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WrapperKind { Presence(Type), Default(usize) }
+
+#[derive(Default)]
+pub(crate) struct Pipelines {
+    // Records preserve exact chain identity through variables and record fields.
+    // Never index this registry by output: unrelated input contracts can produce
+    // the same output, and must not become interchangeable.
+    wrappers: std::collections::BTreeMap<usize, Wrapper>,
+    stages: std::collections::BTreeMap<usize, Stage>,
+    arrays: std::collections::BTreeMap<usize, ArrayPlan>,
+    objects: std::collections::BTreeMap<usize, ObjectPlan>,
+    unions: std::collections::BTreeMap<usize, UnionPlan>,
+}
+
+impl Pipelines {
+    pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {
+        self.wrapper(record).map(|plan|(plan.input,plan.output,plan.json_input)).or_else(||self.get(record).map(|stage| (stage.input, stage.output, stage.json_input)))
+            .or_else(|| self.array(record).map(|plan| (plan.input, plan.output, plan.json_input)))
+            .or_else(|| self.object(record).map(|plan| (plan.input, plan.output, plan.json_input)))
+            .or_else(|| self.union(record).map(|plan| (plan.input, plan.output, plan.json_input)))
+    }
+    pub(crate) fn wrapper(&self, record: usize) -> Option<&Wrapper> { self.wrappers.get(&record) }
+    pub(crate) fn wrapper_record(&self, plan: &Wrapper) -> Option<usize> {
+        self.wrappers.iter().find_map(|(id, existing)|(existing==plan).then_some(*id))
+    }
+    pub(crate) fn insert_wrapper(&mut self, record: usize, plan: Wrapper) {
+        assert!(self.types(record).is_none());
+        self.wrappers.insert(record,plan);
+    }
+    pub(crate) fn union(&self, record: usize) -> Option<&UnionPlan> { self.unions.get(&record) }
+    pub(crate) fn union_record(&self, plan: &UnionPlan) -> Option<usize> {
+        self.unions.iter().find_map(|(record, existing)| (existing == plan).then_some(*record))
+    }
+    pub(crate) fn insert_union(&mut self, record: usize, plan: UnionPlan) {
+        assert!(!self.stages.contains_key(&record) && !self.arrays.contains_key(&record) && !self.objects.contains_key(&record));
+        if let Some(previous) = self.unions.get(&record) { assert_eq!(previous, &plan); }
+        else { self.unions.insert(record, plan); }
+    }
+    pub(crate) fn object(&self, record: usize) -> Option<&ObjectPlan> { self.objects.get(&record) }
+    pub(crate) fn object_record(&self, plan: &ObjectPlan) -> Option<usize> {
+        self.objects.iter().find_map(|(record, existing)| (existing == plan).then_some(*record))
+    }
+    pub(crate) fn insert_object(&mut self, record: usize, plan: ObjectPlan) {
+        assert!(!self.stages.contains_key(&record) && !self.arrays.contains_key(&record));
+        if let Some(previous) = self.objects.get(&record) { assert_eq!(previous, &plan); }
+        else { self.objects.insert(record, plan); }
+    }
+    pub(crate) fn array(&self, record: usize) -> Option<&ArrayPlan> { self.arrays.get(&record) }
+    pub(crate) fn has_coercion(&self, record: usize) -> bool {
+        if let Some(plan)=self.wrapper(record) { self.has_coercion(plan.source) }
+        else if let Some(stage) = self.get(record) {
+            stage.operation == Operation::Coerce || self.has_coercion(stage.source)
+        } else { self.array(record).is_some_and(|plan| self.has_coercion(plan.element))
+            || self.object(record).is_some_and(|plan| plan.fields.iter().any(|child| self.has_coercion(*child)))
+            || self.union(record).is_some_and(|plan| plan.branches.iter().any(|child| self.has_coercion(*child))) }
+    }
+    pub(crate) fn array_record(&self, plan: &ArrayPlan) -> Option<usize> {
+        self.arrays.iter().find_map(|(record, existing)| (existing == plan).then_some(*record))
+    }
+    pub(crate) fn insert_array(&mut self, record: usize, plan: ArrayPlan) {
+        assert!(!self.stages.contains_key(&record));
+        if let Some(previous) = self.arrays.get(&record) { assert_eq!(previous, &plan); }
+        else { self.arrays.insert(record, plan); }
+    }
+    /// Enumerate actual stored children; output identity cannot recover them.
+    pub(crate) fn dependencies(&self, root: usize) -> (Vec<usize>, Vec<usize>) {
+        let mut pending = vec![root];
+        let mut seen = std::collections::HashSet::new();
+        let mut callbacks = Vec::new();
+        let mut leaves = Vec::new();
+        while let Some(record) = pending.pop() {
+            if !seen.insert(record) { continue; }
+            if let Some(plan)=self.wrapper(record) {
+                pending.push(plan.source);
+                if let WrapperKind::Default(family)=plan.kind { callbacks.push(family); }
+            }
+            else if let Some(stage) = self.get(record) { callbacks.push(stage.callback); pending.push(stage.source); }
+            else if let Some(plan) = self.array(record) { pending.push(plan.element); }
+            else if let Some(plan) = self.object(record) { pending.extend(plan.fields.iter().copied()); }
+            else if let Some(plan) = self.union(record) { pending.extend(plan.branches.iter().copied()); }
+            else { leaves.push(record); }
+        }
+        (callbacks, leaves)
+    }
+    pub(crate) fn callbacks(&self) -> impl Iterator<Item = usize> + '_ {
+        self.stages.values().map(|stage| stage.callback).chain(self.wrappers.values().filter_map(|plan|
+            if let WrapperKind::Default(family)=plan.kind {Some(family)}else{None}))
+    }
+
+    pub(crate) fn get(&self, record: usize) -> Option<&Stage> {
+        self.stages.get(&record)
+    }
+
+    pub(crate) fn record_for(&self, stage: &Stage) -> Option<usize> {
+        self.stages.iter().find_map(|(record, existing)| (existing == stage).then_some(*record))
+    }
+
+    pub(crate) fn insert(&mut self, record: usize, stage: Stage) {
+        if let Some(previous) = self.stages.get(&record) {
+            assert_eq!(previous, &stage, "schema pipeline record changed contract");
+            return;
+        }
+        self.stages.insert(record, stage);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn stage(input: Type) -> Stage {
+        Stage {
+            source: 2, operation: Operation::Coerce, callback: 4,
+            callback_input: input, callback_output: Type::Int,
+            input, output: Type::Int, json_input: false,
+        }
+    }
+
+    #[test]
+    fn equal_outputs_do_not_merge_distinct_input_contracts() {
+        let mut plans = Pipelines::default();
+        let text = stage(Type::String);
+        let boolean = stage(Type::Boolean);
+        plans.insert(10, text.clone());
+        plans.insert(11, boolean.clone());
+        assert_eq!(plans.record_for(&text), Some(10));
+        assert_eq!(plans.record_for(&boolean), Some(11));
+        assert_eq!(plans.get(10).unwrap().input, Type::String);
+        assert_eq!(plans.get(11).unwrap().input, Type::Boolean);
+        let mut other_receiver = text.clone();
+        other_receiver.source = 3;
+        assert_eq!(plans.record_for(&other_receiver), None);
+        let mut other_callback = text;
+        other_callback.callback = 5;
+        assert_eq!(plans.record_for(&other_callback), None);
+    }
+
+    #[test]
+    fn operation_order_is_part_of_chain_identity() {
+        let mut plans = Pipelines::default();
+        let mut conversion = stage(Type::Int);
+        conversion.operation = Operation::Transform;
+        plans.insert(10, conversion.clone());
+        let mut refinement = conversion.clone();
+        refinement.operation = Operation::Refine;
+        refinement.callback_output = Type::Boolean;
+        plans.insert(11, refinement.clone());
+        assert_eq!(plans.record_for(&conversion), Some(10));
+        assert_eq!(plans.record_for(&refinement), Some(11));
+        refinement.source = 10;
+        assert_eq!(plans.record_for(&refinement), None);
+    }
+
+    #[test]
+    fn nested_array_dependencies_retain_callback_and_leaf_schema_identity() {
+        let mut plans = Pipelines::default();
+        plans.insert(10, stage(Type::String));
+        let array_type = |ty| Type::Array(crate::syntax::ArrayElement::from_value_type(ty).unwrap());
+        let first = ArrayPlan { element: 10, input: array_type(Type::String), output: array_type(Type::Int), json_input: false };
+        plans.insert_array(11, first.clone());
+        plans.insert_array(12, ArrayPlan { element: 11, input: array_type(first.input), output: array_type(first.output), json_input: false });
+        assert_eq!(plans.dependencies(12), (vec![4], vec![2]));
+        assert!(plans.has_coercion(12));
+        assert_eq!(plans.types(12), Some((array_type(first.input), array_type(first.output), false)));
+    }
+}

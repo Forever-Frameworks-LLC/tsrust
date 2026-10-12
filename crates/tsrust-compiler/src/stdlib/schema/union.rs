@@ -1,5 +1,5 @@
 //! Borrowed branch preparation precedes a single consuming commitment.
-use super::issues::Issues;
+use super::issues::{Code, Issues, Kind, Segment};
 
 /// Preparation owns generated defaults and other branch-local state, never input.
 /// Aborted carries a propagated exception, which must not trigger another branch.
@@ -7,6 +7,25 @@ use super::issues::Issues;
 pub(super) enum Preparation<P, E> { Ready(P), Rejected, Aborted(E) }
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum Branch<A, B> { First(A), Second(B) }
+
+/// A predicate observes a typed view without consuming original input. A thrown
+/// callback error is distinct from invalid data and must stop alternative search.
+pub(super) fn refine<T: ?Sized, E>(
+    input: &T,
+    path: &[Segment<'_>],
+    issues: &mut Issues,
+    kind: Kind,
+    predicate: impl FnOnce(&T) -> Result<bool, E>,
+) -> Preparation<(), E> {
+    match predicate(input) {
+        Ok(true) => Preparation::Ready(()),
+        Ok(false) => {
+            issues.push(path, Code::Refinement, kind, kind);
+            Preparation::Rejected
+        }
+        Err(error) => Preparation::Aborted(error),
+    }
+}
 
 /// Left-to-right selection keeps one global issue budget across failed branches.
 /// A successful alternative discards speculative issues, not earlier siblings.
@@ -64,6 +83,24 @@ mod tests {
     use super::*;
     use crate::stdlib::schema::issues::{Code, Kind, OwnedSegment, Segment};
     use std::cell::Cell;
+
+    #[test]
+    fn refinement_borrows_unsized_text_and_distinguishes_rejection_from_exceptions() {
+        let input="owned text".repeat(4);let pointer=input.as_ptr();
+        let mut issues=Issues::new(4,4,32);
+        let accepted:Preparation<(),&str>=refine(input.as_str(),&[],&mut issues,Kind::String,|value|{
+            assert_eq!(value.as_ptr(),pointer);Ok(value.len()>3)
+        });
+        assert_eq!(accepted,Preparation::Ready(()));assert!(issues.is_valid());
+        let rejected:Preparation<(),&str>=refine(input.as_str(),&[Segment::Field("value")],&mut issues,Kind::String,|_|Ok(false));
+        assert_eq!(rejected,Preparation::Rejected);
+        assert_eq!(issues.items[0].code,Code::Refinement);
+        assert_eq!(issues.items[0].path,[OwnedSegment::Field("value".into())]);
+        let count=issues.items.len();
+        let thrown:Preparation<(),&str>=refine(input.as_str(),&[],&mut issues,Kind::String,|_|Err("callback"));
+        assert_eq!(thrown,Preparation::Aborted("callback"));assert_eq!(issues.items.len(),count);
+        assert_eq!(input.as_ptr(),pointer);
+    }
 
     fn reject(issues: &mut Issues, branch: usize) {
         issues.push(&[Segment::Index(branch)], Code::Literal, Kind::String, Kind::String);

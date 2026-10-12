@@ -2766,3 +2766,40 @@ fn imported_enum_schema_help_retains_aliases_through_array_and_presence_chains()
     let help=ask(&index,&entry,"[1]","textDocument/signatureHelp");assert!(help.to_string().contains("Status")&&help.to_string().contains("number")&&help.to_string().contains("undefined"),"{help}");
     let items=ask(&index,&entry,"safeParse([1]","textDocument/completion");assert!(!items.to_string().contains("\"label\":\"strip\""),"{items}");
 }
+
+#[test]
+fn schema_pipeline_help_keeps_raw_input_distinct_from_transformed_output() {
+    let entry = tsrust_compiler::format("import {s} from 'std:schema';function main(){const converted=s.int().coerce((values:int[]):int=>values.length);const schema=converted.transform(count=>count>0);const result=schema.safeParse([1,2]);}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let hover = ask(&index, &entry, "schema =", "textDocument/hover");
+    assert!(hover.to_string().contains("Schema<boolean>"), "{hover}");
+    assert!(!hover.to_string().contains("@schema:pipeline"), "{hover}");
+    let result = ask(&index, &entry, "result =", "textDocument/hover");
+    assert!(result.to_string().replace(' ', "").contains("Result<boolean,SchemaError>"), "{result}");
+    let help = ask(&index, &entry, "[1, 2]", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("input: int[]"), "{help}");
+    assert!(!help.to_string().contains("input: boolean"), "{help}");
+    let hover = ask(&index, &entry, "coerce(", "textDocument/hover");
+    assert!(hover.to_string().contains("before validating") && hover.to_string().contains("exceptions propagate"), "{hover}");
+}
+
+#[test]
+fn schema_pipeline_default_help_uses_raw_input_and_presence_keeps_output() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const converted=s.string().transform(value=>value.length);const supplied=converted.default(()=> 'hello');const schema=supplied.optional();const result=schema.safeParse('abc');}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let help=ask(&index,&entry,"() =>", "textDocument/signatureHelp");
+    assert!(help.to_string().contains("string"),"{help}");
+    let hover=ask(&index,&entry,"schema =","textDocument/hover");
+    assert!(hover.to_string().contains("int")&&hover.to_string().contains("undefined"),"{hover}");
+    assert!(!hover.to_string().contains("@schema:"),"{hover}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<")&&result.to_string().contains("SchemaError"),"{result}");
+}

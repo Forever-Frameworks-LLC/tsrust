@@ -29,5 +29,8 @@ pub(crate) mod defaults;
 
 #[cfg(test)]
 mod union;
+#[cfg(test)]
+mod trial;
 
 pub(crate) mod plans;
+pub(crate) mod pipelines;

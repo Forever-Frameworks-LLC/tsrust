@@ -22,8 +22,11 @@ impl Emitter<'_> {
         }
     }
     pub(super) fn schema_json_prepared_validator(&self, id:usize, generated:&mut String, seen:&mut HashSet<usize>, owned_seen:&mut HashSet<(usize,Type)>, errors:&crate::error_effects::FailureSet) {
-        let first=seen.is_empty();
         if !seen.insert(id){return;}
+        let marker=format!("/*schema_json_prepared{id}*/");
+        if generated.contains(&marker){return;}
+        generated.push_str(&marker);
+        let first=!generated.contains("fn tsrust_schema_observed(");
         if first { generated.push_str("fn tsrust_schema_observed(input:&tsrust_native_json::Value)->tsrust_schema_issues::Kind{use tsrust_schema_issues::Kind;match input{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object}}"); }
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);

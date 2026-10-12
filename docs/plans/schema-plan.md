@@ -5,6 +5,8 @@ Public scalar schemas, constraints, nested arrays and required-field object sche
 have focused compiler, native and editor verification. Composite schemas accept
 matching owned input or JsonValue. Reusable default factories are integrated.
 Exact literals, string-list enums and declared enum schemas preserve inferred types.
+Readonly refinements, owned transforms and explicit coercion pipelines have focused
+compiler/native/editor acceptance, including nested union rollback and defaults.
 Remaining composite APIs, fused decoding and family acceptance remain pending.
 
 ## Required surface and coverage
@@ -23,8 +25,8 @@ executing differential cases; current web documentation alone is not a version p
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing pending |
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
-| Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Second tranche, still required |
-| Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Second tranche, still required |
+| Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
+| Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; richer cross-field issue APIs remain required |
 | Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Second tranche, still required |
 | Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Second tranche, still required |
 | JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Second tranche, still required |
@@ -1056,7 +1058,7 @@ Refinements inspect values and report issues; transformations can consume or
 mutate owned input and return the next typed value. Explicit coercion precedes
 subsequent validation. The owner requested a path for mutation in these pipelines;
 readonly default factories must not accidentally prohibit it. The subsequent approval below settles refinement versus transformation roles;
-exact coercion arguments remain open.
+the callback-based coercion contract below settles its arguments.
 
 Pipeline acceptance must include a callback that changes owned input, a subsequent
 validation stage that observes the changed value, and editor inference for the
@@ -1070,9 +1072,144 @@ type), with explicit `.coerce` conversion before subsequent validation. Checkers
 hover, completion and signature help must track the input and output of every
 stage, including intermediate variables and reusable runtime plans. Negative
 tests must reject downstream operations valid only for an earlier stage's type.
-The precise arguments and placement of `.coerce` remain to be settled before that
-implementation gate. Do not treat readonly default factories
+The owner approved `schema.coerce((input: Input) => value)`: consume the raw input,
+run the conversion callback, then validate its result with the receiving schema.
+Infer the accepted raw input type from the callback and preserve the receiving
+schema's validated output type. Conversion exceptions propagate normally;
+invalid converted values produce validation errors. The conversion may mutate
+its owned input, but its captures follow the same readonly, reusable contract as
+transforms. A consuming coercion inside a union commits that branch before the
+callback runs; subsequent failure must not retry another branch or copy input.
+Checker and editor acceptance must cover intermediate schema variables, chained
+refinements and transforms, incorrect raw input, invalid callback result types,
+and conversion exceptions. This approval is a contract, not implementation or
+measurement acceptance. Do not treat readonly default factories
 as a decision to remove mutation-capable transformation pipelines.
+
+Pipeline implementation is in progress after the union checkpoint. The checker
+now has a separate registry keyed by exact schema record, retaining source plan,
+callback family, accepted input and resulting output. Constructor lowering is
+being wired to uniquely owned readonly callback storage. Equal output types do
+not merge different input contracts. Initial `safeParse` lowering and consuming
+stage emission now transport conversion exceptions through the existing callback
+error ABI. Coercion precedes receiving-schema validation; transforms follow it.
+Checked project facts now carry pipeline input and output separately. Initial
+editor completion, hover and signature help use those facts, with catalog
+documentation for refinement, transformation and coercion. A new editor witness
+checks array input with boolean output after conversion and transformation.
+Array plans now retain their exact element schema identity, including nested
+pipeline arrays. Initial consuming emission handles typed and eligible JSON
+arrays, tracks element issue paths, and stops on callback exceptions. Written
+witnesses cover transformed element types and nested array outputs. These paths
+have not yet been executed.
+Object pipeline plans now retain exact field schema identities and distinct
+structural input/output records. Initial consuming emission handles owned and
+eligible JSON objects, applies transforms to generated defaults, reports field
+paths, rejects unknown JSON fields, and propagates callback exceptions. New
+witnesses cover transformed fields, nested array pipelines and transformed
+defaults. Initial `.strip()` and `.retain()` lowering and emission now preserve
+typed transformed fields and move retained unknown JSON data into the separate
+`extra` map. Editor facts expose policy methods only for eligible object plans.
+Policy witnesses remain unrun; union preparation and section validation remain
+open.
+The matched `native_schema_pipeline` workload is registered with TypeScript
+counterpart, independent checksum, source guards, fingerprints, shared driver ABI
+and report grouping. It observes mutating coercion, receiving-schema rejection,
+refinement and transformed output. It is unmeasured and has not yet passed untimed
+parity; registration is preparation for section acceptance, not evidence of it.
+
+The current readonly callback ABI expects native typed storage, whereas JSON
+strings and records initially live in JSON storage. The pipeline implementation
+will bridge this with reversible typed projections after ordinary borrowed
+preparation. Payloads move into typed storage; restoration metadata retains the
+original representation, unknown fields and missing-field provenance. A rejected
+readonly refinement restores the original input before trying another branch.
+No payload is cloned, shared or given an erased lifetime. Defaults and checked
+conversions prepared earlier must not run again. Explicit source operations such
+as `clone` retain their ordinary behavior.
+
+Before a consuming transform or coercion runs, restoration state is discarded.
+Later rejection or exception cannot reopen alternative selection. This changes
+the internal callback bridge, not the approved commitment contract. Metadata may
+require allocation; matched measurements must include that cost. Internal trial
+primitives and unrun witnesses now cover ownership transfer, exact restoration,
+exception cleanup and commitment. Generated projection/restoration integration
+is still required; these primitives do not establish public union-pipeline
+acceptance.
+
+Generated JSON projection/restoration covers scalar payloads, exact numeric
+representations, arrays, records, prepared defaults, presence wrappers, retained
+extras and selected native schema alternatives. Owned projections now preserve
+removed fields, exact preconversion scalars, selected alternatives and prepared
+defaults as well. Their inverse moves payloads back without revalidation.
+
+Pipeline union construction retains ordered branch identities and separate
+input/output unions. The generated trial dispatcher now connects native schemas,
+refinements, transforms, coercions, unions and callback-bearing arrays/objects.
+Readonly rejection restores input before fallback. A consuming callback commits
+the enclosing branch; later rejection never retries another alternative. Nested
+callback pipelines stop later callbacks after failure. Ordinary native preparation
+still collects bounded issues before projection. Missing-field trials retain
+absence separately from generated defaults. Retained JSON extras move into the
+public extra map and return to the original object during readonly rollback.
+Discriminated pipelines inspect input tags before transforms change output types.
+
+Heterogeneous restoration uses uniquely owned boxed callables with lifetimes
+bounded by the actual retained values. These metadata allocations require
+measurement. Internal unrun witnesses cover array rollback, commitment, payload
+allocation identity and skipped later callbacks. Public unrun witnesses cover
+nested array/object rollback, exact integers, missing defaults, retained extras,
+coercion failures and discriminated branches transformed into scalars.
+
+Presence/default wrappers now retain exact source plan identity and separate input
+and output types. A pipeline default produces source input, then validates through
+the receiving chain. Missing fields are distinct from supplied undefined or null.
+An outer optional wrapper preserves inner defaults and does not hide their failures.
+Owned object input inference preserves omitted fields rather than materializing an
+undefined value before the default can inspect omission. Catalog examples and
+editor witnesses cover these chains alongside refine/transform/coerce.
+
+Focused pipeline section acceptance is complete on macOS. The preserved runs
+cover 17 public pipeline cases (including exact catalog examples), 21 existing
+enum/union cases, 68 schema runtime checks, 30 schema editor cases and 25 workload
+contract checks. The new workload matches native and Node-after-tsc checksums at
+0, 1, 17 and 2,000 iterations without timing. Whole-project formatting changed one
+workload file and refreshed its fingerprint after token preservation/idempotence
+checks. Source fixtures also execute after formatting through `format_round_trip`.
+
+Repairs retain their original failure evidence: one generated-format brace,
+missing type annotations for an absent object field, compiler facts omitted for
+lowered pipeline records, and an editor assertion sensitive to insignificant type
+spacing. Only affected checks were rerun. SQLite records:
+
+- `tsrust-pipeline-section-compiler.log`
+- `tsrust-pipeline-section-compiler-repair1.log`
+- `tsrust-pipeline-section-objects-repair2.log`
+- `tsrust-pipeline-section-owned-rollback.log`
+- `tsrust-pipeline-section-existing-schemas.log`
+- `tsrust-pipeline-section-runtime.log`
+- `tsrust-pipeline-section-editor.log`
+- `tsrust-pipeline-section-editor-repair1.log`
+- `tsrust-pipeline-section-editor-repair2.log`
+- `tsrust-pipeline-section-workloads.log`
+- `tsrust-pipeline-section-parity.log`
+- `tsrust-pipeline-section-format.log`
+- `tsrust-pipeline-section-format2.log`
+- `tsrust-pipeline-section-workloads2.log`
+- `tsrust-pipeline-section-parity2.log`
+
+The final workload includes three validations per iteration: successful coercion,
+failed receiving-schema validation, and JSON-array rollback before a second union
+branch transforms the value. Its checksum is `seed + 7 * n`. The `*2.log` records
+verify that expanded workload; initial contract/parity logs retain the earlier
+two-operation, `seed + 5 * n` scenario. No timing record is relabeled or overwritten.
+
+This accepts the scoped pipeline implementation, not S11 or measured performance.
+Fused text decoding, recursive/lazy composition, collection schemas, richer issue
+APIs, JSON Schema export and dependency-gated validators remain on the roadmap.
+Full family regressions, timing review and installed consumer refresh remain
+pending. No claim of arbitrary Zod compatibility or support for every possible
+schema annotation/chain follows from these focused checks.
 
 ### Unique readonly factory storage prerequisite
 

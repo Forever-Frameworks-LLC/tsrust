@@ -10,21 +10,24 @@ impl Analyzer {
         while let ExprKind::Call(callee,_)=&root.kind {
             match &callee.kind {
                 ExprKind::Name(name)=>{constructing=name.starts_with("@schema:")||name.starts_with("@native:std:schema#");break;},
-                ExprKind::Field(receiver,method) if matches!(method.as_str(),"min"|"max"|"gt"|"lt"|"optional"|"nullable"|"strip"|"retain"|"default")=>{
-                    if matches!(self.expression_type_hint(context,receiver),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){constructing=true;break;}
+                ExprKind::Field(receiver,method) if matches!(method.as_str(),"min"|"max"|"gt"|"lt"|"optional"|"nullable"|"strip"|"retain"|"default"|"refine"|"transform"|"coerce")=>{
+                    if matches!(self.expression_type_hint(context,receiver),Some(Type::Record(id)) if (self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.types(id).is_some())){constructing=true;break;}
                     root=receiver;
                 },
                 _=>break,
             }
         }
-        if !constructing&&!matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
+        if !constructing&&!matches!(hint,Some(Type::Record(id)) if (self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.types(id).is_some())){return Ok(None);}
         if !args.is_empty(){return Err(Diagnostic::new("arity","Presence builders expect no arguments.",expr.span));}
         let mut receiver=(**base).clone();
         let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
         let Type::Record(id)=ty else{return Ok(None)};
+        let added=if method=="optional"{Type::Undefined}else{Type::Null};
+        if self.schema_pipelines.types(id).is_some() {
+            return self.schema_pipeline_wrapper(expr,id,receiver,crate::stdlib::schema::pipelines::WrapperKind::Presence(added),None,expected).map(Some);
+        }
         if self.program.records[id].native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
-        let added=if method=="optional"{Type::Undefined}else{Type::Null};
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
         let mut annotation=ValueAnnotation{span:expr.span,kind:Kind::Applied{name:TypeName{text:crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Schema),span:expr.span},arguments:vec![ValueAnnotation{span:expr.span,kind:Kind::Union(vec![types.annotation(output,expr.span)?,types.annotation(added,expr.span)?])}]}};

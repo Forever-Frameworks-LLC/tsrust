@@ -83,6 +83,7 @@ pub struct SourceIndex {
     checked_views: Vec<(Span, String)>,
     json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
+    schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool)>,
     checked_optional_receivers: Vec<(Span, String)>,
     checked_generic_calls: Vec<CheckedGenericCall>,
     /// Commas that separate declarators in a const or let declaration, with
@@ -134,6 +135,7 @@ impl SourceIndex {
             checked_views: vec![],
             json_string_receivers: vec![],
             checked_method_results: vec![],
+            schema_pipeline_types: Default::default(),
             checked_optional_receivers: vec![],
             checked_generic_calls: vec![],
             declarator_separators: std::collections::HashMap::new(),
@@ -1872,6 +1874,13 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if let Some((_, output, _, _)) = self.schema_pipeline_types.get(&receiver) {
+            if method == "refine" { return receiver; }
+            if method == "safeParse" {
+                return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)
+                    .map(|(name, _)| format!("Result<{output}, {name}>")).unwrap_or_default();
+            }
+        }
         let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}

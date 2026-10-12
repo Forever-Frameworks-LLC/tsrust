@@ -346,7 +346,8 @@ impl Analysis {
                             types.push(payload);
                         }
                     }
-                    if (matches!(expression.kind, ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Integer(_) | ExprKind::Number(_))
+                    if (matches!(expression.ty,Some(Type::Record(id)) if program.schema_pipelines.types(id).is_some())
+                        || matches!(expression.kind, ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) | ExprKind::Integer(_) | ExprKind::Number(_))
                         || matches!(&expression.kind, ExprKind::Field(base, _) if matches!(base.ty, Some(Type::Set(_) | Type::Map(_))))
                         || matches!(&expression.kind, ExprKind::Field(base, name) if name=="length" && matches!(base.ty,Some(Type::String | Type::Array(_))))
                         || matches!(&expression.kind, ExprKind::Field(base, _) if matches!(base.ty,Some(Type::Record(id)) if program.records[id].is_tuple()))
@@ -359,6 +360,7 @@ impl Analysis {
                             CallTarget::SetMethod(_) | CallTarget::MapMethod(_)
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
+                                | CallTarget::SchemaValidate
                                 | CallTarget::SchemaPresence
                                 | CallTarget::SchemaChoice(_)
                                 | CallTarget::SchemaDefault

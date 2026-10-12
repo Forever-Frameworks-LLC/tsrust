@@ -57,6 +57,13 @@ use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
 mod native_view_emit;
 mod schema_validation;
+mod schema_pipelines;
+mod schema_json_projection;
+mod schema_owned_projection;
+mod schema_pipeline_trials;
+mod schema_pipeline_wrappers;
+mod schema_pipeline_array_trials;
+mod schema_pipeline_object_trials;
 mod schema_plans;
 mod schema_prepare_json;
 mod schema_prepare_owned;
@@ -3044,9 +3051,15 @@ impl Emitter<'_> {
             }
         }
         output.push_str(&crate::stdlib::schema::emit::issue_bridge(self.program));
-        if !self.program.schema_choices.is_empty(){
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.callbacks().next().is_some(){
             output.push_str("mod tsrust_schema_union {\n");
-            output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::Issues;","use super::tsrust_schema_issues::Issues;"));
+            output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
+            output.push_str("\n}\n");
+            output.push_str("mod tsrust_schema_trial {\n");
+            output.push_str(&include_str!("../stdlib/schema/trial.rs")
+                .lines().filter(|line| !line.starts_with("//!")).collect::<Vec<_>>().join("\n")
+                .replace("use super::issues::{Code, Issues, Kind, Segment};", "use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};")
+                .replace("use super::union::Preparation;", "use super::tsrust_schema_union::Preparation;"));
             output.push_str("\n}\n");
         }
         for &binding_id in self.native_bindings.borrow().iter() {

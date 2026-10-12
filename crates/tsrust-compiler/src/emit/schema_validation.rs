@@ -13,7 +13,7 @@ impl Emitter<'_> {
     }
     // Outer None means no factory; inner None means generated data failed validation.
     pub(super) fn schema_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
-        if !self.program.schema_choices.is_empty(){return self.schema_prepared_default_value(output,plan,generated,seen,errors);}
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_prepared_default_value(output,plan,generated,seen,errors);}
         let mut absent=if let Type::Union(union)=output && let Some(base)=self.schema_presence_element(output) {
             let child=self.schema_default_value(base,&format!("{plan}.inner"),generated,seen,errors);
             let injection=self.schema_widen_value(base,union,"value");
@@ -96,9 +96,10 @@ impl Emitter<'_> {
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError"&&record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let (declaration,error_name)=if fallible{self.completion_error_layout("SchemaFactoryError",&errors,runtime,expr.span)}else{("enum SchemaFactoryError {}".into(),"SchemaFactoryError".into())};
         let declaration=format!("{declaration}type SchemaFactoryFailure={error_name};enum PreparedField<P,T>{{Present(P),Default(T)}}enum PreparedPresence<T,P>{{Absent(T),Present(P)}}");
-        let json=matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
+        let pipeline=self.program.schema_pipelines.types(root).is_some();
+        let json=!pipeline&&matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
         let mut seen=std::collections::HashSet::new();
-        let validator=if json {self.schema_json_validator(root,&mut generated,&mut seen,&mut std::collections::HashSet::new(),&errors);format!("validate_json{root}")}else{self.schema_owned_validator(root,args[1].ty.unwrap(),&mut generated,&mut std::collections::HashSet::new(),&errors)};
+        let validator=if pipeline {self.schema_pipeline_validator(root,args[1].ty.unwrap(),&mut generated,&mut std::collections::HashSet::new(),&errors)}else if json {self.schema_json_validator(root,&mut generated,&mut seen,&mut std::collections::HashSet::new(),&errors);format!("validate_json{root}")}else{self.schema_owned_validator(root,args[1].ty.unwrap(),&mut generated,&mut std::collections::HashSet::new(),&errors)};
         let input=self.expr(fun,&args[1],Mode::Consume);
         let input=if json {format!("({input}).value")}else{input};
         let Type::Union(result)=expr.ty.unwrap() else{unreachable!()};
@@ -113,8 +114,8 @@ impl Emitter<'_> {
         }else{format!("{{{declaration}match {body}{{Ok(value)=>value,Err(error)=>match error{{}}}}}}")}
 
     }
-    fn schema_owned_validator(&self,id:usize,input_type:Type,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
-        if !self.program.schema_choices.is_empty(){return self.schema_owned_prepared_validator(id,input_type,generated,seen,errors);}
+    pub(super) fn schema_owned_validator(&self,id:usize,input_type:Type,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_owned_prepared_validator(id,input_type,generated,seen,errors);}
         let name=format!("validate{id}_{input_type:?}").chars().map(|c|if c.is_ascii_alphanumeric(){c}else{'_'}).collect::<String>();
         if !seen.insert((id,input_type)){return name;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
@@ -210,8 +211,8 @@ impl Emitter<'_> {
         generated.push_str(&format!("fn {name}(schema:&Record{id},input:{input_native},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{native}>{{if failure.is_some(){{return None;}}{body}}}"));
         name
     }
-    fn schema_json_validator(&self,id:usize,generated:&mut String,seen:&mut std::collections::HashSet<usize>,owned_seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet) {
-        if !self.program.schema_choices.is_empty(){return self.schema_json_prepared_validator(id,generated,seen,owned_seen,errors);}
+    pub(super) fn schema_json_validator(&self,id:usize,generated:&mut String,seen:&mut std::collections::HashSet<usize>,owned_seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet) {
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_json_prepared_validator(id,generated,seen,owned_seen,errors);}
         if !seen.insert(id){return;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);

@@ -227,14 +227,16 @@ pub(crate) fn materialize_catch_types(program:&mut CheckedProgram)->Result<(),cr
 /// Schema values can be constructed after an earlier reusable validation function
 /// is checked. Refresh invocation identities before solving the final effects.
 fn refresh_schema_invocations(program:&mut CheckedProgram) {
-    if program.schema_factories.is_empty(){return;}
+    if program.schema_factories.is_empty()&&program.schema_pipelines.callbacks().next().is_none(){return;}
     let mut by_record=std::collections::HashMap::new();
     for (id,record) in program.records.iter().enumerate(){
-        if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){continue;}
-        let mut pending=vec![record.application.as_ref().unwrap().resolved_arguments[0]];
-        let mut seen=std::collections::HashSet::new();let mut families=Vec::new();
+        if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema)&&program.schema_pipelines.types(id).is_none(){continue;}
+        let (mut families,leaves)=program.schema_pipelines.dependencies(id);
+        let mut pending=leaves.into_iter().map(|source|program.records[source].application.as_ref().unwrap().resolved_arguments[0]).collect::<Vec<_>>();
+        let mut seen=std::collections::HashSet::new();
         while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}
             if let Some(&family)=program.schema_factories.get(&ty){families.push(family);}
+            pending.extend(program.schema_choices.for_output(ty).flat_map(|(_,choice)|choice.branches.iter().copied()));
             families.extend(crate::stdlib::schema::defaults::inherited_factories(ty,&program.schema_factories,|id|program.unions[id.index()].members.clone()).into_iter().map(|(_,family)|family));
             match ty{
                 Type::Array(element)=>pending.push(element.ty()),

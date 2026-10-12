@@ -7,11 +7,15 @@ impl Analyzer {
         if !matches!(method.as_str(),"strip"|"retain"){return Ok(None);}
         let hinted=self.expression_type_hint(context,base);
         let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:object"|"@schema:union"|"@schema:discriminatedUnion")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"default")));
-        if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
+        if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.object(id).is_some()){return Ok(None);}
         if !args.is_empty(){return Err(Diagnostic::new("arity","Object policy methods expect no arguments.",expr.span));}
         let mut receiver=(**base).clone();
         let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
         let Type::Record(id)=ty else{unreachable!()};
+        if self.schema_pipelines.object(id).is_some() {
+            let retaining=method=="retain";
+            return self.schema_pipeline_object_policy(expr,id,receiver,retaining,expected).map(Some);
+        }
         if !matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Record(_)){return Err(Diagnostic::new("schema-member","Object policy methods require an object schema.",expr.span));}
         let retaining=method=="retain";
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
@@ -23,7 +27,7 @@ impl Analyzer {
         Ok(Some(result))
     }
 
-    fn schema_retained_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
+    pub(super) fn schema_retained_value_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
         let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).expect("schema JSON type");
         let mut map=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:"Map".into(),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:"string".into(),span})},ValueAnnotation{span,kind:Kind::Named(TypeName{text:self.program.records[json].name.text.clone(),span})}]}};
@@ -32,9 +36,17 @@ impl Analyzer {
         let extra=self.resolve_value_annotation(&map,false)?;
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         let fields=[("value",output),("extra",extra)].into_iter().map(|(name,ty)|Ok(crate::syntax::RecordField{name:Token{text:name.into(),span,kind:TokenKind::Name},annotation:types.annotation(ty,span)?,ty:Some(ty),callable_declaration:None,optional:false})).collect::<Result<Vec<_>,Diagnostic>>()?;
+        if let Some(wrapper)=self.program.records.iter().position(|record|record.name.text.starts_with("@schema:retained:")&&record.fields.len()==2&&record.fields[0].ty==Some(output)&&record.fields[1].ty==Some(extra)){return Ok(Type::Record(wrapper));}
         let wrapper=self.program.records.len();let name=format!("@schema:retained:{wrapper}");
         self.record_names.insert(name.clone(),wrapper);self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
         self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,name:Token{text:name.clone(),span,kind:TokenKind::Name},type_parameters:Vec::new(),fields});
+        Ok(Type::Record(wrapper))
+    }
+
+    fn schema_retained_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
+        use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
+        let Type::Record(wrapper)=self.schema_retained_value_type(output,span)? else{unreachable!()};
+        let name=self.program.records[wrapper].name.text.clone();
         let mut annotation=ValueAnnotation{span,kind:Kind::Applied{name:TypeName{text:crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Schema),span},arguments:vec![ValueAnnotation{span,kind:Kind::Named(TypeName{text:name,span})}]}};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
@@ -50,6 +62,10 @@ impl Analyzer {
         self.builtin_literals=previous;
         let Type::Record(shape)=shape? else{return Err(Diagnostic::new("schema-type","s.object requires a record of field schemas.",args[0].span));};
         if self.program.records[shape].native_type.is_some()||self.program.records[shape].is_tuple(){return Err(Diagnostic::new("schema-type","s.object requires a record of field schemas.",args[0].span));}
+        if self.program.records[shape].fields.iter().any(|field| matches!(field.ty,Some(Type::Record(id)) if self.schema_pipelines.types(id).is_some())) {
+            let value=args.remove(0);
+            return self.schema_pipeline_object(expr,shape,value,expected).map(Some);
+        }
         let mut fields=self.program.records[shape].fields.clone();
         for field in &mut fields {
             let Some(Type::Record(child))=field.ty else{return Err(Diagnostic::new("schema-type","Every object field must contain a schema.",field.name.span));};

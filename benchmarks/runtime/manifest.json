@@ -22290,6 +22290,30 @@
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
       "sourceSha256": "a231e42cfb1d64d3ecd8ff125762809982da7b87bea0859a3ac50de379180d77",
       "counterpartSha256": "6fad23204b566a3eb140581333f2614ba3917261f97baecac53da892ff8493cb"
+    },
+    {
+      "id": "native_schema_pipeline",
+      "category": "schema",
+      "description": "Owned coercion, validation, refinement and transformation",
+      "source": "workloads/native_schema_pipeline.tsr",
+      "counterpart": "workloads/native_schema_pipeline.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 3,
+      "operationUnit": "One owned array coercion, validation pipeline and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "owned-pipeline",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "A mutating coercion extends input; receiving integer constraints and refinement precede a transformed result. Observe success 4 and one bounded root issue, contributing 5 per iteration.",
+      "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
+      "sourceSha256": "bb3adc4884dbd8ea6607f0048acc82978f773d3ddcea7a27d2c35bb4aeaeecb7",
+      "counterpartSha256": "15493c39c5a290055987c1a9292edbc8463ffd810fe6c886d1044ad4b6452440"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
