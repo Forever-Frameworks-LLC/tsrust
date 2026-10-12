@@ -1235,3 +1235,32 @@ CPU performance or general memory superiority; Node heap deltas remain separate.
 Evidence: tsrust-json-nested-*-f9ef1461 in SQLite. Prior numeric and Unicode records
 remain unchanged. Failure paths, encoding, streaming and raw-fragment allocation
 coverage, plus full S10 regression and timing acceptance, remain open.
+
+### Failed-decoding allocation baselines
+
+The allocation harness adds dynamic and typed malformed arrays plus typed arrays
+with a late string-to-number mismatch. Inputs contain 0, 1 or 1000 valid Unicode
+strings followed by `?` (invalid syntax) or `7` (valid JSON, incompatible with
+string[]). Existing source fixtures are reused without altering successful-case
+measurements. `--only=dynamic_invalid,typed_invalid,typed_mismatch` runs only these
+cases. Native instrumentation observes the generated function's error result;
+direct Rust observes Serde rejection, and Node catches parse/validation failure.
+Each returns a scalar rejection witness and drops the error before counters are
+sampled. Every Rust sample additionally requires zero retained requested bytes.
+This measures error construction and disposal together, not retained error size.
+
+All nine cases and 81 fresh-process samples pass; counts are stable across three
+samples and all Rust input/output disposal checks pass. At 1000 preceding strings,
+dynamic native/direct Rust both use 1003 allocations/eight reallocations and peak
+at 38808 requested bytes. Malformed typed native input uses two allocations and
+peaks at 80 bytes because syntax validation precedes output construction; direct
+Vec<String> uses 1003/eight and peaks at 30616 bytes. The valid JSON type mismatch
+exercises partial typed output cleanup: native uses 1008 allocations/12
+reallocations versus direct Rust 1004/nine, with both peaking at 30700 bytes.
+The native error path has additional allocation overhead to review at the family
+performance milestone; no CPU timing or optimization acceptance is claimed.
+
+Evidence: tsrust-json-failure-*-3b36da2c in SQLite, including the failing guard and
+eight passing focused checks. Prior successful-case records are unchanged.
+Encoding, streaming and raw-fragment allocation coverage, full family regressions,
+and S10 timing acceptance remain open.

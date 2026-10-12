@@ -67,3 +67,15 @@ test('selective record instrumentation fails closed when its field ABI changes',
  assert.throws(()=>adaptJsonAllocation(emitted.replace('field0:','field1:'),driver,'typed_selective'));
  assert.match(directJsonAllocation(driver,'typed_selective'),/IgnoredAny/);
 });
+
+test('failure probes reject malformed and late type-mismatch input without retaining errors',()=>{
+ assert.equal(jsonAllocationInput(0,'dynamic_invalid'),'[?]');
+ assert.equal(jsonAllocationInput(1,'typed_invalid'),'["é🦀",?]');
+ assert.equal(jsonAllocationInput(1,'typed_mismatch'),'["é🦀",7]');
+ assert.equal(jsonAllocationChecksum(1000,'typed_mismatch'),1);
+ const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<Array<String>,TsrFunctionError0> { todo!() }\nfn main() {}';
+ assert.match(adaptJsonAllocation(emitted,driver,'typed_mismatch'),/Err\(error\)=>\{drop\(error\);1i64\}/);
+ assert.match(directJsonAllocation(driver,'typed_mismatch'),/is_err\(\) as i64/);
+ const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
+ assert.match(nodeJsonAllocation('function workload(n:number,seed:number,input:string):unknown{return JSON.parse(input);}',nodeDriver,'dynamic_invalid'),/catch/);
+});
