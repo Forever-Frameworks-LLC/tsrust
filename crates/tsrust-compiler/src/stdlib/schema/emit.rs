@@ -102,3 +102,32 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
         }}
     }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
 }
+
+
+pub(crate) fn issue_bridge(program:&CheckedProgram)->String {
+    let record=|kind|program.records.iter().position(|record|record.native_type==Some(kind));
+    let Some(error)=record(NativeTypeId::SchemaError) else{return String::new();};
+    let issue=record(NativeTypeId::SchemaIssue).unwrap();
+    let path=record(NativeTypeId::SchemaPath).unwrap();
+    let optional=|field:usize,payload:Type|{
+        let Type::Union(id)=program.records[path].fields[field].ty.unwrap() else{unreachable!()};
+        let members=&program.unions[id.index()].members;
+        (id.index(),members.iter().position(|ty|*ty==payload).unwrap(),members.iter().position(|ty|*ty==Type::Undefined).unwrap())
+    };
+    let (field_union,field_tag,field_absent)=optional(0,Type::String);
+    let (index_union,index_tag,index_absent)=optional(1,Type::Int);
+    let mut output=String::from("mod tsrust_schema_issues {\n");
+    output.push_str(include_str!("issues.rs").trim_start_matches("//! Bounded validation errors containing type summaries, never input values.\n"));
+    output.push_str("\n}\n");
+    output.push_str(&format!("fn tsrust_schema_error(errors:tsrust_schema_issues::Issues)->Record{error} {{
+        let issues=errors.items.into_iter().map(|issue|{{
+            let path=issue.path.into_iter().map(|segment|match segment {{
+                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined)}},
+                tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\"))}}
+            }}).collect();
+            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str())}}
+        }}).collect();
+        Record{error}{{field0:issues,field1:errors.truncated}}
+    }}\n"));
+    output
+}

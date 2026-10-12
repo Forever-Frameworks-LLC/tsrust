@@ -2,6 +2,11 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Kind { Missing, Null, Boolean, Number, Integer, String, Array, Object }
+impl Kind {
+    pub(super) fn as_str(self)->&'static str {
+        match self {Self::Missing=>"missing",Self::Null=>"null",Self::Boolean=>"boolean",Self::Number=>"number",Self::Integer=>"integer",Self::String=>"string",Self::Array=>"array",Self::Object=>"object"}
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, TooSmall, TooLarge, Literal, UnknownField }
 impl Code {

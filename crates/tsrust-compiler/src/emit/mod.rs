@@ -3015,6 +3015,7 @@ impl Emitter<'_> {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }
         }
+        output.push_str(&crate::stdlib::schema::emit::issue_bridge(self.program));
         for &binding_id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[binding_id];
             if binding.module != "std:schema" { continue; }

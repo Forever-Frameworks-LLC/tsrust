@@ -671,3 +671,40 @@ fn schema_array_construction_moves_child_plan_and_keeps_type() {
     let invalid="import {s} from 'std:schema';function main(){const child=s.string();s.array(child);child.safeParse('x');}";
     assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
 }
+
+#[test]
+fn schema_generated_issue_bridge_preserves_bounded_errors() {
+    let checked=checked_source("import {s} from 'std:schema';function main(){s.string().safeParse('ok');}").unwrap();
+    let (rust,features)=checked.emit_rust_with_native_features();assert!(features.is_empty());
+    assert!(rust.contains("fn tsrust_schema_error("));
+    let mut rust=rust.replace("fn main()", "fn original_main()");
+    rust.push_str(r#"
+fn main(){
+ use tsrust_schema_issues::{Issues,Segment,Code,Kind};
+ let mut errors=Issues::new(1,1,8);
+ errors.push(&[Segment::Index(3),Segment::Index(4)],Code::Type,Kind::String,Kind::Boolean);
+ errors.push(&[],Code::Missing,Kind::Integer,Kind::Missing);
+ let result=tsrust_schema_error(errors);
+ assert!(result.field1);assert_eq!(result.field0.len(),1);
+ let issue=&result.field0[0];
+ assert_eq!(issue.field0.as_ref(),"type-mismatch");
+ assert_eq!(issue.field1.len(),1);assert!(issue.field2);
+ assert_eq!(issue.field3.as_ref(),"string");assert_eq!(issue.field4.as_ref(),"boolean");
+ let mut errors=Issues::new(1,4,3);
+ errors.push(&[Segment::Field("é😀secret"),Segment::Index(2)],Code::Missing,Kind::Integer,Kind::Missing);
+ let result=tsrust_schema_error(errors);
+ assert!(!result.field1);assert!(result.field0[0].field2);
+ assert_eq!(result.field0[0].field1.len(),1);
+ assert_eq!(result.field0[0].field0.as_ref(),"missing-field");
+ assert_eq!(result.field0[0].field4.as_ref(),"missing");
+ let mut errors=Issues::new(0,0,0);
+ errors.push(&[],Code::Type,Kind::Array,Kind::Object);
+ let result=tsrust_schema_error(errors);
+ assert!(result.field1);assert!(result.field0.is_empty());
+}
+"#);
+    let directory=support::TempDirectory::new();let file=directory.0.join("schema.rs");let binary=directory.0.join("schema");
+    std::fs::write(&file,rust).unwrap();
+    support::success(&support::run(support::rustc().arg("--edition=2024").arg(file).arg("-o").arg(&binary),60));
+    support::success(&support::run(&mut std::process::Command::new(binary),10));
+}

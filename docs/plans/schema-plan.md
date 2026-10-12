@@ -809,3 +809,16 @@ function return. Existing schema array, numeric, literal and object composition
 checks exercise the delegated path. Public array safeParse and native error-path
 conversion remain pending; the shared loop is their ownership prerequisite.
 SQLite: `tsrust-schema-array-runtime-*-ebecea06.log`.
+
+## Generated bounded error conversion
+
+Generated programs can now convert the shared bounded issue collector into public
+SchemaError records. Conversion moves owned field names and preserves index paths,
+issue truncation, path truncation and controlled expected/observed type summaries.
+It does not retain invalid input values or require the JSON runtime.
+
+A focused generated-native witness covers indexed paths, Unicode field-path
+truncation, missing fields and a zero-issue budget. The original compile failure
+and repaired checks are retained in SQLite under
+`tsrust-schema-issue-bridge-*-9f9d4f7d.log`. This is a prerequisite for composite
+validation; public array safeParse and its matched workload remain pending.
