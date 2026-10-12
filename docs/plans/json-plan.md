@@ -20,6 +20,8 @@ including editor documentation and untimed matched workload checks. The required
 [compiler source organization checkpoint](../milestones/compiler-source-organization.md)
 is accepted; continue the remaining runtime APIs and S10 acceptance below.
 
+See the [requirement-by-requirement contract audit](../milestones/s10-json-contract-audit.md) for the implemented evidence and the explicit raw-fragment gap.
+
 ## Current acceptance gaps
 
 The implemented-feature regression checkpoint and measured baseline matrices are
