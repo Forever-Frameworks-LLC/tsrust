@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw fragments and family timing/RSS/release acceptance remain open. No S10 timing acceptance is claimed.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw fragments and family timing/RSS/release acceptance remain open. The initial 20-workload native/Node execution baseline is measured; full timing/RSS acceptance remains open.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -1451,3 +1451,30 @@ full run and were not repeated. The original failure remains in the active full
 log; the repaired result is tsrust-s10-json-catalog-repair-6d40badf in SQLite.
 Remaining targets and the final completeness audit must finish before regression
 acceptance. Raw fragments and performance/release acceptance remain open.
+
+### Initial JSON execution baseline
+
+At source checkpoint `4db77a2e`, all 20 JSON workloads (including typed data
+imports) passed five independent correctness cases per engine and completed
+3 fresh processes × 8 warmups × 31 timed batches for native and Node-after-tsc.
+The audit verifies 120 process records and 3,720 positive, finite timed batches,
+with matching checksums. Startup and compilation arrays are intentionally empty.
+
+Canonical SQLite records:
+- `results/2026-10-12T06-04-29-404Z.json`: immutable commands, inputs and samples.
+- `tsrust-s10-runtime-audit-4db77a2e.json`: sample audit and batch p50/p95 values.
+- `tsrust-s10-runtime-4db77a2e.log`: completed run log.
+
+Native versus Node median batch milliseconds: typed decoding 0.4885/0.3500,
+typed encoding 0.4478/0.2313, container construction 0.9875/0.4474, borrowed
+string views 0.0738/0.0222, owned JSONL reading 22.6761/25.2522 and owned JSONL
+writing 64.2100/67.3035. These are complete workload costs, not isolated API costs.
+Small absolute values and uncontrolled background/thermal load limit tiny-gap
+claims. JSONC reference processing and native checked/ownership behavior differ;
+measurements establish these authored workloads, not unrestricted API equivalence.
+
+Review priorities are encoding buffer growth, container construction, typed
+decoding validation, and borrowed string access. Preserve this baseline before
+optimization; direct Rust comparisons must isolate wrapper overhead under matching
+retained outputs and checks. This execution batch does not close warm/cold,
+peak RSS, direct Rust, full shape-matrix, public raw-fragment or release acceptance.
