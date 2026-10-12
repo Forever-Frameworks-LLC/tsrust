@@ -1478,3 +1478,36 @@ decoding validation, and borrowed string access. Preserve this baseline before
 optimization; direct Rust comparisons must isolate wrapper overhead under matching
 retained outputs and checks. This execution batch does not close warm/cold,
 peak RSS, direct Rust, full shape-matrix, public raw-fragment or release acceptance.
+
+### Encoding latency and direct Rust baseline
+
+The focused encoding harness reuses checked allocation adapters and their exact
+output oracles. Seven shapes × three sizes (0/1/1000) × three engines × three
+fresh processes establish 189 process samples, 5,859 batches and 585,900 timed
+encodings. Each process records its first encoding separately, then eight warmup
+batches and 31 measured batches of 100 encodings. Prepared owned input remains
+outside timing; output replacement/disposal is inside, with the final string
+retained until timer stop and exact-byte verification. First-operation latency is
+not process startup or filesystem cold-cache latency. Node reclamation follows GC;
+Rust drops replaced strings immediately. These costs are intentionally retained.
+
+At size 1000, median microseconds per encoding (native/direct Rust/Node):
+- Typed integers: 7.95 / 4.33 / 4.49.
+- Dynamic integers: 10.05 / 6.16 / 4.50.
+- Typed Unicode/escaped strings: 44.39 / 14.50 / 29.41.
+- Dynamic Unicode/escaped strings: 47.73 / 20.38 / 28.97.
+- Deep dynamic arrays: 10.49 / 6.82 / 5.38.
+- Dynamic mixed-field objects: 26.81 / 17.10 / 26.27.
+- Typed mixed-field objects: 26.12 / 11.03 / 26.15.
+
+Direct Rust uses Serde on the same valid data and retains the same exact output;
+it does not enforce native size/depth/number contracts. Ratios include that
+contract cost and must not all be attributed to wrapper overhead. Review bounded
+writer/escaping costs and buffer growth before optimization; no safety checks may
+be removed to match the baseline. RSS, decoding latency, streaming latency against
+direct Rust, public raw fragments and final consumers remain open.
+
+SQLite evidence: `tsrust-json-encoding-timing-8ba777db.json` and matching run log;
+focused red/check logs and whole-project formatting log retain implementation
+verification. Raw evidence hashes the harness, both drivers, adapters, compiler
+inputs, emitted programs, TypeScript counterparts and dependency artifacts.
