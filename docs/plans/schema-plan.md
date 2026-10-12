@@ -50,8 +50,13 @@ unknown-field paths, successful storage transfer, failure cleanup, and checker/L
 rejection of input reuse after either outcome. Signatures, hover and examples must
 state the consuming contract. No implicit clone or shared mutable output is allowed.
 
-String length units, default factories and public builder spellings need a concrete
-contract review before their individual implementation gates. The existing checked
+The owner also approved `import { s } from "std:schema"`, constructors such as
+`s.string()` and `s.object({ name: s.string() })`, and `schema.safeParse(input)`
+with inferred output types. String-length constraints count Unicode code points:
+`😀` has length one; `e` followed by a combining acute accent has length two.
+These are not grapheme-cluster counts. UTF-8 byte and UTF-16 unit constraints, if
+exposed, must use explicit alternatives. Default factories still need a concrete
+contract review before their implementation gate. The existing checked
 JSON numeric extraction must not be bypassed by schema validation.
 
 ## Implementation and acceptance sequence
@@ -129,13 +134,13 @@ separation, secret-free mismatch errors, repeated boolean validation, and reject
 with a zero issue budget. All 15 current schema backend tests pass. SQLite evidence:
 `tsrust-schema-scalar-{red,check,format}-2af9dc47.log`. No timings were run.
 
-Public integration must add an identity-bearing namespace export if the proposed
-`s` builder is selected: native exports currently distinguish only types and
+Public integration must add an identity-bearing namespace export for the approved
+`s` builder: native exports currently distinguish only types and
 functions (`native/exports.rs`), and module linking handles those two identities
 (`project/link.rs`). Do not implement the namespace as an unscoped global rewrite;
 import aliases and lexical shadowing must remain correct. Public builder spelling
-and default string-length units are awaiting owner review. Neither blocks the
-approved consuming validator backend.
+and default Unicode code-point length units are approved. Integration must verify
+aliased imports, lexical shadowing, inferred outputs and consuming ownership.
 
 ## Consuming array checkpoint
 
