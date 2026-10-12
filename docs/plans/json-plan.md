@@ -1541,3 +1541,31 @@ SQLite records use prefix `tsrust-json-encoding-opt-` and suffix `-b162df03`:
 `alloc` (raw JSON/log), `tests`, `json-tests`, `native-tests`, `build` and `format`.
 Original baselines remain immutable. The changed runtime still needs final consumer
 refresh; broader S10 performance and public raw-fragment acceptance remain open.
+
+### Encoding process peak RSS
+
+`json-encoding-timing.mjs --rss` reuses the checked source/input adapters with
+single-operation drivers, without timing warmups or allocation instrumentation.
+Seven shapes at sizes 0/1/10000, native/direct Rust/Node, and three fresh processes
+per case produce 189 verified samples. Each fresh Python monitor launches exactly
+one child and reads macOS RUSAGE_CHILDREN.ru_maxrss in bytes. No monitor is reused,
+so earlier child peaks cannot contaminate later samples. Unsupported hosts fail.
+Child failures, unexpected stderr, missing RSS and checksum mismatches fail closed.
+
+The metric includes process startup, prepared input, retained output, exact-output
+validation and runtime overhead. Node's UTF-8 checksum observer also allocates;
+Rust's byte checksum does not. Neither startup nor observer memory is subtracted.
+This is whole-process peak RSS, not encoding-only or incremental heap storage.
+
+At size 10000, median MiB (native/direct Rust/Node): typed integers
+2.17/2.16/47.81; dynamic integers 2.38/2.39/47.77; typed Unicode strings
+3.64/3.31/51.02; dynamic Unicode strings 3.44/3.45/51.05; deep dynamic arrays
+2.39/2.41/48.16; dynamic objects 3.83/3.86/51.08; typed objects 4.23/4.11/51.03.
+Small differences need repeated controlled investigation before optimization.
+No timing samples were added by this RSS run or merged into prior timing records.
+
+SQLite records: `tsrust-json-rss-0debe317.json`, matching log, and
+`tsrust-json-rss-audit-0debe317.json`, plus red/check/format logs. The raw record
+includes exact input/source/driver/helper hashes and per-process values. This closes
+encoding RSS coverage for these authored shapes; decoding and streaming RSS,
+remaining latency coverage, public raw fragments and installed refresh remain open.
