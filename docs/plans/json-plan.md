@@ -2048,3 +2048,9 @@ hover shapes through the installed protocol, with clean diagnostics. CLI behavio
 is unchanged. The editor language server was restarted. Release build and
 installed protocol evidence are retained as `tsrust-json-hover-release.log` and
 `tsrust-json-hover-installed-c3798d9b.{py,log}` in SQLite.
+
+The same structural display now applies to individual imported properties.
+Nullable record-array and empty-object property hovers no longer expose generated
+record names; definition navigation still targets the original JSON fields.
+Six focused import editor tests pass. SQLite evidence:
+`tsrust-json-property-hover-{red,check,format}-70bb8546.log`.

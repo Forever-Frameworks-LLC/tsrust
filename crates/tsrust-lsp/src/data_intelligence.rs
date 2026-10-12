@@ -18,7 +18,7 @@ impl SourceIndex {
             for field in &record.fields {
                 let ty = spelling(&field.annotation);
                 self.symbols.push(Symbol { name: field.name.clone(), kind: 8, span: field.span, extent: field.span, scope: 0,
-                    signature: format!("{}{}: {ty}", field.name, if field.optional { "?" } else { "" }), ty,
+                    signature: format!("{}{}: {}", field.name, if field.optional { "?" } else { "" }, data_shape(schema, &field.annotation, 0)), ty,
                     docs: "Inferred from validated JSON data. Imported data is readonly; use clone() for an owned copy.".into(), parameters: vec![], owner: Some(record.name.clone()) });
             }
         }

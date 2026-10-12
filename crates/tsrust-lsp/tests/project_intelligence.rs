@@ -2236,6 +2236,20 @@ fn typed_json_import_hover_expands_nullable_array_records_and_empty_objects() {
 }
 
 #[test]
+fn typed_json_import_property_hover_expands_shapes_and_keeps_navigation() {
+    let entry=tsrust_compiler::format("import settings from './settings.json';function main(){console.log(settings.items.length);console.log(settings.empty);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let target="file:///tsrust-intelligence/settings.json";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    workspace.open(source_id(target).unwrap(),1,r#"{"items":[{"value":7},null],"empty":{}}"#.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("items.length","readonly value: int;"),("empty);","empty: {}")]{
+        let hover=ask(&index,&entry,needle,"textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains(expected) && !text.contains("JsonData") && !text.contains("@data-record"),"{hover}");
+        let definition=ask(&index,&entry,needle,"textDocument/definition");assert_eq!(definition["uri"],target);
+    }
+}
+
+#[test]
 fn typed_jsonc_import_exposes_concrete_record_hover(){
  let entry=tsrust_compiler::format("import {parseJsonc as decode} from 'std:json';type Item={name:string;};function main(){match(decode<Item>('{}')){Ok(item)=>{console.log(item.name);},Err(error)=>{console.log(error.code);}}}").unwrap();
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
