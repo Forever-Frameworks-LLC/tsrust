@@ -46,14 +46,16 @@ impl Emitter<'_> {
         }
         let helper = |ty: Type| {
             format!(
-                "Decode{}",
-                types.iter().position(|value| *value == ty).unwrap()
+                "Decode{}{}",
+                types.iter().position(|value| *value == ty).unwrap(),
+                if self.native_views.contains(ty) {"<'de>"}else{""}
             )
         };
         let mut generated =
             String::from("use tsrust_native_json::typed::serde::{self,Deserialize};");
         for (index, &ty) in types.iter().enumerate() {
-            let native = self.native_type(ty);
+            let native = self.recursive_view_native_type(ty,"'de");
+            let declaration=helper(ty);
             let body = match ty {
                 Type::Int => {
                     "Ok(Self(tsrust_native_json::typed::ExactInt::deserialize(decoder)?.0))".into()
@@ -70,8 +72,11 @@ impl Emitter<'_> {
                 Type::Array(element) => {
                     let item = helper(element.ty());
                     format!(
-                        "struct Items;impl<'de> serde::de::Visitor<'de> for Items{{type Value=Decode{index};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an array\")}}fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut seq:A)->Result<Self::Value,A::Error>{{let mut values=<{native}>::from([]);while let Some(value)=seq.next_element::<{item}>()?{{values.push(value.0);}}Ok(Decode{index}(values))}}}}decoder.deserialize_seq(Items)"
+                        "struct Items;impl<'de> serde::de::Visitor<'de> for Items{{type Value={declaration};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an array\")}}fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut seq:A)->Result<Self::Value,A::Error>{{let mut values=<{native}>::from([]);while let Some(value)=seq.next_element::<{item}>()?{{values.push(value.0);}}Ok(Decode{index}(values))}}}}decoder.deserialize_seq(Items)"
                     )
+                }
+                Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonRaw) => {
+                    format!("Ok(Self(Record{id}{{fragment:tsrust_native_json::raw::Fragment::deserialize(decoder)?}}))")
                 }
                 Type::Record(id) => {
                     let record = &self.program.records[id];
@@ -121,7 +126,7 @@ impl Emitter<'_> {
                             .map(|(position, _)| format!("field{position}=seq.next_element()?;"))
                             .collect::<String>();
                         format!(
-                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value=Decode{index};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"a tuple\")}}fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut seq:A)->Result<Self::Value,A::Error>{{{fields}{reads}if seq.next_element::<serde::de::IgnoredAny>()?.is_some(){{return Err(serde::de::Error::custom(\"tuple length\"));}}{construct}}}}}decoder.deserialize_seq(Fields)"
+                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value={declaration};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"a tuple\")}}fn visit_seq<A:serde::de::SeqAccess<'de>>(self,mut seq:A)->Result<Self::Value,A::Error>{{{fields}{reads}if seq.next_element::<serde::de::IgnoredAny>()?.is_some(){{return Err(serde::de::Error::custom(\"tuple length\"));}}{construct}}}}}decoder.deserialize_seq(Fields)"
                         )
                     } else {
                         let arms = record
@@ -136,7 +141,7 @@ impl Emitter<'_> {
                             })
                             .collect::<String>();
                         format!(
-                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value=Decode{index};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}while let Some(key)=map.next_key::<std::string::String>()?{{match key.as_str(){{{arms}_=>{{let _:serde::de::IgnoredAny=map.next_value()?;}}}}}}{construct}}}}}decoder.deserialize_map(Fields)"
+                            "struct Fields;impl<'de> serde::de::Visitor<'de> for Fields{{type Value={declaration};fn expecting(&self,f:&mut std::fmt::Formatter)->std::fmt::Result{{f.write_str(\"an object\")}}fn visit_map<A:serde::de::MapAccess<'de>>(self,mut map:A)->Result<Self::Value,A::Error>{{{fields}while let Some(key)=map.next_key::<std::string::String>()?{{match key.as_str(){{{arms}_=>{{let _:serde::de::IgnoredAny=map.next_value()?;}}}}}}{construct}}}}}decoder.deserialize_map(Fields)"
                         )
                     }
                 }
@@ -144,7 +149,7 @@ impl Emitter<'_> {
                     let members = &self.program.unions[id.index()].members;
                     if members.iter().all(|ty|matches!(ty,Type::Null|Type::Undefined)) {
                         let null=members.iter().position(|ty|*ty==Type::Null).unwrap();
-                        generated.push_str(&format!("struct Decode{index}({native});impl<'de> serde::Deserialize<'de> for Decode{index}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{let ()=serde::Deserialize::deserialize(decoder)?;Ok(Self(Union{}::V{null}(TsrNull)))}}}}",id.index()));
+                        generated.push_str(&format!("struct {declaration}({native});impl<'de> serde::Deserialize<'de> for {declaration}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{let ()=serde::Deserialize::deserialize(decoder)?;Ok(Self(Union{}::V{null}(TsrNull)))}}}}",id.index()));
                         continue;
                     }
                     let (tag, value) = members
@@ -161,12 +166,12 @@ impl Emitter<'_> {
                             id.index()
                         )
                     } else {
-                        format!("let value={payload}::deserialize(decoder)?;Ok(Self({present}))")
+                        format!("let value=<{payload}>::deserialize(decoder)?;Ok(Self({present}))")
                     }
                 }
                 _ => unreachable!("validated typed JSON shape"),
             };
-            generated.push_str(&format!("struct Decode{index}({native});impl<'de> serde::Deserialize<'de> for Decode{index}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));
+            generated.push_str(&format!("struct {declaration}({native});impl<'de> serde::Deserialize<'de> for {declaration}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));
         }
         if args.len()==1 {
             let reader=self.expr(fun,&args[0],Mode::Mutate);
@@ -183,7 +188,7 @@ impl Emitter<'_> {
         }
         let text = self.expr(fun, &args[0], Mode::Read);
         let limits = self.expr(fun, args.last().unwrap(), Mode::Read);
-        let (decoder,flag)=if args.len()==3 {("decode_jsonc",format!(",{}",self.expr(fun,&args[1],Mode::Copy)))}else{("decode",String::new())};
+        let (decoder,flag)=if args.len()==3 {("decode_jsonc",format!(",{}",self.expr(fun,&args[1],Mode::Copy)))}else{(if self.native_views.contains(root){"decode_borrowed"}else{"decode"},String::new())};
         let ok_tag = members
             .iter()
             .position(|ty| *ty == Type::Record(ok))

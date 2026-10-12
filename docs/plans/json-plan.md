@@ -1887,3 +1887,28 @@ owner provenance, lifetime-bearing generated visitors, editor documentation and
 matched selective-field measurement support remain required. Existing owned
 JSONC/streaming boundaries remain unchanged. Output semantics still await the
 owner's decision; S10 is not accepted.
+
+### Public typed raw-field implementation checkpoint
+
+Strict JSON.parse<T> and JSON.tryParse<T> now accept explicit JsonRaw fields.
+The analyzer retains the input borrow through the successful Result payload;
+generated visitors carry real input lifetimes through raw records, arrays and
+optional fields. Whole-result provenance conservatively retains the source for
+borrowed projections. JSONC and JSONL decoding continue to reject raw targets
+because their normalized or streamed input buffers cannot escape safely.
+Serialization remains unsupported pending the owner's policy decision.
+
+Focused native witnesses cover a raw field alongside an integer, raw arrays,
+optional raw fields, returns borrowing a caller's source, scope-end owner reuse,
+failed-decode loan release, owner invalidation, local-source escape and clone
+rejection. Eight raw tests and seven typed-decoding tests pass, including catalog
+examples and existing owned recursive/JSONC behavior. One editor test verifies
+input-lifetime documentation; JsonRaw and both JSON parse forms have consistent
+ownership notes and an executable selective-field example. Whole-project
+formatting changes no files or fingerprints.
+
+SQLite evidence: `tsrust-json-public-raw-*-106e74ac` initial rejection, first
+native success, ownership, editor, affected native suites and formatting logs.
+This is an implementation checkpoint, not selective-field measured acceptance.
+Matched selective workload/driver support, allocation/timing/RSS measurements,
+additional projection precision review and consumer refresh remain outstanding.

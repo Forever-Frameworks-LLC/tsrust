@@ -49,6 +49,7 @@ impl Analyzer {
                     span,
                 )
             })?;
+        let mut borrowed_raw = false;
         let mut pending = vec![ty];
         let mut seen = std::collections::HashSet::new();
         while let Some(ty) = pending.pop() {
@@ -58,6 +59,7 @@ impl Analyzer {
             match ty {
                 Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null => {}
                 Type::Array(element) => pending.push(element.ty()),
+                Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonRaw) && !jsonc && !jsonl => { borrowed_raw=true; }
                 Type::Record(id)
                     if self.program.records[id].native_type.is_none()
                         && self.program.records[id].map_definition.is_none()
@@ -134,6 +136,12 @@ impl Analyzer {
             contracts=vec![ArgumentContract{ty:Type::Record(reader),mode:Mode::Mutate,omission:crate::ParameterOmission::Required,rest:false}];
         }
         self.check_call_arguments(context, args, &contracts, loans)?;
+        if borrowed_raw {
+            let contract=crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::ReadOnly,payload:crate::native_signatures::NativeTypeId::JsonRaw,slot:crate::native_return_borrows::ReturnSlot::ResultOk};
+            Self::native_view_source_loans(context,&args[0],contract)?;
+            context.native_view_calls=true;
+            context.native_view_results.get_or_insert_with(Default::default).insert(result.union().unwrap(),(variants[0],None));
+        }
         expr.target = Some(CallTarget::JsonDecode);
         expr.ty = Some(result);
         Ok(Some(result))

@@ -95,3 +95,52 @@ fn raw_record_fields_reject_owner_invalidation_and_escape() {
   assert!(!output.status.success()&&stderr.contains(&format!("error[{expected}]")),"{stderr}");
  }
 }
+
+#[test]
+fn typed_json_decodes_borrowed_raw_fields() {
+ let source=r#"
+import {JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Envelope={payload:JsonRaw;tag:int;};
+function main(){
+ const source='{"payload":{"exact":18446744073709551615},"tag":7}';
+ const value=JSON.parse<Envelope>(source);
+ strictEqual(value.tag,7);
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn typed_raw_fields_keep_owner_provenance() {
+ for (body,expected) in [
+  ("function main(){let source='{\"payload\":null}';const value=JSON.parse<Envelope>(source);source='{}';consume(value);}","native-view-conflict"),
+  ("function bad():Envelope{const source='{\"payload\":null}';return JSON.parse<Envelope>(source);}function main(){}","native-view-escape"),
+  ("function main(){const source='{\"payload\":null}';const value=JSON.parse<Envelope>(source);clone(value);}","clone-type"),
+ ] {
+  let source=format!("import {{JsonRaw}} from 'std:json';type Envelope={{payload:JsonRaw;}};function consume(value:ReadOnly<Envelope>){{}}{body}");
+  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(&source));
+  let output=support::run(support::cli().arg("check").arg(path),60);let stderr=String::from_utf8_lossy(&output.stderr);
+  assert!(!output.status.success()&&stderr.contains(&format!("error[{expected}]")),"{stderr}");
+ }
+}
+
+#[test]
+fn typed_raw_arrays_optional_fields_and_failed_loans_execute() {
+ let source=r#"
+import {JsonRaw} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Envelope={payload:JsonRaw[];extra?:JsonRaw;tag:int;};
+function read(source:ReadOnly<string>):Envelope{return JSON.parse<Envelope>(source);}
+function main(){
+ let source='{"payload":[null,{"n":7}],"tag":9}';
+ {const value=read(source);strictEqual(value.tag,9);strictEqual(value.payload.length,2);}
+ source='{}';
+ match(JSON.tryParse<Envelope>(source)){Ok(value)=>{throw 'missing fields accepted';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}
+ source='null';strictEqual(source,'null');
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}

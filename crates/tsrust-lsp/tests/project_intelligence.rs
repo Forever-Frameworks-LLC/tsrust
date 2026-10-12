@@ -2301,3 +2301,11 @@ fn raw_json_record_field_hover_preserves_public_type() {
  let text=hover["contents"]["value"].as_str().unwrap();
  assert!(text.contains("payload: JsonRaw")&&!text.contains("native#"),"{hover}");
 }
+
+#[test]
+fn typed_raw_json_hover_documents_input_lifetime() {
+ let source=tsrust_compiler::format("import {JsonRaw} from 'std:json';type Envelope={payload:JsonRaw;tag:int;};function main(){const text='{\"payload\":null,\"tag\":7}';const value=JSON.parse<Envelope>(text);}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&source,"parse<Envelope>","textDocument/hover");
+ assert!(hover.to_string().contains("source text must outlive"),"{hover}");
+}
