@@ -50,3 +50,5 @@ Undefined object fields are omitted; undefined roots/array entries and nonfinite
 numbers fail explicitly. JsonValue/View support remains. The imported std:json
 stringify contract remains the dynamic Result-returning API. Catalog signatures,
 parameter help, hover and executable examples describe the namespace extension.
+
+Explicit parseJsonc<T> extends the existing std:json import with Result<T, JsonError>. It adds no global name. Untyped calls, trailing-comma defaults, limits and original-byte error offsets are unchanged. Editor help resolves import aliases and displays the explicit target type.

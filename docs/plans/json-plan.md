@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC/JSONL adapters, borrowed adapters, public writers, allocation
+Typed JSONC has focused source acceptance. Typed JSONL adapters, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -955,3 +955,20 @@ Acceptance: 37 JSON backend tests and the existing JSONC native fixture in debug
 and release modes. Whole-project formatting changed no sources or fingerprints.
 Original red/repair checks are retained as tsrust-json*-e00c40d0 records in SQLite.
 No timing or consumer refresh was performed.
+
+### Public typed JSONC decoding
+
+The existing std:json parseJsonc import now accepts explicit type arguments,
+including aliases. parseJsonc<T>(text, allowTrailingComma?, limits?) returns
+Result<T, JsonError>. Calls without a type argument keep the dynamic contract.
+No new global or import identity is introduced. Owned target validation and
+visitors are shared with strict typed JSON; normalization preserves byte offsets.
+
+Focused acceptance includes the complete seven-test typed-decoder fixture,
+including both JSONC catalog examples, plus project hover/signature help through
+an import alias. Native and Node-after-tsc agree in five untimed cases for
+native_jsonc_typed; all 15 JSON workload guards pass. The Node counterpart strips
+comments and checks parsed fields. Its shared benchmark domain is ASCII JSONC
+without trailing commas; native budget rules remain a disclosed difference.
+Evidence: tsrust-jsonc-public-*-4da590c1 in SQLite. Public typed JSONL, bounded
+writers and S10 family measurements/consumer refresh remain pending.

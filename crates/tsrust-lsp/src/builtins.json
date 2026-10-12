@@ -6605,6 +6605,7 @@
 {
   "name": "parseJsonc",
   "signature": "parseJsonc(text: ReadOnly<string>, allowTrailingComma?: boolean, limits?: ReadOnly<JsonLimits>): Result<JsonValue, JsonError>",
+  "typedSignature": "parseJsonc<T>(text: ReadOnly<string>, allowTrailingComma?: boolean, limits?: ReadOnly<JsonLimits>): Result<T, JsonError>",
   "parameters": [
     {
       "label": "text: ReadOnly<string>",
@@ -6619,11 +6620,15 @@
       "documentation": "Optional complete parse budgets, with the same defaults and ranges as parse."
     }
   ],
-  "documentation": "Parses JSON with // line comments and /* block comments */ wherever JSON permits whitespace. Comment delimiters inside strings remain literal. Line comments end at LF or CR; block comments end at the first */ and do not nest. Returns Ok with an owned JsonValue or Err with a JsonError. Unterminated block comments return unterminated-comment at the opening slash. All offsets address original UTF-8 input bytes. Trailing commas reject unless allowTrailingComma is true; empty collections with a comma and repeated commas always reject. Limits default to 16777216 input bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Comment bytes count toward the input limit. Number, Unicode and duplicate-key rules match parse. Comments are discarded; stringify emits strict JSON. Neither argument changes.\n\n```tsrust\nimport {parseJsonc,kind} from \"std:json\"; function main(){match(parseJsonc(\"/* note */ [1,]\",true)){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: array. Ownership: borrows text and limits; allocates bounded scratch storage and an independent owned result.",
+  "documentation": "Parses JSON with // line comments and /* block comments */ wherever JSON permits whitespace. Comment delimiters inside strings remain literal. Line comments end at LF or CR; block comments end at the first */ and do not nest. Returns Ok with an owned JsonValue or Err with a JsonError. Unterminated block comments return unterminated-comment at the opening slash. All offsets address original UTF-8 input bytes. Trailing commas reject unless allowTrailingComma is true; empty collections with a comma and repeated commas always reject. Limits default to 16777216 input bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Comment bytes count toward the input limit. Number, Unicode and duplicate-key rules match parse. Comments are discarded; stringify emits strict JSON. Neither argument changes.\n\n```tsrust\nimport {parseJsonc,kind} from \"std:json\"; function main(){match(parseJsonc(\"/* note */ [1,]\",true)){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: array. Ownership: borrows text and limits; allocates bounded scratch storage and an independent owned result.\n\nWith an explicit type argument, parseJsonc<T> returns Result<T, JsonError> and constructs the owned target directly. Supports scalars, named records, tuples, arrays and nullable records. Required fields must be present; missing optional fields become undefined; unknown fields are skipped but still count against limits. Every duplicate known field must match its type; the last valid occurrence wins. Shape mismatches report shape-mismatch. int conversion is checked; number rejects lossy integer conversion with number-precision. Unsupported targets fail during checking.\n\n```tsrust\nimport {parseJsonc} from \"std:json\";type Item={name:string;};function main(){match(parseJsonc<Item>('/*note*/{\"name\":\"hello\"}')){Ok(item)=>{console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. Ownership: typed output owns its fields independently of the input and normalization buffer.",
   "examples": [
     {
       "source": "import {parseJsonc,kind} from \"std:json\"; function main(){match(parseJsonc(\"/* note */ [1,]\",true)){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
       "output": "array\n"
+    },
+    {
+      "source": "import {parseJsonc} from \"std:json\";type Item={name:string;};function main(){match(parseJsonc<Item>('/*note*/{\"name\":\"hello\"}')){Ok(item)=>{console.log(item.name);},Err(error)=>{throw error.message;}}}",
+      "output": "hello\n"
     }
   ]
 },

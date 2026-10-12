@@ -12,6 +12,15 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_jsonc_typed'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSONC typed identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSONC typed fingerprint');
+  if(row.iterations!==2000||row.inputText!=='/* header */'+typedInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One checked record decode and scalar field observation')throw Error('JSONC typed denominator');
+  const body=kind==='native'?`while(i<n){match(parseJsonc<Item>(input)){Ok(item)=>{if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]+item.values[1];},Err(error)=>{throw error.message;}}i++;}`:`while(i<n){const item=decodeItem(input);if(!item.active){throw 'Inactive item';}checksum+=item.name.length+item.values[0]!+item.values[1]!;i++;}`;
+  for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSONC typed placement');
+  if(kind==='typescript'&&!containsCodeSnippet(source,'const item:unknown=JSON.parse(stripComments(input));'))throw Error('JSONC normalization');
+  return;
+ }
  if(row.id==='native_json_encoding'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON encoding identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON encoding fingerprint');

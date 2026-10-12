@@ -2218,3 +2218,15 @@ fn typed_json_import_binding_hover_shows_complete_shape() {
     let definition = ask(&index, &entry, "base);", "textDocument/definition");
     assert_eq!(definition["uri"], target);
 }
+
+#[test]
+fn typed_jsonc_import_exposes_concrete_record_hover(){
+ let entry=tsrust_compiler::format("import {parseJsonc as decode} from 'std:json';type Item={name:string;};function main(){match(decode<Item>('{}')){Ok(item)=>{console.log(item.name);},Err(error)=>{console.log(error.code);}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&entry,"name);","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
+ let hover=ask(&index,&entry,"decode<Item>","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();
+ assert!(text.contains("Result<Item, JsonError>") && !text.contains("@json") && !text.contains("native#"),"{hover}");
+ let help=ask(&index,&entry,"'{}'","textDocument/signatureHelp");
+ assert!(help.to_string().contains("Result<Item, JsonError>"),"{help}");
+}

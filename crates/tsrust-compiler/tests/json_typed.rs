@@ -114,3 +114,33 @@ fn typed_json_emits_direct_visitors_without_dynamic_parse_bridge() {
     assert!(emitted.contains("serde::de::MapAccess") && emitted.contains("serde::de::SeqAccess"));
     assert!(!emitted.contains("fn tsrust_std_json_parse("));
 }
+
+#[test]
+fn jsonc_explicit_types_decode_records_without_dynamic_values(){
+ let source=r#"
+import {parseJsonc as decode,parseJsonc} from 'std:json';
+import {strictEqual} from 'std:testing';
+type Item={name:string;values:int[];};
+function main(){
+ const input='/*header*/{"name":"hello","values":[20,17,],}';
+ match(decode<Item>(input,true)){Ok(item)=>{strictEqual(item.name,'hello');strictEqual(item.values[0],20);},Err(error)=>{throw error.message;}}
+ match(parseJsonc<Item>(input)){Ok(item)=>{throw 'trailing comma accepted by default';},Err(error)=>{strictEqual(error.code,'invalid-json');}}
+ match(decode<Item>('/*header*/{"name":42,"values":[]}')){Ok(item)=>{throw 'wrong shape accepted';},Err(error)=>{strictEqual(error.code,'shape-mismatch');}}
+ match(decode<Item>(input,true,{maxBytes:4,maxDepth:4,maxEntries:8,maxNodes:16})){Ok(item)=>{throw 'oversize accepted';},Err(error)=>{strictEqual(error.code,'byte-limit');}}
+ strictEqual(input.length>0,true);
+}
+"#;
+ let dir=support::TempDirectory::new();let path=dir.source(&support::format_round_trip(source));support::success(&support::run(support::cli().arg("run").arg(path),90));
+}
+
+#[test]
+fn jsonc_catalog_examples_execute(){
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+ let entry=catalog["std:json"].as_array().unwrap().iter().find(|entry|entry["name"]=="parseJsonc").unwrap();
+ let dir=support::TempDirectory::new();
+ for example in entry["examples"].as_array().unwrap(){
+  let path=dir.source(&support::format_round_trip(example["source"].as_str().unwrap()));
+  let output=support::run(support::cli().arg("run").arg(path),90);support::success(&output);
+  assert_eq!(String::from_utf8(output.stdout).unwrap(),example["output"].as_str().unwrap());
+ }
+}

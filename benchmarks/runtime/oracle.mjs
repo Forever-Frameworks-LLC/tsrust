@@ -218,6 +218,7 @@ export {expectedNumber} from './number-oracle.mjs';
 export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
  if(id==='native_json_encoding')return encodingChecksum(n,seed,inputText);
+ if(id==='native_jsonc_typed'){if(!inputText.startsWith('/* header */'))throw Error('JSONC input');return typedChecksum(n,seed,inputText.slice(12));}
  if(id==='native_json_typed')return typedChecksum(n,seed,inputText);
  if(id==='native_json_containers')return containersChecksum(n,seed,inputText);
  if(id==='native_json_construction')return constructionChecksum(n,seed,inputText);

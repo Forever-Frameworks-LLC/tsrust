@@ -164,7 +164,8 @@ impl Emitter<'_> {
             generated.push_str(&format!("struct Decode{index}({native});impl<'de> serde::Deserialize<'de> for Decode{index}{{fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{{{body}}}}}"));
         }
         let text = self.expr(fun, &args[0], Mode::Read);
-        let limits = self.expr(fun, &args[1], Mode::Read);
+        let limits = self.expr(fun, args.last().unwrap(), Mode::Read);
+        let (decoder,flag)=if args.len()==3 {("decode_jsonc",format!(",{}",self.expr(fun,&args[1],Mode::Copy)))}else{("decode",String::new())};
         let ok_tag = members
             .iter()
             .position(|ty| *ty == Type::Record(ok))
@@ -175,7 +176,7 @@ impl Emitter<'_> {
             .unwrap();
         let union = result.index();
         format!(
-            "{{{generated}let text={text};let limits={limits};let decoded=(||{{let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::typed::decode::<Decode0>(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(limits.field0)?,depth:convert(limits.field1)?,entries:convert(limits.field2)?,nodes:convert(limits.field3)?}})}})();match decoded{{Ok(value)=>Union{union}::V{ok_tag}(Record{ok}{{field0:value.0}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
+            "{{{generated}let text={text};let limits={limits};let decoded=(||{{let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::typed::{decoder}::<Decode0>(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(limits.field0)?,depth:convert(limits.field1)?,entries:convert(limits.field2)?,nodes:convert(limits.field3)?}}{flag})}})();match decoded{{Ok(value)=>Union{union}::V{ok_tag}(Record{ok}{{field0:value.0}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}"
         )
     }
 }

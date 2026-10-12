@@ -560,6 +560,20 @@ impl SourceIndex {
         display
     }
     fn checked_generic_signature(&self, token: usize) -> Option<(String, Vec<String>)> {
+        if self.text(token+1)=="<"
+            && let Some(symbol)=self.resolve_token(token)
+            && let Some(&binding)=self.native_origins.get(&symbol)
+            && let Some(entry)=builtins_for(tsrust_compiler::native_bindings::BINDINGS[binding].module).into_iter().find(|entry|entry["name"]==tsrust_compiler::native_bindings::BINDINGS[binding].name)
+            && let Some(signature)=entry["typedSignature"].as_str()
+            && let Some(open)=self.member_call_open(token)
+        {
+            let arguments=self.snippet(token+1,open);
+            if let Some(target)=arguments.strip_prefix('<').and_then(|value|value.strip_suffix('>')) {
+                let signature=builtin_type_substitution(signature,&[("T",target.trim())]);
+                let name=tsrust_compiler::native_bindings::BINDINGS[binding].name;
+                return Some((signature.replacen(name,self.text(token),1),self.symbols[symbol].parameters.clone()));
+            }
+        }
         let span = self.tokens.get(token)?.span;
         let fact = self
             .checked_generic_calls
@@ -1781,7 +1795,11 @@ impl SourceIndex {
         let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         let json_decode = method >= 2 && self.text(method - 2) == "JSON" && self.resolve_token(method - 2).is_none() && matches!(self.text(method), "parse" | "tryParse");
-        if !(checked_generic || array_constructor || set_constructor || result_constructor || json_decode) || self.text(next) != "<" {
+        let native_generic=self.resolve_token(method).and_then(|symbol|self.native_origins.get(&symbol)).is_some_and(|&id|{
+            let binding=&tsrust_compiler::native_bindings::BINDINGS[id];
+            builtins_for(binding.module).into_iter().any(|entry|entry["name"]==binding.name && entry["typedSignature"].is_string())
+        });
+        if !(checked_generic || array_constructor || set_constructor || result_constructor || json_decode || native_generic) || self.text(next) != "<" {
             return None;
         }
         let mut depth = 0usize;

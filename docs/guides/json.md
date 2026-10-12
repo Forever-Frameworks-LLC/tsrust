@@ -239,3 +239,26 @@ argument to change it. Exceeding this limit reports `output-limit` without
 returning partial output. Container nesting above 64 reports `depth-limit`,
 including dynamic JSON nested inside typed data. Resource handles, callbacks,
 Maps and Sets are not JSON encodable.
+
+## Decode typed JSONC
+
+Import `parseJsonc` from `std:json` and supply a target type to decode directly:
+
+```ts
+import {parseJsonc} from 'std:json';
+type Item = { name: string; };
+function main() {
+  match (parseJsonc<Item>('/* note */ {"name":"hello"}')) {
+    Ok(item) => { console.log(item.name); },
+    Err(error) => { throw error.message; }
+  }
+}
+```
+
+The result is `Result<Item, JsonError>`. Omit the type argument for the existing
+`Result<JsonValue, JsonError>` result. The second argument enables trailing
+commas (default false); the third supplies `JsonLimits`. Comments count toward
+the input byte limit, and error offsets address the original UTF-8 bytes.
+Typed field validation follows `JSON.tryParse<T>`, including missing optional
+fields, checked numeric conversion and limits on ignored fields. The result owns
+its data. JSONC normalization uses bounded scratch storage; input is unchanged.

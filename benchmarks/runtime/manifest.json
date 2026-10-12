@@ -21544,6 +21544,30 @@
       "notes": "Native borrowed direct serializers; Node JSON.stringify. Fixed input has finite safe integers and defined fields. Native sorted keys, undefined rejection and limits differ outside this input domain; no timing samples.",
       "sourceSha256": "1741f9aad42f8e45d7933fbf0c37e10a28f78bb5837d638a79e9c3a76583f3dc",
       "counterpartSha256": "3c12e2289ea8fe07d491dec22bd4d0f6efc04e3e4c6d66c3d1a974924b8076ba"
+    },
+    {
+      "id": "native_jsonc_typed",
+      "category": "json",
+      "description": "Direct typed JSONC record decoding",
+      "source": "workloads/native_jsonc_typed.tsr",
+      "counterpart": "workloads/native_jsonc_typed.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One checked record decode and scalar field observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "/* header */{\"name\":\"hello\",\"values\":[20,17],\"active\":true}",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Decode name, two integer values and active flag; independently observed checksum adds 42 per iteration.",
+      "notes": "Native bounded normalization and direct visitors; Node comment normalization, JSON.parse and checked fields. Fixed ASCII input uses comments without trailing commas; no timing samples.",
+      "sourceSha256": "38befde53d645669cb2cc80fcd131087d68fec178a0e6964cb6cd700e0f4f8d4",
+      "counterpartSha256": "1dd4b9c54da9aa6dfe8cc75a09afa8b93ff10200a4134587a3af1e4897bb20c1"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

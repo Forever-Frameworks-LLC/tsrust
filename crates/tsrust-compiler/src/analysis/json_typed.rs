@@ -11,9 +11,10 @@ impl Analyzer {
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             return Ok(None);
         };
-        if !matches!(&callee.kind,ExprKind::Name(name) if name=="@json:decode") {
+        if !matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@json:decode"|"@json:decodeJsonc")) {
             return Ok(None);
         }
+        let jsonc=matches!(&callee.kind,ExprKind::Name(name) if name=="@json:decodeJsonc");
         let span = self
             .program
             .functions
@@ -95,7 +96,7 @@ impl Analyzer {
                 }
             }
         }
-        if args.len() != 2 {
+        if args.len() != if jsonc {3}else{2} {
             return Err(Diagnostic::new(
                 "arity",
                 "Typed JSON decoding expects text and limits.",
@@ -110,7 +111,7 @@ impl Analyzer {
                 record.native_type == Some(crate::native_signatures::NativeTypeId::JsonLimits)
             })
             .expect("prepared JSON limits");
-        let contracts = [
+        let mut contracts = vec![
             ArgumentContract {
                 ty: Type::String,
                 mode: Mode::Read,
@@ -124,6 +125,7 @@ impl Analyzer {
                 rest: false,
             },
         ];
+        if jsonc {contracts.insert(1,ArgumentContract{ty:Type::Boolean,mode:Mode::Copy,omission:crate::ParameterOmission::Required,rest:false});}
         self.check_call_arguments(context, args, &contracts, loans)?;
         expr.target = Some(CallTarget::JsonDecode);
         expr.ty = Some(result);

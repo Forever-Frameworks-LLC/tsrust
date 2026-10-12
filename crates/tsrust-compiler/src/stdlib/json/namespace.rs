@@ -38,7 +38,7 @@ fn shadowed_scopes(body: &[Stmt], scopes: &mut Vec<Span>) {
 }
 
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
-    if program.functions.iter().any(|function| function.name.text == "JSON") { return Ok(()); }
+    let namespace_shadowed=program.functions.iter().any(|function| function.name.text == "JSON");
     let mut required = std::collections::BTreeMap::new();
     let mut throwing = std::collections::BTreeSet::new();
     let mut typed = std::collections::BTreeSet::new();
@@ -48,7 +48,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let local_uses: std::collections::BTreeSet<_> = program.local_capture_plans.iter()
         .flat_map(|plan| plan.uses.keys().copied()).collect();
     for function in &mut program.functions {
-        if function.params.iter().any(|(name, _, _)| name.text == "JSON") { continue; }
+        let namespace_shadowed=namespace_shadowed || function.params.iter().any(|(name, _, _)| name.text == "JSON");
         let mut scopes = Vec::new();
         let mut typed_members = std::collections::BTreeSet::new();
         shadowed_scopes(&function.body, &mut scopes);
@@ -65,6 +65,11 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             Ok(())
         })?;
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+            if typed_members.contains(&(expression.span.start,expression.span.end)) && matches!(&expression.kind,ExprKind::Name(name) if name=="@native:std:json#parseJsonc") {
+                typed.insert("parseJsonc".into());required.insert("parseJsonc",expression.span);
+                expression.kind=ExprKind::Name("@json:typedparseJsonc".into());return Ok(());
+            }
+            if namespace_shadowed {return Ok(());}
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             if !matches!(&base.kind, ExprKind::Name(name) if name == "JSON")
                 || local_uses.contains(&base.span.start)
@@ -166,6 +171,9 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
         "const decoded:Result<T,JsonError>=backend(text,limits);match(decoded){Ok(value)=>{return value;},Err(error)=>{throw error;}}"
     } else { "return backend(text,limits);" };
     let source = format!("function adapter<T>(text:ReadOnly<string>,limits:ReadOnly<JsonLimits>={{maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}}):{result}{{{body}}}");
+    let source=if name=="parseJsonc" {
+        "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
+    }else{source};
     let mut function = crate::syntax::parse(&source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
     let shift = |span: &mut Span| { span.start += offset; span.end += offset; };
@@ -180,7 +188,7 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     crate::source_walk::function_annotations(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements))?;
     crate::source_walk::function_body(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements), &mut |expression| {
         shift(&mut expression.span);
-        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name("@json:decode".into()); }
+        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else{"@json:decode"}.into()); }
         Ok(())
     })?;
     // Statement and binding spans share the adapter's synthetic source region.
