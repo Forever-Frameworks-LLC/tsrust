@@ -69,12 +69,13 @@ Determine whether language semantics translate cleanly to WASM without creating 
 
 ## Local Rust modules and native workers: owner discussion
 
-The owner raised local Rust source integration during S11. The proposed direction
-is to compile explicit Rust exports with the generated program, allowing direct
-calls and execution through the ordinary native thread API. This is a proposal,
-not approval of import syntax or an implemented feature. Review it alongside S12
-before its public worker interface is finalized; it does not block S11 JSON/schema
-work or imply arbitrary Rust package compatibility.
+The owner approved designing local Rust source integration alongside S12, before
+its public worker interface is finalized. Compile explicit Rust exports with the
+generated program, allowing direct calls and execution through the native thread
+API. The owner additionally requested an automatically managed default pool for
+threaded interop and supported package wrappers. Exact import/configuration syntax
+and implementation remain pending. This does not block S11 JSON/schema work or
+imply arbitrary Rust package compatibility.
 
 Recommended initial boundary: local modules with explicitly exposed functions,
 checked scalar/owned-buffer/record/Result mappings, generated adapters and automatic
@@ -94,3 +95,30 @@ Do not accept an API solely from handwritten Rust controls: require source/edito
 contracts, normal build/dev operation, ownership rejection cases and measured
 transfer/setup costs. Node comparisons must account for transferable buffers and
 shared memory rather than assume every worker message serializes its payload.
+
+### Approved pool direction and implementation recommendations
+
+Provide automatic pool setup for threaded Rust interop; ordinary callers should
+not need to construct a pool. Rayon is the preferred CPU-work backend to evaluate,
+not a promise that every Rust crate shares its scheduler. Generate pool integration
+only when used and initialize workers lazily. Reuse one toolchain-managed CPU pool
+across compatible wrappers, with configurable worker and outstanding-job limits.
+Default worker sizing should follow available parallelism; exact configuration
+keys, admission/backpressure behavior and shutdown policy require the S12 contract.
+Rayon worker count alone does not bound queued jobs or retained input memory.
+
+Keep direct synchronous imports direct. Importing a Rust module must not silently
+change a function into an asynchronous call or schedule every call on a worker.
+The pool automatically supports the explicit worker-execution path. Cooperating
+Rayon wrappers should execute within the selected pool so nested Rayon work can
+reuse it. Wrappers with private pools or other runtimes must declare that behavior;
+do not promise to merge arbitrary package pools or add another layer blindly.
+Separate CPU work from blocking I/O and the later Tokio async runtime. Preserve
+owned transfer, explicit completion obligations and cooperative cancellation.
+
+Acceptance must cover lazy/no-use startup, concurrent wrappers, nested parallel
+work, bounded submissions, saturation, panic propagation, shutdown and build/dev
+restarts. Measure cold setup, repeated-job throughput, thread counts and allocation
+transfer; verify no hidden per-call pools or payload serialization. Pin Rayon when
+implementing the backend. Reference: Rayon [ThreadPoolBuilder](https://docs.rs/rayon/latest/rayon/struct.ThreadPoolBuilder.html)
+and [ThreadPool](https://docs.rs/rayon/latest/rayon/struct.ThreadPool.html).

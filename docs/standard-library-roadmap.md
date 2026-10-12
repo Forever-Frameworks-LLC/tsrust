@@ -163,3 +163,15 @@ Public integration is verified on macOS; explicit-platform helpers cover POSIX/W
 ## Relative path increment
 
 `std:path.relative(from: string, to: string): string` adds borrowed-pair lexical resolution with owned results and checked cwd failures. [The contract](path-relative-contract.md) distinguishes host execution from deterministic Windows helper/reference coverage. Focused native/compiler/editor examples and matched workload registration are verified in the isolated worker. Family measurements, combined-main observer verification and required source/evidence/consumer integration remain separate acceptance steps. No further path or OS family is included.
+
+
+## Owner-approved S12 interop expansion
+
+Design local Rust modules and supported native package wrappers alongside S12,
+before public worker APIs harden. Provide automatically managed default pooling
+for threaded interop, evaluating Rayon for CPU work, with lazy setup and reuse
+across compatible wrappers. Preserve explicit execution/completion and ownership
+contracts. Direct calls remain direct. See the [interop contract and pool acceptance](interop-and-targets.md#approved-pool-direction-and-implementation-recommendations).
+This supersedes the blanket deferral of this restricted Rust integration above;
+arbitrary package imports, traits, macros and lifetime-heavy APIs remain separately
+scoped. Public syntax, implementation and measurements are not yet accepted.

@@ -128,9 +128,11 @@ Approved: every native thread handle requires explicit join or detach. The check
 
 ## Rust-module integration design dependency
 
-Review the owner's [local Rust module proposal](../interop-and-targets.md#local-rust-modules-and-native-workers-owner-discussion)
+Implement the design review for the owner-approved [local Rust module direction](../interop-and-targets.md#local-rust-modules-and-native-workers-owner-discussion)
 before freezing the S12 public worker interface. Importing Rust and running work on
-a thread are separate capabilities. The proposal has not approved new syntax or
-expanded S12 acceptance to arbitrary Rust crates. Preserve the approved explicit
+a thread are separate capabilities. The owner approved automatic default pool management for threaded interop and
+supported package wrappers. Exact syntax remains pending; arbitrary Rust crate
+compatibility is not assumed. Include pool integration and its documented
+acceptance cases in S12 planning, with Rayon evaluated for CPU work. Preserve the approved explicit
 join/detach contract and ensure a future native callable can use the same checked
 transfer boundary without payload serialization.
