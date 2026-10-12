@@ -4,7 +4,7 @@ function replaceOnce(source,before,after){
  if(source.split(before).length!==2)throw Error(`JSON allocation ABI drift: ${before}`);
  return source.replace(before,after);
 }
-export const jsonAllocationKinds=['raw','raw_strings','raw_deep','dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep','encode_dynamic_strings','encode_typed_strings','encode_dynamic_deep','encode_dynamic_object','encode_typed_object'];
+export const jsonAllocationKinds=['raw','raw_strings','raw_deep','raw_invalid','dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep','encode_dynamic_strings','encode_typed_strings','encode_dynamic_deep','encode_dynamic_object','encode_typed_object'];
 function shape(kind){
  if(!jsonAllocationKinds.includes(kind))throw Error('JSON allocation kind');
  return {dynamic:kind.startsWith('dynamic'),failure:kind.endsWith('_invalid')||kind.endsWith('_mismatch'),strings:kind.endsWith('_strings')||kind.endsWith('_invalid')||kind.endsWith('_mismatch'),nested:kind.endsWith('_nested')||kind.endsWith('_selective'),selective:kind.endsWith('_selective')};
@@ -30,9 +30,10 @@ export function jsonAllocationChecksum(n,kind='dynamic'){
  return kind.startsWith('encode_')?new TextEncoder().encode(jsonAllocationInput(n,kind)).reduce((sum,byte)=>sum+byte,0):failure?1:strings?n*12:nested?2*n*7+n*(2*n-1):n*7+n*(n-1)/2;
 }
 export function adaptJsonAllocation(emitted,driver,kind){
- if(['raw','raw_strings','raw_deep'].includes(kind)){
+ if(['raw','raw_strings','raw_deep','raw_invalid'].includes(kind)){
   const signature=/^fn tsr_result_function0<'(\w+)>\(value0: i64, value1: i64, value2: &'\1 String\) -> Result<(Record\d+)<'\1>,TsrFunctionError/m.exec(emitted);
   if(!signature)throw Error('JSON raw borrowing ABI drift');
+  if(kind==='raw_invalid')return replaceOnce(emitted,'fn main()','fn source_main()')+'\n'+instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n),std::hint::black_box(7),&input){Ok(_)=>0i64,Err(error)=>{drop(error);1i64}}')+'\nfn probe_checksum(value:&i64)->i64{*value}';
   let adapted=instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n),std::hint::black_box(7),&input){Ok(value)=>value,Err(_)=>panic!("valid raw input rejected")}');
   adapted=replaceOnce(adapted,'let checksum = probe_checksum(&value);','assert_eq!(value.fragment.text().as_ptr(),input.as_ptr());\nlet checksum = probe_checksum(&value);');
   return replaceOnce(emitted,'fn main()','fn source_main()')+'\n'+adapted+`\nfn probe_checksum(value:&${signature[2]}<'_>)->i64{value.fragment.text().len() as i64}`;
@@ -61,6 +62,7 @@ function instrumentDriver(driver,call){
  return replaceOnce(output,'function0(std::hint::black_box(n), std::hint::black_box(7))',call);
 }
 export function directJsonAllocation(driver,kind){
+ if(kind==='raw_invalid')return "type String=std::borrow::Cow<'static,str>;\n"+instrumentDriver(driver,'{let mut decoder=serde_json::Deserializer::from_str(std::hint::black_box(input.as_ref()));<serde::de::IgnoredAny as serde::Deserialize>::deserialize(&mut decoder).and_then(|_|decoder.end()).is_err() as i64}')+'\nfn probe_checksum(value:&i64)->i64{*value}';
  if(['raw','raw_strings','raw_deep'].includes(kind))return "type String=std::borrow::Cow<'static,str>;\n"+instrumentDriver(driver,'{let mut decoder=serde_json::Deserializer::from_str(std::hint::black_box(input.as_ref()));<serde::de::IgnoredAny as serde::Deserialize>::deserialize(&mut decoder).unwrap();decoder.end().unwrap();input.as_ref()}')+'\nfn probe_checksum(value:&&str)->i64{value.len() as i64}';
 
  const {dynamic,strings,nested,selective,failure}=shape(kind);

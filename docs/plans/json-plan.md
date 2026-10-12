@@ -1778,3 +1778,21 @@ Whole-project formatting changes no files or fingerprints. SQLite evidence:
 No additional timing, RSS, raw-field or serialization acceptance is claimed.
 Raw serialization policy still awaits the owner; those remaining checks and
 post-raw consumer refresh remain open before S10 acceptance.
+
+### Raw rejection allocation coverage
+
+The raw allocation harness now exercises a syntax error after 0, 1 or 1000
+Unicode strings. All three sizes reject in native, direct Serde and Node, with
+three fresh processes per engine (27 samples). Native error construction and
+throwing-wrapper handling request 80 bytes across two allocations; direct Serde
+requests 40 bytes in one allocation. Neither count grows with the preceding
+string count. Both release all operation heap storage before the result probe;
+subsequent input disposal also returns to zero. These totals include the native
+wrapper's conversion to a thrown message and are not equivalent error APIs.
+Node post-GC heap deltas remain a separate metric.
+
+Thirteen adapter tests pass, including the prior missing-kind rejection witness.
+Whole-project formatting changes no files or fingerprints. SQLite records use
+`tsrust-json-raw-failure-*-b9639697` for allocation JSON/log, red, check and format.
+This supplements successful raw validation measurements; timing/RSS, raw-field
+support, output policy and final consumer acceptance remain outstanding.

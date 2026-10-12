@@ -119,3 +119,13 @@ test('raw Unicode and deep checksums count source bytes rather than decoded valu
  assert.equal(jsonAllocationChecksum(1,'raw_deep'),65);
  assert.equal(jsonAllocationInput(1,'raw_deep'),'['.repeat(31)+'[7]'+']'.repeat(31));
 });
+
+test('raw invalid input requires rejection and disposal rather than a borrowed output',()=>{
+ assert.equal(jsonAllocationInput(1,'raw_invalid'),'["é🦀",?]');
+ assert.equal(jsonAllocationChecksum(1,'raw_invalid'),1);
+ const emitted="fn tsr_result_function0<'native_input2_0>(value0: i64, value1: i64, value2: &'native_input2_0 String) -> Result<Record2<'native_input2_0>,TsrFunctionError0<String>> {}\nfn main() {}";
+ assert.match(adaptJsonAllocation(emitted,driver,'raw_invalid'),/drop\(error\);1i64/);
+ assert.match(directJsonAllocation(driver,'raw_invalid'),/is_err\(\) as i64/);
+ const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
+ assert.match(nodeJsonAllocation('function workload(){}',nodeDriver,'raw_invalid'),/invalid input accepted/);
+});
