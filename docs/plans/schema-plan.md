@@ -1793,3 +1793,28 @@ The affected JSON encoding suite passed all eight cases, including catalog examp
 the corpus contract suite passed both cases. Whole-project formatting changed no
 files or fingerprints. Remaining S11 families must extend the corpus before full family acceptance; no
 S11 timing, complete regression acceptance or consumer refresh is claimed here.
+
+
+## Composite differential coverage
+
+The pinned corpus now covers 24 families and 225 observations. Added array unions,
+nested transforms, defaults followed by transforms, retained unknown fields,
+readonly union fallback and cross-field predicates. Both owned JsonValue validation
+and fused text decoding pass. Retained-output comparison observes the declared
+count plus the number of extras; detailed retained contents remain covered by
+native pipeline witnesses rather than claiming complete equality from that summary.
+
+The first expanded run exposed a reference-harness error: nested Zod union issues
+carry paths relative to the enclosing union. The adapter now concatenates those
+prefixes recursively, including unknown-key paths. Three corpus contract tests
+pass, including nested union path preservation. The original failure and corrected
+run are retained in SQLite as `tsrust-schema-composite-{differential1,differential2,
+contracts,format}.log`. This expands correctness evidence only; S11 family
+acceptance and measurements remain open.
+
+Collection representation is also awaiting an owner decision. Proposed
+`s.record(valueSchema)` validates arbitrary string-key JSON objects into
+`Map<string, T>`; `s.map(keySchema, valueSchema)` and `s.set(elementSchema)` validate
+existing native collections and reject JSON text rather than choosing an implicit
+wire representation. Do not treat these proposed contracts as approved before the
+pending question is answered.

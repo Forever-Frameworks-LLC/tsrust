@@ -18,6 +18,12 @@ export const schemaCases=[
  {id:'discriminated-union',native:"s.discriminatedUnion('kind',[s.object({kind:s.literal('text'),text:s.string()}),s.object({kind:s.literal('count'),count:s.int()})])",reference:()=>z.discriminatedUnion('kind',[z.strictObject({kind:z.literal('text'),text:z.string()}),z.strictObject({kind:z.literal('count'),count:z.int()})]),inputs:['{"kind":"text","text":"yes"}','{"kind":"count","count":3}','{"kind":"count","count":"bad"}','{"kind":"other"}','{}']},
  {id:'readonly-refinement',native:'s.int().refine(value=>value>2)',reference:()=>z.int().refine(value=>value>2),inputs:['3','2','"3"']},
  {id:'owned-transform',native:'s.array(s.int()).transform(values=>{values.push(9);return values.length;})',reference:()=>z.array(z.int()).transform(values=>{values.push(9);return values.length;}),inputs:['[]','[1,2]','["bad"]','null']},
+ {id:'array-union',native:"s.array(s.union([s.string().min(2),s.int().min(0)]))",reference:()=>z.array(z.union([z.string().min(2),z.int().min(0)])),inputs:['[]','[1,"ok",3]','["x",-1]','[null]','{}']},
+ {id:'nested-transform',native:'s.object({values:s.array(s.int().transform(value=>value>0))})',reference:()=>z.strictObject({values:z.array(z.int().transform(value=>value>0))}),inputs:['{"values":[-1,0,2]}','{"values":[]}','{"values":[1,"bad"]}','{}']},
+ {id:'default-transform',native:"s.object({size:s.string().default(()=>'ready').transform(value=>value.length)})",reference:()=>z.strictObject({size:z.string().prefault(()=>'ready').transform(value=>value.length)}),inputs:['{}','{"size":"yes"}','{"size":null}','{"size":3}']},
+ {id:'retained-extras',native:'s.object({count:s.int()}).retain().transform(value=>value.value.count+value.extra.size)',reference:()=>z.object({count:z.int()}).catchall(z.unknown()).transform(value=>value.count+Object.keys(value).length-1),inputs:['{"count":2}','{"count":2,"extra":[1,2],"other":null}','{"count":"bad","extra":true}','{}']},
+ {id:'readonly-union-fallback',native:'s.union([s.array(s.int()).refine(values=>values.length>2),s.array(s.int())])',reference:()=>z.union([z.array(z.int()).refine(values=>values.length>2),z.array(z.int())]),inputs:['[]','[1]','[1,2,3]','["bad"]','null']},
+ {id:'cross-field-refinement',native:'s.object({low:s.int(),high:s.int()}).refine(value=>value.low<=value.high)',reference:()=>z.strictObject({low:z.int(),high:z.int()}).refine(value=>value.low<=value.high),inputs:['{"low":1,"high":2}','{"low":2,"high":2}','{"low":3,"high":2}','{"low":"bad","high":2}','{}']},
  {id:'owned-coercion',modes:['fused'],native:'s.int().min(3).coerce((values:int[]):int=>{values.push(9);return values.length;})',reference:()=>z.array(z.int()).transform(values=>{values.push(9);return values.length;}).pipe(z.int().min(3)),inputs:['[1,2]','[]','[1]','["bad"]','null']},
 ];
 
@@ -33,12 +39,12 @@ export const differences=[
  'Typed coercion validates its raw data shape before the callback; the reference models that with an explicit input schema, transform and pipe.',
 ];
 
-export function referencePaths(issues){
+export function referencePaths(issues,prefix=[]){
  const paths=[];
  for(const issue of issues){
-  if(issue.code==='invalid_union'&&issue.errors?.length){for(const errors of issue.errors)paths.push(...referencePaths(errors));}
-  else if(issue.code==='unrecognized_keys'){for(const key of issue.keys)paths.push([...issue.path,key]);}
-  else paths.push(issue.path);
+  if(issue.code==='invalid_union'&&issue.errors?.length){for(const errors of issue.errors)paths.push(...referencePaths(errors,[...prefix,...issue.path]));}
+  else if(issue.code==='unrecognized_keys'){for(const key of issue.keys)paths.push([...prefix,...issue.path,key]);}
+  else paths.push([...prefix,...issue.path]);
  }
  return paths;
 }
