@@ -6,6 +6,8 @@ mod numeric;
 #[cfg(test)]
 mod scalar;
 #[cfg(test)]
+mod string;
+#[cfg(test)]
 mod array;
 pub(crate) mod namespace;
 pub(crate) mod emit;

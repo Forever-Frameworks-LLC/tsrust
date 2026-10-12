@@ -125,3 +125,12 @@ Public source integration and lifecycle acceptance remain outstanding.
 ## Owner decision (2026-10-12)
 
 Approved: every native thread handle requires explicit join or detach. The checker must reject abandoned handles; do not inherit automatic detach-on-drop.
+
+## Rust-module integration design dependency
+
+Review the owner's [local Rust module proposal](../interop-and-targets.md#local-rust-modules-and-native-workers-owner-discussion)
+before freezing the S12 public worker interface. Importing Rust and running work on
+a thread are separate capabilities. The proposal has not approved new syntax or
+expanded S12 acceptance to arbitrary Rust crates. Preserve the approved explicit
+join/detach contract and ensure a future native callable can use the same checked
+transfer boundary without payload serialization.

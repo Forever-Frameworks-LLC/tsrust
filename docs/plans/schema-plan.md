@@ -360,3 +360,20 @@ incorrect assertion import, corrected builder rejection, range defect, focused
 repairs, formatting and untimed verification. S11 remains incomplete; number/null,
 constraints, composites and fused typed decoding are still required. Consumers
 remain at the accepted S10 checkpoint. No S11 timing or family acceptance is claimed.
+
+## Unicode string-length backend
+
+The reusable consuming string validator now supports inclusive minimum and maximum
+Unicode code-point counts. It moves successful String storage unchanged, rejects
+reversed limits during plan construction, and stops scanning once a maximum is
+exceeded. It neither normalizes Unicode nor allocates a character buffer. Emoji,
+combining sequences and joined emoji distinguish code points from bytes, UTF-16
+units and grapheme clusters. Array composition keeps indexed issue paths; bounded
+or suppressed error retention cannot accept invalid input.
+
+Focused tests cover Unicode units, inclusive limits, unchanged pointer/capacity,
+missing/null, zero issue budgets and redacted nested errors. This is internal
+backend groundwork only. Public constraint methods still require plan storage,
+compiler/LSP integration, executable catalog examples and matched workloads before
+acceptance. Evidence: `tsrust-schema-length-{red,check,format}-3b00c899.log` in SQLite.
+No timing, consumer update or S11 family acceptance is claimed.
