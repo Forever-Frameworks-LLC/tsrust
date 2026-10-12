@@ -1956,3 +1956,29 @@ before measurement and changes no manifest fingerprints. SQLite records use
 adapter syntax failure, passing checks, formatting and allocation JSON/log.
 Selective timing/RSS and public consumer refresh remain open, as does the raw
 serialization decision. This does not accept S10.
+
+### Selective raw-field timing and memory
+
+The existing decoding runner accepts --raw-selective, optionally with --rss,
+without rerunning the earlier raw or decoding matrices. It records the fixed
+Node source-slicing limitation and hashes the direct raw visitor. Three sizes,
+three processes and three engines produce 27 timing processes and 837 measured
+batches (100 operations each; eight warmups), plus 27 independent RSS processes.
+Input preparation and source/checksum verification remain outside timing.
+
+At size 1000, median microseconds per operation are native 50.44, direct Rust
+15.18 and Node 56.32. P95 batch milliseconds are 5.5596, 1.6997 and 6.3887;
+median offered-input throughput is 395.98, 1315.64 and 354.67 MiB/s respectively.
+These derive from 93 retained batches per engine, with nearest-rank p95. Native
+is faster than this Node fixture but slower than direct Rust, which omits native
+resource budgets. This first selective baseline is not a regression comparison
+and does not identify the cause of the gap. Prior allocation measurements prove
+bounded temporary storage; timing alone does not.
+
+At size 10000, median whole-process RSS is native 2.44 MiB, direct Rust 2.45 MiB
+and Node 46.00 MiB. Startup, input storage and observers are included; these are
+not incremental heap figures. Fifteen adapter/protocol tests pass. Whole-project
+formatting changes no files or fingerprints. SQLite records use
+`tsrust-json-selective-timing*-510cae62` and `tsrust-json-selective-rss-510cae62`
+for original measurements, logs, initial unsupported-flag witness and checks.
+Raw serialization policy and consumer refresh remain outstanding; S10 stays open.
