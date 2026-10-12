@@ -962,6 +962,7 @@ mod annotation_tests {
         let mut closure_id = 0;
         let mut linker = Linker {
             names: &names, testing_types: false, module: 1, offset: 17,
+            imported_bindings: BTreeSet::new(), assignment_error: None,
             closure_id: &mut closure_id,
             type_parameters: BTreeSet::from(["T".into()]),
         };
@@ -986,7 +987,7 @@ fn containment_projection_links_only_inside_the_bundled_testing_scope() {
     use crate::type_syntax::{parse,ValueAnnotationKind as Kind};
     let names=BTreeMap::new();let mut closure_id=0;
     for (testing_types,shadowed,wanted) in [(true,false,"@testing:element"),(false,false,"__tsrust_module_1_ContainmentValue"),(true,true,"ContainmentValue")] {
-        let linker=Linker {testing_types,names:&names,module:1,offset:17,closure_id:&mut closure_id,type_parameters:if shadowed {BTreeSet::from(["ContainmentValue".into(),"T".into()])}else{BTreeSet::from(["T".into()])}};
+        let linker=Linker {testing_types,names:&names,module:1,offset:17,imported_bindings:BTreeSet::new(),assignment_error:None,closure_id:&mut closure_id,type_parameters:if shadowed {BTreeSet::from(["ContainmentValue".into(),"T".into()])}else{BTreeSet::from(["T".into()])}};
         let mut value=parse("ContainmentValue<T>").unwrap();linker.value_annotation(&mut value);
         let Kind::Applied{name,arguments}=&value.kind else {panic!("projection")};assert_eq!(name.text,wanted);
         assert_eq!(name.span,Span::new(17,33));
