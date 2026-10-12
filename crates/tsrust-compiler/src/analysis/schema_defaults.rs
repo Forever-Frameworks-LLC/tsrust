@@ -8,6 +8,7 @@ impl Analyzer {
 
     fn schema_owned_input_compatible(&self,output:Type,input:Type)->bool {
         if output==input || matches!(output,Type::Literal(_,_))&&output.scalar_base()==input.scalar_base(){return true;}
+        if matches!(output,Type::Union(_)) && self.schema_scalar_input(output,Span::default()).is_ok_and(|wide|wide.accepts_scalar_value(input)){return true;}
         match (output,input) {
             (Type::Array(output),Type::Array(input))=>self.schema_owned_input_compatible(output.ty(),input.ty()),
             (Type::Record(output),Type::Record(input)) if self.program.records[output].native_type.is_none()&&self.program.records[input].native_type.is_none()=>{

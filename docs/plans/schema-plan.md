@@ -4,8 +4,8 @@ Status: implementation started after [S10 acceptance](../milestones/s10-json-acc
 Public scalar schemas, constraints, nested arrays and required-field object schemas
 have focused compiler, native and editor verification. Composite schemas accept
 matching owned input or JsonValue. Reusable default factories are integrated.
-Enum schemas, remaining composite APIs, fused decoding and family acceptance
-remain pending.
+Exact literals and string-list enum schemas preserve inferred alternatives.
+Remaining composite APIs, fused decoding and family acceptance remain pending.
 
 ## Required surface and coverage
 
@@ -15,7 +15,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null and exact literal API checked; enum pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null, exact literals and string-list enums checked; language-enum inputs remain pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
@@ -1275,3 +1275,39 @@ agree; no timing or full S11 acceptance is claimed.
 Next: enum schemas and remaining first-tranche unions/discriminated unions, then
 fused decoding and the approved second tranche. Extend literal integration checks
 along those paths rather than erasing literal output identities to scalar types.
+
+
+## Public string-list enum schemas
+
+`s.enum(['ready', 'done'])` produces `Schema<'ready' | 'done'>`. Its input must be a
+nonempty array literal of distinct statically known strings, including expressions
+already typed as string literals. A singleton uses the literal schema contract.
+Broad runtime arrays, duplicate alternatives and nonstring alternatives are
+rejected. Native language-enum declarations and numeric enum inputs are not yet
+supported; this checkpoint does not claim general enum or union coverage.
+
+Validation consumes an owned string or JsonValue. Success transfers the original
+string into its precise literal alternative; an unlisted string produces
+`literal-mismatch`, and a nonstring JSON value produces `type-mismatch`. Errors
+remain bounded and redacted. No successful string or reusable plan is cloned.
+Constructor expressions run once in source order, even when equivalent unions
+were previously declared in a different order.
+
+Enums compose with arrays, owned and JSON objects, defaults and optional/nullable
+wrappers. Presence wrappers remap each precise alternative without widening it to
+string. Defaults remain owned by the correct nested plan. Checker results, hover,
+completion and signature help distinguish broad scalar input from exact output.
+All public catalog examples execute through the current compiler and native path.
+
+Focused checks pass: six enum compiler/native cases, nine existing literal cases,
+11 default cases, one presence case, one editor chain case, and 20 workload contract
+cases. The new `native_schema_json_enum` workload has a handwritten TypeScript
+counterpart, independent checksum oracle, source guards and hashes, ABI/driver
+support and reporting registration. Four untimed native/Node-after-tsc cases agree.
+Evidence prefix: `tsrust-schema-enum-*` in SQLite, including initial failures and
+repairs. No timing, full S11 acceptance or installed-consumer update is claimed.
+
+Next: remaining enum input forms, ordered unions and discriminated unions, fused
+text decoding and the required second tranche. Refinement preserves type; transform
+owns its input and determines the next type. Keep checker/editor chain tracking in
+each implementation gate.

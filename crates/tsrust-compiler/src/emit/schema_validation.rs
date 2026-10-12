@@ -13,11 +13,10 @@ impl Emitter<'_> {
     }
     // Outer None means no factory; inner None means generated data failed validation.
     fn schema_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
-        let mut absent=if let Type::Union(union)=output {
-            let base=self.schema_presence_element(output).expect("presence default");
+        let mut absent=if let Type::Union(union)=output && let Some(base)=self.schema_presence_element(output) {
             let child=self.schema_default_value(base,&format!("{plan}.inner"),generated,seen,errors);
-            let tag=self.program.unions[union.index()].members.iter().position(|ty|*ty==base).unwrap();
-            format!("({child}).map(|value|value.map(Union{}::V{tag}))",union.index())
+            let injection=self.schema_widen_value(base,union,"value");
+            format!("({child}).map(|value|value.map(|value|{injection}))")
         }else if let Type::Record(record)=output && self.program.records[record].name.text.starts_with("@schema:retained:") {
             let fields=&self.program.records[record].fields;
             let child=self.schema_default_value(fields[0].ty.unwrap(),&format!("{plan}.inner"),generated,seen,errors);
@@ -69,6 +68,13 @@ impl Emitter<'_> {
         let native=self.native_type(output);
         let input_native=self.native_type(input_type);
         let body=match output {
+            Type::Union(union) if self.schema_enum_members(output).is_some()=>{
+                let mut body=if let Type::Union(input)=input_type {
+                    let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,_)|format!("Union{}::V{tag}(value)=>value",input.index())).collect::<Vec<_>>().join(",");format!("let input=match input{{{arms}}};")
+                }else{String::new()};
+                for (tag,_) in self.program.unions[union.index()].members.iter().enumerate(){body.push_str(&format!("if input==schema.field{tag}.expected{{return Some(Union{}::V{tag}(input));}}",union.index()));}
+                body.push_str("issues.push(path,tsrust_schema_issues::Code::Literal,tsrust_schema_issues::Kind::String,tsrust_schema_issues::Kind::String);None");body
+            },
             Type::Literal(_,_)=>{
                 let kind=self.schema_kind(output);
                 let conversion=if output.scalar_base()==Type::Number&&input_type.scalar_base()==Type::Int {
@@ -80,21 +86,13 @@ impl Emitter<'_> {
             },
             Type::Union(union)=>{
                 let base=self.schema_presence_element(output).expect("presence schema union");let child=self.schema_child(base);
-                let members=&self.program.unions[union.index()].members;
-                if input_type.scalar_base()==Type::Int&&base.scalar_base()==Type::Number {
-                    let validator=self.schema_owned_validator(child,Type::Int,generated,seen,errors);
-                    let tag=members.iter().position(|ty|*ty==base).unwrap();
-                    format!("{validator}(&schema.inner,input,path,issues,failure).map(Union{}::V{tag})",union.index())
-                }else{
-                let validator=self.schema_owned_validator(child,base,generated,seen,errors);
-                let Type::Union(input)=input_type else{unreachable!("presence input is injected")};
-                let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,ty)|{
-                    let target=members.iter().position(|member|member==ty||member.scalar_base()==ty.scalar_base()).unwrap();
-                    if matches!(ty,Type::Null|Type::Undefined){format!("Union{}::V{tag}(value)=>Some(Union{}::V{target}(value))",input.index(),union.index())}
-                    else{format!("Union{}::V{tag}(value)=>{validator}(&schema.inner,value,path,issues,failure).map(Union{}::V{target})",input.index(),union.index())}
-                }).collect::<Vec<_>>().join(",");
-                format!("match input{{{arms}}}")
-                }
+                let injection=self.schema_widen_value(base,union,"value");
+                if let Type::Union(input)=input_type {
+                    let arms=self.program.unions[input.index()].members.iter().enumerate().map(|(tag,ty)|{
+                        if matches!(ty,Type::Null|Type::Undefined){let target=self.program.unions[union.index()].members.iter().position(|member|member==ty).unwrap();format!("Union{}::V{tag}(value)=>Some(Union{}::V{target}(value))",input.index(),union.index())}
+                        else{let validator=self.schema_owned_validator(child,*ty,generated,seen,errors);format!("Union{}::V{tag}(value)=>{validator}(&schema.inner,value,path,issues,failure).map(|value|{injection})",input.index())}
+                    }).collect::<Vec<_>>().join(",");format!("match input{{{arms}}}")
+                }else{let validator=self.schema_owned_validator(child,input_type,generated,seen,errors);format!("{validator}(&schema.inner,input,path,issues,failure).map(|value|{injection})")}
             },
             Type::Array(element)=>{
                 let child=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[element.ty()])).unwrap();
@@ -148,6 +146,10 @@ impl Emitter<'_> {
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);
         let (expected,success)=match output {
+            Type::Union(_) if self.schema_enum_members(output).is_some()=>{
+                let validator=self.schema_owned_validator(id,Type::String,generated,owned_seen,errors);
+                ("String",format!("if let tsrust_native_json::Value::String(value)=input{{return {validator}(schema,String::Owned(value),path,issues,failure);}}"))
+            },
             Type::Literal(_,kind)=>{
                 let validator=self.schema_owned_validator(id,kind.base(),generated,owned_seen,errors);
                 let expected=self.schema_kind(output);
@@ -162,8 +164,8 @@ impl Emitter<'_> {
                 self.schema_json_validator(child,generated,seen,owned_seen,errors);
                 let members=&self.program.unions[union.index()].members;
                 let null=members.iter().position(|ty|*ty==Type::Null).map(|tag|format!("if matches!(input,tsrust_native_json::Value::Null){{return Some(Union{}::V{tag}(TsrNull));}}",union.index())).unwrap_or_default();
-                let tag=members.iter().position(|ty|*ty==base).unwrap();
-                let body=format!("{null}return validate_json{child}(&schema.inner,input,path,issues,failure).map(Union{}::V{tag});",union.index());
+                let injection=self.schema_widen_value(base,union,"value");
+                let body=format!("{null}return validate_json{child}(&schema.inner,input,path,issues,failure).map(|value|{injection});");
                 (self.schema_kind(base),body)
             },
             Type::Array(element)=>{
@@ -211,17 +213,29 @@ impl Emitter<'_> {
         generated.push_str(&format!("fn validate_json{id}(schema:&Record{id},input:tsrust_native_json::Value,path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{native}>{{if failure.is_some(){{return None;}}use tsrust_schema_issues::{{Kind,Code}};let observed=match &input{{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object}};{success} issues.push(path,Code::Type,Kind::{expected},observed);None}}"));
     }
 
+    fn schema_widen_value(&self,source:Type,target:UnionId,value:&str)->String {
+        let destination=&self.program.unions[target.index()].members;
+        if let Type::Union(source)=source {
+            let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|{let to=destination.iter().position(|member|member==ty).expect("schema output alternative");format!("Union{}::V{tag}(value)=>Union{}::V{to}(value)",source.index(),target.index())}).collect::<Vec<_>>().join(",");
+            format!("match {value}{{{arms}}}")
+        }else{let tag=destination.iter().position(|member|*member==source).expect("schema output member");format!("Union{}::V{tag}({value})",target.index())}
+    }
+    pub(super) fn schema_enum_members(&self,output:Type)->Option<&[Type]> {
+        let Type::Union(id)=output else{return None};let members=&self.program.unions[id.index()].members;
+        members.iter().all(|ty|matches!(ty,Type::Literal(_,crate::literal_types::LiteralKind::String))).then_some(members)
+    }
     pub(super) fn schema_presence_element(&self,output:Type)->Option<Type> {
         let Type::Union(id)=output else{return None};
         let members=&self.program.unions[id.index()].members;
         if !members.iter().any(|ty|matches!(ty,Type::Null|Type::Undefined)){return None;}
         let present=members.iter().copied().filter(|ty|!matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
-        match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>None}
+        match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>self.program.unions.iter().enumerate().find(|(_,union)|union.members==present).map(|(index,union)|Type::Union(UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|member|member.is_copy())}))}
     }
     pub(super) fn schema_child(&self,output:Type)->usize {
         self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[output])).expect("checked schema child")
     }
     fn schema_kind(&self,ty:Type)->&'static str {
+        if self.schema_enum_members(ty).is_some(){return "String";}
         match ty.scalar_base(){Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
     }
 

@@ -1,0 +1,48 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.enum(['ready', 'done']);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        if (value !== 'ready') {
+          throw 'Invalid enum value';
+        }
+
+        checksum += value.length;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('"waiting"'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid issue count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'literal-mismatch' || issue.expected !== 'string' || issue.observed !== 'string' || issue.pathTruncated || issue.path.length !== 0) {
+            throw 'Invalid issue';
+          }
+        }
+
+        checksum += 1;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, '"ready"'), workload(1, 0, '"ready"'), workload(17, 7, '"ready"'), workload(2000, 1, '"ready"'));
+}

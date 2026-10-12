@@ -7,7 +7,7 @@ import {expectedChecksum} from './oracle.mjs';
 import {reportCategory} from './report.mjs';
 import {assertABI} from './adapters.mjs';
 const read=file=>fs.readFileSync(new URL(file,import.meta.url),'utf8');
-for(const id of ['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal'])test(`${id} preserves workload, oracle and ABI`,()=>{
+for(const id of ['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum'])test(`${id} preserves workload, oracle and ABI`,()=>{
  const rows=JSON.parse(read('./manifest.json')).workloads.filter(row=>row.id===id);
  assert.equal(rows.length,1);const row=rows[0];assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'schema');
  for(const [kind,file] of [['native',row.source],['typescript',row.counterpart]]){

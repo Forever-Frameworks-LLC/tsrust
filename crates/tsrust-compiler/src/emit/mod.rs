@@ -2397,6 +2397,11 @@ impl Emitter<'_> {
                 continue;
             }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
+                && let Some(members)=record.application.as_ref().and_then(|application|self.schema_enum_members(application.resolved_arguments[0])) {
+                let fields=members.iter().enumerate().map(|(index,ty)|format!("field{index}:Record{}",self.native_record_declaration(self.schema_child(*ty)))).collect::<Vec<_>>().join(",");
+                let factory=self.schema_factory_declaration(index);let _=writeln!(output,"struct Record{index}{{{factory}{fields}}}");continue;
+            }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
                 && let Some(base)=record.application.as_ref().and_then(|application|self.schema_presence_element(application.resolved_arguments[0])) {
                 let child=self.schema_child(base);
                 let factory=self.schema_factory_declaration(index);
@@ -7511,6 +7516,15 @@ impl Emitter<'_> {
         if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema) {
             let ExprKind::NativeConstructor(args,_)=&expr.kind else{unreachable!()};
             let factory=self.schema_factory_initializer(id);
+            if let Some(members)=self.schema_enum_members(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]){
+                let mut setup=String::new();let mut fields=Vec::new();
+                for(index,arg)in args.iter().enumerate(){
+                    let Type::Record(child)=arg.ty.unwrap()else{unreachable!()};let output=self.program.records[child].application.as_ref().unwrap().resolved_arguments[0];
+                    let field=members.iter().position(|member|*member==output).expect("enum schema alternative");
+                    setup.push_str(&format!("let enum_plan{index}={};",self.expr(fun,arg,Mode::Consume)));fields.push(format!("field{field}:enum_plan{index}"));
+                }
+                let code=format!("{{{setup}Record{id}{{{factory}{}}}}}",fields.join(","));return match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
+            }
             let child=self.expr(fun,&args[0],Mode::Consume);
             let code=if matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Literal(_,_)) {format!("Record{id}{{{factory}expected:{child}}}")}else if self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]==Type::Null{format!("{{let _={child};Record{id}{{{factory}}}}}")}else if let Type::Record(object)=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0] {
                 let Type::Record(shape)=args[0].ty.unwrap() else{unreachable!()};
@@ -8605,7 +8619,7 @@ impl Emitter<'_> {
                         let inherited=self.schema_inherited_factories(output);
                         for (source,_) in self.schema_inherited_factories(target){
                             let Type::Union(union)=source else{unreachable!()};
-                            let previous=if source==output {String::from("previous.factory")}else if inherited.iter().any(|(ty,_)|*ty==source){format!("previous.factory_from{}",union.index())}else{String::from("None")};
+                            let previous=if source==output && self.schema_presence_element(output).is_some() {String::from("previous.factory")}else if inherited.iter().any(|(ty,_)|*ty==source){format!("previous.factory_from{}",union.index())}else{String::from("None")};
                             fields.push_str(&format!("factory_from{}:{previous},",union.index()));
                         }
                         let inner=if self.schema_presence_element(output).is_some(){"previous.inner"}else{"previous"};

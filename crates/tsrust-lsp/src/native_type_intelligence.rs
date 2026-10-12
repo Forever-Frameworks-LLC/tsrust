@@ -42,7 +42,12 @@ impl SourceIndex {
         }
         let Ok(annotation)=tsrust_compiler::type_syntax::parse(element)else{return element.into()};
         let mut replacements=Vec::new();collect(&annotation,element,&mut replacements);
-        let mut result=element.to_owned();for(start,end,replacement)in replacements.into_iter().rev(){result.replace_range(start..end,&replacement);}result
+        let mut result=element.to_owned();for(start,end,replacement)in replacements.into_iter().rev(){result.replace_range(start..end,&replacement);}generic_intelligence::canonical(&result).unwrap_or(result)
+    }
+    fn schema_is_string_enum(element:&str)->bool {
+        use tsrust_compiler::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,LiteralAnnotation};
+        fn all_strings(value:&ValueAnnotation)->bool{match &value.kind{Kind::Literal(LiteralAnnotation::String(_))=>true,Kind::Group(inner)=>all_strings(inner),Kind::Union(members)=>members.iter().all(all_strings),_=>false}}
+        tsrust_compiler::type_syntax::parse(element).is_ok_and(|value|matches!(value.kind,Kind::Union(_))&&all_strings(&value))
     }
     pub(super) fn receiver_builtins(&self, ty: &str) -> Vec<Value> {
         if self.schema_element(ty) == Some("string") { return builtins_for("Schema"); }
@@ -75,7 +80,7 @@ impl SourceIndex {
             let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
             let scalar=Self::schema_scalar_input_text(raw);
             let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
-            let mut entries=builtins_for(if retained {"SchemaRetained"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
+            let mut entries=builtins_for(if retained {"SchemaRetained"}else if Self::schema_is_string_enum(element){"SchemaEnum"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
                 if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}

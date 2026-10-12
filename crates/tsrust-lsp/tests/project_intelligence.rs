@@ -2700,3 +2700,14 @@ fn schema_literal_presence_and_array_help_separates_input_from_output() {
     let help=ask(&index,&entry,"'waiting'","textDocument/signatureHelp");assert!(help.to_string().contains("string")&&help.to_string().contains("undefined")&&help.to_string().contains("ready"),"{help}");
     let help=ask(&index,&entry,"[8]","textDocument/signatureHelp");assert!(help.to_string().contains("int[]")&&help.to_string().contains("7[]"),"{help}");
 }
+
+#[test]
+fn schema_enum_chains_show_literal_alternatives_and_string_input() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.enum(['ready','done']).default(()=>'ready').optional();const result=schema.safeParse('waiting');}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"schema =","textDocument/hover");assert!(hover.to_string().contains("ready")&&hover.to_string().contains("done")&&hover.to_string().contains("undefined"),"{hover}");
+    let help=ask(&index,&entry,"'waiting'","textDocument/signatureHelp");assert!(help.to_string().contains("string")&&help.to_string().contains("JsonValue")&&help.to_string().contains("done"),"{help}");
+    let hover=ask(&index,&entry,"enum(","textDocument/hover");assert!(hover.to_string().contains("literal-mismatch"),"{hover}");
+}

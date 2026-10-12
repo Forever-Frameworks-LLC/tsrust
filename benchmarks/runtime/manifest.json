@@ -22194,6 +22194,30 @@
       "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
       "sourceSha256": "6f05fb767ea91888551a8e8076764e3d30862c870afb2f90aff07ec27e0bc588",
       "counterpartSha256": "8a05bb75258106736ff2d953d5e3447b58cdabc3fbfd4cc91ccf76331a5e35c7"
+    },
+    {
+      "id": "native_schema_json_enum",
+      "category": "schema",
+      "description": "Reusable string enum validation with success and mismatch observations",
+      "source": "workloads/native_schema_json_enum.tsr",
+      "counterpart": "workloads/native_schema_json_enum.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, enum validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "\"ready\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Accept ready or done and reject waiting with a root literal-mismatch issue. Checksum adds six per iteration.",
+      "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
+      "sourceSha256": "d72df405f498a3e38980b96b08a78356fb713def350d7734df16872ea0d43a4e",
+      "counterpartSha256": "9270059c1a9ec4fc799249b28ac367669ba748627384463dc0fc337de82f2446"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

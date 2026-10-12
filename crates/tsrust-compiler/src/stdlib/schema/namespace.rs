@@ -180,7 +180,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             uses_safe_parse |= member == "safeParse";
             uses_bounds |= matches!(member.as_str(),"min"|"max"|"gt"|"lt");
             if !matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()) { return Ok(()); }
-            if matches!(member.as_str(),"array"|"object"|"literal") {if member=="literal"{spans.push((&STRING,expression.span));spans.push((&NULL,expression.span));}expression.kind=ExprKind::Name(format!("@schema:{member}"));return Ok(());}
+            if matches!(member.as_str(),"array"|"object"|"literal"|"enum") {if matches!(member.as_str(),"literal"|"enum"){spans.push((&STRING,expression.span));spans.push((&NULL,expression.span));}expression.kind=ExprKind::Name(format!("@schema:{member}"));return Ok(());}
             let binding = match member.as_str() {
                 "string" => &STRING,
                 "boolean" => &BOOLEAN,
