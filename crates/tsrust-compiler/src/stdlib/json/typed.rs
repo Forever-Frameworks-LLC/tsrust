@@ -145,7 +145,7 @@ pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<
   located(input,error,Some(code))
  })
 }
-fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
+pub(super) fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
  if input.len()>limits.bytes{return Err(failure("byte-limit",limits.bytes));}
  if limits.depth>64{return Err(super::invalid_limits());}
  if let Err(error)=std::str::from_utf8(input){return Err(failure("invalid-utf8",error.valid_up_to()));}

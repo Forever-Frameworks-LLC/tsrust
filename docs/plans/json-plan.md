@@ -1032,3 +1032,19 @@ run five untimed cases. Seventeen JSON guards plus seven file guards pass.
 Evidence: tsrust-json-writer-public-*-32748fc8 in SQLite. Borrowed file adapters,
 remaining borrowed JSON representations and the full S10 allocation/performance
 milestone remain open; no timing or installed-consumer refresh is claimed.
+
+### Raw fragment validation foundation
+
+A private source-backed Fragment now validates strict JSON with the existing
+bounded visitor and retains only a real string borrow. It does not construct a
+dynamic tree or retain a replacement source buffer. Validation can still use
+Serde's temporary escape scratch. Pointer/length checks verify source retention;
+rejection cases cover bytes, nesting, entries, nodes, trailing data, JSONC input
+and malformed Unicode escapes. The module is included in emitted JSON support.
+
+Public output semantics remain awaiting the owner's choice: preserve validated
+raw spelling when embedded, or normalize it. This foundation does not implement
+or silently choose either encoding policy. Public lifetime diagnostics, catalog
+entries and benchmark support remain required before exposing raw fragments.
+Evidence: tsrust-json-raw-*-1c093f36 in SQLite; two backend tests and one generated
+native namespace regression. No measurements or consumer refresh are claimed.
