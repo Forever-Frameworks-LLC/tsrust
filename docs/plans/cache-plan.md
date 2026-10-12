@@ -30,8 +30,8 @@ acceptance or performance measurements.
 
 ## Remaining acceptance
 
-1. Add TTL expiration using the monotonic clock and deterministic injected-clock
-   tests. Specify expiry boundaries, clock overflow, refresh behavior, cleanup
+1. Integrate the internal deadline index below with public TTL operations.
+   Specify duration conversion/clock overflow, refresh behavior, cleanup
    timing and interaction with replacement/eviction before public acceptance.
 2. Define public construction, borrowed reads, owned removal and eviction results,
    with explicit positive-capacity diagnostics and documented item/byte limits.
@@ -45,3 +45,28 @@ acceptance or performance measurements.
 5. Run full regressions and matched measurements at the cache family milestone,
    review comparable performance and refresh installed consumers. No concurrent
    or external-cache behavior is inferred from the local storage core.
+
+## Monotonic deadline index
+
+The storage core accepts optional absolute Instant deadlines. Its explicit
+expire(now) operation moves out entries with deadline <= now. Reads update only
+LRU recency; they do not extend deadlines. Replacement removes the old deadline,
+including when the replacement has no deadline. Eviction, removal and clear also
+remove deadline metadata before a slot can be reused. The ordered deadline index
+contains at most one record per live entry; repeated updates do not accumulate
+stale timer records. Expiration processes due entries rather than scanning the
+whole cache. Returned expired values retain ownership until the caller disposes
+or reuses them.
+
+Five backend tests pass. Deterministic timestamp injection covers just-before and
+exact expiry, equal deadlines, deadline removal/extension, elapsed deadlines,
+slot reuse and 5,000 refresh/eviction operations. Drop counters verify that expired
+values are released exactly once by their new owner. No sleep or wall-clock
+timing determines results. SQLite evidence:
+`tsrust-cache-expiry-{red,check,final,format}-3b666421.log`.
+
+This is an internal expiration mechanism. It does not yet select public lazy or
+eager cleanup, default TTL, duration units, overflow behavior or byte accounting.
+The source-facing layer must invoke expiration before relying on live-entry
+results; the raw LRU core deliberately requires an explicit supplied clock value.
+Source/compiler/editor integration and matched workloads remain outstanding.

@@ -8,6 +8,35 @@ struct Key(u32);
 impl Hash for Key {fn hash<H:Hasher>(&self,state:&mut H){0u8.hash(state);}}
 
 #[test]
+fn deadlines_expire_at_boundary_without_stale_replacement_entries(){
+ use std::time::{Instant,Duration};
+ let start=Instant::now();let deadline=start+Duration::from_secs(5);
+ let mut cache=Lru::new(NonZeroUsize::new(3).unwrap());
+ cache.insert_until(Key(1),11,Some(deadline));cache.insert_until(Key(2),22,Some(deadline));cache.insert(Key(3),33);
+ assert!(cache.expire(deadline-Duration::from_nanos(1)).is_empty());assert_eq!(cache.get(&Key(1)),Some(&11));
+ // Replacement cancels the old deadline; access alone never changes deadlines.
+ assert_eq!(cache.insert_until(Key(2),44,Some(deadline+Duration::from_secs(1))),Some((Key(2),22)));
+ assert_eq!(cache.expire(deadline),vec![(Key(1),11)]);assert_eq!(cache.peek(&Key(2)),Some(&44));
+ assert_eq!(cache.insert(Key(2),55),Some((Key(2),44)));assert!(cache.expire(deadline+Duration::from_secs(2)).is_empty());
+ // Reusing a freed slot must not inherit any deadline from its old occupant.
+ cache.insert_until(Key(4),66,Some(start));assert_eq!(cache.expire(deadline+Duration::from_secs(2)),vec![(Key(4),66)]);
+ assert_eq!(cache.len(),2);cache.assert_invariants();
+ cache.clear();assert!(cache.expire(deadline).is_empty());cache.assert_invariants();
+}
+
+#[test]
+fn expiration_index_stays_bounded_during_refresh_and_eviction(){
+ use std::time::{Instant,Duration};
+ let start=Instant::now();let mut cache=Lru::new(NonZeroUsize::new(2).unwrap());
+ for step in 0..5000 {
+  cache.insert_until(Key(step%3),step,Some(start+Duration::from_secs(u64::from(step))));
+  cache.assert_invariants();
+ }
+ let mut expired=cache.expire(start+Duration::from_secs(5000));expired.sort_by_key(|(key,_)|key.0);
+ assert_eq!(expired,vec![(Key(0),4998),(Key(1),4999)]);assert_eq!(cache.len(),0);cache.assert_invariants();
+}
+
+#[test]
 fn eviction_removal_clear_and_drop_dispose_each_value_once(){
  struct Value(std::rc::Rc<std::cell::Cell<usize>>);
  impl Drop for Value {fn drop(&mut self){self.0.set(self.0.get()+1);}}
@@ -16,8 +45,10 @@ fn eviction_removal_clear_and_drop_dispose_each_value_once(){
  assert!(cache.insert(Key(1),value()).is_none());let evicted=cache.insert(Key(2),value()).unwrap();
  assert_eq!(drops.get(),0);drop(evicted);assert_eq!(drops.get(),1);
  let removed=cache.remove(&Key(2)).unwrap();assert_eq!(drops.get(),1);drop(removed);assert_eq!(drops.get(),2);
- cache.insert(Key(3),value());cache.clear();assert_eq!(drops.get(),3);
- cache.insert(Key(4),value());drop(cache);assert_eq!(drops.get(),4);
+ let now=std::time::Instant::now();cache.insert_until(Key(3),value(),Some(now));
+ let expired=cache.expire(now);assert_eq!(drops.get(),2);drop(expired);assert_eq!(drops.get(),3);
+ cache.insert(Key(4),value());cache.clear();assert_eq!(drops.get(),4);
+ cache.insert(Key(5),value());drop(cache);assert_eq!(drops.get(),5);
 }
 
 #[test]
