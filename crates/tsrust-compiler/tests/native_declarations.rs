@@ -311,3 +311,31 @@ fn recursive_borrowed_native_projection_keeps_distinct_identities() {
     assert_eq!(records[view].native_type, Some(NativeTypeId::ByteView));
     assert_eq!(records[mutable].native_type, Some(NativeTypeId::ByteViewMut));
 }
+
+#[test]
+fn schema_namespace_has_identity_without_selecting_runtime() {
+    use tsrust_compiler::native_exports::{lookup, Export, Namespace};
+    assert!(matches!(lookup("std:schema", "s").unwrap(), Export::Namespace(Namespace::Schema)));
+    assert_eq!(lookup("std:schema", "s").unwrap().module(), "std:schema");
+    assert!(lookup("std:schema", "missing").unwrap_err().contains("does not export"));
+    assert!(tsrust_compiler::native_bindings::selected_features([("std:schema", "s")]).unwrap().is_empty());
+}
+
+#[test]
+fn schema_namespace_import_alias_respects_parameter_shadowing() {
+    use tsrust_compiler::project::{SourceId, SourceProvider, load_project, load_project_headers, check_graph};
+    struct Provider;
+    impl SourceProvider for Provider {
+        fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
+        fn read(&self, _: &SourceId) -> Result<String, String> {
+            Ok(support::format_round_trip("import { s as schema } from 'std:schema'; function identity(schema: int): int { return schema; } function main() { console.log(identity(7)); }"))
+        }
+    }
+    for graph in [load_project(&Provider, "main.tsr"), load_project_headers(&Provider, "main.tsr")] {
+        let graph = graph.unwrap();
+        let import = &graph.modules[&graph.entry].imports[0];
+        assert_eq!(import.native, Some("std:schema"));
+        assert_eq!(import.bindings[0].local, "schema");
+        assert!(check_graph(graph).is_ok());
+    }
+}

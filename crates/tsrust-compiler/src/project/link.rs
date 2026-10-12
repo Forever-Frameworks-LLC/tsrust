@@ -341,6 +341,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                     binding.local.clone(),
                     if let Some(native) = import.native {
                         match crate::native_exports::lookup(native, &binding.exported).expect("validated native export") {
+                            crate::native_exports::Export::Namespace(namespace) => namespace.symbol().into(),
                             crate::native_exports::Export::Function(function) => {
                                 let span = Span::new(binding.span.start + segments[module].1, binding.span.end + segments[module].1);
                                 crate::native_binding_types::prepare(&mut linked.records, function, span)

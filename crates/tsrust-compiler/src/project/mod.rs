@@ -668,7 +668,7 @@ fn visit(
         }
         if crate::stdlib::source(&import.path).is_none() && import.path.starts_with("std:") {
             if !declarations
-                && let Some(module) = crate::native_bindings::BINDINGS.iter().find(|binding| binding.module == import.path).map(|binding| binding.module)
+                && let Some(module) = crate::native_exports::known_module(&import.path)
             {
                 // A native name that is still being typed is left out, as for a
                 // source module; the known module still offers its exports.

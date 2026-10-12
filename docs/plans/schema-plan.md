@@ -159,3 +159,17 @@ SQLite evidence: `tsrust-schema-array-{red,check,format}-c641b6d9.log`.
 This remains internal groundwork. Public source inference, schema recursion and
 collection limits, native emission, IntelliSense and matched benchmarks remain
 required. No public array schema or S11 acceptance is claimed.
+
+## Namespace import checkpoint
+
+`std:schema` now registers `s` as a distinct native namespace export. Module linking
+preserves this identity through aliases, while existing lexical parameter shadowing
+continues to work. Namespace-only imports select no native runtime feature. Tolerant
+module discovery recognizes the module before callable builders are registered.
+
+All 21 native declaration checks pass, including two namespace cases. The two new
+cases also pass after the source fixture uses token-preserving, idempotent formatting.
+SQLite evidence: `tsrust-schema-import-{red,check,formatted,format}-169f6300.log`.
+This checkpoint supports imports only: constructor dispatch, inferred schema output,
+validation methods and complete editor documentation remain unimplemented. Installed
+consumers have not been refreshed for this incomplete public feature.
