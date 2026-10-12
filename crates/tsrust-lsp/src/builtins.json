@@ -53,7 +53,7 @@
   },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Input): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Input): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Input",
@@ -7072,10 +7072,10 @@
     "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. Scalar safeParse returns a typed Result."
   },
   {
-    "name": "SchemaError",
-    "signature": "SchemaError",
+    "name": "ValidationError",
+    "signature": "ValidationError",
     "parameters": [],
-    "documentation": "Validation failure containing issues and a truncated flag. Issues contain controlled type summaries and paths; input values are never retained. Current string validation emits one root issue on mismatch. Ownership: the error owns its issue collection."
+    "documentation": "Runtime input validation failure returned by safeParse. Contains issues and a truncated flag indicating omitted issues. Each issue includes a code, property/index path and controlled type summaries; input values are never retained. Invalid rule definitions instead throw SchemaConstructionError. Ownership: the error owns its issue collection."
   },
   {
     "name": "SchemaIssue",
@@ -7285,7 +7285,7 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -7353,14 +7353,14 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<string | JsonValue>): Result<string, SchemaError>",
+    "signature": "safeParse(input: Owned<string | JsonValue>): Result<string, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<string | JsonValue>",
         "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
       }
     ],
-    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Strings outside stored min/max code-point limits return too-small or too-large with expected and observed string. Error data never retains input values. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(ValidationError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Strings outside stored min/max code-point limits return too-small or too-large with expected and observed string. Error data never retains input values. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
@@ -7451,7 +7451,7 @@
 },
     {
       "name": "safeParse",
-      "signature": "safeParse(input: boolean | Owned<JsonValue>): Result<boolean, SchemaError>",
+      "signature": "safeParse(input: boolean | Owned<JsonValue>): Result<boolean, ValidationError>",
       "parameters": [
         {
           "label": "input: boolean | Owned<JsonValue>",
@@ -7511,14 +7511,14 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: int | Owned<JsonValue>): Result<int, SchemaError>",
+    "signature": "safeParse(input: int | Owned<JsonValue>): Result<int, ValidationError>",
     "parameters": [
       {
         "label": "input: int | Owned<JsonValue>",
         "documentation": "Concrete int or owned JsonValue. Integers copy; JSON input is consumed on both success and failure."
       }
     ],
-    "documentation": "Validates an integer and returns Ok(int) or Err(SchemaError). Preserves exact signed 64-bit JSON integers. Integral floating JSON values within range are accepted; negative zero becomes zero. Fractional values return integer-fractional, out-of-range values return integer-range, and other JSON kinds return type-mismatch. Each failure contains one issue with expected integer, an observed kind, an empty root path and false truncation flags. Input values are not retained in errors. Mixed union inputs and other concrete types are not supported yet.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: borrows the reusable schema. Direct integers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input. Stored min/max/gt/lt bounds compare exact integers; violations return too-small or too-large.",
+    "documentation": "Validates an integer and returns Ok(int) or Err(ValidationError). Preserves exact signed 64-bit JSON integers. Integral floating JSON values within range are accepted; negative zero becomes zero. Fractional values return integer-fractional, out-of-range values return integer-range, and other JSON kinds return type-mismatch. Each failure contains one issue with expected integer, an observed kind, an empty root path and false truncation flags. Input values are not retained in errors. Mixed union inputs and other concrete types are not supported yet.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: borrows the reusable schema. Direct integers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input. Stored min/max/gt/lt bounds compare exact integers; violations return too-small or too-large.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7535,7 +7535,7 @@
         "documentation": "Inclusive minimum in the full signed 64-bit integer range. Negative limits are valid."
       }
     ],
-    "documentation": "Adds an inclusive minimum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in SchemaError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+    "documentation": "Adds an inclusive minimum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7552,7 +7552,7 @@
         "documentation": "Inclusive maximum in the full signed 64-bit integer range. Negative limits are valid."
       }
     ],
-    "documentation": "Adds an inclusive maximum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in SchemaError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+    "documentation": "Adds an inclusive maximum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7639,14 +7639,14 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: number | int | Owned<JsonValue>): Result<number, SchemaError>",
+    "signature": "safeParse(input: number | int | Owned<JsonValue>): Result<number, ValidationError>",
     "parameters": [
       {
         "label": "input: number | int | Owned<JsonValue>",
         "documentation": "Concrete number, int or owned JsonValue. Primitive numbers and integers copy; JSON input is consumed on both outcomes."
       }
     ],
-    "documentation": "Validates finite floating-point input without coercing strings or booleans. Returns Ok(number), preserving negative zero, or Err(SchemaError). Direct NaN and infinities return number-nonfinite. Native ints and exact JSON integers that would round during conversion return number-precision. Native int failures report observed integer; JSON failures report their JSON kind. Other JSON kinds return type-mismatch. Failures have one issue with expected number, the observed kind, an empty root path and false truncation flags. Mixed union inputs and other concrete types are not supported yet. Use s.int() to retain integer output instead of requesting a floating-point result.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows the reusable schema. Direct numbers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
+    "documentation": "Validates finite floating-point input without coercing strings or booleans. Returns Ok(number), preserving negative zero, or Err(ValidationError). Direct NaN and infinities return number-nonfinite. Native ints and exact JSON integers that would round during conversion return number-precision. Native int failures report observed integer; JSON failures report their JSON kind. Other JSON kinds return type-mismatch. Failures have one issue with expected number, the observed kind, an empty root path and false truncation flags. Mixed union inputs and other concrete types are not supported yet. Use s.int() to retain integer output instead of requesting a floating-point result.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows the reusable schema. Direct numbers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7771,7 +7771,7 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: null | Owned<JsonValue>): Result<null, SchemaError>",
+    "signature": "safeParse(input: null | Owned<JsonValue>): Result<null, ValidationError>",
     "parameters": [
       {
         "label": "input: null | Owned<JsonValue>",
@@ -7831,7 +7831,7 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -7915,7 +7915,7 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -7975,7 +7975,7 @@
 },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -8059,7 +8059,7 @@
   },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -8119,7 +8119,7 @@
   },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -8179,7 +8179,7 @@
   },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",
@@ -8215,7 +8215,7 @@
   },
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
       {
         "label": "input: Owned<Input>",

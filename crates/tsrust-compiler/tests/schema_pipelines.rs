@@ -408,3 +408,32 @@ fn owned_record_rollback_restores_preconversion_fields_and_drops_synthetic_defau
     support::success(&output);
     assert_eq!(String::from_utf8_lossy(&output.stdout),"default\n");
 }
+
+#[test]
+fn runtime_validation_error_is_public_and_distinct_from_construction_error() {
+    let source = r#"
+    import {s, ValidationError as InputFailure, SchemaConstructionError} from 'std:schema';
+    function report(error: InputFailure): int {
+      if(error.truncated){throw 'Unexpected truncation';}
+      return error.issues.length;
+    }
+    function main(){
+      const scalar=s.int().min(3);
+      match(scalar.safeParse(1)){
+        Ok(value)=>{throw 'Invalid value accepted';},
+        Err(error)=>{if(report(error)!==1){throw 'Wrong issue count';}}
+      }
+      const pipeline=s.string().transform(text=>text.length).refine(length=>length>2);
+      match(pipeline.safeParse('x')){
+        Ok(value)=>{throw 'Invalid transformed value accepted';},
+        Err(error)=>{if(report(error)!==1){throw 'Wrong pipeline error';}}
+      }
+      const definition:SchemaConstructionError={code:'contradictory-bounds',operation:'min',limit:3};
+      if(definition.operation!=='min'){throw 'Construction error changed';}
+    }
+    "#;
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);
+}

@@ -1877,7 +1877,7 @@ impl SourceIndex {
         if let Some((_, output, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "refine" { return receiver; }
             if method == "safeParse" {
-                return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)
+                return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::ValidationError)
                     .map(|(name, _)| format!("Result<{output}, {name}>")).unwrap_or_default();
             }
         }
@@ -1892,7 +1892,7 @@ impl SourceIndex {
         }
         if self.schema_element(&receiver).is_some() && method=="strip" {return receiver;}
         if let Some(element) = self.schema_element(&receiver) && method == "safeParse" {
-            return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)
+            return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::ValidationError)
                 .map(|(name, _)| format!("Result<{element}, {name}>")).unwrap_or_default();
         }
         if receiver == "@namespace:std:schema#s" && matches!(method, "string" | "boolean" | "int" | "number" | "null") {
@@ -2617,7 +2617,7 @@ impl SourceIndex {
         if matches!(tsrust_compiler::native_exports::lookup(module, exported), Ok(tsrust_compiler::native_exports::Export::Namespace(tsrust_compiler::native_exports::Namespace::Schema))) {
             let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented schema namespace");
             self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
-            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::SchemaError);
+            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
             self.symbols.push(Symbol {
                 name: local.into(), kind: 3, span, extent: span, scope: 0,
                 ty: "@namespace:std:schema#s".into(),

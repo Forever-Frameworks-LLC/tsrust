@@ -18,7 +18,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let pattern = if null { "Null" } else if boolean { "Bool(text)" } else { "String(text)" };
     let payload = if null { "TsrNull" } else if boolean { "text" } else { "String::Owned(text)" };
     let bounds_guard = |input: &str, expected: &str, observed: &str| {
-        let error = record(NativeTypeId::SchemaError);
+        let error = record(NativeTypeId::ValidationError);
         let issue = record(NativeTypeId::SchemaIssue);
         let path = record(NativeTypeId::SchemaPath);
         format!("if let Some(code)=_schema.bounds.check({input}) {{
@@ -27,7 +27,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         }}",result=result.index(),err_tag=tag(err))
     };
     if owned && number {
-        let error = record(NativeTypeId::SchemaError);
+        let error = record(NativeTypeId::ValidationError);
         let issue = record(NativeTypeId::SchemaIssue);
         let path = record(NativeTypeId::SchemaPath);
         let int_input = binding.name == "__safeParseNumberInt";
@@ -50,7 +50,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
     }
     let value = record(NativeTypeId::JsonValue);
-    let error = record(NativeTypeId::SchemaError);
+    let error = record(NativeTypeId::ValidationError);
     let issue = record(NativeTypeId::SchemaIssue);
     let path = record(NativeTypeId::SchemaPath);
     if integer || number {
@@ -109,7 +109,7 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
 
 pub(crate) fn issue_bridge(program:&CheckedProgram)->String {
     let record=|kind|program.records.iter().position(|record|record.native_type==Some(kind));
-    let Some(error)=record(NativeTypeId::SchemaError) else{return String::new();};
+    let Some(error)=record(NativeTypeId::ValidationError) else{return String::new();};
     let issue=record(NativeTypeId::SchemaIssue).unwrap();
     let path=record(NativeTypeId::SchemaPath).unwrap();
     let optional=|field:usize,payload:Type|{

@@ -63,7 +63,7 @@ impl Analyzer {
         let expected_input=if json||conversion {hint}else{Some(owned_input)};
         let actual=self.expression(context,&mut args[0],Mode::Consume,loans,expected_input)?;
         self.require(actual,expected_input,args[0].span)?;
-        let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
+        let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::ValidationError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
         let mut annotation=ValueAnnotation{span:expr.span,kind:Kind::Applied{name:TypeName{text:"Result".into(),span:expr.span},arguments:vec![types.annotation(output,expr.span)?,types.annotation(Type::Record(error),expr.span)?]}};

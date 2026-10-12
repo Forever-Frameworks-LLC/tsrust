@@ -13,7 +13,7 @@ pub(crate) const SAFE_PARSE: NativeBinding = NativeBinding {
         crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::String])), access: crate::Mode::Read, optional: false, rest: false },
         crate::native_bindings::NativeParameter { name: "input", ty: NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)), access: crate::Mode::Consume, optional: false, rest: false },
     ],
-    result: NativeType::Structured(&Signature::Result(&Signature::String, &Signature::Named(NativeTypeId::SchemaError))),
+    result: NativeType::Structured(&Signature::Result(&Signature::String, &Signature::Named(NativeTypeId::ValidationError))),
     returned_borrow: None, backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_string" }, features: &["json"],
 };
 
@@ -37,7 +37,7 @@ pub(crate) const SAFE_PARSE_BOOLEAN: NativeBinding = NativeBinding {
         crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Boolean])), access: crate::Mode::Read, optional: false, rest: false },
         SAFE_PARSE.parameters[1],
     ],
-    result: NativeType::Structured(&Signature::Result(&Signature::Boolean, &Signature::Named(NativeTypeId::SchemaError))),
+    result: NativeType::Structured(&Signature::Result(&Signature::Boolean, &Signature::Named(NativeTypeId::ValidationError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_boolean" }, ..SAFE_PARSE
 };
 pub(crate) const SAFE_PARSE_BOOLEAN_VALUE: NativeBinding = NativeBinding {
@@ -59,7 +59,7 @@ pub(crate) const SAFE_PARSE_NULL: NativeBinding = NativeBinding {
         crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Null])), access: crate::Mode::Read, optional: false, rest: false },
         SAFE_PARSE.parameters[1],
     ],
-    result: NativeType::Structured(&Signature::Result(&Signature::Null, &Signature::Named(NativeTypeId::SchemaError))),
+    result: NativeType::Structured(&Signature::Result(&Signature::Null, &Signature::Named(NativeTypeId::ValidationError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_null" }, ..SAFE_PARSE
 };
 pub(crate) const SAFE_PARSE_NULL_VALUE: NativeBinding = NativeBinding {
@@ -81,7 +81,7 @@ pub(crate) const SAFE_PARSE_INT: NativeBinding = NativeBinding {
         crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Int])), access: crate::Mode::Read, optional: false, rest: false },
         SAFE_PARSE.parameters[1],
     ],
-    result: NativeType::Structured(&Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::SchemaError))),
+    result: NativeType::Structured(&Signature::Result(&Signature::Int, &Signature::Named(NativeTypeId::ValidationError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_int" }, ..SAFE_PARSE
 };
 pub(crate) const SAFE_PARSE_INT_VALUE: NativeBinding = NativeBinding {
@@ -103,7 +103,7 @@ pub(crate) const SAFE_PARSE_NUMBER: NativeBinding = NativeBinding {
         crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Number])), access: crate::Mode::Read, optional: false, rest: false },
         SAFE_PARSE.parameters[1],
     ],
-    result: NativeType::Structured(&Signature::Result(&Signature::Number, &Signature::Named(NativeTypeId::SchemaError))),
+    result: NativeType::Structured(&Signature::Result(&Signature::Number, &Signature::Named(NativeTypeId::ValidationError))),
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number" }, ..SAFE_PARSE
 };
 pub(crate) const SAFE_PARSE_NUMBER_VALUE: NativeBinding = NativeBinding {

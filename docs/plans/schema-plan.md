@@ -39,6 +39,23 @@ an intermediate dynamic tree or stringify/reparse. Ordinary in-memory validation
 and text decoding need separate benchmark scopes. Reusable runtime schema values
 must work alongside compiler-specialized literal plans, with explicit ownership.
 
+## Runtime validation and JSON decoding errors
+
+The owner approved separating rule definitions from runtime data validation.
+`std:schema` and `Schema<T>` define reusable rules. Invalid rule construction
+continues to throw `SchemaConstructionError`. Checking runtime input through
+`safeParse` returns `Result<T, ValidationError>`; the former in-progress S11 name
+`SchemaError` is replaced before family release. Issue fields and ownership stay
+unchanged. Earlier checkpoint descriptions below retain their historical names.
+
+The approved fused text API is `schema.safeParseJson(text)`. Its failure result
+separates `{ kind: 'json', error: JsonError }` for syntax/resource failures from
+`{ kind: 'validation', error: ValidationError }` for data that violates the rules.
+Callback exceptions propagate. Typed JSON imports continue to report compile-time
+diagnostics. The public runtime rename is checked across scalar/pipeline results,
+explicit type imports and editor aliases; `SchemaConstructionError` is unchanged. This error contract does not claim that fused public decoding has
+landed; implementation and acceptance remain pending.
+
 ## Approved contracts
 
 The owner approved both contracts on 2026-10-12:
@@ -1635,3 +1652,26 @@ This accepts the implemented union section only. Refinements/transforms,
 preprocessing, recursive composition, collection schemas, JSON Schema export,
 fused typed decoding and the S11 family acceptance requirements above remain.
 Installed consumers remain at accepted S10. No family timing is claimed.
+
+
+## Runtime validation naming and seeded decoder checkpoint
+
+Runtime result types now use `ValidationError` throughout compiler declarations,
+native bridges, hover, signatures and completion. The in-progress S11 name
+`SchemaError` is no longer exported. SchemaIssue and SchemaPath retain their
+existing names and fields; the schema definition/construction APIs are unchanged.
+
+A private JSON `decode_seed` adapter now supports reusable runtime plans and real
+source borrows. Full syntax, Unicode, numeric and resource validation precedes
+seed callbacks. Existing direct typed decoding delegates to that adapter without
+building a dynamic value tree. This is decoder groundwork, not acceptance of the
+public fused schema method, which remains the next implementation section.
+
+Focused checks passed: one public native error-import/pipeline witness, 31 schema
+editor cases across the initial and affected rerun, 16 typed decoder runtime cases
+and seven existing public typed JSON cases (including catalog examples). Eleven
+editor assertions initially failed only because of comma spacing; assertions now
+normalize whitespace without weakening type checks. Whole-project formatting
+passed with no source or fingerprint changes. No timing or S11 family acceptance.
+SQLite preserves exact logs as `tsrust-validation-naming-{typed,native,editor,
+editor-repair,json-native,format}.log`. Installed consumers remain accepted S10.

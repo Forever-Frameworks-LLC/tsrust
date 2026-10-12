@@ -163,13 +163,27 @@ pub fn decode<T:serde::de::DeserializeOwned>(input:&[u8],limits:Limits)->Result<
 /// Borrowing boundary for source-backed fields. Returned borrows cannot outlive input.
 /// JSONC normalization and streaming retain the owned boundary above.
 pub fn decode_borrowed<'de,T:serde::Deserialize<'de>>(input:&'de [u8],limits:Limits)->Result<T,Error>{
+ decode_seed(input,limits,std::marker::PhantomData::<T>)
+}
+
+/// Stateful typed decoding for immutable reusable schema plans. The seed may
+/// borrow a plan and issue collector independently of the source lifetime.
+/// Validate the complete document first, including ignored/duplicate fields and
+/// trailing bytes, so malformed input cannot invoke user callbacks or factories.
+/// The seed then constructs typed output directly; no dynamic value tree is built.
+pub fn decode_seed<'de,S:serde::de::DeserializeSeed<'de>>(
+ input:&'de [u8],limits:Limits,seed:S,
+)->Result<S::Value,Error>{
  validate(input,limits)?;
  super::validate_integer_tokens(input)?;
- serde_json::from_slice(input).map_err(|error|{
+ let mut decoder=serde_json::Deserializer::from_slice(input);
+ let value=seed.deserialize(&mut decoder).map_err(|error|{
   let text=error.to_string();
   let code=if error.is_data(){["number-precision","integer-range","integer-fractional"].into_iter().find(|code|text.starts_with(&format!("tsrust:{code}"))).unwrap_or("shape-mismatch")}else{"shape-mismatch"};
   located(input,error,Some(code))
- })
+ })?;
+ decoder.end().map_err(|error|located(input,error,Some("trailing-data")))?;
+ Ok(value)
 }
 pub(super) fn validate(input:&[u8],limits:Limits)->Result<(),Error>{
  validate_depth(input,limits).map(|_|())
@@ -355,4 +369,61 @@ impl serde::Serialize for Dynamic<'_> {
    value=>value.serialize(serializer),
   }
  }
+}
+
+#[cfg(test)]
+mod seeded_decode_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    struct StringPlan { minimum: usize, invocations: Cell<usize> }
+    struct StringSeed<'a>(&'a StringPlan);
+    impl<'de> serde::de::DeserializeSeed<'de> for StringSeed<'_> {
+        type Value = Option<String>;
+        fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<Self::Value,D::Error> {
+            let value=<String as serde::Deserialize>::deserialize(decoder)?;
+            self.0.invocations.set(self.0.invocations.get()+1);
+            Ok((value.chars().count()>=self.0.minimum).then_some(value))
+        }
+    }
+    fn limits()->Limits { Limits {bytes:128,depth:4,entries:4,nodes:16} }
+
+    #[test]
+    fn reusable_seed_retains_runtime_plan_and_builds_owned_typed_output() {
+        let plan=StringPlan {minimum:2,invocations:Cell::new(0)};
+        assert_eq!(decode_seed(br#""hello""#,limits(),StringSeed(&plan)).unwrap(),Some("hello".into()));
+        assert_eq!(decode_seed(br#""x""#,limits(),StringSeed(&plan)).unwrap(),None);
+        assert_eq!(decode_seed(br#""\u00e9\ud83d\ude00""#,limits(),StringSeed(&plan)).unwrap(),Some("é😀".into()));
+        assert_eq!(plan.invocations.get(),3);
+    }
+
+    #[test]
+    fn syntax_and_resource_failures_never_invoke_seed_callbacks() {
+        let plan=StringPlan {minimum:0,invocations:Cell::new(0)};
+        for (input,budget,code) in [
+            (&b"\"ok\" null"[..],limits(),"trailing-data"),
+            (&b"\"unterminated"[..],limits(),"unexpected-end"),
+            (&b"\"ok\""[..],Limits{bytes:2,..limits()},"byte-limit"),
+            (&b"[0,1]"[..],Limits{nodes:1,..limits()},"node-limit"),
+            (&b"{\"unused\":\"\\ud800\"}"[..],limits(),"invalid-json"),
+        ] {
+            assert_eq!(decode_seed(input,budget,StringSeed(&plan)).unwrap_err().code,code);
+        }
+        assert_eq!(plan.invocations.get(),0);
+    }
+
+    #[test]
+    fn borrowed_seed_keeps_real_source_lifetime() {
+        struct Borrow;
+        impl<'de> serde::de::DeserializeSeed<'de> for Borrow {
+            type Value=&'de str;
+            fn deserialize<D:serde::Deserializer<'de>>(self,decoder:D)->Result<Self::Value,D::Error> {
+                <&'de str as serde::Deserialize>::deserialize(decoder)
+            }
+        }
+        let owner=String::from("\"source-backed\"");
+        let value=decode_seed(owner.as_bytes(),limits(),Borrow).unwrap();
+        assert_eq!(value,"source-backed");
+        assert_eq!(value.as_ptr(),owner[1..].as_ptr());
+    }
 }

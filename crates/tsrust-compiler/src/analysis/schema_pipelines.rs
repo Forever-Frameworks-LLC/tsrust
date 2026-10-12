@@ -82,7 +82,7 @@ impl Analyzer {
             }
         }
         let error = self.program.records.iter().position(|record|
-            record.native_type == Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
+            record.native_type == Some(crate::native_signatures::NativeTypeId::ValidationError)).unwrap();
         use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind, TypeName};
         let mut annotation = ValueAnnotation { span: expr.span, kind: ValueAnnotationKind::Applied {
             name: TypeName { text: "Result".into(), span: expr.span },

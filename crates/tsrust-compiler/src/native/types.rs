@@ -75,8 +75,8 @@ static SCHEMA_CONSTRUCTION_ERROR: Declaration = Declaration {
         Field { name: "limit", signature: Signature::Union(&[Signature::Int,Signature::Number]), optional: false },
     ], ..FS_ERROR
 };
-static SCHEMA_ERROR: Declaration = Declaration {
-    id: NativeTypeId::SchemaError, module: "std:schema", name: "SchemaError",
+static VALIDATION_ERROR: Declaration = Declaration {
+    id: NativeTypeId::ValidationError, module: "std:schema", name: "ValidationError",
     fields: &[
         Field { name: "issues", signature: Signature::Array(&Signature::Named(NativeTypeId::SchemaIssue)), optional: false },
         Field { name: "truncated", signature: Signature::Boolean, optional: false },
@@ -245,7 +245,7 @@ static HEAP: Declaration = Declaration {
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
         NativeTypeId::Schema => &SCHEMA,
-        NativeTypeId::SchemaError => &SCHEMA_ERROR,
+        NativeTypeId::ValidationError => &VALIDATION_ERROR,
         NativeTypeId::SchemaConstructionError => &SCHEMA_CONSTRUCTION_ERROR,
         NativeTypeId::SchemaIssue => &SCHEMA_ISSUE,
         NativeTypeId::SchemaPath => &SCHEMA_PATH,
@@ -281,7 +281,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&SCHEMA_CONSTRUCTION_ERROR, &SCHEMA_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]
