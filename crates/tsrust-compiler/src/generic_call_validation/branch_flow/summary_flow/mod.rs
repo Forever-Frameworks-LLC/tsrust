@@ -1,11 +1,8 @@
 //! Callable summaries preserve distinct normal, return and exceptional states.
 use super::*;
-#[path = "generic_call_guard_partitions.rs"]
 mod guard_partitions;
 use guard_partitions::Partitions;
-#[path = "generic_call_body_state.rs"]
 pub(super) mod body_state;
-#[path = "generic_call_invocation_state.rs"]
 pub(super) mod invocation_state;
 #[derive(Default, Clone, PartialEq, Eq)]
 pub(super) struct Outcome {

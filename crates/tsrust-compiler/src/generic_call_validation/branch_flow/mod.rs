@@ -1,31 +1,19 @@
 //! Iterative source flow for blocks and branches; runtime environments stay separate.
 use super::*;
 
-#[path = "generic_call_flow_graph.rs"]
 mod flow_graph;
 use flow_graph::graph;
-#[path = "generic_call_leaf_effects.rs"]
 mod leaf_effects;
-#[path = "generic_call_expression_flow.rs"]
 mod expression_flow;
-#[path = "generic_call_array_flow.rs"]
 mod array_flow;
-#[path = "generic_call_array_shape.rs"]
 pub(super) mod array_shape;
-#[path = "generic_call_node_flow.rs"]
 mod node_flow;
-#[path = "generic_call_summary_flow.rs"]
 mod summary_flow;
-#[path = "generic_call_invocation_frame.rs"]
 mod invocation_frame;
-#[path = "generic_call_parameter_entry.rs"]
 mod parameter_entry;
-#[path = "generic_call_environment_store.rs"]
 pub(super) mod environment_store;
-#[path = "generic_call_environment_state.rs"]
 mod environment_state;
 use environment_state::State as FlowState;
-#[path = "generic_call_invocation_worklist.rs"]
 mod invocation_worklist;
 
 pub(super) fn binding_at(bindings: &[Binding], name: &str, span: Span, effects: &effect_bodies::Index) -> Option<usize> {

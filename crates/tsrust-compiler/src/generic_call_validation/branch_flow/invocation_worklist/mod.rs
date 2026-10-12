@@ -1,10 +1,7 @@
 //! Inter-call dependencies converge on an explicit finite worklist.
 use super::*;
-#[path = "generic_call_array_transfer.rs"]
 mod array_transfer;
-#[path = "generic_call_recursive_inputs.rs"]
 mod recursive_inputs;
-#[path = "generic_call_terminal_returns.rs"]
 mod terminal_returns;
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Request {
@@ -405,7 +402,7 @@ mod tests {
     #[test]
     #[ignore = "Opt-in whole-source scheduling diagnostic; run alone with an external bound"]
     fn trace_adapter_source_worklist_cost() {
-        let source=include_str!("../../../benchmarks/runtime/workloads/generic_value_adapters.tsr");
+        let source=include_str!("../../../../../../benchmarks/runtime/workloads/generic_value_adapters.tsr");
         let mut program=crate::syntax::parse(source).unwrap();
         for function in &program.functions {eprintln!("source-function span={}..{} name={}",function.name.span.start,function.name.span.end,function.name.text);}
         validate(&mut program).unwrap();

@@ -109,3 +109,21 @@ unit compilation failure from the test-file alias and its verified repair. Root 
 
 Next review the remaining generic/type, callable, native/runtime and project/CLI
 modules by dependency ownership. Full structural acceptance remains pending.
+
+## Generic-call validation batch
+
+Generic-call validation now owns a 31-file tree under `src/generic_call_validation/`.
+Directory boundaries follow existing nested modules: branch flow, effect bodies,
+summary state, flow graphs and invocation worklists. Leaf names use their existing
+Rust module names, removing redundant file prefixes and all path aliases.
+
+Twenty-five files retain exact bytes; six only remove path attributes or adjust
+one embedded workload path. Rust module identities and visibility remain unchanged.
+Verification repeats the 61 generic-call integration tests for expression flow,
+exceptions, loops and capture effects, plus the family unit checks. Evidence uses
+tsrust-generic-organization in SQLite. Source-root files now number 122.
+
+Generic-call batch accepted: all 61 integration tests and 102 family unit tests
+pass. The existing opt-in whole-source scheduling diagnostic remains ignored; it
+is not a failed behavior test. The relocation map and source-preservation proof
+are retained alongside the before/after logs.

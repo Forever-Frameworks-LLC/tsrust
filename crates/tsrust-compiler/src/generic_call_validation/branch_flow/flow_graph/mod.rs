@@ -1,6 +1,5 @@
 //! Source control edges are built iteratively, before generic specialization.
 use super::*;
-#[path = "generic_call_exception_edges.rs"]
 mod exceptions;
 
 pub(super) struct Node<'a> {

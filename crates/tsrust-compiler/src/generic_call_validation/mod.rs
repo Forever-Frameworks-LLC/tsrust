@@ -2,26 +2,17 @@
 use crate::syntax::*;
 use crate::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
-#[path = "generic_call_branch_flow.rs"]
 mod branch_flow;
-#[path = "generic_call_effect_bodies.rs"]
 mod effect_bodies;
-#[path = "once_environment_facts.rs"]
 mod once_environment_facts;
 #[cfg(test)]
-#[path = "generic_call_capture_modes.rs"]
 mod capture_modes;
-#[path = "generic_call_body_origins.rs"]
 mod body_origins;
-#[path = "generic_call_linear_flow.rs"]
 mod linear_flow;
-#[path = "generic_call_targets.rs"]
 mod targets;
 use targets::Target;
-#[path = "generic_call_contract_sets.rs"]
 mod contract_sets;
 use contract_sets::{resolve_all, resolve_indexed};
-#[path = "source_callable_proofs.rs"]
 mod source_proofs;
 pub(crate) use source_proofs::Proofs;
 

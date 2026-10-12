@@ -1,9 +1,7 @@
 //! Callable bodies are indexed without executing declared capture writes.
 use super::*;
 use crate::local_capture_plan::BindingId;
-#[path = "generic_call_aggregate_eligibility.rs"]
 mod aggregate_eligibility;
-#[path = "generic_call_capture_requirements.rs"]
 mod capture_requirements;
 
 struct Scope {
