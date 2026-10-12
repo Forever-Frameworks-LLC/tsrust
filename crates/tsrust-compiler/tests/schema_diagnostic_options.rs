@@ -221,3 +221,69 @@ function main() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Pat") && stdout.contains("Sam") && stdout.contains("Lee"), "{stdout}");
 }
+
+#[test]
+fn logging_retained_and_pipeline_results_preserves_union_retry_order() {
+    let source = r#"
+import { s } from 'std:schema';
+import { strictEqual } from 'std:testing';
+type Input = { a: int; b: int; };
+function input(reverse: boolean): Input {
+  if (reverse) { return { b: 2, a: 1 }; }
+  return { a: 1, b: 2 };
+}
+function main() {
+  const retained = s.object({ a: s.int() }).retain();
+  match (retained.safeParse({ a: 1 })) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  match (retained.safeParse(JSON.parse('{"a":1,"extra":true}'))) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  match (retained.safeParseJson('{"a":1,"extra":true}')) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  const pipeline = s.object({ a: s.int().refine(value => value > 0) }).retain();
+  match (pipeline.safeParse({ a: 1 })) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  match (pipeline.safeParse(JSON.parse('{"a":1,"extra":true}'))) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  match (pipeline.safeParseJson('{"a":1,"extra":true}')) {
+    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
+    Err(error) => { throw 'Retained validation failed'; }
+  }
+  const projected = s.union([
+    s.object({ a: s.int(), b: s.int() }).refine(value => false),
+    s.object({ a: s.int(), b: s.int() }).coerce((value: Input) => {
+      strictEqual(Object.keys(value).join(','), 'b,a');
+      return value;
+    })
+  ]);
+  match (projected.safeParse(input(true))) {
+    Ok(value) => { console.log(value); },
+    Err(error) => { throw 'Projection retry failed'; }
+  }
+  const choices = s.union([
+    s.object({ a: s.int().refine(value => true), b: s.int().refine(value => false) }),
+    s.object({ a: s.int(), b: s.int() }).coerce((value: Input) => {
+      strictEqual(Object.keys(value).join(','), 'b,a');
+      return value;
+    })
+  ]);
+  match (choices.safeParse(input(true))) {
+    Ok(value) => { console.log(value); strictEqual(value.a, 1); strictEqual(value.b, 2); },
+    Err(error) => { throw 'Union retry failed'; }
+  }
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let file = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file), 60));
+}

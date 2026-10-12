@@ -111,7 +111,7 @@ impl Emitter<'_> {
                 let json = self.program.records.iter().position(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
                 let extra = self.native_type(fields[1].ty.unwrap());
                 (format!("RestoreJson{child}"),
-                    format!("let(value,mut restore)=project_json{child}(input,state);let extra=take_json_extra{child}(&mut restore).unwrap_or_default();(Record{}{{field0:value,field1:<{extra}>::from_values(extra.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}})))}},restore)", self.native_record_declaration(object), self.native_record_declaration(json)),
+                    format!("let(value,mut restore)=project_json{child}(input,state);let extra=take_json_extra{child}(&mut restore).unwrap_or_default();(Record{}{{field0:value,field1:<{extra}>::from_values(extra.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}}))){order}}},restore)", self.native_record_declaration(object), self.native_record_declaration(json),order=self.schema_record_order(object)),
                     format!("let mut extra=tsrust_native_json::Map::new();for entry in value.field1.tsr_owned_items(){{let(key,value)=entry.into_pair();extra.insert(key.into_owned(),value.value);}}restore_json{child}(value.field0,state,Some(extra))"), none)
             }
             Type::Record(object) => self.schema_json_object_projection(object, generated, seen),
@@ -133,7 +133,7 @@ impl Emitter<'_> {
             restore.push_str(&format!("if let Some((key,restore))=state.{}{{input.insert(key,restore_json{child}(value.field{field},restore,None));}}", field + 1));
             values.push(format!("field{field}")); states.push(format!("restore{field}"));
         }
-        project.push_str(&format!("(Record{}{{{}}},({},))", self.native_record_declaration(object), values.join(","), states.join(",")));
+        project.push_str(&format!("({},({},))", self.schema_output_record(object,&values.join(",")), states.join(",")));
         restore.push_str("tsrust_native_json::Value::Object(input)");
         (format!("({},)", types.join(",")), project, restore, "Some(std::mem::take(&mut state.0))".into())
     }

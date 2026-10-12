@@ -2087,3 +2087,18 @@ acceptance. Focused evidence uses `tsrust-schema-object-logging-*`.
 Recursive schema API status: the owner prefers explicit recursion and requested
 examples of `s.recursive<T>(self => ...)`. Examples were presented; the final
 contract remains proposed. Getter-based recursion has not been approved.
+
+### Retained and reversible object metadata audit
+
+Retained wrappers, prepared object commits, JSON projections and callback object
+outputs now initialize field-order metadata. Owned union restoration saves and
+restores the original order rather than substituting schema declaration order.
+The witness exercises retained wrappers with owned/JSON/text input and both
+whole-object and field-level rejected refinements before a coercing fallback;
+the fallback asserts the original runtime property order through Object.keys.
+
+Direct console inspection of retained extras remains restricted because JsonValue
+has no console-inspection capability. The witness therefore inspects wrapper keys
+and logs typed values. Array join registration also skips literal-only record
+identities, matching declaration emission. Evidence uses
+`tsrust-schema-observable-pipelines-*`; original failed checks are retained.

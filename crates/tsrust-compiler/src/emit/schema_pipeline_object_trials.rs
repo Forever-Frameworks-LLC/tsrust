@@ -21,6 +21,7 @@ impl Emitter<'_> {
         let provided = fields.iter().map(|field|self.program.records[input_record].fields.iter().enumerate()
             .find(|(_,candidate)|candidate.name.text==field.name.text).map(|(position,field)|(position,field.ty.unwrap()))).collect::<Vec<_>>();
         let mut body = String::from("let mut committed=false;");
+        if !json && self.record_runtime.ordered.contains(&input_record) { body.push_str("let original_order=input.key_order;"); }
         if json {
             body.push_str(&format!("let mut values=match input.value{{tsrust_native_json::Value::Object(values)=>values,value=>{{issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::Object,tsrust_schema_observed(&value));return Trial::Rejected(Record{raw_record}{{value}});}}}};"));
             if plan.policy==ObjectPolicy::Reject {
@@ -65,18 +66,18 @@ impl Emitter<'_> {
                         format!("restore{previous}.expect(\"uncommitted field\")(field{previous}).expect(\"present input field\")")
                     }else{format!("input.field{position}")};format!("field{position}:{value}")
                 }).collect::<Vec<_>>().join(",");
-                reject.push_str(&format!("return Trial::Rejected(Record{raw_record}{{{restored}}});"));
+                reject.push_str(&format!("return Trial::Rejected({});",self.schema_restored_record(input_record,&restored,"original_order")));
             }
             body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({:?}));let trial={read};path.pop();let(field{index},restore{index}):({},Option<Box<dyn FnOnce({})->Option<{}>+'a>>)=match trial{{Trial::Prepared{{value,restoration}}=>(value,Some(restoration)),Trial::Committed(Some(value))=>{{committed=true;(value,None)}},Trial::Absent=>{{path.push(tsrust_schema_issues::Segment::Field({:?}));issues.push(path,tsrust_schema_issues::Code::Missing,tsrust_schema_issues::Kind::{},tsrust_schema_issues::Kind::Missing);path.pop();let restored=None::<{raw_native}>;{reject}}},Trial::Rejected(restored)=>{{{reject}}},Trial::Committed(None)=>return Trial::Committed(None),Trial::Aborted(error)=>return Trial::Aborted(error)}};",field.name.text,self.native_type(field.ty.unwrap()),self.native_type(field.ty.unwrap()),self.native_type(raw),field.name.text,self.schema_kind(field.ty.unwrap())));
         }
         let values=(0..fields.len()).map(|index|format!("field{index}")).collect::<Vec<_>>().join(",");
-        let mut value=format!("Record{}{{{values}}}",self.native_record_declaration(output_record));
+        let mut value=self.schema_output_record(output_record,&values);
         let mut inverse=String::new();
         if plan.policy==ObjectPolicy::Retain {
             let Type::Record(retained)=plan.output else{unreachable!()};
             let extra=self.native_type(self.program.records[retained].fields[1].ty.unwrap());
             let extras=if json {format!("<{extra}>::from_values(std::mem::take(&mut values).into_iter().map(|(key,value)|(String::Owned(key),Record{raw_record}{{value}})))")}else{format!("<{extra}>::new()")};
-            value=format!("Record{}{{field0:{value},field1:{extras}}}",self.native_record_declaration(retained));
+            value=self.schema_output_record(retained,&format!("field0:{value},field1:{extras}"));
             if json {inverse.push_str("for entry in value.field1.tsr_owned_items(){let(key,value)=entry.into_pair();values.insert(key.into_owned(),value.value);}");}
             inverse.push_str("let value=value.field0;");
         }
@@ -91,7 +92,7 @@ impl Emitter<'_> {
                     format!("restore{index}.expect(\"uncommitted field\")(value.field{index}).expect(\"present input field\")")
                 }else{format!("input.field{position}")};format!("field{position}:{value}")
             }).collect::<Vec<_>>().join(",");
-            inverse.push_str(&format!("Record{raw_record}{{{restored}}}"));
+            inverse.push_str(&self.schema_restored_record(input_record,&restored,"original_order"));
         }
         body.push_str(&format!("let value={value};if committed{{Trial::Committed(Some(value))}}else{{Trial::Prepared{{value,restoration:Box::new(move|value|{{{inverse}}})}}}}"));
         body

@@ -115,7 +115,7 @@ impl Emitter<'_> {
                 let child=self.schema_text_validator(self.schema_child(value),generated,owned,errors);
                 let extra=self.native_type(fields[1].ty.unwrap());
                 let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
-                format!("let mut extra=None;let value={child}(&schema.inner,input,path,issues,failure,Some(false),&mut extra,committed)?;Some(Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}})))}})",self.native_record_declaration(object),self.native_record_declaration(json))
+                format!("let mut extra=None;let value={child}(&schema.inner,input,path,issues,failure,Some(false),&mut extra,committed)?;Some(Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}}))){order}}})",self.native_record_declaration(object),self.native_record_declaration(json),order=self.schema_record_order(object))
             },
             Type::Record(object)=>{
                 let mut code=format!("let mut fields=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{{}}}}};let mut valid=true;",mismatch("Object"));

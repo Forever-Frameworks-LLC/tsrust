@@ -11,6 +11,13 @@ impl Emitter<'_> {
         format!("Record{}{{{fields}{order}}}", self.native_record_declaration(id))
     }
 
+    pub(super) fn schema_restored_record(&self, id: usize, fields: &str, order: &str) -> String {
+        let suffix = if self.record_runtime.ordered.contains(&id) {
+            format!("{}key_order:{order}", if fields.is_empty() { "" } else { "," })
+        } else { String::new() };
+        format!("Record{}{{{fields}{suffix}}}", self.native_record_declaration(id))
+    }
+
     fn schema_factory_value(&self,output:Type,factory:&str,errors:&crate::error_effects::FailureSet)->String {
         let family=self.program.schema_factories[&output];
         let source=self.result_storage.borrow().get(&family).cloned();
@@ -32,7 +39,7 @@ impl Emitter<'_> {
             let fields=&self.program.records[record].fields;
             let child=self.schema_default_value(fields[0].ty.unwrap(),&format!("{plan}.inner"),generated,seen,errors);
             let extra=self.native_type(fields[1].ty.unwrap());
-            format!("({child}).map(|value|value.map(|value|Record{}{{field0:value,field1:<{extra}>::new()}}))",self.native_record_declaration(record))
+            format!("({child}).map(|value|value.map(|value|Record{}{{field0:value,field1:<{extra}>::new(){order}}}))",self.native_record_declaration(record),order=self.schema_record_order(record))
         }else{format!("None::<Option<{}>>",self.native_type(output))};
         for (source,_) in self.schema_inherited_factories(output).into_iter().rev(){
             let Type::Union(from)=source else{unreachable!()};let Type::Union(to)=output else{unreachable!()};
@@ -93,7 +100,7 @@ impl Emitter<'_> {
         }else if let Type::Record(object)=output && self.program.records[object].name.text.starts_with("@schema:retained:"){
             let fields=&self.program.records[object].fields;
             let fallback=self.schema_prepared_default_value(fields[0].ty.unwrap(),"schema.inner",generated,seen,errors);
-            body.push_str(&format!("({fallback}).map(|value|value.map(|value|Record{}{{field0:value,field1:<{}>::new()}}))",self.native_record_declaration(object),self.native_type(fields[1].ty.unwrap())));
+            body.push_str(&format!("({fallback}).map(|value|value.map(|value|Record{}{{field0:value,field1:<{}>::new(){order}}}))",self.native_record_declaration(object),self.native_type(fields[1].ty.unwrap()),order=self.schema_record_order(object)));
         }else{body.push_str("None");}
         generated.push_str(&format!("fn {name}(schema:&Record{record},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<Option<{}>>{{{body}}}",self.native_type(output)));
         format!("{name}(&{plan},path,issues,failure)")
@@ -187,7 +194,7 @@ impl Emitter<'_> {
                 let value=self.program.records[object].fields[0].ty.unwrap();let extra=self.native_type(self.program.records[object].fields[1].ty.unwrap());
                 let (child_input,input,extras)=if input_type==output {(value,"input.field0",String::from("input.field1"))}else{(input_type,"input",format!("<{extra}>::new()"))};
                 let child=self.schema_child(value);let validator=self.schema_owned_validator(child,child_input,generated,seen,errors);
-                format!("{validator}(&schema.inner,{input},path,issues,failure).map(|value|Record{}{{field0:value,field1:{extras}}})",self.native_record_declaration(object))
+                format!("{validator}(&schema.inner,{input},path,issues,failure).map(|value|Record{}{{field0:value,field1:{extras}{order}}})",self.native_record_declaration(object),order=self.schema_record_order(object))
             },
             Type::Record(object)=>{
                 let mut body=String::from("let mut valid=true;");
@@ -282,7 +289,7 @@ impl Emitter<'_> {
                 let result=if retained {
                     let extra=self.native_type(self.program.records[output_object].fields[1].ty.unwrap());
                     let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
-                    format!("Record{}{{field0:Record{}{{{fields}}},field1:<{extra}>::from_values(input.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}})))}}",self.native_record_declaration(output_object),self.native_record_declaration(object),self.native_record_declaration(json))
+                    format!("Record{}{{field0:{value},field1:<{extra}>::from_values(input.into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}}))){order}}}",self.native_record_declaration(output_object),self.native_record_declaration(json),value=self.schema_output_record(object,&fields),order=self.schema_record_order(output_object))
                 }else{self.schema_output_record(object,&fields)};
                 body.push_str(&format!("return if valid{{Some({result})}}else{{None}};}}"));
                 ("Object",body)

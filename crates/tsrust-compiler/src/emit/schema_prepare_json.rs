@@ -145,7 +145,7 @@ impl Emitter<'_> {
                 let value=self.program.records[object].fields[0].ty.unwrap();let child=self.schema_child(value);self.schema_json_prepared_validator(child,generated,seen,owned_seen,errors);
                 let extra=self.native_type(self.program.records[object].fields[1].ty.unwrap());
                 let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
-                let commit=format!("let mut extra=None;let value=commit_json{child}(input,state,&mut extra);Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}})))}}",self.native_record_declaration(object),self.native_record_declaration(json));
+                let commit=format!("let mut extra=None;let value=commit_json{child}(input,state,&mut extra);Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key),Record{}{{value}}))){order}}}",self.native_record_declaration(object),self.native_record_declaration(json),order=self.schema_record_order(object));
                 (format!("PreparedJson{child}"),format!("prepare_json{child}(&schema.inner,input,path,issues,failure,Some(false)).map({name}::Base)"),commit)
             },
             Type::Record(object)=>self.schema_json_object_preparation(id,object,generated,seen,owned_seen,errors),
@@ -167,7 +167,7 @@ impl Emitter<'_> {
         }
         let known=if names.is_empty(){"false".into()}else{format!("matches!(key.as_str(),{})",names.join("|"))};
         prepare.push_str(&format!("if policy.unwrap_or(schema.reject_unknown){{for(key,value)in input{{if !({known}){{valid=false;let mut unknown_path=path.clone();unknown_path.push(tsrust_schema_issues::Segment::Field(key));issues.push(&unknown_path,Code::UnknownField,Kind::Missing,tsrust_schema_observed(value));}}}}}}if valid{{Some(PreparedJson{id}::Base(({})))}}else{{None}}",fields.iter().map(|field|format!("{field}.unwrap(),")).collect::<String>()));
-        commit.push_str(&format!("*remaining=Some(input);Record{}{{{}}}",self.native_record_declaration(object),fields.join(",")));
+        commit.push_str(&format!("*remaining=Some(input);{}",self.schema_output_record(object,&fields.join(","))));
         (format!("({})",types.iter().map(|ty|format!("{ty},")).collect::<String>()),prepare,commit)
     }
 }

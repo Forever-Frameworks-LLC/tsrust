@@ -88,12 +88,12 @@ impl Emitter<'_> {
             body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({key:?}));let field{index}=match fields.remove({key:?}){{Some(input)=>{child}(&schema.field0.field{index},input,path,issues,failure,None,&mut None,committed),None=>match {missing}(&schema.field0.field{index},path,issues,failure,committed){{Some(value)=>value,None=>{{issues.push(path,Code::Missing,Kind::{kind},Kind::Missing);None}}}}}};path.pop();let field{index}=field{index}?;",key=field.name.text,kind=self.schema_kind(field.ty.unwrap())));
         }
         let values=(0..fields.len()).map(|field|format!("field{field}")).collect::<Vec<_>>().join(",");
-        let value=format!("Record{}{{{values}}}",self.native_record_declaration(record));
+        let value=self.schema_output_record(record,&values);
         if plan.policy==ObjectPolicy::Retain{
             let Type::Record(retained)=plan.output else{unreachable!()};
             let extra=self.native_type(self.program.records[retained].fields[1].ty.unwrap());
             let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
-            body.push_str(&format!("Some(Record{}{{field0:{value},field1:<{extra}>::from_values(fields.into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}})))}})",self.native_record_declaration(retained),self.native_record_declaration(json)));
+            body.push_str(&format!("Some(Record{}{{field0:{value},field1:<{extra}>::from_values(fields.into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}}))){order}}})",self.native_record_declaration(retained),self.native_record_declaration(json),order=self.schema_record_order(retained)));
         }else{body.push_str(&format!("*remaining=Some(fields);Some({value})"));}
         body
     }

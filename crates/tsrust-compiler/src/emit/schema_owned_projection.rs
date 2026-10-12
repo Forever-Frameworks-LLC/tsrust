@@ -83,11 +83,13 @@ impl Emitter<'_> {
                 let inner = fields[0].ty.unwrap();
                 let raw = if input == output { inner } else { input };
                 let child = self.schema_owned_projection(self.schema_child(inner), raw, generated, seen, errors);
-                let record = self.native_record_declaration(object);
+                let saved_order = if self.record_runtime.ordered.contains(&object) { "let original_order=input.key_order;" } else { "" };
+                let value = self.schema_output_record(object,"field0:value,field1:input.field1");
+                let restored = self.schema_restored_record(object,"field0:restore(value.field0),field1:value.field1","original_order");
                 if input == output {
-                    format!("let(value,restore)=project_{child}(input.field0,state);(Record{record}{{field0:value,field1:input.field1}},Box::new(move|value|Record{record}{{field0:restore(value.field0),field1:value.field1}}))")
+                    format!("{saved_order}let(value,restore)=project_{child}(input.field0,state);({value},Box::new(move|value|{restored}))")
                 } else {
-                    format!("let(value,restore)=project_{child}(input,state);(Record{record}{{field0:value,field1:<{}>::new()}},Box::new(move|value|restore(value.field0)))", self.native_type(fields[1].ty.unwrap()))
+                    format!("let(value,restore)=project_{child}(input,state);({},Box::new(move|value|restore(value.field0)))", self.schema_output_record(object,&format!("field0:value,field1:<{}>::new()",self.native_type(fields[1].ty.unwrap()))))
                 }
             }
             Type::Record(object) => {
@@ -105,7 +107,7 @@ impl Emitter<'_> {
     ) -> String {
         let input_fields = &self.program.records[raw].fields;
         let output_fields = &self.program.records[object].fields;
-        let mut project = String::new();
+        let mut project = if self.record_runtime.ordered.contains(&raw) { String::from("let original_order=input.key_order;") } else { String::new() };
         let mut inverse = Vec::new();
         for (position, field) in input_fields.iter().enumerate() {
             if !output_fields.iter().any(|candidate| candidate.name.text == field.name.text) {
@@ -126,7 +128,7 @@ impl Emitter<'_> {
             }
         }
         let fields = (0..output_fields.len()).map(|index|format!("field{index}")).collect::<Vec<_>>().join(",");
-        project.push_str(&format!("(Record{}{{{fields}}},Box::new(move|value|Record{}{{{}}}))", self.native_record_declaration(object), self.native_record_declaration(raw), inverse.join(",")));
+        project.push_str(&format!("({},Box::new(move|value|{}))", self.schema_output_record(object,&fields), self.schema_restored_record(raw,&inverse.join(","),"original_order")));
         project
     }
 }

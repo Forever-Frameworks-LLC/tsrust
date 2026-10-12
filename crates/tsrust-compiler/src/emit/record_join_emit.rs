@@ -4,6 +4,7 @@ impl Emitter<'_> {
     pub(super) fn record_join_registration(&self,id:usize)->Option<String> {
         if self.native_record_declaration(id)!=id{return None;}
         let record=&self.program.records[id];
+        if record.literal_definition.is_some(){return None;}
         let view_lifetime = native_view_emit::access(self.program, id).is_some() || self.native_views.recursive(id);
         let parameters = if view_lifetime { vec!["'view".to_owned()] } else { record.fields.iter().enumerate().filter_map(|(index,field)|self.scoped_record_native_field(id,index,field.ty.expect("checked field")).then(||format!("P{index}"))).collect::<Vec<_>>() };
         let arguments=lifetime_parameters(&parameters);

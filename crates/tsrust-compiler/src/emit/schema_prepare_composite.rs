@@ -105,7 +105,7 @@ impl Emitter<'_> {
                 let child=self.schema_owned_prepared_validator(self.schema_child(value),child_input,generated,seen,errors);
                 let borrow=if input==output{"&input.field0"}else{"input"};let take=if input==output{"input.field0"}else{"input"};
                 let extra=if input==output{String::from("input.field1")}else{format!("<{}>::new()",self.native_type(fields[1].ty.unwrap()))};
-                (format!("Prepared{child}"),format!("prepare_{child}(&schema.inner,{borrow},path,issues,failure,Some(false))"),format!("Record{}{{field0:commit_{child}({take},state),field1:{extra}}}",self.native_record_declaration(object)))
+                (format!("Prepared{child}"),format!("prepare_{child}(&schema.inner,{borrow},path,issues,failure,Some(false))"),self.schema_output_record(object,&format!("field0:commit_{child}({take},state),field1:{extra}")))
             },
             Type::Record(object)=>{
                 let Type::Record(input_object)=input else{return incompatible();};
@@ -138,7 +138,7 @@ impl Emitter<'_> {
             prepare.push_str(&format!("if policy.unwrap_or(schema.reject_unknown){{valid=false;path.push(tsrust_schema_issues::Segment::Field({:?}));issues.push(path,Code::UnknownField,Kind::Missing,Kind::{});path.pop();}}",field.name.text,self.schema_kind(field.ty.unwrap())));
         }
         prepare.push_str(&format!("if valid{{Some(({}))}}else{{None}}",fields.iter().map(|field|format!("{field}.unwrap(),")).collect::<String>()));
-        commit.push_str(&format!("Record{}{{{}}}",self.native_record_declaration(object),fields.join(",")));
+        commit.push_str(&self.schema_output_record(object,&fields.join(",")));
         let _=id;
         (format!("({})",types.iter().map(|ty|format!("{ty},")).collect::<String>()),prepare,commit)
     }
