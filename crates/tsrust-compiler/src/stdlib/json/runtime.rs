@@ -1,4 +1,4 @@
-pub use serde_json::Value;
+pub use serde_json::{Map, Value};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {

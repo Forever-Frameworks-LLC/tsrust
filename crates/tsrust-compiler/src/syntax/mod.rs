@@ -650,6 +650,8 @@ pub enum CallTarget {
     SchemaRetain,
     SchemaPresence,
     SchemaDefault,
+    /// Ordered schema plan identity; output union normalization is independent.
+    SchemaChoice(usize),
     StringConversion,
     ArrayIsArray,
     ObjectIs,

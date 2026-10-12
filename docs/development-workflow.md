@@ -5,26 +5,32 @@ relocating compiler modules.
 
 ## Implementation-first development
 
-Implementation is the priority. Develop new features and defects with a focused
-failing test first, implement the behavior, then run the smallest meaningful
-compiler, native and editor checks. Keep feedback fast and bounded. Include the
-relevant ownership, diagnostic and observable-output cases; use native execution
-when output or disposal matters. Do not substitute tests that only mirror the
-implementation. Do not repeatedly run all compiler or LSP suites during routine
-feature work.
+Implementation is the priority. Add focused regression witnesses while implementing
+new behavior, including ownership, diagnostics, output and disposal where relevant.
+The owner's 2026-10-12 direction is to defer running checks and tests until the
+whole coherent section is implemented across compiler, native behavior, editor,
+examples and benchmark support. Run an earlier check only when a specific
+uncertainty blocks implementation. Do not repeatedly validate partially completed
+pieces or run full compiler/LSP suites during routine edits.
 
 A feature's focused acceptance includes its compiler and LSP behavior, consistent
 signatures, completion, hover, parameter help, diagnostics, verified executable
 examples and documentation. Its benchmark support must also be ready: matched
 TypeScript sources, independent result oracles, result observers, native ABI and
-driver support, source fingerprints, guards and registrations. Run quick untimed
-checks for representative affected cases as this support lands. A future benchmark
+driver support, source fingerprints, guards and registrations. Run representative untimed
+checks with the completed section. A future benchmark
 command must execute current supported workloads without first implementing or
 repairing support accumulated over dozens of gates.
 
 ## Batched development checks
 
-Group related implementation changes into a coherent batch and run the affected suites together after that batch. Keep a focused failing witness before implementation, but avoid rerunning all accumulated witnesses after each small edit. Preserve completed evidence and rerun only the affected batch when a defect is repaired. This does not authorize routine full regressions or timing runs.
+Finish a coherent section before running its affected suites. For the current
+schema work, ordered unions and discriminated unions form one section, including
+checker, IntelliSense, examples and matched workload support. Write regression
+witnesses during implementation without running each one immediately. Preserve
+completed evidence and rerun only affected checks after repairs. An individual gate
+or source checkpoint does not trigger testing. Full regressions and timing remain
+reserved for meaningful feature-family milestones.
 
 When backend witnesses can share a native compilation, compile them together in isolated modules with their original assertions and run them in one executable. Keep case identity in generated source so failures remain attributable. Preserve evaluation-order, ownership, failure and output assertions; batching must not reduce coverage.
 

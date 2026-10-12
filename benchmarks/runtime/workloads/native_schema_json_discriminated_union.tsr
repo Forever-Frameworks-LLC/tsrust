@@ -1,0 +1,62 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.discriminatedUnion('kind', [s.object({
+    kind: s.literal('count'), count: s.int()
+  }), s.object({
+    kind: s.literal('text'), text: s.string()
+  })]);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        if (value.kind === 'count') {
+          if (value.count !== 4) {
+            throw 'Wrong count';
+          }
+
+          checksum += value.count;
+        } else {
+          throw 'Wrong branch';
+        }
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('{"kind":"unknown"}'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Wrong issues';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'discriminator-mismatch' || issue.expected !== 'union' || issue.observed !== 'string' || issue.pathTruncated || issue.path.length !== 1) {
+            throw 'Wrong issue';
+          }
+
+          for (const segment of issue.path) {
+            if (segment.field !== 'kind' || segment.index !== undefined) {
+              throw 'Wrong path';
+            }
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, '{"kind":"count","count":4}'), workload(1, 0, '{"kind":"count","count":4}'), workload(17, 7, '{"kind":"count","count":4}'), workload(2000, 1, '{"kind":"count","count":4}'));
+}

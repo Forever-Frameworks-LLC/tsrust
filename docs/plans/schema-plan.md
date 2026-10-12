@@ -20,8 +20,8 @@ executing differential cases; current web documentation alone is not a version p
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable and reusable default factories integrated for owned/JSON object fields; S11 family acceptance pending |
-| Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
-| Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
+| Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing pending |
+| Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing pending |
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Second tranche, still required |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Second tranche, still required |
@@ -1357,3 +1357,144 @@ enum cases pass. All 25 schema editor cases and 21 workload contract cases pass.
 Whole-project formatting verified token preservation and idempotence; formatted
 native workload output remains `0 2 41 4001`. These are bounded affected checks,
 not complete compiler/LSP regressions or performance measurements.
+
+
+## Ordered union implementation contract
+
+The owner approved committing a union branch before its first consuming transform.
+Branches are considered in declaration order. Before that commitment, validation
+borrows the original input and can reject a branch without losing or copying it.
+Once a branch's checks before a consuming transform succeed, that branch owns the
+input. A later transform or refinement failure ends validation; another branch is
+not tried. This deliberately prevents hidden rollback copies of mutated values.
+Exceptions propagate and do not select another branch.
+
+Prepare and commit are separate internal operations. Preparation may create and
+validate a missing-field default once, retaining that owned result for commitment.
+A rejected preparation releases its generated values. A chosen preparation moves
+its cached defaults and original successful input storage into the typed output;
+it must not rerun factories or validation callbacks. Nonmutating branch failures
+can accumulate bounded errors. A later successful branch removes speculative
+errors while preserving earlier sibling errors, truncation and zero-budget validity.
+
+Union plans must preserve runtime branch order independently of canonical output
+type identity. Overlapping branches, repeated output types and ordinary schemas
+with the same output type remain distinct reusable plans. Do not implement unions
+by deduplicating schemas through their output types, cloning input between attempts,
+or routing typed input through JSON serialization. Discriminator selection must
+inspect the tag without consuming input, then validate only the selected branch.
+
+Implementation is in progress. The entire ordered/discriminated-union section,
+including public integration, editor inference, executed examples and matched
+workloads, will be validated together under the updated development workflow.
+Runtime preparation/error checkpoints alone do not accept either public API.
+
+
+Union section work in progress (not accepted): added internal preparation/commit
+control and reversible issue bookkeeping, plus unrun witnesses for storage identity,
+shared error budgets, nested selection, default cleanup and exception short-circuiting.
+Public integration witnesses cover overlapping runtime plans, typed scalar unions,
+owned input transfer, nested arrays/presence, default evaluation, discriminator
+selection and field narrowing. They are intentionally not run until the section is
+implemented. The current source checkpoint remains `d2c5ce66`; no new source
+checkpoint, full regression, timing or public union acceptance is claimed.
+
+
+Union lowering work in progress: added ordered plan identities separately from
+normalized output types, consuming constructor analysis, and discriminator overlap
+checks across literal and declared enum values. Equal integer/number discriminator
+spellings normalize to the same key. Generated choice storage preserves duplicate
+output branches and uses one unique allocation per union plan node; existing schema
+outputs not participating in choices retain their original layout. Optional base
+slots avoid constructing unused child plans for a choice. These changes are not yet
+publicly exposed: namespace wiring waits for prepared validation/commit generation,
+then editor/examples/workload integration. No checks have run for this section.
+
+Prepared JSON validation now carries an explicit outer unknown-field policy into
+choice branches. A union's `.strip()` overrides rejection for each attempted root
+object; without that override, branch-local policies remain intact. Added an unrun
+public witness covering rejection, branch-local stripping and outer stripping.
+Owned discriminator inspection is being implemented with borrowed field access and
+exact numeric comparisons, including integers above the floating-point precision
+boundary. It is not yet connected to owned preparation/commit dispatch. Numeric
+boundary and ordered-plan identity witnesses are written but have not been run.
+Validation effect enumeration also follows preserved branch plans: normalized
+output unions must not hide a default factory attached to an intermediate union.
+Owned leaf preparation now generates borrowed scalar, literal and nominal enum
+checks. Checked numeric conversions are cached in preparation state; owned string
+storage is moved only by commitment. Composite dispatch integration remains open.
+
+Composite owned preparation/commit is now wired for arrays, records, presence,
+retained outputs, ordered alternatives and discriminated selection. Recursive
+default lookup preserves runtime branch identity and cached generated values.
+Presence adapters activate only for outputs that can contain runtime choices;
+they preserve whole source plans rather than reading an absent base-plan slot.
+Public namespace lowering and IntelliSense catalog entries/examples are added,
+with an unrun editor chain witness. This supersedes the earlier namespace-wiring
+and composite-dispatch status notes above. Workload integration and section
+validation remain pending; no implementation acceptance is claimed.
+
+First union-section batch (2026-10-12): 23 workload-contract checks and 26 schema
+editor checks passed. Public native witnesses: one rejection test passed; four
+execution tests failed. The batch exposed missing record-union common-field access
+and discriminator narrowing, plus a generated JSON map type crossing the private
+runtime boundary. Map visibility has been repaired through the bundled JSON
+runtime re-export, without adding a user dependency or link flag; that repair is
+not yet rerun. Record-union access/narrowing remains required before the section
+can pass. Do not weaken the existing object/discriminator witnesses to hide it.
+Ordered and discriminated union workloads now have matched TypeScript sources,
+independent checksums, source guards, registrations and ABI checks. Native/Node
+parity and timing remain unrun. The four closed batch logs are byte-verified in
+SQLite under `tsrust-unions-section-{compiler-1,compiler-2,workloads-1,editor-1}.log`.
+
+Second native batch: all 10 enum and 9 literal cases passed; three of five union
+cases passed, including owned scalar/presence transfer and ordered object defaults.
+Common-field reading and literal discriminator narrowing now reach native code.
+The two remaining failures exposed equivalent inferred object shapes receiving
+different output identities, and a witness moving an owned field directly through
+a narrowed record (already prohibited by the ownership contract). Object output
+identity now reuses an existing identical ordered shape while preserving separate
+runtime plans; the witness moves the whole narrowed record before taking its field.
+Both repairs await the next affected pass. Before section acceptance, finish the
+common-field audit for nested borrowed fields, exact numeric/enum discriminators,
+mutation invalidation and editor narrowing; retain/add regression witnesses.
+Second batch evidence is byte-verified in SQLite as
+`tsrust-unions-section-compiler-3.log`. No new checkpoint or timing acceptance.
+
+Current union evidence: eight public union cases plus the catalog-example case
+pass across the affected runs. The invalidation witness initially had a syntax
+typo, corrected without changing its assertion; replacing the union invalidates
+the discriminator fact. Nested common record/array reads and distinct exact tags
+above 2^53 execute correctly. All 27 schema editor checks and 56 schema runtime
+checks pass. Ordered and discriminated workload adapters agree with Node-after-tsc
+for n=0,1,17,2000, with zero timed samples. Seven closed logs are byte-verified in
+SQLite as `tsrust-unions-section-{compiler-4,invalidation-1,parity-ordered-1,
+parity-discriminated-1,editor-2,examples-1,runtime-1}.log`.
+
+Remaining acceptance audit: comparisons/access for discriminator fields whose
+alternatives have different nominal enum types or different scalar families.
+Tag-selection metadata handles these, but common-field typing currently requires
+identical types or a common scalar base. Do not claim the full advertised
+discriminator access contract until this path is implemented and exercised.
+Whole-project formatting, source checkpoint and family measurements are pending.
+
+Ordered/discriminated union section validation (2026-10-12): the mixed-type and
+nominal enum field-access gap above is closed. Shared fields construct borrowed
+union views, preserving exact alternatives and nominal enum identity. Literal
+guards narrow record alternatives; replacing their owner invalidates the fact.
+Outer scalar constraints also validate branch-generated defaults without rerunning
+factories or silently retrying a selected default after a later outer failure.
+
+Current evidence: 11 public compiler/native union cases, 28 schema editor cases,
+23 workload contracts, and the prior 56 runtime schema cases pass. All documented
+union examples execute. Whole-project formatting changed two workloads with token
+preservation/idempotence verification and refreshed fingerprints; both formatted
+workloads agree with Node-after-tsc at n=0,1,17,2000, untimed. Failed intermediate
+runs remain preserved. Final records are in SQLite under
+`tsrust-unions-section-{compiler-5,compiler-6,format-1,editor-3,workloads-2,
+formatted-parity-1,formatted-parity-2}.log`.
+
+This accepts the implemented union section only. Refinements/transforms,
+preprocessing, recursive composition, collection schemas, JSON Schema export,
+fused typed decoding and the S11 family acceptance requirements above remain.
+Installed consumers remain at accepted S10. No family timing is claimed.

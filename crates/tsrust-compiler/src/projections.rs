@@ -360,6 +360,7 @@ impl Analysis {
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
                                 | CallTarget::SchemaPresence
+                                | CallTarget::SchemaChoice(_)
                                 | CallTarget::SchemaDefault
                                 | CallTarget::SchemaRetain
                                 | CallTarget::SchemaStrip

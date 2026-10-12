@@ -856,7 +856,7 @@ impl<'a> Proof<'a> {
                     .all(|(argument, parameter)| self.expr(id, argument, parameter.access)),
                 // Generated JSON visitors borrow the ordinary aggregate ABI.
                 CallTarget::SchemaStrip | CallTarget::SchemaRetain | CallTarget::SchemaPresence => self.expr(id,&args[0],Mode::Consume),
-                CallTarget::SchemaDefault => args.iter().all(|argument|self.expr(id,argument,Mode::Consume)),
+                CallTarget::SchemaDefault | CallTarget::SchemaChoice(_) => args.iter().all(|argument|self.expr(id,argument,Mode::Consume)),
                 CallTarget::SchemaValidate => self.expr(id,&args[0],Mode::Read) && self.expr(id,&args[1],Mode::Consume),
                 CallTarget::JsonEncode => args.iter().all(|a| self.expr(id, a, Mode::Consume)),
                 CallTarget::JsonDecode | CallTarget::JsonStringLength | CallTarget::JsonStringView | CallTarget::JsonBoolean | CallTarget::BooleanConversion | CallTarget::ArrayIsArray | CallTarget::ObjectHasOwn | CallTarget::ObjectIs | CallTarget::ObjectKeys | CallTarget::ObjectValues | CallTarget::ObjectEntries(_)

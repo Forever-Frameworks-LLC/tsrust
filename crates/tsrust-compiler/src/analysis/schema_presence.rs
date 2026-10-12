@@ -32,6 +32,11 @@ impl Analyzer {
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
         let result=self.resolve_value_annotation(&annotation,false)?;
         self.require(result,expected,expr.span)?;
+        let Type::Record(target)=result else{unreachable!()};
+        let target=self.program.records[target].application.as_ref().unwrap().resolved_arguments[0];
+        if target!=output {
+            self.schema_choices.intern(crate::stdlib::schema::plans::Choice{output:target,branches:vec![output],selector:None,presence:Some(added)});
+        }
         args.push(receiver);callee.kind=ExprKind::Name("@schema:presence".into());expr.target=Some(CallTarget::SchemaPresence);
         Ok(Some(result))
     }

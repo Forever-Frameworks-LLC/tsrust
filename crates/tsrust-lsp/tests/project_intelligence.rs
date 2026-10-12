@@ -2713,6 +2713,41 @@ fn schema_enum_chains_show_literal_alternatives_and_string_input() {
 }
 
 #[test]
+fn schema_union_chains_keep_all_output_alternatives_in_editor_help() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.union([s.string(),s.int()]).optional();const result=schema.safeParse('ready');}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"schema =","textDocument/hover");
+    assert!(hover.to_string().contains("string")&&hover.to_string().contains("int")&&hover.to_string().contains("undefined"),"{hover}");
+    let help=ask(&index,&entry,"'ready'","textDocument/signatureHelp");
+    assert!(help.to_string().contains("JsonValue")&&help.to_string().contains("int")&&help.to_string().contains("undefined"),"{help}");
+    let hover=ask(&index,&entry,"union(","textDocument/hover");
+    assert!(hover.to_string().contains("declaration order")&&hover.to_string().contains("without implicit cloning"),"{hover}");
+}
+
+#[test]
+fn schema_discriminator_narrowing_exposes_selected_field_types() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":4}'))){Ok(value)=>{if(value.kind==='count'){console.log(value.count);}else{console.log(value.text);}},Err(error)=>{console.log(error.issues.length);}}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let count=ask(&index,&entry,"count);","textDocument/hover");assert!(count.to_string().contains("int"),"{count}");
+    let text=ask(&index,&entry,"text);","textDocument/hover");assert!(text.to_string().contains("string"),"{text}");
+    let builder=ask(&index,&entry,"discriminatedUnion(","textDocument/hover");assert!(builder.to_string().contains("discriminator-mismatch"),"{builder}");
+}
+
+#[test]
+fn schema_enum_discriminator_narrowing_keeps_nominal_field_help() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum A{First='first'}enum B{Second='second'}function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.enum(A),first:s.int()}),s.object({kind:s.enum(B),second:s.string()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"second\",\"second\":\"value\"}'))){Ok(value)=>{if(value.kind===B.Second){console.log(value.second);}else{console.log(value.first);}},Err(error)=>{console.log(error.issues.length);}}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let first=ask(&index,&entry,"first);","textDocument/hover");assert!(first.to_string().contains("int"),"{first}");
+    let second=ask(&index,&entry,"second);","textDocument/hover");assert!(second.to_string().contains("string"),"{second}");
+}
+
+#[test]
 fn declared_enum_schema_help_keeps_nominal_output_and_checked_numeric_inputs() {
     let entry=tsrust_compiler::format("import {s} from 'std:schema';enum Code{Low=1,High=2.5}function main(){const schema=s.enum(Code).optional();const result=schema.safeParse(1);}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";

@@ -24,14 +24,14 @@ impl Analyzer {
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object"|"@schema:literal"|"@schema:enum")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable"|"default")));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if (name.starts_with("@schema:")||name.starts_with("@native:std:schema#"))) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"optional"|"nullable"|"default"|"min"|"max"|"gt"|"lt")));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
-        if !matches!(output,Type::Array(_)|Type::Record(_)|Type::Union(_)|Type::Literal(_,_)|Type::Enum(_,_)|Type::Null){return Ok(None);}
+        if !matches!(output,Type::Array(_)|Type::Record(_)|Type::Union(_)|Type::Literal(_,_)|Type::Enum(_,_)|Type::Null|Type::String|Type::Int|Type::Number|Type::Boolean){return Ok(None);}
         let validation_output=if let Type::Record(object)=output && self.program.records[object].name.text.starts_with("@schema:retained:"){self.program.records[object].fields[0].ty.unwrap()}else{output};
         let mut pending=vec![validation_output];let mut seen=HashSet::new();
         while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
@@ -69,6 +69,9 @@ impl Analyzer {
         let mut pending=vec![output];let mut visited=HashSet::new();let mut factories=Vec::new();
         while let Some(ty)=pending.pop(){
             if !visited.insert(ty){continue;}
+            // Normalizing output unions can erase an intermediate branch union.
+            // Its default factory still executes and its exception must propagate.
+            pending.extend(self.schema_choices.for_output(ty).flat_map(|(_,choice)|choice.branches.iter().copied()));
             if let Some(&family)=self.schema_factories.get(&ty){factories.push(family);}
             factories.extend(crate::stdlib::schema::defaults::inherited_factories(ty,&self.schema_factories,|id|self.unions.members(id).to_vec()).into_iter().map(|(_,family)|family));
             match ty {

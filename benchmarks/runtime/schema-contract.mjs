@@ -1,14 +1,25 @@
 import {createHash} from 'node:crypto';
 import {containsCodeSnippet} from './source-contract-tokens.mjs';
 export function schemaChecksum(n,seed,input){
- const weight=input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:(input==='"hello"'||input==='"ready"')?6:(input==='2.5'||input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
+ const weight=input==='\"union-value\"'?13:input==='{\"kind\":\"count\",\"count\":4}'?5:input==='{"label":"ready"}'?9:input==='{"label":null}'?3:input==='{"count":3,"extra":true}'?5:input==='{"count":2,"extra":true}'?3:(input==='owned-array'||input==='[2,3]'||input==='{"count":2}')?4:(input==='"hello"'||input==='"ready"')?6:(input==='2.5'||input==='true'||input==='1.5'||input==='native-int'||input==='native-int-array'||input==='null')?2:input==='7'?8:undefined;
  if(weight===undefined||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*weight))throw Error('Schema oracle inputs');
  // Each successful scalar contributes its scenario value, plus one observed root issue.
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_json_union','native_schema_json_discriminated_union'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_json_union'||row.id==='native_schema_json_discriminated_union'){
+  const disc=row.id.endsWith('discriminated_union');
+  const payload=disc?'{"kind":"count","count":4}':'"union-value"';
+  if(row.iterations!==2000||row.operationsPerIteration!==2||row.result!=='int'||row.inputText!==payload)throw Error('Union denominator');
+  const invalid=disc?'{"kind":"unknown"}':'true';
+  for(const snippet of ['while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('${invalid}'))`,'error.truncated',`error.issues.length!==${disc?1:2}`,`issue.code!=='${disc?'discriminator-mismatch':'type-mismatch'}'`,`issue.expected!=='${disc?'union':'string'}'`,`issue.observed!=='${disc?'string':'boolean'}'`,'issue.pathTruncated',`issue.path.length!==${disc?1:0}`,'checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Union operation: '+snippet);
+  for(const snippet of disc?["value.kind==='count'",'value.count!==4','checksum+=value.count;',"segment.field!=='kind'",'segment.index!==undefined']:["value!=='union-value'",'checksum+=value.length;'])if(!containsCodeSnippet(source,snippet))throw Error('Union observation: '+snippet);
+  if(kind==='native'&&!containsCodeSnippet(source,disc?"s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})])":"s.union([s.string().min(20),s.string().min(2)])"))throw Error('Union plan');
+  if(kind==='typescript'&&!containsCodeSnippet(source,disc?"value.kind==='count'":"for(const min of limits)"))throw Error('Union reference selection');
+  return;
+ }
  if(row.id==='native_schema_json_declared_enum'){
   if(row.iterations!==2000||row.operationsPerIteration!==2||row.inputText!=='2.5'||row.result!=='int')throw Error('Enum schema denominator');
   for(const snippet of [kind==='native'?"s.enum(Code)":"enumSchema()",'while(i<n){','schema.safeParse(JSON.parse(input))',`schema.safeParse(JSON.parse('3.0'))`,"value!==Code.High",'checksum+=1;','checksum+=1;','error.truncated','error.issues.length!==1',"issue.code!=='literal-mismatch'","issue.expected!=='number'","issue.observed!=='number'",'issue.pathTruncated','issue.path.length!==0','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Enum schema operation: '+snippet);

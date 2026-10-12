@@ -22242,6 +22242,54 @@
       "notes": "Handwritten TypeScript enum validator; small finite numeric domain. Exact large-integer rejection covered separately by native correctness checks. Untimed parity only; unmeasured.",
       "sourceSha256": "b8c4d0c2dbacc5eba5789311a9c0ffe76aa84e155a17b13d3a81e25cc93a52ce",
       "counterpartSha256": "9d2bd8af79d544f100344b2b029029cbdbfd0864c9829dc5138d48ecb1dc13dd"
+    },
+    {
+      "id": "native_schema_json_union",
+      "category": "schema",
+      "description": "Ordered same-output schema alternatives",
+      "source": "workloads/native_schema_json_union.tsr",
+      "counterpart": "workloads/native_schema_json_union.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, union validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "\"union-value\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate success and rejection, checking issue codes and paths. Checksum adds 13 per iteration.",
+      "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
+      "sourceSha256": "1d1bf9a92df33c25fb0ded66ad1e7eaa6a136d7be3ca6c666bec4385e2a486ea",
+      "counterpartSha256": "f742cabd793b1663107aaa54231d957176d9d3057a3c1c88b778ad93c67b41cf"
+    },
+    {
+      "id": "native_schema_json_discriminated_union",
+      "category": "schema",
+      "description": "Discriminated object schema selection",
+      "source": "workloads/native_schema_json_discriminated_union.tsr",
+      "counterpart": "workloads/native_schema_json_discriminated_union.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, union validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"kind\":\"count\",\"count\":4}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate success and rejection, checking issue codes and paths. Checksum adds 5 per iteration.",
+      "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
+      "sourceSha256": "a231e42cfb1d64d3ecd8ff125762809982da7b87bea0859a3ac50de379180d77",
+      "counterpartSha256": "6fad23204b566a3eb140581333f2614ba3917261f97baecac53da892ff8493cb"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

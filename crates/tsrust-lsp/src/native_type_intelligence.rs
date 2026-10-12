@@ -81,7 +81,7 @@ impl SourceIndex {
             let raw=if retained {self.symbols.iter().find(|symbol|symbol.owner.as_deref()==Some(element)&&symbol.name=="value").map(|symbol|symbol.ty.as_str()).unwrap_or(element)}else{element};
             let scalar=self.schema_scalar_input_text(raw);
             let input=if let Some(integer)=Self::schema_integer_alternative(&scalar) {format!("{scalar} | {integer} | JsonValue")}else{format!("{scalar} | JsonValue")};
-            let mut entries=builtins_for(if retained {"SchemaRetained"}else if self.enum_scalar_types.contains_key(element){"SchemaDeclaredEnum"}else if Self::schema_is_string_enum(element){"SchemaEnum"}else if element.contains('|') {"SchemaPresence"}else{"SchemaObject"});
+            let mut entries=builtins_for(if retained {"SchemaRetained"}else if self.enum_scalar_types.contains_key(element){"SchemaDeclaredEnum"}else if Self::schema_is_string_enum(element){"SchemaEnum"}else if element.contains('|') {"SchemaUnion"}else{"SchemaObject"});
             for entry in &mut entries {
                 if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
                 if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}

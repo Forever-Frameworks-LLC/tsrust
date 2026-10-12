@@ -57,6 +57,10 @@ use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
 mod native_view_emit;
 mod schema_validation;
+mod schema_plans;
+mod schema_prepare_json;
+mod schema_prepare_owned;
+mod schema_prepare_composite;
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -369,6 +373,7 @@ impl Emitter<'_> {
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return String::new();}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
         let mut fields=self.program.schema_factories.get(&output).map(|family|format!("factory:Option<Box<StoredCallable{family}>>,")).unwrap_or_default();
+        if self.program.schema_choices.for_output(output).next().is_some(){fields.push_str(&format!("choice:Option<Box<SchemaChoice{}>>,",self.native_record_declaration(id)));if matches!(output,Type::Record(object) if !self.program.records[object].name.text.starts_with("@schema:retained:")){fields.push_str("choice_policy:Option<bool>,");}}
         for (source,family) in self.schema_inherited_factories(output){let Type::Union(source)=source else{unreachable!()};fields.push_str(&format!("factory_from{}:Option<Box<StoredCallable{family}>>,",source.index()));}
         fields
     }
@@ -377,6 +382,7 @@ impl Emitter<'_> {
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return String::new();}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
         let mut fields=if self.program.schema_factories.contains_key(&output){String::from("factory:None,")}else{String::new()};
+        if self.program.schema_choices.for_output(output).next().is_some(){fields.push_str("choice:None,");if matches!(output,Type::Record(object) if !self.program.records[object].name.text.starts_with("@schema:retained:")){fields.push_str("choice_policy:None,");}}
         for (source,_) in self.schema_inherited_factories(output){let Type::Union(source)=source else{unreachable!()};fields.push_str(&format!("factory_from{}:None,",source.index()));}
         fields
     }
@@ -2381,62 +2387,12 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime.rs").trim_start_matches("//! Scalar schema plan storage shared by generated programs and backend tests.\n"));
             output.push_str("\n}\n");
         }
+        output.push_str(self.schema_choice_storage());
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-                && let Some(Type::Literal(_,kind))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
-                let factory=self.schema_factory_declaration(index);let native=self.native_type(kind.base());
-                let _=writeln!(output,"struct Record{index} {{ {factory} expected:{native} }}");continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) && record.application.as_ref().is_some_and(|application|matches!(application.resolved_arguments.first(),Some(Type::String|Type::Int|Type::Number))) {
-                let plan=match record.application.as_ref().unwrap().resolved_arguments[0] {Type::Int=>"IntBounds",Type::Number=>"NumberBounds",_=>"StringBounds"};
-                let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} bounds: tsrust_schema_plan::{plan} }}");
-                continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-                && let Some(members)=record.application.as_ref().and_then(|application|self.schema_enum_members(application.resolved_arguments[0])) {
-                let fields=members.iter().enumerate().map(|(index,ty)|format!("field{index}:Record{}",self.native_record_declaration(self.schema_child(*ty)))).collect::<Vec<_>>().join(",");
-                let factory=self.schema_factory_declaration(index);let _=writeln!(output,"struct Record{index}{{{factory}{fields}}}");continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-                && let Some(base)=record.application.as_ref().and_then(|application|self.schema_presence_element(application.resolved_arguments[0])) {
-                let child=self.schema_child(base);
-                let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} inner:Record{} }}",self.native_record_declaration(child));
-                continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-                && let Some(Type::Array(element))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
-                let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|application|application.resolved_arguments==[element.ty()])).expect("array child schema");
-                let child=self.native_record_declaration(child);
-                let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} element: Record{child} }}");
-                continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-                && let Some(Type::Record(object))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
-                if self.program.records[*object].name.text.starts_with("@schema:retained:") {
-                    let child=self.schema_child(self.program.records[*object].fields[0].ty.unwrap());
-                    let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} inner:Record{} }}",self.native_record_declaration(child));
-                    continue;
-                }
-                let fields=self.program.records[*object].fields.iter().enumerate().map(|(field,value)|{
-                    let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|a|a.resolved_arguments==[value.ty.unwrap()])).expect("object child schema");
-                    format!("field{field}:Record{}",self.native_record_declaration(child))
-                }).collect::<Vec<_>>().join(",");
-                let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} reject_unknown: bool, {fields} }}");
-                continue;
-            }
-            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema) {
-                let factory=self.schema_factory_declaration(index);
-                let _=writeln!(output,"struct Record{index} {{ {factory} }}");
-                continue;
-            }
+            if let Some(declaration)=self.schema_plan_declaration(index){output.push_str(&declaration);continue;}
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
                 let arms = definition.members.iter().enumerate().map(|(member, entry)| {
@@ -3088,6 +3044,11 @@ impl Emitter<'_> {
             }
         }
         output.push_str(&crate::stdlib::schema::emit::issue_bridge(self.program));
+        if !self.program.schema_choices.is_empty(){
+            output.push_str("mod tsrust_schema_union {\n");
+            output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::Issues;","use super::tsrust_schema_issues::Issues;"));
+            output.push_str("\n}\n");
+        }
         for &binding_id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[binding_id];
             if binding.module != "std:schema" { continue; }
@@ -3996,6 +3957,7 @@ impl Emitter<'_> {
     fn temporary_storage(mut expr: &Expr) -> bool {
         loop {
             match &expr.kind {
+                ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>return true,
                 ExprKind::Sequence(values)=>expr=values.last().expect("nonempty sequence"),
                 ExprKind::Index(base, _) | ExprKind::Field(base, _) => expr = base,
                 ExprKind::Project { value, .. }
@@ -4013,6 +3975,7 @@ impl Emitter<'_> {
     fn borrowed_place_expression(fun: &CheckedFunction, expr: &Expr) -> bool {
         if matches!(expr.ty,Some(Type::BorrowedUnion(_))) {return true;}
         match &expr.kind {
+            ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_)))=>true,
             ExprKind::Project{value,..}|ExprKind::Unary{op:UnaryOp::NonNull,value,..}=>Self::borrowed_place_expression(fun,value),
             ExprKind::Sequence(values)=>values.last().is_some_and(|last|Self::borrowed_place_expression(fun,last)),
             ExprKind::TypeAssertion { value, .. } => Self::borrowed_place_expression(fun, value),
@@ -6983,6 +6946,7 @@ impl Emitter<'_> {
         let code = if let Some(Type::Union(id)) = expr.ty
             && !id.copy
             && mode == Mode::Read
+            && !matches!(&expr.kind,ExprKind::Field(base,_) if matches!(base.ty,Some(Type::Union(_))))
             && !matches!(
                 expr.kind,
                 ExprKind::Optional { .. }
@@ -7515,13 +7479,14 @@ impl Emitter<'_> {
         let id = self.native_record_declaration(id);
         if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema) {
             let ExprKind::NativeConstructor(args,_)=&expr.kind else{unreachable!()};
+            if let Some(CallTarget::SchemaChoice(plan))=expr.target{return self.schema_choice_constructor(fun,expr,plan,args,mode);}
             let factory=self.schema_factory_initializer(id);
             if let Some(members)=self.schema_enum_members(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0]){
                 let mut setup=String::new();let mut fields=Vec::new();
                 for(index,arg)in args.iter().enumerate(){
                     let Type::Record(child)=arg.ty.unwrap()else{unreachable!()};let output=self.program.records[child].application.as_ref().unwrap().resolved_arguments[0];
                     let field=members.iter().position(|member|*member==output).expect("enum schema alternative");
-                    setup.push_str(&format!("let enum_plan{index}={};",self.expr(fun,arg,Mode::Consume)));fields.push(format!("field{field}:enum_plan{index}"));
+                    setup.push_str(&format!("let enum_plan{index}={};",self.expr(fun,arg,Mode::Consume)));fields.push(format!("field{field}:{}",self.schema_child_value(id,&format!("enum_plan{index}"))));
                 }
                 let code=format!("{{{setup}Record{id}{{{factory}{}}}}}",fields.join(","));return match mode{Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
             }
@@ -7533,10 +7498,10 @@ impl Emitter<'_> {
                 let Type::Record(shape)=args[0].ty.unwrap() else{unreachable!()};
                 let fields=self.program.records[object].fields.iter().enumerate().map(|(field,value)|{
                     let source=self.program.records[shape].fields.iter().position(|candidate|candidate.name.text==value.name.text).unwrap();
-                    format!("field{field}:plan.field{source}")
+                    format!("field{field}:{}",self.schema_child_value(id,&format!("plan.field{source}")))
                 }).collect::<Vec<_>>().join(",");
                 format!("{{let plan={child};Record{id}{{{factory}reject_unknown:true,{fields}}} }}")
-            }else{format!("Record{id} {{ {factory} element: {child} }}")};
+            }else{format!("Record{id} {{ {factory} element: {} }}",self.schema_child_value(id,&child))};
             return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
         }
         let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};
@@ -7877,6 +7842,32 @@ impl Emitter<'_> {
             {
                 let array = self.conditional_arm(fun, base, Mode::Read);
                 format!("i64::try_from(({array}).len()).expect(\"array length exceeds int range\")")
+            }
+            ExprKind::Field(base,name) if matches!(base.ty,Some(Type::Union(_))) => {
+                let Type::Union(union)=base.ty.unwrap() else{unreachable!()};
+                let receiver=self.expr(fun,base,Mode::Read);
+                let copied=expr.ty.unwrap().is_copy();
+                let reference=if mode==Mode::Read&&!copied{"&"}else{""};
+                let representation=if union.copy{"Union"}else{"ViewUnion"};
+                let arms=self.program.unions[union.index()].members.iter().enumerate().map(|(tag,member)|{
+                    let Type::Record(record)=member else{unreachable!("checked common record field")};
+                    let field=self.fields[*record][name.as_str()];
+                    let output=if let Some(Type::Union(target))=expr.ty{
+                        let field_type=self.program.records[*record].fields[field].ty.unwrap();
+                        let target_kind=if target.copy{"Union"}else{"ViewUnion"};
+                        let inject=|member:Type,payload:&str|{
+                            let variant=self.program.unions[target.index()].members.iter().position(|ty|*ty==member).expect("common field alternative");
+                            format!("{target_kind}{}::V{variant}({payload})",target.index())
+                        };
+                        if let Type::Union(source)=field_type{
+                            let alternatives=self.program.unions[source.index()].members.iter().enumerate().map(|(index,ty)|format!("Union{}::V{index}(payload)=>{}",source.index(),inject(*ty,if target.copy{"*payload"}else{"payload"}))).collect::<Vec<_>>().join(",");
+                            format!("match &value.field{field}{{{alternatives}}}")
+                        }else{inject(field_type,&format!("{}value.field{field}",if target.copy{""}else{"&"}))}
+                    }else{format!("{reference}value.field{field}")};
+                    format!("{representation}{}::V{tag}(value)=>{output}",union.index())
+                }).collect::<Vec<_>>().join(",");
+                let value=format!("match {receiver}{{{arms}}}");
+                if copied&&mode==Mode::Read&&!matches!(expr.ty,Some(Type::Union(_))){format!("&({value})")}else{value}
             }
             ExprKind::Index(_, _) | ExprKind::Field(_, _) if Self::temporary_storage(expr) => {
                 self.temporary_storage_access(fun, expr, mode)
@@ -8368,7 +8359,7 @@ impl Emitter<'_> {
         for (left_pattern, left_member) in side(left, "left") {
             for (right_pattern, right_member) in side(right, "right") {
                 let compare = match (left_member.scalar_base(), right_member.scalar_base()) {
-                    (Type::Enum(a, _), Type::Enum(b, _)) if a == b => "**left == **right",
+                    (Type::Enum(a, _), Type::Enum(b, _)) if a == b => "*left == *right",
                     (Type::String, Type::String) => "**left == **right",
                     (Type::Int, Type::Int) | (Type::Boolean, Type::Boolean) | (Type::Number, Type::Number) => "*left == *right",
                     (Type::Int, Type::Number) => "(*left as f64) == *right",
@@ -8610,10 +8601,16 @@ impl Emitter<'_> {
             ExprKind::Template(_) => unreachable!("templates emitted in their own frame"),
             ExprKind::Call(callee, args) => match expr.target.expect("checked call target") {
                 CallTarget::ArrayOf => unreachable!("Array.of lowers to an array expression"),
+                CallTarget::SchemaChoice(_) => unreachable!("schema choices use constructor expressions"),
                 CallTarget::SchemaDefault => format!("{{let mut schema={};schema.factory=Some(Box::new({}));schema}}",self.expr(fun,&args[0],Mode::Consume),self.expr(fun,&args[1],Mode::Consume)),
                 CallTarget::SchemaPresence => {
                     let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};
                     let Type::Record(source)=args[0].ty.unwrap() else{unreachable!()};
+                    let source_output=self.program.records[source].application.as_ref().unwrap().resolved_arguments[0];
+                    let target_output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
+                    if let Some((plan,_))=self.program.schema_choices.for_output(target_output).find(|(_,choice)|choice.presence.is_some()&&choice.branches==[source_output]){
+                        return self.schema_choice_constructor(fun,expr,plan,args,mode);
+                    }
                     let value=self.expr(fun,&args[0],Mode::Consume);
                     if id==source {value}else{
                         let output=self.program.records[source].application.as_ref().unwrap().resolved_arguments[0];
@@ -8625,12 +8622,21 @@ impl Emitter<'_> {
                             let previous=if source==output && self.schema_presence_element(output).is_some() {String::from("previous.factory")}else if inherited.iter().any(|(ty,_)|*ty==source){format!("previous.factory_from{}",union.index())}else{String::from("None")};
                             fields.push_str(&format!("factory_from{}:{previous},",union.index()));
                         }
-                        let inner=if self.schema_presence_element(output).is_some(){"previous.inner"}else{"previous"};
+                        let inner=if self.schema_presence_element(output).is_some(){self.schema_take_child(source,"previous.inner")}else{String::from("previous")};
+                        let inner=self.schema_child_value(id,&inner);
+                        if self.program.schema_choices.for_output(target).next().is_some(){fields.push_str("choice:None,");}
                         format!("{{let previous={value};Record{}{{{fields}inner:{inner}}}}}",self.native_record_declaration(id))
                     }
                 },
-                CallTarget::SchemaRetain => {let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};format!("Record{}{{{}inner:{}}}",self.native_record_declaration(id),self.schema_factory_initializer(id),self.expr(fun,&args[0],Mode::Consume))},
-                CallTarget::SchemaStrip => format!("{{let mut schema={};schema.reject_unknown=false;schema}}",self.expr(fun,&args[0],Mode::Consume)),
+                CallTarget::SchemaRetain => {let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};format!("Record{}{{{}inner:{}}}",self.native_record_declaration(id),self.schema_factory_initializer(id),self.schema_child_value(id,&self.expr(fun,&args[0],Mode::Consume)))},
+                CallTarget::SchemaStrip => {
+                    let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};
+                    let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
+                    // An explicit outer policy applies to every attempted branch.
+                    // Without it, each branch retains its own unknown-field policy.
+                    let policy=if self.schema_has_choices(output){"schema.choice_policy=Some(false);"}else{""};
+                    format!("{{let mut schema={};schema.reject_unknown=false;{policy}schema}}",self.expr(fun,&args[0],Mode::Consume))
+                },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),

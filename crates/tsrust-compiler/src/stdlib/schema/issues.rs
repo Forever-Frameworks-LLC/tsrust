@@ -1,20 +1,21 @@
 //! Bounded validation errors containing type summaries, never input values.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Kind { Missing, Null, Boolean, Number, Integer, String, Array, Object }
+pub(super) enum Kind { Missing, Null, Boolean, Number, Integer, String, Array, Object, Union }
 impl Kind {
     pub(super) fn as_str(self)->&'static str {
-        match self {Self::Missing=>"missing",Self::Null=>"null",Self::Boolean=>"boolean",Self::Number=>"number",Self::Integer=>"integer",Self::String=>"string",Self::Array=>"array",Self::Object=>"object"}
+        match self {Self::Missing=>"missing",Self::Null=>"null",Self::Boolean=>"boolean",Self::Number=>"number",Self::Integer=>"integer",Self::String=>"string",Self::Array=>"array",Self::Object=>"object",Self::Union=>"union"}
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, NumberNonfinite, TooSmall, TooLarge, Literal, UnknownField }
+pub(super) enum Code { Type, Missing, IntegerRange, IntegerFractional, NumberPrecision, NumberNonfinite, TooSmall, TooLarge, Literal, UnknownField, Discriminator }
 impl Code {
     pub(super) fn as_str(self) -> &'static str {
         match self {
             Self::NumberNonfinite => "number-nonfinite",
             Self::UnknownField => "unknown-field",
             Self::Literal => "literal-mismatch",
+            Self::Discriminator => "discriminator-mismatch",
             Self::Type => "type-mismatch", Self::Missing => "missing-field",
             Self::IntegerRange => "integer-range", Self::IntegerFractional => "integer-fractional",
             Self::NumberPrecision => "number-precision", Self::TooSmall => "too-small", Self::TooLarge => "too-large",
@@ -42,7 +43,20 @@ pub(super) struct Issues {
     max_segments: usize,
     max_path_bytes: usize,
 }
+/// A speculative branch saves bookkeeping, not input data or copied issues.
+#[derive(Debug)]
+pub(super) struct Checkpoint { length: usize, truncated: bool, invalid: bool }
 impl Issues {
+    pub(super) fn checkpoint(&self) -> Checkpoint {
+        Checkpoint { length: self.items.len(), truncated: self.truncated, invalid: self.invalid }
+    }
+    pub(super) fn restore(&mut self, checkpoint: Checkpoint) {
+        debug_assert!(checkpoint.length <= self.items.len());
+        self.items.truncate(checkpoint.length);
+        self.truncated = checkpoint.truncated;
+        self.invalid = checkpoint.invalid;
+    }
+    pub(super) fn reject(&mut self) { self.invalid = true; }
     pub(super) fn new(max_issues: usize, max_segments: usize, max_path_bytes: usize) -> Self {
         Self { items: Vec::new(), truncated: false, invalid: false, max_issues, max_segments, max_path_bytes }
     }

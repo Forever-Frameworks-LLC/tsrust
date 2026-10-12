@@ -12,7 +12,8 @@ impl Emitter<'_> {
         format!("match {factory}.call(){{Ok(value)=>value,Err(error)=>{{*failure=Some({conversion});return None;}}}}")
     }
     // Outer None means no factory; inner None means generated data failed validation.
-    fn schema_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+    pub(super) fn schema_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+        if !self.program.schema_choices.is_empty(){return self.schema_prepared_default_value(output,plan,generated,seen,errors);}
         let mut absent=if let Type::Union(union)=output && let Some(base)=self.schema_presence_element(output) {
             let child=self.schema_default_value(base,&format!("{plan}.inner"),generated,seen,errors);
             let injection=self.schema_widen_value(base,union,"value");
@@ -36,14 +37,65 @@ impl Emitter<'_> {
             format!("if let Some(factory)=&{plan}.factory{{Some({validator}(&{plan},{value},path,issues,failure))}}else{{{absent}}}")
         }else{absent}
     }
+
+    fn schema_prepared_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+        let id=self.schema_child(output);let record=self.native_record_declaration(id);
+        let name=format!("missing_schema{id}");let marker=format!("/*{name}*/");
+        if generated.contains(&marker){return format!("{name}(&{plan},path,issues,failure)");}
+        // Mark before descending: runtime choice plans can recurse through the
+        // same output type even though each uniquely owned plan is finite.
+        generated.push_str(&marker);
+        let mut body=String::from("if failure.is_some(){return Some(None);}");
+        if self.program.schema_factories.contains_key(&output){
+            let value=self.schema_factory_value(output,"factory",errors);
+            let validator=self.schema_owned_validator(id,output,generated,seen,errors);
+            body.push_str(&format!("if let Some(factory)=&schema.factory{{return Some({validator}(schema,{value},path,issues,failure));}}"));
+        }
+        for(source,_)in self.schema_inherited_factories(output){
+            let Type::Union(union)=source else{unreachable!()};
+            let value=self.schema_factory_value(source,"factory",errors);
+            let value=self.schema_output_injection(source,output,&value);
+            let validator=self.schema_owned_validator(id,output,generated,seen,errors);
+            body.push_str(&format!("if let Some(factory)=&schema.factory_from{}{{return Some({validator}(schema,{value},path,issues,failure));}}",union.index()));
+        }
+        let mut choices=String::new();
+        for(plan,choice)in self.program.schema_choices.for_output(output){
+            let bindings=(0..choice.branches.len()).map(|branch|format!("field{branch}")).collect::<Vec<_>>().join(",");
+            let mut branch_body=String::from("let checkpoint=issues.checkpoint();let mut attempted=false;");
+            for(branch,child)in choice.branches.iter().enumerate(){
+                let fallback=self.schema_prepared_default_value(*child,&format!("field{branch}"),generated,seen,errors);
+                let value=self.schema_output_injection(*child,output,"value");
+                let constraint=if matches!(output,Type::String|Type::Int|Type::Number){
+                    let observed=self.schema_kind(output);
+                    let read=if output==Type::String{"AsRef::<str>::as_ref(&value)"}else{"value"};
+                    format!("if let Some(code)=schema.bounds.check({read}){{issues.push(path,tsrust_schema_numeric_code(code),tsrust_schema_issues::Kind::{observed},tsrust_schema_issues::Kind::{observed});return Some(None);}}")
+                }else{String::new()};
+                branch_body.push_str(&format!("match {fallback}{{Some(Some(value))=>{{issues.restore(checkpoint);let value={value};{constraint}return Some(Some(value));}},Some(None)=>attempted=true,None=>{{}}}}if failure.is_some(){{issues.restore(checkpoint);return Some(None);}}"));
+            }
+            branch_body.push_str("return if attempted{Some(None)}else{None};");
+            choices.push_str(&format!("SchemaChoice{record}::P{plan}{{{bindings}}}=>{{{branch_body}}},"));
+        }
+        if !choices.is_empty(){body.push_str(&format!("if let Some(choice)=&schema.choice{{match choice.as_ref(){{{choices}}}}}"));}
+        if let Type::Union(_)=output && let Some(base)=self.schema_presence_element(output){
+            let fallback=self.schema_prepared_default_value(base,"schema.inner",generated,seen,errors);
+            let value=self.schema_output_injection(base,output,"value");
+            body.push_str(&format!("({fallback}).map(|value|value.map(|value|{value}))"));
+        }else if let Type::Record(object)=output && self.program.records[object].name.text.starts_with("@schema:retained:"){
+            let fields=&self.program.records[object].fields;
+            let fallback=self.schema_prepared_default_value(fields[0].ty.unwrap(),"schema.inner",generated,seen,errors);
+            body.push_str(&format!("({fallback}).map(|value|value.map(|value|Record{}{{field0:value,field1:<{}>::new()}}))",self.native_record_declaration(object),self.native_type(fields[1].ty.unwrap())));
+        }else{body.push_str("None");}
+        generated.push_str(&format!("fn {name}(schema:&Record{record},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<Option<{}>>{{{body}}}",self.native_type(output)));
+        format!("{name}(&{plan},path,issues,failure)")
+    }
     pub(super) fn schema_validate(&self,fun:&CheckedFunction,expr:&Expr,args:&[Expr])->String {
         let Type::Record(root)=args[0].ty.unwrap() else{unreachable!()};
-        let mut generated=String::new();
+        let mut generated=String::from("fn tsrust_schema_numeric_code(code:&str)->tsrust_schema_issues::Code{use tsrust_schema_issues::Code;match code{\"integer-range\"=>Code::IntegerRange,\"integer-fractional\"=>Code::IntegerFractional,\"number-precision\"=>Code::NumberPrecision,\"number-nonfinite\"=>Code::NumberNonfinite,\"too-small\"=>Code::TooSmall,\"too-large\"=>Code::TooLarge,_=>Code::Type}}");
         let errors=expr.schema_invocations.as_deref().unwrap_or_default().iter().fold(crate::error_effects::FailureSet::default(),|errors,family|errors|self.program.error_effects.storage_errors.get(family).cloned().unwrap_or_default());
         let fallible=errors.runtime||errors.opaque||!errors.explicit.is_empty();
         let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError"&&record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
         let (declaration,error_name)=if fallible{self.completion_error_layout("SchemaFactoryError",&errors,runtime,expr.span)}else{("enum SchemaFactoryError {}".into(),"SchemaFactoryError".into())};
-        let declaration=format!("{declaration}type SchemaFactoryFailure={error_name};");
+        let declaration=format!("{declaration}type SchemaFactoryFailure={error_name};enum PreparedField<P,T>{{Present(P),Default(T)}}enum PreparedPresence<T,P>{{Absent(T),Present(P)}}");
         let json=matches!(args[1].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
         let mut seen=std::collections::HashSet::new();
         let validator=if json {self.schema_json_validator(root,&mut generated,&mut seen,&mut std::collections::HashSet::new(),&errors);format!("validate_json{root}")}else{self.schema_owned_validator(root,args[1].ty.unwrap(),&mut generated,&mut std::collections::HashSet::new(),&errors)};
@@ -62,6 +114,7 @@ impl Emitter<'_> {
 
     }
     fn schema_owned_validator(&self,id:usize,input_type:Type,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+        if !self.program.schema_choices.is_empty(){return self.schema_owned_prepared_validator(id,input_type,generated,seen,errors);}
         let name=format!("validate{id}_{input_type:?}").chars().map(|c|if c.is_ascii_alphanumeric(){c}else{'_'}).collect::<String>();
         if !seen.insert((id,input_type)){return name;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
@@ -158,6 +211,7 @@ impl Emitter<'_> {
         name
     }
     fn schema_json_validator(&self,id:usize,generated:&mut String,seen:&mut std::collections::HashSet<usize>,owned_seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet) {
+        if !self.program.schema_choices.is_empty(){return self.schema_json_prepared_validator(id,generated,seen,owned_seen,errors);}
         if !seen.insert(id){return;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);
@@ -234,7 +288,7 @@ impl Emitter<'_> {
         generated.push_str(&format!("fn validate_json{id}(schema:&Record{id},input:tsrust_native_json::Value,path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{native}>{{if failure.is_some(){{return None;}}use tsrust_schema_issues::{{Kind,Code}};let observed=match &input{{tsrust_native_json::Value::Null=>Kind::Null,tsrust_native_json::Value::Bool(_)=>Kind::Boolean,tsrust_native_json::Value::Number(_)=>Kind::Number,tsrust_native_json::Value::String(_)=>Kind::String,tsrust_native_json::Value::Array(_)=>Kind::Array,tsrust_native_json::Value::Object(_)=>Kind::Object}};{success} issues.push(path,Code::Type,Kind::{expected},observed);None}}"));
     }
 
-    fn schema_widen_value(&self,source:Type,target:UnionId,value:&str)->String {
+    pub(super) fn schema_widen_value(&self,source:Type,target:UnionId,value:&str)->String {
         let destination=&self.program.unions[target.index()].members;
         if let Type::Union(source)=source {
             let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|{let to=destination.iter().position(|member|member==ty).expect("schema output alternative");format!("Union{}::V{tag}(value)=>Union{}::V{to}(value)",source.index(),target.index())}).collect::<Vec<_>>().join(",");
@@ -250,14 +304,15 @@ impl Emitter<'_> {
         let members=&self.program.unions[id.index()].members;
         if !members.iter().any(|ty|matches!(ty,Type::Null|Type::Undefined)){return None;}
         let present=members.iter().copied().filter(|ty|!matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
-        match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>self.program.unions.iter().enumerate().find(|(_,union)|union.members==present).map(|(index,union)|Type::Union(UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|member|member.is_copy())}))}
+        let base=match present.as_slice(){[value]=>Some(*value),[]=>Some(Type::Null),_=>self.program.unions.iter().enumerate().find(|(_,union)|union.members==present).map(|(index,union)|Type::Union(UnionId{index:index.try_into().unwrap(),copy:union.members.iter().all(|member|member.is_copy())}))};
+        base.filter(|base|self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|application|application.resolved_arguments==[*base])))
     }
     pub(super) fn schema_child(&self,output:Type)->usize {
         self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&record.application.as_ref().is_some_and(|a|a.resolved_arguments==[output])).expect("checked schema child")
     }
-    fn schema_kind(&self,ty:Type)->&'static str {
+    pub(super) fn schema_kind(&self,ty:Type)->&'static str {
         if self.schema_enum_members(ty).is_some(){return "String";}
-        match ty.scalar_base(){Type::Enum(_,crate::syntax::EnumKind::String)=>"String",Type::Enum(_,crate::syntax::EnumKind::Number)=>"Number",Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_kind(self.schema_presence_element(ty).expect("presence kind")),_=>unreachable!("checked schema output")}
+        match ty.scalar_base(){Type::Enum(_,crate::syntax::EnumKind::String)=>"String",Type::Enum(_,crate::syntax::EnumKind::Number)=>"Number",Type::String=>"String",Type::Int=>"Integer",Type::Number=>"Number",Type::Boolean=>"Boolean",Type::Null=>"Null",Type::Undefined=>"Missing",Type::Array(_)=>"Array",Type::Record(_)=>"Object",Type::Union(_)=>self.schema_presence_element(ty).map(|base|self.schema_kind(base)).unwrap_or("Union"),_=>unreachable!("checked schema output")}
     }
 
 }

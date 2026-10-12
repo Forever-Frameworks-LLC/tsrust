@@ -1,0 +1,48 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.union([s.string().min(20), s.string().min(2)]);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        if (value !== 'union-value') {
+          throw 'Wrong value';
+        }
+
+        checksum += value.length;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('true'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 2) {
+          throw 'Wrong issues';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'type-mismatch' || issue.expected !== 'string' || issue.observed !== 'boolean' || issue.pathTruncated || issue.path.length !== 0) {
+            throw 'Wrong issue';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, '"union-value"'), workload(1, 0, '"union-value"'), workload(17, 7, '"union-value"'), workload(2000, 1, '"union-value"'));
+}

@@ -6,6 +6,8 @@ mod schema_presence;
 mod schema_defaults;
 mod schema_literals;
 mod schema_enums;
+mod schema_unions;
+mod record_union_fields;
 mod json_refinement;
 mod native_view_mutations;
 mod native_view_expression_calls;
@@ -279,6 +281,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) schema_choices: crate::stdlib::schema::plans::Choices,
     pub(crate) schema_factories: HashMap<Type,usize>,
     pub(crate) record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
     pub(crate) closure_record_parameter_borrows: HashMap<usize,Vec<record_parameter_borrows::Borrow>>,
@@ -694,6 +697,7 @@ mod exception_escape_tests {
 }
 
 struct Analyzer {
+    schema_choices: crate::stdlib::schema::plans::Choices,
     schema_factories: HashMap<Type,usize>,
     native_borrow_types: bool,
     named_captures: named_capture_context::Contexts,
@@ -1625,6 +1629,7 @@ impl Analyzer {
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
         let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
+            schema_choices: Default::default(),
             schema_factories: HashMap::new(),
             native_borrow_types,
             named_captures,
@@ -3412,6 +3417,7 @@ impl Analyzer {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
         let checked = CheckedProgram {
+            schema_choices: self.schema_choices,
             schema_factories: self.schema_factories,
             record_parameter_borrows,
             closure_record_parameter_borrows,
@@ -8371,7 +8377,7 @@ impl Analyzer {
             ExprKind::Binary {
                 op, left, right, ..
             } if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual) => {
-                let valid = crate::flow::guard_pair(left, right, &context.names).is_some();
+                let valid = crate::flow::guard_pair(left, right, &context.names).is_some() || self.record_discriminator_guard(context,left,right).is_some();
                 if !valid {
                     return None;
                 }
@@ -8419,6 +8425,11 @@ impl Analyzer {
         let pair = crate::flow::guard_pair(left, right, &context.names);
         let mut yes = context.flow.clone();
         let mut no = context.flow.clone();
+        if let Some((place,equal,unequal))=self.record_discriminator_guard(context,left,right){
+            let (a,b)=if op==BinaryOp::Equal{(equal,unequal)}else{(unequal,equal)};
+            if !a.is_empty(){yes.insert(place.clone(),crate::flow::Fact{members:a,origin:Some((expr_span.start,expr_span.end))});}
+            if !b.is_empty(){no.insert(place,crate::flow::Fact{members:b,origin:Some((expr_span.start,expr_span.end))});}
+        }
         if let Some((place, guard)) = pair
             && let Some(union) = self.place_type(context, &place).and_then(Type::union)
         {
@@ -8606,7 +8617,7 @@ impl Analyzer {
         capture_boundary.unwind(&mut context.capture_loans);
         let (left_type, right_type, stable) = result?;
         let primitive = |ty: Type| {
-            matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined)
+            matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined | Type::Enum(_,_))
         };
         let comparable = |ty: Type| match ty.union() {
             Some(id) => self.unions.members(id).into_iter().all(primitive),
@@ -8665,6 +8676,7 @@ impl Analyzer {
             context.condition_flows.insert((expr_span.start, expr_span.end),
                 if op == BinaryOp::Equal { (equal, other) } else { (other, equal) });
         }
+        if stable && self.record_discriminator_guard(context,left,right).is_some(){self.remember_guard(context,expr_span,op,left,right);}
         Ok(Type::Boolean)
     }
 
@@ -10400,6 +10412,7 @@ impl Analyzer {
                     Type::Set(_) | Type::Map(_) if name == "size" => Some(Type::Int),
                     Type::Record(id) if name == "length" && self.program.records[id].is_tuple() => Some(Type::Int),
                     Type::Record(id) => self.fields[id].get(name).copied(),
+                    Type::Union(union) => self.record_union_field(union,name),
                     Type::Array(_) | Type::String if name == "length" => Some(Type::Int),
                     _ => None,
                 }?;
@@ -11049,6 +11062,7 @@ impl Analyzer {
         }
         let field_type = match base_type {
             Type::Record(index) => self.fields[index].get(name).copied(),
+            Type::Union(union) => self.record_union_field(union,name),
             _ => None,
         }
         .ok_or_else(|| {
@@ -11061,11 +11075,17 @@ impl Analyzer {
                 span,
             )
         })?;
+        if matches!(base_type,Type::Union(_)) && (mode==Mode::Mutate || mode==Mode::Consume&&!field_type.is_copy()){
+            return Err(Diagnostic::new("union-field-ownership","Narrow the record alternative before mutating or moving an owned field.",span));
+        }
         if mode == Mode::Consume && !field_type.is_copy() {
             let mut parent: &Expr = base;
             loop {
                 match &parent.kind {
                     ExprKind::Sequence(values)=>parent=values.last().expect("nonempty sequence"),
+                    ExprKind::Field(value,_) if matches!(value.ty,Some(Type::Union(_)))=>{
+                        return Err(Diagnostic::new("union-field-ownership","Narrow and move the whole record before consuming a nested owned field.",span));
+                    }
                     ExprKind::Project {
                         narrowed: Type::Record(_),
                         ..
@@ -14335,6 +14355,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_union_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_enum_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_literal_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
@@ -16388,7 +16409,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                     Some(left_type),
                 )?;
                 self.require(right_type, Some(left_type), *operator)?;
-                if equality && crate::flow::guard_pair(left, right, &context.names).is_some() {
+                if equality && (crate::flow::guard_pair(left, right, &context.names).is_some() || self.record_discriminator_guard(context,left,right).is_some()) {
                     self.remember_guard(context, span, *op, left, right);
                 }
                 let ty = match op {

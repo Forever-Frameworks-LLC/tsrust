@@ -26,3 +26,8 @@ mod literal;
 mod object;
 
 pub(crate) mod defaults;
+
+#[cfg(test)]
+mod union;
+
+pub(crate) mod plans;
