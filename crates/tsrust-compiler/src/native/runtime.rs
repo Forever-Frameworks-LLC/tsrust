@@ -23,7 +23,7 @@ pub(crate) fn path_module()->String {
 }
 /// Compiler-owned JSON support; public language bindings are implemented separately.
 pub fn json_module()->String {
-    format!("mod tsrust_native_json {{\n{}\npub mod lines {{\n{}\n}}\n}}\n", include_str!("../stdlib/json/runtime.rs"),include_str!("../stdlib/json/lines.rs"))
+    format!("mod tsrust_native_json {{\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\n}}\n", include_str!("../stdlib/json/runtime.rs"),include_str!("../stdlib/json/lines.rs"),include_str!("../stdlib/json/typed.rs"))
 }
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.

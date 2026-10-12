@@ -807,3 +807,28 @@ source guards, fingerprints and ABI/report registration are complete. Evidence
 uses tsrust-json-containers-* in SQLite. This accepts public dynamic construction;
 installed consumers remain at 818459f3. Typed runtime conversion, remaining streams,
 allocation baselines and S10 family measurements remain pending.
+
+### Direct typed decoder backend
+
+A private typed decoder boundary now validates the complete input under the JSON
+byte/depth/entry/value budgets, then deserializes directly into its requested
+native type. Validation retains no JsonValue tree. This initial implementation
+makes two passes over the bounded input; its CPU and allocation costs still need
+S10 measurement. Schema fusion remains S11 work, not a claim of this boundary.
+
+The validation pass counts values in ignored fields and duplicate object entries,
+checks complete input and UTF-8, and keeps the independent backend recursion guard.
+Typed shape failures are redacted shape-mismatch errors with byte offsets.
+Generated floating-point fields must use the ExactNumber adapter, which rejects
+integer precision loss and preserves floating negative zero; ordinary Serde f64
+coercion is not the approved Tsrust numeric contract. Generated int fields use
+ExactInt with the existing asInt range/fraction checks, including integral floats
+and normalization of negative zero.
+
+Private witnesses cover typed nested arrays/maps, a field-by-field record visitor,
+last duplicate replacement, missing fields, skipped-field limits, malformed input,
+exact signed/unsigned integer boundaries and partial-result destruction on error.
+The support module is included in the automatically packaged native JSON runtime.
+Evidence uses tsrust-json-typed-backend-*-e55e0647 in SQLite. This is backend
+infrastructure only: public typed syntax, compiler-generated visitors, editor
+support, matched workloads and direct typed encoding remain pending.

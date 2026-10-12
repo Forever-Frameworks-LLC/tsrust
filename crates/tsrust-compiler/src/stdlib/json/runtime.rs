@@ -24,6 +24,7 @@ impl std::error::Error for Error {}
 fn message(code: &str) -> &'static str {
     match code {
         "allocation" => "Unable to allocate bounded JSON storage",
+        "shape-mismatch" => "JSON value does not match the requested type",
         "expected-boolean" => "Expected a JSON boolean",
         "expected-number" => "Expected a JSON number",
         "expected-string" => "Expected a JSON string",
