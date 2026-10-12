@@ -35,6 +35,9 @@ it does not repeat timing. Both verify exact output and remove temporary builds.
 RSS includes startup, input preparation, output observation and runtime overhead.
 `node json-decoding-timing.mjs` and its `--rss` mode cover numeric, Unicode,
 nested/selective, malformed and deep decoding with matching direct Rust baselines.
+Add `--raw` to select only raw numeric, Unicode, deep and malformed validation;
+combine `--raw --rss` for its separate memory run. Native retains borrowed source,
+direct Serde validates without native budgets, and Node parses/discards a tree.
 `node json-stream-timing.mjs` and `--rss` cover owned/borrowed JSONL readers
 and writers; each timed batch processes one complete file.
 `python3 json_metrics.py` derives throughput and p50/p95 from accepted SQLite

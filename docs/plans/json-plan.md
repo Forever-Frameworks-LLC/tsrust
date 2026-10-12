@@ -1796,3 +1796,33 @@ Whole-project formatting changes no files or fingerprints. SQLite records use
 `tsrust-json-raw-failure-*-b9639697` for allocation JSON/log, red, check and format.
 This supplements successful raw validation measurements; timing/RSS, raw-field
 support, output policy and final consumer acceptance remain outstanding.
+
+### Raw validation timing and peak memory
+
+The decoding harness accepts `--raw` to select raw numeric, Unicode, deep and
+malformed inputs without rerunning accepted decoding cases. `--raw --rss` runs
+memory independently. Both preserve source hashes, toolchains, independent
+checksums and native pointer identity. Four shapes at three sizes and three
+processes per engine produce 108 timing processes and 3348 measured batches
+(100 operations per batch, eight warmups), plus 108 separate RSS processes.
+
+At size 1000, median microseconds per operation for native/direct Rust/Node:
+numeric 8.13/4.10/5.40; Unicode 40.25/22.08/44.04; deep 8.76/4.23/6.31;
+malformed 16.11/6.56/18.43. Native is slower than Node for numeric/deep and
+faster for these Unicode/rejection cases; direct Rust is faster throughout.
+This is an initial raw baseline, not a regression against earlier decoding
+semantics. Native performs budgeted validation, direct Serde skips budget checks,
+and Node parses/discards a dynamic tree. The timing difference warrants later
+profiling; it does not identify a cause or justify removing validation guarantees.
+
+At size 10000, native median peak RSS spans 1.91–2.48 MiB, direct Rust
+1.92–2.47 MiB and Node 44.31–46.78 MiB. These are whole-process peaks including
+input preparation, observers and runtime overhead, not incremental allocations
+or proof of leaks. Separate allocation evidence establishes temporary storage
+and disposal. Timing excludes source preparation and result observation.
+
+Fourteen focused adapter/protocol tests pass; whole-project formatting changes
+no files or fingerprints. SQLite evidence uses `tsrust-json-raw-timing*-07331fe6`
+and `tsrust-json-raw-rss-07331fe6` JSON/log records, including the original
+unsupported-flag witness. Existing decoding records remain unchanged. Raw-field
+support, output policy, post-raw consumer refresh and S10 closure remain open.
