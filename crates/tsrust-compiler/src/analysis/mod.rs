@@ -414,7 +414,7 @@ struct Context {
     native_view_declaration_depths: HashMap<usize, usize>,
     native_view_environments: Option<Box<HashMap<usize,Vec<(usize,usize)>>>>,
     native_shadowed_bindings: Option<Box<Vec<usize>>>,
-    native_view_results: Option<Box<HashMap<UnionId,usize>>>,
+    native_view_results: Option<Box<HashMap<UnionId,(usize,Option<usize>)>>>,
     native_view_function_returns: Option<Box<HashMap<native_view_calls::Target,Vec<native_view_calls::Returned>>>>,
     storage_exits: storage_exit_availability::Exits,
     native_returns: Option<Box<Vec<native_view_loans::Loan>>>,
@@ -14506,9 +14506,13 @@ self.names_materialized_type(element.with_depth(0).ty())
                 context.native_view_calls = true;
             }
             let result = native_type(binding.result, &self.program.records);
-            if binding.returned_borrow.is_some_and(|contract| contract.slot == crate::native_return_borrows::ReturnSlot::ResultOk) {
+            if binding.returned_borrow.is_some_and(|contract| matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional)) {
                 let (union,variants) = self.result_variant_records(result).expect("validated native Result borrow");
-                context.native_view_results.get_or_insert_with(Default::default).insert(union,variants[0]);
+                let contract = binding.returned_borrow.expect("validated native Result borrow");
+                let optional_payload = (contract.slot == crate::native_return_borrows::ReturnSlot::ResultOkOptional).then(|| {
+                    self.program.records.iter().position(|record| record.native_type == Some(contract.payload)).expect("prepared optional native view")
+                });
+                context.native_view_results.get_or_insert_with(Default::default).insert(union,(variants[0],optional_payload));
             }
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);

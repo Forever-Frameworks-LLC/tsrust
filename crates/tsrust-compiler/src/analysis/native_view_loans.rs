@@ -341,14 +341,10 @@ impl Analyzer {
                             &args[contract.source_parameter],
                             contract,
                         )?;
-                        if contract.slot == crate::native_return_borrows::ReturnSlot::ResultOk {
-                            let variant = value.ty.and_then(Type::union).and_then(|union| context.native_view_results.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "A native Result view requires its checked success identity.",value.span))?;
+                        if matches!(contract.slot, crate::native_return_borrows::ReturnSlot::ResultOk | crate::native_return_borrows::ReturnSlot::ResultOkOptional) {
+                            let (variant, optional_payload) = value.ty.and_then(Type::union).and_then(|union| context.native_view_results.as_ref()?.get(&union).copied()).ok_or_else(|| Diagnostic::new("native-view-result", "A native Result view requires its checked success identity.",value.span))?;
                             for loan in &mut loans {
-                                native_view_projections::wrap(
-                                    loan,
-                                    &Segment::Field("payload".into()),
-                                );
-                                native_view_projections::guard(loan, variant);
+                                native_view_projections::result(loan, variant, optional_payload);
                             }
                         }
                         result.extend(loans);

@@ -18,6 +18,8 @@ pub enum BorrowAccess {
 pub enum ReturnSlot {
     Direct,
     ResultOk,
+    /// Only a present Ok payload carries the loan; undefined and Err do not.
+    ResultOkOptional,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,16 +107,19 @@ impl NativeBinding {
         let signature = self.result.signature();
         let payload = match (contract.slot, &signature) {
             (ReturnSlot::Direct, signature) => signature,
-            (ReturnSlot::ResultOk, Signature::Result(value, error)) => {
+            (ReturnSlot::ResultOk | ReturnSlot::ResultOkOptional, Signature::Result(value, error)) => {
                 if error
                     .contains_borrowed_native()
                     .map_err(|_| ContractError::SignatureLimit)?
                 {
                     return Err(ContractError::BorrowedErrorPayload);
                 }
-                value
+                if contract.slot == ReturnSlot::ResultOkOptional {
+                    let Signature::Optional(payload) = value else { return Err(ContractError::PayloadMismatch); };
+                    payload
+                } else { value }
             }
-            (ReturnSlot::ResultOk, _) => return Err(ContractError::ExpectedResult),
+            (ReturnSlot::ResultOk | ReturnSlot::ResultOkOptional, _) => return Err(ContractError::ExpectedResult),
         };
         if *payload != Signature::Named(contract.payload) {
             return Err(ContractError::PayloadMismatch);
@@ -174,6 +179,21 @@ mod tests {
             }),
             ..crate::stdlib::bytes::bindings::COPY
         }
+    }
+
+    #[test]
+    fn optional_result_borrow_requires_exact_optional_shape() {
+        static OPTIONAL: Signature = Signature::Optional(&VIEW);
+        static OPTIONAL_RESULT: Signature = Signature::Result(&OPTIONAL, &Signature::Named(NativeTypeId::ByteError));
+        let mut probe = binding(Mode::Read, false, false);
+        probe.result = NativeType::Structured(&OPTIONAL_RESULT);
+        assert_eq!(probe.validate_returned_borrow(), Err(ContractError::PayloadMismatch));
+        probe.returned_borrow.as_mut().unwrap().slot = ReturnSlot::ResultOkOptional;
+        assert_eq!(probe.validate_returned_borrow(), Ok(()));
+        probe.result = NativeType::Structured(&RESULT);
+        assert_eq!(probe.validate_returned_borrow(), Err(ContractError::PayloadMismatch));
+        probe.result = NativeType::Structured(&OPTIONAL);
+        assert_eq!(probe.validate_returned_borrow(), Err(ContractError::ExpectedResult));
     }
 
     #[test]

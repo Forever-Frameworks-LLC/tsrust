@@ -462,10 +462,10 @@ siblings that will immediately be dropped. Tests verify that selected string
 allocations retain their original addresses in both borrowed and consuming paths.
 No clone, shared owner, unsafe code or lifetime erasure is introduced.
 
-This is private backend acceptance only. Public borrowed access must first extend
-the native return contract to express an optional borrowed payload inside Result;
-the current contract only recognizes direct named payloads and named Result Ok
-payloads. Do not substitute an owned clone or collapse absence into JSON null to
+This is private backend acceptance only. The native return contract now also recognizes an optional borrowed payload
+inside Result. Its metadata validation, checked type projection and conditional
+loan paths have focused acceptance; a public JSON view still requires native
+representation, emission and end-to-end ownership acceptance. Do not substitute an owned clone or collapse absence into JSON null to
 avoid this integration. Public binding, editor, lifetime rejection and matched
 workload acceptance remain required before exposing child APIs.
 
@@ -476,3 +476,29 @@ tsrust-json-containers-format.log.
 The green batch runs ten container/backend and ten scalar/backend checks; the
 seven shared parser tests run in both harnesses. The final affected harness passes
 ten checks. No benchmark timing or installed-consumer acceptance is claimed.
+
+## Optional borrowed Result integration
+
+`ReturnSlot::ResultOkOptional` describes exactly `Result<View | undefined, Error>`
+with a declared native borrowed View. Validation rejects a missing Optional wrapper,
+an optional return outside Result, mismatched payload identities and borrowed error
+payloads. Existing source-parameter and exclusive-access constraints remain intact.
+
+The analyzer records both the Ok variant identity and the present view identity.
+Loan projections attach separate guards to the outer Result and its payload.
+Narrowing to Err or undefined removes that loan; narrowing to the present view
+preserves its original owner provenance. No owner or payload is cloned.
+
+Focused evidence in SQLite: tsrust-json-optional-loan-red.log establishes the
+missing contract; tsrust-json-optional-loan-shape.log covers all three new contract,
+checked nullable-shape and conditional-projection witnesses. Existing contract
+and projection suites pass in tsrust-json-optional-contracts.log and
+tsrust-json-optional-projections.log. Five executable public byte-view fixtures
+remain covered by tsrust-json-optional-byte-regression.log. Whole-project format
+reports no changes in tsrust-json-optional-format.log.
+
+This accepts compiler infrastructure only. No public optional JSON view factory
+is exposed yet, and no end-to-end JSON view lifetime or timing acceptance is claimed.
+The next integration must publish the actual borrowed native representation and
+verify caller escape, owner mutation/move, missing-child branches, nested reborrows,
+editor documentation and matched workloads together.

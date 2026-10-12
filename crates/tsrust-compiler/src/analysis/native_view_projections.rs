@@ -97,6 +97,14 @@ pub(super) fn guard(loan: &mut Loan, success: usize) {
     loan.guards.dedup();
 }
 
+/// Guard the child before wrapping it so absence and failure release only their
+/// own loan. The success guard remains on the outer Result, at a separate path.
+pub(super) fn result(loan: &mut Loan, success: usize, optional_payload: Option<usize>) {
+    if let Some(payload) = optional_payload { guard(loan, payload); }
+    wrap(loan, &Segment::Field("payload".into()));
+    guard(loan, success);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,6 +114,19 @@ mod tests {
         Loan { whole: true, root: 0, owner_fields: vec![], source: LifetimeSource::Carried(vec![]),
             access: crate::native_return_borrows::BorrowAccess::ReadOnly, creation: Span::default(),
             retained: true, path: vec![], guards: vec![] }
+    }
+
+    #[test]
+    fn optional_result_loans_keep_only_present_success_payloads() {
+        let mut loan = recursive();
+        result(&mut loan, 7, Some(9));
+        assert!(!narrow(&mut loan.clone(), Type::Record(8)), "Err must not retain the loan");
+        assert!(narrow(&mut loan, Type::Record(7)));
+        assert!(select(&mut loan, &Segment::Field("payload".into())));
+        assert!(!narrow(&mut loan.clone(), Type::Undefined), "absence must not retain the loan");
+        assert!(narrow(&mut loan, Type::Record(9)));
+        assert_eq!(loan.root, 0);
+        assert!(loan.guards.is_empty());
     }
 
     #[test]

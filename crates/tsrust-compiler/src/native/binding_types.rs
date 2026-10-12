@@ -79,6 +79,25 @@ mod tests {
         }
     }
     #[test]
+    fn optional_result_view_projects_the_checked_nullable_payload() {
+        static OPTIONAL: Signature = Signature::Optional(&Signature::Named(NativeTypeId::ByteView));
+        static RESULT: Signature = Signature::Result(&OPTIONAL, &Signature::Named(NativeTypeId::ByteError));
+        let mut binding = *crate::native_bindings::lookup("std:bytes", "view").unwrap();
+        binding.result = NativeType::Structured(&RESULT);
+        binding.returned_borrow.as_mut().unwrap().slot = crate::native_return_borrows::ReturnSlot::ResultOkOptional;
+        let mut program = crate::syntax::parse("function main(){}").unwrap();
+        prepare(&mut program.records, &binding, Span::default()).unwrap();
+        let checked = crate::analysis::analyze(program).unwrap();
+        let Type::Union(id) = resolve(&checked.records, &RESULT).unwrap() else { panic!("Result union"); };
+        let variants = crate::result_identity::variants(&checked.records, &checked.unions[id.index()].members).unwrap();
+        let Type::Union(payload) = crate::result_identity::payload(&checked.records[variants[0]]).unwrap() else { panic!("optional payload union"); };
+        let members = &checked.unions[payload.index()].members;
+        assert_eq!(members.len(), 2);
+        assert!(members.contains(&Type::Undefined));
+        assert!(members.iter().any(|ty| matches!(ty, Type::Record(id) if checked.records[*id].native_type == Some(NativeTypeId::ByteView))));
+    }
+
+    #[test]
     fn recursive_native_signatures_share_checked_result_identity() {
         static RESULT: Signature = Signature::Result(&Signature::Named(NativeTypeId::Bytes), &Signature::Named(NativeTypeId::ByteError));
         let binding = NativeBinding { returned_borrow: None, module: "std:bytes", name: "probe", parameters: &[NativeParameter {
