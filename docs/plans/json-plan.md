@@ -2215,3 +2215,28 @@ Evidence: `tsrust-raw-depth-{red,backend,native}-a00758e8.log` in SQLite. The fi
 regression demonstrates scalar serialization previously accepted impossible parent
 depths. Performance acceptance is still pending affected allocation/timing/RSS
 checks and the end-to-end workload; retain all pre-optimization records.
+
+
+### Cached-depth measurement review: further repair required
+
+At `97f16f3a`, affected prepared-input encoding measurements completed with the
+original protocol: nine cases, 81 processes and 2,511 batch samples. Native median
+speedups for 1,000-element numeric/escaped-Unicode/deep cases are 14.81x/4.14x/14.61x.
+All corresponding native/direct-Rust allocation, requested/retained/peak-byte and
+disposal counters match the original allocation baseline. Separate encoding RSS
+completed with 81 process samples. Records `tsrust-raw-depth-{timing,allocation,
+rss,review}-97f16f3a.json` preserve these results in SQLite.
+
+Creation cost was measured separately rather than hidden by prepared inputs.
+`tsrust-raw-depth-creation-97f16f3a.json` retains the original four raw-validation
+shapes and protocol (12 cases, 108 processes, 3,348 batch samples). Compared with
+`tsrust-json-raw-timing-07331fe6.json`, native 1,000-element numeric/escaped-Unicode/
+deep creation medians rise from 8.129/40.252/8.758 to 11.811/59.759/12.001 microseconds.
+Invalid input remains near baseline (16.108 versus 16.961 microseconds).
+
+The optimization is not accepted with this creation regression. Next repair:
+collect maximum depth in the existing bounded validation visitor and return it to
+borrowRaw, eliminating its second scan. Typed field extraction still needs its
+own subtree depth; measure that path independently and retain actual lifetime
+provenance. Do not discard either original or cached-depth measurements. Verify
+creation, repeated encoding and end-to-end behavior before final acceptance.
