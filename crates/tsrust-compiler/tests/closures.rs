@@ -25,8 +25,14 @@ fn complete_source_closure_corpus() {
                 assert!(!rust.contains("dyn "));
             }
             SourceExpectation::Reject(code) => {
-                let error = reject(&source, code);
+                // Fixture directives suppress editor/check output only. Strict analysis
+                // and emission must keep rejecting the original, unchanged source.
+                let error = check(&source).err().expect("strict source rejection");
+                assert_eq!(error.code, code, "{}", case.name);
                 assert!(!error.related.is_empty(), "{}", case.name);
+                let output=support::run(support::cli().arg("emit").arg(root.join(format!("{}.tsr",case.name))),10);
+                assert!(!output.status.success(), "{}",case.name);
+                assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("error[{code}]")), "{}",case.name);
             }
             SourceExpectation::BackendOnly => unreachable!(),
         }

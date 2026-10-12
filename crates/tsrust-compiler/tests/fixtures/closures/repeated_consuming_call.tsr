@@ -10,6 +10,7 @@ function main() {
     return user;
   };
   const first = get();
+  // @tsrust ignore - Intentional closure-consumed rejection fixture; emission must still fail.
   const second = get();
   console.log(first.name);
   console.log(second.name);

@@ -168,3 +168,18 @@ inspect workspace and scratch target growth and remove obsolete test/native exec
 intermediate build trees and expired cache variants. Do not keep a target tree per gate.
 A cleanup may make the next build cold; report that honestly and do not start a rebuild
 merely to repopulate caches after cleanup. Historical measurements remain in SQLite.
+
+## Intentional rejection fixtures in the editor
+
+Use a reasoned `// @tsrust ignore - ...` directive immediately before an
+intentionally invalid statement in a checked-in rejection fixture. This keeps
+workspace checking useful without suppressing compilation failures. Rejection
+acceptance must still check strict analysis and emission on the original source;
+do not remove the invalid code or rely on the suppressible CLI check result.
+
+The closure/ownership fixture cleanup at b59d1055 removes 11 expected diagnostics
+from 10 files. Recursive workspace check reports no diagnostics; emission rejects
+all 10 fixtures and the complete closure source corpus retains strict rejection
+assertions. SQLite evidence uses `tsrust-editor-*-b59d1055`, including the initial
+check output and the corpus adjustment's original failed run. Editor warnings are
+separate from these intentional errors and are not hidden by this cleanup.

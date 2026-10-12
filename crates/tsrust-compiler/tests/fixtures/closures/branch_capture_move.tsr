@@ -9,6 +9,7 @@ function maybe(user: User, flag: boolean) {
     };
   }
 
+  // @tsrust ignore - Intentional transferred rejection fixture; emission must still fail.
   console.log(user.name);
 }
 

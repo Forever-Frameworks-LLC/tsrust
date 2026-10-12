@@ -9,6 +9,7 @@ function main() {
   const get = (): User => {
     return user;
   };
+  // @tsrust ignore - Intentional transferred rejection fixture; emission must still fail.
   console.log(user.name);
   const saved = get();
   console.log(saved.name);

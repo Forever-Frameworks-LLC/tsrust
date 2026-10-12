@@ -13,6 +13,7 @@ function main() {
     name: "Pat"
   };
   const show = make(user);
+  // @tsrust ignore - Intentional transferred rejection fixture; emission must still fail.
   console.log(user.name);
   console.log(show());
 }

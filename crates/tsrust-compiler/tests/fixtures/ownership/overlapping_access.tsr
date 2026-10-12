@@ -11,5 +11,6 @@ function main() {
   const user: User = {
     name: "Pat"
   };
+  // @tsrust ignore - Intentional conflicting-access rejection fixture; emission must still fail.
   renameAndLog(user, user);
 }

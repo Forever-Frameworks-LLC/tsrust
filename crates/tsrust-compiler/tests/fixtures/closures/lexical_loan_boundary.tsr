@@ -10,6 +10,7 @@ function main() {
     console.log(user.name);
   };
   show();
+  // @tsrust ignore - Intentional capture-conflict rejection fixture; emission must still fail.
   user.name = "Sam";
   console.log(user.name);
 }

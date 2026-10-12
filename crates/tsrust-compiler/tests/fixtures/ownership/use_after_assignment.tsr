@@ -8,5 +8,6 @@ function main() {
   };
   const backup = user;
   console.log(backup.name);
+  // @tsrust ignore - Intentional transferred rejection fixture; emission must still fail.
   console.log(user.name);
 }
