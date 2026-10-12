@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -473,4 +473,20 @@ function main(){
     assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
     let invalid="import {s} from 'std:schema';function main(){const input=JSON.parse('1');s.int().safeParse(input);JSON.stringify(input);}";
     assert_eq!(checked_source(invalid).err().expect("input transfers").code,"transferred");
+}
+
+#[test]
+fn schema_number_checks_precision_finiteness_and_negative_zero() {
+    let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
+function make():Schema<number>{return s.number();}
+function main(){const schema=make();
+ match(schema.safeParse(-0.0)){Ok(value)=>{strictEqual(1.0/value,Number.NEGATIVE_INFINITY);},Err(error)=>{throw 'zero rejected';}}
+ match(schema.safeParse(JSON.parse('1.5'))){Ok(value)=>{strictEqual(value,1.5);},Err(error)=>{throw 'fraction rejected';}}
+ match(schema.safeParse(JSON.parse('9007199254740993'))){Ok(value)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
+ for(const input of [Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){match(schema.safeParse(input)){Ok(value)=>{throw 'nonfinite accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-nonfinite');strictEqual(issue.expected,'number');strictEqual(issue.observed,'number');}}}}
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let direct=checked_source("import {s} from 'std:schema';function main(){s.number().safeParse(1.5);}").unwrap();
+    assert!(!direct.emit_rust_with_native_features().0.contains("tsrust_native_json"));
 }

@@ -71,6 +71,28 @@ pub(crate) const SAFE_PARSE_INT_VALUE: NativeBinding = NativeBinding {
     backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_int_value" }, features: &[], ..SAFE_PARSE_INT
 };
 
+pub(crate) const NUMBER: NativeBinding = NativeBinding {
+    name: "__number", result: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Number])),
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_number" }, ..STRING
+};
+pub(crate) const SAFE_PARSE_NUMBER: NativeBinding = NativeBinding {
+    name: "__safeParseNumber",
+    parameters: &[
+        crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::Number])), access: crate::Mode::Read, optional: false, rest: false },
+        SAFE_PARSE.parameters[1],
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Number, &Signature::Named(NativeTypeId::SchemaError))),
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number" }, ..SAFE_PARSE
+};
+pub(crate) const SAFE_PARSE_NUMBER_VALUE: NativeBinding = NativeBinding {
+    name: "__safeParseNumberValue",
+    parameters: &[
+        SAFE_PARSE_NUMBER.parameters[0],
+        crate::native_bindings::NativeParameter { name: "input", ty: NativeType::Number, access: crate::Mode::Copy, optional: false, rest: false },
+    ],
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_number_value" }, features: &[], ..SAFE_PARSE_NUMBER
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -83,6 +105,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
                 "string" => &STRING,
                 "boolean" => &BOOLEAN,
                 "int" => &INT,
+                "number" => &NUMBER,
                 _ => return Err(Diagnostic::new("schema-member", format!("Unknown schema builder {member:?}."), expression.span)),
             };
             spans.push((binding, expression.span));
@@ -95,6 +118,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_OWNED, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_BOOLEAN_VALUE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT_VALUE, crate::Span::default())?;
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER_VALUE, crate::Span::default())?;
     }
     // Current validation consumes JsonValue. Do not synthesize JSON storage solely
     // because an unrelated object also declares a method named safeParse.
@@ -105,6 +129,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_BOOLEAN, crate::Span::default())?;
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_INT, crate::Span::default())?;
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
     }
     Ok(())
 }

@@ -1,4 +1,4 @@
-//! Native string validation moves successful input storage into the typed result.
+//! Native scalar validation preserves ownership and checked numeric conversion.
 use crate::{analysis::CheckedProgram, native_bindings::NativeType, native_signatures::NativeTypeId, syntax::Type};
 pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crate::native_bindings::NativeBinding) -> String {
     let NativeType::Structured(signature) = binding.result else { unreachable!() };
@@ -10,11 +10,22 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
     let boolean = matches!(binding.name, "__safeParseBoolean" | "__safeParseBooleanValue");
     let integer = matches!(binding.name, "__safeParseInt" | "__safeParseIntValue");
+    let number = matches!(binding.name, "__safeParseNumber" | "__safeParseNumberValue");
     let owned = !matches!(binding.parameters[1].ty, NativeType::Structured(_));
-    let native = if integer { "i64" } else if boolean { "bool" } else { "String" };
-    let expected = if integer { "integer" } else if boolean { "boolean" } else { "string" };
+    let native = if number { "f64" } else if integer { "i64" } else if boolean { "bool" } else { "String" };
+    let expected = if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
     let variant = if boolean { "Bool" } else { "String" };
     let payload = if boolean { "text" } else { "String::Owned(text)" };
+    if owned && number {
+        let error = record(NativeTypeId::SchemaError);
+        let issue = record(NativeTypeId::SchemaIssue);
+        let path = record(NativeTypeId::SchemaPath);
+        return format!("fn {symbol}(_schema:&Record{schema},input:f64)->Union{result} {{
+            if input.is_finite() {{ return Union{result}::V{ok_tag}(Record{ok}{{field0:input}}); }}
+            let issue=Record{issue}{{field0:String::Borrowed(\"number-nonfinite\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"number\")}};
+            Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
+        }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
+    }
     if owned {
         return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
     }
@@ -22,13 +33,14 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let error = record(NativeTypeId::SchemaError);
     let issue = record(NativeTypeId::SchemaIssue);
     let path = record(NativeTypeId::SchemaPath);
-    if integer {
+    if integer || number {
+        let reader = if integer { "read_i64" } else { "read_f64" };
         return format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
-            match tsrust_native_json::read_i64(&input.value) {{
+            match tsrust_native_json::{reader}(&input.value) {{
                 Ok(value) => Union{result}::V{ok_tag}(Record{ok}{{field0:value}}),
                 Err(failure) => {{
                     let code=if failure.code==\"expected-number\" {{ \"type-mismatch\" }} else {{ failure.code }};
-                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"integer\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value))}};
+                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value))}};
                     Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
                 }}
             }}

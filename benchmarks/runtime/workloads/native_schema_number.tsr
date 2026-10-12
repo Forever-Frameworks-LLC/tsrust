@@ -1,0 +1,48 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.number();
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(text) => {
+        if (text !== 1.5) {
+          throw 'Expected fraction';
+        }
+
+        checksum += 1;
+      },
+      Err(error) => {
+        throw 'Expected number success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('true'))) {
+      Ok(text) => {
+        throw 'Expected boolean rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid error count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'type-mismatch' || issue.expected !== 'number' || issue.observed !== 'boolean' || issue.path.length !== 0 || issue.pathTruncated) {
+            throw 'Invalid issue';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '1.5'));
+}

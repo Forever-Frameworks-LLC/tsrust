@@ -7015,6 +7015,18 @@
         "output": "42\n"
       }
     ]
+  },
+  {
+    "name": "number",
+    "signature": "s.number(): Schema<number>",
+    "parameters": [],
+    "documentation": "Constructs a reusable finite floating-point number schema. Takes no arguments and does not mutate the namespace. safeParse accepts a concrete number or owned JsonValue. Exact JSON integers must be representable as number without precision loss. NaN and infinities are rejected. Use s.int() when exact signed 64-bit integer output is required.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
+      }
+    ]
   }
 ],
   "Schema": [
@@ -7027,7 +7039,7 @@
         "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
       }
     ],
-    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. String, boolean and integer schemas are currently supported. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. String, boolean, integer and number schemas are currently supported. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
@@ -7074,6 +7086,25 @@
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
         "output": "42\n"
+      }
+    ]
+  }
+],
+  "SchemaNumber": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: number | Owned<JsonValue>): Result<number, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: number | Owned<JsonValue>",
+        "documentation": "Concrete number or owned JsonValue. Primitive numbers copy; JSON input is consumed on both outcomes."
+      }
+    ],
+    "documentation": "Validates finite floating-point input without coercing strings or booleans. Returns Ok(number), preserving negative zero, or Err(SchemaError). Direct NaN and infinities return number-nonfinite. Exact JSON integers that would round during conversion return number-precision. Other JSON kinds return type-mismatch. Failures have one issue with expected number, the observed kind, an empty root path and false truncation flags. Mixed union inputs and other concrete types are not supported yet; use s.int() for concrete int values.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: borrows the reusable schema. Direct numbers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "1.5\n"
       }
     ]
   }

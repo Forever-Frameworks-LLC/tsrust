@@ -2428,3 +2428,19 @@ fn schema_integer_editor_reports_exact_contract_and_inferred_result() {
     let help=ask(&index,&entry,"42)","textDocument/signatureHelp");
     assert!(help.to_string().contains("input: int | Owned<JsonValue>"),"{help}");
 }
+
+#[test]
+fn schema_number_editor_reports_checked_contract_and_inferred_result() {
+    let entry=tsrust_compiler::format("import {s as rules} from 'std:schema';function main(){const schema=rules.number();const result=schema.safeParse(1.5);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let constructor=ask(&index,&entry,"number()","textDocument/hover");
+    assert!(constructor.to_string().contains("rules.number(): Schema<number>"),"{constructor}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(result.to_string().contains("Result<number, SchemaError>"),"{result}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("number-nonfinite")&&hover.to_string().contains("number-precision"),"{hover}");
+    let help=ask(&index,&entry,"1.5)","textDocument/signatureHelp");
+    assert!(help.to_string().contains("input: number | Owned<JsonValue>"),"{help}");
+}

@@ -13,7 +13,7 @@ executing differential cases; current web documentation alone is not a version p
 
 | Family | Required behavior | Status |
 | --- | --- | --- |
-| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int API checked; remaining constructors pending |
+| Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number API checked; remaining constructors pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | Pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
@@ -377,3 +377,27 @@ backend groundwork only. Public constraint methods still require plan storage,
 compiler/LSP integration, executable catalog examples and matched workloads before
 acceptance. Evidence: `tsrust-schema-length-{red,check,format}-3b00c899.log` in SQLite.
 No timing, consumer update or S11 family acceptance is claimed.
+
+## Number schema integration
+
+s.number() now infers Schema<number>. safeParse accepts concrete number or owned
+JsonValue, preserves negative zero and returns Result<number, SchemaError>.
+NaN and infinities return number-nonfinite. JSON integers that cannot convert
+exactly to floating point return number-precision; other JSON kinds return
+type-mismatch. Direct numbers retain copy semantics and introduce no JSON runtime.
+JSON values are consumed; the immutable schema is borrowed and reusable. Concrete
+int and mixed union inputs remain pending broader typed-value validation; s.int()
+is the current exact integer validator. This is not permission to implicitly
+round integers into floating-point output.
+
+Thirteen focused schema compiler/native cases and five editor cases pass, including
+exact catalog example execution, inferred outputs and signature help. Four benchmark
+contract tests cover registrations and source/operation guards. Native and
+Node-after-tsc agree on four sizes each for native_schema_number, without timing.
+That workload's matched domain is 1.5 success and true rejection; native precision
+and nonfinite boundaries have separate correctness coverage. The handwritten Node
+reference is not a Zod comparison. Public constraints, null/composites, fused typed
+decoding and S11 family acceptance remain pending.
+
+SQLite evidence: `tsrust-schema-number-{red,check,editor,format,benchmark-tests,verify}-5fc70ac9.log`.
+No consumer refresh or measured acceptance is claimed.

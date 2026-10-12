@@ -19,8 +19,10 @@ impl Analyzer {
             (Some(Type::Boolean), _, true) => "@native:std:schema#__safeParseBoolean",
             (Some(Type::Int), Some(Type::Int), _) => "@native:std:schema#__safeParseIntValue",
             (Some(Type::Int), _, true) => "@native:std:schema#__safeParseInt",
-            (Some(Type::String | Type::Boolean | Type::Int), _, _) => return Err(Diagnostic::new("schema-input", "safeParse requires a matching concrete scalar or owned JsonValue input.", args[0].span)),
-            _ => return Err(Diagnostic::new("schema-type", "safeParse currently supports string, boolean and integer schemas.", callee.span)),
+            (Some(Type::Number), Some(Type::Number), _) => "@native:std:schema#__safeParseNumberValue",
+            (Some(Type::Number), _, true) => "@native:std:schema#__safeParseNumber",
+            (Some(Type::String | Type::Boolean | Type::Int | Type::Number), _, _) => return Err(Diagnostic::new("schema-input", "safeParse requires a matching concrete scalar or owned JsonValue input.", args[0].span)),
+            _ => return Err(Diagnostic::new("schema-type", "safeParse currently supports string, boolean, integer and number schemas.", callee.span)),
         };
         args.insert(0, (**base).clone());
         callee.kind = ExprKind::Name(symbol.into());
