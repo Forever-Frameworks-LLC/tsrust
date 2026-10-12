@@ -13,7 +13,7 @@ impl Emitter<'_> {
     }
     // Outer None means no factory; inner None means generated data failed validation.
     pub(super) fn schema_default_value(&self,output:Type,plan:&str,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
-        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_prepared_default_value(output,plan,generated,seen,errors);}
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_prepared_default_value(output,plan,generated,seen,errors);}
         let mut absent=if let Type::Union(union)=output && let Some(base)=self.schema_presence_element(output) {
             let child=self.schema_default_value(base,&format!("{plan}.inner"),generated,seen,errors);
             let injection=self.schema_widen_value(base,union,"value");
@@ -116,7 +116,7 @@ impl Emitter<'_> {
 
     }
     pub(super) fn schema_owned_validator(&self,id:usize,input_type:Type,generated:&mut String,seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
-        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_owned_prepared_validator(id,input_type,generated,seen,errors);}
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_owned_prepared_validator(id,input_type,generated,seen,errors);}
         let name=format!("validate{id}_{input_type:?}").chars().map(|c|if c.is_ascii_alphanumeric(){c}else{'_'}).collect::<String>();
         if !seen.insert((id,input_type)){return name;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
@@ -213,7 +213,7 @@ impl Emitter<'_> {
         name
     }
     pub(super) fn schema_json_validator(&self,id:usize,generated:&mut String,seen:&mut std::collections::HashSet<usize>,owned_seen:&mut std::collections::HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet) {
-        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_json_prepared_validator(id,generated,seen,owned_seen,errors);}
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some(){return self.schema_json_prepared_validator(id,generated,seen,owned_seen,errors);}
         if !seen.insert(id){return;}
         let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let native=self.native_type(output);

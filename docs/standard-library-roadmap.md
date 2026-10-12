@@ -175,3 +175,13 @@ contracts. Direct calls remain direct. See the [interop contract and pool accept
 This supersedes the blanket deferral of this restricted Rust integration above;
 arbitrary package imports, traits, macros and lifetime-heavy APIs remain separately
 scoped. Public syntax, implementation and measurements are not yet accepted.
+
+
+## Required cleanup between S11 and S12
+
+After S11 acceptance, complete a dedicated source cleanup before beginning S12.
+Organize compiler, schema runtime and editor code into coherent modules; consolidate
+duplicated logic; remove obsolete code; resolve Rust warnings without blanket
+suppression; and reconcile documentation. Preserve observable behavior and protected
+owner files. Batch regressions after the cleanup section is complete. Keep new S11
+code organized during implementation rather than relying on this later pass.

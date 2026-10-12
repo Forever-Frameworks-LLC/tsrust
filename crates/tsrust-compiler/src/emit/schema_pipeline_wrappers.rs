@@ -10,6 +10,11 @@ impl Emitter<'_> {
         let plan=self.program.schema_pipelines.wrapper(id).unwrap();
         let source_output=self.schema_pipeline_output(plan.source);
         match plan.kind {
+            WrapperKind::Message=>{
+                let child=self.schema_pipeline_trial_impl(plan.source,input,missing,generated,seen,errors);
+                format!("{{let issue_start=issues.items.len();let trial={child}(&schema.field0,input,path,issues,failure);issues.message_since(issue_start,schema.field1.as_ref());trial}}")
+            }
+
             WrapperKind::Default(family) if missing=>{
                 let source_input=self.program.schema_pipelines.types(plan.source).unwrap().0;
                 let child=self.schema_pipeline_trial(plan.source,source_input,generated,seen,errors);

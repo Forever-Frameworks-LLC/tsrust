@@ -125,8 +125,8 @@ impl Analyzer {
         if !constructing && !matches!(hint, Some(Type::Record(id))
             if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
                 || self.schema_pipelines.types(id).is_some()) { return Ok(None); }
-        if args.len() != 1 {
-            return Err(Diagnostic::new("arity", "Schema pipeline methods expect one reusable callback.", expr.span));
+        if args.len() != 1 && !(operation == Operation::Refine && args.len() == 2) {
+            return Err(Diagnostic::new("arity", "Schema pipeline methods expect one reusable callback; refine also accepts diagnostic options.", expr.span));
         }
         let mut receiver = (**base).clone();
         let actual = self.expression(context, &mut receiver, Mode::Consume, loans, None)?;
@@ -137,6 +137,29 @@ impl Analyzer {
             let output = self.program.records[source].application.as_ref().unwrap().resolved_arguments[0];
             (output, output, true)
         } else { return Ok(None); };
+
+        let mut diagnostic_path = Vec::new();
+        let mut message = None;
+        if args.len() == 2 {
+            let options = args.pop().unwrap();
+            let ExprKind::Record(fields) = options.kind else {
+                return Err(Diagnostic::new("schema-options", "Refinement options require an object with path and/or message.", options.span));
+            };
+            let mut names = HashSet::new();
+            for (name, mut value) in fields {
+                if !names.insert(name.text.clone()) {
+                    return Err(Diagnostic::new("schema-options", "Duplicate refinement option.", name.span));
+                }
+                match name.text.as_str() {
+                    "path" => diagnostic_path = self.schema_diagnostic_path(output, &value)?,
+                    "message" => {
+                        self.expression(context, &mut value, Mode::Consume, loans, Some(Type::String))?;
+                        message = Some(value);
+                    }
+                    _ => return Err(Diagnostic::new("schema-options", "Unknown refinement option; use path or message.", name.span)),
+                }
+            }
+        }
 
         let callback = &mut args[0];
         if let ExprKind::Closure { params, result, .. } = &mut callback.kind {
@@ -208,7 +231,7 @@ impl Analyzer {
         }
         callback.wrap_storage(family);
         let stage = Stage {
-            source, operation, callback: family, callback_input, callback_output,
+            source, diagnostic_path, custom_message: message.is_some(), operation, callback: family, callback_input, callback_output,
             input: if operation == Operation::Coerce { callback_input } else { input },
             output: if operation == Operation::Transform { callback_output } else { output },
             json_input: if operation == Operation::Coerce {
@@ -218,8 +241,9 @@ impl Analyzer {
         let record = if let Some(record) = self.schema_pipelines.record_for(&stage) { record } else {
             let record = self.program.records.len();
             let name = format!("@schema:pipeline:{record}");
-            let fields = [("@schema", Type::Record(source)), ("@callback", Type::StoredCallable(family))]
-                .into_iter().map(|(name, ty)| Ok(RecordField {
+            let mut stored = vec![("@schema", Type::Record(source)), ("@callback", Type::StoredCallable(family))];
+            if message.is_some() { stored.push(("@message", Type::String)); }
+            let fields = stored.into_iter().map(|(name, ty)| Ok(RecordField {
                     name: Token { text: name.into(), span: expr.span, kind: TokenKind::Name },
                     annotation: self.checked_value_annotation(ty, expr.span)?,
                     ty: Some(ty), callable_declaration: None, optional: false,
@@ -237,10 +261,12 @@ impl Analyzer {
         };
         self.require(Type::Record(record), expected, expr.span)?;
         let callback = args.remove(0);
-        expr.kind = ExprKind::Record(vec![
+        let mut values = vec![
             (Token { text: "@schema".into(), span: expr.span, kind: TokenKind::Name }, receiver),
             (Token { text: "@callback".into(), span: expr.span, kind: TokenKind::Name }, callback),
-        ]);
+        ];
+        if let Some(message) = message { values.push((Token { text: "@message".into(), span: expr.span, kind: TokenKind::Name }, message)); }
+        expr.kind = ExprKind::Record(values);
         Ok(Some(Type::Record(record)))
     }
 }

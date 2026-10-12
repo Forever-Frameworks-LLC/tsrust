@@ -12,9 +12,14 @@ pub(crate) enum Operation {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum DiagnosticSegment { Field(String), Index(usize) }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Stage {
     /// Exact receiving schema record, not merely its output type.
     pub source: usize,
+    pub diagnostic_path: Vec<DiagnosticSegment>,
+    pub custom_message: bool,
     pub operation: Operation,
     /// Unique readonly callable storage; its argument can still be owned.
     pub callback: usize,
@@ -85,7 +90,7 @@ pub(crate) struct Wrapper {
     pub json_input: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum WrapperKind { Presence(Type), Default(usize) }
+pub(crate) enum WrapperKind { Presence(Type), Default(usize), Message }
 
 #[derive(Default)]
 pub(crate) struct Pipelines {
@@ -102,6 +107,7 @@ pub(crate) struct Pipelines {
 
 impl Pipelines {
     pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
+    pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| plan.kind == WrapperKind::Message) }
     pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {
         self.wrapper(record).map(|plan|(plan.input,plan.output,plan.json_input)).or_else(||self.get(record).map(|stage| (stage.input, stage.output, stage.json_input)))
             .or_else(|| self.collection(record).map(|plan| (plan.input, plan.output, plan.json_input)))
@@ -231,7 +237,7 @@ mod tests {
 
     fn stage(input: Type) -> Stage {
         Stage {
-            source: 2, operation: Operation::Coerce, callback: 4,
+            source: 2, diagnostic_path: Vec::new(), custom_message: false, operation: Operation::Coerce, callback: 4,
             callback_input: input, callback_output: Type::Int,
             input, output: Type::Int, json_input: false,
         }

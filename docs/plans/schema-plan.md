@@ -1973,3 +1973,41 @@ count fell from 104 (33 errors, 71 warnings) to 71 warnings and zero errors.
 Visible remaining warnings are Rust diagnostics, including unused runtime helpers
 and an irrefutable pattern. These warnings remain pending cleanup; they were not
 suppressed or represented as resolved. Build log retained in SQLite.
+
+
+Custom diagnostic implementation is in progress after `89f78752`. New public
+witnesses cover constructor messages, reusable schemas, owned/fused validation,
+relative nested paths and invalid segment rejection. A draft analyzer path resolver
+walks declared fields, numeric array indices, optional values and unions without
+accepting an unchecked field string. Runtime message storage, constructor wrapping,
+refinement integration and editor path completion are still outstanding. These
+witnesses have not run: section checks remain deferred until integration is complete.
+No implementation acceptance or consumer refresh is claimed for these drafts.
+
+
+Custom diagnostic drafts now include constructor option interception, uniquely
+owned message wrappers, relative refinement paths in owned and fused emitters,
+and public issue message storage. Child custom messages take precedence over an
+outer constructor default. No-input-copy behavior remains unchanged; retained
+error messages copy schema text only on failure. Default issue messages currently
+use the stable error code. Chained builder handling, complete catalog/editor
+integration, runtime budget witnesses and matched workload coverage remain pending.
+No tests have run for this incomplete section, and no consumer was refreshed.
+The owner's post-S11 cleanup requirement is recorded in the main roadmap before S12.
+
+
+## Approved module-state direction
+
+The owner approved combining program-owned module state with inferred borrowing
+and explicit shared-state facilities for concurrency. Keep let/const binding rules
+separate from cloning; no keyword-triggered implicit deep copies. Module storage
+retains normal checked borrowing and parameter passing. Detailed initialization,
+export and move-out rules still require implementation design and acceptance.
+The motivating module-level schema declaration must be included in S11 usability
+acceptance. Explicit concurrent shared-state facilities follow the thread/task work.
+
+The owner favors requiring an explicit thread pool for user-created worker threads,
+possibly configured at module scope, with workers borrowed and returned through the
+pool. This is a preference for discussion, not settled API or lifecycle semantics.
+Discuss pool configuration, local versus global ownership, bounded admission, job
+settlement, cooperative cancellation and synchronized state during S12 design.

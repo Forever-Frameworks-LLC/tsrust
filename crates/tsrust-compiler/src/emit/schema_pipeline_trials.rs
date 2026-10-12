@@ -81,7 +81,11 @@ impl Emitter<'_> {
                     format!("{trial}.transform(|mut value|{call}).boxed()")
                 } else {
                     let binding = if stage.output.is_copy(){"let value=*borrowed;"}else{"let value=borrowed;"};
-                    format!("{trial}.refine(path,issues,tsrust_schema_issues::Kind::{},|borrowed|{{{binding}{call}}})",self.schema_kind(stage.output))
+                    {
+                        let setup=self.schema_refinement_path_setup(stage);
+                        let message=self.schema_refinement_message(stage);
+                        format!("{{let trial={trial};{setup}let issue_start=issues.items.len();let result=trial.refine(&refinement_path,issues,tsrust_schema_issues::Kind::{},|borrowed|{{{binding}{call}}});{message}result}}",self.schema_kind(stage.output))
+                    }
                 }
             }
         } else if missing {

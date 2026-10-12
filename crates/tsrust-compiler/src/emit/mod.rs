@@ -65,6 +65,7 @@ mod schema_pipelines;
 mod schema_json_projection;
 mod schema_owned_projection;
 mod schema_pipeline_trials;
+mod schema_diagnostic_options;
 mod schema_pipeline_wrappers;
 mod schema_pipeline_array_trials;
 mod schema_collection_trials;
@@ -3056,7 +3057,7 @@ impl Emitter<'_> {
             }
         }
         output.push_str(&crate::stdlib::schema::emit::issue_bridge(self.program));
-        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.callbacks().next().is_some(){
+        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some(){
             output.push_str("mod tsrust_schema_union {\n");
             output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
             output.push_str("\n}\n");

@@ -31,6 +31,7 @@ pub(super) enum OwnedSegment { Field(String), Index(usize) }
 #[derive(Debug)]
 pub(super) struct Issue {
     pub code: Code,
+    pub message: Option<String>,
     pub path: Vec<OwnedSegment>,
     pub path_truncated: bool,
     pub expected: Kind,
@@ -58,6 +59,11 @@ impl Issues {
         self.truncated = checkpoint.truncated;
         self.invalid = checkpoint.invalid;
     }
+    /// Decorate only issues retained after this validation operation. A full
+    /// issue budget still rejects input without allocating custom messages.
+    pub(super) fn message_since(&mut self, start: usize, message: &str) {
+        for issue in &mut self.items[start..] { if issue.message.is_none() { issue.message = Some(message.to_owned()); } }
+    }
     pub(super) fn reject(&mut self) { self.invalid = true; }
     pub(super) fn new(max_issues: usize, max_segments: usize, max_path_bytes: usize) -> Self {
         Self { items: Vec::new(), truncated: false, invalid: false, max_issues, max_segments, max_path_bytes }
@@ -81,7 +87,7 @@ impl Issues {
                 }
             }
         }
-        self.items.push(Issue { code, path, path_truncated, expected, observed });
+        self.items.push(Issue { code, message: None, path, path_truncated, expected, observed });
     }
 }
 

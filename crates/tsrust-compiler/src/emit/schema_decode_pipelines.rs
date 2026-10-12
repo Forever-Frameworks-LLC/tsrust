@@ -16,6 +16,7 @@ impl Emitter<'_> {
             let call=format!("{child}(&schema.field0,input,path,issues,failure,policy,remaining,committed)");
             return match plan.kind{
                 WrapperKind::Default(_)=>call,
+                WrapperKind::Message=>format!("{{let issue_start=issues.items.len();let result={call};issues.message_since(issue_start,schema.field1.as_ref());result}}"),
                 WrapperKind::Presence(added)=>{
                     let null=if added==Type::Null{format!("if input.kind()==\"null\"{{return Some({});}}",self.schema_output_injection(Type::Null,plan.output,"TsrNull"))}else{String::new()};
                     let inject=self.schema_output_injection(self.schema_pipeline_output(plan.source),plan.output,"value");
@@ -36,7 +37,11 @@ impl Emitter<'_> {
             let mut body=format!("let mut value={child}(&schema.field0,input,path,issues,failure,policy,remaining,committed)?;");
             match stage.operation{
                 Operation::Transform=>body.push_str(&format!("*committed=true;match {call}{{Ok(value)=>Some(value),Err(error)=>{{*failure=Some(error);None}}}}")),
-                Operation::Refine=>body.push_str(&format!("match {call}{{Ok(true)=>Some(value),Ok(false)=>{{issues.push(path,Code::Refinement,Kind::{kind},Kind::{kind});None}},Err(error)=>{{*failure=Some(error);None}}}}",kind=self.schema_kind(stage.output))),
+                Operation::Refine=>{
+                    let setup=self.schema_refinement_path_setup(stage);
+                    let message=self.schema_refinement_message(stage);
+                    body.push_str(&format!("match {call}{{Ok(true)=>Some(value),Ok(false)=>{{{setup}let issue_start=issues.items.len();issues.push(&refinement_path,Code::Refinement,Kind::{kind},Kind::{kind});{message}None}},Err(error)=>{{*failure=Some(error);None}}}}",kind=self.schema_kind(stage.output)));
+                },
                 Operation::Coerce=>unreachable!(),
             }
             return body;

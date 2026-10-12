@@ -65,6 +65,7 @@ static SCHEMA_ISSUE: Declaration = Declaration {
         Field { name: "pathTruncated", signature: Signature::Boolean, optional: false },
         Field { name: "expected", signature: Signature::String, optional: false },
         Field { name: "observed", signature: Signature::String, optional: false },
+        Field { name: "message", signature: Signature::String, optional: false },
     ], ..FS_ERROR
 };
 static SCHEMA_CONSTRUCTION_ERROR: Declaration = Declaration {

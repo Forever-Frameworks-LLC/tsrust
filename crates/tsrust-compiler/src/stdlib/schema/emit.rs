@@ -22,7 +22,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         let issue = record(NativeTypeId::SchemaIssue);
         let path = record(NativeTypeId::SchemaPath);
         format!("if let Some(code)=_schema.bounds.check({input}) {{
-            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\")}};
+            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\"),field5:String::Borrowed(code)}};
             return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
         }}",result=result.index(),err_tag=tag(err))
     };
@@ -41,7 +41,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
         return format!("fn {symbol}(_schema:&Record{schema},input:{input_type})->Union{result} {{
             {conversion}
             if {valid} {{ {guard} return Union{result}::V{ok_tag}(Record{ok}{{field0:value}}); }}
-            let issue=Record{issue}{{field0:String::Borrowed(\"{code}\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"{observed}\")}};
+            let issue=Record{issue}{{field0:String::Borrowed(\"{code}\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"{observed}\"),field5:String::Borrowed(\"{code}\")}};
             Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
         }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
     }
@@ -61,7 +61,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
                 Ok(value) => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:value}}) }},
                 Err(failure) => {{
                     let code=if failure.code==\"expected-number\" {{ \"type-mismatch\" }} else {{ failure.code }};
-                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value))}};
+                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value)),field5:String::Borrowed(code)}};
                     Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
                 }}
             }}
@@ -73,7 +73,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
             tsrust_native_json::Value::{pattern} => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}) }},
             other => {{
                 let observed=tsrust_native_json::kind(&other);
-                let issue=Record{issue}{{field0:String::Borrowed(\"type-mismatch\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(observed)}};
+                let issue=Record{issue}{{field0:String::Borrowed(\"type-mismatch\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(observed),field5:String::Borrowed(\"type-mismatch\")}};
                 Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
             }}
         }}
@@ -128,7 +128,7 @@ pub(crate) fn issue_bridge(program:&CheckedProgram)->String {
                 tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined)}},
                 tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\"))}}
             }}).collect();
-            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str())}}
+            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str()),field5:issue.message.map(String::Owned).unwrap_or_else(||String::Borrowed(issue.code.as_str()))}}
         }}).collect();
         Record{error}{{field0:issues,field1:errors.truncated}}
     }}\n"));
