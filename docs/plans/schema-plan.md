@@ -1952,8 +1952,24 @@ these checks do not assert Map insertion-order equivalence or implicit JSON Map/
 support. Native collection and collision semantics retain their separate witnesses.
 Evidence: `tsrust-schema-record-differential*.log` in SQLite. No timing acceptance.
 
-Cross-field diagnostic options are proposed, awaiting approval:
+Cross-field diagnostic options are approved with a stronger typed-path requirement:
 `.refine(predicate, { path: ['confirm'], message: 'Passwords must match' })`.
-The predicate remains read-only. This would attach a single failure to a relative
-path; multiple custom issues would remain a separate API. Existing `.refine`
-semantics remain unchanged while this proposal is pending.
+The predicate remains read-only. Paths must be checked against the inferred input
+shape and offer IntelliSense completion; invalid paths must not be accepted as
+unchecked strings. The owner also requires constructor-level messages, including
+`s.int({ message: '...' })` and `s.object(fields, { message: '...' })`.
+Multiple custom issues remain a separate API. Implementation is pending.
+
+
+## S11 consumer refresh after collections
+
+Release CLI and LSP rebuilt from `b4c0643a` using the shared Cargo target and
+disabled incremental compilation. Atomically replaced both `~/.cargo/bin` binaries
+and the workspace override at `target/editor/debug/tsrust-lsp`; SHA-256 equality
+verified against the release outputs. Installed CLI checks the pipeline workload
+and executes the collection workload with expected output `8`. Restarted the
+repository editor server and inspected the open schema documents: the Problems
+count fell from 104 (33 errors, 71 warnings) to 71 warnings and zero errors.
+Visible remaining warnings are Rust diagnostics, including unused runtime helpers
+and an irrefutable pattern. These warnings remain pending cleanup; they were not
+suppressed or represented as resolved. Build log retained in SQLite.
