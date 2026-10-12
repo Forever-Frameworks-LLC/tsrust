@@ -1,0 +1,58 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.array(s.number());
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const exact: int[] = [42];
+    match (schema.safeParse(exact)) {
+      Ok(values) => {
+        for (const value of values) {
+          if (value !== 42.0) {
+            throw 'Expected exact conversion';
+          }
+
+          checksum += 1;
+        }
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    const lossy: int[] = [9007199254740993];
+    match (schema.safeParse(lossy)) {
+      Ok(values) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'number-precision' || issue.expected !== 'number' || issue.observed !== 'integer' || issue.path.length !== 1 || issue.pathTruncated) {
+            throw 'Invalid issue';
+          }
+
+          for (const segment of issue.path) {
+            if (segment.index !== 0 || segment.field !== undefined) {
+              throw 'Invalid path';
+            }
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, 'native-int-array'));
+}

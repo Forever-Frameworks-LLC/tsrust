@@ -39,7 +39,12 @@ impl Analyzer {
         if !constructing {self.expression(context,&mut receiver,Mode::Read,loans,Some(Type::Record(id)))?;}
         let hint=self.expression_type_hint(context,&args[0]);
         let json=matches!(hint,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonValue));
-        self.expression(context,&mut args[0],Mode::Consume,loans,if json {hint}else{Some(output)})?;
+        let conversion=hint.is_some_and(|input|{
+            let (mut from,mut to)=(input,output);
+            while let (Type::Array(a),Type::Array(b))=(from,to){from=a.ty();to=b.ty();}
+            from==Type::Int && to==Type::Number
+        });
+        self.expression(context,&mut args[0],Mode::Consume,loans,if json||conversion {hint}else{Some(output)})?;
         let error=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaError)).unwrap();
         let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};

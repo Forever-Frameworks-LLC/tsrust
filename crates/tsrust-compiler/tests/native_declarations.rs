@@ -763,3 +763,22 @@ fn schema_json_arrays_preserve_exact_values_and_indexed_failures() {
     assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
 
 }
+
+#[test]
+fn schema_number_arrays_check_integer_precision_before_bounds() {
+    let source=r#"import {s} from 'std:schema';function main(){
+      const schema=s.array(s.number());
+      match(schema.safeParse([9007199254740993])){Ok(values)=>{throw 'literal rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+      const exact:int[]=[42,-9223372036854775808];
+      match(schema.safeParse(exact)){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'exact rejected';}}
+      const invalid:int[]=[9007199254740993,9223372036854775807];
+      match(schema.safeParse(invalid)){Ok(values)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+      const nested=s.array(s.array(s.number().max(10.0)));const input:int[][]=[[42,9007199254740993]];
+      match(nested.safeParse(input)){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"number-precision\n2\nnumber-precision integer 1\nnumber-precision integer 1\ntoo-large integer 2\nnumber-precision integer 2\n");
+    let invalid="import {s} from 'std:schema';function main(){const schema=s.array(s.number());const values:int[]=[1];schema.safeParse(values);console.log(values.length);}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}

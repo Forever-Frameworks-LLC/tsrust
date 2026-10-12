@@ -2556,3 +2556,17 @@ fn schema_array_validation_infers_result_and_documents_input() {
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("64")&&hover.to_string().contains("Owned<string[][] | JsonValue>"),"{hover}");
 }
+
+#[test]
+fn schema_number_array_signature_includes_checked_integer_input() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const rows=s.array(s.array(s.number()));const input:int[][]=[[42]];const result=rows.safeParse(input);}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("number[][] | int[][] | JsonValue"),"{hover}");
+    let help=ask(&index,&entry,"input);","textDocument/signatureHelp");
+    assert!(help.to_string().contains("number[][] | int[][] | JsonValue"),"{help}");
+    let hover=ask(&index,&entry,"result =","textDocument/hover");
+    assert!(hover.to_string().contains("Result<number[][], SchemaError>"),"{hover}");
+}

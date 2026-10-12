@@ -17,7 +17,7 @@ executing differential cases; current web documentation alone is not a version p
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
-| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested arrays integrated for matching owned and JSON input; other composite elements and typed numeric conversions pending |
+| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
@@ -874,3 +874,27 @@ SQLite evidence: `tsrust-schema-json-array-*-5ad48447.log`.
 
 Typed array numeric conversions and the broader S11 surface remain pending. This
 checkpoint does not constitute family measurement or a consumer refresh.
+
+
+## Checked integer-array conversion
+
+Number array schemas now accept owned int arrays with the same nesting depth.
+Each integer converts only if the resulting float represents it exactly. The check
+compares through a wider integer representation so saturating casts cannot accept
+rounded i64::MAX. Precision rejection precedes bounds; both precision and bounds
+issues report observed integer and preserve the nested index path. Input transfers
+on every outcome, and output remains number[] (or the corresponding nested type).
+
+Focused native checks cover exact conversion, i64::MIN, rejection of i64::MAX and
+9007199254740993, direct integer literals, nested bounds, error precedence and
+consumed-input reuse. Editor signatures expose the matching integer array alternative.
+Catalog examples execute with the current compiler. The new
+native_schema_number_array_int workload uses a BigInt TypeScript reference,
+independent checksum, indexed error observers, source guards and ordinary ABI
+registration. Four untimed native/Node cases agree; all 13 schema workload
+contracts pass. No timing or family acceptance is claimed.
+SQLite: `tsrust-schema-array-conversion-*-c1c8c95d.log`.
+
+Next composite work is public typed object construction and validation, followed
+by presence/default and union composition. Broader typed-input support, fused
+text decoding and the other S11 requirements above remain in scope.

@@ -30,10 +30,11 @@ impl SourceIndex {
         if self.schema_element(ty) == Some("int") { return builtins_for("SchemaInt"); }
         if self.schema_element(ty) == Some("boolean") { return builtins_for("SchemaBoolean"); }
         if let Some(element)=self.schema_element(ty).filter(|element|element.ends_with("[]")) {
+            let input=if element.starts_with("number[") {format!("{element} | int{} | JsonValue",&element[6..])}else{format!("{element} | JsonValue")};
             let mut entries=builtins_for("SchemaArray");
             for entry in &mut entries {
-                if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element)]));}
-                if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element)]));}}}
+                if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
+                if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}
             }
             return entries;
         }

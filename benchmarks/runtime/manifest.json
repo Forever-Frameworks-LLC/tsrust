@@ -22026,6 +22026,30 @@
       "notes": "Parse plus validation in a small exact-integer domain. Handwritten TypeScript reference, not Zod. Full signed-64 endpoints and precision failures have separate native checks. Unmeasured.",
       "sourceSha256": "969f16b6c64cf7c8181540ff852e7afd3b0e938f56e442ecd4aa369a6c925885",
       "counterpartSha256": "69dc548002d1800f6cd1d455e1e3057eb168ae41dd0d0be9a6f01d9a137d2052"
+    },
+    {
+      "id": "native_schema_number_array_int",
+      "category": "schema",
+      "description": "Checked integer-array to number-array schema conversion",
+      "source": "workloads/native_schema_number_array_int.tsr",
+      "counterpart": "workloads/native_schema_number_array_int.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One owned array construction, validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "native-int-array",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Convert [42] exactly and reject [9007199254740993] with an indexed number-precision error. Checksum adds two per iteration.",
+      "notes": "Owned array validation only; no JSON parse. TypeScript uses BigInt as the exact integer reference. Handwritten reference, not Zod. Unmeasured.",
+      "sourceSha256": "af584104bea00f9739261846b814ab060b5c631cab1a618261a2d9de93980938",
+      "counterpartSha256": "27a45cd603f715142184eb44e082d4ab106c1dc27aa5af6fb5c9fd2cc0a10858"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
