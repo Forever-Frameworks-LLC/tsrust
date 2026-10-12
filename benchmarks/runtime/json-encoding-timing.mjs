@@ -11,10 +11,8 @@ import {nativeEncodingAllocation,directEncodingAllocation,nodeEncodingAllocation
 import {jsonAllocationInput,jsonAllocationChecksum} from './json-allocation-adapter.mjs';
 import {prepareNativeDependencies} from './native-dependencies.mjs';
 import {compilerSourceInputs} from './compiler-source-inputs.mjs';
-import {validateEncodingTiming} from './json-encoding-timing-contract.mjs';
-const kinds=['encode_typed','encode_dynamic','encode_typed_strings','encode_dynamic_strings','encode_dynamic_deep','encode_dynamic_object','encode_typed_object'];
-const rss=process.argv.length===3&&process.argv[2]==='--rss';
-if(process.argv.length!==2&&!rss)throw Error('Usage: json-encoding-timing.mjs [--rss]');
+import {validateEncodingTiming,encodingSelection} from './json-encoding-timing-contract.mjs';
+const {rss,kinds}=encodingSelection(process.argv.slice(2));
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'../..');
 const pins=JSON.parse(fs.readFileSync(here+'/versions.json'));
@@ -33,11 +31,11 @@ const build=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-json-encoding-timing-')
 const sources=[],rows=[];
 try {
  for(const kind of kinds){
-  const id=`json_${kind}_array`,sourceId=kind.startsWith('encode_dynamic_')?'json_encode_dynamic_array':id,file=here+`/allocations/${sourceId}.tsr`;
+  const id=`json_${kind}_array`,sourceId=kind.startsWith('encode_raw')?'json_encode_raw_array':kind.startsWith('encode_dynamic_')?'json_encode_dynamic_array':id,file=here+`/allocations/${sourceId}.tsr`;
   const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${sourceId}.ts`,'utf8');
   const emitted=run(compiler,['emit',file]);
   const dependencies=prepareNativeDependencies({emitted,compiler,source:file,build,rustVersion:pins.rust,targetDirectory:target,env});
-  const generated=nativeEncodingAllocation(emitted,driver,kind),direct=directEncodingAllocation(driver,kind),typescript=nodeEncodingAllocation(counterpart,nodeDriver);
+  const generated=nativeEncodingAllocation(emitted,driver,kind),direct=directEncodingAllocation(driver,kind),typescript=nodeEncodingAllocation(counterpart,nodeDriver,kind);
   const commands=[];
   for(const [engine,text] of [['native',generated],['directRust',direct]]){
    const stem=path.join(build,`${id}_${engine}`);fs.writeFileSync(stem+'.rs',text);
@@ -63,5 +61,5 @@ try {
   console.error(`Measured ${id}: three sizes, three processes per engine`);
  }
  const files=['process-rss.py','process-rss.mjs','json-encoding-rss-driver.rs','json-encoding-rss-driver.ts','json-encoding-timing.mjs','json-encoding-timing-contract.mjs','json-encoding-timing-driver.rs','json-encoding-timing-driver.ts','json-encoding-allocation.mjs','json-allocation-adapter.mjs','allocations/json-object-encoding-baseline.rs'];
- console.log(JSON.stringify({schemaVersion:1,scope:rss?'json-encoding-rss':'json-encoding-timing',timestamp:new Date().toISOString(),protocol:rss?{processes:3,operationsPerProcess:1,metric:'macOS child ru_maxrss in bytes; fresh monitor per child',scope:'whole process including startup, prepared input, retained output, exact-output observer and runtime overhead; not incremental heap; no warmup or forced GC'}:{processes:3,warmups:8,samples:31,iterationsPerBatch:100,cold:'first encoding after input preparation; not process startup',retention:'each output retained until replaced; last output retained through timer stop and exact verification; reclamation follows each runtime',timed:'encoding and replacement/disposal; input preparation and output validation excluded',limits:'native bounded checked encoding; direct Serde and Node assume valid fixture; no RSS measurement'},machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript},sources,rows,inputs:Object.fromEntries(files.map(file=>[file,hash(fs.readFileSync(here+'/'+file))])),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')},null,2));
+ console.log(JSON.stringify({schemaVersion:1,kinds,rawSemantics:'Raw inputs are validated before measurement. Native preserves exact text with depth checks; direct Serde RawValue copies compact source without native bounds. Node returns existing immutable source text; output allocation/replacement costs differ. Fixtures have no surrounding whitespace.',scope:rss?'json-encoding-rss':'json-encoding-timing',timestamp:new Date().toISOString(),protocol:rss?{processes:3,operationsPerProcess:1,metric:'macOS child ru_maxrss in bytes; fresh monitor per child',scope:'whole process including startup, prepared input, retained output, exact-output observer and runtime overhead; not incremental heap; no warmup or forced GC'}:{processes:3,warmups:8,samples:31,iterationsPerBatch:100,cold:'first encoding after input preparation; not process startup',retention:'each output retained until replaced; last output retained through timer stop and exact verification; reclamation follows each runtime',timed:'encoding and replacement/disposal; input preparation and output validation excluded',limits:'native bounded checked encoding; direct Serde and Node assume valid fixture; no RSS measurement'},machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript},sources,rows,inputs:Object.fromEntries(files.map(file=>[file,hash(fs.readFileSync(here+'/'+file))])),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')},null,2));
 }finally{fs.rmSync(build,{recursive:true,force:true});}

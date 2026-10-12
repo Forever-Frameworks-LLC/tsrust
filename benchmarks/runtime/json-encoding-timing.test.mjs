@@ -6,3 +6,10 @@ test('timing evidence requires full protocol and stable exact-output checksum',(
  assert.doesNotThrow(()=>validateEncodingTiming(row,42));
  for(const patch of [{checksum:0},{coldMs:-1},{durations:[1]},{durations:Array(31).fill(NaN)},{iterations:1},{warmups:0}])assert.throws(()=>validateEncodingTiming({...row,...patch},42));
 });
+
+test('raw timing selection preserves defaults and rejects ambiguous requests',async()=>{
+ const {encodingSelection}=await import('./json-encoding-timing-contract.mjs');
+ assert.equal(encodingSelection([]).kinds.length,7);
+ assert.deepEqual(encodingSelection(['--only=encode_raw,encode_raw_deep','--rss']),{rss:true,kinds:['encode_raw','encode_raw_deep']});
+ for(const args of [['--rss','--rss'],['--only=encode_raw,encode_raw'],['--only=unknown'],['--only='],['--nope']])assert.throws(()=>encodingSelection(args));
+});
