@@ -761,3 +761,19 @@ rejection/disposal coverage. This is an internal representation: public retained
 output spelling and source builder integration remain unimplemented. No dynamic
 map replaces the typed declared-field output. SQLite evidence:
 `tsrust-schema-object-policies-*-a23e2996.log`. No timing or consumer refresh.
+
+## Composite native signature instantiation
+
+Native type-shape preparation now accepts explicit concrete signature parameters.
+Canonical keys resolve those parameters before interning, so repeated identical
+specializations reuse metadata while Schema<string[]> and Schema<int[]> retain
+distinct checked identities. Missing parameters fail without partial record state.
+Existing concrete bindings use the same helper with no arguments. Callable
+returned-borrow validation remains separate and mandatory; preparing a type shape
+does not register or authorize a native callable.
+
+Five focused binding tests pass, including ordinary/view Results, numeric unions,
+distinct array-schema specializations and repeated preparation. This is a type
+preparation prerequisite; public array/object constructors, child-plan storage,
+validation lowering and editor inference remain pending. SQLite evidence:
+`tsrust-schema-instantiation-*-a2daa32e.log`.

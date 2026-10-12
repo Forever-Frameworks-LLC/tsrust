@@ -4,10 +4,30 @@
 use crate::{Diagnostic, Span, native_bindings::{NativeBinding, NativeType}, native_signatures::Signature,
     syntax::{Record, RecordField, Token, TokenKind, Type}};
 
-fn key(signature: &Signature) -> Result<String, Diagnostic> {
-    signature.render(|id| Some(crate::native_type_resolution::linked_name(id)))
-        .map(|text| format!("{}native-signature#{text}", crate::type_aliases::LINKED_PREFIX))
-        .map_err(|_| Diagnostic::new("native-type-limit", "Native signature exceeds its rendering limit.", Span::default()))
+fn key(signature:&Signature,parameters:&[Signature])->Result<String,Diagnostic>{
+    let failure=||Diagnostic::new("native-type-limit","Native signature exceeds its rendering limit or has an unresolved parameter.",Span::default());
+    let arguments=parameters.iter().map(|parameter|parameter.render(|id|Some(crate::native_type_resolution::linked_name(id))).map(|text|text.into_owned())).collect::<Result<Vec<_>,_>>().map_err(|_|failure())?;
+    signature.render_with_parameters(|id|Some(crate::native_type_resolution::linked_name(id)),|index|arguments.get(index).cloned())
+        .map(|text|format!("{}native-signature#{text}",crate::type_aliases::LINKED_PREFIX)).map_err(|_|failure())
+}
+
+/// Prepare a concrete type shape. Callable borrowed-result validation remains in
+/// prepare; this helper does not register or authorize a native callable.
+pub(crate) fn prepare_signature(records:&mut Vec<Record>,signature:&Signature,parameters:&[Signature],span:Span)->Result<(),Diagnostic>{
+    let name=key(signature,parameters)?;
+    if records.iter().any(|record|record.name.text==name){return Ok(());}
+    let annotation=crate::native_type_resolution::project_with_parameters(records,signature,parameters,span)?;
+    records.push(Record {
+        native_type:None,map_definition:None,set_definition:None,enum_definition:None,
+        application:None,name:Token{text:name,kind:TokenKind::Symbol,span},type_parameters:Vec::new(),
+        fields:vec![RecordField{name:Token{text:"signature#value".into(),kind:TokenKind::Symbol,span},annotation,ty:None,callable_declaration:None,optional:false}],
+    });
+    Ok(())
+}
+
+pub(crate) fn resolve_signature(records:&[Record],signature:&Signature,parameters:&[Signature])->Option<Type>{
+    let name=key(signature,parameters).ok()?;
+    records.iter().find(|record|record.name.text==name)?.fields.first()?.ty
 }
 
 pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: Span) -> Result<(), Diagnostic> {
@@ -28,17 +48,7 @@ pub(crate) fn prepare(records: &mut Vec<Record>, binding: &NativeBinding, span: 
 fn project_shapes(records: &mut Vec<Record>, binding: &NativeBinding, span: Span) -> Result<(), Diagnostic> {
     for ty in binding.parameters.iter().map(|parameter| parameter.ty).chain(std::iter::once(binding.result)) {
         let NativeType::Structured(signature) = ty else { continue; };
-        let name = key(signature)?;
-        if records.iter().any(|record| record.name.text == name) { continue; }
-        let annotation = crate::native_type_resolution::project(records, signature, span)?;
-        records.push(Record {
-            native_type: None, map_definition: None, set_definition: None, enum_definition: None,
-            application: None, name: Token { text: name, kind: TokenKind::Symbol, span }, type_parameters: Vec::new(),
-            fields: vec![RecordField {
-                name: Token { text: "signature#value".into(), kind: TokenKind::Symbol, span },
-                annotation, ty: None, callable_declaration: None, optional: false,
-            }],
-        });
+        prepare_signature(records,signature,&[],span)?;
     }
     Ok(())
 }
@@ -50,8 +60,7 @@ pub(crate) fn prepare_private_view_test(records: &mut Vec<Record>, binding: &Nat
 }
 
 pub(crate) fn resolve(records: &[Record], signature: &Signature) -> Option<Type> {
-    let name = key(signature).ok()?;
-    records.iter().find(|record| record.name.text == name)?.fields.first()?.ty
+    resolve_signature(records,signature,&[])
 }
 
 #[cfg(test)]
@@ -59,6 +68,29 @@ mod tests {
     use super::*;
     use crate::native_bindings::{NativeBackend, NativeParameter};
     use crate::native_signatures::NativeTypeId;
+    #[test]
+    fn instantiated_schema_signatures_keep_element_identity() {
+        static ARRAY_SCHEMA:Signature=Signature::Applied(NativeTypeId::Schema,&[Signature::Array(&Signature::Parameter(0))]);
+        let mut program=crate::syntax::parse("function main(){}").unwrap();
+        for element in [Signature::String,Signature::Int] {
+            prepare_signature(&mut program.records,&ARRAY_SCHEMA,&[element],Span::default()).unwrap();
+        }
+        let count=program.records.len();
+        prepare_signature(&mut program.records,&ARRAY_SCHEMA,&[Signature::String],Span::default()).unwrap();
+        assert_eq!(program.records.len(),count);
+        let checked=crate::analysis::analyze(program).unwrap();
+        let string=resolve_signature(&checked.records,&ARRAY_SCHEMA,&[Signature::String]).unwrap();
+        let integer=resolve_signature(&checked.records,&ARRAY_SCHEMA,&[Signature::Int]).unwrap();
+        assert_ne!(string,integer);
+        for ty in [string,integer] {
+            let Type::Record(id)=ty else{panic!("schema record")};
+            assert_eq!(checked.records[id].native_type,Some(NativeTypeId::Schema));
+        }
+        let mut records=Vec::new();
+        assert!(prepare_signature(&mut records,&ARRAY_SCHEMA,&[],Span::default()).is_err());
+        assert!(records.is_empty());
+    }
+
     #[test]
     fn numeric_union_signature_preserves_distinct_checked_variants() {
         static LIMIT: Signature=Signature::Union(&[Signature::Int,Signature::Number]);
