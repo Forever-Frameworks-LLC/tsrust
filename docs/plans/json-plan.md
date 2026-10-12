@@ -1317,3 +1317,31 @@ Evidence: tsrust-json-stream-*-4a4bf441 in SQLite, including an independent
 cross-size peak assertion. Prior measurements remain unchanged. Streaming writer,
 broader encoding/raw-fragment coverage and S10 regression/timing acceptance remain
 open; no timing or installed-consumer refresh is claimed.
+
+### JSON Lines writer allocation baselines
+
+`--only=stream_write_owned,stream_write_borrowed` measures one open writer over
+0, 1 or 10000 typed records, including staging, buffered writes, flush and close.
+New fixtures retain one input record and writer for the sequence rather than
+reopening/truncating per record. Direct Rust stages each record with Serde before
+writing to an 8192-byte BufWriter; Node stages JSON.stringify output and uses an
+8192-byte file buffer. Every engine's complete file is compared against an
+independent literal-byte oracle immediately after each process sample. Empty
+files, record count, canonical key order, LF separators and final flushing are
+covered. The returned independent scalar checksum is 7 + record count.
+
+Six cases and 54 fresh-process samples pass, as do eleven focused allocation
+checks. All Rust samples release output state and input paths completely. Peak
+requested bytes remain unchanged between one and 10000 records: 8256 for both
+native writer forms and 8320 for direct Rust. Empty writers peak at 8192. Both
+Rust engines perform 10001 allocations at 10000 records, but native staging also
+performs 30000 reallocations versus zero in direct Rust. This confirms the small
+initial staging capacity tradeoff identified by encoding probes. Prioritize its
+CPU impact in the S10 timing review before choosing a capacity/reuse optimization;
+retain all pre-optimization records. Bounded peak memory here applies to fixed
+small records, not arbitrary record sizes or process RSS.
+
+Evidence: tsrust-json-writer-alloc-*-82e9e8cd in SQLite, including exact-file checks
+and the cross-size peak assertion. Prior allocation records are unchanged. Broader
+encoding/raw-fragment coverage, full S10 regressions and timing acceptance remain
+open; installed consumers are unchanged.

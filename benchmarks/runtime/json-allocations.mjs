@@ -33,14 +33,15 @@ const build=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-json-allocations-'));
 const sources=[],rows=[];
 try {
  for(const kind of kinds){
+  const writer=kind.startsWith('stream_write_');
   const id=`json_${kind}_array`,sourceId=kind==='stream_owned'?'../workloads/native_jsonl_typed':kind==='stream_borrowed'?'../workloads/native_jsonl_borrowed':kind.startsWith('dynamic_')?'json_dynamic_array':['typed_invalid','typed_mismatch'].includes(kind)?'json_typed_strings_array':id,file=here+`/allocations/${sourceId}.tsr`;
   const streaming=kind.startsWith('stream_');
   const sizes=streaming?[0,1,10000]:kind.includes('_')?[0,1,1000]:[0,1,10000];
-  const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${sourceId}.ts`,'utf8');
+  const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${writer?'json_stream_write_owned_array':sourceId}.ts`,'utf8');
   const emitted=run(compiler,['emit',file]);
   const dependencies=prepareNativeDependencies({emitted,compiler,source:file,build,rustVersion:pins.rust,targetDirectory:target,env});
   const encoding=kind.startsWith('encode_');
-  const generated=streaming?nativeStreamAllocation(emitted,driver):encoding?nativeEncodingAllocation(emitted,driver,kind):adaptJsonAllocation(emitted,driver,kind),direct=streaming?directStreamAllocation(driver):encoding?directEncodingAllocation(driver,kind):directJsonAllocation(driver,kind),typescript=streaming?nodeStreamAllocation(counterpart,nodeDriver):encoding?nodeEncodingAllocation(counterpart,nodeDriver):nodeJsonAllocation(counterpart,nodeDriver,kind);
+  const generated=streaming?nativeStreamAllocation(emitted,driver,writer):encoding?nativeEncodingAllocation(emitted,driver,kind):adaptJsonAllocation(emitted,driver,kind),direct=streaming?directStreamAllocation(driver,writer):encoding?directEncodingAllocation(driver,kind):directJsonAllocation(driver,kind),typescript=streaming?nodeStreamAllocation(counterpart,nodeDriver,writer):encoding?nodeEncodingAllocation(counterpart,nodeDriver):nodeJsonAllocation(counterpart,nodeDriver,kind);
   const commands=[];
   for(const [engine,text] of [['native',generated],['directRust',direct]]){
    const stem=path.join(build,`${id}_${engine}`);fs.writeFileSync(stem+'.rs',text);
@@ -51,13 +52,14 @@ try {
   const tsc=[here+'/node_modules/typescript/bin/tsc','--project',stem+'.json'];run(process.execPath,tsc);commands.push([process.execPath,...tsc]);
   sources.push({id,sourceId,sizes,sourceSha256:hash(source),counterpartSha256:hash(counterpart),emittedSha256:hash(emitted),instrumentedSha256:hash(generated),directRustSha256:hash(direct),instrumentedTypeScriptSha256:hash(typescript),dependencies:dependencies.evidence,commands});
   for(const n of sizes){
-   const payload=streaming?streamInput(n):jsonAllocationInput(n,kind);
-   const input=streaming?path.join(build,`${id}-${n}.jsonl`):payload,expected=streaming?7+42*n:jsonAllocationChecksum(n,kind),samples=[];
+   const payload=writer?'':streaming?streamInput(n):jsonAllocationInput(n,kind);
+   const input=streaming?path.join(build,`${id}-${n}.jsonl`):payload,expected=writer?7+n:streaming?7+42*n:jsonAllocationChecksum(n,kind),samples=[];
    if(streaming)fs.writeFileSync(input,payload);
    for(let sample=0;sample<3;sample++){
-    const native=JSON.parse(run(stem+'_native',[String(n),input]));
-    const directRust=JSON.parse(run(stem+'_directRust',[String(n),input]));
-    const node=JSON.parse(run(process.execPath,['--expose-gc',stem+'.js',String(n),input]));
+    const verifyFile=()=>{if(writer)assert.equal(fs.readFileSync(input,'utf8'),'{"active":true,"name":"hello","values":[20,17]}\n'.repeat(n));};
+    const native=JSON.parse(run(stem+'_native',[String(n),input]));verifyFile();
+    const directRust=JSON.parse(run(stem+'_directRust',[String(n),input]));verifyFile();
+    const node=JSON.parse(run(process.execPath,['--expose-gc',stem+'.js',String(n),input]));verifyFile();
     for(const result of [native,directRust]){assert.equal(result.checksum,expected);assert.equal(result.liveBytesAfterOutputDrop,0);assert.equal(result.liveBytesAfterDrop,0);if(!encoding)assert.equal(result.inputRequestedBytes,Buffer.byteLength(input));if(streaming||kind.endsWith('_invalid')||kind.endsWith('_mismatch'))assert.equal(result.retainedRequestedBytes,0);}
     assert.equal(node.checksum,expected);samples.push({native,directRust,node});
    }
@@ -66,6 +68,6 @@ try {
   }
   console.error(`Verified ${id}: three sizes, three fresh-process samples, native/direct Rust/Node`);
  }
- const data={schemaVersion:1,scope:'json-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,kinds,semantics:'Valid arrays of exact integers 7 through n+6, or n pairs of Unicode and escaped strings (12 decoded UTF-8 bytes per pair), nested integer pairs, or records selecting nested items while ignoring a payload of strings and objects. Nested checksums sum 2n integers starting at 7. Failure inputs contain n strings followed by invalid syntax or a number incompatible with string[]. Failure probes return 1 only on rejection and drop errors before sampling counters; no output heap bytes may remain. Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked typed array. Encoding cases prepare numeric arrays outside counters and compare exact JSON output bytes after sampling; inputRequestedBytes measures owned input heap storage. JSONL streaming cases open/read/close once over n records, use 8192-byte file buffers, and return 7+42n; inputRequestedBytes counts only the path, while file buffers and record allocation are inside counters. Native lines enforce limits; direct Rust assumes this valid bounded fixture. Decoding input is retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),streamAdapterSha256:hash(fs.readFileSync(here+'/json-stream-allocation.mjs')),encodingAdapterSha256:hash(fs.readFileSync(here+'/json-encoding-allocation.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
+ const data={schemaVersion:1,scope:'json-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,kinds,semantics:'Valid arrays of exact integers 7 through n+6, or n pairs of Unicode and escaped strings (12 decoded UTF-8 bytes per pair), nested integer pairs, or records selecting nested items while ignoring a payload of strings and objects. Nested checksums sum 2n integers starting at 7. Failure inputs contain n strings followed by invalid syntax or a number incompatible with string[]. Failure probes return 1 only on rejection and drop errors before sampling counters; no output heap bytes may remain. Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked typed array. Encoding cases prepare numeric arrays outside counters and compare exact JSON output bytes after sampling; inputRequestedBytes measures owned input heap storage. JSONL streaming cases open/read/close once over n records, use 8192-byte file buffers, and return 7+42n; inputRequestedBytes counts only the path, while file buffers and record allocation are inside counters. Writer cases open once and stage each record before buffered output; exact file bytes from each engine are verified outside counters. Native lines enforce limits; direct Rust assumes this valid bounded fixture. Decoding input is retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),streamAdapterSha256:hash(fs.readFileSync(here+'/json-stream-allocation.mjs')),encodingAdapterSha256:hash(fs.readFileSync(here+'/json-encoding-allocation.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
  console.log(JSON.stringify(data,null,2));
 } finally {fs.rmSync(build,{recursive:true,force:true});}

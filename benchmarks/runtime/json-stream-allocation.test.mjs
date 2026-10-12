@@ -14,3 +14,11 @@ test('stream probes read one file once regardless of record count',()=>{
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeStreamAllocation('',nodeDriver),/workload\(1, 7, input\)/);
 });
+
+test('writer probes preserve record count instead of reader single-pass adaptation',()=>{
+ const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<i64,TsrFunctionError0> {}\nfn main() {}';
+ assert.match(nativeStreamAllocation(emitted,driver,true),/tsr_result_function0\(n,7,&input\)/);
+ assert.match(directStreamAllocation(driver,true),/stream_write/);
+ const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
+ assert.match(nodeStreamAllocation('',nodeDriver,true),/workload\(n, 7, input\)/);
+});
