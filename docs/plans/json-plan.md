@@ -8,8 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Raw fragments, allocation
-baselines, and family measurements remain open. No S10 timing acceptance is claimed.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric encoding and owned/borrowed JSONL reading/writing: 54 cases and 486 fresh-process samples. Public raw fragments, broader encoding coverage and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -20,6 +19,26 @@ The approved global JSON namespace has [focused acceptance](../milestones/json-n
 including editor documentation and untimed matched workload checks. The required
 [compiler source organization checkpoint](../milestones/compiler-source-organization.md)
 is accepted; continue the remaining runtime APIs and S10 acceptance below.
+
+## Current acceptance gaps
+
+The allocation batches below preserve immutable original records in SQLite.
+They measure Rust requested heap allocations and Node post-GC retained heap;
+neither metric establishes process peak RSS or latency.
+
+| Requirement | Current evidence | Remaining acceptance |
+| --- | --- | --- |
+| Dynamic/typed decoding | Numeric, Unicode, nested/selective and failure allocation cases; dynamic 32-level nesting | Full throughput/latency and wrapper-cost matrix |
+| Encoding | Numeric dynamic/typed arrays; exact output bytes | Broader Unicode/object/deep encoding allocation and timing coverage |
+| JSONL streaming | Owned/borrowed readers and writers, 0/1/10000 records, bounded peak requested heap | Timing/RSS and full family regression review |
+| Raw fragments | Private validation and real borrowed-source lifetime | Owner decision on preserved raw spelling, public API, editor/examples and measurements |
+| Release consumers | Installed checkpoint ee1e2717 | Refresh borrowed adapters and remaining accepted features after final source verification |
+
+Review measured native staging growth (three reallocations per fixed writer
+record) and typed mismatch error overhead during family timing. Preserve all
+original allocation records before optimization. Family acceptance also requires
+warm/cold separation and direct Rust comparisons with matching retained output;
+selective typed and full dynamic trees have different retention semantics.
 
 ## Public naming review
 
@@ -1345,3 +1364,22 @@ Evidence: tsrust-json-writer-alloc-*-82e9e8cd in SQLite, including exact-file ch
 and the cross-size peak assertion. Prior allocation records are unchanged. Broader
 encoding/raw-fragment coverage, full S10 regressions and timing acceptance remain
 open; installed consumers are unchanged.
+
+### Deep dynamic decoding allocation baseline
+
+`--only=dynamic_deep` measures 31 singleton array wrappers around a numeric leaf
+array, for 32 container levels. Leaf sizes 0, 1 and 1000 share the independent
+arithmetic checksum used by numeric decoding; all wrappers are checked after
+sampling. The dynamic native program and direct Serde baseline retain the whole
+tree. Node checks the same shape and leaf values after its heap measurement.
+
+All three cases and 27 process samples pass, with twelve focused allocation
+guards. Native/direct Rust allocation counts match: 31 allocations and 3968
+retained requested bytes for an empty leaf; 32/4096 for one value; 32 allocations,
+eight reallocations and 36736 bytes for 1000 values. Every Rust sample releases
+all tracked output and input memory. This is depth 32, not a boundary-limit test
+or a recursive typed-decoder measurement; existing correctness tests cover limits.
+
+Evidence: tsrust-json-deep-*-65a7336a in SQLite. No older cases were rerun. The
+current acceptance table distinguishes these 486 accumulated process samples from
+still-missing family latency, throughput, RSS, raw-fragment and release evidence.

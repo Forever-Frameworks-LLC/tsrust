@@ -79,3 +79,12 @@ test('failure probes reject malformed and late type-mismatch input without retai
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeJsonAllocation('function workload(n:number,seed:number,input:string):unknown{return JSON.parse(input);}',nodeDriver,'dynamic_invalid'),/catch/);
 });
+
+test('deep dynamic probe keeps 32 container levels and checks the leaf values',()=>{
+ const input=jsonAllocationInput(3,'dynamic_deep');
+ assert.equal(input,'['.repeat(31)+'[7,8,9]'+']'.repeat(31));
+ assert.equal(jsonAllocationChecksum(3,'dynamic_deep'),24);
+ assert.match(directJsonAllocation(driver,'dynamic_deep'),/0\.\.31/);
+ const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
+ assert.match(nodeJsonAllocation('',nodeDriver,'dynamic_deep'),/depth<31/);
+});

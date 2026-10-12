@@ -4,7 +4,7 @@ function replaceOnce(source,before,after){
  if(source.split(before).length!==2)throw Error(`JSON allocation ABI drift: ${before}`);
  return source.replace(before,after);
 }
-export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed'];
+export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep'];
 function shape(kind){
  if(!jsonAllocationKinds.includes(kind))throw Error('JSON allocation kind');
  return {dynamic:kind.startsWith('dynamic'),failure:kind.endsWith('_invalid')||kind.endsWith('_mismatch'),strings:kind.endsWith('_strings')||kind.endsWith('_invalid')||kind.endsWith('_mismatch'),nested:kind.endsWith('_nested')||kind.endsWith('_selective'),selective:kind.endsWith('_selective')};
@@ -12,6 +12,7 @@ function shape(kind){
 export function jsonAllocationInput(n,kind='dynamic'){
  const {strings,nested,selective,failure}=shape(kind);
  if(!Number.isSafeInteger(n)||n<0||n>100000)throw Error('JSON allocation size must be an integer from 0 through 100000');
+ if(kind==='dynamic_deep')return '['.repeat(31)+jsonAllocationInput(n,'dynamic')+']'.repeat(31);
  if(failure)return '['+Array.from({length:n},()=>'"é🦀"').concat(kind.endsWith('_mismatch')?'7':'?').join(',')+']';
  if(nested){
   const items='['+Array.from({length:n},(_,i)=>`[${7+2*i},${8+2*i}]`).join(',')+']';
@@ -32,7 +33,9 @@ export function adaptJsonAllocation(emitted,driver,kind){
  if(selective&&!dynamic&&!emitted.includes(`struct ${signature[1]} { field0: Array<NumericArray<i64>> }`))throw Error('JSON selective record ABI drift');
  const body=replaceOnce(emitted,'fn main()','fn source_main()');
  if(failure)return body+'\n'+instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n), std::hint::black_box(7), &input) { Ok(_)=>0i64, Err(error)=>{drop(error);1i64} }')+'\nfn probe_checksum(value:&i64)->i64 {*value}';
- const checksum=nested
+ const checksum=kind==='dynamic_deep'
+  ?'let mut leaf=&value.value;for _ in 0..31 {let rows=leaf.as_array().unwrap();assert_eq!(rows.len(),1);leaf=&rows[0];}leaf.as_array().unwrap().iter().map(|v|v.as_i64().unwrap()).sum()'
+  :nested
   ?dynamic?`value.value${selective?'["items"]':''}.as_array().unwrap().iter().flat_map(|row|row.as_array().unwrap()).map(|v|v.as_i64().unwrap()).sum()`
    :`value${selective?'.field0':''}.iter().flat_map(|row|row.iter()).sum()`
   :dynamic
@@ -48,7 +51,9 @@ function instrumentDriver(driver,call){
 export function directJsonAllocation(driver,kind){
  const {dynamic,strings,nested,selective,failure}=shape(kind);
  const ty=dynamic?'serde_json::Value':selective?'Selected':nested?'Vec<Vec<i64>>':strings?'Vec<std::string::String>':'Vec<i64>';
- const checksum=nested
+ const checksum=kind==='dynamic_deep'
+  ?'let mut leaf=value;for _ in 0..31 {let rows=leaf.as_array().unwrap();assert_eq!(rows.len(),1);leaf=&rows[0];}leaf.as_array().unwrap().iter().map(|v|v.as_i64().unwrap()).sum()'
+  :nested
   ?dynamic?`value${selective?'["items"]':''}.as_array().unwrap().iter().flat_map(|row|row.as_array().unwrap()).map(|v|v.as_i64().unwrap()).sum()`
    :`value${selective?'.items':''}.iter().flat_map(|row|row.iter()).sum()`
   :dynamic
@@ -68,6 +73,6 @@ export function nodeJsonAllocation(counterpart,driver,kind='dynamic'){
   return decoding+'\nfunction workload(n:number,seed:number,input:string):number{try{decodeWorkload(n,seed,input);return 0;}catch{return 1;}}\nfunction probeChecksum(value:unknown):number{if(value!==1)throw Error("invalid input accepted");return 1;}\n'+adapted;
  }
  const check=strings?'if(typeof item!=="string")throw Error("string output required");return sum+new TextEncoder().encode(item).length;':'if(typeof item!=="number"||!Number.isSafeInteger(item))throw Error("integer output required");return sum+item;';
- const preparation=(selective?'if(typeof value!=="object"||value===null||!("items" in value))throw Error("items record required");value=value.items;':'')+(nested?'if(!Array.isArray(value))throw Error("nested array required");for(const row of value)if(!Array.isArray(row))throw Error("row required");value=value.flat();':'');
+ const preparation=(kind==='dynamic_deep'?'for(let depth=0;depth<31;depth++){if(!Array.isArray(value)||value.length!==1)throw Error("nested wrapper required");value=value[0];}':'')+(selective?'if(typeof value!=="object"||value===null||!("items" in value))throw Error("items record required");value=value.items;':'')+(nested?'if(!Array.isArray(value))throw Error("nested array required");for(const row of value)if(!Array.isArray(row))throw Error("row required");value=value.flat();':'');
  return counterpart+'\nfunction probeChecksum(value:unknown):number {'+preparation+'if(!Array.isArray(value))throw Error("array output required");return value.reduce((sum:number,item:unknown)=>{'+check+'},0);}\n'+adapted;
 }
