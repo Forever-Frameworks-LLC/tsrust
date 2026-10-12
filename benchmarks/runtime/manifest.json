@@ -22050,6 +22050,30 @@
       "notes": "Owned array validation only; no JSON parse. TypeScript uses BigInt as the exact integer reference. Handwritten reference, not Zod. Unmeasured.",
       "sourceSha256": "af584104bea00f9739261846b814ab060b5c631cab1a618261a2d9de93980938",
       "counterpartSha256": "27a45cd603f715142184eb44e082d4ab106c1dc27aa5af6fb5c9fd2cc0a10858"
+    },
+    {
+      "id": "native_schema_json_object",
+      "category": "schema",
+      "description": "Typed JSON object validation with missing and unknown field diagnostics",
+      "source": "workloads/native_schema_json_object.tsr",
+      "counterpart": "workloads/native_schema_json_object.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One JSON parse, object validation and result observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "{\"count\":2}",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Validate count 2; reject a missing count and unknown extra field. Checksum adds four per iteration.",
+      "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
+      "sourceSha256": "1a826885532d80a4236e65ef5b19f0be65d8bfc05ba579b56fd74032c36d4a75",
+      "counterpartSha256": "efc1a80e793752ccf70c6cea2db12006bf322a5c9b7e98701c5112228b2d4cc2"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

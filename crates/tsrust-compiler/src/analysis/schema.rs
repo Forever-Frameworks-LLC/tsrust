@@ -20,21 +20,25 @@ impl Analyzer {
         expr.kind=ExprKind::NativeConstructor(std::mem::take(args),Some(Box::new(annotation)));
         Ok(Some(result))
     }
-    pub(super) fn schema_array_validation(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+    pub(super) fn schema_composite_validation(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         let ExprKind::Field(base,member)=&callee.kind else{return Ok(None)};
         if member!="safeParse" {return Ok(None);}
-        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:array"));
+        let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:array"|"@schema:object")));
         let mut receiver=(**base).clone();
         let receiver_type=if constructing {Some(self.expression(context,&mut receiver,Mode::Read,loans,None)?)}else{self.expression_type_hint(context,base)};
         let Some(Type::Record(id))=receiver_type else{return Ok(None)};
         let record=&self.program.records[id];
         if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Ok(None);}
         let output=record.application.as_ref().unwrap().resolved_arguments[0];
-        if !matches!(output,Type::Array(_)){return Ok(None);}
-        let mut leaf=output;
-        while let Type::Array(element)=leaf {leaf=element.ty();}
-        if !matches!(leaf,Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null){return Err(Diagnostic::new("schema-type","Array validation requires a supported scalar element schema.",callee.span));}
+        if !matches!(output,Type::Array(_)|Type::Record(_)){return Ok(None);}
+        let mut pending=vec![output];let mut seen=HashSet::new();
+        while let Some(ty)=pending.pop(){if !seen.insert(ty){continue;}match ty{
+            Type::Array(element)=>pending.push(element.ty()),
+            Type::Record(id) if self.program.records[id].native_type.is_none()&&!self.program.records[id].is_tuple()=>pending.extend(self.program.records[id].fields.iter().filter_map(|field|field.ty)),
+            Type::String|Type::Int|Type::Number|Type::Boolean|Type::Null=>{},
+            _=>return Err(Diagnostic::new("schema-type","Composite validation requires supported scalar, array or object fields.",callee.span)),
+        }}
         if args.len()!=1{return Err(Diagnostic::new("arity","safeParse expects one input value.",expr.span));}
         if !constructing {self.expression(context,&mut receiver,Mode::Read,loans,Some(Type::Record(id)))?;}
         let hint=self.expression_type_hint(context,&args[0]);
@@ -54,7 +58,7 @@ impl Analyzer {
         let result=self.resolve_value_annotation(&annotation,false)?;
         self.require(result,expected,expr.span)?;
         args.insert(0,receiver);
-        callee.kind=ExprKind::Name("@schema:validateArray".into());
+        callee.kind=ExprKind::Name("@schema:validate".into());
         expr.target=Some(CallTarget::SchemaValidate);
         Ok(Some(result))
     }

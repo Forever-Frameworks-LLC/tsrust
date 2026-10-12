@@ -79,6 +79,19 @@ impl SourceIndex {
                     &self.project_type_spelling(graph, current, result, dependencies)?,
                 ))
             }
+            ProjectType::Structural { identity, fields } => {
+                let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+                let owner=format!("__tsrust_private_schema_{source}_{identity}");
+                let fields=fields.iter().map(|(name,ty)|Some((name.clone(),self.project_type_spelling(graph,current,ty,dependencies)?))).collect::<Option<Vec<_>>>()?;
+                let display=format!("{{ {} }}",fields.iter().map(|(name,ty)|format!("{name}: {};",self.generic_display_names.get(ty).unwrap_or(ty))).collect::<Vec<_>>().join(" "));
+                self.generic_display_names.insert(owner.clone(),display);
+                if !self.symbols.iter().any(|symbol|symbol.owner.as_ref()==Some(&owner)) {
+                    for (name,ty) in fields {
+                        self.symbols.push(Symbol { signature:format!("{name}: {ty}"),name,kind:8,span:Span::new(0,0),extent:Span::new(0,0),scope:0,ty,docs:"Inferred from an object schema.".into(),parameters:vec![],owner:Some(owner.clone()) });
+                    }
+                }
+                Some(owner)
+            }
             ProjectType::Array(inner) => {
                 let spelling = self.project_type_spelling(graph, current, inner, dependencies)?;
                 Some(if matches!(inner.as_ref(), ProjectType::Callable { .. }) {

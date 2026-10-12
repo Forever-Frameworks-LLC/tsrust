@@ -7063,8 +7063,25 @@
         "output": "constructed\n"
       }
     ]
-  }
-],
+  },
+{
+  "name": "object",
+  "signature": "object(fields: Owned<FieldSchemas>): Schema<Output>",
+  "parameters": [
+    {
+      "label": "fields: Owned<FieldSchemas>",
+      "documentation": "A record whose values are schemas. Field names and child output types determine the inferred output record. Requires exactly one argument."
+    }
+  ],
+  "documentation": "Constructs an immutable object schema with inferred named fields. Each field must contain a schema; duplicate fields are rejected. Child constraints remain active. Empty shapes are supported. JSON validation requires every declared field and rejects unknown fields. Nested objects and arrays are supported.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the shape and its child schemas without cloning. Validation borrows the resulting reusable plan.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "Ada\n"
+    }
+  ]
+}
+  ],
   "SchemaArray": [
   {
     "name": "safeParse",
@@ -7361,6 +7378,25 @@
       {
         "source": "import {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
         "output": "null\n"
+      }
+    ]
+  }
+],
+  "SchemaObject": [
+  {
+    "name": "safeParse",
+    "signature": "safeParse(input: Owned<Input>): Result<Output, SchemaError>",
+    "parameters": [
+      {
+        "label": "input: Owned<Input>",
+        "documentation": "An owned matching record or JsonValue. Input transfers on success and failure."
+      }
+    ],
+    "documentation": "Validates declared fields and returns Ok with an owned typed record. JSON objects require all declared fields and reject unknown fields. Invalid fields, missing fields and unknown fields produce separate issues with named paths; nested arrays add indices. Scalars are checked without coercion. JSON integers remain exact; number extraction rejects precision loss. Validation retains at most 64 issues, 32 path segments and 1024 UTF-8 bytes of field names per path. Omitted issues set truncated; shortened paths set pathTruncated. Partial successful output is released on failure.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: borrows the reusable schema and consumes input. Use clone(input) explicitly to retain the original.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "Ada\n"
       }
     ]
   }

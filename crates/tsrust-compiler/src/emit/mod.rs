@@ -2371,6 +2371,15 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ element: Record{child} }}");
                 continue;
             }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
+                && let Some(Type::Record(object))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
+                let fields=self.program.records[*object].fields.iter().enumerate().map(|(field,value)|{
+                    let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|a|a.resolved_arguments==[value.ty.unwrap()])).expect("object child schema");
+                    format!("field{field}:Record{}",self.native_record_declaration(child))
+                }).collect::<Vec<_>>().join(",");
+                let _=writeln!(output,"struct Record{index} {{ {fields} }}");
+                continue;
+            }
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
                 let arms = definition.members.iter().enumerate().map(|(member, entry)| {
@@ -7444,7 +7453,14 @@ impl Emitter<'_> {
         if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema) {
             let ExprKind::NativeConstructor(args,_)=&expr.kind else{unreachable!()};
             let child=self.expr(fun,&args[0],Mode::Consume);
-            let code=format!("Record{id} {{ element: {child} }}");
+            let code=if let Type::Record(object)=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0] {
+                let Type::Record(shape)=args[0].ty.unwrap() else{unreachable!()};
+                let fields=self.program.records[object].fields.iter().enumerate().map(|(field,value)|{
+                    let source=self.program.records[shape].fields.iter().position(|candidate|candidate.name.text==value.name.text).unwrap();
+                    format!("field{field}:plan.field{source}")
+                }).collect::<Vec<_>>().join(",");
+                format!("{{let plan={child};Record{id}{{{fields}}} }}")
+            }else{format!("Record{id} {{ element: {child} }}")};
             return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
         }
         let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};

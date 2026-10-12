@@ -388,7 +388,7 @@ impl Analysis {
                         } | ExprKind::Unary {
                             op: UnaryOp::CoalesceSelected | UnaryOp::NonNull,
                             ..
-                        } | ExprKind::Sequence(_) | ExprKind::TypeAssertion { .. } | ExprKind::CoalesceAssign { .. }
+                        } | ExprKind::NativeConstructor(_, _) | ExprKind::Sequence(_) | ExprKind::TypeAssertion { .. } | ExprKind::CoalesceAssign { .. }
                             | ExprKind::Optional { .. }
                             | ExprKind::Unary {
                                 op: UnaryOp::OptionalSelected,

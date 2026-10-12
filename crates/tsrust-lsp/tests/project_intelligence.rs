@@ -2570,3 +2570,17 @@ fn schema_number_array_signature_includes_checked_integer_input() {
     let hover=ask(&index,&entry,"result =","textDocument/hover");
     assert!(hover.to_string().contains("Result<number[][], SchemaError>"),"{hover}");
 }
+
+#[test]
+fn schema_object_constructor_exposes_inferred_fields() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string(),age:s.int()});const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"age\":37}'));match(result){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.truncated);}}}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"person =","textDocument/hover");
+    assert!(hover.to_string().contains("name: string")&&hover.to_string().contains("age: int"),"{hover}");
+    let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
+    assert!(hover.to_string().contains("unknown")&&hover.to_string().contains("JsonValue"),"{hover}");
+    let hover=ask(&index,&entry,"name);","textDocument/hover");
+    assert!(hover.to_string().contains("string"),"{hover}");
+}

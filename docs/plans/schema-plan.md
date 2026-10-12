@@ -1,10 +1,11 @@
 # S11 schema validation
 
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
-Public scalar schemas, constraints and nested scalar arrays have focused compiler,
-native and editor verification. Arrays accept matching owned arrays or JsonValue.
-Literal/enum types, objects and other composite APIs, decoder fusion and family
-acceptance remain pending.
+Public scalar schemas, constraints, nested arrays and required-field object schemas
+have focused compiler, native and editor verification. Composite schemas accept
+matching owned input or JsonValue. Explicit object policies, presence/defaults,
+literal/enum types, remaining composite APIs, fused decoding and family acceptance
+remain pending.
 
 ## Required surface and coverage
 
@@ -16,8 +17,8 @@ executing differential cases; current web documentation alone is not a version p
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
-| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
-| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
+| Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain pending |
+| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Pending |
@@ -898,3 +899,35 @@ SQLite: `tsrust-schema-array-conversion-*-c1c8c95d.log`.
 Next composite work is public typed object construction and validation, followed
 by presence/default and union composition. Broader typed-input support, fused
 text decoding and the other S11 requirements above remain in scope.
+
+## Public required-field object checkpoint
+
+`s.object({ name: s.string(), age: s.int() })` consumes the shape and infers a
+record output. Nested object/array fields retain child plans. An explicit
+`Schema<Person>` annotation selects a matching declared record, independent of
+shape field order. Empty shapes are supported. `safeParse` borrows the reusable
+schema, consumes matching owned records or JSON, and returns typed output.
+JSON validation reports missing fields separately from unknown fields, rejects
+unknown fields by default, and preserves named/indexed nested paths within the
+existing bounded error contract. Successful field storage moves into output;
+partial output is released after failure. Child schemas and consumed inputs cannot
+be reused. Invalid shape values receive a schema diagnostic.
+
+Project metadata carries compiler-inferred structural fields into editor hover
+and field access without exposing generated record names. Catalog entries include
+executable examples. `native_schema_json_object` has a matched TypeScript reference,
+independent checksum, source guards, ABI/report registration and untimed parity
+at four input sizes. It is unmeasured, as are the other S11 workloads.
+
+Explicit strip/retain policies, presence/defaults and the remaining S11 families
+are still required. Retained-field public output shape is awaiting the owner's
+choice; internal object policy prototypes do not accept those public APIs.
+No S11 family acceptance or installed-consumer refresh is claimed.
+
+Focused acceptance: 31 schema compiler/native checks (including executable catalog
+examples), 15 schema editor checks and 14 benchmark contract checks passed.
+Whole-project formatting preserved tokens and passed idempotence; one new workload
+was formatted and its source fingerprint refreshed. SQLite retains exact logs
+`tsrust-schema-object-native-batch.log`, `tsrust-schema-object-editor-batch.log`,
+`tsrust-schema-object-contract-formatted.log`, `tsrust-schema-object-parity.log`
+and `tsrust-schema-object-format.log`, together with original red and repair logs.

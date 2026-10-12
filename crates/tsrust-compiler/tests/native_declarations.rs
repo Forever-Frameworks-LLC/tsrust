@@ -394,7 +394,7 @@ fn unrelated_safe_parse_method_does_not_link_json_for_schema_constructor() {
 #[test]
 fn schema_string_catalog_examples_execute_exact_sources() {
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
-    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray"] {
+    for family in ["schemaBuilder", "Schema", "SchemaBoolean", "SchemaInt", "SchemaNumber", "SchemaNull", "SchemaArray", "SchemaObject"] {
         for entry in catalog[family].as_array().unwrap() {
             for example in entry["examples"].as_array().unwrap() {
                 let directory = support::TempDirectory::new();
@@ -781,4 +781,46 @@ fn schema_number_arrays_check_integer_precision_before_bounds() {
     assert_eq!(String::from_utf8_lossy(&output.stdout),"number-precision\n2\nnumber-precision integer 1\nnumber-precision integer 1\ntoo-large integer 2\nnumber-precision integer 2\n");
     let invalid="import {s} from 'std:schema';function main(){const schema=s.array(s.number());const values:int[]=[1];schema.safeParse(values);console.log(values.length);}";
     assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}
+
+#[test]
+fn schema_object_infers_owned_fields_and_rejects_unknown_json() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+    function main(){
+      const name=s.string().min(2);
+      const schema=s.object({name:name,age:s.int().min(1),tags:s.array(s.string())});
+      match(schema.safeParse(JSON.parse('{"name":"Ada","age":37,"tags":["native"]}'))){Ok(value)=>{strictEqual(value.name,'Ada');strictEqual(value.age,37);strictEqual(value.tags.length,1);},Err(error)=>{throw 'valid rejected';}}
+      match(schema.safeParse({name:'Al',age:2,tags:['owned']})){Ok(value)=>{strictEqual(value.name,'Al');},Err(error)=>{throw 'owned rejected';}}
+      match(schema.safeParse(JSON.parse('{"name":"A","extra":true}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{strictEqual(error.issues.length,4);strictEqual(error.truncated,false);let missing=0;let unknown=0;for(const issue of error.issues){strictEqual(issue.path.length,1);if(issue.code==='missing-field'){missing++;}if(issue.code==='unknown-field'){unknown++;}}strictEqual(missing,2);strictEqual(unknown,1);}}
+      const nested=s.array(s.object({child:s.object({flag:s.boolean()})}));
+      match(nested.safeParse(JSON.parse('[{"child":{"flag":true}}]'))){Ok(value)=>{strictEqual(value.length,1);},Err(error)=>{throw 'nested rejected';}}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let invalid="import {s} from 'std:schema';function main(){const child=s.string();s.object({name:child});child.safeParse('x');}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}
+
+#[test]
+fn schema_objects_support_named_empty_and_nested_error_paths() {
+    let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
+    type Person={name:string;age:int;};
+    function main(){
+      const schema:Schema<Person>=s.object({age:s.int(),name:s.string()});
+      const input:Person={name:'Ada',age:37};
+      match(schema.safeParse(input)){Ok(value)=>{strictEqual(value.name,'Ada');strictEqual(value.age,37);},Err(error)=>{throw 'named failed';}}
+      const empty=s.object({});match(empty.safeParse(JSON.parse('{}'))){Ok(value)=>{},Err(error)=>{throw 'empty failed';}}
+      const nested=s.object({rows:s.array(s.object({label:s.string().min(2)}))});
+      match(nested.safeParse(JSON.parse('{"rows":[{"label":"x"}]}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{
+        strictEqual(error.issues.length,1);for(const issue of error.issues){strictEqual(issue.path.length,3);for(const part of issue.path){if(part.field!==undefined){console.log(part.field);}else{console.log(part.index);}}}
+      }}
+    }"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"rows\n0\nlabel\n");
+    for source in ["import {s} from 'std:schema';function main(){s.object({name:1});}","import {s} from 'std:schema';function main(){s.object([s.int()]);}"] {
+        assert_eq!(checked_source(source).err().unwrap().code,"schema-type");
+    }
+    let source="import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});const input=JSON.parse('{}');schema.safeParse(input);console.log(typeof input);}";
+    assert_eq!(checked_source(source).err().unwrap().code,"transferred");
 }

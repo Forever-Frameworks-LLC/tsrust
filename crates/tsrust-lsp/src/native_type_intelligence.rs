@@ -38,6 +38,15 @@ impl SourceIndex {
             }
             return entries;
         }
+        if let Some(element)=self.schema_element(ty) {
+            let input=format!("{element} | JsonValue");
+            let mut entries=builtins_for("SchemaObject");
+            for entry in &mut entries {
+                if let Some(signature)=entry["signature"].as_str(){entry["signature"]=json!(builtin_type_substitution(signature,&[("Output",element),("Input",&input)]));}
+                if let Some(parameters)=entry["parameters"].as_array_mut(){for parameter in parameters{if let Some(label)=parameter["label"].as_str(){parameter["label"]=json!(builtin_type_substitution(label,&[("Output",element),("Input",&input)]));}}}
+            }
+            return entries;
+        }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}
