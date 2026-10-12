@@ -7,7 +7,8 @@ impl Emitter<'_> {
         expr: &Expr,
         args: &[Expr],
     ) -> String {
-        let root = match args[0].ty.unwrap() {
+        let writing=matches!(args[0].ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriter));
+        let root = match args[usize::from(writing)].ty.unwrap() {
             Type::Union(id) if !id.copy => Type::BorrowedUnion(id),
             ty => ty,
         };
@@ -116,7 +117,7 @@ impl Emitter<'_> {
             .records
             .iter()
             .position(|record| {
-                record.native_type == Some(crate::native_signatures::NativeTypeId::JsonError)
+                record.native_type == Some(if writing {crate::native_signatures::NativeTypeId::JsonlError}else{crate::native_signatures::NativeTypeId::JsonError})
             })
             .unwrap();
         let ok_tag = members
@@ -128,6 +129,13 @@ impl Emitter<'_> {
             .position(|ty| *ty == Type::Record(err))
             .unwrap();
         let union = union.index();
+        if writing {
+            let writer=self.expr(fun,&args[0],Mode::Mutate);let value=self.expr(fun,&args[1],Mode::Read);
+            let os=self.program.records[error].fields[5].ty.unwrap().union().unwrap();
+            let members=&self.program.unions[os.index()].members;
+            let present=members.iter().position(|ty|*ty==Type::Int).unwrap();let absent=members.iter().position(|ty|*ty==Type::Undefined).unwrap();let os=os.index();
+            return format!("{{{generated}let writer={writer};let value={value};match writer.handle.write_typed(&Encode0(&value,0)){{Ok(())=>Union{union}::V{ok_tag}(Record{ok}{{}}),Err(error)=>Union{union}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:String::Borrowed(error.operation),field3:error.line as i64,field4:0,field5:match error.os_code{{Some(code)=>Union{os}::V{present}(code),None=>Union{os}::V{absent}(TsrUndefined)}}}}}})}}}}");
+        }
         let value = self.expr(fun, &args[0], Mode::Read);
         let limit = self.expr(fun, &args[1], Mode::Copy);
         format!(

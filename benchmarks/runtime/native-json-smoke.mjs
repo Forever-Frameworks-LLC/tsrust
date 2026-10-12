@@ -36,6 +36,7 @@ try {
     const result=JSON.parse(run(exe,[...args,String(n),String(seed),'1','0',nativeFileInput(row)]));
     assert.equal(result.checksum,expectedChecksum(row.id,n,seed,row.inputText));
     assert.deepEqual(result.durations,[]);
+    if(row.id==='native_jsonl_writer'&&n>0)assert.equal(fs.readFileSync(nativeFileInput(row),'utf8'),'{"active":true,"name":"hello","values":[20,17]}\n');
    }
   }
   console.log(`PASS ${row.id}: native and Node after tsc; five cases; zero timing samples`);

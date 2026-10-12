@@ -65,6 +65,10 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             Ok(())
         })?;
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+            if matches!(&expression.kind,ExprKind::Name(name) if name=="@native:std:json#writeJsonl") {
+                required.insert("writeJsonl",expression.span);throwing.insert("writeJsonl");
+                expression.kind=ExprKind::Name("@json:writeJsonl".into());return Ok(());
+            }
             if typed_members.contains(&(expression.span.start,expression.span.end)) {
                 let imported=match &expression.kind {
                     ExprKind::Name(name) if name=="@native:std:json#parseJsonc"=>Some("parseJsonc"),
@@ -124,7 +128,9 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
 /// Only compiler-owned source is parsed here; no user text is interpolated.
 fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnostic> {
     use crate::native_signatures::{NativeTypeId, Signature};
-    let source = if name == "parse" {
+    let source = if name=="writeJsonl" {
+        "function adapter<T>(writer:Mutable<JsonlWriter>,value:T):Result<void,JsonlError>{return backend(writer,value);}"
+    }else if name == "parse" {
         "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else if name == "tryStringify" {
         "function adapter<T>(value:T,maxBytes:int=16777216):Result<string,JsonError> {return backend(value,maxBytes);}"
@@ -153,12 +159,14 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
             }
         }
     }
-    let replacements = [("JsonError".to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(NativeTypeId::JsonError),function.name.span)?)].into_iter().collect();
+    let identities=if name=="writeJsonl" {vec![NativeTypeId::JsonlWriter,NativeTypeId::JsonlError]}else{vec![NativeTypeId::JsonError]};
+    let mut replacements=std::collections::HashMap::new();
+    for identity in identities {replacements.insert(crate::native_types::declaration(identity).name.to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(identity),function.name.span)?);}
     crate::source_walk::function_annotations(&mut function,&mut |annotation|crate::type_substitution::apply(annotation,&replacements))?;
     crate::source_walk::function_body(&mut function, &mut |annotation|crate::type_substitution::apply(annotation,&replacements), &mut |expression| {
         shift(&mut expression.span);
         if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") {
-            expression.kind = ExprKind::Name(if name == "parse" {format!("@native:std:json#{name}")} else {"@json:encode".into()});
+            expression.kind = ExprKind::Name(if name == "parse" {format!("@native:std:json#{name}")} else if name=="writeJsonl"{"@json:write".into()}else {"@json:encode".into()});
         }
         Ok(())
     })?;

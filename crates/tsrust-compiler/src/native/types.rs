@@ -98,6 +98,7 @@ static JSON_ERROR: Declaration = Declaration {id:NativeTypeId::JsonError,module:
     Field{name:"message",signature:Signature::String,optional:false},
     Field{name:"offset",signature:Signature::Int,optional:false},
 ],..FS_ERROR};
+static JSONL_WRITER: Declaration = Declaration {id:NativeTypeId::JsonlWriter,module:"std:json",name:"JsonlWriter",..FILE};
 static JSONL_READER: Declaration = Declaration {id:NativeTypeId::JsonlReader,module:"std:json",name:"JsonlReader",..FILE};
 static JSONL_ERROR: Declaration = Declaration {id:NativeTypeId::JsonlError,module:"std:json",name:"JsonlError",fields:&[
     Field{name:"code",signature:Signature::String,optional:false},
@@ -217,6 +218,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::JsonBuildLimits => &JSON_BUILD_LIMITS,
         NativeTypeId::JsonEntry => &JSON_ENTRY,
         NativeTypeId::JsonlReader => &JSONL_READER,
+        NativeTypeId::JsonlWriter => &JSONL_WRITER,
         NativeTypeId::JsonlError => &JSONL_ERROR,
         NativeTypeId::Deque => &DEQUE,
         NativeTypeId::OrderedMap => &ORDERED_MAP,
@@ -228,7 +230,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

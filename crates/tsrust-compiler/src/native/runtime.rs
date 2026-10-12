@@ -22,14 +22,17 @@ pub(crate) fn path_module()->String {
     format!("mod tsrust_native_path {{\n{}{}\n}}\n",include_str!("../stdlib/path/runtime.rs"),include_str!("../stdlib/path/relative.rs"))
 }
 /// Compiler-owned JSON support; public language bindings are implemented separately.
-pub fn json_module()->String {
-    format!("mod tsrust_native_json {{\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\n}}\n", include_str!("../stdlib/json/runtime.rs"),include_str!("../stdlib/json/lines.rs"),include_str!("../stdlib/json/typed.rs"))
+pub fn json_module()->String {json_module_with_writer(false)}
+pub fn json_module_with_writer(writer:bool)->String {
+    let writer=if writer {format!("pub mod writer {{\n{}\n}}\n",include_str!("../stdlib/json/writer.rs").replace("crate::stdlib::fs::runtime","crate::tsrust_native_files"))}else{String::new()};
+    format!("mod tsrust_native_json {{\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\n{writer}}}\n", include_str!("../stdlib/json/runtime.rs"),include_str!("../stdlib/json/lines.rs"),include_str!("../stdlib/json/typed.rs"))
 }
+
 /// Keep application record/union types, borrow adapters and generic ownership code
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=String::new();
-    let json=source.contains("mod tsrust_native_json {").then(json_module);
+    let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
     let dependencies=json.as_ref().is_some_and(|module|source.contains(module));
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {

@@ -149,9 +149,10 @@ impl Analyzer {
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             return Ok(None);
         };
-        if !matches!(&callee.kind,ExprKind::Name(name) if name=="@json:encode") {
+        if !matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@json:encode"|"@json:write")) {
             return Ok(None);
         }
+        let writing=matches!(&callee.kind,ExprKind::Name(name) if name=="@json:write");
         let span = self
             .program
             .functions
@@ -168,7 +169,7 @@ impl Analyzer {
             ));
         }
         let ty = self
-            .expression(context, &mut args[0], Mode::Read, loans, None)
+            .expression(context, &mut args[usize::from(writing)], Mode::Read, loans, None)
             .map_err(|mut error| {
                 // Compiler-owned adapter expressions must never escape into source diagnostics.
                 error.span = span;
@@ -178,7 +179,11 @@ impl Analyzer {
                 }
                 error
             })?;
-        self.expression(context, &mut args[1], Mode::Copy, loans, Some(Type::Int))?;
+        if writing {
+            let writer=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriter)).unwrap();
+            self.expression(context,&mut args[0],Mode::Mutate,loans,Some(Type::Record(writer)))?;
+        }else{self.expression(context, &mut args[1], Mode::Copy, loans, Some(Type::Int))?;}
+
         let mut pending = vec![ty];
         let mut seen = std::collections::HashSet::new();
         while let Some(ty) = pending.pop() {
@@ -233,7 +238,7 @@ impl Analyzer {
                 }
             }
         }
-        let binding = crate::native_bindings::lookup("std:json", "stringify").unwrap();
+        let binding = crate::native_bindings::lookup("std:json", if writing {"writeJsonl"}else{"stringify"}).unwrap();
         let result = native_type(binding.result, &self.program.records);
         expr.ty = Some(result);
         expr.target = Some(CallTarget::JsonEncode);

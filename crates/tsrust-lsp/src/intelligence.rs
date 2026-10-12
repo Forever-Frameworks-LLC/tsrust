@@ -2570,7 +2570,7 @@ impl SourceIndex {
         let mut signature_name = |signature: tsrust_compiler::native_signatures::Signature| {
             signature.render(|identity| Some(self.native_type_spelling(identity).into())).expect("registered native signature").into_owned()
         };
-        let parameters = binding
+        let mut parameters = binding
             .parameters
             .iter()
             .enumerate()
@@ -2602,6 +2602,10 @@ impl SourceIndex {
             .unwrap_or_default();
         let result = signature_name(binding.result.signature());
         let signature = self.display_type(&format!("function {local}({}): {result}", parameters.join(", ")));
+        let signature=if let Some(inferred)=catalog["inferredSignature"].as_str(){
+            parameters=catalog["parameters"].as_array().unwrap().iter().map(|parameter|parameter["label"].as_str().unwrap().to_owned()).collect();
+            inferred.replacen(exported,local,1)
+        }else{signature};
         self.native_parameter_docs.insert(self.symbols.len(), docs);
         if let Some(id) = tsrust_compiler::native_bindings::BINDINGS
             .iter()

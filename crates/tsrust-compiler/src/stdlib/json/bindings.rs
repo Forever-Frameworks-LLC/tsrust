@@ -144,3 +144,27 @@ pub(crate) const FROM_ENTRIES:NativeBinding=NativeBinding {
  NativeParameter{name:"limits",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonBuildLimits)),access:Mode::Read,optional:true,rest:false},
  ],backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromEntries"},..FROM_NUMBER
 };
+
+pub(crate) const CREATE_JSONL:NativeBinding=NativeBinding {
+ name:"createJsonl",parameters:&[
+ NativeParameter{name:"path",ty:NativeType::String,access:Mode::Read,optional:false,rest:false},
+ NativeParameter{name:"maxBytes",ty:NativeType::Int,access:Mode::Copy,optional:true,rest:false},
+ NativeParameter{name:"capacity",ty:NativeType::Int,access:Mode::Copy,optional:true,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Named(NativeTypeId::JsonlWriter),&Signature::Named(NativeTypeId::JsonlError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_create_jsonl"},..OPEN_JSONL
+};
+pub(crate) const FLUSH_JSONL:NativeBinding=NativeBinding {
+ name:"flushJsonl",parameters:&[NativeParameter{name:"writer",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonlWriter)),access:Mode::Mutate,optional:false,rest:false}],
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_flush_jsonl"},..CLOSE_JSONL
+};
+pub(crate) const CLOSE_JSONL_WRITER:NativeBinding=NativeBinding {
+ name:"closeJsonlWriter",parameters:&[NativeParameter{name:"writer",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonlWriter)),access:Mode::Consume,optional:false,rest:false}],
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_close_jsonl_writer"},..CLOSE_JSONL
+};
+
+pub(crate) const WRITE_JSONL:NativeBinding=NativeBinding {
+ name:"writeJsonl",parameters:&[
+ NativeParameter{name:"writer",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonlWriter)),access:Mode::Mutate,optional:false,rest:false},
+ NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false}],
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_write_jsonl"},..CLOSE_JSONL
+};

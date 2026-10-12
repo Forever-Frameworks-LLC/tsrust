@@ -6739,6 +6739,99 @@
           "output": "null\n"
         }
       ]
+    },
+    {
+      "name": "JsonlWriter",
+      "signature": "type JsonlWriter",
+      "parameters": [],
+      "documentation": "An opaque owned JSON Lines output resource created by createJsonl. No public constructor or fields. Writes compact records through a bounded staging buffer and a buffered file. flushJsonl reports buffered output failures; closeJsonlWriter consumes the writer and reports cleanup errors. Scope exit closes remaining output but cannot report errors. Ownership: unique, nonclonable and nonconstructible; never shared implicitly.\n\n```tsrust\nimport {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. The file contains {\"name\":\"hello\"} followed by LF.",
+      "examples": [
+        {
+          "source": "import {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "createJsonl",
+      "signature": "createJsonl(path: ReadOnly<string>, maxBytes?: int, capacity?: int): Result<JsonlWriter, JsonlError>",
+      "parameters": [
+        {
+          "label": "path: ReadOnly<string>",
+          "documentation": "Output path. Creates a file or truncates an existing file after validating options."
+        },
+        {
+          "label": "maxBytes?: int",
+          "documentation": "Maximum encoded bytes per record, excluding LF; nonnegative, default 16777216. Zero permits creation but rejects every record."
+        },
+        {
+          "label": "capacity?: int",
+          "documentation": "Output buffer capacity in bytes, from 1 through 1048576; default 8192. Supply maxBytes when specifying capacity."
+        }
+      ],
+      "documentation": "Creates or truncates a file for bounded synchronous JSON Lines output. Returns an owned writer or a structured error. Invalid maxBytes reports invalid-limits; invalid capacity reports capacity-range before opening or truncating the path. File errors preserve their stable code and optional OS code. Creation errors use operation create, line 1 and offset 0. Record limits exclude the trailing LF. No record is written by creation. Ownership: borrows path unchanged; returned writer owns its file and buffer.\n\n```tsrust\nimport {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. The file contains {\"name\":\"hello\"} followed by LF.",
+      "examples": [
+        {
+          "source": "import {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "writeJsonl",
+      "signature": "writeJsonl<T>(writer: Mutable<JsonlWriter>, value: T): Result<void, JsonlError>",
+      "inferredSignature": "writeJsonl<T>(writer: Mutable<JsonlWriter>, value: T): Result<void, JsonlError>",
+      "parameters": [
+        {
+          "label": "writer: Mutable<JsonlWriter>",
+          "documentation": "Required writer, advanced on successful record output."
+        },
+        {
+          "label": "value: T",
+          "documentation": "Required encodable scalar, record, tuple, array, JsonValue, JsonView or StringView; borrowed unchanged."
+        }
+      ],
+      "documentation": "Encodes one compact strict JSON record followed by LF. Returns Ok or a structured encoding/output error. Uses JSON.stringify typed rules: sorted keys, exact integers, omitted undefined object fields, undefined-value for root/array undefined, number-nonfinite for nonfinite numbers and depth-limit beyond 64 containers. Stages the entire record within the creation byte limit; output-limit or another encoding rejection writes none of that record. An I/O failure may leave a prefix and has no rollback guarantee. Any error makes subsequent writes/flushes repeat that terminal error without more output. Errors use operation write, the current one-based record and offset 0, which is not an output position. Ownership: mutably borrows writer and borrows value without mutation or implicit cloning.\n\n```tsrust\nimport {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. The file contains {\"name\":\"hello\"} followed by LF.",
+      "examples": [
+        {
+          "source": "import {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "flushJsonl",
+      "signature": "flushJsonl(writer: Mutable<JsonlWriter>): Result<void, JsonlError>",
+      "parameters": [
+        {
+          "label": "writer: Mutable<JsonlWriter>",
+          "documentation": "Required writer; flushes buffered bytes without closing it."
+        }
+      ],
+      "documentation": "Flushes buffered JSON Lines output and reports errors. Does not sync storage for crash durability. Success leaves the writer usable. A failure is terminal; later writes/flushes repeat it. Flush errors use operation flush, offset 0 and the next-record counter; that counter does not identify which buffered record caused failure. A previous terminal error is returned unchanged. Ownership: mutably borrows the writer; does not consume it.\n\n```tsrust\nimport {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. The file contains {\"name\":\"hello\"} followed by LF.",
+      "examples": [
+        {
+          "source": "import {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}",
+          "output": "hello\n"
+        }
+      ]
+    },
+    {
+      "name": "closeJsonlWriter",
+      "signature": "closeJsonlWriter(writer: JsonlWriter): Result<void, JsonlError>",
+      "parameters": [
+        {
+          "label": "writer: JsonlWriter",
+          "documentation": "Required owned writer, consumed even when closing fails."
+        }
+      ],
+      "documentation": "Flushes and closes JSON Lines output, releasing its buffer. Always attempts cleanup after a prior write/flush failure. A close failure takes precedence; otherwise a prior terminal error is returned again. Returns Ok when both writing and closing succeeded. New close errors use operation close, offset 0 and the next-record counter. No implicit storage sync occurs. Ownership: consumes the writer even on error; later use is rejected. Scope exit also attempts close but cannot report errors.\n\n```tsrust\nimport {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. The file contains {\"name\":\"hello\"} followed by LF.",
+      "examples": [
+        {
+          "source": "import {createJsonl,writeJsonl,flushJsonl,closeJsonlWriter} from \"std:json\";type Item={name:string;};function main(){const item:Item={name:\"hello\"};match(createJsonl(\"jsonl-writer-example.jsonl\")){Ok(writer)=>{match(writeJsonl(writer,item)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(flushJsonl(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}match(closeJsonlWriter(writer)){Ok(_)=>{},Err(error)=>{throw error.message;}}console.log(item.name);},Err(error)=>{throw error.message;}}}",
+          "output": "hello\n"
+        }
+      ]
     }
   ]
 }

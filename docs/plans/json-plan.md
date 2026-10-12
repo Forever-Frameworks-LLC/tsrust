@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Borrowed adapters, public writers, allocation
+Typed JSONC and JSONL reads have focused source acceptance. Owned bounded JSONL writers have focused source acceptance. Borrowed adapters, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -1011,3 +1011,24 @@ limits, partial I/O, flush/close failures, borrowed output and overflow. Evidenc
 tsrust-json-writer-typed-*-f4177484 in SQLite. This is private backend acceptance;
 public writer bindings, catalog/editor checks and matched workloads remain next.
 No timing or installed-consumer refresh was performed.
+
+### Public owned JSONL writers
+
+JsonlWriter and createJsonl/writeJsonl/flushJsonl/closeJsonlWriter now expose the
+bounded writer through std:json. Creation validates options before truncation.
+Writes infer ordinary typed values and borrow them through direct serializers;
+flush borrows the resource and close consumes it. Errors retain JsonlError's
+stable fields, with offset zero explicitly documented for output operations.
+The native module extractor recognizes exact writer/no-writer runtime variants,
+so JSON-only programs do not acquire file support from writer declarations.
+
+Focused evidence covers four writer native tests (including all five catalog
+entries through their shared example), three direct-encoding regressions and
+editor hover/ownership documentation. The five new identities are reconciled
+in the 427-row global/import audit. The native_jsonl_writer workload has a
+TypeScript counterpart, fingerprinted temporary fixture, independent completion
+count and exact final-file verification outside timing. Native and Node-after-tsc
+run five untimed cases. Seventeen JSON guards plus seven file guards pass.
+Evidence: tsrust-json-writer-public-*-32748fc8 in SQLite. Borrowed file adapters,
+remaining borrowed JSON representations and the full S10 allocation/performance
+milestone remain open; no timing or installed-consumer refresh is claimed.

@@ -12,3 +12,5 @@ pub(crate) mod lines_emit;
 pub(crate) mod views_emit;
 
 pub(crate) mod typed;
+
+pub(crate) mod writer_emit;

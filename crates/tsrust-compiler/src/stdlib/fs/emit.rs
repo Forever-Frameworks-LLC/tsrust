@@ -2,7 +2,7 @@ use crate::{analysis::CheckedProgram, syntax::Type, native_bindings::{NativeBack
 
 pub(crate) fn bridges(program: &CheckedProgram, bindings: &[&NativeBinding]) -> String {
     let file = program.records.iter().position(|record| record.native_type == Some(NativeTypeId::File));
-    if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter | NativeTypeId::JsonlReader))) && bindings.is_empty() { return String::new(); }
+    if file.is_none() && !program.records.iter().any(|record|matches!(record.native_type,Some(NativeTypeId::BufferedReader | NativeTypeId::BufferedWriter | NativeTypeId::JsonlReader | NativeTypeId::JsonlWriter))) && bindings.is_empty() { return String::new(); }
     let file = file.map(|id|format!("Record{id}")).unwrap_or_default();
     let mut output = crate::native_runtime::files_module();
     output.push_str("trait TsrFileRead { fn read_bytes(&mut self,length:i64)->Result<Vec<u8>,tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileWrite { fn write_bytes(&mut self,bytes:&[u8])->Result<i64,tsrust_native_files::fs::FsFailure>; fn write_all_bytes(&mut self,bytes:&[u8])->Result<(),tsrust_native_files::fs::FsFailure>; }\ntrait TsrFileClose { fn close_file(self)->Result<(),tsrust_native_files::fs::FsFailure>; }\n");

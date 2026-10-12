@@ -203,7 +203,7 @@ function section(data, file) {
 }
 // Add new operations here; deliberately keep unclassified measured IDs in Other.
 export const reportCategories = [
- {id:'json',label:'JSON',workloads:['native_json_roundtrip','native_json_namespace','native_json_scalars','native_json_typeof','native_json_inspection','native_json_views','native_json_refinement','native_json_string_reads','native_json_string_views','native_json_string_projection','native_json_construction','native_json_containers','native_jsonl_typed','native_jsonc_typed','native_json_encoding','native_json_typed','native_json_import'],probes:[]},
+ {id:'json',label:'JSON',workloads:['native_json_roundtrip','native_json_namespace','native_json_scalars','native_json_typeof','native_json_inspection','native_json_views','native_json_refinement','native_json_string_reads','native_json_string_views','native_json_string_projection','native_json_construction','native_json_containers','native_jsonl_writer','native_jsonl_typed','native_jsonc_typed','native_json_encoding','native_json_typed','native_json_import'],probes:[]},
  {id:'time',label:'Monotonic time',workloads:['std_time_monotonic_now'],probes:[]},
  {id:'os',label:'Operating system',workloads:['std_os_platform','std_os_arch','std_os_endianness'],probes:[]},
  {id:'environment',label:'Environment',workloads:['std_env_get'],probes:[]},
