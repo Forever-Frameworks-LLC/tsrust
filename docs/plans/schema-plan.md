@@ -1726,9 +1726,36 @@ inputs1 and callbacks-final. Earlier acceptance and original failed records rema
 unchanged. Installed consumers remain accepted S10; no S11 family timing or full
 regression acceptance is claimed.
 
-Outstanding chain defect found during this section: direct
+Chain defect found during this section (repaired by the checkpoint below): direct
 `s.union([s.string(), s.string()]).min(3)` is rejected before receiver construction;
 assigning the union to a variable before `.min(3)` works and its outer bound is
 verified by the fused witness. Fix direct constructor chaining before S11 family
 acceptance. Then continue recursive/lazy composition, collection schemas, richer
 issue APIs and JSON Schema export, followed by the required family acceptance.
+
+
+## Direct scalar union constraint chaining
+
+Direct `s.union([s.string(), s.string()]).min(3)` and equivalent integer/number
+chains now preserve the same scalar schema identity as the intermediate-variable
+form. The checker derives an existing identity without analyzing branch arguments;
+ordinary call checking still evaluates and consumes each argument exactly once.
+The hint requires identical scalar outputs. It does not widen singleton, nominal
+or callback pipeline identities merely to select a scalar constraint wrapper.
+
+Focused native execution covers min/max/gt/lt, borrowed fused text validation and
+owned validation, plus one branch-factory invocation and one limit invocation.
+A separate rejection proves branch ownership is still transferred. One editor
+case verifies the chained schema type, member hover and inferred result. All pass
+across preserved runs. Whole-project formatting passed without changes. SQLite
+records: `tsrust-schema-chain-{native1,native2,native3,editor1,format}.log`.
+The initial runs also preserve an overly broad literal-widening experiment and a
+rejection assertion that expected the word moved instead of diagnostic transferred.
+No runtime behavior or benchmark workload changed; no timing run was needed.
+
+Recursive schema API is awaiting the owner's decision: proposed
+`s.recursive<Tree>(self => s.object({value:s.int(), children:s.array(self)}))`.
+The proposed builder runs once; the recursion placeholder is reusable only within
+the definition, and validation borrows the frozen uniquely owned plan. Do not treat
+this proposal as approved until the pending question is answered. Independent
+pinned Zod differential acceptance work can proceed meanwhile.

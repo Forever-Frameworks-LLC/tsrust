@@ -239,3 +239,32 @@ fn union_schemas_reject_empty_branches_reused_plans_and_input_reuse() {
       assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"),"{}",String::from_utf8_lossy(&output.stderr));
     }
 }
+
+#[test]
+fn direct_union_constraint_chains_preserve_equal_scalar_outputs_and_single_evaluation(){
+    let source=r#"
+    import {s,Schema} from 'std:schema';
+    function branch():Schema<string>{console.log('branch');return s.string();}
+    function limit():int{console.log('limit');return 2;}
+    function main(){
+      const text=s.union([branch(),s.string()]).min(limit()).max(4);
+      match(text.safeParseJson('"yes"')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Valid string rejected';}}
+      match(text.safeParse('x')){Ok(value)=>{throw 'Minimum ignored';},Err(error)=>{console.log(error.issues.length);}}
+      const integer=s.union([s.int(),s.int()]).gt(1).lt(4);
+      match(integer.safeParse(2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Integer rejected';}}
+      const number=s.union([s.number(),s.number()]).min(1.5).max(2.5);
+      match(number.safeParse(2.0)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Number rejected';}}
+    }
+    "#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"branch\nlimit\nyes\n1\n2\n2\n");
+}
+
+#[test]
+fn direct_union_constraint_chain_still_consumes_owned_branch(){
+    let source="import {s} from 'std:schema';function main(){const branch=s.string();const schema=s.union([branch,s.string()]).min(2);branch.safeParse('again');}";
+    let directory=support::TempDirectory::new();let path=directory.source(source);
+    let output=support::run(support::cli().arg("check").arg(path),60);
+    assert!(!output.status.success());assert!(String::from_utf8_lossy(&output.stderr).contains("error[transferred]"),"{}",String::from_utf8_lossy(&output.stderr));
+}

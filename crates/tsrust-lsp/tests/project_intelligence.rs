@@ -2835,3 +2835,14 @@ fn schema_fused_json_help_and_result_expose_separate_failure_kinds(){
     let completion=ask(&index,&entry,"safeParseJson(","textDocument/completion");
     assert!(completion.as_array().unwrap().iter().any(|entry|entry["label"]=="safeParseJson"),"{completion}");
 }
+
+#[test]
+fn schema_direct_union_constraint_chain_has_scalar_help(){
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.union([s.string(),s.string()]).min(2).max(4);const result=schema.safeParse('yes');}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();
+    workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let schema=ask(&index,&entry,"schema =","textDocument/hover");assert!(schema.to_string().contains("Schema<string>"),"{schema}");
+    let method=ask(&index,&entry,"min(2)","textDocument/hover");assert!(method.to_string().contains("min("),"{method}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");assert!(result.to_string().replace(' ',"").contains("Result<string,ValidationError>"),"{result}");
+}

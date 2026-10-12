@@ -10250,6 +10250,7 @@ impl Analyzer {
     }
 
     fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
+        if let Some(ty)=self.schema_union_type_hint(context,expr){return Some(ty);}
         if let ExprKind::Call(callee, _) = &expr.kind
             && let ExprKind::Field(base, member) = &callee.kind
             && matches!(member.as_str(),"min"|"max"|"gt"|"lt"|"default")
