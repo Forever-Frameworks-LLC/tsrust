@@ -2054,3 +2054,8 @@ Nullable record-array and empty-object property hovers no longer expose generate
 record names; definition navigation still targets the original JSON fields.
 Six focused import editor tests pass. SQLite evidence:
 `tsrust-json-property-hover-{red,check,format}-70bb8546.log`.
+The installed and editor LSP binaries were refreshed from `f6c46082`; installed
+protocol checks verify binding and property shapes with clean diagnostics. The
+editor server was restarted. Build, smoke script and results are retained as
+`tsrust-json-property-hover-release.log` and
+`tsrust-json-property-hover-installed-f6c46082.{py,log}`.
