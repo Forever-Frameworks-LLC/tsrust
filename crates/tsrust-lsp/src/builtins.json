@@ -6982,7 +6982,7 @@
     "name": "SchemaConstructionError",
     "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int }",
     "parameters": [],
-    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length or contradictory-bounds; operation identifies min or max; limit retains the supplied integer. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
+    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits or contradictory-bounds; operation identifies min or max; limit retains the supplied integer. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
     "examples": []
   }
 ],
@@ -7134,11 +7134,45 @@
         "documentation": "Concrete int or owned JsonValue. Integers copy; JSON input is consumed on both success and failure."
       }
     ],
-    "documentation": "Validates an integer and returns Ok(int) or Err(SchemaError). Preserves exact signed 64-bit JSON integers. Integral floating JSON values within range are accepted; negative zero becomes zero. Fractional values return integer-fractional, out-of-range values return integer-range, and other JSON kinds return type-mismatch. Each failure contains one issue with expected integer, an observed kind, an empty root path and false truncation flags. Input values are not retained in errors. Mixed union inputs and other concrete types are not supported yet.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: borrows the reusable schema. Direct integers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input.",
+    "documentation": "Validates an integer and returns Ok(int) or Err(SchemaError). Preserves exact signed 64-bit JSON integers. Integral floating JSON values within range are accepted; negative zero becomes zero. Fractional values return integer-fractional, out-of-range values return integer-range, and other JSON kinds return type-mismatch. Each failure contains one issue with expected integer, an observed kind, an empty root path and false truncation flags. Input values are not retained in errors. Mixed union inputs and other concrete types are not supported yet.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: borrows the reusable schema. Direct integers copy; JSON input is consumed on every outcome. Use clone(input) to retain JSON input. Stored min/max bounds compare exact integers; violations return too-small or too-large.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
         "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "min",
+    "signature": "min(limit: int): Schema<int>",
+    "parameters": [
+      {
+        "label": "limit: int",
+        "documentation": "Inclusive minimum in the full signed 64-bit integer range. Negative limits are valid."
+      }
+    ],
+    "documentation": "Adds an inclusive minimum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in SchemaError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "-2\n"
+      }
+    ]
+  },
+  {
+    "name": "max",
+    "signature": "max(limit: int): Schema<int>",
+    "parameters": [
+      {
+        "label": "limit: int",
+        "documentation": "Inclusive maximum in the full signed 64-bit integer range. Negative limits are valid."
+      }
+    ],
+    "documentation": "Adds an inclusive maximum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in SchemaError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "-2\n"
       }
     ]
   }

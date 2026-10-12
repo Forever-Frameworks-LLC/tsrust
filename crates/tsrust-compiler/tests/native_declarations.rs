@@ -556,3 +556,18 @@ function main(){const schema=s.string().min(2).max(3);
     let invalid="import {s} from 'std:schema';function main(){const original=s.string();const bounded=original.min(2);original.safeParse('abc');}";
     assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
 }
+
+#[test]
+fn schema_integer_bounds_preserve_endpoints_and_reject_contradictions() {
+    let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
+function main(){const schema=s.int().min(9223372036854775806).max(9223372036854775807);
+ match(schema.safeParse(9223372036854775807)){Ok(value)=>{strictEqual(value,9223372036854775807);},Err(error)=>{throw 'endpoint rejected';}}
+ match(schema.safeParse(JSON.parse('9223372036854775805'))){Ok(value)=>{throw 'small accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
+ const low=s.int().min(-9223372036854775808).max(-9223372036854775807);
+ match(low.safeParse(-9223372036854775808)){Ok(value)=>{strictEqual(value,-9223372036854775808);},Err(error)=>{throw 'low endpoint rejected';}}
+ let caught=false;try{s.int().max(-2).min(-1);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.limit,-1);}strictEqual(caught,true);
+}"#;
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    assert_eq!(checked_source("import {s} from 'std:schema';function main(){const original=s.int();original.min(0);original.safeParse(1);}").err().unwrap().code,"transferred");
+}

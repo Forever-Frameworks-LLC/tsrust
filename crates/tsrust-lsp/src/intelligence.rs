@@ -1862,7 +1862,7 @@ impl SourceIndex {
         None
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if self.schema_element(&receiver)==Some("string") && matches!(method,"min"|"max") {return receiver;}
+        if matches!(self.schema_element(&receiver),Some("string"|"int")) && matches!(method,"min"|"max") {return receiver;}
         if let Some(element @ ("string" | "boolean" | "int" | "number" | "null")) = self.schema_element(&receiver) && method == "safeParse" {
             return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::SchemaError)
                 .map(|(name, _)| format!("Result<{element}, {name}>")).unwrap_or_default();
@@ -1913,7 +1913,7 @@ impl SourceIndex {
         }
     }
     fn primitive_method_accepts_arguments(&self, method: &str, receiver: &str) -> bool {
-        if self.schema_element(receiver)==Some("string") && matches!(method,"min"|"max") {return true;}
+        if matches!(self.schema_element(receiver),Some("string"|"int")) && matches!(method,"min"|"max") {return true;}
         if matches!(self.schema_element(receiver), Some("string" | "boolean" | "int" | "number" | "null")) { return method == "safeParse"; }
         if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}
         if self.ordered_set_element(receiver).is_some(){return matches!(method,"add"|"has"|"delete");}

@@ -14,7 +14,7 @@ executing differential cases; current web documentation alone is not a version p
 | Family | Required behavior | Status |
 | --- | --- | --- |
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | Basic string/boolean/int/number/null API checked; literal/enum pending |
-| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max integrated; numeric source constraints pending |
+| Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String/int min/max integrated; exclusive and floating bounds pending |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Approved: reject unknown keys by default |
 | Arrays | inferred element output, indexed error paths, bounded partial construction | Pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Pending |
@@ -523,3 +523,26 @@ installed-consumer refresh is claimed.
 Final focused counts: 35 internal schema-related cases, 17 compiler/native cases,
 7 editor cases and 7 benchmark-contract cases pass. Whole-project formatting is
 unchanged and all eight native/Node workload executions are untimed.
+
+## Exact integer minimum and maximum
+
+Schema<int>.min(limit) and .max(limit) now consume and return an integer schema.
+Every signed 64-bit bound, including negative limits and both endpoints, is valid
+unless it contradicts an existing bound. Comparisons stay i64 throughout. Repeated
+bounds retain the stricter value. Contradictions throw SchemaConstructionError;
+validation violations return too-small/too-large. JSON-origin failures retain
+observed number while direct int failures report observed integer. The generated
+plan and throwing adapter are shared with the string constraint mechanism without
+coercing either limit type or input values.
+
+Eighteen focused schema compiler/native cases pass, followed by the affected
+integer case after preserving JSON observed-kind reporting. Eight editor cases
+and eight benchmark contract cases pass. The new native_schema_int_bounds workload
+uses 7 success and 10 too-large under min 2/max 9, observes every exposed issue field,
+and has matched TypeScript, oracle, hashes, guards and ABI/report registration.
+Four sizes agree on native and Node-after-tsc without timing. Its small matched
+domain does not replace native tests at i64::MIN and i64::MAX. Exact catalog examples
+execute natively. Exclusive integer bounds, floating constraints and composites
+remain pending; S11 is not accepted and consumers have not been refreshed.
+
+SQLite: `tsrust-schema-int-bounds-{red,check,final,format,benchmark,editor,verify}-a1736712.log`.

@@ -137,6 +137,19 @@ pub(crate) const MAX_STRING: NativeBinding = NativeBinding {
     name: "__maxString", backend: NativeBackend::Bundled { symbol: "tsrust_schema_max_string" }, ..MIN_STRING
 };
 
+pub(crate) const MIN_INT: NativeBinding = NativeBinding {
+    module: "std:schema", name: "__minInt",
+    parameters: &[
+        crate::native_bindings::NativeParameter { name: "schema", access: crate::Mode::Consume, ..SAFE_PARSE_INT.parameters[0] },
+        crate::native_bindings::NativeParameter { name: "limit", ty: NativeType::Int, access: crate::Mode::Copy, optional: false, rest: false },
+    ],
+    result: NativeType::Structured(&Signature::Result(&Signature::Applied(NativeTypeId::Schema, &[Signature::Int]), &Signature::Named(NativeTypeId::SchemaConstructionError))),
+    returned_borrow: None, backend: NativeBackend::Bundled { symbol: "tsrust_schema_min_int" }, features: &[],
+};
+pub(crate) const MAX_INT: NativeBinding = NativeBinding {
+    name: "__maxInt", backend: NativeBackend::Bundled { symbol: "tsrust_schema_max_int" }, ..MIN_INT
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -182,7 +195,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_NUMBER, crate::Span::default())?;
     }
     if uses_bounds && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
-        for binding in [&MIN_STRING,&MAX_STRING] {
+        for binding in [&MIN_STRING,&MAX_STRING,&MIN_INT,&MAX_INT] {
             crate::native_binding_types::prepare(&mut program.records,binding,crate::Span::default())?;
             let wrapper=super::builders::adapter(program,binding)?;
             program.functions.push(wrapper);

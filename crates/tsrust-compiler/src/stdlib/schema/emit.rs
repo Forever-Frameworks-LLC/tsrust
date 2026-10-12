@@ -35,17 +35,17 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
             Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
         }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
     }
-    let string_guard = |input: &str| {
+    let bounds_guard = |input: &str, expected: &str, observed: &str| {
         let error = record(NativeTypeId::SchemaError);
         let issue = record(NativeTypeId::SchemaIssue);
         let path = record(NativeTypeId::SchemaPath);
         format!("if let Some(code)=_schema.bounds.check({input}) {{
-            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"string\"),field4:String::Borrowed(\"string\")}};
+            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\")}};
             return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
         }}",result=result.index(),err_tag=tag(err))
     };
     if owned {
-        let guard=if binding.name=="__safeParseOwnedString" {string_guard("input.as_ref()")}else{String::new()};
+        let guard=if binding.name=="__safeParseOwnedString" {bounds_guard("input.as_ref()","string","string")}else if integer {bounds_guard("input","integer","integer")}else{String::new()};
         return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
     }
     let value = record(NativeTypeId::JsonValue);
@@ -54,9 +54,10 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
     let path = record(NativeTypeId::SchemaPath);
     if integer || number {
         let reader = if integer { "read_i64" } else { "read_f64" };
+        let guard=if integer {bounds_guard("value","integer","number")}else{String::new()};
         return format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
             match tsrust_native_json::{reader}(&input.value) {{
-                Ok(value) => Union{result}::V{ok_tag}(Record{ok}{{field0:value}}),
+                Ok(value) => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:value}}) }},
                 Err(failure) => {{
                     let code=if failure.code==\"expected-number\" {{ \"type-mismatch\" }} else {{ failure.code }};
                     let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value))}};
@@ -65,7 +66,7 @@ pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crat
             }}
         }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err));
     }
-    let guard=if binding.name=="__safeParseString" {string_guard("&text")}else{String::new()};
+    let guard=if binding.name=="__safeParseString" {bounds_guard("&text","string","string")}else{String::new()};
     format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
         match input.value {{
             tsrust_native_json::Value::{pattern} => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}) }},
@@ -86,7 +87,7 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
     let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
     let error=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::SchemaConstructionError)).unwrap();
     let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
-    let operation=if binding.name=="__minString"{"min"}else{"max"};
+    let operation=if matches!(binding.name,"__minString"|"__minInt"){"min"}else{"max"};
     format!("fn {symbol}(schema:Record{schema},limit:i64)->Union{result}{{
         match schema.bounds.{operation}(limit){{
             Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{bounds}}}}),

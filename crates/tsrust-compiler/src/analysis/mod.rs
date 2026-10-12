@@ -10187,7 +10187,7 @@ impl Analyzer {
             && matches!(member.as_str(),"min"|"max")
             && let Some(Type::Record(id)) = self.expression_type_hint(context,base)
             && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)
-            && self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first())==Some(&Type::String) {
+            && matches!(self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first()),Some(Type::String|Type::Int)) {
             return Some(Type::Record(id));
         }
 

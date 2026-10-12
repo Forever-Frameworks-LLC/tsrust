@@ -29,6 +29,25 @@ impl StringBounds {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct IntBounds { min: Option<i64>, max: Option<i64> }
+impl IntBounds {
+    pub fn min(mut self,limit:i64)->Result<Self,ConstructionError>{
+        let next=self.min.unwrap_or(i64::MIN).max(limit);
+        if self.max.is_some_and(|max|next>max){return Err(ConstructionError{code:"contradictory-bounds",operation:"min",limit});}
+        self.min=Some(next);Ok(self)
+    }
+    pub fn max(mut self,limit:i64)->Result<Self,ConstructionError>{
+        let next=self.max.unwrap_or(i64::MAX).min(limit);
+        if self.min.is_some_and(|min|min>next){return Err(ConstructionError{code:"contradictory-bounds",operation:"max",limit});}
+        self.max=Some(next);Ok(self)
+    }
+    pub fn check(&self,value:i64)->Option<&'static str>{
+        if self.min.is_some_and(|min|value<min){Some("too-small")}
+        else if self.max.is_some_and(|max|value>max){Some("too-large")}else{None}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
