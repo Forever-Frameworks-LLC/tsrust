@@ -35,3 +35,27 @@ close S10: public raw fragments, latency/throughput/RSS and wrapper-cost review,
 justified optimization, and final installed-consumer refresh remain required.
 Future changes need their affected checks; these completed results remain valid
 for unchanged behavior and must not be silently discarded.
+
+## Final raw-feature regression continuation
+
+The full run at f524c755 completed 905 compiler library tests (one intentional
+ignore), 13 CLI unit tests and the 25-test acceptance target before stopping on
+two stale acceptance expectations. Both expected reporting-only check to reject
+fixtures carrying intentional editor suppression directives. Strict analysis still
+rejected those sources.
+
+The repaired corpus test checks strict analysis and CLI emission of the original
+fixtures, with no Rust backend available. The separate reporting test disables the
+directive in its temporary copy and retains exact diagnostic JSON checks. All 25
+acceptance tests now pass. A first repair compile failure is retained alongside
+the original run and passing repair; no production compiler behavior changed.
+
+The continuation selects only unrun compiler integration targets, compiler
+doctests and the editor suite, preserving completed library/CLI evidence. Its
+explicit target inventory and commands are recorded. Final totals and acceptance
+remain pending completion and target-by-target reconciliation.
+
+Evidence prefix: `tsrust-s10-final-{regressions,inventory}-f524c755`,
+`tsrust-s10-acceptance-{repair,repair-final,format}-f524c755` and
+`tsrust-s10-resume-*-f524c755`. Closed records are verified in SQLite; active logs
+remain temporary until the corresponding process finishes.

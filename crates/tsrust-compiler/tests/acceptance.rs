@@ -292,7 +292,14 @@ fn original_source_corpus() {
                 }
             }
             support::corpus::Expected::Rejected { source_code, .. } => {
-                let diagnostic = reject(&source, source_code);
+                // Editor suppression must never make the original fixture compilable.
+                let diagnostic = tsrust_compiler::check(&source).err().expect("strict rejection");
+                assert_eq!(diagnostic.code, *source_code, "{}", case.name);
+                let directory = support::TempDirectory::new();
+                let path = directory.source(&source);
+                let output = support::run(support::cli().arg("emit").arg(path).env("PATH", ""), 10);
+                assert_eq!(output.status.code(), Some(1), "{}", case.name);
+                assert!(String::from_utf8_lossy(&output.stderr).contains(source_code), "{}", case.name);
                 assert!(!diagnostic.related.is_empty(), "{}", case.name);
                 assert!(tsrust_compiler::line_column(&source, diagnostic.span).0 > 1);
                 assert_ne!(diagnostic.span, diagnostic.related[0].0);
@@ -316,7 +323,11 @@ fn strings_escape_rust_syntax() {
 fn check_needs_no_rust_and_rejects_before_backend() {
     for (name, valid) in [("read_reuse", true), ("use_after_call", false)] {
         let path = support::fixture_dir().join(format!("{name}.tsr"));
-        let source = std::fs::read_to_string(&path).unwrap();
+        // This test exercises unsuppressed reporting without a Rust backend.
+        // The corpus test separately requires strict rejection of the original.
+        let source = std::fs::read_to_string(&path).unwrap().replace("// @tsrust ignore", "// disabled ignore");
+        let directory = support::TempDirectory::new();
+        let path = directory.source(&source);
         let output = support::run(
             support::cli()
                 .arg("check")
