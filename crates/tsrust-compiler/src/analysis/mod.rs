@@ -5711,8 +5711,12 @@ impl Analyzer {
             let _ = context.capture_loan_owners.leave_scope(first_local);
             Self::restore_live_capture_loans(context);
             context.mutable_match_borrows.retain(|id| *id < first_local);
-            for binding in &context.bindings[first_local..] {
-                context.names.remove(&binding.name);
+            for (id, binding) in context.bindings.iter().enumerate().skip(first_local) {
+                // A nested block may already have restored an outer binding with
+                // this name. Remove only the local slot still visible here.
+                if context.names.get(&binding.name) == Some(&id) {
+                    context.names.remove(&binding.name);
+                }
             }
         }
         if !keep_names {

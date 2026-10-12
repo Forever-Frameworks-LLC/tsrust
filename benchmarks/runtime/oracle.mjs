@@ -1,3 +1,4 @@
+import {scalarChecksum} from './native-json-contract.mjs';
 import {dataImportChecksum} from './typed-data-imports.mjs';
 import {jsonChecksum} from './native-json-contract.mjs';
 import {monotonicTimeID,expectedMonotonicTimeObservation} from './monotonic-time-contract.mjs';
@@ -215,6 +216,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
+ if(id==='native_json_scalars')return scalarChecksum(n,seed,inputText);
  if(['native_json_roundtrip','native_json_namespace'].includes(id))return jsonChecksum(n,seed,inputText);
  if(id===monotonicTimeID)return expectedMonotonicTimeObservation(n,seed).checksum;
  if(id===environmentID)return expectedEnvironmentObservation(n,seed).checksum;

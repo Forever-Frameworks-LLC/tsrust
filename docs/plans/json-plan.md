@@ -3,8 +3,9 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were last refreshed from `fd213e26` for typed imports and aliases; the
-later namespace additions still await consumer refresh. Dynamic child operations,
+consumers were refreshed from `c244202c`, including namespace and reporting-only
+diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
+its consumer refresh remains pending. Dynamic child operations,
 direct typed runtime paths, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.

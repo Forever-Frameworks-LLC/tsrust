@@ -7,7 +7,38 @@ export function jsonChecksum(n,seed,input){
  if(input!==jsonInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*31))throw Error('JSON oracle inputs');
  return seed+n*31;
 }
+export function scalarChecksum(n,seed,input){
+ if(input!=='42'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*42))throw Error('JSON scalar oracle inputs');
+ return seed+n*42;
+}
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_scalars'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON scalar identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON scalar fingerprint');
+  if(row.iterations!==2000||row.inputText!=='42'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='Three parses and four checked scalar extractions')throw Error('JSON scalar denominator');
+  const native=`while (i < n) {
+    const value = JSON.parse(input);
+    match (asInt(value)) { Ok(value) => { checksum += value; }, Err(error) => { throw error.message; } }
+    match (asNumber(value)) { Ok(value) => { if (value !== 42.0) { throw 'number'; } }, Err(error) => { throw error.message; } }
+    match (asBoolean(JSON.parse('true'))) { Ok(value) => { if (!value) { throw 'boolean'; } }, Err(error) => { throw error.message; } }
+    match (takeString(JSON.parse('"hello"'))) { Ok(value) => { if (value !== 'hello') { throw 'string'; } }, Err(error) => { throw error.message; } }
+    i++;
+  }`;
+  const ts=`while (i < n) {
+    const value: unknown = JSON.parse(input);
+    if (typeof value !== 'number' || !Number.isSafeInteger(value)) { throw 'integer'; }
+    checksum += value;
+    if (typeof value !== 'number' || value !== 42.0) { throw 'number'; }
+    const boolean: unknown = JSON.parse('true');
+    if (typeof boolean !== 'boolean' || !boolean) { throw 'boolean'; }
+    const string: unknown = JSON.parse('"hello"');
+    if (typeof string !== 'string' || string !== 'hello') { throw 'string'; }
+    i++;
+  }`;
+  for(const snippet of ['let checksum = seed;','let i = 0;',kind==='native'?native:ts,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON scalar operation placement');
+  return;
+ }
+
  if(!['native_json_roundtrip','native_json_namespace'].includes(row.id)||row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON workload identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON source fingerprint');
  if(row.iterations!==2000||row.inputText!==jsonInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One parse, compact encode and exact output comparison')throw Error('JSON denominator');

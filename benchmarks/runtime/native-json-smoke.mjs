@@ -13,7 +13,7 @@ const root=path.dirname(fileURLToPath(import.meta.url));
 const compiler=process.env.TSRUST;
 if(!compiler||!process.env.CARGO_TARGET_DIR)throw Error('Set TSRUST and the shared CARGO_TARGET_DIR');
 const pins=JSON.parse(fs.readFileSync(root+'/versions.json'));
-const rows=JSON.parse(fs.readFileSync(root+'/manifest.json')).workloads.filter(row=>row.family==='native-json');
+const rows=JSON.parse(fs.readFileSync(root+'/manifest.json')).workloads.filter(row=>row.family==='native-json'&&(!process.env.ONLY||row.id===process.env.ONLY));
 const build=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-json-benchmark-'));
 const run=(command,args)=>execFileSync(command,args,{encoding:'utf8',timeout:60000,maxBuffer:16*1024*1024});
 try {

@@ -16,6 +16,15 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
    format!("(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})()"),
    format!("Record{value}{{value}}"))
+ }else if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"takeString") {
+  let (reader,borrow,payload)=match binding.name {
+   "asBoolean"=>("read_bool","&","value"),
+   "asInt"=>("read_i64","&","value"),
+   "asNumber"=>("read_f64","&","value"),
+   "takeString"=>("take_string","","String::Owned(value)"),
+   _=>unreachable!(),
+  };
+  (format!("value:{borrow}Record{value}"),format!("tsrust_native_json::{reader}({borrow}value.value)"),payload.to_string())
  }else{
   (format!("value:&Record{value},max_bytes:Option<i64>"),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(&value.value,limit))".to_string(),"String::Owned(value)".to_string())
  };

@@ -24,6 +24,12 @@ impl std::error::Error for Error {}
 fn message(code: &str) -> &'static str {
     match code {
         "allocation" => "Unable to allocate bounded JSON storage",
+        "expected-boolean" => "Expected a JSON boolean",
+        "expected-number" => "Expected a JSON number",
+        "expected-string" => "Expected a JSON string",
+        "integer-fractional" => "JSON number has a fractional part",
+        "integer-range" => "JSON number is outside the signed integer range",
+        "number-precision" => "JSON integer cannot be represented exactly as a number",
         "io-error" => "JSON Lines input read failed",
         "position-limit" => "JSON Lines input position limit exceeded",
         "unterminated-comment" => "JSONC block comment is not terminated",
@@ -131,6 +137,41 @@ pub fn stringify(value: &Value, max_bytes: usize) -> Result<std::string::String,
 pub fn invalid_limits() -> Error { failure("invalid-limits",0) }
 pub fn kind(value: &Value) -> &'static str {
     match value {Value::Null=>"null",Value::Bool(_)=>"boolean",Value::Number(_)=>"number",Value::String(_)=>"string",Value::Array(_)=>"array",Value::Object(_)=>"object"}
+}
+
+/// Scalar inspection does not coerce null, strings, or booleans into numbers.
+/// Values do not retain source positions, so extraction errors use offset zero.
+pub fn read_bool(value: &Value) -> Result<bool, Error> {
+    value.as_bool().ok_or_else(|| failure("expected-boolean", 0))
+}
+pub fn read_i64(value: &Value) -> Result<i64, Error> {
+    let Value::Number(number) = value else { return Err(failure("expected-number", 0)); };
+    if let Some(integer) = number.as_i64() { return Ok(integer); }
+    if number.as_u64().is_some() { return Err(failure("integer-range", 0)); }
+    let float = number.as_f64().expect("JSON numbers are finite");
+    if float < -9223372036854775808.0 || float >= 9223372036854775808.0 {
+        return Err(failure("integer-range", 0));
+    }
+    if float.fract() != 0.0 { return Err(failure("integer-fractional", 0)); }
+    // An explicit integer extraction normalizes floating negative zero to zero.
+    Ok(float as i64)
+}
+pub fn read_f64(value: &Value) -> Result<f64, Error> {
+    let Value::Number(number) = value else { return Err(failure("expected-number", 0)); };
+    let float = number.as_f64().expect("JSON numbers are finite");
+    let integer = number.as_i64().map(i128::from).or_else(|| number.as_u64().map(i128::from));
+    // Widen the comparison so a saturating i64/u64 cast cannot falsely accept
+    // rounded boundary values such as i64::MAX or u64::MAX.
+    if integer.is_some_and(|integer| float as i128 != integer) {
+        return Err(failure("number-precision", 0));
+    }
+    Ok(float)
+}
+pub fn read_string(value: &Value) -> Result<&str, Error> {
+    value.as_str().ok_or_else(|| failure("expected-string", 0))
+}
+pub fn take_string(value: Value) -> Result<String, Error> {
+    match value { Value::String(text) => Ok(text), _ => Err(failure("expected-string", 0)) }
 }
 
 struct Budget { limits: Limits, nodes: usize, failed: Option<&'static str> }

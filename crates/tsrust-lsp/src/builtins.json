@@ -6192,6 +6192,74 @@
 ]
 ,
   "std:json": [
+{
+  "name": "asBoolean",
+  "signature": "asBoolean(value: ReadOnly<JsonValue>): Result<boolean, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue>",
+      "documentation": "Required JSON value. No coercion or optional arguments."
+    }
+  ],
+  "documentation": "Reads a JSON boolean without coercion. Other JSON kinds return Err(expected-boolean). Returns Ok with the extracted value or Err with a structured JsonError. Extraction errors use offset zero because JsonValue does not retain source locations.\n\n```tsrust\nimport {asBoolean} from \"std:json\"; function main(){match(asBoolean(JSON.parse('false'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: false. Ownership: Borrows value without mutation or copying; the scalar result is independent.",
+  "examples": [
+    {
+      "source": "import {asBoolean} from \"std:json\"; function main(){match(asBoolean(JSON.parse('false'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}",
+      "output": "false\n"
+    }
+  ]
+},
+{
+  "name": "asInt",
+  "signature": "asInt(value: ReadOnly<JsonValue>): Result<int, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue>",
+      "documentation": "Required JSON value. No coercion or optional arguments."
+    }
+  ],
+  "documentation": "Reads an exact signed 64-bit integer. Integral floating values are accepted within [-9223372036854775808, 9223372036854775807]. Fractions return Err(integer-fractional); out-of-range values return Err(integer-range); other JSON kinds return Err(expected-number). Floating negative zero becomes integer zero. Returns Ok with the extracted value or Err with a structured JsonError. Extraction errors use offset zero because JsonValue does not retain source locations.\n\n```tsrust\nimport {asInt} from \"std:json\"; function main(){match(asInt(JSON.parse('42.0'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 42. Ownership: Borrows value without mutation or copying; the scalar result is independent.",
+  "examples": [
+    {
+      "source": "import {asInt} from \"std:json\"; function main(){match(asInt(JSON.parse('42.0'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}",
+      "output": "42\n"
+    }
+  ]
+},
+{
+  "name": "asNumber",
+  "signature": "asNumber(value: ReadOnly<JsonValue>): Result<number, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue>",
+      "documentation": "Required JSON value. No coercion or optional arguments."
+    }
+  ],
+  "documentation": "Reads a floating-point number. Integer-backed values are accepted only when exactly representable as number; otherwise returns Err(number-precision). Other JSON kinds return Err(expected-number). Preserves stored floating values, including negative zero. Parsing may already round decimals and integers outside the 64-bit range; this operation cannot recover the original spelling. Returns Ok with the extracted value or Err with a structured JsonError. Extraction errors use offset zero because JsonValue does not retain source locations.\n\n```tsrust\nimport {asNumber} from \"std:json\"; function main(){match(asNumber(JSON.parse('1.5'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: 1.5. Ownership: Borrows value without mutation or copying; the scalar result is independent.",
+  "examples": [
+    {
+      "source": "import {asNumber} from \"std:json\"; function main(){match(asNumber(JSON.parse('1.5'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}",
+      "output": "1.5\n"
+    }
+  ]
+},
+{
+  "name": "takeString",
+  "signature": "takeString(value: JsonValue): Result<string, JsonError>",
+  "parameters": [
+    {
+      "label": "value: JsonValue",
+      "documentation": "Required JSON value. No coercion or optional arguments."
+    }
+  ],
+  "documentation": "Extracts an owned string from a JSON string without copying its storage. Other JSON kinds return Err(expected-string). The input is consumed on both success and failure. Unicode text is preserved without coercion. Returns Ok with the extracted value or Err with a structured JsonError. Extraction errors use offset zero because JsonValue does not retain source locations.\n\n```tsrust\nimport {takeString} from \"std:json\"; function main(){match(takeString(JSON.parse('\"hello\"'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: hello. Ownership: Consumes value; the returned string owns its storage.",
+  "examples": [
+    {
+      "source": "import {takeString} from \"std:json\"; function main(){match(takeString(JSON.parse('\"hello\"'))){Ok(value)=>{console.log(value);},Err(error)=>{throw error.message;}}}",
+      "output": "hello\n"
+    }
+  ]
+},
   {
     "name": "JsonValue",
     "signature": "type JsonValue",
@@ -6208,7 +6276,7 @@
     "name": "JsonError",
     "signature": "type JsonError = { code: string; message: string; offset: int }",
     "parameters": [],
-    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit, output-limit and unterminated-comment. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits use zero. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
+    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit, output-limit and unterminated-comment. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits and scalar extraction failures use zero. Scalar readers also report expected-boolean, expected-number, expected-string, integer-fractional, integer-range and number-precision. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
     "examples": [
       {
         "source": "import {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",

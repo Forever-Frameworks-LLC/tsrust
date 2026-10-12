@@ -1,0 +1,54 @@
+import { asBoolean, asInt, asNumber, takeString } from 'std:json';
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = JSON.parse(input);
+    match (asInt(value)) {
+      Ok(value) => {
+        checksum += value;
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    match (asNumber(value)) {
+      Ok(value) => {
+        if (value !== 42.0) {
+          throw 'number';
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    match (asBoolean(JSON.parse('true'))) {
+      Ok(value) => {
+        if (!value) {
+          throw 'boolean';
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    match (takeString(JSON.parse('"hello"'))) {
+      Ok(value) => {
+        if (value !== 'hello') {
+          throw 'string';
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

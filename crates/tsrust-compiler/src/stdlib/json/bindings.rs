@@ -53,3 +53,31 @@ pub(crate) const CLOSE_JSONL:NativeBinding=NativeBinding {
  result:NativeType::Structured(&Signature::Result(&Signature::Void,&Signature::Named(NativeTypeId::JsonlError))),
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_close_jsonl"},..OPEN_JSONL
 };
+
+pub(crate) const AS_BOOLEAN:NativeBinding=NativeBinding {
+ module:"std:json",name:"asBoolean",returned_borrow:None,
+ parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Boolean,&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_asBoolean"},features:&["json"],
+};
+
+pub(crate) const AS_INT:NativeBinding=NativeBinding {
+ module:"std:json",name:"asInt",returned_borrow:None,
+ parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Int,&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_asInt"},features:&["json"],
+};
+
+pub(crate) const AS_NUMBER:NativeBinding=NativeBinding {
+ module:"std:json",name:"asNumber",returned_borrow:None,
+ parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Number,&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_asNumber"},features:&["json"],
+};
+
+pub(crate) const TAKE_STRING:NativeBinding=NativeBinding {
+ module:"std:json",name:"takeString",returned_borrow:None,
+ parameters:&[NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Consume,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::String,&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_takeString"},features:&["json"],
+};

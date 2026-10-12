@@ -51,3 +51,31 @@ are separate build-time data modules; see [modules](modules.md).
 
 Local variables named JSON shadow the global namespace. Runtime dependencies are
 selected automatically from checked usage; no per-build linking flags are needed.
+
+## Extracting scalar values
+
+Import `asBoolean`, `asInt`, `asNumber` and `takeString` from `std:json`.
+Each returns `Result<scalar, JsonError>` without coercion. The first three borrow
+an unchanged value. `takeString` consumes it, moving string storage into the
+result; the input is consumed even when its kind is wrong.
+
+`asInt` requires an integral value within the signed 64-bit range. `asNumber`
+rejects integer-backed values that cannot be represented exactly as floating point.
+It preserves floating negative zero; integer extraction converts negative zero to
+zero. Extraction cannot restore precision already lost while parsing a decimal or
+an integer beyond the backend's 64-bit range. Extraction errors have offset zero.
+
+```tsrust
+import {asInt} from "std:json";
+function main() {
+  const data = JSON.parse("42");
+  match (asInt(data)) {
+    Ok(value) => { console.log(value); },
+    Err(error) => { throw error.message; }
+  }
+}
+```
+
+This prints `42`. `asInt` reports `expected-number`, `integer-fractional` or
+`integer-range`; `asNumber` reports `expected-number` or `number-precision`.
+The other extractors report `expected-boolean` and `expected-string` respectively.

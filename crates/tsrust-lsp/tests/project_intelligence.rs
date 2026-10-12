@@ -2081,3 +2081,28 @@ fn testing_public_exports_exclude_private_runtime_bridges() {
     let error=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&root.0).unwrap_err();
     assert!(format!("{error:?}").contains("Testing runtime bindings are private"));
 }
+
+#[test]
+fn json_scalar_docs_preserve_types_and_ownership() {
+    for (name,result) in [("asBoolean","boolean"),("asInt","int"),("asNumber","number"),("takeString","string")] {
+        let source=tsrust_compiler::format(&format!("import {{{name}}} from 'std:json';function main(){{const value=JSON.parse('null');{name}(value);}}")).unwrap();
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let needle=format!("{name}(value)");
+        let hover=ask(&index,&source,&needle,"textDocument/hover");
+        let docs=hover["contents"]["value"].as_str().unwrap_or("");
+        assert!(docs.contains(&format!("Result<{result}, JsonError>")),"{hover}");
+        assert!(docs.contains("offset zero"),"{hover}");
+        assert!(docs.contains(if name=="takeString" {"Consumes value"} else {"Borrows value"}),"{hover}");
+        let signature=ask(&index,&source,"value);","textDocument/signatureHelp");
+        assert!(signature.to_string().contains("JsonValue"),"{signature}");
+    }
+    let source="import { as } from 'std:json';function main(){}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
+    let completion=ask(&ProjectIndex::new(&graph),source," }","textDocument/completion");
+    for name in ["asBoolean","asInt","asNumber"]{assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
+}

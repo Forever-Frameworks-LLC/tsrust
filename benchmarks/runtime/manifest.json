@@ -21256,6 +21256,30 @@
       "notes": "Includes parsing, allocation, encoding, exact comparison and cleanup. Fixed lexically sorted keys and ASCII text avoid object-order and UTF-8/UTF-16 differences. Not a general JSON parity claim.",
       "sourceSha256": "bd29abae3a2b47ba015726367a575cf71092a2fe17410e9ada0a64af8646f8d9",
       "counterpartSha256": "025e24acd97cce7cbfa75ed71e2449240c9293c1b93acaacd40dcaadcd8996e5"
+    },
+    {
+      "id": "native_json_scalars",
+      "category": "json",
+      "description": "Checked extraction of JSON integer, number, boolean and owned string",
+      "source": "workloads/native_json_scalars.tsr",
+      "counterpart": "workloads/native_json_scalars.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "Three parses and four checked scalar extractions",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "42",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse 42, true and hello; extract and validate four scalars, adding the integer to the seeded checksum.",
+      "notes": "Fixed exact integer and ASCII string domain. Includes parsing and scalar validation. Native string extraction transfers storage; JavaScript strings are immutable. Does not compare large-integer behavior.",
+      "sourceSha256": "3bcd079e2dd2349ce75c92c429c9653afedd7c1560a119292d0efaff95a3705e",
+      "counterpartSha256": "44b2774dbb9c3aa2cc9250956ee1eade1295599f05a11214b1bef8ebb979155d"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",
