@@ -1818,3 +1818,35 @@ Collection representation is also awaiting an owner decision. Proposed
 existing native collections and reject JSON text rather than choosing an implicit
 wire representation. Do not treat these proposed contracts as approved before the
 pending question is answered.
+
+
+## Fused versus owned allocation probes
+
+The JSON allocation harness now includes `schema_fused`, `schema_owned`,
+`schema_fused_mismatch` and `schema_owned_mismatch`. Each constructs a fresh
+scalar-array schema inside operation counters. Successful probes return the full
+typed integer array; mismatch probes parse strings followed by one number, then
+drop partial output and errors. This measures construction plus validation, not
+reusable-plan validation alone. Fused probes call safeParseJson; owned probes build
+JsonValue first and consume it through safeParse. Counterparts use checked
+JSON.parse and direct typed serde_json decoding. Neither counterpart models all
+native resource limits, and this is not Zod allocation evidence.
+
+The original three fresh-process samples at sizes 0, 1 and 1000 are retained for
+each of four probes, across native, direct Rust and Node. Native requested-byte
+counters are distinct from Node post-GC heap deltas. Checksums agree, counters
+are deterministic, and native/direct output disposal leaves zero live bytes.
+At 1000 integers, native fused requested 16192 bytes and retained 8192; owned
+parse-then-validate requested 97952 and retained 8192. Direct Rust requested 16352
+and retained 8192. For 1000 strings followed by a mismatching number, fused
+requested 55824 bytes versus owned 120896; both retained zero bytes after errors
+were dropped. These narrow results support the direct typed path's allocation
+benefit without claiming zero allocations or family-wide superiority.
+
+Fifteen allocation adapter contract tests pass. Whole-project formatting expanded
+the new fixtures. Emitted-source hashes changed, so the formatted probes were
+executed again rather than assuming token preservation proved native equivalence.
+Original and formatted records are preserved under `tsrust-schema-allocation-*`
+in SQLite. The harness removes generated packages, native binaries and TypeScript
+outputs on completion. Timing samples remain zero. Reusable plans, objects, unions
+and broader failure profiles remain required for S11 family allocation review.

@@ -135,3 +135,25 @@ test('selective raw checksum measures retained payload rather than ignored field
  assert.equal(jsonAllocationChecksum(0,'raw_selective'),2);
  assert.equal(jsonAllocationChecksum(2,'raw_selective'),5);
 });
+
+
+test('schema probes preserve typed output and failed-output disposal accounting',()=>{
+ for(const mode of ['fused','owned']){
+  const kind=`schema_${mode}`;
+  assert.equal(jsonAllocationInput(3,kind),'[7,8,9]');
+  assert.equal(jsonAllocationChecksum(3,kind),24);
+  const source=fs.readFileSync(new URL(`./allocations/json_${kind}_array.tsr`,import.meta.url),'utf8');
+  assert.match(source,/s.array\(s.int\(\)\)/);
+  assert(source.includes(mode==='fused'?'schema.safeParseJson(input)':'schema.safeParse(JSON.parse(input))'));
+  const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<NumericArray<i64>,TsrFunctionError0> { todo!() }\nfn main() {}';
+  const adapted=adaptJsonAllocation(emitted,driver,kind);
+  assert.match(adapted,/value.iter\(\).sum\(\)/);
+  assert.match(adapted,/liveBytesAfterOutputDrop/);
+  const mismatch=kind+'_mismatch';
+  assert.equal(jsonAllocationInput(2,mismatch),'["é🦀","é🦀",7]');
+  assert.equal(jsonAllocationChecksum(2,mismatch),1);
+  const failing=adaptJsonAllocation(emitted.replace('NumericArray<i64>','Array<String>'),driver,mismatch);
+  assert.match(failing,/Err\(error\)=>\{drop\(error\);1i64\}/);
+  assert.match(directJsonAllocation(driver,mismatch),/is_err\(\) as i64/);
+ }
+});

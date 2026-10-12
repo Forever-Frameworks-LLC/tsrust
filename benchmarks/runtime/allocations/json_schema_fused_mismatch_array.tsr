@@ -1,0 +1,13 @@
+import { s } from "std:schema";
+
+function workload(n: int, seed: int, input: string): string[] {
+  const schema = s.array(s.string());
+  match (schema.safeParseJson(input)) {
+    Ok(value) => {
+      return value;
+    },
+    Err(error) => {
+      throw "validation failed";
+    }
+  }
+}
