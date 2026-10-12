@@ -2,7 +2,7 @@
 
 Status: focused implementation accepted, prioritized before further S10 work.
 Reporting filters and next-node ranges are implemented;
-installed-consumer refresh remains pending. See the
+installed consumers are refreshed from `c244202c`. See the
 [usage guide](../guides/diagnostic-suppression.md).
 
 The owner approved `// @tsrust ignore - <reason>` applying to the next statement
@@ -47,4 +47,10 @@ SQLite preserves original compiler/editor failures and focused successful runs
 under `tsrust-ignore-*`, including `tsrust-ignore-final-focused-2.log`,
 `tsrust-ignore-check-regression.log`, `tsrust-ignore-editor-regression.log`, and
 `tsrust-ignore-format.log`. No full regression or timing rerun was needed.
-Installed-consumer verification remains outstanding.
+Installed CLI checks confirm suppressed `check`, rejected `build`, and JSON
+namespace execution outside the repository. Installed LSP protocol checks confirm
+an ignored unsaved diagnostic at version 1 and its restoration after removing the
+directive at version 2. The active VS Code server was restarted: its 14 stale
+Tsrust errors cleared, leaving six Rust dead-code warnings. No owner source was
+annotated automatically. Installation, protocol output, and UI observations are
+retained under `tsrust-ignore-consumer-*` in SQLite.
