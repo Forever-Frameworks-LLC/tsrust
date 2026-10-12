@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned bounded JSONL writers have focused source acceptance. Borrowed adapters, allocation
+Typed JSONC and JSONL reads have focused source acceptance. Owned bounded JSONL writers and borrowed JSONL readers have focused source acceptance. Borrowed writers, raw fragments, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -1082,3 +1082,32 @@ This prepares the native receiver boundary. Public borrowed reader declarations,
 returned-borrow contracts, typed-call receiver selection, editor documentation and
 matched workloads remain required before borrowed file adapters are accepted.
 Evidence: tsrust-json-reader-dispatch-*-d3426aff in SQLite. No timing acceptance.
+
+
+### Public borrowed JSON Lines readers
+
+borrowJsonl takes an exclusive borrow of an existing BufferedReader and returns
+Result<JsonlReaderView, JsonlError>. It validates per-record limits before reading,
+uses the owner's existing buffer and starts line/byte positions at 1/0 relative
+to adapter creation. It neither reopens nor seeks. Existing readJsonl and
+readJsonl<T> accept owned and borrowed readers. Decoded values remain owned;
+undefined remains EOF and null remains data. closeJsonl consumes the view without
+closing its owner. Early close/drop preserves unread buffered bytes. Failures
+remain terminal for the adapter; the owner can be reused after releasing it.
+
+The native representation stores Lines<&mut BufferedReader> with a real lifetime.
+Typed calls defer receiver selection until argument types are known, choosing
+private owned/borrowed adapters without changing the public single type argument.
+Import aliases work. Borrowed-parameter forwarding works; local-owner escape,
+owner read/close conflicts, clone, fabrication and post-close use are rejected.
+
+Eleven focused compiler/native tests and four JSONL editor checks pass, including
+catalog execution, existing owned reader regressions, relative error positions,
+invalid limits without consumption and terminal failure recovery via the owner.
+Twenty-five JSON/file benchmark guards pass. native_jsonl_borrowed includes open,
+buffering, borrowed adapter creation, two typed reads, EOF, adapter release and
+owner close; five untimed native/Node cases agree with the independent checksum.
+The public naming audit reconciles all 429 inventory identities exactly once.
+Evidence: tsrust-json-borrowed-*-3cb97e60 in SQLite. No timing was performed.
+Installed consumers remain at ee1e2717. Borrowed writers, public raw fragments,
+allocation baselines and S10 family acceptance remain open.

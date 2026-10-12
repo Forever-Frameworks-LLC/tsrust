@@ -2238,7 +2238,7 @@ fn typed_jsonl_import_exposes_owned_record_and_reader_contract(){
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&entry,"name);","textDocument/hover");assert!(hover.to_string().contains("string"),"{hover}");
  let hover=ask(&index,&entry,"next<Item>","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();
- assert!(text.contains("Result<Item | undefined, JsonlError>") && text.contains("Mutable<JsonlReader>") && !text.contains("@json") && !text.contains("native#"),"{hover}");
+ assert!(text.contains("Result<Item | undefined, JsonlError>") && text.contains("Mutable<JsonlReader | JsonlReaderView>") && !text.contains("@json") && !text.contains("native#"),"{hover}");
 }
 
 #[test]
@@ -2247,4 +2247,12 @@ fn jsonl_writer_editor_describes_typed_borrows_and_consuming_close(){
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&entry,"write(writer","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("value: T")&&text.contains("Mutable<JsonlWriter>")&&text.contains("undefined-value"),"{hover}");
  let hover=ask(&index,&entry,"closeJsonlWriter(writer","textDocument/hover");assert!(hover.to_string().contains("consumes the writer"),"{hover}");
+}
+
+#[test]
+fn borrowed_jsonl_editor_shows_receiver_alternatives_and_owner_lifetime(){
+ let entry=tsrust_compiler::format("import {BufferedReader} from 'std:fs';import {borrowJsonl,readJsonl as next,closeJsonl} from 'std:json';function read(input:Mutable<BufferedReader>){match(borrowJsonl(input)){Ok(reader)=>{next<int>(reader);closeJsonl(reader);},Err(e)=>{throw e.message;}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=ask(&index,&entry,"borrowJsonl(input)","textDocument/hover");let text=hover["contents"]["value"].as_str().unwrap();assert!(text.contains("JsonlReaderView")&&text.contains("exclusively borrows")&&text.contains("relative"),"{hover}");
+ let hover=ask(&index,&entry,"next<int>","textDocument/hover");assert!(hover.to_string().contains("Mutable<JsonlReader | JsonlReaderView>"),"{hover}");
 }

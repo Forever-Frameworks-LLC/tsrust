@@ -1,0 +1,77 @@
+import { open, bufferReader, close } from 'std:fs';
+import { borrowJsonl, readJsonl, closeJsonl } from 'std:json';
+
+type Item = {
+  name: string;
+  values: int[];
+  active: boolean;
+};
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (open(input)) {
+      Ok(file) => {
+        match (bufferReader(file, 8192)) {
+          Ok(buffer) => {
+            {
+              match (borrowJsonl(buffer)) {
+                Ok(reader) => {
+                  let done = false;
+                  while (!done) {
+                    match (readJsonl<Item>(reader)) {
+                      Ok(item) => {
+                        if (item === undefined) {
+                          done = true;
+                        } else {
+                          if (!item.active) {
+                            throw 'Inactive item';
+                          }
+
+                          checksum += item.name.length + item.values[0] + item.values[1];
+                        }
+                      },
+                      Err(error) => {
+                        throw error.message;
+                      }
+                    }
+                  }
+
+                  match (closeJsonl(reader)) {
+                    Ok(_) => {
+                    },
+                    Err(error) => {
+                      throw error.message;
+                    }
+                  }
+                },
+                Err(error) => {
+                  throw error.message;
+                }
+              }
+            }
+
+            match (close(buffer)) {
+              Ok(_) => {
+              },
+              Err(error) => {
+                throw error.message;
+              }
+            }
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

@@ -153,9 +153,14 @@ impl Analyzer {
         if matches!(&expr.kind,ExprKind::Call(_,args) if args.iter().any(|arg|matches!(arg.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))) {
             return self.prepare_generic_spread(context,expr,expected);
         }
-        let ExprKind::Call(callee, _) = &mut expr.kind else {
+        let ExprKind::Call(callee, args) = &mut expr.kind else {
             return Ok(());
         };
+        if matches!(&callee.kind,ExprKind::Name(name) if name=="@json:typedreadJsonl")
+            && args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlReaderView))) {
+            callee.kind=ExprKind::Name("@json:typedreadJsonlView".into());
+        }
+
         let Some((name, _)) = Self::generic_call_name(callee) else {
             return Ok(());
         };

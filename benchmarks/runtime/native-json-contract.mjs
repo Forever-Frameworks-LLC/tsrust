@@ -20,11 +20,11 @@ export function assertNativeJsonSource(source,row,kind){
   for(const snippet of ['while(i<n){const item:Item={active:true,name:\'hello\',values:[20,17]};','checksum+=1;i++;',...snippets])if(!containsCodeSnippet(source,snippet))throw Error('JSONL writer placement');
   return;
  }
- if(row.id==='native_jsonl_typed'){
+ if(['native_jsonl_typed','native_jsonl_borrowed'].includes(row.id)){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSONL typed identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSONL typed fingerprint');
   if(row.iterations!==2000||row.inputText!=='native-jsonl-typed-v1'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One file open, two typed record reads, EOF and close')throw Error('JSONL typed denominator');
-  const snippets=kind==='native'?['while(i<n){match(openJsonl(input))','readJsonl<Item>(reader)','checksum+=item.name.length+item.values[0]+item.values[1];','closeJsonl(reader)']:["while(i<n){const file=fileSystem.openSync(input,'r');",'checksum+=observe(pending.slice(0,newline));','fileSystem.closeSync(file);'];
+  const snippets=kind==='native'?[...(row.id==='native_jsonl_borrowed'?['while(i<n){match(open(input))','bufferReader(file,8192)','borrowJsonl(buffer)','close(buffer)']:['while(i<n){match(openJsonl(input))']),'readJsonl<Item>(reader)','checksum+=item.name.length+item.values[0]+item.values[1];','closeJsonl(reader)']:["while(i<n){const file=fileSystem.openSync(input,'r');",'checksum+=observe(pending.slice(0,newline));','fileSystem.closeSync(file);'];
   for(const snippet of snippets)if(!containsCodeSnippet(source,snippet))throw Error('JSONL typed operation placement');
   return;
  }

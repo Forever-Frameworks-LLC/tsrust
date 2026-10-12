@@ -129,7 +129,8 @@ impl Analyzer {
         ];
         if jsonc {contracts.insert(1,ArgumentContract{ty:Type::Boolean,mode:Mode::Copy,omission:crate::ParameterOmission::Required,rest:false});}
         if jsonl {
-            let reader=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonlReader)).unwrap();
+            let identity=if args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlReaderView))) {crate::native_signatures::NativeTypeId::JsonlReaderView}else{crate::native_signatures::NativeTypeId::JsonlReader};
+            let reader=self.program.records.iter().position(|record|record.native_type==Some(identity)).unwrap();
             contracts=vec![ArgumentContract{ty:Type::Record(reader),mode:Mode::Mutate,omission:crate::ParameterOmission::Required,rest:false}];
         }
         self.check_call_arguments(context, args, &contracts, loans)?;

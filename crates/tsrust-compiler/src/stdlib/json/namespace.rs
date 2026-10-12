@@ -112,6 +112,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         crate::native_binding_types::prepare(&mut program.records, binding, span)?;
     }
     for name in typed {
+        if name=="readJsonl" {let wrapper=typed_adapter(program,"readJsonlView")?;program.functions.push(wrapper);}
         let wrapper = typed_adapter(program, &name)?;
         program.functions.push(wrapper);
     }
@@ -188,6 +189,8 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     let source = format!("function adapter<T>(text:ReadOnly<string>,limits:ReadOnly<JsonLimits>={{maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}}):{result}{{{body}}}");
     let source=if name=="parseJsonc" {
         "function adapter<T>(text:ReadOnly<string>,allowTrailingComma:boolean=false,limits:ReadOnly<JsonLimits>={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):Result<T,JsonError>{return backend(text,allowTrailingComma,limits);}".to_owned()
+    }else if name=="readJsonlView" {
+        "function adapter<T>(reader:Mutable<JsonlReaderView>):Result<T|undefined,JsonlError>{return backend(reader);}".to_owned()
     }else if name=="readJsonl" {
         "function adapter<T>(reader:Mutable<JsonlReader>):Result<T|undefined,JsonlError>{return backend(reader);}".to_owned()
     }else{source};
@@ -199,14 +202,14 @@ fn typed_adapter(program: &mut Program, name: &str) -> Result<Function, Diagnost
     for (parameter, _, _) in &mut function.params { shift(&mut parameter.span); }
     for initializer in &mut function.parameter_initializers { if let ParameterInitializer::Default { span, .. } = initializer {shift(span);} }
     let mut replacements=std::collections::HashMap::new();
-    let identities=if name=="readJsonl" {vec![NativeTypeId::JsonlReader,NativeTypeId::JsonlError,NativeTypeId::JsonLimits]}else{vec![NativeTypeId::JsonLimits,NativeTypeId::JsonError]};
+    let identities=if name=="readJsonlView" {vec![NativeTypeId::JsonlReaderView,NativeTypeId::JsonlError,NativeTypeId::JsonLimits]}else if name=="readJsonl" {vec![NativeTypeId::JsonlReader,NativeTypeId::JsonlError,NativeTypeId::JsonLimits]}else{vec![NativeTypeId::JsonLimits,NativeTypeId::JsonError]};
     for identity in identities {
         replacements.insert(crate::native_types::declaration(identity).name.to_owned(),crate::native_type_resolution::project(&mut program.records,&Signature::Named(identity),function.name.span)?);
     }
     crate::source_walk::function_annotations(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements))?;
     crate::source_walk::function_body(&mut function, &mut |annotation| crate::type_substitution::apply(annotation, &replacements), &mut |expression| {
         shift(&mut expression.span);
-        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else if name=="readJsonl"{"@json:decodeJsonl"}else{"@json:decode"}.into()); }
+        if matches!(&expression.kind, ExprKind::Name(value) if value == "backend") { expression.kind = ExprKind::Name(if name=="parseJsonc"{"@json:decodeJsonc"}else if matches!(name,"readJsonl"|"readJsonlView"){"@json:decodeJsonl"}else{"@json:decode"}.into()); }
         Ok(())
     })?;
     // Statement and binding spans share the adapter's synthetic source region.

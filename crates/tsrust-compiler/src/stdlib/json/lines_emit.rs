@@ -1,7 +1,7 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeType,NativeBackend},native_signatures::NativeTypeId,syntax::Type};
 pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  let record=|id|program.records.iter().position(|r|r.native_type==Some(id)).unwrap();
- let reader=record(NativeTypeId::JsonlReader);let error=record(NativeTypeId::JsonlError);
+ let reader=record(if binding.name=="borrowJsonl"{NativeTypeId::JsonlReaderView}else{NativeTypeId::JsonlReader});let error=record(NativeTypeId::JsonlError);
  let NativeType::Structured(signature)=binding.result else {unreachable!()};
  let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap() else {unreachable!()};
  let members=&program.unions[result.index()].members;let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();
@@ -10,6 +10,11 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  let os_members=&program.unions[os.index()].members;
  let integer=os_members.iter().position(|ty|*ty==Type::Int).unwrap();let absent=os_members.iter().position(|ty|*ty==Type::Undefined).unwrap();
  let helper=format!("let failure=|code:&'static str,message:&'static str,operation:&'static str,line:usize,offset:usize,os_code:Option<i64>|Record{error}{{field0:String::Borrowed(code),field1:String::Borrowed(message),field2:String::Borrowed(operation),field3:line as i64,field4:offset as i64,field5:match os_code{{Some(code)=>Union{os}::V{integer}(code),None=>Union{os}::V{absent}(TsrUndefined)}}}};",os=os.index());
+ if binding.name=="borrowJsonl" {
+  let input=record(NativeTypeId::BufferedReader);let limits=record(NativeTypeId::JsonLimits);
+  let result_types=members.iter().map(|ty|if *ty==Type::Record(ok){format!("Record{ok}<Record{reader}<'a>>")}else{format!("Record{err}")}).collect::<Vec<_>>().join(",");
+  return format!("fn tsrust_std_json_borrow_jsonl<'a>(reader:&'a mut Record{input},limits:Option<&Record{limits}>)->Union{result}<{result_types}>{{{helper}let opened=(move||{{let reader=reader;let (bytes,depth,entries,nodes)=if let Some(limits)=limits{{(limits.field0,limits.field1,limits.field2,limits.field3)}}else{{(16*1024*1024,64,1_000_000,1_000_000)}};if bytes<0 || !(0..=64).contains(&depth) || entries<0 || nodes<0 {{return Err(failure(\"invalid-limits\",\"JSON limits must be nonnegative and depth must not exceed 64\",\"open\",1,0,None));}}let convert=|value:i64|usize::try_from(value).map_err(|_|failure(\"invalid-limits\",\"JSON limits exceed this platform's range\",\"open\",1,0,None));let limits=tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}};tsrust_native_json::lines::Lines::new(&mut reader.handle,limits).map_err(|error|failure(error.error.code,error.error.message,\"open\",error.line,error.error.offset,error.os_code.map(i64::from)))}})();match opened{{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{reader}{{handle:value}}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:error}})}}}}\n",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
+ }
  let (parameters,call,payload)=match binding.name {
   "openJsonl"=>{
    let limits=record(NativeTypeId::JsonLimits);

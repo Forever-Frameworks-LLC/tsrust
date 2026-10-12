@@ -4,7 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 export function createNativeFileFixture(row) {
   const writer=row.id==='native_jsonl_writer'&&row.family==='native-json'&&row.inputText==='native-jsonl-writer-v1';
-  const jsonl=row.id==='native_jsonl_typed'&&row.family==='native-json'&&row.inputText==='native-jsonl-typed-v1';
+  const jsonl=['native_jsonl_typed','native_jsonl_borrowed'].includes(row.id)&&row.family==='native-json'&&row.inputText==='native-jsonl-typed-v1';
   if(!writer&&!jsonl&&(row.family!=='native-files'||row.inputText!=='native-file-fixture-v1')) throw Error('Native file fixture contract');
   const bytes=Buffer.from(writer?'':jsonl?'{"name":"hello","values":[20,17],"active":true}\n{"name":"hello","values":[20,17],"active":true}\n':'0123456789abcdef'.repeat(256),'ascii');
   if(createHash('sha256').update(bytes).digest('hex')!==row.fixtureSha256) throw Error('Native file fixture fingerprint');
@@ -17,7 +17,7 @@ export function createNativeFileFixture(row) {
 const fixtures=new Map();
 function cleanup(){for(const fixture of fixtures.values())fixture.cleanup();fixtures.clear();}
 export function nativeFileInput(row) {
-  if(row?.family!=='native-files'&&row?.id!=='native_jsonl_typed'&&row?.id!=='native_jsonl_writer')return row?.inputText;
+  if(row?.family!=='native-files'&&!['native_jsonl_typed','native_jsonl_borrowed'].includes(row?.id)&&row?.id!=='native_jsonl_writer')return row?.inputText;
   if(!fixtures.has(row.id)) {
     if(fixtures.size===0) {
       process.once('exit',cleanup);

@@ -397,6 +397,12 @@ impl Cache {
             for argument in &mut arguments {
                 crate::type_substitution::apply(argument, &bindings)?;
             }
+            // JSON Lines selects its concrete owned/borrowed receiver after
+            // argument types are known, without changing public generic arity.
+            if name=="@json:typedreadJsonl" {
+                self.value_calls.insert((enclosing_name.clone(),expression.span.start,expression.span.end),arguments);
+                return Ok(());
+            }
             *name = self.instance(name, arguments, expression.span, depth + 1)?;
             Ok(())
         })?;

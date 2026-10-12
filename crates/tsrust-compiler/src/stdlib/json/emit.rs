@@ -2,7 +2,7 @@ use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeType}
 pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
  if matches!(binding.name,"createJsonl"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter"){return super::writer_emit::bridge(program,binding);}
  if matches!(binding.name,"get"|"at"|"asString"){return super::views_emit::bridge(program,binding);}
- if matches!(binding.name,"openJsonl"|"readJsonl"|"closeJsonl"){return super::lines_emit::bridge(program,binding);}
+ if matches!(binding.name,"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"){return super::lines_emit::bridge(program,binding);}
  let record=|id|program.records.iter().position(|r|r.native_type==Some(id)).unwrap();
  let value=record(NativeTypeId::JsonValue);
  if matches!(binding.name,"nullValue"|"fromBoolean"|"fromInt"|"fromString"){

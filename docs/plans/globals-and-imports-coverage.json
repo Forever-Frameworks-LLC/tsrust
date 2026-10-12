@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryRows": 427,
+  "inventoryRows": 429,
   "status": "reviewed; discovery reconciliation accepted in globals-and-imports-audit-closure.md",
   "reviews": {
     "docs/plans/globals-and-imports-array-audit.md": [
@@ -469,6 +469,10 @@
       "std:json::writeJsonl",
       "std:json::flushJsonl",
       "std:json::closeJsonlWriter"
+    ],
+    "docs/plans/globals-and-imports-json-borrowed-reader-audit.md": [
+      "std:json::JsonlReaderView",
+      "std:json::borrowJsonl"
     ]
   }
 }
