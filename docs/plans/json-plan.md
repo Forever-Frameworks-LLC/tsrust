@@ -1982,3 +1982,26 @@ formatting changes no files or fingerprints. SQLite records use
 `tsrust-json-selective-timing*-510cae62` and `tsrust-json-selective-rss-510cae62`
 for original measurements, logs, initial unsupported-flag witness and checks.
 Raw serialization policy and consumer refresh remain outstanding; S10 stays open.
+
+### Raw consumer refresh and installed-hover repair
+
+Both release executables were rebuilt from cbdbfd7a and atomically installed in
+~/.cargo/bin and target/editor/debug, with all hashes verified. Six installed
+CLI raw witnesses pass formatting idempotence and native execution; the selective
+fixture checks successfully. Installed LSP diagnostics are clean for that fixture.
+
+The installed protocol smoke caught a catalog placement defect: raw-field prose
+had been inserted into the text parameter documentation instead of the main
+parse/tryParse documentation. Corrected both locations and strengthened the
+editor test to inspect each catalog field. The corrected release LSP was rebuilt,
+atomically replaced and hash-verified; the installed protocol smoke now verifies
+the raw-field input-lifetime explanation. The original failure remains preserved.
+
+VS Code's restart control was invoked after each installation. The settled editor
+shows checking enabled, the complete readonly settings import hover, and 11 errors
+plus 42 warnings across the workspace. This refresh does not claim those remaining
+Problems are fixed. Whole-project formatting changes no files or fingerprints.
+SQLite evidence: `tsrust-json-raw-consumers-*-cbdbfd7a` includes builds, original
+and corrected installation hashes, executable native/LSP smoke scripts, passing
+checks, the original failed hover check, editor regression and formatting logs.
+Raw output semantics and corresponding serialization acceptance remain open.

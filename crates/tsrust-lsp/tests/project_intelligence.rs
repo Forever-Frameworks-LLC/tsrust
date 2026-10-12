@@ -2304,6 +2304,12 @@ fn raw_json_record_field_hover_preserves_public_type() {
 
 #[test]
 fn typed_raw_json_hover_documents_input_lifetime() {
+ let catalog:serde_json::Value=serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
+ for name in ["parse","tryParse"] {
+  let entry=catalog["JSON"].as_array().unwrap().iter().find(|entry|entry["name"]==name).unwrap();
+  assert!(entry["documentation"].as_str().unwrap().contains("source text must outlive"));
+  assert!(entry["parameters"][0]["documentation"].as_str().unwrap().starts_with("Required strict JSON document."));
+ }
  let source=tsrust_compiler::format("import {JsonRaw} from 'std:json';type Envelope={payload:JsonRaw;tag:int;};function main(){const text='{\"payload\":null,\"tag\":7}';const value=JSON.parse<Envelope>(text);}").unwrap();
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"parse<Envelope>","textDocument/hover");
