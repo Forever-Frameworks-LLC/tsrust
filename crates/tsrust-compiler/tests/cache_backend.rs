@@ -1,5 +1,7 @@
 #[path = "../src/stdlib/cache/lru.rs"]
 mod lru;
+#[path = "../src/stdlib/cache/timed.rs"]
+mod timed;
 mod support;
 #[path = "../src/runtime/sets.rs"]
 mod source_keys;
@@ -9,6 +11,36 @@ use std::{hash::{Hash,Hasher},num::NonZeroUsize};
 #[derive(PartialEq,Eq,Debug)]
 struct Key(u32);
 impl Hash for Key {fn hash<H:Hasher>(&self,state:&mut H){0u8.hash(state);}}
+
+#[test]
+fn timed_operations_never_return_expired_values_or_evict_live_values_first(){
+ use std::time::{Instant,Duration};
+ let now=std::rc::Rc::new(std::cell::Cell::new(Instant::now()));let clock=now.clone();
+ let mut cache=timed::Timed::new(Lru::new(NonZeroUsize::new(2).unwrap()),move||clock.get());
+ assert!(cache.insert(Key(1),11,Some(Duration::from_secs(5))).unwrap().is_none());
+ assert!(cache.insert(Key(2),22,None).unwrap().is_none());
+ now.set(now.get()+Duration::from_secs(4));assert_eq!(cache.get(&Key(1)),Some(&11));
+ now.set(now.get()+Duration::from_secs(1));assert!(cache.peek(&Key(1)).is_none());
+ assert_eq!(cache.len(),1);assert!(cache.insert(Key(3),33,None).unwrap().is_none());
+ assert_eq!(cache.peek(&Key(2)),Some(&22));assert_eq!(cache.remove(&Key(1)),None);
+ assert_eq!(cache.remove(&Key(3)),Some((Key(3),33)));assert_eq!(cache.len(),1);
+ cache.insert(Key(4),44,Some(Duration::from_secs(1))).unwrap();now.set(now.get()+Duration::from_secs(1));
+ assert!(cache.insert(Key(5),55,None).unwrap().is_none());assert_eq!(cache.peek(&Key(2)),Some(&22));
+}
+
+#[test]
+fn invalid_ttl_preserves_input_and_existing_cache_state(){
+ use std::time::{Instant,Duration};
+ let now=Instant::now();let mut cache=timed::Timed::new(Lru::new(NonZeroUsize::new(1).unwrap()),move||now);
+ cache.insert(Key(1),Box::new(11),None).unwrap();
+ for (ttl,kind) in [(Duration::ZERO,timed::DeadlineError::ZeroDuration),(Duration::MAX,timed::DeadlineError::Overflow)] {
+  let value=Box::new(22);let pointer=&*value as *const i32;
+  let error=cache.insert(Key(1),value,Some(ttl)).unwrap_err();
+  assert_eq!(error.kind,kind);
+  assert_eq!(error.key,Key(1));assert_eq!(&*error.value as *const i32,pointer);
+  assert_eq!(cache.peek(&Key(1)),Some(&Box::new(11)));assert_eq!(cache.len(),1);
+ }
+}
 
 #[test]
 fn cache_uses_existing_source_key_equality_and_normalization(){

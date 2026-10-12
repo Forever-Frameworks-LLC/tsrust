@@ -87,3 +87,26 @@ hashes may collide. All six cache backend tests pass. SQLite evidence:
 `tsrust-cache-keys-{red,check,final,format}-dfbb70eb.log`.
 This closes a native integration mismatch; public registry/type checking,
 expiration policy, editor surface and matched workloads remain outstanding.
+
+## Timed operation layer
+
+`timed.rs` connects an injected monotonic clock to the storage core. Get, peek,
+remove and length purge expired entries before observing live storage. Insert
+validates a deadline before any mutation, then purges expiration before capacity
+eviction. Thus an expired most-recent entry cannot cause eviction of a live
+least-recent entry. Reads preserve the insertion deadline. Purging drops expired
+owners; explicit removal still transfers a live entry to the caller.
+
+The internal insertion contract accepts no deadline or a positive Duration.
+Zero and Instant overflow return distinct errors containing the original owned
+key/value. Failed insertion does not replace, evict or expire existing entries.
+This prepares source integration without choosing public duration units or error
+signatures. Public documentation and checker integration must expose cleanup as
+mutation: even peek/length can dispose expired entries and cannot run while an
+outstanding borrowed value forbids cache mutation.
+
+All eight cache backend tests pass, including fake-clock expiry during reads and
+capacity checks, unchanged live entries on invalid TTL, and allocation identity
+of returned failed inputs. SQLite evidence:
+`tsrust-cache-timed-{red,check,final,format}-b4eee6a3.log`.
+The namespace is still not exposed; source acceptance and performance remain open.
