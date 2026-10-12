@@ -3,9 +3,9 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were refreshed from `c244202c`, including namespace and reporting-only
-diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
-its consumer refresh remains pending. Dynamic child operations,
+consumers were refreshed from `bdedda8a`, including scalar extraction, typeof,
+array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
+its consumer refresh is verified. Dynamic child operations,
 direct typed runtime paths, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
@@ -560,3 +560,18 @@ The matched workload has source hashes, operation guards, an independent checksu
 driver support and report registration. Five native/Node-after-tsc cases agree;
 there are zero timing samples. Whole-project formatting is retained in
 tsrust-json-inspection-format.log. Installed refresh is tracked separately below.
+
+### Installed inspection refresh
+
+Release CLI and LSP binaries from bdedda8a were atomically installed in ~/.cargo/bin
+and target/editor/debug. Installed CLI execution outside the repository verifies
+typeof, Array.isArray, equality with null and asInt. The installed LSP reports no
+diagnostics for that fixture and exposes updated typeof documentation. The active
+VS Code server was restarted; the stale asBoolean export error disappeared from
+native_json_scalars.tsr. The workspace still shows 11 errors from negative closure
+fixtures and 16 warnings; this refresh does not claim a clean repository Problems
+panel. Existing open JSON documents show no Tsrust errors.
+
+SQLite retains tsrust-json-inspection-consumer-build.log, consumer-install.json,
+consumer-smoke.py and consumer-smoke.log with the same prefix. Binary hashes are
+recorded in the install record. Family measurement and richer refinement remain open.

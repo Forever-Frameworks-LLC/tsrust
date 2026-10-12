@@ -2,7 +2,7 @@
 
 S10 remains open. This batch accepts std:json.asBoolean, asInt, asNumber and
 takeString in compiler source, native execution and editor metadata. Installed
-consumers still reference c244202c; refresh is pending. No timing measurements ran.
+consumers were refreshed from bdedda8a and passed scalar/inspection smoke checks. No timing measurements ran.
 
 The readers return checked Results without coercion or input mutation. asInt
 checks signed 64-bit range and fractional values; asNumber rejects precision loss
