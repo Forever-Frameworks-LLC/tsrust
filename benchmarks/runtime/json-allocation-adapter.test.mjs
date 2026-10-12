@@ -35,3 +35,15 @@ test('direct Rust and Node adapters reject protocol drift',()=>{
  assert.match(adapted,/workload\(n, 7, input\)/);
  assert.throws(()=>nodeJsonAllocation('',nodeDriver.replace('workload(n, 7)','changed(n, 7)')));
 });
+
+test('Unicode allocation input keeps escaped source and counts decoded UTF-8 bytes',()=>{
+ assert.equal(jsonAllocationInput(1,'typed_strings'),'["é🦀","line\\n\\u0061"]');
+ assert.equal(jsonAllocationInput(0,'dynamic_strings'),'[]');
+ assert.equal(jsonAllocationChecksum(1000,'typed_strings'),12000);
+ const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &String) -> Result<Array<String>,TsrFunctionError0> { todo!() }\nfn main() {}';
+ assert.match(adaptJsonAllocation(emitted,driver,'typed_strings'),/value.iter\(\).*len\(\)/);
+ assert.throws(()=>adaptJsonAllocation(emitted,driver,'typed'));
+ assert.match(directJsonAllocation(driver,'typed_strings'),/Vec<std::string::String>/);
+ const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
+ assert.match(nodeJsonAllocation('',nodeDriver,'typed_strings'),/TextEncoder/);
+});

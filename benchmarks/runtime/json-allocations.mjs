@@ -1,4 +1,4 @@
-// Focused numeric-array allocation evidence; no elapsed-time measurements.
+// Focused numeric and Unicode-array allocation evidence; no elapsed-time measurements.
 // Native requested-byte counters and Node post-GC heap deltas are distinct metrics.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,9 +7,13 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-import {adaptJsonAllocation,directJsonAllocation,nodeJsonAllocation,jsonAllocationInput,jsonAllocationChecksum} from './json-allocation-adapter.mjs';
+import {adaptJsonAllocation,directJsonAllocation,nodeJsonAllocation,jsonAllocationInput,jsonAllocationChecksum,jsonAllocationKinds} from './json-allocation-adapter.mjs';
 import {prepareNativeDependencies} from './native-dependencies.mjs';
 import {compilerSourceInputs} from './compiler-source-inputs.mjs';
+const selection=process.argv.slice(2);
+if(selection.length>1||selection.length===1&&!selection[0].startsWith('--only='))throw Error('Usage: json-allocations.mjs [--only=kind,kind]');
+const kinds=selection.length?selection[0].slice(7).split(','):jsonAllocationKinds;
+if(new Set(kinds).size!==kinds.length||kinds.some(kind=>!jsonAllocationKinds.includes(kind)))throw Error('Unknown or duplicate JSON allocation kind');
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'../..');
 const pins=JSON.parse(fs.readFileSync(here+'/versions.json'));
@@ -26,12 +30,13 @@ const nodeDriver=fs.readFileSync(here+'/allocation-driver.ts','utf8');
 const build=fs.mkdtempSync(path.join(os.tmpdir(),'tsrust-json-allocations-'));
 const sources=[],rows=[];
 try {
- for(const kind of ['dynamic','typed']){
-  const id=`json_${kind}_array`,file=here+`/allocations/${id}.tsr`;
-  const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${id}.ts`,'utf8');
+ for(const kind of kinds){
+  const id=`json_${kind}_array`,sourceId=kind==='dynamic_strings'?'json_dynamic_array':id,file=here+`/allocations/${sourceId}.tsr`;
+  const sizes=kind.endsWith('_strings')?[0,1,1000]:[0,1,10000];
+  const source=fs.readFileSync(file,'utf8'),counterpart=fs.readFileSync(here+`/allocations/${sourceId}.ts`,'utf8');
   const emitted=run(compiler,['emit',file]);
   const dependencies=prepareNativeDependencies({emitted,compiler,source:file,build,rustVersion:pins.rust,targetDirectory:target,env});
-  const generated=adaptJsonAllocation(emitted,driver,kind),direct=directJsonAllocation(driver,kind),typescript=nodeJsonAllocation(counterpart,nodeDriver);
+  const generated=adaptJsonAllocation(emitted,driver,kind),direct=directJsonAllocation(driver,kind),typescript=nodeJsonAllocation(counterpart,nodeDriver,kind);
   const commands=[];
   for(const [engine,text] of [['native',generated],['directRust',direct]]){
    const stem=path.join(build,`${id}_${engine}`);fs.writeFileSync(stem+'.rs',text);
@@ -40,9 +45,9 @@ try {
   }
   const stem=path.join(build,id);fs.writeFileSync(stem+'.ts',typescript);fs.writeFileSync(stem+'.json',JSON.stringify({extends:here+'/tsconfig.json',files:[stem+'.ts'],compilerOptions:{outDir:build}}));
   const tsc=[here+'/node_modules/typescript/bin/tsc','--project',stem+'.json'];run(process.execPath,tsc);commands.push([process.execPath,...tsc]);
-  sources.push({id,sourceSha256:hash(source),counterpartSha256:hash(counterpart),emittedSha256:hash(emitted),instrumentedSha256:hash(generated),directRustSha256:hash(direct),instrumentedTypeScriptSha256:hash(typescript),dependencies:dependencies.evidence,commands});
-  for(const n of [0,1,10000]){
-   const input=jsonAllocationInput(n),expected=jsonAllocationChecksum(n),samples=[];
+  sources.push({id,sourceId,sizes,sourceSha256:hash(source),counterpartSha256:hash(counterpart),emittedSha256:hash(emitted),instrumentedSha256:hash(generated),directRustSha256:hash(direct),instrumentedTypeScriptSha256:hash(typescript),dependencies:dependencies.evidence,commands});
+  for(const n of sizes){
+   const input=jsonAllocationInput(n,kind),expected=jsonAllocationChecksum(n,kind),samples=[];
    for(let sample=0;sample<3;sample++){
     const native=JSON.parse(run(stem+'_native',[String(n),input]));
     const directRust=JSON.parse(run(stem+'_directRust',[String(n),input]));
@@ -55,6 +60,6 @@ try {
   }
   console.error(`Verified ${id}: three sizes, three fresh-process samples, native/direct Rust/Node`);
  }
- const data={schemaVersion:1,scope:'json-numeric-array-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,sizes:[0,1,10000],semantics:'Valid arrays of exact integers 7 through n+6. Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked numeric array. Input retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
+ const data={schemaVersion:1,scope:'json-array-allocation',timestamp:new Date().toISOString(),timingSamples:0,samplesPerCase:3,kinds,semantics:'Valid arrays of exact integers 7 through n+6, or n pairs of Unicode and escaped strings (12 decoded UTF-8 bytes per pair). Native bounded decoding; direct serde_json baseline without native validation limits; Node dynamic parse or checked typed array. Input retained outside operation counters. Native counts requested bytes; Node reports post-GC heap deltas, not comparable allocation counts.',machine:{cpu:os.cpus()[0]?.model,architecture:os.arch(),release:os.release()},versions:{node:process.version,rust:rustVersion,typescript:pins.typescript,components:process.versions},sources,rows,driverSha256:hash(driver),nodeDriverSha256:hash(nodeDriver),adapterSha256:hash(fs.readFileSync(here+'/json-allocation-adapter.mjs')),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),compilerInputs:compilerSourceInputs(root+'/crates/tsrust-compiler/src')};
  console.log(JSON.stringify(data,null,2));
 } finally {fs.rmSync(build,{recursive:true,force:true});}

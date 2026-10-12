@@ -1180,3 +1180,29 @@ This is partial S10 allocation evidence, not family acceptance. Unicode, nested
 and selective objects, malformed/partial-failure inputs, encoding, streaming and
 raw-fragment allocation cases remain required, along with full family regressions
 and timing. Raw-fragment public output semantics still await the owner's choice.
+
+### Unicode and escaped-string allocation baselines
+
+The allocation harness now covers dynamic and typed string arrays. Each input
+unit contains literal Unicode `é🦀` and escaped `line\n\u0061`; decoded output
+contains 12 UTF-8 bytes per pair. Sizes 0, 1 and 1000 pairs use three fresh-process
+samples for each of generated native, direct serde_json Rust and Node-after-tsc.
+The checksum counts decoded UTF-8 bytes, including on Node, rather than UTF-16
+code units. Source input retains its escape spelling. The new `--only` selection
+allows completed cases to remain untouched; unknown and duplicate kinds fail.
+Use `--only=dynamic_strings,typed_strings` to run this batch independently.
+
+All six cases and 54 process samples pass. Both Rust engines release all tracked
+output and input bytes, and allocation metrics are stable across three samples.
+At 1000 pairs, dynamic native/direct results match: 2002 allocations, nine
+reallocations and 77536 retained requested bytes. Typed results retain 61152 bytes
+in both engines; native uses 2003 allocations/eight reallocations versus direct
+Rust's 2002/nine. At one pair, native typed output retains 12 heap bytes versus
+108 for direct Vec<String>, with array storage inline. Native typed decoding has
+extra validation scratch allocation; this evidence does not imply lower CPU cost.
+Empty arrays allocate nothing. Node post-GC heap deltas remain a separate metric.
+
+Evidence: tsrust-json-unicode-*-e19e66bb in SQLite. The original numeric evidence
+is preserved and was not rerun. These are allocation measurements, not timing
+acceptance. Nested/selective, invalid, encoding, streaming and raw-fragment
+allocation coverage and S10 family acceptance remain open.
