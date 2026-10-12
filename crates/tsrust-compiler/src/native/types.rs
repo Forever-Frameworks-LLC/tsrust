@@ -91,6 +91,7 @@ static ENV_ERROR: Declaration = Declaration {
     ], ..FS_ERROR
 };
 static JSON_VALUE: Declaration = Declaration {id:NativeTypeId::JsonValue,module:"std:json",name:"JsonValue",..BYTES};
+static JSON_VIEW: Declaration = Declaration {id:NativeTypeId::JsonView,module:"std:json",name:"JsonView",..BYTE_VIEW};
 static JSON_ERROR: Declaration = Declaration {id:NativeTypeId::JsonError,module:"std:json",name:"JsonError",fields:&[
     Field{name:"code",signature:Signature::String,optional:false},
     Field{name:"message",signature:Signature::String,optional:false},
@@ -199,6 +200,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::FsError => &FS_ERROR,
         NativeTypeId::EnvError => &ENV_ERROR,
         NativeTypeId::JsonValue => &JSON_VALUE,
+        NativeTypeId::JsonView => &JSON_VIEW,
         NativeTypeId::JsonError => &JSON_ERROR,
         NativeTypeId::JsonLimits => &JSON_LIMITS,
         NativeTypeId::JsonlReader => &JSONL_READER,
@@ -213,7 +215,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

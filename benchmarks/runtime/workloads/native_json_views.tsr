@@ -1,0 +1,43 @@
+import { get, at, asInt } from 'std:json';
+
+function workload(n: int, seed: int, input: string): int {
+  const owner = JSON.parse(input);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (get(owner, 'items')) {
+      Ok(items) => {
+        if (items !== undefined) {
+          match (at(items, 0)) {
+            Ok(child) => {
+              if (child !== undefined) {
+                match (asInt(child)) {
+                  Ok(value) => {
+                    checksum += value;
+                  },
+                  Err(error) => {
+                    throw error.message;
+                  }
+                }
+              } else {
+                throw 'missing item';
+              }
+            },
+            Err(error) => {
+              throw error.message;
+            }
+          }
+        } else {
+          throw 'missing array';
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

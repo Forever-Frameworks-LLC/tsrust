@@ -21328,6 +21328,30 @@
       "notes": "Includes parsing, allocation and cleanup. Fixed array/null domain; does not measure access or refinement.",
       "sourceSha256": "fb2e1f20302f5847c4589cf00d7a40d2286513d5241bb42a3e85c3607f9cd916",
       "counterpartSha256": "688148e3d3a9c0ff89d25ed2d2dbc298a31721941ebb2506d4b85308eefb8072"
+    },
+    {
+      "id": "native_json_views",
+      "category": "json",
+      "description": "Borrowed object/array child selection and checked scalar extraction",
+      "source": "workloads/native_json_views.tsr",
+      "counterpart": "workloads/native_json_views.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One object lookup, array lookup and checked integer extraction",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "{\"items\":[42,null]}",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse once per workload invocation, repeatedly borrow items and its first child, and add 42 to the seeded checksum.",
+      "notes": "No child copies. Includes one parse per invocation, amortized across iterations. Fixed common exact-integer domain; Native Results and JavaScript dynamic validation remain explicit. Does not compare all JSON number representations.",
+      "sourceSha256": "20d1d6183eb7dfb002c9ab0c2db2f6cd006298fa29e5a95b2ee82d05325a1f88",
+      "counterpartSha256": "ad3405caeae27f0a2d2338139625970a2b9d63904c28b14ff36f75be0026d70b"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

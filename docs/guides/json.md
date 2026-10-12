@@ -82,7 +82,7 @@ The other extractors report `expected-boolean` and `expected-string` respectivel
 
 ## Runtime type inspection
 
-`typeof value` inspects the contents of a JsonValue, evaluating once without
+`typeof value` inspects the contents of a JsonValue or JsonView, evaluating once without
 consuming it. JSON strings, numbers and booleans report `"string"`, `"number"` and
 `"boolean"`. JSON null, arrays and objects report `"object"`, matching the keyword's
 ordinary categories. Optional JSON values report `"undefined"` when absent.
@@ -93,3 +93,39 @@ using checked scalar extraction for access. `Array.isArray(value)` inspects whet
 without confusing it with undefined. Both operations borrow their inputs. Richer
 safe refinement remains tracked in the S10 plan. The existing
 imported kind function remains available for its six distinct JSON categories.
+
+
+## Reading nested values
+
+Import `get` for object properties and `at` for array elements from `std:json`.
+Both accept an owner or view and return `Result<JsonView | undefined, JsonError>`.
+The view refers to existing storage without copying it. A missing key or an
+index beyond the array returns `Ok(undefined)`; JSON null returns a present view.
+A wrong container returns `expected-object` or `expected-array`. Negative indices
+return `index-range` for arrays; they do not count from the end. These errors use
+offset zero and do not expose keys or input data.
+
+```tsrust
+import {get} from "std:json";
+function main() {
+  const owner = JSON.parse('{"name":"Ada"}');
+  match (get(owner, "name")) {
+    Ok(value) => {
+      if (value !== undefined) {
+        console.log(typeof value); // string
+      }
+    },
+    Err(error) => { throw error.message; }
+  }
+}
+```
+
+Pass a view to `get` or `at` again for nested access. `typeof`, `Array.isArray`,
+null comparisons, `kind`, `asBoolean`, `asInt`, `asNumber` and serialization accept
+views. Serialization returns an independent string. `takeString` requires an
+owned JsonValue.
+
+A retained view prevents moving or replacing its owner and cannot outlive it.
+Views cannot be constructed or cloned. Missing and error branches carry no child
+loan; a present JSON null still retains its owner. Checking a category does not
+yet expose direct property, index or scalar operations on the wrapper.

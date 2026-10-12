@@ -99,7 +99,7 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     let source = if name == "parse" {
         "function adapter(text:string,limits:JsonLimits={maxBytes:16777216,maxDepth:64,maxEntries:1000000,maxNodes:1000000}):JsonValue {match(backend(text,limits)){Ok(value)=>{return value;},Err(error)=>{throw error;}}}"
     } else {
-        "function adapter(value:JsonValue,maxBytes:int=16777216):string {match(backend(value,maxBytes)){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
+        "function adapter<T>(value:ReadOnly<T>,maxBytes:int=16777216):string {match(backend(value,maxBytes)){Ok(text)=>{return text;},Err(error)=>{throw error;}}}"
     };
     let mut function = crate::syntax::parse(source)?.functions.remove(0);
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
@@ -134,8 +134,6 @@ fn throwing_adapter(program: &mut Program, name: &str) -> Result<Function, Diagn
     if name == "parse" {
         function.params[1].1 = crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonLimits), span)?;
         function.result = Some(ResultAnnotation::Named(Box::new(crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonValue), span)?)));
-    } else {
-        function.params[0].1 = crate::native_type_resolution::project(&mut program.records, &Signature::Named(NativeTypeId::JsonValue), span)?;
     }
     Ok(function)
 }

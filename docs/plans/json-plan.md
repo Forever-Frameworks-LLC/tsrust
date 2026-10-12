@@ -5,7 +5,7 @@ standalone offline package export, typed JSON/JSONC imports, project aliases, an
 the approved JSON namespace have focused acceptance. Installed CLI/editor
 consumers were refreshed from `bdedda8a`, including scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
-its consumer refresh is verified. Dynamic child operations,
+its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Dynamic construction,
 direct typed runtime paths, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
@@ -575,3 +575,19 @@ panel. Existing open JSON documents show no Tsrust errors.
 SQLite retains tsrust-json-inspection-consumer-build.log, consumer-install.json,
 consumer-smoke.py and consumer-smoke.log with the same prefix. Binary hashes are
 recorded in the install record. Family measurement and richer refinement remain open.
+
+
+### Borrowed child views source acceptance
+
+`std:json.get` and `at` now return `Result<JsonView | undefined, JsonError>`.
+Both owners and views support nested reads without copying child storage. Present
+children retain the original owner lifetime; missing and error branches release
+the child loan. JSON null remains a present child. Views support typeof,
+Array.isArray, null comparisons, checked scalar readers and both serialization
+error styles. They cannot be cloned or passed to consuming takeString.
+
+See [focused acceptance](../milestones/json-views.md) and
+[placement audit](globals-and-imports-json-views-audit.md). These source changes
+are not yet in the installed consumers. Safe scalar refinement, borrowed string
+projections and dynamic construction remain open. The matched child workload is
+ready and passed untimed parity checks; no timing acceptance is claimed.

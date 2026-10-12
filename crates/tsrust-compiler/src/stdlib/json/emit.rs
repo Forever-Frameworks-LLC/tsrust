@@ -1,9 +1,10 @@
 use crate::{analysis::CheckedProgram,native_bindings::{NativeBinding,NativeType},native_signatures::NativeTypeId,syntax::Type};
 pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
+ if matches!(binding.name,"get"|"at"){return super::views_emit::bridge(program,binding);}
  if matches!(binding.name,"openJsonl"|"readJsonl"|"closeJsonl"){return super::lines_emit::bridge(program,binding);}
  let record=|id|program.records.iter().position(|r|r.native_type==Some(id)).unwrap();
  let value=record(NativeTypeId::JsonValue);
- if binding.name=="kind" {return format!("fn tsrust_std_json_kind(value:&Record{value})->String {{String::Borrowed(tsrust_native_json::kind(&value.value))}}\n");}
+ if binding.name=="kind" {return format!("fn tsrust_std_json_kind<B:tsrust_native_json::Source>(value:&B)->String {{String::Borrowed(tsrust_native_json::kind(value.json_value()))}}\n");}
  let NativeType::Structured(signature)=binding.result else {unreachable!()};
  let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap() else {unreachable!()};
  let members=&program.unions[result.index()].members;
@@ -24,9 +25,10 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
    "takeString"=>("take_string","","String::Owned(value)"),
    _=>unreachable!(),
   };
-  (format!("value:{borrow}Record{value}"),format!("tsrust_native_json::{reader}({borrow}value.value)"),payload.to_string())
+  (if borrow.is_empty(){format!("value:Record{value}")}else{"value:&B".into()},if borrow.is_empty(){format!("tsrust_native_json::{reader}(value.value)")}else{format!("tsrust_native_json::{reader}(value.json_value())")},payload.to_string())
  }else{
-  (format!("value:&Record{value},max_bytes:Option<i64>"),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(&value.value,limit))".to_string(),"String::Owned(value)".to_string())
+  ("value:&B,max_bytes:Option<i64>".to_string(),"usize::try_from(max_bytes.unwrap_or(16*1024*1024)).map_err(|_|tsrust_native_json::invalid_limits()).and_then(|limit|tsrust_native_json::stringify(value.json_value(),limit))".to_string(),"String::Owned(value)".to_string())
  };
- format!("fn tsrust_std_json_{name}({parameters})->Union{result} {{match {call} {{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}\n",name=if binding.name=="parseJsonc" {"parse_jsonc"}else{binding.name},result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
+ let generic=if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"stringify"){"<B:tsrust_native_json::Source>"}else{""};
+ format!("fn tsrust_std_json_{name}{generic}({parameters})->Union{result} {{match {call} {{Ok(value)=>Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}),Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.message),field2:error.offset as i64}}}})}}}}\n",name=if binding.name=="parseJsonc" {"parse_jsonc"}else{binding.name},result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
 }

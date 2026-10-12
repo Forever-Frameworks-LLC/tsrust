@@ -81,3 +81,19 @@ pub(crate) const TAKE_STRING:NativeBinding=NativeBinding {
  result:NativeType::Structured(&Signature::Result(&Signature::String,&Signature::Named(NativeTypeId::JsonError))),
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_takeString"},features:&["json"],
 };
+
+pub(crate) const GET:NativeBinding=NativeBinding {
+ module:"std:json",name:"get",
+ returned_borrow:Some(crate::native_return_borrows::ReturnedBorrow{source_parameter:0,access:crate::native_return_borrows::BorrowAccess::ReadOnly,payload:NativeTypeId::JsonView,slot:crate::native_return_borrows::ReturnSlot::ResultOkOptional}),
+ parameters:&[
+ NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false},
+ NativeParameter{name:"key",ty:NativeType::String,access:Mode::Read,optional:false,rest:false}],
+ result:NativeType::Structured(&Signature::Result(&Signature::Optional(&Signature::Named(NativeTypeId::JsonView)),&Signature::Named(NativeTypeId::JsonError))),
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_get"},features:&["json"],
+};
+pub(crate) const AT:NativeBinding=NativeBinding {
+ name:"at",parameters:&[
+ NativeParameter{name:"value",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonValue)),access:Mode::Read,optional:false,rest:false},
+ NativeParameter{name:"index",ty:NativeType::Int,access:Mode::Copy,optional:false,rest:false}],
+ backend:NativeBackend::Bundled{symbol:"tsrust_std_json_at"},..GET
+};

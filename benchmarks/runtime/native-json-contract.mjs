@@ -12,6 +12,15 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_views'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON view identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON view fingerprint');
+  if(row.iterations!==2000||row.inputText!=='{"items":[42,null]}'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One object lookup, array lookup and checked integer extraction')throw Error('JSON view denominator');
+  const native=" while(i<n){\n  match(get(owner,'items')){Ok(items)=>{if(items!==undefined){\n   match(at(items,0)){Ok(child)=>{if(child!==undefined){\n    match(asInt(child)){Ok(value)=>{checksum+=value;},Err(error)=>{throw error.message;}}\n   }else{throw 'missing item';}},Err(error)=>{throw error.message;}}\n  }else{throw 'missing array';}},Err(error)=>{throw error.message;}}\n  i++;\n }\n";
+  const ts=" while(i<n){\n  if(typeof owner!=='object'||owner===null||Array.isArray(owner)){throw 'expected object';}\n  const items=owner['items'];\n  if(items===undefined){throw 'missing array';}\n  if(!Array.isArray(items)){throw 'expected array';}\n  const child=items[0];\n  if(child===undefined){throw 'missing item';}\n  if(typeof child!=='number'||!Number.isSafeInteger(child)){throw 'expected integer';}\n  checksum+=child;\n  i++;\n }\n";
+  for(const snippet of ['const owner=JSON.parse(input);','let checksum=seed;','let i=0;',kind==='native'?native:ts,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON view operation placement');
+  return;
+ }
  if(row.id==='native_json_inspection'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON inspection identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON inspection fingerprint');
@@ -97,4 +106,9 @@ export function typeofChecksum(n,seed,input){
 export function inspectionChecksum(n,seed,input){
  if(input!=='[null]'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*2))throw Error('JSON inspection oracle inputs');
  return seed+n*2;
+}
+
+export function viewChecksum(n,seed,input){
+ if(input!=='{"items":[42,null]}'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*42))throw Error('JSON view oracle inputs');
+ return seed+n*42;
 }

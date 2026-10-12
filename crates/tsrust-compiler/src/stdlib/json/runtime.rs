@@ -373,3 +373,7 @@ mod tests {
         }
     }
 }
+
+/// Native adapters expose real shared references, never cloned JSON storage.
+pub trait Source { fn json_value(&self) -> &Value; }
+pub trait ViewSource<'a> { fn json_view(self) -> &'a Value; }

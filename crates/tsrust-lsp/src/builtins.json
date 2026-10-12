@@ -1947,10 +1947,10 @@
     },
     {
       "name": "stringify",
-      "signature": "JSON.stringify(value: ReadOnly<JsonValue>, maxBytes?: int): string",
+      "signature": "JSON.stringify(value: ReadOnly<JsonValue | JsonView>, maxBytes?: int): string",
       "parameters": [
         {
-          "label": "value: ReadOnly<JsonValue>",
+          "label": "value: ReadOnly<JsonValue | JsonView>",
           "documentation": "Required JSON value. Its contents are not mutated or consumed."
         },
         {
@@ -1958,7 +1958,7 @@
           "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values throw invalid-limits."
         }
       ],
-      "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns a UTF-8 string or throws JsonError with code output-limit before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value throws invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Catch errors with try/catch; JsonError retains code, message and byte offset. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "documentation": "Encodes a JsonValue or JsonView as compact strict JSON with sorted object keys and no extra whitespace. Returns a UTF-8 string or throws JsonError with code output-limit before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value throws invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Catch errors with try/catch; JsonError retains code, message and byte offset. Accepts checked JsonValue or JsonView rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
       "examples": [
         {
           "source": "function main(){const value=JSON.parse('{\"z\":1,\"a\":2}');console.log(JSON.stringify(value));}",
@@ -1968,10 +1968,10 @@
     },
     {
       "name": "tryStringify",
-      "signature": "JSON.tryStringify(value: ReadOnly<JsonValue>, maxBytes?: int): Result<string, JsonError>",
+      "signature": "JSON.tryStringify(value: ReadOnly<JsonValue | JsonView>, maxBytes?: int): Result<string, JsonError>",
       "parameters": [
         {
-          "label": "value: ReadOnly<JsonValue>",
+          "label": "value: ReadOnly<JsonValue | JsonView>",
           "documentation": "Required JSON value. Its contents are not mutated or consumed."
         },
         {
@@ -1979,7 +1979,7 @@
           "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values return invalid-limits."
         }
       ],
-      "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: output-limit. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
+      "documentation": "Encodes a JsonValue or JsonView as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Accepts checked JsonValue or JsonView rather than dynamically typed objects. No reviver or replacer callback is supported.\n\n```tsrust\nfunction main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: output-limit. Ownership: borrows value without consuming or mutating it; the output string owns independent storage.",
       "examples": [
         {
           "source": "function main(){const value=JSON.parse(\"null\");match(JSON.tryStringify(value,1)){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code);}}}",
@@ -6201,11 +6201,65 @@
 ,
   "std:json": [
 {
-  "name": "asBoolean",
-  "signature": "asBoolean(value: ReadOnly<JsonValue>): Result<boolean, JsonError>",
+  "name": "JsonView",
+  "signature": "type JsonView",
+  "parameters": [],
+  "documentation": "A read-only reference to a JSON value owned elsewhere. It cannot be constructed or cloned. typeof, Array.isArray and equality with null inspect its contained data. Scalar readers, kind, stringify, get and at accept the view. Owning extraction with takeString requires JsonValue.\n\n```tsrust\nimport {get} from \"std:json\";function main(){const owner=JSON.parse('{\"name\":\"Ada\"}');match(get(owner,\"name\")){Ok(value)=>{if(value!==undefined){console.log(typeof value);}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: string. Ownership: the view retains the original owner lifetime. The owner cannot be moved or replaced while the view is retained. Views may be reborrowed; missing and error branches carry no child loan.",
+  "examples": [
+    {
+      "source": "import {get} from \"std:json\";function main(){const owner=JSON.parse('{\"name\":\"Ada\"}');match(get(owner,\"name\")){Ok(value)=>{if(value!==undefined){console.log(typeof value);}},Err(error)=>{throw error.message;}}}",
+      "output": "string\n"
+    }
+  ]
+},
+{
+  "name": "get",
+  "signature": "get(value: ReadOnly<JsonValue | JsonView>, key: ReadOnly<string>): Result<JsonView | undefined, JsonError>",
   "parameters": [
     {
-      "label": "value: ReadOnly<JsonValue>",
+      "label": "value: ReadOnly<JsonValue | JsonView>",
+      "documentation": "Required owner or existing read-only JSON view."
+    },
+    {
+      "label": "key: ReadOnly<string>",
+      "documentation": "Exact UTF-8 object key; empty keys are valid. No coercion or path syntax."
+    }
+  ],
+  "documentation": "Reads one object child by its exact key. Arrays and scalar values return expected-object. Returns Ok(undefined) when the child is absent, Ok with a borrowed JsonView when present, or Err with JsonError on a wrong container kind. A present JSON null is a view, distinct from undefined. Errors have offset zero because values retain no source position. No mutation or copying occurs.\n\n```tsrust\nimport {get} from \"std:json\";function main(){const owner=JSON.parse('{\"answer\":null}');match(get(owner,\"answer\")){Ok(value)=>{console.log(value!==undefined,value===null);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: true true. Ownership: the view retains the original owner lifetime. The owner cannot be moved or replaced while the view is retained. Views may be reborrowed; missing and error branches carry no child loan.",
+  "examples": [
+    {
+      "source": "import {get} from \"std:json\";function main(){const owner=JSON.parse('{\"answer\":null}');match(get(owner,\"answer\")){Ok(value)=>{console.log(value!==undefined,value===null);},Err(error)=>{throw error.message;}}}",
+      "output": "true true\n"
+    }
+  ]
+},
+{
+  "name": "at",
+  "signature": "at(value: ReadOnly<JsonValue | JsonView>, index: int): Result<JsonView | undefined, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue | JsonView>",
+      "documentation": "Required owner or existing read-only JSON view."
+    },
+    {
+      "label": "index: int",
+      "documentation": "Zero-based nonnegative index. Negative indices return index-range; out-of-bounds indices are absent."
+    }
+  ],
+  "documentation": "Reads one array child. Objects and scalar values return expected-array. Negative indices reject rather than count backward. Returns Ok(undefined) when the child is absent, Ok with a borrowed JsonView when present, or Err with JsonError on a wrong container kind. A present JSON null is a view, distinct from undefined. Errors have offset zero because values retain no source position. No mutation or copying occurs.\n\n```tsrust\nimport {at} from \"std:json\";function main(){const owner=JSON.parse(\"[1]\");match(at(owner,1)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: true. Ownership: the view retains the original owner lifetime. The owner cannot be moved or replaced while the view is retained. Views may be reborrowed; missing and error branches carry no child loan.",
+  "examples": [
+    {
+      "source": "import {at} from \"std:json\";function main(){const owner=JSON.parse(\"[1]\");match(at(owner,1)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{throw error.message;}}}",
+      "output": "true\n"
+    }
+  ]
+},
+{
+  "name": "asBoolean",
+  "signature": "asBoolean(value: ReadOnly<JsonValue | JsonView>): Result<boolean, JsonError>",
+  "parameters": [
+    {
+      "label": "value: ReadOnly<JsonValue | JsonView>",
       "documentation": "Required JSON value. No coercion or optional arguments."
     }
   ],
@@ -6219,10 +6273,10 @@
 },
 {
   "name": "asInt",
-  "signature": "asInt(value: ReadOnly<JsonValue>): Result<int, JsonError>",
+  "signature": "asInt(value: ReadOnly<JsonValue | JsonView>): Result<int, JsonError>",
   "parameters": [
     {
-      "label": "value: ReadOnly<JsonValue>",
+      "label": "value: ReadOnly<JsonValue | JsonView>",
       "documentation": "Required JSON value. No coercion or optional arguments."
     }
   ],
@@ -6236,10 +6290,10 @@
 },
 {
   "name": "asNumber",
-  "signature": "asNumber(value: ReadOnly<JsonValue>): Result<number, JsonError>",
+  "signature": "asNumber(value: ReadOnly<JsonValue | JsonView>): Result<number, JsonError>",
   "parameters": [
     {
-      "label": "value: ReadOnly<JsonValue>",
+      "label": "value: ReadOnly<JsonValue | JsonView>",
       "documentation": "Required JSON value. No coercion or optional arguments."
     }
   ],
@@ -6284,7 +6338,7 @@
     "name": "JsonError",
     "signature": "type JsonError = { code: string; message: string; offset: int }",
     "parameters": [],
-    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit, output-limit and unterminated-comment. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits and scalar extraction failures use zero. Scalar readers also report expected-boolean, expected-number, expected-string, integer-fractional, integer-range and number-precision. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
+    "documentation": "Describes a JSON failure without including input values or keys. code distinguishes invalid-json, unexpected-end, trailing-data, invalid-limits, byte-limit, depth-limit, entry-limit, node-limit, output-limit and unterminated-comment. message is fixed explanatory text. offset counts UTF-8 bytes from zero; unexpected-end points to input length. Resource failures point to the parser checkpoint, which may precede the next value. Output failures report bytes written before the rejected output chunk. Invalid limits and scalar extraction failures use zero. Scalar readers also report expected-boolean, expected-number, expected-string, integer-fractional, integer-range and number-precision. Child inspection also reports expected-object, expected-array and index-range. No mutation occurs.\n\n```tsrust\nimport {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: ordinary owned record; explicit clone copies it.",
     "examples": [
       {
         "source": "import {parse} from \"std:json\"; function main(){match(parse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",
@@ -6327,10 +6381,10 @@
   },
   {
     "name": "kind",
-    "signature": "kind(value: ReadOnly<JsonValue>): string",
+    "signature": "kind(value: ReadOnly<JsonValue | JsonView>): string",
     "parameters": [
       {
-        "label": "value: ReadOnly<JsonValue>",
+        "label": "value: ReadOnly<JsonValue | JsonView>",
         "documentation": "Required JSON value to inspect without mutation."
       }
     ],
@@ -6344,10 +6398,10 @@
   },
   {
     "name": "stringify",
-    "signature": "stringify(value: ReadOnly<JsonValue>, maxBytes?: int): Result<string, JsonError>",
+    "signature": "stringify(value: ReadOnly<JsonValue | JsonView>, maxBytes?: int): Result<string, JsonError>",
     "parameters": [
       {
-        "label": "value: ReadOnly<JsonValue>",
+        "label": "value: ReadOnly<JsonValue | JsonView>",
         "documentation": "Required JSON value. Its contents are not mutated or consumed."
       },
       {
@@ -6355,7 +6409,7 @@
         "documentation": "Optional output byte limit, default 16777216. Zero rejects every JSON value; negative values return invalid-limits."
       }
     ],
-    "documentation": "Encodes a JsonValue as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged.\n\n```tsrust\nimport {parse,stringify} from \"std:json\"; function main(){match(parse('{\"z\":1,\"a\":2}')){Ok(value)=>{match(stringify(value)){Ok(text)=>{console.log(text);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value; the output string owns independent storage.",
+    "documentation": "Encodes a JsonValue or JsonView as compact strict JSON with sorted object keys and no extra whitespace. Returns Ok with a UTF-8 string or Err(output-limit) before writing beyond maxBytes. The optional nonnegative integer byte limit defaults to 16777216; a negative value returns invalid-limits. Escapes quotes, backslashes and control characters; other Unicode remains UTF-8. Exact integer values are retained and floating negative zero is emitted with its sign. JsonValue cannot contain undefined, nonfinite numbers, cycles or shared object identity. The value is unchanged.\n\n```tsrust\nimport {parse,stringify} from \"std:json\"; function main(){match(parse('{\"z\":1,\"a\":2}')){Ok(value)=>{match(stringify(value)){Ok(text)=>{console.log(text);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: {\"a\":2,\"z\":1}. Ownership: borrows value; the output string owns independent storage.",
     "examples": [
       {
         "source": "import {parse,stringify} from \"std:json\"; function main(){match(parse('{\"z\":1,\"a\":2}')){Ok(value)=>{match(stringify(value)){Ok(text)=>{console.log(text);},Err(error)=>{throw error.message;}}},Err(error)=>{throw error.message;}}}",

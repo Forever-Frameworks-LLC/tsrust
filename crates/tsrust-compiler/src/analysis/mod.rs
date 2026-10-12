@@ -8373,7 +8373,7 @@ impl Analyzer {
                 .get(&place)
                 .map(|fact| fact.members.clone())
                 .unwrap_or_else(|| self.unions.members(union));
-            let dynamic_json = |ty: Type| matches!(ty, Type::Record(id) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue));
+            let dynamic_json = |ty: Type| matches!(ty, Type::Record(id) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView)));
             // Runtime JSON tags do not change the wrapper's storage type. Keep
             // its alternative on both feasible branches until scalar refinement.
             let may_match = |ty: Type| match &guard {
@@ -15760,7 +15760,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             if self.native_borrow_types && self.native_shape_contains_view(ty) {
                 return Err(Diagnostic::new(
                     "clone-type",
-                    "A byte view borrows its bytes and cannot be cloned. Use copy(view, start, end) to make independent Bytes.",
+                    "Borrowed views cannot be cloned. For byte views, use copy(view, start, end) to make independent Bytes.",
                     span,
                 ));
             }

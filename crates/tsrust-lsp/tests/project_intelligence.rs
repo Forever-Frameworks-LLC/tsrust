@@ -2127,3 +2127,17 @@ fn json_array_inspection_hover_explains_contained_data() {
     let hover=ask(&ProjectIndex::checked(&checked),source,"isArray(value)","textDocument/hover");
     assert!(hover.to_string().contains("JSON arrays return true"),"{hover}");
 }
+
+#[test]
+fn json_child_view_hover_and_signatures_preserve_lifetimes_and_absence() {
+ let source=tsrust_compiler::format("import {get,at} from 'std:json';function main(){const owner=JSON.parse('{}');match(get(owner,'items')){Ok(value)=>{if(value!==undefined){at(value,0);}},Err(error)=>{throw error.message;}}}").unwrap();
+ let uri="file:///tsrust-intelligence/main.tsr";
+ let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+ let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+ for name in ["get","at"] {
+  let needle=format!("{name}(");let hover=ask(&index,&source,&needle,"textDocument/hover");let docs=hover.to_string();
+  assert!(docs.contains("JsonView")&&docs.contains("undefined")&&docs.contains("original owner lifetime"),"{hover}");
+ }
+ let signature=ask(&index,&source,"value, 0","textDocument/signatureHelp");
+ assert!(signature.to_string().contains("JsonValue | JsonView"),"{signature}");
+}

@@ -8,3 +8,5 @@ mod lines;
 #[cfg(test)]
 mod writer;
 pub(crate) mod lines_emit;
+
+pub(crate) mod views_emit;

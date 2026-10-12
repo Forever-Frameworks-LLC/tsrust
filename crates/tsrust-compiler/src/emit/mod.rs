@@ -1102,7 +1102,7 @@ impl Emitter<'_> {
                         Type::Enum(_, crate::syntax::EnumKind::String) => "tsr_number_from_text(payload.tsr_value())".into(),
                         _ => unreachable!("checked scalar Number union"),
                     },
-                    CallTarget::ArrayIsArray if matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) => "payload.value.is_array()".into(),
+                    CallTarget::ArrayIsArray if matches!(member, Type::Record(id) if matches!(self.program.records[*id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) => "payload.value.is_array()".into(),
                     CallTarget::ArrayIsArray => (matches!(member, Type::Array(_)) || matches!(member,Type::Record(id) if self.program.records[*id].is_tuple())).to_string(),
                     CallTarget::BooleanConversion => match member {
                         Type::Null | Type::Undefined => "false".into(),
@@ -1147,7 +1147,7 @@ impl Emitter<'_> {
             .iter()
             .enumerate()
             .map(|(index, member)| {
-                if matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+                if matches!(member, Type::Record(id) if matches!(self.program.records[*id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                     return format!("{}{}::V{index}(value)=>String::Borrowed(tsrust_native_json::type_of(&value.value))",if union.copy {"Union"} else {"ViewUnion"},union.index());
                 }
                 let label = match member {
@@ -1549,7 +1549,7 @@ impl Emitter<'_> {
             )
         } else {
             match target {
-                CallTarget::ArrayIsArray if first.is_some_and(|arg| matches!(arg.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue))) => "builtin_argument_0.value.is_array()".into(),
+                CallTarget::ArrayIsArray if first.is_some_and(|arg| matches!(arg.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView)))) => "builtin_argument_0.value.is_array()".into(),
                 CallTarget::ArrayIsArray => first
                     .is_some_and(|a| matches!(a.ty, Some(Type::Array(_))) || matches!(a.ty,Some(Type::Record(id)) if self.program.records[id].is_tuple()))
                     .to_string(),
@@ -2362,8 +2362,12 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_json::lines::Lines<tsrust_native_files::buffered_fs::BufferedReader> }}");
                 continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonView) {
+                let _ = writeln!(output, "struct Record{index}<'a> {{ value: &'a tsrust_native_json::Value }} impl tsrust_native_json::Source for Record{index}<'_> {{ fn json_value(&self)->&tsrust_native_json::Value {{ self.value }} }} impl<'a> tsrust_native_json::ViewSource<'a> for &Record{index}<'a> {{ fn json_view(self)->&'a tsrust_native_json::Value {{ self.value }} }}");
+                continue;
+            }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonValue) {
-                let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ value: tsrust_native_json::Value }}");
+                let _ = writeln!(output, "#[derive(Clone)] struct Record{index} {{ value: tsrust_native_json::Value }} impl tsrust_native_json::Source for Record{index} {{ fn json_value(&self)->&tsrust_native_json::Value {{ &self.value }} }} impl<'a> tsrust_native_json::ViewSource<'a> for &'a Record{index} {{ fn json_view(self)->&'a tsrust_native_json::Value {{ &self.value }} }}");
                 continue;
             }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::Bytes) {
@@ -2970,7 +2974,7 @@ impl Emitter<'_> {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }
         }
-        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonlReader))) {output.push_str(&crate::native_runtime::json_module());}
+        if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader))) {output.push_str(&crate::native_runtime::json_module());}
         for &id in self.native_bindings.borrow().iter() {let binding=&crate::native_bindings::BINDINGS[id];if binding.module=="std:json" {output.push_str(&crate::stdlib::json::emit::bridge(self.program,binding));}}
         let byte_bindings = crate::native_bindings::BINDINGS.iter().enumerate().filter_map(|(id, binding)| (binding.module == "std:bytes" && self.native_bindings.borrow().contains(&id)).then_some(binding)).collect::<Vec<_>>();
         if !byte_bindings.is_empty() || self.native_bindings.borrow().iter().any(|&id| { let binding = &crate::native_bindings::BINDINGS[id]; binding.module == "std:fs" && matches!(binding.name, "write" | "writeAll" | "writeFile") }) { output.push_str(&crate::stdlib::bytes::emit::bridges(self.program, &byte_bindings)); }
@@ -8006,7 +8010,7 @@ impl Emitter<'_> {
                 let value = self.conditional_arm(fun, value, Mode::Read);
                 return Err(Self::access_wrapped(expr, mode, self.union_typeof(union, &format!("&({value})"))));
             }
-            if *op == UnaryOp::Typeof && matches!(value.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+            if *op == UnaryOp::Typeof && matches!(value.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                 let operand = self.expr(fun, value, Mode::Read);
                 return Err(Self::access_wrapped(expr, mode, format!("String::Borrowed(tsrust_native_json::type_of(&({operand}).value))")));
             }
@@ -8249,13 +8253,13 @@ impl Emitter<'_> {
                     ("equality_right", left.ty.unwrap())
                 };
                 let arms = self.program.unions[union.index()].members.iter().enumerate().map(|(index, member)| {
-                    let test = if *member == sentinel { "true" } else if sentinel == Type::Null && matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) { "payload.value.is_null()" } else { "false" };
+                    let test = if *member == sentinel { "true" } else if sentinel == Type::Null && matches!(member, Type::Record(id) if matches!(self.program.records[*id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) { "payload.value.is_null()" } else { "false" };
                     format!("{}{}::V{index}(payload)=>{test}",if union.copy {"Union"}else{"ViewUnion"},union.index())
                 }).collect::<Vec<_>>().join(",");
                 format!("match &{name} {{{arms}}}")
-            } else if left.ty == Some(Type::Null) && matches!(right.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+            } else if left.ty == Some(Type::Null) && matches!(right.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                 "equality_right.value.is_null()".into()
-            } else if right.ty == Some(Type::Null) && matches!(left.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+            } else if right.ty == Some(Type::Null) && matches!(left.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
                 "equality_left.value.is_null()".into()
             } else {
                 (left.ty == right.ty).to_string()

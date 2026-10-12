@@ -65,6 +65,9 @@ impl NativeBinding {
     /// writable one. A stored function value keeps the declared parameter type.
     pub fn argument_alternatives(&self, position: usize) -> &'static [crate::native_signatures::NativeTypeId] {
         use crate::native_signatures::NativeTypeId::{ByteView, ByteViewMut, BufferedReader, BufferedWriter};
+        if self.module == "std:json" && position == 0 && matches!(self.name,"get"|"at"|"kind"|"asBoolean"|"asInt"|"asNumber"|"stringify") {
+            return &[crate::native_signatures::NativeTypeId::JsonView];
+        }
         if self.module == "std:fs" && position == 0 {
             match self.name {
                 "read" => return &[BufferedReader],
@@ -103,6 +106,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::json::bindings::CLOSE_JSONL,
     crate::stdlib::json::bindings::STRINGIFY,
     crate::stdlib::json::bindings::KIND,
+    crate::stdlib::json::bindings::GET,
+    crate::stdlib::json::bindings::AT,
     crate::stdlib::json::bindings::AS_BOOLEAN,
     crate::stdlib::json::bindings::AS_INT,
     crate::stdlib::json::bindings::AS_NUMBER,
