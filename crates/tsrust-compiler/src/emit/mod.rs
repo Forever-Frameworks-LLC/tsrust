@@ -1146,6 +1146,9 @@ impl Emitter<'_> {
             .iter()
             .enumerate()
             .map(|(index, member)| {
+                if matches!(member, Type::Record(id) if self.program.records[*id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+                    return format!("{}{}::V{index}(value)=>String::Borrowed(tsrust_native_json::type_of(&value.value))",if union.copy {"Union"} else {"ViewUnion"},union.index());
+                }
                 let label = match member {
                     Type::Null | Type::Set(_) | Type::Map(_) | Type::Record(_) | Type::Array(_) => "object",
                     Type::Undefined => "undefined",
@@ -8000,6 +8003,10 @@ impl Emitter<'_> {
             {
                 let value = self.conditional_arm(fun, value, Mode::Read);
                 return Err(Self::access_wrapped(expr, mode, self.union_typeof(union, &format!("&({value})"))));
+            }
+            if *op == UnaryOp::Typeof && matches!(value.ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue)) {
+                let operand = self.expr(fun, value, Mode::Read);
+                return Err(Self::access_wrapped(expr, mode, format!("String::Borrowed(tsrust_native_json::type_of(&({operand}).value))")));
             }
             let operand = if unresolved {
                 String::new()

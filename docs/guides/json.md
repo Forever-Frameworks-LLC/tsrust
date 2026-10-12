@@ -79,3 +79,15 @@ function main() {
 This prints `42`. `asInt` reports `expected-number`, `integer-fractional` or
 `integer-range`; `asNumber` reports `expected-number` or `number-precision`.
 The other extractors report `expected-boolean` and `expected-string` respectively.
+
+## Runtime type inspection
+
+`typeof value` inspects the contents of a JsonValue, evaluating once without
+consuming it. JSON strings, numbers and booleans report `"string"`, `"number"` and
+`"boolean"`. JSON null, arrays and objects report `"object"`, matching the keyword's
+ordinary categories. Optional JSON values report `"undefined"` when absent.
+
+This inspection does not yet convert the wrapper into a scalar type. Continue
+using checked scalar extraction for access. JSON-aware Array.isArray, equality
+with null and richer safe refinement remain tracked in the S10 plan. The existing
+imported kind function remains available for its six distinct JSON categories.

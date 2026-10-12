@@ -2106,3 +2106,14 @@ fn json_scalar_docs_preserve_types_and_ownership() {
     let completion=ask(&ProjectIndex::new(&graph),source," }","textDocument/completion");
     for name in ["asBoolean","asInt","asNumber"]{assert!(completion.as_array().unwrap().iter().any(|item|item["label"]==name),"{completion}");}
 }
+
+#[test]
+fn json_typeof_hover_explains_runtime_contents_and_refinement_boundary() {
+    let source="function main(){const value=JSON.parse('true');console.log(typeof value);}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let hover=ask(&ProjectIndex::checked(&checked),source,"typeof value","textDocument/hover");
+    let docs=hover.to_string();
+    assert!(docs.contains("contained JSON data")&&docs.contains("remains a JsonValue"),"{hover}");
+}

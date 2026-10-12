@@ -21280,6 +21280,30 @@
       "notes": "Fixed exact integer and ASCII string domain. Includes parsing and scalar validation. Native string extraction transfers storage; JavaScript strings are immutable. Does not compare large-integer behavior.",
       "sourceSha256": "3bcd079e2dd2349ce75c92c429c9653afedd7c1560a119292d0efaff95a3705e",
       "counterpartSha256": "44b2774dbb9c3aa2cc9250956ee1eade1295599f05a11214b1bef8ebb979155d"
+    },
+    {
+      "id": "native_json_typeof",
+      "category": "json",
+      "description": "JSON parsing and runtime typeof inspection",
+      "source": "workloads/native_json_typeof.tsr",
+      "counterpart": "workloads/native_json_typeof.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One parse and runtime typeof inspection",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "42",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse the fixed numeric input, require the number category and accumulate its six-character label length.",
+      "notes": "Includes parse allocation and cleanup. Fixed numeric input; other JSON categories have native acceptance fixtures. Does not measure scalar conversion or flow refinement.",
+      "sourceSha256": "1407c1c262bf7d6aef5fbef9bf1d419aa67716ce834a0262f0ea485b1cae3168",
+      "counterpartSha256": "a2e83815f5ff370a1ac68b84831ffef67e461260bef0783388f6a4fd2ed81eb1"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

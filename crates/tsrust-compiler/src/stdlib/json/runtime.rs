@@ -142,6 +142,16 @@ pub fn kind(value: &Value) -> &'static str {
     match value {Value::Null=>"null",Value::Bool(_)=>"boolean",Value::Number(_)=>"number",Value::String(_)=>"string",Value::Array(_)=>"array",Value::Object(_)=>"object"}
 }
 
+/// Familiar typeof categories; arrays and null share the object category.
+pub fn type_of(value: &Value) -> &'static str {
+    match value {
+        Value::Bool(_) => "boolean",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Null | Value::Array(_) | Value::Object(_) => "object",
+    }
+}
+
 /// Scalar inspection does not coerce null, strings, or booleans into numbers.
 /// Values do not retain source positions, so extraction errors use offset zero.
 pub fn read_bool(value: &Value) -> Result<bool, Error> {

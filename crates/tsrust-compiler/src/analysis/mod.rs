@@ -8373,15 +8373,23 @@ impl Analyzer {
                 .get(&place)
                 .map(|fact| fact.members.clone())
                 .unwrap_or_else(|| self.unions.members(union));
+            let dynamic_json = |ty: Type| matches!(ty, Type::Record(id) if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::JsonValue));
+            // Runtime JSON tags do not change the wrapper's storage type. Keep
+            // its alternative on both feasible branches until scalar refinement.
+            let may_match = |ty: Type| match &guard {
+                crate::flow::Guard::Typeof(label) if dynamic_json(ty) => matches!(label.as_str(), "string" | "number" | "boolean" | "object"),
+                _ => guard.matches(ty),
+            };
+            let may_differ = |ty: Type| matches!(&guard, crate::flow::Guard::Typeof(_) if dynamic_json(ty)) || !guard.matches(ty);
             let equal = members
                 .iter()
                 .copied()
-                .filter(|ty| guard.matches(*ty))
+                .filter(|ty| may_match(*ty))
                 .collect::<Vec<_>>();
             let unequal = members
                 .iter()
                 .copied()
-                .filter(|ty| !guard.matches(*ty))
+                .filter(|ty| may_differ(*ty))
                 .collect::<Vec<_>>();
             let (a, b) = if op == BinaryOp::Equal {
                 (equal, unequal)

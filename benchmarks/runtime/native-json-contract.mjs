@@ -12,6 +12,18 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_typeof'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON typeof identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON typeof fingerprint');
+  if(row.iterations!==2000||row.inputText!=='42'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One parse and runtime typeof inspection')throw Error('JSON typeof denominator');
+  for(const snippet of ['let checksum = seed;','let i = 0;',`while (i < n) {
+    const label = typeof JSON.parse(input);
+    if (label !== 'number') { throw 'Unexpected JSON type'; }
+    checksum += label.length;
+    i++;
+  }`,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON typeof operation placement');
+  return;
+ }
  if(row.id==='native_json_scalars'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON scalar identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON scalar fingerprint');
@@ -62,4 +74,9 @@ export function assertNativeJsonSource(source,row,kind){
   i++;
  }`;
  for(const snippet of ['let checksum = seed;','let i = 0;',kind==='native'&&row.id==='native_json_roundtrip'?native:ts,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON operation placement');
+}
+
+export function typeofChecksum(n,seed,input){
+ if(input!=='42'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*6))throw Error('JSON typeof oracle inputs');
+ return seed+n*6;
 }

@@ -502,3 +502,43 @@ is exposed yet, and no end-to-end JSON view lifetime or timing acceptance is cla
 The next integration must publish the actual borrowed native representation and
 verify caller escape, owner mutation/move, missing-child branches, nested reborrows,
 editor documentation and matched workloads together.
+
+## Owner priority: familiar JSON inspection syntax
+
+The owner prefers the existing typeof keyword over importing kind. Prioritize
+runtime inspection through typeof, Array.isArray and equality with null, then safe
+flow refinement. Keep the imported kind operation compatible. typeof must inspect
+JsonValue contents (also through borrowed/optional values), evaluate its operand
+once and borrow rather than consume storage. Preserve familiar labels: numbers,
+strings and booleans use their primitive labels; arrays, objects and null report
+object. Use Array.isArray and null comparison to distinguish those cases.
+
+Guard analysis must retain the JsonValue alternative wherever its runtime content
+can satisfy a guard, including the false branch. Do not narrow the opaque wrapper
+to a Rust scalar without implementing the corresponding checked representation
+and native access. Numeric narrowing must not silently round exact 64-bit JSON
+integers into floating-point numbers. This work is part of S10's public inspection
+acceptance, including editor documentation and executable examples; the keyword
+alone does not accept the full guard/refinement family.
+
+### Runtime typeof source acceptance
+
+The keyword now reads JsonValue contents directly, including optional/borrowed
+unions, and preserves single evaluation and nonconsuming access. Union guards keep
+JsonValue on each feasible branch; they do not falsely replace the wrapper with a
+scalar storage type. The public kind import remains compatible. Editor hover and
+an executable catalog example explain the current refinement boundary.
+
+SQLite records tsrust-json-typeof-guards.log (JSON witness plus 16 existing union
+regressions), tsrust-json-typeof-editor.log, tsrust-json-typeof-example.log and
+tsrust-json-typeof-benchmark-contract.log retain focused acceptance. The original
+fixture corrections and failing runtime assertion remain retained as red evidence.
+The matched native_json_typeof workload includes exact hashes, operation guards,
+ABI/report registration and an independent six-character checksum oracle.
+tsrust-json-typeof-smoke.log proves agreement in five native/Node-after-tsc cases,
+with zero timing samples. tsrust-json-typeof-format.log records whole-project
+formatting. Installed consumers have not yet been refreshed for this slice.
+
+Array.isArray over JsonValue, equality with JSON null and safe scalar/collection
+refinement remain required follow-up work. This checkpoint does not accept that
+entire inspection family or S10.
