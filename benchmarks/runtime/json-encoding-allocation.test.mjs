@@ -13,3 +13,10 @@ test('encoding probes prepare input before counters and verify exact output',()=
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeEncodingAllocation('function workload(n:number,seed:number,input:number[]):string{return JSON.stringify(input);}',nodeDriver),/value!==inputText/);
 });
+
+test('Unicode typed encoding keeps strings owned and rejects numeric ABI',()=>{
+ const emitted='fn tsr_result_function0(value0: i64, value1: i64, value2: &Array<String>) -> Result<String,TsrFunctionError0> {}\nfn main() {}';
+ assert.match(nativeEncodingAllocation(emitted,driver,'encode_typed_strings'),/input.push\(String::from\(value\)\)/);
+ assert.throws(()=>nativeEncodingAllocation(emitted,driver,'encode_typed'));
+ assert.match(directEncodingAllocation(driver,'encode_typed_strings'),/Vec<String>/);
+});

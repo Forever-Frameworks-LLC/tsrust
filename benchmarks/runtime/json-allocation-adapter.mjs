@@ -4,7 +4,7 @@ function replaceOnce(source,before,after){
  if(source.split(before).length!==2)throw Error(`JSON allocation ABI drift: ${before}`);
  return source.replace(before,after);
 }
-export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep'];
+export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep','encode_dynamic_strings','encode_typed_strings','encode_dynamic_deep'];
 function shape(kind){
  if(!jsonAllocationKinds.includes(kind))throw Error('JSON allocation kind');
  return {dynamic:kind.startsWith('dynamic'),failure:kind.endsWith('_invalid')||kind.endsWith('_mismatch'),strings:kind.endsWith('_strings')||kind.endsWith('_invalid')||kind.endsWith('_mismatch'),nested:kind.endsWith('_nested')||kind.endsWith('_selective'),selective:kind.endsWith('_selective')};
@@ -12,7 +12,8 @@ function shape(kind){
 export function jsonAllocationInput(n,kind='dynamic'){
  const {strings,nested,selective,failure}=shape(kind);
  if(!Number.isSafeInteger(n)||n<0||n>100000)throw Error('JSON allocation size must be an integer from 0 through 100000');
- if(kind==='dynamic_deep')return '['.repeat(31)+jsonAllocationInput(n,'dynamic')+']'.repeat(31);
+ if(kind==='dynamic_deep'||kind==='encode_dynamic_deep')return '['.repeat(31)+jsonAllocationInput(n,'dynamic')+']'.repeat(31);
+ if(kind.startsWith('encode_')&&strings)return '['+Array.from({length:n},()=>'"é🦀","line\\na"').join(',')+']';
  if(failure)return '['+Array.from({length:n},()=>'"é🦀"').concat(kind.endsWith('_mismatch')?'7':'?').join(',')+']';
  if(nested){
   const items='['+Array.from({length:n},(_,i)=>`[${7+2*i},${8+2*i}]`).join(',')+']';
@@ -23,7 +24,7 @@ export function jsonAllocationInput(n,kind='dynamic'){
 export function jsonAllocationChecksum(n,kind='dynamic'){
  const {strings,nested,selective,failure}=shape(kind);
  if(!Number.isSafeInteger(n)||n<0||n>100000)throw Error('JSON allocation size');
- return kind.startsWith('encode_')?[...jsonAllocationInput(n,kind)].reduce((sum,char)=>sum+char.charCodeAt(0),0):failure?1:strings?n*12:nested?2*n*7+n*(2*n-1):n*7+n*(n-1)/2;
+ return kind.startsWith('encode_')?new TextEncoder().encode(jsonAllocationInput(n,kind)).reduce((sum,byte)=>sum+byte,0):failure?1:strings?n*12:nested?2*n*7+n*(2*n-1):n*7+n*(n-1)/2;
 }
 export function adaptJsonAllocation(emitted,driver,kind){
  const {dynamic,strings,nested,selective,failure}=shape(kind);

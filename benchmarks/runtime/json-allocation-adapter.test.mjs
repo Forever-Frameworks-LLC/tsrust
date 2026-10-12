@@ -88,3 +88,10 @@ test('deep dynamic probe keeps 32 container levels and checks the leaf values',(
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeJsonAllocation('',nodeDriver,'dynamic_deep'),/depth<31/);
 });
+
+test('Unicode and deep encoding oracles describe exact canonical output',()=>{
+ const expected='["é🦀","line\\na"]';
+ assert.equal(jsonAllocationInput(1,'encode_typed_strings'),expected);
+ assert.equal(jsonAllocationChecksum(1,'encode_typed_strings'),Buffer.from(expected).reduce((sum,byte)=>sum+byte,0));
+ assert.equal(jsonAllocationInput(1,'encode_dynamic_deep'),'['.repeat(32)+'7'+']'.repeat(32));
+});

@@ -8,7 +8,7 @@ guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
 Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric encoding and owned/borrowed JSONL reading/writing: 54 cases and 486 fresh-process samples. Public raw fragments, broader encoding coverage and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
+Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/deep encoding and owned/borrowed JSONL reading/writing: 63 cases and 567 fresh-process samples. Public raw fragments, broader encoding coverage and family regression/timing/RSS acceptance remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
@@ -29,7 +29,7 @@ neither metric establishes process peak RSS or latency.
 | Requirement | Current evidence | Remaining acceptance |
 | --- | --- | --- |
 | Dynamic/typed decoding | Numeric, Unicode, nested/selective and failure allocation cases; dynamic 32-level nesting | Full throughput/latency and wrapper-cost matrix |
-| Encoding | Numeric dynamic/typed arrays; exact output bytes | Broader Unicode/object/deep encoding allocation and timing coverage |
+| Encoding | Numeric/Unicode dynamic and typed arrays, deep dynamic trees; exact output bytes | Object encoding allocation and full timing coverage |
 | JSONL streaming | Owned/borrowed readers and writers, 0/1/10000 records, bounded peak requested heap | Timing/RSS and full family regression review |
 | Raw fragments | Private validation and real borrowed-source lifetime | Owner decision on preserved raw spelling, public API, editor/examples and measurements |
 | Release consumers | Installed checkpoint ee1e2717 | Refresh borrowed adapters and remaining accepted features after final source verification |
@@ -1383,3 +1383,28 @@ or a recursive typed-decoder measurement; existing correctness tests cover limit
 Evidence: tsrust-json-deep-*-65a7336a in SQLite. No older cases were rerun. The
 current acceptance table distinguishes these 486 accumulated process samples from
 still-missing family latency, throughput, RSS, raw-fragment and release evidence.
+
+### Unicode and deep encoding allocation baselines
+
+The encoding adapter now handles owned typed string arrays alongside dynamic
+values. `--only=encode_dynamic_strings,encode_typed_strings,encode_dynamic_deep`
+measures canonical literal Unicode plus escaped-newline strings, and 32-container
+numeric trees. Typed source strings and arrays are constructed outside operation
+counters. Exact canonical output is independently assembled as text and checked
+byte-for-byte after sampling; the secondary checksum sums UTF-8 bytes rather than
+UTF-16 code units. Sizes 0, 1 and 1000 count string pairs or numeric leaf values.
+
+Nine cases and 81 fresh-process samples pass exact output and complete Rust
+input/output disposal checks. Fourteen focused guards pass. At 1000 string pairs,
+native dynamic and typed encoders each allocate once, reallocate twelve times,
+and retain 32768 requested bytes. Direct Serde allocates once, reallocates eight
+times and retains the same capacity. At 1000 deep leaf values, native/direct
+retain 4096 bytes with nine/five reallocations. These reinforce the existing
+initial-capacity tradeoff; they do not establish CPU efficiency. Escaped-source
+normalization correctness remains covered by the decoder tests; these encoding
+inputs are already canonical so exact output has an independent literal oracle.
+
+Evidence: tsrust-json-encoding-shapes-*-132cbdf5 in SQLite. Prior records were not
+rerun. The current allocation matrix totals 63 cases and 567 process samples.
+Object encoding, raw-fragment publication/measurement, full family regressions,
+latency/throughput/RSS review and final installed acceptance remain open.

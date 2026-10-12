@@ -1,0 +1,3 @@
+function workload(n: int, seed: int, input: string[]): string {
+  return JSON.stringify(input);
+}
