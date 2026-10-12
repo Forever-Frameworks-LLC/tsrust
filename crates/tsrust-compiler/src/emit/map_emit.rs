@@ -1,6 +1,6 @@
 //! Ordered Map emission, separate from recursive dispatch.
 use super::*;
-#[path="../runtime_maps.rs"] mod runtime;
+#[path="../runtime/maps.rs"] mod runtime;
 impl Emitter<'_> {
     pub(super) fn ordered_map_entry_view(&self,id:usize,key:&str,value:&str)->String {
         let map=self.program.records[id].map_definition.as_ref().expect("checked ordered map");

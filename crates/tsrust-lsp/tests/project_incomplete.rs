@@ -133,7 +133,7 @@ fn header_assistance_still_requires_resolvable_import_paths() {
         ),
         (
             "import { greet as hello } from 'dep';function main(){hello(2);const s=\"abc",
-            "module-path",
+            "module-load",
         ),
     ] {
         let mut workspace = Workspace::default();
@@ -146,6 +146,9 @@ fn header_assistance_still_requires_resolvable_import_paths() {
         .err()
         .unwrap();
         assert_eq!(error.code, code, "{entry}");
+        if entry.contains("from 'dep'") {
+            assert!(error.message.contains("No path alias matches dep"), "{error:?}");
+        }
     }
 }
 

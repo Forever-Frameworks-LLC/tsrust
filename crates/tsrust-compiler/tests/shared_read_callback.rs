@@ -7,8 +7,8 @@ trait Callback<A, R> {
     fn invoke(&mut self, args: A) -> R;
     fn invoke_with_count(&mut self, args: A, _count: usize) -> R { self.invoke(args) }
 }
-include!("../src/stdlib/testing/shared_callback_runtime.rs");
-include!("../src/stdlib/testing/shared_callback_counted_runtime.rs");
+include!("../src/stdlib/testing/runtime/shared_callback.rs");
+include!("../src/stdlib/testing/runtime/shared_callback_counted.rs");
 
 struct IdentityReader {
     actual: Box<[i64]>,
@@ -47,8 +47,8 @@ fn shared_callback_preserves_optional_argument_count_dispatch() {
 mod uncounted {
     trait ReadCallback<A,R> { fn invoke_read(&self,args:A)->R; }
     trait Callback<A,R> { fn invoke(&mut self,args:A)->R; }
-    include!("../src/stdlib/testing/shared_callback_runtime.rs");
-    include!("../src/stdlib/testing/shared_callback_read_runtime.rs");
+    include!("../src/stdlib/testing/runtime/shared_callback.rs");
+    include!("../src/stdlib/testing/runtime/shared_callback_read.rs");
     struct Reader;
     impl ReadCallback<i64,i64> for Reader { fn invoke_read(&self,args:i64)->i64 {args+1} }
     #[test]
@@ -68,8 +68,8 @@ function main(){const items=[1,2];const matcher=comparison(items);console.log(qu
 "#;
     let checked=tsrust_compiler::check(source).unwrap();
     let mut rust=checked.emit_rust().replace("fn main()", "fn source_main()");
-    rust.push_str(include_str!("../src/stdlib/testing/shared_callback_runtime.rs"));
-    rust.push_str(include_str!("../src/stdlib/testing/shared_callback_read_runtime.rs"));
+    rust.push_str(include_str!("../src/stdlib/testing/runtime/shared_callback.rs"));
+    rust.push_str(include_str!("../src/stdlib/testing/runtime/shared_callback_read.rs"));
     rust.push_str(r#"
 fn main() {
  let first=TsrSharedReadCallback::new(function0(NumericArray::from([1i64,2i64])));

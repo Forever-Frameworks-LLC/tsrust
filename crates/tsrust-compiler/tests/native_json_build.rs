@@ -1,6 +1,6 @@
 mod support;
-#[path = "../src/native_dependency_bundle.rs"] mod native_dependency_bundle;
-#[path = "../src/runtime_build.rs"] mod runtime_build;
+#[path = "../src/cli/native_dependency_bundle.rs"] mod native_dependency_bundle;
+#[path = "../src/cli/runtime_build.rs"] mod runtime_build;
 fn backend_command() -> std::process::Command { support::rustc() }
 fn backend_cargo_command() -> std::process::Command {
  let mut command=std::process::Command::new("rustup");

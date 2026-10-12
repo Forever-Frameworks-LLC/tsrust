@@ -1,6 +1,6 @@
 // Other integration binaries exercise the remaining runtime fragments.
 #[allow(dead_code)]
-#[path = "../src/runtime.rs"]
+#[path = "../src/runtime/mod.rs"]
 mod runtime;
 mod support;
 use support::{execute, success};

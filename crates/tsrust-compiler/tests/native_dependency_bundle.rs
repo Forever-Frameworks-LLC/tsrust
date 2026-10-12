@@ -1,5 +1,5 @@
 mod support;
-#[path = "../src/native_dependency_bundle.rs"]
+#[path = "../src/cli/native_dependency_bundle.rs"]
 mod native_dependency_bundle;
 
 #[test]

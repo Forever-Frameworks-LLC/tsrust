@@ -6,7 +6,7 @@ fn typed_completion_cleanup_preserves_targets_and_disposes_replaced_payload() {
     let source = directory.0.join("completion.rs");
     let binary = directory.0.join("completion");
     std::fs::write(&source, concat!(
-        include_str!("../src/runtime_completion.rs"),
+        include_str!("../src/runtime/completion.rs"),
         r#"
 fn main() {
     use std::cell::Cell;

@@ -39,7 +39,7 @@ fn main() {
     }
     // Discover declaration identities independently of catalog coverage. Reject
     // unfamiliar enum syntax rather than silently ignoring a new native type.
-    let types=include_str!("../src/native_signatures.rs").split("pub enum NativeTypeId {").nth(1).unwrap().split('}').next().unwrap();
+    let types=include_str!("../src/native/signatures.rs").split("pub enum NativeTypeId {").nth(1).unwrap().split('}').next().unwrap();
     for line in types.lines().map(str::trim).filter(|line|!line.is_empty()) {
         let name=line.strip_suffix(',').expect("review changed NativeTypeId syntax");
         assert!(name.chars().all(|c|c.is_ascii_alphanumeric()),"review native identity syntax");

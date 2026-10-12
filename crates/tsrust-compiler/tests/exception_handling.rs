@@ -65,8 +65,8 @@ fn native_runner_reports_result_errors_and_continues() {
     let directory = support::TempDirectory::new();
     let source = directory.0.join("runner.rs");
     let binary = directory.0.join("runner");
-    let runtime = concat!(include_str!("../src/runtime_number_tie.rs"),include_str!("../src/runtime_console.rs"),include_str!("../src/stdlib/testing/runtime.rs"));
-    let registration = include_str!("../src/stdlib/testing/registration_runtime.rs");
+    let runtime = concat!(include_str!("../src/runtime/number_tie.rs"),include_str!("../src/runtime/console.rs"),include_str!("../src/stdlib/testing/runtime/mod.rs"));
+    let registration = include_str!("../src/stdlib/testing/runtime/registration.rs");
     std::fs::write(&source, format!("type String=std::borrow::Cow<'static,str>;{runtime}\nfn main(){{TSR_TESTS.with(|registry|{{let mut registry=registry.borrow_mut();registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"typed\".into(),callback:Box::new(||Err(\"typed failure\".to_owned()))}});registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"later\".into(),callback:Box::new(||Ok(()))}});}});assert_eq!(tsrust_testing_run_tests(),1);}}" )).unwrap();
     let original = std::fs::read_to_string(&source).unwrap();
     let guard = "TSR_TEST_RUNNING.with(|running|running.set(true));assert!(tsrust_testing_register_test_result(&String::Borrowed(\"invalid\"),Box::new(||panic!(\"must not invoke\"))).is_err());assert!(tsrust_testing_run_tests_result().is_err());TSR_TEST_RUNNING.with(|running|running.set(false));tsrust_testing_begin_suite(&String::Borrowed(\"active\"));assert!(tsrust_testing_run_tests_result().is_err());tsrust_testing_end_suite();";

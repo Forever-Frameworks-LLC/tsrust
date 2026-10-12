@@ -83,7 +83,8 @@ Immediate S10 priority: owner-approved typed JSON/JSONC file imports and project
 path aliases, including extensionless `.tsr`/`index.tsr` resolution and shared
 compiler/editor data types. These precede further JSON API and benchmark expansion.
 See [typed data imports and aliases](plans/typed-data-imports-and-aliases-plan.md)
-for behavior, implementation order and acceptance. Both additions remain pending.
+for behavior, implementation order and acceptance. Both additions have focused
+compiler/native/editor acceptance; family measurements remain pending.
 
 Provide two honest paths: dynamic JsonValue for arbitrary data and typed schema/record decoding for known shapes. Typed decode should parse directly into typed output without first constructing a generic tree; fused validation avoids stringify/reparse and unnecessary intermediate copies. No blanket any or unsafe cast after parsing.
 

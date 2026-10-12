@@ -41,7 +41,7 @@ for name,typ,rows in [('TSR_NORMALIZATION_CCC','(u32,u8)',ccc),('TSR_NORMALIZATI
 output.append('const TSR_NORMALIZATION_MAPPING: &[u32] = &[')
 for i in range(0,len(flat),24): output.append(','.join(str(value) for value in flat[i:i+24])+',')
 output.append('];')
-path=ROOT.parent.parent/'crates/tsrust-compiler/src/runtime_normalization_tables.rs';path.write_text('\n'.join(output)+'\n')
+path=ROOT.parent.parent/'crates/tsrust-compiler/src/runtime/normalization_tables.rs';path.write_text('\n'.join(output)+'\n')
 print(f'{len(ccc)} combining classes, {len(decomp)} decompositions, {len(compose)} compositions, {len(flat)} mapping scalars')
 
 merged=[]

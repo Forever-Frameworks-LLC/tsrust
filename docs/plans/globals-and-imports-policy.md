@@ -53,7 +53,7 @@ evidence and remaining per-symbol review.
 ## Current inventory
 
 Source anchors: `crates/tsrust-lsp/src/builtins.json`, the compiler's
-`native_bindings.rs`, and `stdlib/*/bindings.rs`. Catalog entries include methods,
+`native/bindings.rs`, and `stdlib/*/bindings.rs`. Catalog entries include methods,
 constants, types and language operators; counts must not be presented as a count
 of independently implemented functions.
 
@@ -111,7 +111,7 @@ acceptance.
   inspection and cleanup verified. No panic-based error conversion or flattened
   message-only substitute for JsonError.
 
-Example target behavior (not implemented yet):
+Supported error-delivery pattern:
 
 ```typescript
 const data = JSON.parse(text); // throws on malformed input

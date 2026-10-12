@@ -1,20 +1,22 @@
 # S10 JSON
 
-Status: public dynamic JSON/JSONC, owned JSONL readers and standalone offline
-package export pass focused compiler/native/editor checks. Installed CLI and LSP
-are refreshed from `d3aedae3`; outside-repository JSONC/JSONL execution, relocated
-package compilation/execution and checked editor hover pass. Matched benchmark
-support, dynamic child operations, typed paths, borrowed adapters, public writers
-and remaining S10 requirements are still open. No S10 timing acceptance is claimed.
-S09 is accepted; S10 remains open.
+Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
+standalone offline package export, typed JSON/JSONC imports, project aliases, and
+the approved JSON namespace have focused acceptance. Installed CLI/editor
+consumers were last refreshed from `fd213e26` for typed imports and aliases; the
+later namespace additions still await consumer refresh. Dynamic child operations,
+direct typed runtime paths, borrowed adapters, public writers, allocation
+baselines, and family measurements remain open. No S10 timing acceptance is claimed.
+S09 is accepted.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
 S10 must retain the typed decoder boundary and allocation evidence needed for it.
 
 The approved global JSON namespace has [focused acceptance](../milestones/json-namespace.md),
-including editor documentation and untimed matched workload checks. Next comes the
-required compiler source organization checkpoint before further S10 API expansion.
+including editor documentation and untimed matched workload checks. The required
+[compiler source organization checkpoint](../milestones/compiler-source-organization.md)
+is accepted; continue the remaining runtime APIs and S10 acceptance below.
 
 ## Public naming review
 

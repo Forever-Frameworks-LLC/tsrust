@@ -10,7 +10,7 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "tsrust"
-path = "src/main.rs"
+path = "src/cli/main.rs"
 
 [dependencies]
 serde = "1"

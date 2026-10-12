@@ -45,5 +45,6 @@ claim. Both remain explicitly unmeasured.
 
 The current scope excludes unchecked JSON.parse<T>, revivers/replacers, dynamic
 child operations and remaining typed/borrowed streaming work. Those stay in S10.
-The required next checkpoint is compiler source organization, including stdlib
-strays, before further S10 API expansion. See the source organization plan.
+The required compiler source organization checkpoint, including stdlib strays,
+is now [accepted](compiler-source-organization.md). Further S10 API expansion can
+continue.

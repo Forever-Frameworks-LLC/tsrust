@@ -26,8 +26,8 @@ fn maps_keep_key_identity_and_read_owned_values_without_implicit_clones(){
  assert!(output.stdout.is_empty());assert!(output.stderr.is_empty());
 }
 
-#[path = "../src/runtime_sets.rs"] mod runtime_sets;
-#[path = "../src/runtime_maps.rs"] mod runtime_maps;
+#[path = "../src/runtime/sets.rs"] mod runtime_sets;
+#[path = "../src/runtime/maps.rs"] mod runtime_maps;
 
 #[test]
 fn native_map_storage_keeps_order_and_drops_replaced_owners() {

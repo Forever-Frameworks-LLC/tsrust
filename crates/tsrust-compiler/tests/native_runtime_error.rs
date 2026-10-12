@@ -55,7 +55,7 @@ for kind in 0..5 {{
  match kind {{0=>assert!(matches!(converted,TsrCompletion::Normal(21))),1=>assert!(matches!(converted,TsrCompletion::Return(22))),2=>assert!(matches!(converted,TsrCompletion::Throw(FunctionError1::V1(23)))),3=>assert!(matches!(converted,TsrCompletion::Break(TsrControlTarget::Loop(24)))),_=>assert!(matches!(converted,TsrCompletion::Continue(TsrControlTarget::Loop(25))))}}
 }}
 "#);
-    rust.push_str(include_str!("../src/runtime_completion.rs"));
+    rust.push_str(include_str!("../src/runtime/completion.rs"));
     let main=rust.find("fn main()").expect("emitted main");
     let opening=main+rust[main..].find('{').expect("main body")+1;
     rust.insert_str(opening,&verification);

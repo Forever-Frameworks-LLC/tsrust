@@ -3,9 +3,9 @@ mod support;
 fn backend() -> String {
     format!(
         "#![allow(dead_code)]\nmod bytes {{\n{}\n{}\n{}\n}}\n",
-        include_str!("../src/stdlib/bytes/runtime.rs").replace("//!", "//"),
-        include_str!("../src/stdlib/bytes/views_runtime.rs"),
-        include_str!("../src/stdlib/bytes/utf8_runtime.rs")
+        include_str!("../src/stdlib/bytes/runtime/mod.rs").replace("//!", "//"),
+        include_str!("../src/stdlib/bytes/runtime/views.rs"),
+        include_str!("../src/stdlib/bytes/runtime/utf8.rs")
     )
 }
 

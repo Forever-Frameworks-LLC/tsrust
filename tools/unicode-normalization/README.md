@@ -14,7 +14,7 @@ into generated tables, so emitted native Rust sources retain the notice.
 
 Run `python3 tools/unicode-normalization/generate.py` from the repository root.
 Generation validates the pinned source hashes and produces
-`crates/tsrust-compiler/src/runtime_normalization_tables.rs`,
+`crates/tsrust-compiler/src/runtime/normalization_tables.rs`,
 `assigned-ranges.json` and `assigned-ranges.rs` offline. These contain 934 nonzero
 combining classes, 5,913 decomposition mappings, 961 composition pairs and 8,739
 mapping scalars. Hangul decomposition/composition is handled algorithmically.

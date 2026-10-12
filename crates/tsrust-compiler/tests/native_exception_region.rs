@@ -16,7 +16,7 @@ fn nested_regions_preserve_return_and_allow_finally_to_replace_it() {
     let forwarding_body=format!("let value:i64={forwarded}; trace.push(value);");
     let forwarding=exception_emit::completion_region(2,&forwarding_body);
     let forwarding_checks=format!("for kind in 0..5 {{ let pending:TsrCompletion<i64,i64,String>=match kind {{0=>TsrCompletion::Normal(10),1=>TsrCompletion::Return(11),2=>TsrCompletion::Throw(\"error\".into()),3=>TsrCompletion::Break(TsrControlTarget::Loop(12)),_=>TsrCompletion::Continue(TsrControlTarget::Loop(13))}}; let result:TsrCompletion<(),i64,String>={forwarding}; match kind {{0=>assert!(matches!(result,TsrCompletion::Normal(()))),1=>assert!(matches!(result,TsrCompletion::Return(11))),2=>assert!(matches!(result,TsrCompletion::Throw(error) if error==\"error\")),3=>assert!(matches!(result,TsrCompletion::Break(TsrControlTarget::Loop(12)))),_=>assert!(matches!(result,TsrCompletion::Continue(TsrControlTarget::Loop(13))))}} }} assert_eq!(trace,vec![10]);");
-    let source=format!("{} fn main() {{ let mut trace=vec![]; let result:TsrCompletion<(),i64,String>={outer}; assert!(matches!(result,TsrCompletion::Return(4))); assert_eq!(trace,vec![5,6]); trace.clear(); let result:TsrCompletion<(),i64,String>={replacement}; assert!(matches!(result,TsrCompletion::Throw(error) if error==\"replacement\")); assert_eq!(trace,vec![5,6,7]); trace.clear(); {catch_checks} trace.clear(); {forwarding_checks} }}",include_str!("../src/runtime_completion.rs"));
+    let source=format!("{} fn main() {{ let mut trace=vec![]; let result:TsrCompletion<(),i64,String>={outer}; assert!(matches!(result,TsrCompletion::Return(4))); assert_eq!(trace,vec![5,6]); trace.clear(); let result:TsrCompletion<(),i64,String>={replacement}; assert!(matches!(result,TsrCompletion::Throw(error) if error==\"replacement\")); assert_eq!(trace,vec![5,6,7]); trace.clear(); {catch_checks} trace.clear(); {forwarding_checks} }}",include_str!("../src/runtime/completion.rs"));
     let directory=support::TempDirectory::new();
     let path=directory.0.join("regions.rs");
     let binary=directory.0.join("regions");
@@ -45,7 +45,7 @@ fn main() {{
         assert_eq!(drops.get(),before+1+usize::from(replace));
     }}
 }}
-"#,include_str!("../src/runtime_completion.rs"));
+"#,include_str!("../src/runtime/completion.rs"));
     let directory=support::TempDirectory::new();
     let path=directory.0.join("owned-regions.rs");
     let binary=directory.0.join("owned-regions");

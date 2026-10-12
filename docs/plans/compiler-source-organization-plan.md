@@ -1,8 +1,7 @@
 # Compiler source organization
 
-Status: in progress after focused JSON namespace acceptance, before additional
-S10 API expansion. This is a required cleanup
-checkpoint, not an optional task deferred until the project ends.
+Status: accepted on macOS after focused JSON namespace acceptance, before further
+S10 API expansion. See [acceptance evidence](../milestones/compiler-source-organization.md).
 
 ## Scope
 
@@ -32,9 +31,11 @@ Avoid replacing a flat directory with a collection of path-attribute shims.
    `include_str!`, `include!`, test path attributes, runtime packaging and tools.
 2. Move one coherent family at a time, beginning with standard-library strays.
    Preserve behavior, public API paths, diagnostics and generated runtime output.
-3. Run affected compiler/native/editor checks after each batch. Verify embedded
-   runtime generation and package export when their source paths move. Add tests
-   only for uncovered behavior; do not add tests that merely assert folder names.
+3. Owner update: batch remaining structural moves before running tests. Between
+   moves, verify source preservation and path resolution; compile only when needed
+   to resolve a structural uncertainty. Run complete compiler/LSP regressions once
+   after the remaining moves, plus affected native/package checks. Do not repeat
+   tests per directory or add tests that merely assert folder names.
 4. Format the whole project and checkpoint each accepted batch. Preserve owner
    edits, historical evidence paths and SQLite records. Create no archive copies.
 5. Record completed families and remaining work here. At completion, run complete
@@ -127,3 +128,42 @@ Generic-call batch accepted: all 61 integration tests and 102 family unit tests
 pass. The existing opt-in whole-source scheduling diagnostic remains ignored; it
 is not a failed behavior test. The relocation map and source-preservation proof
 are retained alongside the before/after logs.
+
+The owner requested batched verification after the remaining moves to reduce
+repeated test/build overhead. This supersedes the earlier per-folder testing
+cadence. The generic-functions/records/defaults relocation was already undergoing
+its integration check when this direction arrived; no further per-folder test run
+is required.
+
+## Final batched relocation
+
+The remaining moves pass combined structural acceptance.
+The source root now contains 14 shared Rust files. Ordinary module directories
+own callable contracts/captures/dispatch, record layouts and provenance, generic
+specialization/validation, types, native integration, project loading/data imports,
+CLI commands, and embedded runtime sources. Existing public imports remain stable
+through the library facade. Child modules follow their declared Rust names.
+
+Byte-view emitter tests now live under `stdlib/bytes/emit`; byte and test runtime
+fragments live under their respective `runtime` directories. Collections keep
+checker/emitter modules in the collection feature directory because they extend
+analysis/emission state; their explicit cross-owner paths remain intentional.
+Shared root files cover diagnostics, control-flow facts, storage, parameter rules,
+source traversal, and the public analysis facade.
+
+The CLI target now uses `src/cli/main.rs`. Embedded-source consumers, native test
+includes, and the Unicode table generator follow relocated paths. Runtime bodies
+remain unchanged; preservation records distinguish exact moves from path edits.
+Whole-project formatting changed zero files or benchmark fingerprints.
+
+A single combined compiler/LSP regression pass follows all remaining moves.
+No new per-directory tests were started after the owner's batching instruction.
+Compiler and LSP checks, including native package execution, now pass. The
+acceptance record preserves original failures and the focused repairs. This structural work introduces no new
+performance measurement claims and does not accept the remaining S10 scope.
+
+The composed relocation audit verifies all 153 tracked file moves against the
+pre-batch Git checkpoint. Bodies retain exact bytes or only file-path changes;
+project module declarations and facade re-exports are the explicit structural
+additions. The composed proof is stored as
+`tsrust-final-organization-preservation.json` in SQLite.

@@ -2706,7 +2706,7 @@ impl Emitter<'_> {
         }
         let declared_families = crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
-            output.push_str(include_str!("../stdlib/testing/shared_callback_runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime/shared_callback.rs"));
         }
         // A lifetime-free family without environments cannot hold a callback whose
         // contract mentions a byte view; such callbacks live in scoped families. The
@@ -2900,7 +2900,7 @@ impl Emitter<'_> {
             }
         }
         if output.contains("TsrNull") || output.contains("TsrUndefined") {
-            output.push_str(include_str!("../runtime_values.rs"));
+            output.push_str(include_str!("../runtime/values.rs"));
         }
         // Support is emitted once per program, only when its representation is used.
         if output.contains("String")
@@ -2944,17 +2944,17 @@ impl Emitter<'_> {
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing")
         }) {
-            output.push_str(include_str!("../stdlib/testing/assertion_runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime/assertion.rs"));
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing-runner")
         }) {
-            output.push_str(include_str!("../stdlib/testing/runtime.rs"));
+            output.push_str(include_str!("../stdlib/testing/runtime/mod.rs"));
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerHook") {
-                output.push_str(include_str!("../stdlib/testing/hooks_runtime.rs"));
+                output.push_str(include_str!("../stdlib/testing/runtime/hooks.rs"));
             }
             if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].name == "registerTest") {
-                output.push_str(include_str!("../stdlib/testing/registration_runtime.rs"));
+                output.push_str(include_str!("../stdlib/testing/runtime/registration.rs"));
             }
         }
         for &id in self.native_bindings.borrow().iter() {
@@ -2991,7 +2991,7 @@ impl Emitter<'_> {
             || output.contains("tsr_console_scalar(")
             || output.contains("tsr_console_text(")
         {
-            output.push_str(include_str!("../runtime_console.rs"));
+            output.push_str(include_str!("../runtime/console.rs"));
         }
         if numeric_support {
             output.push_str(crate::runtime::NUMERIC_ARRAYS);

@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-#[path = "../src/runtime.rs"]
+#[path = "../src/runtime/mod.rs"]
 mod runtime;
 mod support;
 use support::{execute, reject, success};

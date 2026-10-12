@@ -834,7 +834,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
             }
             // Matcher and native collection families provide complete-program
             // examples with their required imports and receiver construction.
-            if matches!(family.as_str(), "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap") {
+            if matches!(family.as_str(), "Expectation" | "NegatedExpectation" | "Deque" | "Heap" | "OrderedSet" | "OrderedMap" | "JSON") {
                 let examples = entry["examples"].as_array().unwrap();
                 assert!(!examples.is_empty(), "{family}.{method} needs a witness example");
                 for example in examples {
@@ -893,6 +893,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     "Number" => "Number(null)",
                     "Array" => "Array.isArray([])",
                     "Object" => "Object.is(1, 1)",
+                    "JSON" => "JSON.stringify(JSON.parse(\"null\"))",
                     "parseInt" => "parseInt(\"4\", 10)",
                     "parseFloat" => "parseFloat(\"4.5\")",
                     "isNaN" => "isNaN(1.5)",
@@ -1702,20 +1703,30 @@ fn documented_builtin_examples_match_native_output() {
                     || snippet.contains("function main(")
                 {
                     let analysis = checked_std_example(snippet);
-                    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                        .join("../../target/editor/doc-examples");
-                    std::fs::create_dir_all(&dir).unwrap();
+                    let dir = &directory.0;
                     let prefix = if family.starts_with("std:") { "std".to_owned() } else { family.to_lowercase() };
                     let input = dir.join(format!("{prefix}-{}-{}.rs", entry["name"].as_str().unwrap(), snippet.len()));
                     let binary = input.with_extension("bin");
-                    std::fs::write(&input, analysis.emit_rust()).unwrap();
-                    let compilation = std::process::Command::new("rustc")
-                        .args(["--edition=2024", "-Awarnings"])
-                        .arg(&input)
-                        .arg("-o")
-                        .arg(&binary)
-                        .output()
-                        .unwrap();
+                    let rust = analysis.emit_rust();
+                    std::fs::write(&input, &rust).unwrap();
+                    let compilation = if tsrust_compiler::native_runtime::separate(&rust).dependencies {
+                        // Exercise automatic dependency selection through the same
+                        // build path used by users, with the current test compiler.
+                        let cli = std::env::var_os("TSRUST").map(std::path::PathBuf::from)
+                            .unwrap_or_else(|| std::env::current_exe().unwrap().parent().unwrap()
+                                .parent().unwrap().join(format!("tsrust{}", std::env::consts::EXE_SUFFIX)));
+                        assert!(cli.is_file(), "Build the tsrust compiler binary before catalog execution, or set TSRUST");
+                        let source = input.with_extension("tsr");
+                        let formatted = tsrust_compiler::format(snippet).unwrap();
+                        assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+                        std::fs::write(&source, formatted).unwrap();
+                        std::process::Command::new(cli).arg("build").arg(&source)
+                            .arg("-o").arg(&binary).current_dir(dir).output().unwrap()
+                    } else {
+                        std::process::Command::new("rustup")
+                            .args(["run", tsrust_compiler::RUST_BACKEND_VERSION, "rustc", "--edition=2024", "-Awarnings"])
+                            .arg(&input).arg("-o").arg(&binary).output().unwrap()
+                    };
                     assert!(
                         compilation.status.success(),
                         "{}",
@@ -1743,9 +1754,7 @@ fn documented_builtin_examples_match_native_output() {
         }
     }
     let analysis = tsrust_compiler::check(&source.finish()).unwrap();
-    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../target/editor/doc-examples");
-    std::fs::create_dir_all(&dir).unwrap();
+    let dir = &directory.0;
     let input = dir.join("examples.rs");
     let binary = dir.join("examples");
     std::fs::write(&input, analysis.emit_rust()).unwrap();

@@ -1,5 +1,8 @@
 # Development and acceptance workflow
 
+Use the [compiler source layout](guides/compiler-source-layout.md) when adding or
+relocating compiler modules.
+
 ## Implementation-first development
 
 Implementation is the priority. Develop new features and defects with a focused

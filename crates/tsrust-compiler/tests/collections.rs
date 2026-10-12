@@ -715,8 +715,8 @@ fn borrowed_collection_queries_reject_owning_conditional_branches() {
 #[test]
 fn hash_buckets_avoid_single_key_allocations_and_preserve_collisions() {
     let directory = support::TempDirectory::new();
-    let sets = include_str!("../src/runtime_sets.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
-    let maps = include_str!("../src/runtime_maps.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
+    let sets = include_str!("../src/runtime/sets.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
+    let maps = include_str!("../src/runtime/maps.rs").split_once("r#\"").unwrap().1.rsplit_once("\"#;").unwrap().0;
     let source = format!("#![allow(dead_code)]\ntype String=std::borrow::Cow<'static,str>;\n#[derive(Clone)] struct TsrNull;\n#[derive(Clone)] struct TsrUndefined;\n{sets}\n{maps}\n{}", include_str!("fixtures/collections/hash-buckets-backend.rs"));
     let path = directory.0.join("buckets.rs");
     std::fs::write(&path, source).unwrap();
