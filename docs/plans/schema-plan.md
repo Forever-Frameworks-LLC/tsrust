@@ -115,3 +115,24 @@ the approved consuming public contract or inferred source schemas, or substitute
 dynamic-tree parsing for the required fused decoder. SQLite evidence uses
 `tsrust-schema-numeric-{red,check,final,format}-65abb4b2.log`. No measurement or public
 API acceptance is claimed.
+
+## Consuming scalar checkpoint
+
+Internal string, boolean and null validators now have statically typed outputs and
+consume an optional owned JsonValue. Absence is distinct from present null. String
+success moves the original allocation; failures retain only bounded type summaries.
+The immutable validator can be reused. This is internal groundwork, not the public
+safeParse API or its source-level ownership acceptance.
+
+Four focused cases prove string pointer/capacity preservation, missing/null
+separation, secret-free mismatch errors, repeated boolean validation, and rejection
+with a zero issue budget. All 15 current schema backend tests pass. SQLite evidence:
+`tsrust-schema-scalar-{red,check,format}-2af9dc47.log`. No timings were run.
+
+Public integration must add an identity-bearing namespace export if the proposed
+`s` builder is selected: native exports currently distinguish only types and
+functions (`native/exports.rs`), and module linking handles those two identities
+(`project/link.rs`). Do not implement the namespace as an unscoped global rewrite;
+import aliases and lexical shadowing must remain correct. Public builder spelling
+and default string-length units are awaiting owner review. Neither blocks the
+approved consuming validator backend.
