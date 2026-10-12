@@ -7,7 +7,8 @@ and loop back-edge checks. No public API identity or import was added.
 
 String and numeric refinement remain pending. This batch does not introduce
 implicit integer rounding, string copies or borrowed string lifetime erasure.
-Installed consumers still predate child views and boolean refinement. S10 remains
+Installed consumers were refreshed from 818459f3, including child views and
+boolean refinement; see the S10 installed guarded-read acceptance. S10 remains
 open, with family regressions and measurements pending.
 
 ## Evidence

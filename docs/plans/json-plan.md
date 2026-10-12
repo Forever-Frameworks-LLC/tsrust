@@ -3,7 +3,8 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were refreshed from `bdedda8a`, including scalar extraction, typeof,
+consumers were refreshed from `818459f3`, including child views, boolean refinement,
+guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Dynamic construction,
 direct typed runtime paths, borrowed adapters, public writers, allocation
@@ -537,7 +538,7 @@ The matched native_json_typeof workload includes exact hashes, operation guards,
 ABI/report registration and an independent six-character checksum oracle.
 tsrust-json-typeof-smoke.log proves agreement in five native/Node-after-tsc cases,
 with zero timing samples. tsrust-json-typeof-format.log records whole-project
-formatting. Installed consumers have not yet been refreshed for this slice.
+formatting. Installed consumers now include this slice; see the refresh below.
 
 Array.isArray over JsonValue, equality with JSON null and safe scalar/collection
 refinement remain required follow-up work. This checkpoint does not accept that
@@ -588,7 +589,7 @@ error styles. They cannot be cloned or passed to consuming takeString.
 
 See [focused acceptance](../milestones/json-views.md) and
 [placement audit](globals-and-imports-json-views-audit.md). These source changes
-are not yet in the installed consumers. Safe scalar refinement, borrowed string
+are included in the installed refresh below. Further scalar refinement, borrowed string
 projections and dynamic construction remain open. The matched child workload is
 ready and passed untimed parity checks; no timing acceptance is claimed.
 
@@ -658,6 +659,29 @@ Focused source acceptance evidence is retained in benchmarks/records.sqlite:
 - tsrust-json-string-refinement-format.log and format-final.log: whole-project
   token-preserving formatting and source fingerprint refresh.
 
-Installed consumers still predate this batch. S10 acceptance and measurements
+Installed consumers now include this batch (818459f3). S10 acceptance and measurements
 remain open; the scoped string reads do not substitute for first-class borrowed
 string storage or exact numeric refinement.
+
+
+### Installed guarded-read refresh
+
+CLI and LSP consumers were rebuilt from 818459f3 and atomically replaced in both
+~/.cargo/bin and target/editor/debug. Independent installed checks prove borrowed
+child traversal, boolean refinement, guarded string length/search and missing/null
+behavior outside the repository. The LSP publishes no diagnostics for that source
+and supplies updated guard documentation. Active VS Code was restarted; stale
+missing-get and guarded-search diagnostics cleared without editing source files.
+After workspace rechecking, 11 existing negative-fixture errors and 18 Rust warnings
+remain; this does not claim a clean repository-wide Problems panel.
+
+The first command selected only the CLI target despite naming both packages. The
+initial CLI smoke passed; its LSP failure is preserved. The server was then built
+with its explicit binary target, replaced and its failed smoke rerun successfully.
+The development workflow now documents the Cargo target-selection trap.
+
+SQLite retains tsrust-json-guard-consumer-build.log, consumer-install.json,
+consumer-smoke.py/log, consumer-lsp-build.log, consumer-lsp-install.json,
+consumer-lsp-smoke.py/log, consumer-editor.json and consumer-workloads.log (all with the
+`tsrust-json-guard-` prefix). Binary hashes and source identity are recorded.
+This installed acceptance does not close S10 or add timing measurements.

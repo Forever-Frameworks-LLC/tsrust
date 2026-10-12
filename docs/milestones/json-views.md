@@ -5,8 +5,8 @@ read-only observers and serialization accept owners or views. Nested views retai
 the original owner lifetime without copying child data. Missing/error branches
 release the child loan; present JSON null retains it. Views cannot clone or escape.
 
-Installed consumers remain at bdedda8a, which includes familiar JSON inspection
-but not this child-view batch. No performance timing or full-family acceptance is
+Installed consumers were refreshed from 818459f3, including this child-view batch;
+see the installed guarded-read acceptance in the S10 plan. No performance timing or full-family acceptance is
 claimed. Safe scalar refinement, borrowed string projections, construction,
 direct typed paths, public writers and family measurements remain pending.
 
