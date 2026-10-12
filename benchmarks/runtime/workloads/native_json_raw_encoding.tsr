@@ -1,0 +1,32 @@
+import { borrowRaw, JsonRaw } from 'std:json';
+
+type Envelope = {
+  payload: JsonRaw;
+};
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (borrowRaw(input)) {
+      Ok(raw) => {
+        const envelope: Envelope = {
+          payload: raw
+        };
+        const encoded = JSON.stringify(envelope);
+        if (encoded !== "{\"payload\": { \"a\": [1,true,null], \"b\": \"hello\" } }") {
+          throw 'raw output mismatch';
+        }
+
+        checksum += encoded.length;
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

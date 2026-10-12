@@ -2118,3 +2118,22 @@ terminal error. A backend probe covers leading/trailing/internal CR/LF, borrowed
 owner retention, unchanged prior output, repeated terminal failure and exactly-once
 cleanup. Catalog and editor checks explain this boundary. S10 family acceptance,
 raw encoding measurements and installed consumer refresh remain outstanding.
+
+
+### Raw encoding boundaries and matched workload support
+
+A focused native test covers arrays of raw values, optional/missing raw fields,
+nullable fields, escaped quotes/brackets, exact output-byte acceptance, one-byte
+underflow rejection and combined depth at the 64-container boundary. It passes
+without changing the serializer.
+
+`native_json_raw_encoding` registers 2,000 iterations of validation, typed record
+encoding and complete output comparison against an independent fixed literal.
+The checksum adds 50 bytes per successful iteration. Source-token guards pin the
+whole loop, operation count and fingerprints; oracle/ABI/report registration is
+covered by the native-JSON harness tests. Node validates with JSON.parse and
+explicitly concatenates the original source into its envelope; ordinary
+JSON.stringify would normalize it. The workload includes validation, output
+construction and equality observation, with no allocation-equivalence claim.
+Measurement status stays unmeasured until the family timing run. Separate
+allocation and direct-Rust encoding coverage remain required for S10 closure.

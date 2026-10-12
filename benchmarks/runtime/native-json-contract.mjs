@@ -12,6 +12,15 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_raw_encoding'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON raw encoding identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON raw encoding fingerprint');
+  if(row.iterations!==2000||row.inputText!==jsonInput||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One raw validation, record encoding and exact output comparison')throw Error('JSON raw encoding denominator');
+  const body=kind==='native'?`while(i<n){match(borrowRaw(input)){Ok(raw)=>{const envelope:Envelope={payload:raw};const encoded=JSON.stringify(envelope);if(encoded!==${JSON.stringify('{"payload":'+jsonInput+'}')}){throw 'raw output mismatch';}checksum+=encoded.length;},Err(error)=>{throw error.message;}}i++;}`:`while(i<n){JSON.parse(input);const encoded='{"payload":'+input+'}';if(encoded!==${JSON.stringify('{"payload":'+jsonInput+'}')}){throw 'raw output mismatch';}checksum+=encoded.length;i++;}`;
+  for(const snippet of ['let checksum=seed;let i=0;',body,'return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('JSON raw encoding placement');
+  return;
+ }
+
  if(row.id==='native_json_raw'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON raw identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON raw fingerprint');
@@ -248,4 +257,9 @@ export function encodingChecksum(n,seed,input){
 export function rawChecksum(n,seed,input){
  if(input!==jsonInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n))throw Error('JSON raw oracle inputs');
  return seed+n;
+}
+
+export function rawEncodingChecksum(n,seed,input){
+ if(input!==jsonInput||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*50))throw Error('JSON raw encoding oracle inputs');
+ return seed+n*50;
 }

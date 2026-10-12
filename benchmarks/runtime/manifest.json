@@ -21692,6 +21692,30 @@
       "notes": "Native bounded raw validation borrows source without building a dynamic tree. Node validates through JSON.parse and discards its parsed tree. Safe finite ASCII fixture; no claim of allocation equivalence or raw serialization support. Untimed registration.",
       "sourceSha256": "988c045a1860b16c8cec3992abf552d600b63c9b9bdbeda51770fac97c7616b4",
       "counterpartSha256": "0d078300b11ae3b314ed55c66f44ec4dd205aaca1479365f12fb67909cdebe1f"
+    },
+    {
+      "id": "native_json_raw_encoding",
+      "category": "json",
+      "description": "Validate and embed exact JSON text in a typed record",
+      "source": "workloads/native_json_raw_encoding.tsr",
+      "counterpart": "workloads/native_json_raw_encoding.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One raw validation, record encoding and exact output comparison",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": " { \"a\": [1,true,null], \"b\": \"hello\" } ",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Validate fixed ASCII input, embed unchanged text as payload, compare complete output with a fixed independent literal and accumulate its 50-byte length.",
+      "notes": "Includes validation, output creation and full equality observation. Native uses bounded raw validation and typed serialization. Node validates with JSON.parse then explicitly concatenates original text; ordinary JSON.stringify would normalize it. No allocation, validation-coverage or JSON.stringify implementation equivalence claim. Untimed registration.",
+      "sourceSha256": "4a67bd7b9c33ebde717aa8e60ff0037780d96172b03dd3b4c7a85cad9475fc45",
+      "counterpartSha256": "80ffb0963ffc6536abe98e3ee7cec85515bc1290ce5c7b81a7732301e086a3c8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

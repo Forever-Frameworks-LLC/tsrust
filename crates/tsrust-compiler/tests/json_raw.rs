@@ -210,3 +210,25 @@ function main(){
  let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
  support::success(&support::run(support::cli().arg("run").arg(path),90));
 }
+
+#[test]
+fn raw_encoding_arrays_optional_fields_and_combined_depth_are_checked() {
+ let source=r#"
+import {JsonRaw} from 'std:json';import {strictEqual} from 'std:testing';
+type Data={items:JsonRaw[];missing?:JsonRaw;value:JsonRaw|null;};
+type Envelope={payload:JsonRaw;};
+function main(){
+ const text='{"items":[1e+02,{ "s":"[\\\"]" }],"value":null}';
+ const value=JSON.parse<Data>(text);
+ strictEqual(JSON.stringify(value),'{"items":[1e+02,{ "s":"[\\\"]" }],"value":null}');
+ const deep='['.repeat(64)+'0'+']'.repeat(64);
+ const raw=JSON.parse<JsonRaw>(deep);
+ strictEqual(JSON.stringify(raw,deep.length),deep);
+ match(JSON.tryStringify(raw,deep.length-1)){Ok(_)=>{throw 'byte limit ignored';},Err(error)=>{strictEqual(error.code,'output-limit');}}
+ const envelope:Envelope={payload:raw};
+ match(JSON.tryStringify(envelope)){Ok(_)=>{throw 'combined depth ignored';},Err(error)=>{strictEqual(error.code,'depth-limit');}}
+}
+"#;
+ let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+ support::success(&support::run(support::cli().arg("run").arg(path),90));
+}

@@ -1,4 +1,4 @@
-import {rawChecksum} from './native-json-contract.mjs';
+import {rawChecksum,rawEncodingChecksum} from './native-json-contract.mjs';
 import {encodingChecksum,constructionChecksum,containersChecksum,typedChecksum} from './native-json-contract.mjs';
 import {scalarChecksum,typeofChecksum,inspectionChecksum,stringReadsChecksum,refinementChecksum,viewChecksum} from './native-json-contract.mjs';
 import {dataImportChecksum} from './typed-data-imports.mjs';
@@ -218,6 +218,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
+ if(id==='native_json_raw_encoding')return rawEncodingChecksum(n,seed,inputText);
  if(id==='native_json_raw')return rawChecksum(n,seed,inputText);
  if(id==='native_json_encoding')return encodingChecksum(n,seed,inputText);
  if(id==='native_jsonc_typed'){if(!inputText.startsWith('/* header */'))throw Error('JSONC input');return typedChecksum(n,seed,inputText.slice(12));}
