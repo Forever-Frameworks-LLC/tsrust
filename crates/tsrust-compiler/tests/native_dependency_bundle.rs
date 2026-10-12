@@ -13,6 +13,11 @@ fn main() {
     let value: tsrust_native_dependencies::serde_json::Value =
         tsrust_native_dependencies::serde_json::from_str(r#"{"answer":42}"#).unwrap();
     assert_eq!(value["answer"], 42);
+    let input=String::from(r#"{ "answer":42 }"#);
+    let raw:&tsrust_native_dependencies::serde_json::value::RawValue=
+        tsrust_native_dependencies::serde_json::from_str(&input).unwrap();
+    assert_eq!(raw.get(),input);
+    assert_eq!(raw.get().as_ptr(),input.as_ptr());
     println!("bundled JSON passed");
 }
 "##).unwrap();

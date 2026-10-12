@@ -1862,3 +1862,28 @@ The generated-native typed record/array/checked-number regression also passes.
 Whole-project formatting changes no files or fingerprints. SQLite evidence:
 `tsrust-json-borrowed-decoder-*-57682ac0` red, first check, repaired check,
 native and format logs. No new performance measurements are claimed.
+
+### Internal selective raw-field extraction
+
+Fragment now implements lifetime-bound Serde deserialization using borrowed
+RawValue. The bounded decode_borrowed entry point validates the complete input
+before field extraction. A record-map witness preserves a selected object's
+exact whitespace, unsigned 64-bit number spelling and Unicode escape tokens,
+checks its source pointer, rejects a malformed surrogate and enforces the node
+budget. No dynamic subtree or replacement source is retained. This does not
+choose an output serialization policy.
+
+The pinned serde_json raw_value feature is enabled in compiler and bundled
+native dependencies. An isolated offline bundle build with an empty Cargo home
+verifies borrowed RawValue availability and source identity. The initial missing
+Deserialize witness fails as expected; all 44 JSON backend tests, five native
+raw tests and the isolated dependency test subsequently pass. Whole-project
+formatting changes no files or fingerprints. SQLite evidence uses prefix
+`tsrust-json-raw-fields-` and suffix `-937e270a` for red, backend, bundle, native
+and formatting logs.
+
+This is internal decoding infrastructure. Public typed raw-field analysis,
+owner provenance, lifetime-bearing generated visitors, editor documentation and
+matched selective-field measurement support remain required. Existing owned
+JSONC/streaming boundaries remain unchanged. Output semantics still await the
+owner's decision; S10 is not accepted.

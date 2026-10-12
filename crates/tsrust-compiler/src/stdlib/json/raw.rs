@@ -4,6 +4,14 @@ use super::{Error, Limits};
 /// Holds only a real borrow of the validated UTF-8 input. No dynamic tree or
 /// replacement source buffer is retained. Serde may use temporary escape scratch.
 pub struct Fragment<'a> { text: &'a str }
+// Internal field adapter: callers must use typed::decode_borrowed so whole-input
+// budgets and strict Unicode validation run before Serde extracts source slices.
+impl<'de> serde::Deserialize<'de> for Fragment<'de> {
+    fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{
+        let raw=<&'de serde_json::value::RawValue as serde::Deserialize<'de>>::deserialize(decoder)?;
+        Ok(Self{text:raw.get()})
+    }
+}
 impl<'a> Fragment<'a> {
     pub fn text(&self) -> &'a str { self.text }
 }
@@ -17,6 +25,16 @@ pub fn borrow(input: &str, limits: Limits) -> Result<Fragment<'_>, Error> {
 mod tests {
     use super::*;
     fn limits() -> Limits { Limits { bytes: 128, depth: 4, entries: 4, nodes: 12 } }
+    #[test]
+    fn selective_fields_borrow_exact_source_tokens() {
+        let source=String::from(r#"{"payload": { "n":18446744073709551615, "s":"\u0061" }}"#);
+        let values:std::collections::BTreeMap<String,Fragment<'_>>=super::super::typed::decode_borrowed(source.as_bytes(),limits()).unwrap();
+        let raw=values["payload"].text();
+        assert_eq!(raw,r#"{ "n":18446744073709551615, "s":"\u0061" }"#);
+        assert_eq!(raw.as_ptr(),source[12..].as_ptr());
+        assert!(super::super::typed::decode_borrowed::<std::collections::BTreeMap<String,Fragment<'_>>>(br#"{"payload":"\ud800"}"#,limits()).is_err());
+        assert!(super::super::typed::decode_borrowed::<std::collections::BTreeMap<String,Fragment<'_>>>(source.as_bytes(),Limits{nodes:1,..limits()}).is_err());
+    }
     #[test]
     fn fragments_borrow_source_without_rewriting_tokens() {
         let source = String::from(" \n{\"z\":18446744073709551615,\"a\":-0.0,\"text\":\"\\u0061\"} \t");

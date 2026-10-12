@@ -14,7 +14,7 @@ path = "src/cli/main.rs"
 
 [dependencies]
 serde = "1"
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.183"
@@ -23,4 +23,4 @@ libc = "=0.2.183"
 # This also makes ordinary online builds prepare a later offline vendor step.
 [build-dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
-serde_json = "=1.0.151"
+serde_json = { version = "=1.0.151", features = ["raw_value"] }
