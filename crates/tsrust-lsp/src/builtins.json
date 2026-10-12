@@ -6201,6 +6201,72 @@
 ,
   "std:json": [
 {
+  "name": "JsonBuildLimits",
+  "signature": "type JsonBuildLimits",
+  "parameters": [],
+  "documentation": "Construction budgets with required int fields maxDepth, maxEntries and maxNodes. Omitted limits default to maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative integers; maxDepth cannot exceed 64. The root counts as one value and one container level. maxEntries applies to every nested collection; maxNodes counts the root and all descendant values. Zero entries permits an empty container; zero depth or nodes rejects any container. Errors use depth-limit, entry-limit, node-limit or invalid-limits with offset zero. Existing inputs are already allocated; these limits bound the resulting tree, not an input byte stream. No receiver is mutated. Ownership: ordinary owned record, borrowed by constructors.\n\n```tsrust\nimport {fromArray,fromInt,JsonValue,JsonBuildLimits} from \"std:json\";function main(){const values:JsonValue[]=[fromInt(42)];const limits:JsonBuildLimits={maxDepth:1,maxEntries:1,maxNodes:2};match(fromArray(values,limits)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: [42].",
+  "examples": [
+    {
+      "source": "import {fromArray,fromInt,JsonValue,JsonBuildLimits} from \"std:json\";function main(){const values:JsonValue[]=[fromInt(42)];const limits:JsonBuildLimits={maxDepth:1,maxEntries:1,maxNodes:2};match(fromArray(values,limits)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}",
+      "output": "[42]\n"
+    }
+  ]
+},
+{
+  "name": "JsonEntry",
+  "signature": "type JsonEntry",
+  "parameters": [],
+  "documentation": "An owned object-entry record with key:string and value:JsonValue fields. Used in fromEntries input arrays. Keys are literal UTF-8 text, including empty keys; no path interpretation occurs. The last duplicate key wins. Ownership: constructing an entry transfers owned fields; explicit clone copies supported contents independently.\n\n```tsrust\nimport {fromEntries,fromInt,JsonEntry} from \"std:json\";function main(){const entries:JsonEntry[]=[{key:\"answer\",value:fromInt(42)}];match(fromEntries(entries)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: {\"answer\":42}.",
+  "examples": [
+    {
+      "source": "import {fromEntries,fromInt,JsonEntry} from \"std:json\";function main(){const entries:JsonEntry[]=[{key:\"answer\",value:fromInt(42)}];match(fromEntries(entries)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}",
+      "output": "{\"answer\":42}\n"
+    }
+  ]
+},
+{
+  "name": "fromArray",
+  "signature": "fromArray(values: Owned<JsonValue[]>, limits?: ReadOnly<JsonBuildLimits>): Result<JsonValue, JsonError>",
+  "parameters": [
+    {
+      "label": "values: Owned<JsonValue[]>",
+      "documentation": "Ordered child values. Consumed on success and failure; use clone(values) to retain the input."
+    },
+    {
+      "label": "limits?: ReadOnly<JsonBuildLimits>",
+      "documentation": "Omitted limits default to maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative integers; maxDepth cannot exceed 64. The root counts as one value and one container level. maxEntries applies to every nested collection; maxNodes counts the root and all descendant values. Zero entries permits an empty container; zero depth or nodes rejects any container. Errors use depth-limit, entry-limit, node-limit or invalid-limits with offset zero. Existing inputs are already allocated; these limits bound the resulting tree, not an input byte stream."
+    }
+  ],
+  "documentation": "Constructs an owned JSON array in input order, moving child values without parsing or deep copies. Empty input produces []. Returns Ok(JsonValue) or Err(JsonError). Container storage may allocate. Omitted limits default to maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative integers; maxDepth cannot exceed 64. The root counts as one value and one container level. maxEntries applies to every nested collection; maxNodes counts the root and all descendant values. Zero entries permits an empty container; zero depth or nodes rejects any container. Errors use depth-limit, entry-limit, node-limit or invalid-limits with offset zero. Existing inputs are already allocated; these limits bound the resulting tree, not an input byte stream. Ownership: consumes the array and children on success or failure; limits is borrowed and unchanged.\n\n```tsrust\nimport {fromArray,fromInt,JsonValue,JsonBuildLimits} from \"std:json\";function main(){const values:JsonValue[]=[fromInt(42)];const limits:JsonBuildLimits={maxDepth:1,maxEntries:1,maxNodes:2};match(fromArray(values,limits)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: [42].",
+  "examples": [
+    {
+      "source": "import {fromArray,fromInt,JsonValue,JsonBuildLimits} from \"std:json\";function main(){const values:JsonValue[]=[fromInt(42)];const limits:JsonBuildLimits={maxDepth:1,maxEntries:1,maxNodes:2};match(fromArray(values,limits)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}",
+      "output": "[42]\n"
+    }
+  ]
+},
+{
+  "name": "fromEntries",
+  "signature": "fromEntries(entries: Owned<JsonEntry[]>, limits?: ReadOnly<JsonBuildLimits>): Result<JsonValue, JsonError>",
+  "parameters": [
+    {
+      "label": "entries: Owned<JsonEntry[]>",
+      "documentation": "Owned key/value entries, consumed on success and failure. Duplicate keys use the last supplied value."
+    },
+    {
+      "label": "limits?: ReadOnly<JsonBuildLimits>",
+      "documentation": "Omitted limits default to maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative integers; maxDepth cannot exceed 64. The root counts as one value and one container level. maxEntries applies to every nested collection; maxNodes counts the root and all descendant values. Zero entries permits an empty container; zero depth or nodes rejects any container. Errors use depth-limit, entry-limit, node-limit or invalid-limits with offset zero. Existing inputs are already allocated; these limits bound the resulting tree, not an input byte stream."
+    }
+  ],
+  "documentation": "Constructs an owned JSON object from key/value records. Empty input produces {}. The last duplicate key wins, and output keys use the existing sorted-key representation. All supplied entries and their descendant values count against limits before duplicate replacement. Returns Ok(JsonValue) or Err(JsonError), without parsing or deep-copying child values. Object storage allocates. Omitted limits default to maxDepth 64, maxEntries 1000000 and maxNodes 1000000. All limits must be nonnegative integers; maxDepth cannot exceed 64. The root counts as one value and one container level. maxEntries applies to every nested collection; maxNodes counts the root and all descendant values. Zero entries permits an empty container; zero depth or nodes rejects any container. Errors use depth-limit, entry-limit, node-limit or invalid-limits with offset zero. Existing inputs are already allocated; these limits bound the resulting tree, not an input byte stream. Ownership: consumes entries, keys and values on success or failure; limits is borrowed and unchanged.\n\n```tsrust\nimport {fromEntries,fromInt,JsonEntry} from \"std:json\";function main(){const entries:JsonEntry[]=[{key:\"answer\",value:fromInt(42)}];match(fromEntries(entries)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: {\"answer\":42}.",
+  "examples": [
+    {
+      "source": "import {fromEntries,fromInt,JsonEntry} from \"std:json\";function main(){const entries:JsonEntry[]=[{key:\"answer\",value:fromInt(42)}];match(fromEntries(entries)){Ok(value)=>{console.log(JSON.stringify(value));},Err(error)=>{throw error.message;}}}",
+      "output": "{\"answer\":42}\n"
+    }
+  ]
+},
+{
   "name": "nullValue",
   "signature": "nullValue(): JsonValue",
   "parameters": [],

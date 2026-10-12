@@ -1,0 +1,35 @@
+import { fromArray, fromEntries, fromInt, fromString, nullValue, JsonValue, JsonEntry } from 'std:json';
+
+function workload(n: int, seed: int, input: string): int {
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const values: JsonValue[] = [fromInt(42), nullValue()];
+    match (fromArray(values)) {
+      Ok(array) => {
+        const entries: JsonEntry[] = [{
+          key: 'items', value: array
+        }, {
+          key: 'name', value: fromString('old')
+        }, {
+          key: 'name', value: fromString(clone(input))
+        }];
+        match (fromEntries(entries)) {
+          Ok(object) => {
+            checksum += JSON.stringify(object).length;
+          },
+          Err(error) => {
+            throw error.message;
+          }
+        }
+      },
+      Err(error) => {
+        throw error.message;
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}

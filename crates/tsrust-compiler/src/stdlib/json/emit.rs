@@ -27,6 +27,11 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
   (format!("text:&String,{}limits:Option<&Record{limits}>",if binding.name=="parseJsonc" {"allow_trailing_comma:Option<bool>,"} else {""}),
    format!("(|| {{let (bytes,depth,entries,nodes)=if let Some(limits)=limits {{(limits.field0,limits.field1,limits.field2,limits.field3)}} else {{(16*1024*1024,64,1_000_000,1_000_000)}}; let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());tsrust_native_json::{parser}(text.as_ref().as_bytes(),tsrust_native_json::Limits{{bytes:convert(bytes)?,depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}}{option})}})()"),
    format!("Record{value}{{value}}"))
+ }else if matches!(binding.name,"fromArray"|"fromEntries") {
+  let limits=record(NativeTypeId::JsonBuildLimits);
+  let element=if binding.name=="fromArray"{value}else{record(NativeTypeId::JsonEntry)};
+  let (builder,convert)=if binding.name=="fromArray"{("build_array","item.value")}else{("build_object","(item.field0.into_owned(),item.field1.value)")};
+  (format!("values:RecordArray{element},limits:Option<&Record{limits}>"),format!("(||{{let (depth,entries,nodes)=if let Some(limits)=limits{{(limits.field0,limits.field1,limits.field2)}}else{{(64,1_000_000,1_000_000)}};let convert=|value:i64|usize::try_from(value).map_err(|_|tsrust_native_json::invalid_limits());let limits=tsrust_native_json::BuildLimits{{depth:convert(depth)?,entries:convert(entries)?,nodes:convert(nodes)?}};tsrust_native_json::validate_build_root(limits,values.len())?;tsrust_native_json::{builder}(values.tsr_owned_items().map(|item|{convert}).collect(),limits)}})()"),format!("Record{value}{{value}}"))
  }else if binding.name=="fromNumber" {
   ("value:f64".into(),"tsrust_native_json::from_f64(value)".into(),format!("Record{value}{{value}}"))
  }else if matches!(binding.name,"asBoolean"|"asInt"|"asNumber"|"takeString") {

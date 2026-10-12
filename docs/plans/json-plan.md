@@ -6,8 +6,8 @@ the approved JSON namespace have focused acceptance. Installed CLI/editor
 consumers were refreshed from `818459f3`, including child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
-its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar construction has focused source acceptance. Container construction,
-direct typed runtime paths, borrowed adapters, public writers, allocation
+its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
+Direct typed runtime paths, borrowed adapters, public writers, allocation
 baselines, and family measurements remain open. No S10 timing acceptance is claimed.
 S09 is accepted.
 
@@ -74,8 +74,8 @@ can override them.
 The backend currently follows serde_json's owned Value representation: duplicate
 keys replace previous values, object storage sorts keys, i64/u64 integer values
 remain exact, floating negative zero survives, and nonfinite input numbers fail.
-The public scalar slice now covers checked extraction and scalar construction. Container construction
-and typed conversion remain pending. Null is a JSON
+The public dynamic slice now covers checked extraction and scalar/container construction.
+Typed conversion remains pending. Null is a JSON
 value; missing properties and Tsrust undefined must remain distinct at that boundary.
 Errors now cross the public Result boundary as JsonError records containing code,
 message and a byte offset. Their editor documentation and examples are checked.
@@ -782,3 +782,28 @@ editor support, workload registration or installed acceptance is claimed yet.
 Public array/object constructors and their complete acceptance remain the next
 construction step. Evidence uses tsrust-json-containers-backend-* and
 tsrust-json-number-contract-* in SQLite.
+
+
+### Public owned container construction
+
+fromArray consumes JsonValue[]; fromEntries consumes JsonEntry[] with owned key
+and value fields. Both return Result<JsonValue, JsonError> and accept a borrowed
+optional JsonBuildLimits record. Defaults are depth 64, one million entries per
+collection and one million total values. Limits are nonnegative; depth cannot
+exceed 64. The root counts, and duplicate entries count before replacement. Root
+limits reject before allocating converted wrapper storage; descendants are then
+validated by the owned backend. Children transfer without deep copies; container
+storage and literal-backed keys may allocate.
+
+Native witnesses cover nested array/object values, sorted output, last duplicate
+wins, empty arrays, explicit limits and invalid limits. Both constructors consume
+inputs on success and failure, and borrowed JsonView children are rejected. Four
+catalog entries share two executed examples. Editor hover and signature help
+expose ownership and limits. The reviewed inventory is 422.
+
+Matched native/Node-after-tsc construction and encoding agree in five untimed
+cases. The independent checksum counts 34 ASCII bytes for the fixed nested value;
+source guards, fingerprints and ABI/report registration are complete. Evidence
+uses tsrust-json-containers-* in SQLite. This accepts public dynamic construction;
+installed consumers remain at 818459f3. Typed runtime conversion, remaining streams,
+allocation baselines and S10 family measurements remain pending.

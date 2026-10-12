@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_containers'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON containers identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON containers fingerprint');
+  if(row.iterations!==2000||row.inputText!=='hello'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One array, one object with a duplicate key and one encoding')throw Error('JSON containers denominator');
+  if(kind==='native'&&!containsCodeSnippet(source," let checksum=seed;let i=0;\n while(i<n){\n  const values:JsonValue[]=[fromInt(42),nullValue()];\n  match(fromArray(values)){Ok(array)=>{\n   const entries:JsonEntry[]=[{key:'items',value:array},{key:'name',value:fromString('old')},{key:'name',value:fromString(clone(input))}];\n   match(fromEntries(entries)){Ok(object)=>{checksum+=JSON.stringify(object).length;},Err(error)=>{throw error.message;}}\n  },Err(error)=>{throw error.message;}}\n  i++;\n }\n return checksum;\n"))throw Error('JSON containers operation placement');
+  if(kind==='typescript'&&!containsCodeSnippet(source," let checksum=seed;let i=0;\n while(i<n){\n  const values=[42,null];\n  const entries:[string,unknown][]=[['items',values],['name','old'],['name',input]];\n  const object=Object.fromEntries(entries);checksum+=JSON.stringify(object).length;\n  i++;\n }\n return checksum;\n"))throw Error('JSON containers operation placement');
+  return;
+ }
  if(row.id==='native_json_construction'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON construction identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON construction fingerprint');
@@ -166,4 +174,9 @@ export function stringReadsChecksum(n,seed,input){
 export function constructionChecksum(n,seed,input){
  if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*21))throw Error('JSON construction oracle inputs');
  return seed+n*21;
+}
+
+export function containersChecksum(n,seed,input){
+ if(input!=='hello'||!Number.isSafeInteger(n)||n<0||!Number.isSafeInteger(seed)||!Number.isSafeInteger(seed+n*34))throw Error('JSON containers oracle inputs');
+ return seed+n*34;
 }

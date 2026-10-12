@@ -107,6 +107,15 @@ static JSONL_ERROR: Declaration = Declaration {id:NativeTypeId::JsonlError,modul
     Field{name:"offset",signature:Signature::Int,optional:false},
     Field{name:"osCode",signature:Signature::Int,optional:true},
 ],..FS_ERROR};
+static JSON_BUILD_LIMITS: Declaration = Declaration {id:NativeTypeId::JsonBuildLimits,module:"std:json",name:"JsonBuildLimits",fields:&[
+ Field{name:"maxDepth",signature:Signature::Int,optional:false},
+ Field{name:"maxEntries",signature:Signature::Int,optional:false},
+ Field{name:"maxNodes",signature:Signature::Int,optional:false},
+],..FS_ERROR};
+static JSON_ENTRY: Declaration = Declaration {id:NativeTypeId::JsonEntry,module:"std:json",name:"JsonEntry",fields:&[
+ Field{name:"key",signature:Signature::String,optional:false},
+ Field{name:"value",signature:Signature::Named(NativeTypeId::JsonValue),optional:false},
+],..FS_ERROR};
 static JSON_LIMITS: Declaration = Declaration {id:NativeTypeId::JsonLimits,module:"std:json",name:"JsonLimits",fields:&[
     Field{name:"maxBytes",signature:Signature::Int,optional:false},
     Field{name:"maxDepth",signature:Signature::Int,optional:false},
@@ -205,6 +214,8 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::StringView => &STRING_VIEW,
         NativeTypeId::JsonError => &JSON_ERROR,
         NativeTypeId::JsonLimits => &JSON_LIMITS,
+        NativeTypeId::JsonBuildLimits => &JSON_BUILD_LIMITS,
+        NativeTypeId::JsonEntry => &JSON_ENTRY,
         NativeTypeId::JsonlReader => &JSONL_READER,
         NativeTypeId::JsonlError => &JSONL_ERROR,
         NativeTypeId::Deque => &DEQUE,
@@ -217,7 +228,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

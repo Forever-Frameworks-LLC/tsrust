@@ -21472,6 +21472,30 @@
       "notes": "Native string construction explicitly copies the reused input into an owned JSON string; Node retains immutable text. Encoding is included; this is not an isolated constructor timing. Untimed support only.",
       "sourceSha256": "b9839eb211678fddfad2503db488fee617ca94e3f5f30b549fd1f70ebb453d2a",
       "counterpartSha256": "05d9323bc55cc8ffd3144f9034c5bb62354a23eacbf2401e2451c69f97399ec8"
+    },
+    {
+      "id": "native_json_containers",
+      "category": "json",
+      "description": "Owned JSON container construction and encoding",
+      "source": "workloads/native_json_containers.tsr",
+      "counterpart": "workloads/native_json_containers.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One array, one object with a duplicate key and one encoding",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "hello",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Construct items [42,null] and last-wins name hello; add 34 encoded ASCII bytes per iteration.",
+      "notes": "Native constructors validate default budgets and transfer values; Node uses ordinary arrays and Object.fromEntries. Native reused string input is explicitly copied. Includes encoding; no timing samples.",
+      "sourceSha256": "a72f75606905d8e424fdb70fd3d054e98af554766e787d8960fe76ba6ee420bf",
+      "counterpartSha256": "6939ab9f0d0d3845eef81bafced7e86ce9925f61e780cf7f14ab0631e3a98fe8"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

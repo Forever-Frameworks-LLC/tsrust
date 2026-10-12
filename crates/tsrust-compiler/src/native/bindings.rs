@@ -108,6 +108,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::json::bindings::KIND,
     crate::stdlib::json::bindings::GET,
     crate::stdlib::json::bindings::AT,
+    crate::stdlib::json::bindings::FROM_ARRAY,
+    crate::stdlib::json::bindings::FROM_ENTRIES,
     crate::stdlib::json::bindings::NULL_VALUE,
     crate::stdlib::json::bindings::FROM_BOOLEAN,
     crate::stdlib::json::bindings::FROM_INT,

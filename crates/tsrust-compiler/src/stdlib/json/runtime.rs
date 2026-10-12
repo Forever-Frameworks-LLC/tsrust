@@ -394,6 +394,7 @@ impl BuildBudget {
   if limits.nodes==0{return Err(failure("node-limit",0));}
   if limits.depth==0{return Err(failure("depth-limit",0));}
   if entries>limits.entries{return Err(failure("entry-limit",0));}
+  if entries>limits.nodes-1{return Err(failure("node-limit",0));}
   Ok(Self{limits,nodes:1})
  }
  fn visit(&mut self,value:&Value,depth:usize)->Result<(),Error>{
@@ -409,6 +410,10 @@ impl BuildBudget {
   }
   Ok(())
  }
+}
+/// Reject impossible roots before callers allocate converted wrapper storage.
+pub fn validate_build_root(limits:BuildLimits,entries:usize)->Result<(),Error>{
+ BuildBudget::root(limits,entries).map(|_|())
 }
 /// Validates the new root and all descendants, then transfers the input allocation.
 pub fn build_array(values:Vec<Value>,limits:BuildLimits)->Result<Value,Error>{

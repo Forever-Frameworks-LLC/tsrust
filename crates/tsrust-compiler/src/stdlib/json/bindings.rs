@@ -131,3 +131,16 @@ pub(crate) const FROM_STRING:NativeBinding=NativeBinding {
 
  backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromString"},..NULL_VALUE
 };
+
+pub(crate) const FROM_ARRAY:NativeBinding=NativeBinding {
+ name:"fromArray",parameters:&[
+ NativeParameter{name:"values",ty:NativeType::Structured(&Signature::Array(&Signature::Named(NativeTypeId::JsonValue))),access:Mode::Consume,optional:false,rest:false},
+ NativeParameter{name:"limits",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonBuildLimits)),access:Mode::Read,optional:true,rest:false},
+ ],backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromArray"},..FROM_NUMBER
+};
+pub(crate) const FROM_ENTRIES:NativeBinding=NativeBinding {
+ name:"fromEntries",parameters:&[
+ NativeParameter{name:"entries",ty:NativeType::Structured(&Signature::Array(&Signature::Named(NativeTypeId::JsonEntry))),access:Mode::Consume,optional:false,rest:false},
+ NativeParameter{name:"limits",ty:NativeType::Structured(&Signature::Named(NativeTypeId::JsonBuildLimits)),access:Mode::Read,optional:true,rest:false},
+ ],backend:NativeBackend::Bundled{symbol:"tsrust_std_json_fromEntries"},..FROM_NUMBER
+};
