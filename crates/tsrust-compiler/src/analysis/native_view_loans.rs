@@ -333,6 +333,9 @@ impl Analyzer {
                             }
                         }
                     }
+                    if value.target==Some(CallTarget::JsonStringView) {
+                        result.extend(Self::native_view_source_loans(context,&args[0],ReturnedBorrow{source_parameter:0,access:BorrowAccess::ReadOnly,payload:crate::native_signatures::NativeTypeId::StringView,slot:crate::native_return_borrows::ReturnSlot::Direct})?);
+                    }
                     if let Some(CallTarget::NativeBinding(id)) = value.target
                         && let Some(contract) = crate::native_bindings::BINDINGS[id].returned_borrow
                     {

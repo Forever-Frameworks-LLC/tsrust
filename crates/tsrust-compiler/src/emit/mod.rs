@@ -8534,6 +8534,12 @@ impl Emitter<'_> {
                         self.typed_native_result(&call,expr.span,None,"Error","path-relative").unwrap_or_else(||format!("{call}.unwrap_or_else(|message|panic!(\"path.relative: {{message}}\"))"))
                     }else{crate::native_emit::call(binding, arguments)}
                 }
+                CallTarget::JsonStringView => {
+                    let receiver=self.expr(fun,&args[0],Mode::Read);
+                    let text=self.json_text_read(args[0].ty.unwrap(),"json_source");
+                    let Type::Record(id)=expr.ty.unwrap() else{unreachable!()};
+                    format!("{{let json_source={receiver};Record{id}{{text:{text}}}}}")
+                }
                 CallTarget::JsonBoolean => self.json_boolean_projection(fun, &args[0]),
                 CallTarget::JsonStringLength => {
                     let receiver=self.expr(fun,&args[0],Mode::Read);

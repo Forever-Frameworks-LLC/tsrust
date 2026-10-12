@@ -125,3 +125,19 @@ impl Analyzer {
   matches!(self.expression_type_hint(context,expr),Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView))
  }
 }
+
+impl Analyzer {
+ pub(super) fn json_string_projection_type(&self,context:&Context,expr:&Expr)->Option<Type>{
+  let place=crate::flow::place(expr,&context.names)?;
+  if context.observer_places.contains(&place)||self.json_string_proof(context,expr).is_none(){return None;}
+  self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::StringView)).map(Type::Record)
+ }
+ pub(super) fn project_json_string(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,ty:Type)->Result<Type,Diagnostic>{
+  context.native_view_calls=true;
+  let proof=self.json_string_proof(context,expr).expect("checked string proof");Self::use_json_string_proof(context,proof.clone());
+  let mut place=proof;place.fields.pop();context.suppressed_flow.insert(place.clone());
+  let physical=self.expression(context,expr,Mode::Read,loans,None);context.suppressed_flow.remove(&place);physical?;
+  let value=expr.clone();let callee=Expr::new(ExprKind::Name("\0jsonStringView".into()),expr.span);
+  expr.kind=ExprKind::Call(Box::new(callee),vec![value]);expr.target=Some(CallTarget::JsonStringView);expr.ty=Some(ty);Ok(ty)
+ }
+}

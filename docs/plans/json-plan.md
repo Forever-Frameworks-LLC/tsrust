@@ -713,3 +713,28 @@ its loop and compares checked borrowed extraction and three reads with Node stri
 references. It has independent checksums, source guards, current fingerprints and
 ABI support; no timing samples are claimed. The reviewed API inventory is 413.
 Installed consumers remain at 818459f3 until a later explicit consumer refresh.
+
+### Guarded string projection
+
+A stable JSON string guard now permits `const text = value` and returning `value`
+as a borrowed StringView. The compiler interns the view identity for global JSON
+usage without requiring an import solely for inferred locals. Read-only JSON
+parameters remain available to JSON APIs; no owned string is implicitly allocated.
+Explicit `String(view)` is still required for independent string storage.
+
+The projection carries the original owner's loan through optional JsonView
+children, locals and returns. Local-owner escape, retained-owner replacement,
+invalidated proofs, unproven joins and loop backedges are rejection witnesses.
+Editor checked facts report the inferred StringView and its supported read methods.
+The typeof catalog example exercises an inferred borrowed local.
+
+Focused evidence uses `tsrust-json-string-projection-*` in SQLite: compiler/native
+and ownership checks, editor facts, catalog execution, matched native/Node checks
+and whole-project formatting. The new benchmark parses once, checks a string guard,
+projects a local and performs length plus two searches. Five untimed cases agree;
+no family measurement or installed-consumer acceptance is claimed here.
+
+The number-refinement decision remains open: preserving exact JSON integers can
+require checked extraction, a throwing precision check, or a new exact numeric
+representation. The existing asInt/asNumber behavior remains unchanged while the
+owner considers these choices. This does not block other S10 implementation.

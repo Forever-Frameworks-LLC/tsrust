@@ -634,6 +634,7 @@ pub enum CallTarget {
     /// Checked projection after a stable JSON boolean guard.
     JsonBoolean,
     JsonStringLength,
+    JsonStringView,
     StringConversion,
     ArrayIsArray,
     ObjectIs,

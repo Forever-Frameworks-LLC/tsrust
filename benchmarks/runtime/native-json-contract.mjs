@@ -12,6 +12,14 @@ export function scalarChecksum(n,seed,input){
  return seed+n*42;
 }
 export function assertNativeJsonSource(source,row,kind){
+ if(row.id==='native_json_string_projection'){
+  if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string projection identity');
+  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string projection fingerprint');
+  if(row.iterations!==2000||row.inputText!=='"hellohello"'||row.result!=='int'||row.operationsPerIteration!==1||row.operationUnit!=='One string guard, borrowed local, length and two searches')throw Error('JSON string projection denominator');
+  if(kind==='native'&&!containsCodeSnippet(source," const owner=JSON.parse(input);\n let checksum=seed;let i=0;\n while(i<n){\n  if(typeof owner!=='string'){throw 'expected-string';}\n  const text=owner;checksum+=text.length+text.indexOf('hello')+text.lastIndexOf('hello');\n  i++;\n }\n return checksum;\n"))throw Error('JSON string projection operation placement');
+  if(kind==='typescript'&&!containsCodeSnippet(source," const owner:unknown=JSON.parse(input);\n let checksum=seed;let i=0;\n while(i<n){\n  if(typeof owner!=='string'){throw 'expected-string';}\n  const text=owner;checksum+=text.length+text.indexOf('hello')+text.lastIndexOf('hello');\n  i++;\n }\n return checksum;\n"))throw Error('JSON string projection operation placement');
+  return;
+ }
  if(row.id==='native_json_string_views'){
   if(row.family!=='native-json'||!['native','typescript'].includes(kind))throw Error('JSON string view identity');
   if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('JSON string view fingerprint');

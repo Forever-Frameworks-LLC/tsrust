@@ -1494,6 +1494,9 @@ fn remap_function_closures(
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
         crate::stdlib::json::namespace::prepare(&mut program)?;
+        if program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
+            crate::native_type_resolution::intern(&mut program.records,crate::native_signatures::NativeTypeId::StringView,Span::default())?;
+        }
         crate::local_readiness::check(&mut program)?;
         if let Some(base) = program.unresolved_bases.first() {
             return Err(Diagnostic::new(
@@ -7806,6 +7809,7 @@ impl Analyzer {
             .remove(&(expr.span.start, expr.span.end));
         if mode != Mode::Mutate && expected != crate::flow::place(expr,&context.names).and_then(|place|self.place_type(context,&place)) {
             if let Some(proof)=self.json_boolean_proof(context,expr) {return self.project_json_boolean(context,expr,loans,proof).map(Some);}
+            if let Some(ty)=self.json_string_projection_type(context,expr) {return self.project_json_string(context,expr,loans,ty).map(Some);}
         }
 
         if !matches!(
@@ -10179,6 +10183,7 @@ impl Analyzer {
             return Some(*narrowed);
         }
         if self.json_boolean_proof(context,expr).is_some(){return Some(Type::Boolean);}
+        if let Some(ty)=self.json_string_projection_type(context,expr){return Some(ty);}
         if let Some((_, _, narrowed)) = self.flow_view(context, expr) {
             return Some(narrowed);
         }

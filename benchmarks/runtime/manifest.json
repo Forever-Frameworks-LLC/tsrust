@@ -21424,6 +21424,30 @@
       "notes": "Native borrowed string and Node immutable string references; ASCII coordinates agree. Includes no per-iteration parsing or explicit copy. Untimed support only.",
       "sourceSha256": "7059e18391809646e3c4fdc9ad4702b91476c3efbbd950d4d2400e384ba743c8",
       "counterpartSha256": "6798cf74480604815463028b043a36203863a3790196d4f55fea4f36dc8f3924"
+    },
+    {
+      "id": "native_json_string_projection",
+      "category": "json",
+      "description": "Guarded JSON strings projected into borrowed locals",
+      "source": "workloads/native_json_string_projection.tsr",
+      "counterpart": "workloads/native_json_string_projection.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 1,
+      "operationUnit": "One string guard, borrowed local, length and two searches",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-json",
+      "inputText": "\"hellohello\"",
+      "measured": false,
+      "measurementStatus": "unmeasured-json-family",
+      "specification": "Parse once outside the loop; guard and borrow its ASCII string each iteration and add fifteen.",
+      "notes": "Native borrowed string and Node immutable string references; ASCII coordinates agree. Includes no per-iteration parsing or explicit copy. Untimed support only.",
+      "sourceSha256": "5e902da9fd7278a0e2cb3bff718e77e12bcee5d71975fda3433148b005c2af53",
+      "counterpartSha256": "6798cf74480604815463028b043a36203863a3790196d4f55fea4f36dc8f3924"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

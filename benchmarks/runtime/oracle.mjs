@@ -216,7 +216,7 @@ export {expectedNumber} from './number-oracle.mjs';
 // Linear series use closed forms, not the implementation's records/callbacks/arrays.
 export function expectedChecksum(id, n, seed, inputText) {
  if(id==='native_json_import')return dataImportChecksum(n,seed);
- if(id==='native_json_string_reads'||id==='native_json_string_views')return stringReadsChecksum(n,seed,inputText);
+ if(id==='native_json_string_reads'||id==='native_json_string_views'||id==='native_json_string_projection')return stringReadsChecksum(n,seed,inputText);
  if(id==='native_json_refinement')return refinementChecksum(n,seed,inputText);
  if(id==='native_json_views')return viewChecksum(n,seed,inputText);
  if(id==='native_json_inspection')return inspectionChecksum(n,seed,inputText);
