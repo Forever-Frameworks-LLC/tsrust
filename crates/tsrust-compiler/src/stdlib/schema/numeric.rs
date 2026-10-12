@@ -32,6 +32,19 @@ pub(super) struct NumericPlan(NumericKind);
 pub(super) enum Numeric { Int(i64), Number(f64) }
 impl NumericPlan {
     pub(super) fn int(lower: Option<Bound<i64>>, upper: Option<Bound<i64>>) -> Result<Self, InvalidBounds> {
+        // Integer intervals must contain a representable value. Comparing the
+        // written endpoints alone misses adjacent exclusive bounds and overflow.
+        let first = match lower {
+            Some(bound) if !bound.inclusive => bound.value.checked_add(1).ok_or(InvalidBounds)?,
+            Some(bound) => bound.value,
+            None => i64::MIN,
+        };
+        let last = match upper {
+            Some(bound) if !bound.inclusive => bound.value.checked_sub(1).ok_or(InvalidBounds)?,
+            Some(bound) => bound.value,
+            None => i64::MAX,
+        };
+        if first > last { return Err(InvalidBounds); }
         Bounds::new(lower, upper).map(|bounds| Self(NumericKind::Int(bounds)))
     }
     pub(super) fn number(lower: Option<Bound<f64>>, upper: Option<Bound<f64>>) -> Result<Self, InvalidBounds> {
@@ -188,6 +201,25 @@ mod tests {
         for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
             assert!(NumericPlan::number(Some(Bound { value, inclusive: true }), None).is_err());
             assert!(NumericPlan::number(None, Some(Bound { value, inclusive: false })).is_err());
+        }
+    }
+    #[test]
+    fn exclusive_integer_bounds_require_a_representable_value() {
+        let exclusive = |value| Some(Bound { value, inclusive: false });
+        assert!(NumericPlan::int(exclusive(i64::MAX), None).is_err());
+        assert!(NumericPlan::int(None, exclusive(i64::MIN)).is_err());
+        for lower in [i64::MIN, -1, 0, 9007199254740992, i64::MAX - 1] {
+            assert!(NumericPlan::int(exclusive(lower), exclusive(lower + 1)).is_err());
+        }
+        for lower in [i64::MIN, -2, 0, 9007199254740992, i64::MAX - 2] {
+            let plan = NumericPlan::int(exclusive(lower), exclusive(lower + 2)).unwrap();
+            let mut errors = issues();
+            assert_eq!(plan.validate_json(&json::Value::from(lower + 1), &[], &mut errors), Some(Numeric::Int(lower + 1)));
+            assert!(errors.is_valid());
+            assert_eq!(plan.validate_json(&json::Value::from(lower), &[], &mut errors), None);
+            assert_eq!(errors.items[0].code, Code::TooSmall);
+            assert_eq!(plan.validate_json(&json::Value::from(lower + 2), &[], &mut errors), None);
+            assert_eq!(errors.items[1].code, Code::TooLarge);
         }
     }
     #[test]

@@ -546,3 +546,17 @@ execute natively. Exclusive integer bounds, floating constraints and composites
 remain pending; S11 is not accepted and consumers have not been refreshed.
 
 SQLite: `tsrust-schema-int-bounds-{red,check,final,format,benchmark,editor,verify}-a1736712.log`.
+
+## Exclusive integer construction boundary repair
+
+The private numeric plan now rejects exclusive integer intervals with no
+representable signed 64-bit value. This includes a lower bound above i64::MAX,
+an upper bound below i64::MIN, and adjacent exclusive endpoints. Checked integer
+arithmetic determines whether an interval is empty without floating conversion.
+Validation retains the original endpoints and their too-small/too-large errors.
+
+A focused failing witness covers both overflow endpoints and adjacent intervals.
+Single-value intervals cover both signed endpoints and values beyond JavaScript's
+safe-integer range. This repairs internal groundwork only; public exclusive
+builders, editor documentation and matched workloads remain pending.
+SQLite evidence: `tsrust-schema-exclusive-{red,check,format}-fda48454.log`.
