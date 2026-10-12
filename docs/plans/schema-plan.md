@@ -706,3 +706,26 @@ versus absence, array-index paths and failure with zero retained-issue budget.
 This remains test-only backend groundwork. Public s.literal/enum APIs, inferred
 literal output types, generated plans, editor documentation and matched workloads
 are still required. SQLite: `tsrust-schema-literal-*-70853c77.log`.
+
+## Typed object assembly groundwork and literal-type dependency
+
+Inspection confirms the compiler annotation/type surface does not yet represent
+literal-value types. Precise s.literal output and literal discriminators therefore
+need compiler/editor type support before public acceptance; do not silently widen
+that requirement to dynamic JSON or claim scalar-only inference completes it.
+
+The internal object backend now assembles statically typed field products from
+consumed JSON object storage. Known fields move into their validators; optional
+absence remains distinct from null. Unknown fields reject by default with original
+field paths and controlled kind summaries. Sibling validation continues to collect
+bounded errors, but partial typed output is dropped on any failure. Even a zero
+issue budget cannot accept unknown fields. Generated record assembly can consume
+the typed product without a dynamic output map or implicit input clone.
+
+Three focused cases cover string allocation transfer, optional absence, nested
+typed output, missing fields, wrong types, unknown-field paths, redaction and zero
+retained-issue budgets. Field-list construction assumes distinct field names;
+public object construction must enforce this. Strip/retain policies, source APIs,
+generated records, editor inference, fused decoding and matched workloads remain
+required. This backend is test-only groundwork, not public object acceptance.
+SQLite: `tsrust-schema-object-*-5eb9891a.log`.

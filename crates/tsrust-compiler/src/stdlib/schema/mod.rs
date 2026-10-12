@@ -21,3 +21,6 @@ pub(crate) mod builders;
 
 #[cfg(test)]
 mod literal;
+
+#[cfg(test)]
+mod object;
