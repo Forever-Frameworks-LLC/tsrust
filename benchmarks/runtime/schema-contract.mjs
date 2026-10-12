@@ -23,9 +23,10 @@ export function assertSchemaSource(source,row,kind){
   return;
  }
  if(row.id==='native_schema_pipeline'){
+  if(!containsCodeSnippet(source,"issue.message !== 'At least three values required'"))throw Error('Pipeline diagnostic message observer');
   if(row.iterations!==2000||row.operationsPerIteration!==3||row.result!=='int'||row.inputText!=='owned-pipeline')throw Error('Pipeline denominator');
   for(const snippet of ['while(i<n){','values.push(7);return values.length;','schema.safeParse([2,3])','schema.safeParse([])','value!==4','checksum+=value;','error.truncated','error.issues.length!==1',"issue.code!=='too-small'","issue.expected!=='integer'","issue.observed!=='integer'",'issue.pathTruncated','issue.path.length!==0','checksum+=1;','i++;','return checksum;'])if(!containsCodeSnippet(source,snippet))throw Error('Pipeline operation: '+snippet);
-  const plan=kind==='native'?['s.int().min(3)', '.coerce((values:int[]):int=>{values.push(7);return values.length;})','.refine(value=>value<10)','.transform(value=>value+1)']:['const value=coerce(input);',"value<3?'too-small':!refine(value)?'refinement-failed':undefined",'value:transform(value)'];
+  const plan=kind==='native'?["s.int({message:'At least three values required'}).min(3)", '.coerce((values:int[]):int=>{values.push(7);return values.length;})','.refine(value=>value<10)','.transform(value=>value+1)']:['const value=coerce(input);',"value<3?'too-small':!refine(value)?'refinement-failed':undefined",'value:transform(value)'];
   for(const snippet of plan)if(!containsCodeSnippet(source,snippet))throw Error('Pipeline stage: '+snippet);
   for(const snippet of ["retry.safeParse(JSON.parse('[2,3]'))",...(kind==='native'?['s.array(s.int()).refine(values=>values.length>3).transform(values=>0)','s.array(s.int()).transform(values=>values.length)',"value!==2"]:['const branches=[(values:number[])=>values.length>3,(values:number[])=>true]','for(const [index,accept] of branches.entries())','value:index===0?0:input.length','issues.length=0','restored.value!==2','checksum+=restored.value;'])])if(!containsCodeSnippet(source,snippet))throw Error('Pipeline rollback: '+snippet);
   return;

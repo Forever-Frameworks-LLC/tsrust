@@ -361,6 +361,8 @@ impl Analysis {
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
                                 | CallTarget::SchemaValidate
+                                | CallTarget::SchemaConstraint(_)
+                                | CallTarget::SchemaMessagePolicy(_)
                                 | CallTarget::SchemaPresence
                                 | CallTarget::SchemaChoice(_)
                                 | CallTarget::SchemaDefault

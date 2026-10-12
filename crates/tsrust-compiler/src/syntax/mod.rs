@@ -646,6 +646,9 @@ pub enum CallTarget {
     JsonDecode,
     JsonEncode,
     SchemaValidate,
+    /// Forward a scalar constraint through an owned diagnostic-message wrapper.
+    SchemaConstraint(usize),
+    SchemaMessagePolicy(bool),
     SchemaStrip,
     SchemaRetain,
     SchemaPresence,

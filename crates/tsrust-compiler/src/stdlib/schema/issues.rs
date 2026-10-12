@@ -95,6 +95,33 @@ impl Issues {
 mod tests {
     use super::*;
     #[test]
+    fn custom_messages_preserve_child_precedence_and_issue_budget() {
+        let mut errors = Issues::new(1, 8, 64);
+        errors.push(&[], Code::Type, Kind::String, Kind::Number);
+        errors.message_since(0, "child");
+        errors.message_since(0, "parent");
+        assert_eq!(errors.items[0].message.as_deref(), Some("child"));
+        let start = errors.items.len();
+        errors.push(&[], Code::Missing, Kind::String, Kind::Missing);
+        errors.message_since(start, "omitted issue");
+        assert_eq!(errors.items.len(), 1);
+        assert!(errors.truncated);
+        assert!(!errors.is_valid());
+    }
+    #[test]
+    fn speculative_messages_do_not_survive_branch_rollback() {
+        let mut errors = Issues::new(2, 8, 64);
+        let checkpoint = errors.checkpoint();
+        errors.push(&[], Code::Type, Kind::String, Kind::Number);
+        errors.message_since(0, "failed branch");
+        errors.restore(checkpoint);
+        assert!(errors.is_valid());
+        assert!(errors.items.is_empty());
+        errors.push(&[], Code::Type, Kind::Boolean, Kind::String);
+        errors.message_since(0, "selected branch");
+        assert_eq!(errors.items[0].message.as_deref(), Some("selected branch"));
+    }
+    #[test]
     fn zero_issue_budget_cannot_turn_failure_into_success() {
         let mut errors = Issues::new(0, 8, 64);
         assert!(errors.is_valid());

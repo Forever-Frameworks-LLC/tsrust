@@ -345,7 +345,7 @@ pub(crate) fn annotate_inferred_callbacks(program:&mut CheckedProgram)->ErrorEff
                 continue;
             }
             let parameters=match call.target {
-                Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>program.functions.get(id).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
+                Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>program.functions.get(id).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
                 Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
                     let origin=match call.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>call.closure_origin()};
                     origin.and_then(|id|program.closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
@@ -426,7 +426,7 @@ pub(crate) fn executable_callers(program:&CheckedProgram)->(std::collections::Ha
         let mut next_functions=Vec::new();let mut next_closures=Vec::new();
         for function in bodies {
             for value in checked_expressions(function) {
-                if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=value.target {next_functions.push(id);}
+                if let Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=value.target {next_functions.push(id);}
                 if let Some(id)=value.closure_origin() {next_closures.push(id);}
                 if let Some(Type::Closure(id))=value.ty {next_closures.push(id);}
                 if let Some(Type::StoredCallable(id)|Type::BorrowedCallable(id))=value.ty {
@@ -458,14 +458,14 @@ pub(crate) fn defer_unreferenced_error_definitions(program:&mut CheckedProgram) 
     for (id,function) in program.functions.iter().enumerate() {
         if candidates.contains(&id) || function.template {continue;}
         for expression in checked_expressions(function) {
-            if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target))=expression.target {required.insert(target);}
+            if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=expression.target {required.insert(target);}
         }
     }
     for closure in program.closures.iter().filter(|closure|!closure.function.template) {
         if let Some(ClosureForward::Function(target))=closure.forward {required.insert(target);}
         for function in std::iter::once(&closure.function).chain(closure.methods.iter().filter(|method|!method.function.template).map(|method|&method.function)) {
             for expression in checked_expressions(function) {
-                if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target))=expression.target {required.insert(target);}
+                if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=expression.target {required.insert(target);}
             }
         }
     }
@@ -473,7 +473,7 @@ pub(crate) fn defer_unreferenced_error_definitions(program:&mut CheckedProgram) 
         let before=required.len();
         for id in candidates.iter().filter(|id|required.contains(id)).copied().collect::<Vec<_>>() {
             for expression in checked_expressions(&program.functions[id]) {
-                if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target))=expression.target {required.insert(target);}
+                if let Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=expression.target {required.insert(target);}
             }
         }
         if required.len()==before {break;}
@@ -564,7 +564,7 @@ pub(crate) fn annotate_partial_with_callers(functions:&mut [Option<&mut CheckedF
                 continue;
             }
             let parameters=match expression.target {
-                Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
+                Some(CallTarget::Function(target)|CallTarget::ForwardFunction(target)|CallTarget::SchemaConstraint(target))=>functions.get(target).and_then(Option::as_deref).map(|target|target.bindings.iter().take(target.parameter_count).collect::<Vec<_>>()),
                 Some(CallTarget::Closure(_)|CallTarget::ConditionalClosure(_))=>{
                     let origin=match expression.target {Some(CallTarget::ConditionalClosure(id))=>Some(id),_=>expression.closure_origin()};
                     origin.and_then(|id|closures.get(id)).map(|closure|closure.parameters.iter().map(|id|&closure.function.bindings[*id]).collect())
@@ -812,10 +812,11 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
             origin.and_then(|id|effects.method_errors.get(&(id,method)).cloned()).unwrap_or_else(FailureSet::unknown)
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
+        SchemaConstraint(id)=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
         SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
-        SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
+        SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
         ArrayMap|MapGroupBy|ArrayFlatMap|ArrayFilter|ArrayForEach|ArraySome|ArrayEvery|
         ArrayFind|ArrayFindLast|ArrayFindIndex|ArrayFindLastIndex|ArrayReduce|
         ArrayReduceRight|ArraySort|ArrayToSorted=>{
@@ -846,7 +847,7 @@ fn expression_effect(value:&mut Expr,effects:&ErrorEffects,depth:usize)->Failure
     };
     let own=if runtime {FailureSet::runtime()}else {
         match value.target {
-            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id))=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+            Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
             Some(CallTarget::Closure(_))=>value.closure_origin().and_then(|origin|effects.closure_errors.get(origin).cloned()).unwrap_or_else(FailureSet::unknown),
             Some(CallTarget::ConditionalClosure(id))=>effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
             Some(CallTarget::StoredCallable(_))=>value.storage_family().and_then(|family|effects.storage_errors.get(&family).cloned()).unwrap_or_else(FailureSet::unknown),

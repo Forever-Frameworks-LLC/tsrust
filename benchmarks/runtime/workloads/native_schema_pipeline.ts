@@ -1,4 +1,4 @@
-type Issue = {code:string;expected:string;observed:string;path:unknown[];pathTruncated:boolean};
+type Issue = {code:string;message:string;expected:string;observed:string;path:unknown[];pathTruncated:boolean};
 type Validation = {ok:true;value:number}|{ok:false;error:{issues:Issue[];truncated:boolean}};
 function pipelineSchema() {
   const coerce = (values:number[]):number => { values.push(7); return values.length; };
@@ -7,7 +7,7 @@ function pipelineSchema() {
   return {safeParse(input:number[]):Validation {
     const value = coerce(input);
     const code = value < 3 ? 'too-small' : !refine(value) ? 'refinement-failed' : undefined;
-    if (code !== undefined) return {ok:false,error:{issues:[{code,expected:'integer',observed:'integer',path:[],pathTruncated:false}],truncated:false}};
+    if (code !== undefined) return {ok:false,error:{issues:[{code,message:'At least three values required',expected:'integer',observed:'integer',path:[],pathTruncated:false}],truncated:false}};
     return {ok:true,value:transform(value)};
   }};
 }
@@ -20,7 +20,7 @@ function retrySchema() {
         throw 'Benchmark input must be an integer array';
       }
       if (accept(input)) { issues.length=0; return {ok:true,value:index===0?0:input.length}; }
-      issues.push({code:'refinement-failed',expected:'array',observed:'array',path:[],pathTruncated:false});
+      issues.push({code:'refinement-failed',message:'refinement-failed',expected:'array',observed:'array',path:[],pathTruncated:false});
     }
     return {ok:false,error:{issues,truncated:false}};
   }};
@@ -41,7 +41,7 @@ function workload(n:number,seed:number,input:string):number {
     const error = failure.error;
     if (error.truncated || error.issues.length !== 1) { throw 'Wrong issue count'; }
     for (const issue of error.issues) {
-      if (issue.code !== 'too-small' || issue.expected !== 'integer' || issue.observed !== 'integer' || issue.pathTruncated || issue.path.length !== 0) {
+      if (issue.code !== 'too-small' || issue.message !== 'At least three values required' || issue.expected !== 'integer' || issue.observed !== 'integer' || issue.pathTruncated || issue.path.length !== 0) {
         throw 'Wrong issue';
       }
       checksum += 1;

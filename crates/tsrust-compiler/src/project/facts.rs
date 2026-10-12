@@ -20,7 +20,7 @@ pub struct ProjectLocalFunctionInfo {
 pub enum ProjectType {
     Native(crate::native_signatures::NativeTypeId),
     AppliedNative(crate::native_signatures::NativeTypeId, Vec<ProjectType>),
-    SchemaPipeline { identity: usize, input: Box<ProjectType>, output: Box<ProjectType>, json_input: bool, text_input: bool, object_policy: bool },
+    SchemaPipeline { identity: usize, input: Box<ProjectType>, output: Box<ProjectType>, json_input: bool, text_input: bool, object_policy: bool, scalar_constraints: bool },
     Named {
         name: String,
         declaration: Option<SourceLocation>,
@@ -397,8 +397,18 @@ impl ProjectAnalysis {
                 identity: id, input: Box::new(self.project_type(input, names)?),
                 output: Box::new(self.project_type(output, names)?), json_input,
                 text_input: self.analysis.program.schema_pipelines.accepts_text(id),
-                object_policy: self.analysis.program.schema_pipelines.object(id)
-                    .is_some_and(|plan| plan.policy != crate::stdlib::schema::pipelines::ObjectPolicy::Retain),
+                scalar_constraints: self.analysis.program.schema_pipelines.wrapper(id).is_some_and(|plan|
+                    plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message
+                    && self.analysis.program.records[plan.source].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
+                    && matches!(output, Type::Int | Type::Number | Type::String)),
+                object_policy: {
+                    let plans = &self.analysis.program.schema_pipelines;
+                    let source = plans.wrapper(id).filter(|plan| plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message)
+                        .map_or(id, |plan| plan.source);
+                    plans.object(source).is_some_and(|plan| plan.policy != crate::stdlib::schema::pipelines::ObjectPolicy::Retain)
+                        || (self.analysis.program.records[source].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
+                            && matches!(output, Type::Record(record) if !self.analysis.program.records[record].name.text.starts_with("@schema:retained:")))
+                },
             });
         }
         if let Some(identity) = record.native_type {

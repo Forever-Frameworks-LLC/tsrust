@@ -7,18 +7,25 @@ impl Analyzer {
         if !matches!(method.as_str(),"strip"|"retain"){return Ok(None);}
         let hinted=self.expression_type_hint(context,base);
         let constructing=matches!(&base.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if matches!(name.as_str(),"@schema:object"|"@schema:union"|"@schema:discriminatedUnion")) || matches!(&callee.kind,ExprKind::Field(_,method) if matches!(method.as_str(),"strip"|"retain"|"default")));
-        if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.object(id).is_some()){return Ok(None);}
+        if !constructing&&!matches!(hinted,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)||self.schema_pipelines.object(id).is_some()||self.schema_pipelines.wrapper(id).is_some_and(|plan|plan.kind==crate::stdlib::schema::pipelines::WrapperKind::Message)){return Ok(None);}
         if !args.is_empty(){return Err(Diagnostic::new("arity","Object policy methods expect no arguments.",expr.span));}
         let mut receiver=(**base).clone();
         let ty=self.expression(context,&mut receiver,Mode::Consume,loans,None)?;
         let Type::Record(id)=ty else{unreachable!()};
+        if self.schema_pipelines.wrapper(id).is_some_and(|plan| plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message) {
+            let retaining = method == "retain";
+            return self.schema_message_policy(expr, id, receiver, retaining, expected).map(Some);
+        }
         if self.schema_pipelines.object(id).is_some() {
             let retaining=method=="retain";
             return self.schema_pipeline_object_policy(expr,id,receiver,retaining,expected).map(Some);
         }
-        if !matches!(self.program.records[id].application.as_ref().unwrap().resolved_arguments[0],Type::Record(_)){return Err(Diagnostic::new("schema-member","Object policy methods require an object schema.",expr.span));}
+        let output = self.program.records[id].application.as_ref()
+            .and_then(|application| application.resolved_arguments.first()).copied();
+        let Some(output @ Type::Record(_)) = output else {
+            return Err(Diagnostic::new("schema-member", "Object policy methods require a supported object schema.", expr.span));
+        };
         let retaining=method=="retain";
-        let output=self.program.records[id].application.as_ref().unwrap().resolved_arguments[0];
         let Type::Record(object)=output else{unreachable!()};
         if self.program.records[object].name.text.starts_with("@schema:retained:"){return Err(Diagnostic::new("schema-member","Object policy is already retained.",expr.span));}
         let result=if retaining {self.schema_retained_type(output,expr.span)?}else{ty};
@@ -43,7 +50,7 @@ impl Analyzer {
         Ok(Type::Record(wrapper))
     }
 
-    fn schema_retained_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
+    pub(super) fn schema_retained_type(&mut self,output:Type,span:Span)->Result<Type,Diagnostic>{
         use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
         let Type::Record(wrapper)=self.schema_retained_value_type(output,span)? else{unreachable!()};
         let name=self.program.records[wrapper].name.text.clone();

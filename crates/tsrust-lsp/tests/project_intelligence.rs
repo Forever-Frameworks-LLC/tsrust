@@ -2921,3 +2921,56 @@ fn imported_module_arrow_keeps_callable_hover_and_definition() {
     let help = ask(&index, entry, "41)", "textDocument/signatureHelp");
     assert!(help.to_string().contains("int"), "{help}");
 }
+
+#[test]
+fn refinement_path_completion_uses_checked_object_fields() {
+    let entry = "import {s} from 'std:schema';function main(){const account=s.object({password:s.string(),confirm:s.string()});const checked=account.refine(value=>true,{path:['confirm']});}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let items = ask(&index, entry, "confirm']", "textDocument/completion");
+    let items = items.as_array().unwrap();
+    assert!(items.iter().any(|item| item["label"] == "confirm"), "{items:?}");
+    assert!(items.iter().all(|item| item["label"] == "confirm" || item["label"] == "password"), "{items:?}");
+}
+
+#[test]
+fn message_schema_keeps_scalar_constraint_completion() {
+    let entry = "import {s} from 'std:schema';function main(){const count=s.int({message:'Invalid count'});const bounded=count.min(2);}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let items = ask(&index, entry, "min(2)", "textDocument/completion");
+    assert!(items.as_array().unwrap().iter().any(|item| item["label"] == "min"), "{items}");
+    let hover = ask(&index, entry, "bounded=", "textDocument/hover");
+    assert!(hover.to_string().contains("Schema<int>"), "{hover}");
+}
+
+#[test]
+fn refinement_path_completion_descends_through_array_elements() {
+    let entry = "import {s} from 'std:schema';function main(){const form=s.object({items:s.array(s.object({name:s.string(),age:s.int()}))});const checked=form.refine(value=>true,{path:['items',0,'name']});}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let items = ask(&ProjectIndex::checked(&checked), entry, "name']", "textDocument/completion");
+    assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="name"), "{items}");
+    assert!(!items.as_array().unwrap().iter().any(|item|item["label"]=="items"), "{items}");
+}
+
+#[test]
+fn refinement_path_completion_intersects_union_fields() {
+    let entry = "import {s} from 'std:schema';function main(){const form=s.union([s.object({name:s.string(),age:s.int()}),s.object({name:s.string(),active:s.boolean()})]);const checked=form.refine(value=>true,{path:['name']});}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let items = ask(&ProjectIndex::checked(&checked), entry, "name']", "textDocument/completion");
+    let items = items.as_array().unwrap();
+    assert!(items.iter().any(|item|item["label"]=="name"), "{items:?}");
+    assert!(items.iter().all(|item|item["label"]=="name"), "{items:?}");
+}

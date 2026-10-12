@@ -22334,10 +22334,10 @@
       "inputText": "owned-pipeline",
       "measured": false,
       "measurementStatus": "unmeasured-schema-family",
-      "specification": "A mutating coercion extends input; receiving integer constraints and refinement precede a transformed result. Observe success 4 and one bounded root issue, contributing 5 per iteration.",
+      "specification": "A mutating coercion extends input; receiving integer constraints and refinement precede a transformed result. Observe success 4, one bounded root issue with its custom message, and rollback success 2, contributing 7 per iteration.",
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
-      "sourceSha256": "bb3adc4884dbd8ea6607f0048acc82978f773d3ddcea7a27d2c35bb4aeaeecb7",
-      "counterpartSha256": "15493c39c5a290055987c1a9292edbc8463ffd810fe6c886d1044ad4b6452440"
+      "sourceSha256": "1fb8d2c876ebad07187e49b029579320b6b197af48edb9d0449754b61991e96f",
+      "counterpartSha256": "8cd1cd3c60c57c43f6e9c777ec85b753ac77041cd67713f9d6d184470e444d6a"
     },
     {
       "id": "native_schema_collections",

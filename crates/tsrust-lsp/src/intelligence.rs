@@ -15,6 +15,8 @@ mod result_intelligence;
 mod native_type_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
+#[path = "schema_path_intelligence.rs"]
+mod schema_path_intelligence;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -83,7 +85,7 @@ pub struct SourceIndex {
     checked_views: Vec<(Span, String)>,
     json_string_receivers: Vec<Span>,
     checked_method_results: Vec<(Span, String)>,
-    schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool, bool)>,
+    schema_pipeline_types: std::collections::BTreeMap<String, (String, String, bool, bool, bool, bool)>,
     checked_optional_receivers: Vec<(Span, String)>,
     checked_generic_calls: Vec<CheckedGenericCall>,
     /// Commas that separate declarators in a const or let declaration, with
@@ -1874,7 +1876,7 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
-        if let Some((_, output, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
+        if let Some((_, output, _, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "refine" { return receiver; }
             if method == "safeParseJson" { return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
             if method == "safeParse" {
@@ -3040,6 +3042,9 @@ impl SourceIndex {
         let offset = self
             .offset(position)
             .ok_or("Position is outside the document or splits a surrogate pair")?;
+        if method == "textDocument/completion" && let Some(items) = self.schema_path_completion(offset) {
+            return Ok(items);
+        }
         if method != "textDocument/signatureHelp" && self.excluded(offset) {
             return Ok(if method == "textDocument/completion" {
                 json!([])

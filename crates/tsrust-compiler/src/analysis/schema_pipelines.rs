@@ -153,7 +153,8 @@ impl Analyzer {
                 match name.text.as_str() {
                     "path" => diagnostic_path = self.schema_diagnostic_path(output, &value)?,
                     "message" => {
-                        self.expression(context, &mut value, Mode::Consume, loans, Some(Type::String))?;
+                        let message_type = self.expression(context, &mut value, Mode::Consume, loans, Some(Type::String))?;
+                        self.require(message_type, Some(Type::String), value.span)?;
                         message = Some(value);
                     }
                     _ => return Err(Diagnostic::new("schema-options", "Unknown refinement option; use path or message.", name.span)),

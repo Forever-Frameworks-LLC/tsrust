@@ -18,22 +18,30 @@
   ]
 },
   {
-    "name": "refine",
-    "signature": "refine(predicate: (value: ReadOnly<Output>) => boolean): Schema<Output>",
-    "parameters": [
-      {
-        "label": "predicate: (value: ReadOnly<Output>) => boolean",
-        "documentation": "Reusable predicate. Reads the validated value and returns true to accept or false to report refinement-failed. Exceptions propagate."
-      }
-    ],
-    "documentation": "Checks a validated value without changing its output type. False returns a schema validation issue; a thrown exception propagates. Later pipeline stages do not run after either failure. Predicates may log or allocate but cannot mutate or consume input or captures.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 3.\n\nConsumes the receiving schema and returns a reusable immutable plan. Validation consumes owned input; the predicate only borrows its typed value.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
-        "output": "3\n"
-      }
-    ]
-  },
+  "name": "refine",
+  "signature": "refine(predicate: (value: ReadOnly<Output>) => boolean, options?: { path?: Path<Output>; message?: string }): Schema<Output>",
+  "parameters": [
+    {
+      "label": "predicate: (value: ReadOnly<Output>) => boolean",
+      "documentation": "Reusable predicate. Reads the validated value and returns true to accept or false to report refinement-failed. Exceptions propagate."
+    },
+    {
+      "label": "options?: { path?: Path<Output>; message?: string }",
+      "documentation": "Optional diagnostic location and message. Path is a literal array checked against the value received by the predicate: declared field names and nonnegative integer array indices. Empty or omitted path reports at the current value. Invalid paths are compiler errors."
+    }
+  ],
+  "documentation": "Checks a validated value without changing its output type. False returns a validation issue; a thrown exception propagates. Later pipeline stages do not run after either failure. Predicates may log or allocate but cannot mutate or consume input or captures.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 3.\n\nConsumes the receiving schema and returns a reusable immutable plan. Validation consumes owned input; the predicate only borrows its typed value.\n\nOptions may supply a custom message and a relative path, for example { path: ['confirm'], message: 'Passwords must match' }. Nested schemas prepend their containing path. The path does not read or mutate the value. Constructor messages supply a fallback; a child custom message takes precedence.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({password:s.string(),confirm:s.string()}).refine(value=>value.password===value.confirm,{path:['confirm'],message:'Passwords must match'});match(schema.safeParseJson('{\"password\":\"one\",\"confirm\":\"two\"}')){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{if(error.kind==='validation'){console.log(error.error.issues[0].message);}else{throw 'Unexpected JSON failure';}}}}\n```\n\nExpected output: Passwords must match.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().refine(value=>value>0);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{console.log('rejected');}}}",
+      "output": "3\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.object({password:s.string(),confirm:s.string()}).refine(value=>value.password===value.confirm,{path:['confirm'],message:'Passwords must match'});match(schema.safeParseJson('{\"password\":\"one\",\"confirm\":\"two\"}')){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{if(error.kind==='validation'){console.log(error.error.issues[0].message);}else{throw 'Unexpected JSON failure';}}}}",
+      "output": "Passwords must match\n"
+    }
+  ]
+},
   {
     "name": "transform",
     "signature": "transform<Next>(convert: (value: Owned<Output>) => Next): Schema<Next>",
@@ -7115,66 +7123,83 @@
   }
 ],
   "schemaBuilder": [
-    {
-      "name": "record",
-      "signature": "record<Element>(element: Owned<Schema<Element>>): Schema<Map<string, Element>>",
-      "parameters": [
-        {
-          "label": "element: Owned<Schema<Element>>",
-          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
-        }
-      ],
-      "documentation": "Validates every value of a JSON object against one child schema, returning an owned Map with arbitrary string keys. safeParse accepts matching owned Maps or JsonValue when the child accepts JSON; safeParseJson decodes directly from text. Keys are preserved and failures identify their property names. Empty objects produce empty Maps. Duplicate JSON keys use the last value before validation, after checking the entire document. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}\n```\n\nExpected output: 2.",
-      "examples": [
-        {
-          "source": "import {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}",
-          "output": "2\n"
-        }
-      ]
-    },
-    {
-      "name": "map",
-      "signature": "map<Key, Element>(key: Owned<Schema<Key>>, element: Owned<Schema<Element>>): Schema<Map<Key, Element>>",
-      "parameters": [
-        {
-          "label": "key: Owned<Schema<Key>>",
-          "documentation": "Schema for each native Map key. Transformed keys must remain valid Map key types and distinct."
-        },
-        {
-          "label": "element: Owned<Schema<Element>>",
-          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
-        }
-      ],
-      "documentation": "Validates an existing native Map, checking each key before its value in insertion order. Returns an owned Map with inferred transformed key and value types. A transformed-key collision returns a collection-collision validation issue rather than overwriting data. Entry paths use the insertion index followed by key or value. This constructor does not assign a JSON wire representation; use an explicit conversion when decoding JSON. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.",
-      "examples": [
-        {
-          "source": "import {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
-          "output": "1\n"
-        }
-      ]
-    },
-    {
-      "name": "set",
-      "signature": "set<Element>(element: Owned<Schema<Element>>): Schema<Set<Element>>",
-      "parameters": [
-        {
-          "label": "element: Owned<Schema<Element>>",
-          "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
-        }
-      ],
-      "documentation": "Validates an existing native Set in insertion order and returns an owned Set with the inferred element output type. A transform that makes distinct elements equal returns a collection-collision validation issue rather than silently deduplicating. Failure paths use the insertion index. This constructor does not decode JSON arrays implicitly; use an explicit array-to-Set transform when deduplication is intended. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.",
-      "examples": [
-        {
-          "source": "import {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
-          "output": "1\n"
-        }
-      ]
-    },
+  {
+    "name": "record",
+    "signature": "record<Element>(element: Owned<Schema<Element>>, options?: { message?: string }): Schema<Map<string, Element>>",
+    "parameters": [
+      {
+        "label": "element: Owned<Schema<Element>>",
+        "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Validates every value of a JSON object against one child schema, returning an owned Map with arbitrary string keys. safeParse accepts matching owned Maps or JsonValue when the child accepts JSON; safeParseJson decodes directly from text. Keys are preserved and failures identify their property names. Empty objects produce empty Maps. Duplicate JSON keys use the last value before validation, after checking the entire document. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}\n```\n\nExpected output: 2.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const scores=s.record(s.int().min(0));match(scores.safeParseJson('{\"alice\":10,\"bob\":7}')){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.kind);}}}",
+        "output": "2\n"
+      }
+    ]
+  },
+  {
+    "name": "map",
+    "signature": "map<Key, Element>(key: Owned<Schema<Key>>, element: Owned<Schema<Element>>, options?: { message?: string }): Schema<Map<Key, Element>>",
+    "parameters": [
+      {
+        "label": "key: Owned<Schema<Key>>",
+        "documentation": "Schema for each native Map key. Transformed keys must remain valid Map key types and distinct."
+      },
+      {
+        "label": "element: Owned<Schema<Element>>",
+        "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Validates an existing native Map, checking each key before its value in insertion order. Returns an owned Map with inferred transformed key and value types. A transformed-key collision returns a collection-collision validation issue rather than overwriting data. Entry paths use the insertion index followed by key or value. This constructor does not assign a JSON wire representation; use an explicit conversion when decoding JSON. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const names=s.map(s.int(),s.string());const input=new Map<int,string>();input.set(7,'seven');match(names.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "1\n"
+      }
+    ]
+  },
+  {
+    "name": "set",
+    "signature": "set<Element>(element: Owned<Schema<Element>>, options?: { message?: string }): Schema<Set<Element>>",
+    "parameters": [
+      {
+        "label": "element: Owned<Schema<Element>>",
+        "documentation": "Schema for each value or Set element. Child input and output types remain distinct through transforms."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Validates an existing native Set in insertion order and returns an owned Set with the inferred element output type. A transform that makes distinct elements equal returns a collection-collision validation issue rather than silently deduplicating. Failure paths use the insertion index. This constructor does not decode JSON arrays implicitly; use an explicit array-to-Set transform when deduplication is intended. Child callback exceptions propagate. Consuming transforms commit the enclosing union branch; later failure does not retry another branch. Construction consumes the child schemas. Validation borrows the reusable parent and consumes existing owned input on success or failure; clone explicitly to retain input.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: 1.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const tags=s.set(s.string().min(1));const input=new Set<string>();input.add('admin');match(tags.safeParse(input)){Ok(values)=>{console.log(values.size);},Err(error)=>{console.log(error.issues.length);}}}",
+        "output": "1\n"
+      }
+    ]
+  },
   {
     "name": "string",
-    "signature": "s.string(): Schema<string>",
-    "parameters": [],
-    "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Use safeParse to validate owned string or JSON input. Chain min and max to constrain Unicode code-point length.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
+    "signature": "s.string(options?: { message?: string }): Schema<string>",
+    "parameters": [
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Use safeParse to validate owned string or JSON input. Chain min and max to constrain Unicode code-point length.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}",
@@ -7184,9 +7209,14 @@
   },
   {
     "name": "boolean",
-    "signature": "s.boolean(): Schema<boolean>",
-    "parameters": [],
-    "documentation": "Constructs a reusable boolean schema. Takes no arguments, performs no coercion and does not mutate the namespace. safeParse accepts concrete booleans or owned JsonValue input. False is a valid value, not a validation failure.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.boolean();match(schema.safeParse(false)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: false.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.",
+    "signature": "s.boolean(options?: { message?: string }): Schema<boolean>",
+    "parameters": [
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Constructs a reusable boolean schema. Performs no coercion and does not mutate the namespace. safeParse accepts concrete booleans or owned JsonValue input. False is a valid value, not a validation failure.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.boolean();match(schema.safeParse(false)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: false.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.boolean();match(schema.safeParse(false)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7195,22 +7225,36 @@
     ]
   },
   {
-    "name": "int",
-    "signature": "s.int(): Schema<int>",
-    "parameters": [],
-    "documentation": "Constructs a reusable signed 64-bit integer schema. Takes no arguments and does not mutate the namespace. safeParse accepts a concrete int or owned JsonValue. Numeric JSON must be integral and within -9223372036854775808 through 9223372036854775807. Strings and booleans are not coerced.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: returns an owned immutable schema; no input is borrowed.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "42\n"
-      }
-    ]
-  },
+  "name": "int",
+  "signature": "s.int(options?: { message?: string }): Schema<int>",
+  "parameters": [
+    {
+      "label": "options?: { message?: string }",
+      "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+    }
+  ],
+  "documentation": "Constructs a reusable signed 64-bit integer schema. Does not mutate the namespace. safeParse accepts a concrete int or owned JsonValue. Numeric JSON must be integral and within -9223372036854775808 through 9223372036854775807. Strings and booleans are not coerced.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 42.\n\nOwnership: returns an owned immutable schema; no input is borrowed.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int({message:'Count must be at least two'}).min(2);match(schema.safeParse(1)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}\n```\n\nExpected output: Count must be at least two.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int();match(schema.safeParse(42)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "42\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int({message:'Count must be at least two'}).min(2);match(schema.safeParse(1)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Count must be at least two\n"
+    }
+  ]
+},
   {
     "name": "number",
-    "signature": "s.number(): Schema<number>",
-    "parameters": [],
-    "documentation": "Constructs a reusable finite floating-point number schema. Takes no arguments and does not mutate the namespace. safeParse accepts a concrete number, int or owned JsonValue. Exact JSON integers must be representable as number without precision loss. NaN and infinities are rejected. Use s.int() when exact signed 64-bit integer output is required.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.",
+    "signature": "s.number(options?: { message?: string }): Schema<number>",
+    "parameters": [
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Constructs a reusable finite floating-point number schema. Does not mutate the namespace. safeParse accepts a concrete number, int or owned JsonValue. Exact JSON integers must be representable as number without precision loss. NaN and infinities are rejected. Use s.int() when exact signed 64-bit integer output is required.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5.\n\nOwnership: returns an owned immutable schema; no input storage is borrowed.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.number();match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7220,9 +7264,14 @@
   },
   {
     "name": "null",
-    "signature": "s.null(): Schema<null>",
-    "parameters": [],
-    "documentation": "Constructs a reusable schema accepting only null. Takes no arguments, performs no coercion and does not mutate the namespace. Null is a present value, distinct from undefined or a missing field.\n\n```tsrust\nimport {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: null.\n\nOwnership: returns an owned immutable schema.",
+    "signature": "s.null(options?: { message?: string }): Schema<null>",
+    "parameters": [
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
+      }
+    ],
+    "documentation": "Constructs a reusable schema accepting only null. Performs no coercion and does not mutate the namespace. Null is a present value, distinct from undefined or a missing field.\n\n```tsrust\nimport {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: null.\n\nOwnership: returns an owned immutable schema.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){match(s.null().safeParse(null)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
@@ -7232,14 +7281,18 @@
   },
   {
     "name": "array",
-    "signature": "array<T>(element: Owned<Schema<T>>): Schema<T[]>",
+    "signature": "array<T>(element: Owned<Schema<T>>, options?: { message?: string }): Schema<T[]>",
     "parameters": [
       {
         "label": "element: Owned<Schema<T>>",
         "documentation": "One element schema, consumed into the array plan. Nested array plans are supported."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Constructs an immutable array schema that owns its element plan. Existing element constraints are retained without cloning. Returns Schema<T[]>; nesting produces nested array output types. safeParse validates owned matching arrays or JsonValue, including nested arrays. Construction requires exactly one schema and has no optional arguments.\n\n```tsrust\nimport {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}\n```\n\nExpected output: constructed.\n\nOwnership: consumes the element schema. Use the returned plan; the original child cannot be reused.",
+    "documentation": "Constructs an immutable array schema that owns its element plan. Existing element constraints are retained without cloning. Returns Schema<T[]>; nesting produces nested array output types. safeParse validates owned matching arrays or JsonValue, including nested arrays. Construction requires one element schema.\n\n```tsrust\nimport {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}\n```\n\nExpected output: constructed.\n\nOwnership: consumes the element schema. Use the returned plan; the original child cannot be reused.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}",
@@ -7249,14 +7302,18 @@
   },
   {
     "name": "object",
-    "signature": "object(fields: Owned<FieldSchemas>): Schema<Output>",
+    "signature": "object(fields: Owned<FieldSchemas>, options?: { message?: string }): Schema<Output>",
     "parameters": [
       {
         "label": "fields: Owned<FieldSchemas>",
-        "documentation": "A record whose values are schemas. Field names and child output types determine the inferred output record. Requires exactly one argument."
+        "documentation": "A record whose values are schemas. Field names and child output types determine the inferred output record."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Constructs an immutable object schema with inferred named fields. Each field must contain a schema; duplicate fields are rejected. Child constraints remain active. Empty shapes are supported. JSON validation requires every declared field and rejects unknown fields. Nested objects and arrays are supported.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the shape and its child schemas without cloning. Validation borrows the resulting reusable plan.",
+    "documentation": "Constructs an immutable object schema with inferred named fields. Each field must contain a schema; duplicate fields are rejected. Child constraints remain active. Empty shapes are supported. JSON validation requires every declared field and rejects unknown fields. Nested objects and arrays are supported.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output: Ada.\n\nOwnership: consumes the shape and its child schemas without cloning. Validation borrows the resulting reusable plan.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const person=s.object({name:s.string()});match(person.safeParse(JSON.parse('{\"name\":\"Ada\"}'))){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.issues.length);}}}",
@@ -7266,14 +7323,18 @@
   },
   {
     "name": "literal",
-    "signature": "literal(value: Owned<Literal>): Schema<Literal>",
+    "signature": "literal(value: Owned<Literal>, options?: { message?: string }): Schema<Literal>",
     "parameters": [
       {
         "label": "value: Owned<Literal>",
         "documentation": "One statically known string, integer, finite number, boolean or null value. The output keeps its literal type."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Constructs a reusable schema for exactly one statically known string, integer, finite number, boolean or null value. Accepts a literal expression or a value already carrying a literal type; arbitrary broad scalar values cannot determine a singleton output type. Successful validation preserves that exact type. Different values report literal-mismatch; JSON with a different kind reports type-mismatch. Integer literals retain the full signed 64-bit range. Number validation rejects nonfinite values and checked integer conversion rejects precision loss. Positive and negative zero compare equal. Use s.null() for an equivalent null schema.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.literal('ready');match(schema.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}\n```\n\nExpected output: literal-mismatch.\n\nOwnership: consumes an owned literal argument into the immutable plan. Validation borrows the plan and consumes input on success or failure; successful strings retain their owned storage.",
+    "documentation": "Constructs a reusable schema for exactly one statically known string, integer, finite number, boolean or null value. Accepts a literal expression or a value already carrying a literal type; arbitrary broad scalar values cannot determine a singleton output type. Successful validation preserves that exact type. Different values report literal-mismatch; JSON with a different kind reports type-mismatch. Integer literals retain the full signed 64-bit range. Number validation rejects nonfinite values and checked integer conversion rejects precision loss. Positive and negative zero compare equal. Use s.null() for an equivalent null schema.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.literal('ready');match(schema.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}\n```\n\nExpected output: literal-mismatch.\n\nOwnership: consumes an owned literal argument into the immutable plan. Validation borrows the plan and consumes input on success or failure; successful strings retain their owned storage.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.literal('ready');match(schema.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}",
@@ -7283,14 +7344,18 @@
   },
   {
     "name": "enum",
-    "signature": "enum(values: Owned<EnumValues> | EnumDeclaration): Schema<EnumValue>",
+    "signature": "enum(values: Owned<EnumValues> | EnumDeclaration, options?: { message?: string }): Schema<EnumValue>",
     "parameters": [
       {
         "label": "values: Owned<EnumValues> | EnumDeclaration",
         "documentation": "A nonempty array literal of distinct known strings, or a nonempty declared enum with string or finite numeric values. A list infers its literal union; a declaration preserves its nominal enum type."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Constructs a reusable schema accepting one of a fixed set of enum values. Pass a declared enum, or one nonempty array literal of distinct string literals or values already carrying string literal types. Empty lists, duplicate alternatives, non-string values and broad runtime arrays are rejected by the checker. Output is the exact union of the alternatives; a singleton list keeps its single literal type. String-list validation accepts owned strings or JsonValue. A declared enum returns its nominal enum type and accepts its own members, matching underlying strings or numbers, or JsonValue. Numeric enum schemas also accept exact integer conversion; number-precision rejects loss and number-nonfinite rejects nonfinite input. Empty declarations and declarations with nonfinite values are rejected. Equal-valued aliases select the first declared member and retain ordinary enum equality. A different string reports literal-mismatch; another JSON kind reports type-mismatch. Optional, nullable, defaults, object and array composition preserve the alternatives.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const state=s.enum(['ready','done']);match(state.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}\n```\n\nExpected output: literal-mismatch.\n\nOwnership: evaluates list elements once in source order and consumes owned alternatives into an immutable plan. Validation borrows the plan and consumes input on every outcome; string-list output moves successful string storage without cloning. Declared enum output is a Copy value; raw string input is consumed and released.",
+    "documentation": "Constructs a reusable schema accepting one of a fixed set of enum values. Pass a declared enum, or one nonempty array literal of distinct string literals or values already carrying string literal types. Empty lists, duplicate alternatives, non-string values and broad runtime arrays are rejected by the checker. Output is the exact union of the alternatives; a singleton list keeps its single literal type. String-list validation accepts owned strings or JsonValue. A declared enum returns its nominal enum type and accepts its own members, matching underlying strings or numbers, or JsonValue. Numeric enum schemas also accept exact integer conversion; number-precision rejects loss and number-nonfinite rejects nonfinite input. Empty declarations and declarations with nonfinite values are rejected. Equal-valued aliases select the first declared member and retain ordinary enum equality. A different string reports literal-mismatch; another JSON kind reports type-mismatch. Optional, nullable, defaults, object and array composition preserve the alternatives.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const state=s.enum(['ready','done']);match(state.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}\n```\n\nExpected output: literal-mismatch.\n\nOwnership: evaluates list elements once in source order and consumes owned alternatives into an immutable plan. Validation borrows the plan and consumes input on every outcome; string-list output moves successful string storage without cloning. Declared enum output is a Copy value; raw string input is consumed and released.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const state=s.enum(['ready','done']);match(state.safeParse('waiting')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues[0].code);}}}",
@@ -7300,14 +7365,18 @@
   },
   {
     "name": "union",
-    "signature": "union(branches: Owned<Schema<Alternatives>[]>): Schema<Alternatives>",
+    "signature": "union(branches: Owned<Schema<Alternatives>[]>, options?: { message?: string }): Schema<Alternatives>",
     "parameters": [
       {
         "label": "branches: Owned<Schema<Alternatives>[]>",
         "documentation": "Nonempty array literal of schemas. Branch order is significant; repeated output types and overlapping constraints are allowed."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Accepts the first matching branch in declaration order. The output is the union of branch output types. Branch preparation borrows input; a rejected branch leaves its storage available to the next branch. Missing-field defaults are evaluated once per attempted branch and cached for the selected branch. Factory exceptions propagate without trying another branch. If every branch fails, safeParse returns bounded validation issues in branch order. Successful alternatives discard speculative errors from earlier branches. Optional, nullable, array and object composition preserve branch plans.\n\nOwnership: consumes branch schemas into one uniquely owned reusable plan. Validation consumes input on every outcome and moves selected output storage without implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.union([s.string().min(2),s.int()]);match(schema.safeParse(JSON.parse('7'))){Ok(value)=>{console.log('accepted');},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: accepted.",
+    "documentation": "Accepts the first matching branch in declaration order. The output is the union of branch output types. Branch preparation borrows input; a rejected branch leaves its storage available to the next branch. Missing-field defaults are evaluated once per attempted branch and cached for the selected branch. Factory exceptions propagate without trying another branch. If every branch fails, safeParse returns bounded validation issues in branch order. Successful alternatives discard speculative errors from earlier branches. Optional, nullable, array and object composition preserve branch plans.\n\nOwnership: consumes branch schemas into one uniquely owned reusable plan. Validation consumes input on every outcome and moves selected output storage without implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.union([s.string().min(2),s.int()]);match(schema.safeParse(JSON.parse('7'))){Ok(value)=>{console.log('accepted');},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: accepted.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.union([s.string().min(2),s.int()]);match(schema.safeParse(JSON.parse('7'))){Ok(value)=>{console.log('accepted');},Err(error)=>{console.log('rejected');}}}",
@@ -7317,7 +7386,7 @@
   },
   {
     "name": "discriminatedUnion",
-    "signature": "discriminatedUnion(field: string, branches: Owned<Schema<Alternatives>[]>): Schema<Alternatives>",
+    "signature": "discriminatedUnion(field: string, branches: Owned<Schema<Alternatives>[]>, options?: { message?: string }): Schema<Alternatives>",
     "parameters": [
       {
         "label": "field: string",
@@ -7326,9 +7395,13 @@
       {
         "label": "branches: Owned<Schema<Alternatives>[]>",
         "documentation": "Nonempty array literal of object schemas. Discriminators must have nonoverlapping literal or closed enum values."
+      },
+      {
+        "label": "options?: { message?: string }",
+        "documentation": "Optional fallback validation message. The string is owned by the reusable plan and copied only into retained failures. A child custom message takes precedence. Unknown option fields and non-string messages are rejected."
       }
     ],
-    "documentation": "Selects one object schema by a required discriminator field, then validates only that branch. Discriminators may use string, boolean, null, exact integer, finite number literals or closed enums. Missing, optional, broad or overlapping discriminator declarations are rejected by the checker. Equivalent integer and number tags overlap; exact integers are never rounded to choose a branch. Missing input tags report missing; unmatched tags report discriminator-mismatch. Defaults and validation in unselected branches do not run. A selected branch failure does not try another branch. Output preserves the typed object alternatives for field narrowing.\n\nOwnership: consumes branch plans and owns their storage. Selection borrows the input tag; validation consumes input on every outcome, moving successful fields without cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('text'),text:s.string()}),s.object({kind:s.literal('count'),count:s.int()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":7}'))){Ok(value)=>{if(value.kind==='count'){console.log(value.count);}},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 7.",
+    "documentation": "Selects one object schema by a required discriminator field, then validates only that branch. Discriminators may use string, boolean, null, exact integer, finite number literals or closed enums. Missing, optional, broad or overlapping discriminator declarations are rejected by the checker. Equivalent integer and number tags overlap; exact integers are never rounded to choose a branch. Missing input tags report missing; unmatched tags report discriminator-mismatch. Defaults and validation in unselected branches do not run. A selected branch failure does not try another branch. Output preserves the typed object alternatives for field narrowing.\n\nOwnership: consumes branch plans and owns their storage. Selection borrows the input tag; validation consumes input on every outcome, moving successful fields without cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('text'),text:s.string()}),s.object({kind:s.literal('count'),count:s.int()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":7}'))){Ok(value)=>{if(value.kind==='count'){console.log(value.count);}},Err(error)=>{console.log('rejected');}}}\n```\n\nExpected output: 7.\n\nAn optional final { message: '...' } supplies fallback text for validation issues from this plan. Omission preserves the default issue message; child custom messages take precedence. This does not change validation rules or construction errors.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('text'),text:s.string()}),s.object({kind:s.literal('count'),count:s.int()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":7}'))){Ok(value)=>{if(value.kind==='count'){console.log(value.count);}},Err(error)=>{console.log('rejected');}}}",

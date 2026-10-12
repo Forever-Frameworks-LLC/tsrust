@@ -3056,8 +3056,11 @@ impl Emitter<'_> {
                 output.push_str(&crate::stdlib::os::bridge(binding.name));
             }
         }
-        output.push_str(&crate::stdlib::schema::emit::issue_bridge(self.program));
-        if !self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some(){
+        let issue_bridge = crate::stdlib::schema::emit::issue_bridge(self.program);
+        output.push_str(&issue_bridge);
+        // Constructing a plan without validating it need not materialize public
+        // validation error records or their dependent trial runtime.
+        if !issue_bridge.is_empty() && (!self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some()){
             output.push_str("mod tsrust_schema_union {\n");
             output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
             output.push_str("\n}\n");
@@ -8655,6 +8658,37 @@ impl Emitter<'_> {
                     // Without it, each branch retains its own unknown-field policy.
                     let policy=if self.schema_has_choices(output){"schema.choice_policy=Some(false);"}else{""};
                     format!("{{let mut schema={};schema.reject_unknown=false;{policy}schema}}",self.expr(fun,&args[0],Mode::Consume))
+                },
+                CallTarget::SchemaMessagePolicy(retaining) => {
+                    let receiver = self.expr(fun, &args[0], Mode::Consume);
+                    let Type::Record(wrapper) = expr.ty.unwrap() else { unreachable!() };
+                    let child = self.program.schema_pipelines.wrapper(wrapper).unwrap().source;
+                    let child_id = self.native_record_declaration(child);
+                    let value = if self.program.schema_pipelines.object(child).is_some() {
+                        format!("Record{child_id}{{field0:message_plan.field0.field0}}")
+                    } else if retaining {
+                        format!("Record{child_id}{{{}inner:{}}}", self.schema_factory_initializer(child), self.schema_child_value(child, "message_plan.field0"))
+                    } else {
+                        let output = self.program.records[child].application.as_ref().unwrap().resolved_arguments[0];
+                        let policy = if self.schema_has_choices(output) { "schema.choice_policy=Some(false);" } else { "" };
+                        format!("{{let mut schema=message_plan.field0;schema.reject_unknown=false;{policy}schema}}")
+                    };
+                    let wrapper = self.native_record_declaration(wrapper);
+                    format!("{{let message_plan={receiver};Record{wrapper}{{field0:{value},field1:message_plan.field1}}}}")
+                },
+                CallTarget::SchemaConstraint(index) => {
+                    let receiver = self.expr(fun, &args[0], Mode::Consume);
+                    let limit = self.expr(fun, &args[1], Mode::Copy);
+                    let name = self.native_call_name(index, args);
+                    let call = format!("{name}(message_plan.field0, message_limit)");
+                    let call = if let Some((_, source_name)) = self.result_functions.borrow().get(&index) {
+                        let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
+                        self.exception_regions.function_result_call(&call, index, source_name, &self.program.error_effects, &unions, expr.span)
+                            .expect("checked message constraint Result call")
+                    } else { call };
+                    let Type::Record(id) = expr.ty.unwrap() else { unreachable!() };
+                    let id = self.native_record_declaration(id);
+                    format!("{{let message_plan={receiver};let message_limit={limit};let constrained={call};Record{id}{{field0:constrained,field1:message_plan.field1}}}}")
                 },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),

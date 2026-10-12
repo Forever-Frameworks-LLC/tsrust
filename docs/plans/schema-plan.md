@@ -2018,3 +2018,39 @@ then continuation of S11. Follow [the module-state plan](module-state-plan.md).
 Thread-pool discussion is explicitly deferred until after async implementation.
 Earlier suggestions for mandatory global pools, batch and state APIs remain
 unapproved. Diagnostic-option drafts are saved at `8d47c02b` and remain unverified.
+
+
+### Diagnostic section continuation after globals
+
+Globals and their consumer refresh are checkpointed through `9f47a6bb`.
+Diagnostic options remain unaccepted. Added unrun witnesses cover constructor
+message constraint chains, child-message precedence, malformed constructor options,
+issue-budget preservation and speculative-branch message rollback. In particular,
+message wrappers must forward scalar constraint builders without copying the owned
+plan or evaluating the receiver twice. Complete that forwarding and typed editor
+path support before running the section checks. The installed consumers still
+represent the verified globals checkpoint, not diagnostic-option acceptance.
+
+
+### Diagnostic options: focused integration
+
+Constructor messages and relative refinement paths now preserve scalar constraints,
+object strip/retain policies, callback output types and structured construction
+errors. Message expressions and constraint limits evaluate once in source order.
+Non-string messages are rejected in constructors and refinements. Child custom
+messages override outer fallback messages; speculative branch rollback discards
+its messages. Issue-count and path budgets retain their existing behavior.
+
+Editor completion uses checked schema output fields, including nested array paths
+and common fields of union alternatives. Constructor/refinement signatures and
+parameter help document diagnostic options; message-bearing scalar plans retain
+constraint completion. See [schema diagnostics](../guides/schema-diagnostics.md).
+
+Focused evidence under `tsrust-schema-diagnostics-*` includes six compiler/native
+witnesses, four editor witnesses, seven isolated issue-runtime tests, two executable
+catalog examples, 27 benchmark contract tests and ten native/Node-after-tsc parity
+cells. Failed attempts and repairs are retained. The isolated runtime test wraps
+the unchanged source in its module context. The updated pipeline workload retains
+three operations per iteration and checksum `seed + 7*n`, now observing the custom
+message. All parity runs have zero timing samples. Full S11 regressions, differential
+coverage, measurements and remaining schema requirements are not accepted here.
