@@ -2196,3 +2196,22 @@ combined-depth rejection and lifetime behavior. Repeat only affected raw checks
 and measurements, preserving this original baseline. Initial preparation cost
 must remain visible in end-to-end workload measurements; moving work outside the
 prepared-input timer must not be presented as eliminating validation cost.
+
+
+### Cached raw fragment depth implementation
+
+Fragment construction now records maximum unquoted container depth once, for both
+borrowRaw and typed raw-field extraction. Encoded compares this cached depth with
+the enclosing depth before using the existing bounded exact-text writer. The
+representation adds one usize beside the borrowed str, within the reviewed budget;
+there is no additional heap owner, copy, shared lifetime or unsafe conversion.
+An explicit parent-depth guard prevents subtraction overflow and rejects invalid
+internal parent depths even for scalar fragments.
+
+Five raw backend and seventeen raw/JSONL native tests pass, including typed field
+borrowing, arrays/optional fields, escaped bracket strings, 64-level composition,
+byte limits, exact spelling, source conflicts and JSONL record boundaries.
+Evidence: `tsrust-raw-depth-{red,backend,native}-a00758e8.log` in SQLite. The first
+regression demonstrates scalar serialization previously accepted impossible parent
+depths. Performance acceptance is still pending affected allocation/timing/RSS
+checks and the end-to-end workload; retain all pre-optimization records.

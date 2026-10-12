@@ -105,3 +105,13 @@ work. Proposed spelling: task.start(); final spelling remains open. Do not freez
 a public spawn function for tasks. Native thread/process naming remains separate.
 JSON completion has priority before this source integration. These decisions
 supersede the proposal's pending execution/cancellation statements above.
+
+
+## Scheduling names approved (2026-10-12)
+
+The owner approved `.start()` and `.cancel()` naming. `.start()` schedules a lazy
+task explicitly. `.cancel()` is the cancellation operation on running work;
+the proposed awaited completion, completed-job races and result/error contract
+still require specification. Do not infer approval of the illustrative race/timer
+APIs from the example. Keep ordinary try/catch as the initial error-handling
+recommendation; Promise-style `.catch()` chaining is not part of this approval.

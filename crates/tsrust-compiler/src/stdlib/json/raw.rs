@@ -3,22 +3,50 @@ use super::{Error, Limits};
 
 /// Holds only a real borrow of the validated UTF-8 input. No dynamic tree or
 /// replacement source buffer is retained. Serde may use temporary escape scratch.
-pub struct Fragment<'a> { text: &'a str }
+pub struct Fragment<'a> { text: &'a str, depth: usize }
 // Internal field adapter: callers must use typed::decode_borrowed so whole-input
 // budgets and strict Unicode validation run before Serde extracts source slices.
 impl<'de> serde::Deserialize<'de> for Fragment<'de> {
     fn deserialize<D:serde::Deserializer<'de>>(decoder:D)->Result<Self,D::Error>{
         let raw=<&'de serde_json::value::RawValue as serde::Deserialize<'de>>::deserialize(decoder)?;
-        Ok(Self{text:raw.get()})
+        Ok(Self::validated(raw.get()))
     }
 }
 impl<'a> Fragment<'a> {
+    // Both callers provide validated text. Cache only structural depth, retaining
+    // the same real source borrow and no additional heap allocation.
+    fn validated(text: &'a str) -> Self {
+        let mut depth=0;
+        let mut maximum=0;
+        let mut quoted=false;
+        let mut escaped=false;
+        // Input is validated before Fragment construction. Only unquoted brackets
+        // affect depth; escaped quotes and bracket characters in strings do not.
+        for byte in text.bytes() {
+            if quoted {
+                if escaped { escaped=false; }
+                else if byte==b'\\' { escaped=true; }
+                else if byte==b'"' { quoted=false; }
+            } else {
+                match byte {
+                    b'"'=>quoted=true,
+                    b'['|b'{'=>{
+                        depth+=1;maximum=maximum.max(depth);
+                    },
+                    b']'|b'}'=>depth-=1,
+                    _=>{},
+                }
+            }
+        }
+        Self{text,depth:maximum}
+    }
+
     pub fn text(&self) -> &'a str { self.text }
 }
 
 pub fn borrow(input: &str, limits: Limits) -> Result<Fragment<'_>, Error> {
     super::typed::validate(input.as_bytes(), limits)?;
-    Ok(Fragment { text: input })
+    Ok(Fragment::validated(input))
 }
 
 /// Internal serializer for an already validated fragment at its enclosing depth.
@@ -29,27 +57,8 @@ pub struct Encoded<'a, 'source>(pub &'a Fragment<'source>, pub usize);
 impl serde::Serialize for Encoded<'_, '_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::{Error, SerializeStruct};
-        let mut depth=self.1;
-        let mut quoted=false;
-        let mut escaped=false;
-        // Input is validated before Fragment construction. Only unquoted brackets
-        // affect depth; escaped quotes and bracket characters in strings do not.
-        for byte in self.0.text.bytes() {
-            if quoted {
-                if escaped { escaped=false; }
-                else if byte==b'\\' { escaped=true; }
-                else if byte==b'"' { quoted=false; }
-            } else {
-                match byte {
-                    b'"'=>quoted=true,
-                    b'['|b'{'=>{
-                        if depth>=64 { return Err(S::Error::custom("tsrust:depth-limit")); }
-                        depth+=1;
-                    },
-                    b']'|b'}'=>depth-=1,
-                    _=>{},
-                }
-            }
+        if self.1>64 || self.0.depth>64-self.1 {
+            return Err(S::Error::custom("tsrust:depth-limit"));
         }
         const TOKEN:&str="$serde_json::private::RawValue";
         let mut raw=serializer.serialize_struct(TOKEN,1)?;
@@ -62,6 +71,13 @@ impl serde::Serialize for Encoded<'_, '_> {
 mod tests {
     use super::*;
     fn limits() -> Limits { Limits { bytes: 128, depth: 4, entries: 4, nodes: 12 } }
+    #[test]
+    fn raw_encoding_rejects_invalid_parent_depth_without_overflow() {
+        let scalar=borrow("null",limits()).unwrap();
+        for depth in [65,usize::MAX] {
+            assert_eq!(super::super::typed::encode(&Encoded(&scalar,depth),128).unwrap_err().code,"depth-limit");
+        }
+    }
     #[test]
     fn embedded_serialization_preserves_text_and_combined_limits() {
         let text=" \n{\"z\":1e+02,\"a\":\"\\u0061\"} \t";
