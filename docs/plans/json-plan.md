@@ -1754,3 +1754,27 @@ SQLite: `results/2026-10-12T06-45-51-174Z.json`, raw timing log, and
 `tsrust-json-raw-allocation*-6ea5b855` JSON/log records. The formatted record is the
 current source baseline. No RSS, Unicode/deep/raw-field matrix or serialization
 acceptance is claimed. Those and the post-raw consumer refresh remain open.
+
+### Raw Unicode and deep allocation coverage
+
+Raw validation allocation coverage now includes escaped Unicode pairs and a
+numeric array wrapped to 32 container levels, each at sizes 0, 1 and 1000.
+All six cases pass three fresh-process samples per engine (54 samples total).
+Native source-pointer identity and independent UTF-8 source-byte checksums pass;
+all native/direct Rust output and input disposal checks return to zero.
+
+Nonempty Unicode inputs use one native 8-byte temporary allocation, unchanged
+between one and 1000 pairs, and retain no output heap. Direct Serde IgnoredAny
+uses no heap for these strings. Deep native validation uses no heap; direct
+Serde uses one allocation and two reallocations (56 cumulative requested bytes,
+32 peak bytes). These are different validation implementations: the direct
+baseline does not enforce native budgets, and Node parses/discards a dynamic
+tree. Node post-GC heap deltas are not allocation counts. Source storage is
+prepared outside the operation counters; zero heap does not mean zero stack.
+
+Twelve adapter tests pass, including the initial missing-kind failure witness.
+Whole-project formatting changes no files or fingerprints. SQLite evidence:
+`tsrust-json-raw-shapes-*-e1bf6193` (allocation JSON/log, red, check and format).
+No additional timing, RSS, raw-field or serialization acceptance is claimed.
+Raw serialization policy still awaits the owner; those remaining checks and
+post-raw consumer refresh remain open before S10 acceptance.

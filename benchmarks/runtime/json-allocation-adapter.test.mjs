@@ -109,3 +109,13 @@ test('raw fragment probe retains original input and checks its real lifetime ABI
  assert.match(text,/fragment.text\(\).as_ptr\(\),input.as_ptr\(\)/);
  assert.throws(()=>adaptJsonAllocation(emitted.replace("Record2<'native_input2_0>","Record2<'static>"),driver,'raw'));
 });
+
+test('raw Unicode and deep checksums count source bytes rather than decoded values',()=>{
+ assert.equal(jsonAllocationInput(1,'raw_strings'),'["é🦀","line\\n\\u0061"]');
+ assert.equal(jsonAllocationChecksum(0,'raw_strings'),2);
+ assert.equal(jsonAllocationChecksum(1,'raw_strings'),25);
+ assert.equal(jsonAllocationChecksum(2,'raw_strings'),49);
+ assert.equal(jsonAllocationChecksum(0,'raw_deep'),64);
+ assert.equal(jsonAllocationChecksum(1,'raw_deep'),65);
+ assert.equal(jsonAllocationInput(1,'raw_deep'),'['.repeat(31)+'[7]'+']'.repeat(31));
+});

@@ -4,7 +4,7 @@ function replaceOnce(source,before,after){
  if(source.split(before).length!==2)throw Error(`JSON allocation ABI drift: ${before}`);
  return source.replace(before,after);
 }
-export const jsonAllocationKinds=['raw','dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep','encode_dynamic_strings','encode_typed_strings','encode_dynamic_deep','encode_dynamic_object','encode_typed_object'];
+export const jsonAllocationKinds=['raw','raw_strings','raw_deep','dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed','stream_write_owned','stream_write_borrowed','dynamic_deep','encode_dynamic_strings','encode_typed_strings','encode_dynamic_deep','encode_dynamic_object','encode_typed_object'];
 function shape(kind){
  if(!jsonAllocationKinds.includes(kind))throw Error('JSON allocation kind');
  return {dynamic:kind.startsWith('dynamic'),failure:kind.endsWith('_invalid')||kind.endsWith('_mismatch'),strings:kind.endsWith('_strings')||kind.endsWith('_invalid')||kind.endsWith('_mismatch'),nested:kind.endsWith('_nested')||kind.endsWith('_selective'),selective:kind.endsWith('_selective')};
@@ -13,7 +13,7 @@ export function jsonAllocationInput(n,kind='dynamic'){
  const {strings,nested,selective,failure}=shape(kind);
  if(!Number.isSafeInteger(n)||n<0||n>100000)throw Error('JSON allocation size must be an integer from 0 through 100000');
  if(kind.endsWith('_object'))return '{"active":true,"items":'+jsonAllocationInput(n,'typed_nested')+',"name":"é🦀"}';
- if(kind==='dynamic_deep'||kind==='encode_dynamic_deep')return '['.repeat(31)+jsonAllocationInput(n,'dynamic')+']'.repeat(31);
+ if(kind==='raw_deep'||kind==='dynamic_deep'||kind==='encode_dynamic_deep')return '['.repeat(31)+jsonAllocationInput(n,'dynamic')+']'.repeat(31);
  if(kind.startsWith('encode_')&&strings)return '['+Array.from({length:n},()=>'"é🦀","line\\na"').join(',')+']';
  if(failure)return '['+Array.from({length:n},()=>'"é🦀"').concat(kind.endsWith('_mismatch')?'7':'?').join(',')+']';
  if(nested){
@@ -25,11 +25,12 @@ export function jsonAllocationInput(n,kind='dynamic'){
 export function jsonAllocationChecksum(n,kind='dynamic'){
  const {strings,nested,selective,failure}=shape(kind);
  if(!Number.isSafeInteger(n)||n<0||n>100000)throw Error('JSON allocation size');
- if(kind==='raw'){let bytes=2;for(let i=0;i<n;i++)bytes+=(i?1:0)+String(i+7).length;return bytes;}
+ if(kind==='raw_strings')return n===0?2:24*n+1;
+ if(kind==='raw'||kind==='raw_deep'){let bytes=2;for(let i=0;i<n;i++)bytes+=(i?1:0)+String(i+7).length;return bytes+(kind==='raw_deep'?62:0);}
  return kind.startsWith('encode_')?new TextEncoder().encode(jsonAllocationInput(n,kind)).reduce((sum,byte)=>sum+byte,0):failure?1:strings?n*12:nested?2*n*7+n*(2*n-1):n*7+n*(n-1)/2;
 }
 export function adaptJsonAllocation(emitted,driver,kind){
- if(kind==='raw'){
+ if(['raw','raw_strings','raw_deep'].includes(kind)){
   const signature=/^fn tsr_result_function0<'(\w+)>\(value0: i64, value1: i64, value2: &'\1 String\) -> Result<(Record\d+)<'\1>,TsrFunctionError/m.exec(emitted);
   if(!signature)throw Error('JSON raw borrowing ABI drift');
   let adapted=instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n),std::hint::black_box(7),&input){Ok(value)=>value,Err(_)=>panic!("valid raw input rejected")}');
@@ -60,7 +61,7 @@ function instrumentDriver(driver,call){
  return replaceOnce(output,'function0(std::hint::black_box(n), std::hint::black_box(7))',call);
 }
 export function directJsonAllocation(driver,kind){
- if(kind==='raw')return "type String=std::borrow::Cow<'static,str>;\n"+instrumentDriver(driver,'{let mut decoder=serde_json::Deserializer::from_str(std::hint::black_box(input.as_ref()));<serde::de::IgnoredAny as serde::Deserialize>::deserialize(&mut decoder).unwrap();decoder.end().unwrap();input.as_ref()}')+'\nfn probe_checksum(value:&&str)->i64{value.len() as i64}';
+ if(['raw','raw_strings','raw_deep'].includes(kind))return "type String=std::borrow::Cow<'static,str>;\n"+instrumentDriver(driver,'{let mut decoder=serde_json::Deserializer::from_str(std::hint::black_box(input.as_ref()));<serde::de::IgnoredAny as serde::Deserialize>::deserialize(&mut decoder).unwrap();decoder.end().unwrap();input.as_ref()}')+'\nfn probe_checksum(value:&&str)->i64{value.len() as i64}';
 
  const {dynamic,strings,nested,selective,failure}=shape(kind);
  const ty=dynamic?'serde_json::Value':selective?'Selected':nested?'Vec<Vec<i64>>':strings?'Vec<std::string::String>':'Vec<i64>';
@@ -81,7 +82,7 @@ export function nodeJsonAllocation(counterpart,driver,kind='dynamic'){
  let adapted=replaceOnce(driver,'const n = Number(process.argv[2]);','const n = Number(process.argv[2]);\nconst input=process.argv[3]!;');
  adapted=replaceOnce(adapted,'workload(0, 7)','workload(0, 7, input)');
  adapted=replaceOnce(adapted,'workload(n, 7)','workload(n, 7, input)');
- if(kind==='raw')return counterpart+'\nfunction probeChecksum(value:unknown):number{if(value!==input)throw Error("raw source changed");return new TextEncoder().encode(input).length;}\n'+adapted;
+ if(['raw','raw_strings','raw_deep'].includes(kind))return counterpart+'\nfunction probeChecksum(value:unknown):number{if(value!==input)throw Error("raw source changed");return new TextEncoder().encode(input).length;}\n'+adapted;
  if(failure){
   const decoding=replaceOnce(counterpart,'function workload(','function decodeWorkload(');
   return decoding+'\nfunction workload(n:number,seed:number,input:string):number{try{decodeWorkload(n,seed,input);return 0;}catch{return 1;}}\nfunction probeChecksum(value:unknown):number{if(value!==1)throw Error("invalid input accepted");return 1;}\n'+adapted;
