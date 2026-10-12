@@ -1496,6 +1496,7 @@ fn remap_function_closures(
 impl Analyzer {
     fn new(mut program: Program) -> Result<Self, Diagnostic> {
         crate::stdlib::json::namespace::prepare(&mut program)?;
+        crate::stdlib::schema::namespace::prepare(&mut program)?;
         if program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
             crate::native_type_resolution::intern(&mut program.records,crate::native_signatures::NativeTypeId::StringView,Span::default())?;
         }

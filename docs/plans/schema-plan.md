@@ -173,3 +173,23 @@ SQLite evidence: `tsrust-schema-import-{red,check,formatted,format}-169f6300.log
 This checkpoint supports imports only: constructor dispatch, inferred schema output,
 validation methods and complete editor documentation remain unimplemented. Installed
 consumers have not been refreshed for this incomplete public feature.
+
+## First constructor integration checkpoint
+
+`s.string()` now resolves through the linked namespace identity and returns an
+opaque `Schema<string>`. Imported aliases work. Assigning the result to Schema<int>
+and passing constructor arguments reject. The private native binding is not a
+source export. The constructor emits a constraint-free, stateless native schema;
+this is not a completed validation implementation.
+
+All 23 native declaration checks pass, including a generated native execution of
+an explicitly typed function returning the inferred constructor result. All 19
+schema backend tests also pass. Constructor catalog prose and its executable
+example are present, but namespace member completion/hover/signature routing is
+still pending. The example's exact source/output is covered by the native test.
+
+SQLite evidence: `tsrust-schema-builder-{red,check,native,backend,format}-e48749f0.log`.
+Next required work: editor routing and public consuming safeParse with structured
+errors, followed by constrained and composite plans. Do not refresh installed
+consumers or call this a completed public feature gate yet. Matched benchmark
+registration and public API audit are still required before feature acceptance.

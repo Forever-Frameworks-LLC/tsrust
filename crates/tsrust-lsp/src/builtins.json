@@ -6946,5 +6946,33 @@
     }
   ]
 }
-]
+],
+  "std:schema": [
+    {
+      "name": "s",
+      "signature": "s: schema builder namespace",
+      "parameters": [],
+      "documentation": "Imported namespace for constructing reusable validation schemas. Import aliases preserve its identity. Currently string() constructs a string schema; validation methods are still under implementation. Importing the namespace alone adds no runtime dependency. Ownership: the namespace itself owns no runtime value."
+    },
+    {
+      "name": "Schema",
+      "signature": "Schema<T>",
+      "parameters": [],
+      "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. Validation methods are still under implementation."
+    }
+  ],
+  "schemaBuilder": [
+    {
+      "name": "string",
+      "signature": "s.string(): Schema<string>",
+      "parameters": [],
+      "documentation": "Constructs a reusable schema whose output type is string. Takes no arguments and does not validate input by itself. The constructor has no constraints or receiver mutation; passing any argument is an error. Validation and string-length constraint methods are still under implementation.\n\n```tsrust\nimport {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}\n```\n\nExpected output: schema created.\n\nOwnership: returns an owned immutable schema value; no source text is borrowed.",
+      "examples": [
+        {
+          "source": "import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}",
+          "output": "schema created\n"
+        }
+      ]
+    }
+  ]
 }

@@ -12,5 +12,4 @@ pub(crate) mod env;
 pub(crate) mod time;
 
 pub(crate) mod json;
-#[cfg(test)]
-mod schema;
+pub(crate) mod schema;

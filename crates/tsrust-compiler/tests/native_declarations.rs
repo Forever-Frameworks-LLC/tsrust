@@ -339,3 +339,32 @@ fn schema_namespace_import_alias_respects_parameter_shadowing() {
         assert!(check_graph(graph).is_ok());
     }
 }
+
+#[test]
+fn schema_string_constructor_infers_output_and_rejects_wrong_schema_type() {
+    use tsrust_compiler::project::{SourceId, SourceProvider, load_project, check_graph};
+    struct Provider(&'static str);
+    impl SourceProvider for Provider {
+        fn resolve(&self, _: Option<&SourceId>, path: &str) -> Result<SourceId, String> { Ok(SourceId(path.into())) }
+        fn read(&self, _: &SourceId) -> Result<String, String> { Ok(support::format_round_trip(self.0)) }
+    }
+    for (source, valid) in [
+        ("import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make();}", true),
+        ("import {s as schema, Schema} from 'std:schema'; function make():Schema<string>{return schema.string();} function main(){}", true),
+        ("import {s, Schema} from 'std:schema'; function make():Schema<int>{return s.string();} function main(){}", false),
+        ("import {s} from 'std:schema'; function main(){s.string(1);}", false),
+    ] {
+        let graph = load_project(&Provider(source), "main.tsr").unwrap();
+        assert_eq!(check_graph(graph).is_ok(), valid, "{source}");
+    }
+}
+
+#[test]
+fn schema_string_constructor_executes_natively() {
+    let directory = support::TempDirectory::new();
+    let source = support::format_round_trip("import {s, Schema} from 'std:schema'; function make():Schema<string>{return s.string();} function main(){const value=make(); console.log('schema created');}");
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "schema created\n");
+}
