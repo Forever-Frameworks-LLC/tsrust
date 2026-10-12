@@ -47,3 +47,77 @@ function main(){
     let file=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(file),60));
 }
+
+#[test]
+fn recursive_builder_runs_once_and_owned_validation_reuses_the_plan() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+let builds:int=0;
+const tree=s.recursive(self=>{
+  builds+=1;
+  return s.object({value:s.int(),children:s.array(self)});
+});
+function main(){
+  strictEqual(builds,1);
+  const first={value:3,children:[{value:4,children:[]}]};
+  match(tree.safeParse(first)){
+    Ok(value)=>{strictEqual(value.children[0].value,4);},
+    Err(error)=>{throw 'Owned recursive input rejected';}
+  }
+  match(tree.safeParseJson('{"value":5,"children":[]}')){
+    Ok(value)=>{strictEqual(value.value,5);},
+    Err(error)=>{throw 'Reusable recursive plan rejected';}
+  }
+  strictEqual(builds,1);
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
+}
+
+#[test]
+fn inferred_recursive_array_and_union_roots_validate_without_named_types() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+const arrays=s.recursive(self=>s.array(self));
+const nested=s.recursive(self=>s.union([s.int(),s.array(self)]));
+function main(){
+  match(arrays.safeParseJson('[[],[[]]]')){
+    Ok(value)=>{strictEqual(value.length,2);strictEqual(value[1][0].length,0);},
+    Err(error)=>{throw 'Recursive array root rejected';}
+  }
+  match(nested.safeParseJson('[1,[2,[]]]')){
+    Ok(value)=>{},
+    Err(error)=>{throw 'Recursive union root rejected';}
+  }
+  match(nested.safeParseJson('[1,["bad"]]')){
+    Ok(value)=>{throw 'Invalid recursive union accepted';},
+    Err(error)=>{}
+  }
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
+}
+
+#[test]
+fn recursive_placeholders_reject_unproductive_definitions_and_escape() {
+    for (definition,code) in [
+        ("const schema=s.recursive(self=>self);","schema-recursion"),
+        ("const schema=s.recursive(self=>s.union([self,s.int()]));","schema-recursion"),
+        ("const schema=s.recursive(self=>()=>self);","schema-recursion"),
+        ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.string(),children:s.array(self)}));","schema-type"),
+    ] {
+        let source=format!("import {{s}} from 'std:schema';{definition} function main(){{}}");
+        let directory=support::TempDirectory::new();
+        let file=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(file),30);
+        let diagnostics=String::from_utf8_lossy(&output.stderr);
+        assert!(!output.status.success(),"Invalid recursive schema accepted: {definition}");
+        assert!(diagnostics.contains(code),"Expected {code} for {definition}: {diagnostics}");
+    }
+}

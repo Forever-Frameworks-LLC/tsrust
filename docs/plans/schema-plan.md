@@ -2152,3 +2152,13 @@ approved options parameter, losing the receiver type before reaching min. The
 fallback now recognizes scalar constructor arguments; compiler validation remains
 unchanged. Both immediate source and project-header completion are checked.
 Evidence uses `tsrust-schema-chain-editing-*`.
+
+Recursive acceptance witnesses now also cover root arrays and unions, owned input,
+repeated validation without rebuilding, an observable single builder invocation,
+unproductive direct/union cycles, closure escape, and explicit output mismatch.
+These remain implementation witnesses, not passed acceptance. A recursive array
+can terminate with an empty array; a recursive union must not traverse a direct
+self branch without consuming input structure. The existing emitter's
+`schema_child_type` embeds ordinary child plans by output type, so a self edge
+cannot reuse that representation unchanged: it needs a distinct plan reference
+and an explicitly borrowed root during validation.
