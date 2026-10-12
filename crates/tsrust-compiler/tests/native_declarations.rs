@@ -662,3 +662,12 @@ function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);
         assert_eq!(checked_source(&source).err().unwrap().code,"transferred");
     }
 }
+
+#[test]
+fn schema_array_construction_moves_child_plan_and_keeps_type() {
+    let source="import {s,Schema} from 'std:schema';function make():Schema<string[][]>{const child=s.string().min(2);const array=s.array(child);return s.array(array);}function main(){const schema=make();}";
+    let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    let invalid="import {s} from 'std:schema';function main(){const child=s.string();s.array(child);child.safeParse('x');}";
+    assert_eq!(checked_source(invalid).err().unwrap().code,"transferred");
+}

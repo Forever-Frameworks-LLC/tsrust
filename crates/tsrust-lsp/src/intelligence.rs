@@ -1861,6 +1861,13 @@ impl SourceIndex {
         }
         None
     }
+    fn schema_array_type(&self,open:usize,close:usize,depth:usize)->Option<String>{
+        let (child,end)=self.simple_expression_type(open+1,self.tokens[open].span.start,depth+1)?;
+        if end!=close{return None;}
+        let element=self.schema_element(&child)?;
+        let schema=self.native_type_aliases.iter().find(|(_,identity)|**identity==tsrust_compiler::native_signatures::NativeTypeId::Schema)?.0;
+        Some(format!("{schema}<{element}[]>"))
+    }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if let Some(element @ ("string" | "boolean" | "int" | "number" | "null")) = self.schema_element(&receiver) && method == "safeParse" {
@@ -2161,6 +2168,9 @@ impl SourceIndex {
                 break;
             }
             let close = self.pairs.get(end + 2).copied().flatten()?;
+            if ty=="@namespace:std:schema#s" && self.text(end+1)=="array" {
+                ty=self.schema_array_type(end+2,close,depth)?;end=close+1;continue;
+            }
             let callable = self.field_callable_result(&ty, self.text(end + 1), end + 1);
             if callable.is_none()
                 && close != end + 3
@@ -2500,6 +2510,9 @@ impl SourceIndex {
             }
             if open >= 3 && self.text(open - 2) == "." {
                 let receiver = self.receiver_type_end(open - 3, depth + 1);
+                if receiver=="@namespace:std:schema#s" && self.text(open-1)=="array" {
+                    return self.schema_array_type(open,n,depth).unwrap_or_default();
+                }
                 if let Some(result) =
                     self.field_callable_result(&receiver, self.text(open - 1), open - 1)
                 {

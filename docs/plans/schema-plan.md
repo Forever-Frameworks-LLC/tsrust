@@ -777,3 +777,20 @@ distinct array-schema specializations and repeated preparation. This is a type
 preparation prerequisite; public array/object constructors, child-plan storage,
 validation lowering and editor inference remain pending. SQLite evidence:
 `tsrust-schema-instantiation-*-a2daa32e.log`.
+
+## Owned array-schema construction
+
+s.array(element) now consumes a child Schema<T> and constructs Schema<T[]>.
+Nested construction preserves nested element types, and generated records own the
+child plan inline without cloning or a shared owner. Construction reuses ordinary
+record specialization and ownership analysis. Source reuse of a consumed child
+rejects; a function can return Schema<string[][]> built from constrained children.
+
+The constructor has catalog documentation and an executed example. A focused
+native test verifies nested construction and ownership rejection. Editor coverage
+checks inferred nested output; its initial missing inference and repair are retained
+in SQLite under `tsrust-schema-array-construction-*-9b24a3c6.log`.
+
+This is constructor-only progress, not array-schema feature acceptance. Array
+safeParse, indexed bounded errors in generated execution, validation documentation,
+matched workload support and the complete composite milestone remain required.

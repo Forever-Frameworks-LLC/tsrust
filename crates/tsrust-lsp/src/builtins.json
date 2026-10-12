@@ -7046,6 +7046,23 @@
         "output": "null\n"
       }
     ]
+  },
+  {
+    "name": "array",
+    "signature": "array<T>(element: Owned<Schema<T>>): Schema<T[]>",
+    "parameters": [
+      {
+        "label": "element: Owned<Schema<T>>",
+        "documentation": "One element schema, consumed into the array plan. Nested array plans are supported."
+      }
+    ],
+    "documentation": "Constructs an immutable array schema that owns its element plan. Existing element constraints are retained without cloning. Returns Schema<T[]>; nesting produces nested array output types. Array safeParse validation is not implemented yet. Construction requires exactly one schema and has no optional arguments.\n\n```tsrust\nimport {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}\n```\n\nExpected output: constructed.\n\nOwnership: consumes the element schema. Use the returned plan; the original child cannot be reused.",
+    "examples": [
+      {
+        "source": "import {s,Schema} from 'std:schema';function main(){const rows:Schema<string[][]> = s.array(s.array(s.string().min(1)));console.log('constructed');}",
+        "output": "constructed\n"
+      }
+    ]
   }
 ],
   "Schema": [

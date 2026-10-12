@@ -2363,6 +2363,13 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ bounds: tsrust_schema_plan::{plan} }}");
                 continue;
             }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)
+                && let Some(Type::Array(element))=record.application.as_ref().and_then(|application|application.resolved_arguments.first()) {
+                let child=self.program.records.iter().position(|candidate|candidate.native_type==Some(crate::native_signatures::NativeTypeId::Schema)&&candidate.application.as_ref().is_some_and(|application|application.resolved_arguments==[element.ty()])).expect("array child schema");
+                let child=self.native_record_declaration(child);
+                let _=writeln!(output,"struct Record{index} {{ element: Record{child} }}");
+                continue;
+            }
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
                 let arms = definition.members.iter().enumerate().map(|(member, entry)| {
@@ -7425,13 +7432,19 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn native_collection_constructor_expression(&self,expr:&Expr,mode:Mode)->String {
+    fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
         if let Some(Type::Map(_))=expr.ty {
             let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
             return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
         }
         let Type::Record(id) = expr.ty.expect("checked constructor") else { unreachable!() };
         let id = self.native_record_declaration(id);
+        if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema) {
+            let ExprKind::NativeConstructor(args,_)=&expr.kind else{unreachable!()};
+            let child=self.expr(fun,&args[0],Mode::Consume);
+            let code=format!("Record{id} {{ element: {child} }}");
+            return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};
+        }
         let backend=if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Heap){"TsrHeap"}else if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::OrderedSet){"TsrOrderedSet"}else{"TsrDeque"};
         let code = format!("Record{id} {{ values: {backend}::new() }}");
         match mode { Mode::Read => format!("&({code})"), Mode::Mutate => format!("&mut ({code})"), _ => code }
@@ -7442,7 +7455,7 @@ impl Emitter<'_> {
         match &expr.kind {
             ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
             ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
-            ExprKind::NativeConstructor(_, _) => self.native_collection_constructor_expression(expr,mode),
+            ExprKind::NativeConstructor(_, _) => self.native_collection_constructor_expression(fun,expr,mode),
             ExprKind::TypeAssertion { value, satisfies, .. } => {
                 let code = self.expr(fun, value, mode);
                 if !satisfies && value.ty == Some(Type::Int) && expr.ty == Some(Type::Number) {

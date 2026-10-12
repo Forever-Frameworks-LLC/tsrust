@@ -1,6 +1,25 @@
 //! Schema method lowering preserves ordinary native argument ownership checks.
 use super::*;
 impl Analyzer {
+    pub(super) fn schema_array_constructor(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
+        let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
+        if !matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:array"){return Ok(None);}
+        if args.len()!=1{return Err(Diagnostic::new("arity","s.array expects one owned element schema.",expr.span));}
+        let child=self.expression(context,&mut args[0],Mode::Consume,loans,None)?;
+        let Type::Record(id)=child else{return Err(Diagnostic::new("schema-type","s.array requires an element schema.",args[0].span));};
+        let record=&self.program.records[id];
+        if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return Err(Diagnostic::new("schema-type","s.array requires an element schema.",args[0].span));}
+        let element=record.application.as_ref().unwrap().resolved_arguments[0];
+        let types=crate::generic_inference::Types{callable_annotations:None,callable_shapes:None,inline_shapes:None,records:&self.program.records,names:&self.record_names,unions:&self.unions};
+        use crate::type_syntax::{ValueAnnotation,ValueAnnotationKind as Kind,TypeName};
+        let mut annotation=ValueAnnotation{span:expr.span,kind:Kind::Applied{name:TypeName{text:crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Schema),span:expr.span},arguments:vec![ValueAnnotation{span:expr.span,kind:Kind::Array(Box::new(types.annotation(element,expr.span)?))}]}};
+        self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
+        append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
+        let result=self.resolve_value_annotation(&annotation,false)?;
+        self.require(result,expected,expr.span)?;
+        expr.kind=ExprKind::NativeConstructor(std::mem::take(args),Some(Box::new(annotation)));
+        Ok(Some(result))
+    }
     pub(super) fn schema_method_call(&self, context: &Context, expr: &mut Expr) -> Result<(), Diagnostic> {
         let ExprKind::Call(callee, args) = &mut expr.kind else { return Ok(()); };
         let ExprKind::Field(base, member) = &callee.kind else { return Ok(()); };

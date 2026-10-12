@@ -2534,3 +2534,13 @@ fn schema_floating_constraints_have_help_and_chain_types() {
     let result=ask(&index,&entry,"result =","textDocument/hover");
     assert!(result.to_string().contains("Result<number, SchemaError>"),"{result}");
 }
+
+#[test]
+fn schema_array_constructor_keeps_nested_output_hover() {
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const rows=s.array(s.array(s.string()));}").unwrap();
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
+    let hover=ask(&index,&entry,"rows =","textDocument/hover");
+    assert!(hover.to_string().contains("Schema<string[][]>"),"{hover}");
+}
