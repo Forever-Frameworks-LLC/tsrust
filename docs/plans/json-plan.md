@@ -1290,3 +1290,30 @@ pass; the new encoding guard passes after repairing its initial test syntax erro
 The original failed log is retained. No previous allocation cases were rerun.
 Broader encoding shapes, streaming and raw-fragment coverage, full S10 regressions
 and timing acceptance remain open. Installed consumers are unchanged.
+
+### JSON Lines reader allocation baselines
+
+The allocation harness reuses the existing typed owned/borrowed JSONL workload
+sources with one file pass per measurement. `--only=stream_owned,stream_borrowed`
+creates files containing 0, 1 or 10000 fixed ASCII records outside counters. File
+open, the 8192-byte buffer, per-record decoding and close are inside counters;
+only the input path is retained outside. Direct Rust uses a typed Serde visitor,
+owned string field names and a reusable line buffer. Node uses the existing
+incremental UTF-8 decoder and buffered file reader. The independent checksum is
+7 + 42 * record count; payload bytes and hashes are included separately from the
+path. Direct Rust assumes the valid fixture and does not impose native JSON limits.
+
+All six cases and 54 fresh-process samples pass. Ten focused guards pass. Both
+Rust implementations retain zero heap bytes after processing and release the
+input path afterward. Across all three samples, peak requested bytes are identical
+at one and 10000 records: 8459 for both native reader forms and 8283 for direct
+Rust. Empty files peak at 8192. At 10000 records native performs 40002 allocations
+versus direct Rust's 50002; neither retains the complete file or decoded sequence.
+This proves bounded peak heap for this fixed-record fixture, not for arbitrarily
+large individual records or Node process RSS. Node post-GC heap remains a separate
+metric. Owned and borrowed adapters show the same allocation results here.
+
+Evidence: tsrust-json-stream-*-4a4bf441 in SQLite, including an independent
+cross-size peak assertion. Prior measurements remain unchanged. Streaming writer,
+broader encoding/raw-fragment coverage and S10 regression/timing acceptance remain
+open; no timing or installed-consumer refresh is claimed.

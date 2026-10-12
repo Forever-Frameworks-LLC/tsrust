@@ -4,7 +4,7 @@ function replaceOnce(source,before,after){
  if(source.split(before).length!==2)throw Error(`JSON allocation ABI drift: ${before}`);
  return source.replace(before,after);
 }
-export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed'];
+export const jsonAllocationKinds=['dynamic','typed','dynamic_strings','typed_strings','dynamic_nested','typed_nested','dynamic_selective','typed_selective','dynamic_invalid','typed_invalid','typed_mismatch','encode_dynamic','encode_typed','stream_owned','stream_borrowed'];
 function shape(kind){
  if(!jsonAllocationKinds.includes(kind))throw Error('JSON allocation kind');
  return {dynamic:kind.startsWith('dynamic'),failure:kind.endsWith('_invalid')||kind.endsWith('_mismatch'),strings:kind.endsWith('_strings')||kind.endsWith('_invalid')||kind.endsWith('_mismatch'),nested:kind.endsWith('_nested')||kind.endsWith('_selective'),selective:kind.endsWith('_selective')};
