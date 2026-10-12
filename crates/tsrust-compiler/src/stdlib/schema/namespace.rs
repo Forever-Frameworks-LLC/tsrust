@@ -17,6 +17,16 @@ pub(crate) const SAFE_PARSE: NativeBinding = NativeBinding {
     returned_borrow: None, backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_string" }, features: &["json"],
 };
 
+pub(crate) const SAFE_PARSE_OWNED: NativeBinding = NativeBinding {
+    name: "__safeParseOwnedString",
+    parameters: &[
+        crate::native_bindings::NativeParameter { name: "schema", ty: NativeType::Structured(&Signature::Applied(NativeTypeId::Schema, &[Signature::String])), access: crate::Mode::Read, optional: false, rest: false },
+        crate::native_bindings::NativeParameter { name: "input", ty: NativeType::String, access: crate::Mode::Consume, optional: false, rest: false },
+    ],
+    backend: NativeBackend::Bundled { symbol: "tsrust_schema_safe_parse_owned_string" }, features: &[],
+    ..SAFE_PARSE
+};
+
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
@@ -34,6 +44,9 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
         })?;
     }
     for span in spans { crate::native_binding_types::prepare(&mut program.records, &STRING, span)?; }
+    if uses_safe_parse && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
+        crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_OWNED, crate::Span::default())?;
+    }
     // Current validation consumes JsonValue. Do not synthesize JSON storage solely
     // because an unrelated object also declares a method named safeParse.
     if uses_safe_parse

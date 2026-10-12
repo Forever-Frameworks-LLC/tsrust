@@ -275,3 +275,20 @@ skipped without TSRUST, while the new verifier directly exercises dependency lin
 SQLite evidence: `tsrust-schema-workload-{red,check,format,final,verify,verify-detail,tests,verify-final,final-format}-e04a2818.log`.
 The manifest remains unmeasured. Validation-only workloads, allocation/disposal
 probes, fused decoding and the rest of S11 remain required.
+
+## Direct owned-string validation
+
+String schemas now accept concrete owned string input as well as JsonValue.
+The direct path transfers the native string into Ok without JSON conversion,
+parsing or a hidden clone, and emits no JSON runtime dependency. The schema stays
+borrowed and reusable. Input reuse rejects; explicit clone preserves a separate
+original. A borrowed ReadOnly<string> parameter cannot be consumed by validation.
+Mixed union inputs and other ordinary typed values remain unsupported at this
+checkpoint and are documented as pending, not excluded from S11 scope.
+
+Ten focused schema compiler/native cases and two editor protocol cases pass.
+The exact catalog example for owned text executes natively. SQLite evidence:
+`tsrust-schema-owned-{red,check,final,editor,format}-39a5cff0.log`.
+The existing registered workload still measures JSON parse-plus-validation;
+a separate validation-only ownership/setup protocol remains required. No timing,
+consumer refresh or S11 acceptance is claimed.

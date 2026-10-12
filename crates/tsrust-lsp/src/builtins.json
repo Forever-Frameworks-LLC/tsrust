@@ -6996,18 +6996,22 @@
   "Schema": [
   {
     "name": "safeParse",
-    "signature": "safeParse(input: Owned<JsonValue>): Result<string, SchemaError>",
+    "signature": "safeParse(input: Owned<string | JsonValue>): Result<string, SchemaError>",
     "parameters": [
       {
-        "label": "input: Owned<JsonValue>",
-        "documentation": "Owned dynamic JSON value to validate. Consumed on success and failure; use clone(input) beforehand to retain it."
+        "label": "input: Owned<string | JsonValue>",
+        "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
       }
     ],
-    "documentation": "Validates an owned JsonValue against a string schema. Returns Ok(string) for a JSON string, moving its existing text storage, or Err(SchemaError) for every other JSON kind. Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. Currently only string schemas are supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
+    "documentation": "Validates an owned string or JsonValue against a string schema. Owned strings return Ok directly without JSON conversion or copying. A JSON string returns Ok(string), moving its existing text storage; every other JSON kind returns Err(SchemaError). Does not coerce numbers, booleans or null into text. The schema stays reusable and unchanged. A mismatch has one issue with code type-mismatch, expected string, an observed type name, an empty root path and false truncation flags. Error data never retains input values. Currently only string schemas are supported. Input must have a concrete string or JsonValue type; mixed union inputs and other typed values are not yet supported.\n\nOwnership: borrows the schema and consumes input on every outcome. Successful text owns its storage. Explicit clone(input) preserves an independent original.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output: 1 false.",
     "examples": [
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
         "output": "1 false\n"
+      },
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string();const input='hello'.repeat(2);match(schema.safeParse(input)){Ok(text)=>{console.log(text);},Err(error)=>{throw 'unexpected';}}}",
+        "output": "hellohello\n"
       }
     ]
   }

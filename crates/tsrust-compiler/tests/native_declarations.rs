@@ -419,3 +419,24 @@ fn schema_input_boundaries_reject_reuse_and_allow_explicit_clone() {
     let invalid = "import {s} from 'std:schema';function main(){s.string().safeParse(42);}";
     assert_eq!(checked_source(invalid).err().expect("unsupported input must diagnose").code, "schema-input");
 }
+
+#[test]
+fn schema_owned_string_validation_avoids_json_and_preserves_clone_choice() {
+    let source="import {s} from 'std:schema';function main(){const schema=s.string();const text='hello'.repeat(2);match(schema.safeParse(clone(text))){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}console.log(text);match(schema.safeParse(text)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}";
+    let checked=checked_source(source).unwrap();
+    let (rust,features)=checked.emit_rust_with_native_features();
+    assert!(!features.contains(&"json") && !rust.contains("tsrust_native_json"));
+    let directory=support::TempDirectory::new();
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout),"hellohello\nhellohello\nhellohello\n");
+    let invalid="import {s} from 'std:schema';function main(){const schema=s.string();const text='hello'.repeat(2);schema.safeParse(text);console.log(text);}";
+    assert_eq!(checked_source(invalid).err().expect("owned string must transfer").code,"transferred");
+}
+
+#[test]
+fn schema_validation_cannot_consume_a_borrowed_string() {
+    let source="import {s} from 'std:schema';function inspect(input:ReadOnly<string>){const schema=s.string();schema.safeParse(input);}function main(){const input='hello'.repeat(2);inspect(input);console.log(input);}";
+    let error=checked_source(source).err().expect("borrowed parameter must not be consumed");
+    assert!(error.message.contains("consume") || error.message.contains("transfer") || error.message.contains("ReadOnly"), "{error:?}");
+}

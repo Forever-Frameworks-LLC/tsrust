@@ -103,6 +103,7 @@ impl NativeBinding {
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::schema::namespace::STRING,
     crate::stdlib::schema::namespace::SAFE_PARSE,
+    crate::stdlib::schema::namespace::SAFE_PARSE_OWNED,
     crate::stdlib::json::bindings::PARSE,
     crate::stdlib::json::bindings::PARSE_JSONC,
     crate::stdlib::json::bindings::BORROW_RAW,

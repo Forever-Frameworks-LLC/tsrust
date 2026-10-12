@@ -1,12 +1,15 @@
 //! Native string validation moves successful input storage into the typed result.
 use crate::{analysis::CheckedProgram, native_bindings::NativeType, native_signatures::NativeTypeId, syntax::Type};
-pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize) -> String {
+pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, owned: bool) -> String {
     let NativeType::Structured(signature) = super::namespace::SAFE_PARSE.result else { unreachable!() };
     let Type::Union(result) = crate::native_binding_types::resolve(&program.records, signature).unwrap() else { unreachable!() };
     let members = &program.unions[result.index()].members;
     let [ok, err] = crate::result_identity::variants(&program.records, members).unwrap();
     let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
     let record = |id| program.records.iter().position(|record| record.native_type == Some(id)).unwrap();
+    if owned {
+        return format!("fn tsrust_schema_safe_parse_owned_string(_schema:&Record{schema},input:String)->Union{result} {{ Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
+    }
     let value = record(NativeTypeId::JsonValue);
     let error = record(NativeTypeId::SchemaError);
     let issue = record(NativeTypeId::SchemaIssue);

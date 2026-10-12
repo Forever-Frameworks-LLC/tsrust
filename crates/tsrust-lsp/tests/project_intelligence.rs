@@ -2394,7 +2394,7 @@ fn schema_safe_parse_help_explains_consumption_and_result() {
     let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index = ProjectIndex::checked(&checked);
     let hover = ask(&index, &entry, "safeParse(", "textDocument/hover");
-    assert!(hover.to_string().contains("Result<string, SchemaError>") && hover.to_string().contains("consumes input on every outcome"), "{hover}");
+    assert!(hover.to_string().contains("Owned<string | JsonValue>") && hover.to_string().contains("Result<string, SchemaError>") && hover.to_string().contains("consumes input on every outcome"), "{hover}");
     let result = ask(&index, &entry, "result =", "textDocument/hover");
     assert!(result.to_string().contains("Result<string, SchemaError>"), "{result}");
 }

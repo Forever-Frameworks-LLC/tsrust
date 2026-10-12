@@ -3004,7 +3004,10 @@ impl Emitter<'_> {
             let id = self.native_record_declaration(id);
             let _ = writeln!(output, "fn tsrust_schema_string() -> Record{id} {{ Record{id} {{}} }}");
             if self.native_bindings.borrow().iter().any(|&binding| crate::native_bindings::BINDINGS[binding].name == "__safeParseString") {
-                output.push_str(&crate::stdlib::schema::emit::safe_parse(self.program, id));
+                output.push_str(&crate::stdlib::schema::emit::safe_parse(self.program, id, false));
+            }
+            if self.native_bindings.borrow().iter().any(|&binding| crate::native_bindings::BINDINGS[binding].name == "__safeParseOwnedString") {
+                output.push_str(&crate::stdlib::schema::emit::safe_parse(self.program, id, true));
             }
         }
         if self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonRaw | crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView | crate::native_signatures::NativeTypeId::JsonlReader | crate::native_signatures::NativeTypeId::JsonlReaderView | crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView))) {output.push_str(&crate::native_runtime::json_module_with_writer(self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::JsonlWriter | crate::native_signatures::NativeTypeId::JsonlWriterView)))));}
