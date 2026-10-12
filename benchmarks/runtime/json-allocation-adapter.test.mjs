@@ -129,3 +129,9 @@ test('raw invalid input requires rejection and disposal rather than a borrowed o
  const nodeDriver=fs.readFileSync(new URL('./allocation-driver.ts',import.meta.url),'utf8');
  assert.match(nodeJsonAllocation('function workload(){}',nodeDriver,'raw_invalid'),/invalid input accepted/);
 });
+
+test('selective raw checksum measures retained payload rather than ignored fields',()=>{
+ assert.equal(jsonAllocationInput(1,'raw_selective'),'{"payload":[7],"tag":42,"ignored":["unused\\n\\u0061"]}');
+ assert.equal(jsonAllocationChecksum(0,'raw_selective'),2);
+ assert.equal(jsonAllocationChecksum(2,'raw_selective'),5);
+});

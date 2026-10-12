@@ -1930,3 +1930,29 @@ formatting changes no files or fingerprints. Evidence records:
 `tsrust-json-raw-extracted-check-4d7bffab` and
 `tsrust-json-raw-projections-format-4d7bffab`. Selective-field benchmark support,
 output policy and consumer refresh remain outstanding.
+
+### Selective raw-field allocation baseline
+
+The selective fixture decodes an envelope, checks its integer tag, retains only
+its raw numeric-array payload and validates skipped escaped-string data. Native
+output points exactly at the payload's source offset; independent decimal-byte
+arithmetic checks its length. Direct Rust uses a borrowed RawValue field visitor.
+Node validates the document with JSON.parse, then locates the source slice using
+the fixed benchmark envelope. That Node adapter is not a general raw-field parser;
+no equivalent allocation or representation claim is made.
+
+Sizes 0, 1 and 1000 pass three processes per engine (27 samples). Native requests
+17 bytes in three key allocations for empty input collections, or 25 bytes in
+four allocations with escaped ignored strings. Direct Rust requests 17 bytes in
+three allocations. Native peak temporary storage is 7/8 bytes respectively;
+no output heap remains, and source disposal returns counters to zero. Counts
+stay constant between one and 1000 elements. Node post-GC heap is a separate
+metric. The current debug compiler emits optimized native benchmark executables;
+source, emitted code, adapters, direct baseline and toolchains are fingerprinted.
+
+Fourteen adapter tests pass. Whole-project formatting formats the new fixture
+before measurement and changes no manifest fingerprints. SQLite records use
+`tsrust-json-raw-selective-*-97cf2811`: initial missing-kind failure, transient
+adapter syntax failure, passing checks, formatting and allocation JSON/log.
+Selective timing/RSS and public consumer refresh remain open, as does the raw
+serialization decision. This does not accept S10.

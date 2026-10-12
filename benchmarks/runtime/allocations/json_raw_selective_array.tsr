@@ -1,0 +1,15 @@
+import { JsonRaw } from 'std:json';
+
+type Envelope = {
+  payload: JsonRaw;
+  tag: int;
+};
+
+function workload(n: int, seed: int, input: ReadOnly<string>): JsonRaw {
+  const value = JSON.parse<Envelope>(input);
+  if (value.tag !== 42) {
+    throw 'unexpected tag';
+  }
+
+  return value.payload;
+}
