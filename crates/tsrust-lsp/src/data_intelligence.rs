@@ -38,9 +38,24 @@ impl SourceIndex {
         let mut symbol = declaration.clone();
         symbol.name = local.into(); symbol.span = span; symbol.extent = span;
         symbol.ty = remap_imported_type(&symbol.ty, &types).unwrap_or_default();
-        symbol.signature = format!("const {local}: {}", self.display_type(&symbol.ty));
+        symbol.signature = format!("const {local}: {}", data_shape(dependency, &declaration.ty, 0));
         self.foreign_definitions.insert(self.symbols.len(), json!({"uri":uri,"range":dependency.range(declaration.span)}));
         self.symbols.push(symbol);
         true
     }
+}
+
+// Data schemas are finite; cap expansion to keep deeply nested hovers readable.
+fn data_shape(index: &SourceIndex, ty: &str, depth: usize) -> String {
+    if depth >= 8 { return "...".into(); }
+    if let Some(element) = ty.strip_suffix("[]") {
+        return format!("{}[]", data_shape(index, element, depth + 1));
+    }
+    let fields = index.symbols.iter().filter(|symbol| symbol.owner.as_deref() == Some(ty)).collect::<Vec<_>>();
+    if fields.is_empty() { return ty.to_owned(); }
+    let indent = "  ".repeat(depth + 1);
+    let fields = fields.iter().map(|field| format!("{indent}readonly {}{}: {};", field.name,
+        if field.signature.starts_with(&format!("{}?", field.name)) { "?" } else { "" },
+        data_shape(index, &field.ty, depth + 1))).collect::<Vec<_>>().join("\n");
+    format!("{{\n{fields}\n{}}}", "  ".repeat(depth))
 }

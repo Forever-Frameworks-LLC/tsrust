@@ -898,3 +898,12 @@ Public integration is next. The owner approved omitting undefined object fields
 and rejecting undefined array entries or root values. No implicit null replacement
 is allowed. Generated object visitors skip absent fields; array/root visitors use
 the private rejection adapter and report undefined-value. This decision is settled.
+
+Imported-data hover repair: selecting the default import now resolves the binding
+rather than a field sharing its import span. Binding hover expands the validated
+record shape with readonly fields (bounded to eight levels); member hover and
+JSON source navigation remain intact. The reported settings fixture is covered
+by a failing-then-passing editor witness. All 32 import-focused project editor
+tests pass. Whole-project formatting changes no sources or fingerprints.
+Evidence: tsrust-json-hover-*-c2322741 in SQLite. Installed editor refresh remains
+pending with the JSON family consumer refresh; no measurements were run.

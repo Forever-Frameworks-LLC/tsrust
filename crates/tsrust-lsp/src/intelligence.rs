@@ -2503,7 +2503,7 @@ impl SourceIndex {
         if let Some(s) = self
             .symbols
             .iter()
-            .position(|s| s.span.start == self.tokens[id].span.start)
+            .position(|s| s.span.start == self.tokens[id].span.start && s.name == self.text(id))
         {
             return Some(s);
         }

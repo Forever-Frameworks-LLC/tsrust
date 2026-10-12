@@ -2196,3 +2196,25 @@ fn json_container_construction_has_ownership_and_limits_help() {
  let source=tsrust_compiler::format("import {fromArray,JsonValue} from 'std:json';function main(){const values:JsonValue[]=[];fromArray(values);}").unwrap();let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,&source,"fromArray(values)","textDocument/hover");assert!(hover.to_string().contains("maxNodes"),"{hover}");let signature=ask(&index,&source,"values)","textDocument/signatureHelp");assert!(signature.to_string().contains("Owned<JsonValue[]>"),"{signature}");
 }
+
+#[test]
+fn typed_json_import_binding_hover_shows_complete_shape() {
+    let entry = tsrust_compiler::format("import settings from './settings.json';function main(){console.log(settings.base);}").unwrap();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let target = "file:///tsrust-intelligence/settings.json";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.clone());
+    workspace.open(source_id(target).unwrap(), 1, r#"{"base":5,"values":[3,11,23]}"#.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    for needle in ["settings from", "settings.base"] {
+        let hover = ask(&index, &entry, needle, "textDocument/hover");
+        let text = hover["contents"]["value"].as_str().unwrap();
+        assert!(text.contains("const settings:") && text.contains("base: int") && text.contains("values: int[]"), "{hover}");
+        assert!(!text.contains("__tsrust_private_"), "{hover}");
+    }
+    let hover = ask(&index, &entry, "base);", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("base: int"), "{hover}");
+    let definition = ask(&index, &entry, "base);", "textDocument/definition");
+    assert_eq!(definition["uri"], target);
+}
