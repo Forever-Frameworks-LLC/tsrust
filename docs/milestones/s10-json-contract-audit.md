@@ -2,9 +2,9 @@
 
 The table below preserves the audit at `81678b22`. The current reconciliation
 at `5682a032` follows it; earlier raw gaps must not be read as current status.
-S10 is **not accepted**: raw serialization now has an approved preservation policy
-and initial backend/source integration; remaining implementation/acceptance is pending. Existing source and measured evidence
-remain canonical in SQLite.
+S10 is now accepted; see [final acceptance](s10-json-acceptance.md). The historical
+audits and reconciliations below retain their original scope and pending items;
+the final acceptance supersedes those status statements.
 
 | Contract requirement | Source and executable witnesses | Assessment |
 | --- | --- | --- |

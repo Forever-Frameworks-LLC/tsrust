@@ -1,15 +1,6 @@
 # S10 JSON
 
-Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
-standalone offline package export, typed JSON/JSONC imports, project aliases, and
-the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were most recently refreshed through `a462dc76`, including raw-field decoding, corrected lifetime hover and borrowed JSONL adapters, alias-reference repair, bounded encoding optimization, and typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
-guarded string reads, scalar extraction, typeof,
-array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
-its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
-Direct typed JSON decoding and encoding now have focused source acceptance.
-Typed JSONC and JSONL reads have focused source acceptance. Owned and borrowed JSONL readers/writers have focused source acceptance. Allocation evidence covers numeric, Unicode, nested/selective, malformed/deep decoding, numeric/Unicode/object/deep encoding and owned/borrowed JSONL reading/writing: 69 cases and 621 fresh-process samples. The [implemented-feature regression checkpoint](../milestones/s10-json-regressions.md) passes 3,395 compiler and 576 editor tests after focused repairs. Public raw validation and typed-field borrowing have focused acceptance and numeric/Unicode/deep/rejection/selective allocation, timing and RSS evidence. Exact-text raw serialization and JSONL newline rejection pass focused acceptance. Prepared encoding, repaired creation, selective decoding and end-to-end timing are retained. Final S10 contract review, current regressions and consumer refresh remain open. The initial 20-workload native/Node execution baseline is preserved.
-S09 is accepted.
+Status: S10 is accepted. See the [final acceptance](../milestones/s10-json-acceptance.md) for reconciled correctness, measurements, limitations, installed consumers and cleanup. The implementation chronology below retains original pending statements as historical evidence; they do not override that acceptance. S11 is next.
 
 The roadmap requires both dynamic owned JSON values and direct typed decoding.
 Typed decoding must not build a dynamic tree first. Schema fusion follows S11;
@@ -22,7 +13,7 @@ is accepted; continue the remaining runtime APIs and S10 acceptance below.
 
 See the [requirement-by-requirement contract audit](../milestones/s10-json-contract-audit.md) for the implemented evidence and remaining acceptance checks.
 
-## Current acceptance gaps
+## Pre-final acceptance checklist (historical)
 
 The implemented-feature regression checkpoint and measured baseline matrices are
 preserved in SQLite. Original runs and focused repairs remain separate records.
