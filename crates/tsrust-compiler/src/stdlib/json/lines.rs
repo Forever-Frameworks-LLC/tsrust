@@ -10,6 +10,14 @@ pub struct LineError {
  pub io_kind:Option<std::io::ErrorKind>,
  pub os_code:Option<i32>,
 }
+/// Native reader dispatch preserves each adapter's concrete owner or borrow.
+/// No trait object, reference counting, or lifetime conversion is involved.
+#[derive(Debug,Clone,PartialEq,Eq)]
+pub struct CloseError {pub code:&'static str,pub os_code:Option<i64>}
+pub trait Source {
+ fn read_jsonl(&mut self)->Result<Option<Value>,LineError>;
+ fn close_jsonl(self)->Result<(),CloseError>;
+}
 /// Buffer capacity belongs to the supplied reader. Borrowed adapters consume only
 /// the current record, preserving unread buffered bytes when stopped early.
 pub struct Lines<R:BufRead> {
@@ -124,6 +132,32 @@ mod tests {
    let error=reader.next().unwrap_err();assert_eq!(error.line,line);assert_eq!(error.error.code,code);assert_eq!(error.error.offset,offset);
    assert!(!format!("{error:?}").contains("secret"));assert_eq!(reader.next().unwrap_err(),error);
   }
+ }
+ #[test]
+ fn generic_reader_dispatch_keeps_borrowed_owner_and_unread_bytes() {
+  struct Borrowed<'a>(Lines<&'a mut std::io::Cursor<Vec<u8>>>);
+  impl Source for Borrowed<'_> {
+   fn read_jsonl(&mut self)->Result<Option<Value>,LineError>{self.0.next()}
+   fn close_jsonl(self)->Result<(),CloseError>{self.0.close_with(|_|Ok(()))}
+  }
+  fn read(source:&mut impl Source)->Result<Option<Value>,LineError>{source.read_jsonl()}
+  fn close(source:impl Source)->Result<(),CloseError>{source.close_jsonl()}
+  let mut owner=std::io::Cursor::new(b"0\nbad\n42\n".to_vec());
+  let mut first=Borrowed(Lines::new(&mut owner,limits()).unwrap());
+  assert_eq!(read(&mut first).unwrap(),Some(Value::from(0)));
+  close(first).unwrap();
+  assert_eq!(owner.position(),2);
+  let mut second=Borrowed(Lines::new(&mut owner,limits()).unwrap());
+  let error=read(&mut second).unwrap_err();
+  assert_eq!(error.error.code,"invalid-json");
+  assert_eq!(read(&mut second).unwrap_err(),error);
+  close(second).unwrap();
+  // A fresh adapter starts at the owner's preserved next record.
+  let mut third=Borrowed(Lines::new(&mut owner,limits()).unwrap());
+  assert_eq!(read(&mut third).unwrap(),Some(Value::from(42)));
+  assert_eq!(read(&mut third).unwrap(),None);
+  close(third).unwrap();
+  assert_eq!(owner.position(),9);
  }
  #[test]
  fn file_reader_preserves_read_ahead_across_jsonl_and_byte_reads() {

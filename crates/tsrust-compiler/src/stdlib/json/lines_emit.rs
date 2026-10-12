@@ -31,10 +31,10 @@ pub(crate) fn bridge(program:&CheckedProgram,binding:&NativeBinding)->String {
    let Type::Union(optional)=program.records[ok].fields[0].ty.unwrap() else{unreachable!()};
    let variants=&program.unions[optional.index()].members;
    let present=variants.iter().position(|ty|*ty==Type::Record(value)).unwrap();let absent=variants.iter().position(|ty|*ty==Type::Undefined).unwrap();
-   (format!("reader:&mut Record{reader}"),"reader.handle.next().map_err(|error|failure(error.error.code,error.error.message,\"read\",error.line,error.error.offset,error.os_code.map(i64::from)))".into(),
+   ("reader:&mut impl tsrust_native_json::lines::Source".into(),"reader.read_jsonl().map_err(|error|failure(error.error.code,error.error.message,\"read\",error.line,error.error.offset,error.os_code.map(i64::from)))".into(),
     format!("field0:match value{{Some(value)=>Union{optional}::V{present}(Record{value}{{value}}),None=>Union{optional}::V{absent}(TsrUndefined)}}",optional=optional.index()))
   },
-  "closeJsonl"=>(format!("reader:Record{reader}"),"reader.handle.close_with(|input|input.close()).map_err(|error|failure(error.code,\"Unable to close JSON Lines input\",\"close\",0,0,error.os_code))".into(),String::new()),
+  "closeJsonl"=>("reader:impl tsrust_native_json::lines::Source".into(),"reader.close_jsonl().map_err(|error|failure(error.code,\"Unable to close JSON Lines input\",\"close\",0,0,error.os_code))".into(),String::new()),
   _=>unreachable!(),
  };
  let NativeBackend::Bundled{symbol}=binding.backend;

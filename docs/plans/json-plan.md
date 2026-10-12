@@ -3,7 +3,7 @@
 Status: S10 remains open. Bounded dynamic JSON/JSONC, owned JSONL readers,
 standalone offline package export, typed JSON/JSONC imports, project aliases, and
 the approved JSON namespace have focused acceptance. Installed CLI/editor
-consumers were refreshed from `818459f3`, including child views, boolean refinement,
+consumers were refreshed from `ee1e2717`, including typed encoding/decoding, owned JSONL writers, complete JSON import hover, child views, boolean refinement,
 guarded string reads, scalar extraction, typeof,
 array/null inspection and reporting-only diagnostic suppression. Checked scalar extraction has [focused source acceptance](../milestones/json-scalars.md);
 its consumer refresh is verified. Borrowed child operations now have [focused source acceptance](../milestones/json-views.md). Scalar and container construction have focused source acceptance.
@@ -1067,3 +1067,18 @@ After workspace analysis settled, the editor showed 14 errors and 41 warnings;
 this refresh does not claim those remaining diagnostics are resolved.
 Evidence: tsrust-json-consumers-*-ee1e2717 in SQLite. This is a focused consumer
 refresh, not S10 family regression or measurement acceptance.
+
+
+### JSON Lines receiver dispatch foundation
+
+Native readJsonl and closeJsonl bridges now dispatch through a statically resolved
+reader capability. The existing owned representation implements that capability;
+its native layout and close behavior are unchanged. Borrowed implementations can
+retain their actual source lifetime without trait objects, shared owners, or
+lifetime conversion. The private borrowed witness verifies early close, unread
+bytes, terminal errors, owner reuse and a fresh adapter after failure.
+
+This prepares the native receiver boundary. Public borrowed reader declarations,
+returned-borrow contracts, typed-call receiver selection, editor documentation and
+matched workloads remain required before borrowed file adapters are accepted.
+Evidence: tsrust-json-reader-dispatch-*-d3426aff in SQLite. No timing acceptance.

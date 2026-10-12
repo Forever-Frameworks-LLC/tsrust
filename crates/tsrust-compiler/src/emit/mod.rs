@@ -2372,6 +2372,7 @@ impl Emitter<'_> {
             }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::JsonlReader) {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_json::lines::Lines<tsrust_native_files::buffered_fs::BufferedReader> }}");
+                let _=writeln!(output,"impl tsrust_native_json::lines::Source for Record{index} {{ fn read_jsonl(&mut self)->Result<Option<tsrust_native_json::Value>,tsrust_native_json::lines::LineError>{{self.handle.next()}} fn close_jsonl(self)->Result<(),tsrust_native_json::lines::CloseError>{{self.handle.close_with(|input|input.close()).map_err(|error|tsrust_native_json::lines::CloseError{{code:error.code,os_code:error.os_code}})}} }}");
                 continue;
             }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::StringView) {
