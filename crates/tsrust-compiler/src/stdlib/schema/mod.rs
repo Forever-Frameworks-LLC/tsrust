@@ -1,4 +1,4 @@
-//! Internal schema backend. No public source API is accepted yet.
+//! Public scalar schema integration and test-only composite backend groundwork.
 #[cfg(test)]
 mod issues;
 #[cfg(test)]

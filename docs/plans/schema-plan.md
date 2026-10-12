@@ -1,8 +1,9 @@
 # S11 schema validation
 
 Status: implementation started after [S10 acceptance](../milestones/s10-json-acceptance.md).
-Internal bounded issue collection and checked numeric plans have focused verification. No public
-schema API, type inference, decoder fusion or performance acceptance is claimed.
+Public string and boolean schemas have focused compiler, native and editor verification.
+Internal bounded issues, consuming arrays and checked numeric plans are also verified.
+Other constructors, composite source APIs, decoder fusion and family acceptance remain pending.
 
 ## Required surface and coverage
 
@@ -312,3 +313,18 @@ validation and error observation; it is not validation-only or a Zod comparison.
 SQLite evidence: `tsrust-schema-boolean-{red,check,final,editor,format,benchmark-tests,verify}-621ea809.log`.
 Both registered schema workloads remain unmeasured. Constraints, numeric/null
 constructors, composite schemas, broader typed inputs and S11 acceptance remain.
+
+## Consuming typed numeric backend
+
+Integer and number plans now implement the consuming typed validator contract used
+by arrays. Integer output stays i64 throughout; number output uses checked JSON
+extraction, rejects precision loss, and preserves negative zero. Missing input is
+reported separately from null. Nested failures preserve array indices and bounded
+issue collection cannot turn failed validation into success.
+
+Focused internal tests cover exact i64 endpoints in typed arrays, negative zero,
+fractional numbers, precision rejection with original paths, missing/null and
+zero issue budgets. These backend adapters remain test-only groundwork; public
+numeric constructors, generated runtime integration and matched numeric workloads
+are still required. No public API, timing or consumer refresh is claimed here.
+Evidence: `tsrust-schema-numeric-owned-{red,check,format}-00878231.log` in SQLite.

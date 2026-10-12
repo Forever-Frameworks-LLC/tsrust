@@ -64,11 +64,85 @@ impl NumericPlan {
     }
 }
 
+// Private wrappers fix the output type at plan construction, so collection
+// validators never need a dynamic numeric result or a lossy numeric conversion.
+pub(super) struct IntPlan(NumericPlan);
+pub(super) struct NumberPlan(NumericPlan);
+impl IntPlan {
+    pub(super) fn new(lower: Option<Bound<i64>>, upper: Option<Bound<i64>>) -> Result<Self, InvalidBounds> {
+        NumericPlan::int(lower, upper).map(Self)
+    }
+}
+impl NumberPlan {
+    pub(super) fn new(lower: Option<Bound<f64>>, upper: Option<Bound<f64>>) -> Result<Self, InvalidBounds> {
+        NumericPlan::number(lower, upper).map(Self)
+    }
+}
+impl super::scalar::Validate for IntPlan {
+    type Output = i64;
+    fn validate(&self, input: Option<json::Value>, path: &[Segment<'_>], issues: &mut Issues) -> Option<i64> {
+        let Some(input) = input else {
+            super::scalar::reject(None, Kind::Integer, path, issues);
+            return None;
+        };
+        self.0.validate_json(&input, path, issues).map(|output| match output {
+            Numeric::Int(value) => value,
+            Numeric::Number(_) => unreachable!("integer plan has fixed output type"),
+        })
+    }
+}
+impl super::scalar::Validate for NumberPlan {
+    type Output = f64;
+    fn validate(&self, input: Option<json::Value>, path: &[Segment<'_>], issues: &mut Issues) -> Option<f64> {
+        let Some(input) = input else {
+            super::scalar::reject(None, Kind::Number, path, issues);
+            return None;
+        };
+        self.0.validate_json(&input, path, issues).map(|output| match output {
+            Numeric::Number(value) => value,
+            Numeric::Int(_) => unreachable!("number plan has fixed output type"),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn value(text: &str) -> serde_json::Value { serde_json::from_str(text).unwrap() }
     fn issues() -> Issues { Issues::new(4, 8, 128) }
+    #[test]
+    fn consuming_numeric_arrays_keep_exact_typed_outputs() {
+        use super::super::{array::ArrayPlan, scalar::Validate};
+        let ints = ArrayPlan(IntPlan::new(None, None).unwrap());
+        let mut errors = issues();
+        let output: Vec<i64> = ints.validate(Some(value("[9223372036854775807,-9223372036854775808]")), &[], &mut errors).unwrap();
+        assert_eq!(output, [i64::MAX, i64::MIN]);
+        assert!(errors.is_valid());
+        let numbers = ArrayPlan(NumberPlan::new(None, None).unwrap());
+        let output: Vec<f64> = numbers.validate(Some(value("[-0.0,1.5]")), &[], &mut errors).unwrap();
+        assert_eq!(output[0].to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(output[1], 1.5);
+    }
+    #[test]
+    fn consuming_numeric_arrays_report_precision_and_original_paths() {
+        use super::super::{array::ArrayPlan, scalar::Validate, issues::OwnedSegment};
+        let plan = ArrayPlan(NumberPlan::new(None, None).unwrap());
+        let mut errors = issues();
+        assert!(plan.validate(Some(value("[1,9007199254740993,2]")), &[Segment::Field("values")], &mut errors).is_none());
+        assert_eq!(errors.items[0].code, Code::NumberPrecision);
+        assert_eq!(errors.items[0].path, [OwnedSegment::Field("values".into()), OwnedSegment::Index(1)]);
+        let ints = IntPlan::new(None, None).unwrap();
+        let mut errors = issues();
+        assert_eq!(ints.validate(None, &[], &mut errors), None);
+        assert_eq!(errors.items[0].code, Code::Missing);
+        assert_eq!(errors.items[0].expected, Kind::Integer);
+        assert_eq!(ints.validate(Some(value("null")), &[], &mut errors), None);
+        assert_eq!(errors.items[1].code, Code::Type);
+        assert_eq!(errors.items[1].observed, Kind::Null);
+        let mut hidden = Issues::new(0, 0, 0);
+        assert!(ints.validate(Some(value("1.5")), &[], &mut hidden).is_none());
+        assert!(!hidden.is_valid());
+    }
     #[test]
     fn integer_bounds_do_not_round_through_floating_point() {
         let plan = NumericPlan::int(Some(Bound { value: i64::MAX, inclusive: true }), None).unwrap();
