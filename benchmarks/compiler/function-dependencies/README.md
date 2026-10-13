@@ -24,6 +24,12 @@ oracle remains `7`. This exercises recursive access analysis without measuring
 runtime recursion. Its fixed protocol matches the acyclic workload, but its
 implementation validation and measurements are recorded separately.
 
+`--recursive --inferred` selects `inferred-recursive-manifest.json`. The first
+function has the independent scalar return that seeds the native recursive
+result; other functions forward it. The TypeScript counterpart retains explicit
+result annotations because TypeScript does not infer these recursive results.
+Control flow and the result oracle match; inference coverage does not.
+
 The first scoped release-compiler run retains 132 durations in SQLite as
 `tsrust-nesting-dependency-scaling.json`, with verified protocol and review in
 `tsrust-nesting-dependency-scaling-proof.json`. All four counts and three phases

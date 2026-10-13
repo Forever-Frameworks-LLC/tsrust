@@ -4,6 +4,7 @@ mod dependencies;
 
 struct DependencyGroup {
     members: Vec<usize>,
+    completion: Vec<usize>,
     recursive: bool,
 }
 
@@ -13,10 +14,26 @@ impl Analyzer {
     /// for a real defining context, and active recursive edges retain inference.
     pub(super) fn function(&mut self, index: usize) -> Result<(), Diagnostic> {
         if self.discovering_results || self.checked[index].is_some() { return Ok(()); }
-        if self.active_recursive_functions.contains(&index) { return Ok(()); }
+        if self.active_recursive_functions.contains(&index) {
+            if self.signatures[index].inferred_result && !self.provisional_results.contains_key(&index) {
+                return Err(self.missing_recursive_result(index));
+            }
+            return Ok(());
+        }
         if self.visiting[index] { return self.check_function_body(index).map(|_| ()); }
+        if self.scheduled_functions.contains(&index) {
+            let uncalled = self.check_function_body(index)?;
+            return if uncalled.is_empty() { Ok(()) } else { self.run_function_schedule(uncalled) };
+        }
+        self.run_function_schedule(vec![index])
+    }
+
+    // A suspended body that requests an already scheduled dependency needs only
+    // dispatch, not another copy of the worklist interpreter's stack frame.
+    #[inline(never)]
+    fn run_function_schedule(&mut self, roots: Vec<usize>) -> Result<(), Diagnostic> {
         enum Work { Schedule(usize), Group(DependencyGroup), Check(usize), ReleaseGroup(Vec<usize>), Release(Vec<usize>) }
-        let mut pending = vec![Work::Schedule(index)];
+        let mut pending = roots.into_iter().rev().map(Work::Schedule).collect::<Vec<_>>();
         let mut inserted = Vec::new();
         let mut recursive_inserted = Vec::new();
         let result = (|| {
@@ -41,6 +58,7 @@ impl Analyzer {
                             if self.assumed_modes.is_none() {
                                 return Err(Diagnostic::new("recursion-inference", "Recursive access inference is required.", self.program.functions[group.members[0]].name.span));
                             }
+                            self.seed_recursive_results(&group.members)?;
                             for &id in &group.members {
                                 if self.active_recursive_functions.insert(id) { recursive_inserted.push(id); }
                                 if self.signatures[id].params.iter().any(|ty| matches!(ty, Type::Callback(_))) {
@@ -48,10 +66,10 @@ impl Analyzer {
                                 }
                             }
                             pending.push(Work::ReleaseGroup(group.members.clone()));
-                            // Callees later in the traversal publish their access
-                            // first. Forwarding cycles then converge without one
-                            // whole-program pass for every edge in the cycle.
-                            pending.extend(group.members.into_iter().map(Work::Check));
+                            // Actual DFS completion order also handles shared
+                            // callees: reversing discovery alone can put a sibling
+                            // before the inferred result that it depends on.
+                            pending.extend(group.completion.into_iter().rev().map(Work::Check));
                         } else {
                             pending.extend(group.members.into_iter().rev().map(Work::Check));
                         }
@@ -78,12 +96,40 @@ impl Analyzer {
 
     fn recursive_summary_is_complete(&self, index: usize) -> bool {
         let signature = &self.signatures[index];
-        !signature.inferred_result && matches!(signature.result,
+        if signature.inferred_result {
+            // These contexts contain only the declared scalar parameters.
+            // Defaults, destructuring, captures and concrete environments still
+            // require a suspended full function context, not a guessed seed.
+            return !self.named_captures.needs_context(index) && !self.templates.contains_key(&index)
+                && self.program.functions[index].parameter_initializers.iter().all(|initializer| matches!(initializer, ParameterInitializer::Required))
+                && signature.body_params.iter().all(|ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String));
+        }
+        matches!(signature.result,
             Type::Void | Type::Int | Type::Number | Type::Boolean | Type::String
             | Type::Null | Type::Undefined | Type::Enum(..) | Type::Literal(..)
             | Type::Array(ArrayElement::Int(_) | ArrayElement::Number(_) | ArrayElement::Boolean(_)
                 | ArrayElement::String(_) | ArrayElement::Null(_) | ArrayElement::Undefined(_)
                 | ArrayElement::Enum(..) | ArrayElement::Literal(..)))
+    }
+
+    fn seed_recursive_results(&mut self, members: &[usize]) -> Result<(), Diagnostic> {
+        for &index in members {
+            if !self.signatures[index].inferred_result || self.provisional_results.contains_key(&index) { continue; }
+            let function = &self.program.functions[index];
+            let mut context = Context::new(function.name.text.clone());
+            for ((parameter, _, _), &ty) in function.params.iter().zip(&self.signatures[index].body_params) {
+                Self::bind(&mut context, parameter, ty, true)?;
+            }
+            if let Some(result) = self.provisional_result(&context, &function.body) {
+                self.provisional_results.insert(index, result);
+                self.signatures[index].result = result;
+            }
+        }
+        Ok(())
+    }
+
+    fn missing_recursive_result(&self, index: usize) -> Diagnostic {
+        Diagnostic::new("result-inference", "The result type of this recursive function cannot be inferred: every return depends on the recursive call or on a local variable. Add a result annotation.", self.program.functions[index].name.span)
     }
 
     fn function_dependency_order(&self, root: usize) -> Vec<DependencyGroup> {
@@ -118,6 +164,7 @@ impl Analyzer {
         // a group keep its first source traversal entry first: provisional
         // inferred results must be seeded by the same entry as direct checking.
         let mut groups = Vec::new();
+        let finish_rank = finish.iter().enumerate().map(|(rank, &index)| (index, rank)).collect::<HashMap<_, _>>();
         let mut seen = HashSet::new();
         for &root in finish.iter().rev() {
             if !seen.insert(root) { continue; }
@@ -131,7 +178,9 @@ impl Analyzer {
             }
             group.sort_unstable_by_key(|index| discovery[index]);
             let recursive = group.len() > 1 || parents.get(&root).is_some_and(|parents| parents.contains(&root));
-            groups.push(DependencyGroup { members: group, recursive });
+            let mut completion = group.clone();
+            completion.sort_unstable_by_key(|index| finish_rank[index]);
+            groups.push(DependencyGroup { members: group, completion, recursive });
         }
         groups.into_iter().rev().collect()
     }
@@ -199,7 +248,7 @@ impl Analyzer {
                 // A return that does not depend on the recursive call fixes the
                 // type; the finished body is then checked against it as usual.
                 let Some(&provisional) = self.provisional_results.get(&index) else {
-                    return Err(Diagnostic::new("result-inference", "The result type of this recursive function cannot be inferred: every return depends on the recursive call or on a local variable. Add a result annotation.", name.span));
+                    return Err(self.missing_recursive_result(index));
                 };
                 self.signatures[index].result = provisional;
             }

@@ -126,3 +126,37 @@ fn recursive_group_propagates_owned_access_without_changing_runtime_order() {
     assert_eq!(&source[error.span.start..error.span.end], "text");
     assert!(error.span.start > source.find("cycle0(text").unwrap());
 }
+
+fn inferred_cycle(length: usize) -> String {
+    (0..length).map(|index| {
+        let seed = if index == 0 { "if (remaining === 0) { return value; }" } else { "" };
+        let remaining = if index + 1 == length { "remaining - 1" } else { "remaining" };
+        format!("function cycle{index}(value: int, remaining: int) {{ {seed} return cycle{}(value, {remaining}); }}\n", (index + 1) % length)
+    }).collect()
+}
+
+#[test]
+fn deep_inferred_recursive_group_preserves_entry_seed_and_shared_dependencies() {
+    let mut source = inferred_cycle(2048);
+    source.push_str("function main() { console.log(cycle0(7, 1)); }");
+    let source = support::format_round_trip(&source);
+    let checked = check(&source).unwrap();
+    assert!(checked.emit_rust().contains("fn function2047"));
+    drop(checked);
+    let mut source = inferred_cycle(256);
+    source.push_str("function main() { console.log(cycle0(7, 1)); }");
+    support::execute(&source, "7\n", None);
+    support::execute("function root(n:int){if(n===0){return 7;}return left(n-1)+right(n-1);}function left(n:int){return root(n);}function right(n:int){return left(n);}function main(){console.log(root(1));}", "14\n", None);
+}
+
+#[test]
+fn inferred_cycle_cannot_take_its_entry_seed_from_another_function() {
+    let source = "function first(n:int){return second(n);}function second(n:int){if(n===0){return 7;}return first(n-1);}function main(){}";
+    let error = check(source).err().expect("recursive entry has no independent result");
+    assert_eq!(error.code, "result-inference");
+    assert_eq!(&source[error.span.start..error.span.end], "first");
+    let source = "function first(n:int){const answer=7;if(n===0){return answer;}return second(n-1);}function second(n:int){return first(n);}function main(){}";
+    let error = check(source).err().expect("locals remain outside provisional inference");
+    assert_eq!(error.code, "result-inference");
+    assert_eq!(&source[error.span.start..error.span.end], "first");
+}

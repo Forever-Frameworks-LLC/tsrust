@@ -199,3 +199,52 @@ original outputs are preserved and the affected/unrun suites subsequently pass.
 The 32- and 2,048-function recursive sources pass all three untimed benchmark
 phases. SQLite records use the `tsrust-nesting-recursive-groups` prefix, including
 the exact generated sources and six validated groups in `-untimed.json`.
+
+## Inferred recursive results in progress
+
+Recursive groups now retain actual DFS completion order as well as discovery
+order. Reversing discovery alone is insufficient when a later sibling depends
+on an earlier sibling's inferred result. Eligible inferred functions publish
+only their existing independent-return hint, using a context of required scalar
+parameters. A call to an unfinished inferred member without that hint reports
+the existing `result-inference` diagnostic at the declaration's original span.
+No seed is invented from another function or from an unresolved local.
+
+The normal-stack witness includes a 2,048-function inferred cycle; a shorter
+256-function cycle and a shared-callee graph execute natively. Negative witnesses
+preserve the entry-seed and local-variable boundaries. Editor coverage adds a
+512-function inferred cycle with scalar result hover. The matched compilation
+manifest uses explicit result annotations in TypeScript, whose recursive
+inference differs; this distinction is recorded with the workload.
+
+Defaulted/destructured parameter contexts, captured environments and generic
+templates retain their previous path until full context suspension is available.
+Callable results, record-dependent calls and deep syntax remain pending. This
+section does not claim complete nesting acceptance or new timing measurements.
+
+The first batch exposed stack exhaustion in the still-recursive callable-result
+path: each nested request also carried a worklist interpreter frame. The dispatch
+method now routes an already scheduled request directly to body checking; the
+separate interpreter owns its queue only where scheduling is needed. Existing
+callable-result and callback suites pass after that repair, with unchanged stack
+sizes and depth guards. The aborted original run is retained in SQLite rather
+than replaced by the repaired output.
+
+The remaining audit includes parser blocks/expressions and 32-level destructuring
+in `syntax/mod.rs`; recursive annotation parsing in `types/syntax.rs`; the
+128-level substitution checks in `types/substitution.rs`; block/expression and
+callable analysis; and recursive statement/expression error effects in
+`error_effects/mod.rs`. The latter currently widens to unknown effects at depth
+128, so removing parser limits alone would change typed catches. Syntax clone
+and drop paths must be converted with these consumers. The emitter's worklist
+depth cutoff in `small_record` is an optimization decision, while generated
+console truncation is runtime behavior; neither is a compiler-stack workaround.
+
+The retained batches cover 91 passing compiler integration checks and two editor
+witnesses. After the interpreter-frame repair, dependency and lexical-capture
+suites were rerun along with callable results and callbacks. Whole-project
+formatting changes zero files/fingerprints. Untimed native check/emission and
+TypeScript checking pass at 32 and 2,048 functions; the native phases are repeated
+after the dispatch repair. SQLite retains the original failure and all subsequent
+records under `tsrust-nesting-inferred-groups`, including exact generated sources,
+source hashes and separate untimed evidence. No timing samples were collected.

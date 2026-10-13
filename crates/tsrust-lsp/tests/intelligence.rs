@@ -10000,3 +10000,18 @@ fn large_recursive_function_group_keeps_hover_and_diagnostics() {
     let hover = ask(&source, "textDocument/hover", "result =", 0);
     assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
 }
+
+#[test]
+fn large_inferred_recursive_group_keeps_result_hover() {
+    let mut source = String::new();
+    for index in 0..512 {
+        let seed = if index == 0 { "if(value===0){return 7;}" } else { "" };
+        source.push_str(&format!("function cycle{index}(value:int){{{seed}return cycle{}(value-1);}}\n", (index + 1) % 512));
+    }
+    source.push_str("function main(){const result=cycle0(0);console.log(result);}");
+    let source = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let hover = ask(&source, "textDocument/hover", "result =", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
+}
