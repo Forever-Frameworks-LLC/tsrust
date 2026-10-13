@@ -909,3 +909,28 @@ record type joins that wrapper completion may invoke. Carrier retargeting, joins
 result discovery and statement emission remain open. There is no new public
 contract, consumer refresh, formal scaling acceptance or compiler-wide nesting
 acceptance in this checkpoint.
+
+### Shared record and scoped-map type joins
+
+`analysis/carrier_type_join.rs` now owns one continuation stack for record joins
+and scoped-map value joins. This removes the mutual recursion between
+`join_record_types` and `join_scoped_map_types`, including mixed record/map paths.
+Record fields retain their original order and checked span. Direct record fields
+keep the original left-type fallback when a child has no join; array record
+fields still require a successful child join with matching rank. Map validation,
+callable-family fallback and parent layout materialization retain their previous
+order and conditions.
+
+All 285 analysis tests pass. New witnesses cover 16,384 record layers on normal
+stacks, left fallback, array-rank and child-join rejection, incompatible scalars,
+and non-map inputs. Native validation passes all 42 scoped callable record tests
+and 11 scoped record composition tests selected by `origins`, exercising distinct
+callback origins through records, maps, arrays, loops and storage replacement.
+Whole-project formatting changes zero files or fingerprints. Evidence is stored
+in SQLite under `tsrust-nesting-carrier-join-*`.
+
+The completed earlier 257-test native run remains preserved; this change reruns
+affected suites rather than restarting that full composition pass. No formal
+scaling measurement, public contract change or consumer refresh is claimed.
+Expression carrier retargeting, literal record-value joins, result discovery and
+statement emission remain connected work before full architecture acceptance.

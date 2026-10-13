@@ -181,3 +181,7 @@ and canonical/per-destination finally replay use the same checker worklist.
 Preserve replay order, declaration prefixes, catch shadow restoration and delayed
 publication of successful handler bookkeeping. Exception-bearing closure bodies
 use the callable task in the driver instead of opening another checker driver.
+
+Record and scoped-map carrier type joins share `analysis/carrier_type_join.rs`.
+Keep nested record fields, array record elements and map values on that module's
+continuation stack so mixed aggregate joins cannot re-enter a recursive driver.

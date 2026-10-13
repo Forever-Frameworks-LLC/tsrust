@@ -393,28 +393,7 @@ impl Analyzer {
         if left==right{return Ok((left!=a || right!=b).then_some(Type::Record(left)));}
         Ok(self.join_record_types(left,right,span)?.or((left!=a).then_some(Type::Record(left))))
     }
-    pub(super) fn join_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
-        let declaration=self.scoped_records.declaration(a);if declaration!=self.scoped_records.declaration(b){return Ok(None);}
-        let mut fields=Vec::new();let mut changed=false;
-        let pairs=self.program.records[a].fields.iter().zip(&self.program.records[b].fields).map(|(a,b)|(a.ty.unwrap(),b.ty.unwrap())).collect::<Vec<_>>();
-        for(left,right) in pairs{
-            // An absent callback names no environment; the other side is the join.
-            let joined=if left==right{left}else if self.absent_callable_type(left) && matches!(right,Type::Closure(_)|Type::BorrowedCallable(_)){right}
-            else if self.absent_callable_type(right) && matches!(left,Type::Closure(_)|Type::BorrowedCallable(_)){left}
-            else if let Some(joined)=self.common_native_view_storage(left,right,span)?{joined}
-            else if let(Type::Record(a),Type::Record(b))=(left,right){self.join_record_types(a,b,span)?.unwrap_or(left)}else if let(Type::Array(ArrayElement::Record(a, depth)),Type::Array(ArrayElement::Record(b, other_depth)))=(left,right) {
-                if depth != other_depth { return Ok(None); }
-                let Some(Type::Record(record)) = self.join_record_types(a,b,span)? else { return Ok(None); };
-                Type::Array(ArrayElement::Record(record,depth))
-            }else if let Some(map)=self.join_scoped_map_types(left,right,span)?{map}else if let Some(family)=self.common_borrowed_conditional_family(left,right,span)?{Type::BorrowedCallable(family)}
-            else if let Some(family)=self.record_field_callback_family(left,right,span)?{Type::BorrowedCallable(family)}else{return Ok(None);};
-            changed|=joined!=left || joined!=right;fields.push(joined);
-        }
-        if !changed{return Ok(None);}
-        let instance=self.scoped_records.materialize(declaration,fields,&mut self.program.records);
-        if self.fields.len()<=instance{self.fields.push(self.program.records[instance].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
-        Ok(Some(Type::Record(instance)))
-    }
+
 
 }
 

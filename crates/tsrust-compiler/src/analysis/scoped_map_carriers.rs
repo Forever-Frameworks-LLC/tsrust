@@ -2,19 +2,7 @@
 use super::*;
 
 impl Analyzer {
-    pub(super) fn join_scoped_map_types(&mut self, left: Type, right: Type, span: Span) -> Result<Option<Type>, Diagnostic> {
-        let (Type::Map(left), Type::Map(right)) = (left, right) else { return Ok(None); };
-        if self.program.records[left].native_type!=self.program.records[right].native_type{return Ok(None);}
-        let a = self.program.records[left].map_definition.as_ref().unwrap().clone();
-        let b = self.program.records[right].map_definition.as_ref().unwrap().clone();
-        if a.key != b.key || !self.aggregate_callable_facts(a.value).scoped || !self.aggregate_callable_facts(b.value).scoped { return Ok(None); }
-        let (Type::Record(a), Type::Record(b)) = (a.value, b.value) else { return Ok(None); };
-        let value = if a == b { Type::Record(a) } else {
-            let Some(value) = self.join_record_types(a, b, span)? else { return Ok(None); };
-            value
-        };
-        Ok(Some(Type::Map(self.scoped_map_value_instance(left, value))))
-    }
+
 
     pub(super) fn contains_scoped_map_storage(&self, ty: Type) -> bool {
         let mut pending = vec![ty];

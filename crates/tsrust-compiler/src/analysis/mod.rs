@@ -77,6 +77,7 @@ pub(crate) use storage_exit_availability::MapEntryEpoch;
 pub(crate) use map_completion_payloads::Phase as MapCompletionPhase;
 mod record_array_carriers;
 mod record_value_carriers;
+mod carrier_type_join;
 mod record_storage_writes;
 mod record_branch_carriers;
 mod named_capture_context;
