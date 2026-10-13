@@ -101,3 +101,20 @@ Installed check/run and imported-schema hover pass. The active `tsrust_test` edi
 reports no problems after restart. A focused imported-arrow editor witness also
 passes hover, definition and signature-help checks. Exported arrow native execution
 was verified across two modules. These checks do not replace S11 milestone acceptance.
+
+### Imported test callbacks and diagnostic locations (2026-10-12)
+
+Owner reported `return message` consuming module storage with a squiggle on the
+module declaration. Validation now collects consuming use spans from checked
+capture bindings and program storage, selects deterministically, and retains the
+owner declaration as related information. A focused source regression asserts
+the exact returned identifier span.
+
+Returning `clone(message)` fixes consumption, but a test callback calling that
+function still borrows program storage transitively. The existing test registry
+stores owned static callbacks. The callback diagnostic now explains indirect
+state dependencies and reports borrowed capture sites. Safe support requires a
+test registry scoped to the program owner, with explicit execution/disposal before
+that owner is dropped; do not erase lifetimes or clone module state implicitly.
+Until supported, moving the literal into `greeting()` removes this dependency.
+This remains a public test/module integration limitation, not a user cloning error.

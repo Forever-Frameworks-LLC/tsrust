@@ -53,24 +53,32 @@ pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
 /// A module binding remains available for the entire program. A named function
 /// cannot consume its owner as though it were a one-shot lexical environment.
 pub(crate) fn validate(program: &crate::analysis::CheckedProgram) -> Result<(), Diagnostic> {
+    let mut consuming_uses = Vec::new();
     if let Some(owner) = program.functions.iter().find(|function| function.name == "main") {
         for binding in &owner.bindings {
             if binding.declaration_span.is_some_and(|span| program.module_owner_bindings.contains(&span))
                 && (binding.transferred.is_some() || !binding.moved_fields.is_empty()) {
-                return Err(Diagnostic::new("module-state-consume",
-                    "Cannot leave program-owned module storage consumed; use explicit clone() for an owned copy.",
-                    binding.transferred.or(binding.declaration_span).unwrap_or_default()));
+                consuming_uses.push((binding.transferred.or(binding.declaration_span).unwrap_or_default(),
+                    binding.declaration_span.unwrap_or_default()));
             }
         }
     }
-    for accesses in program.named_capture_access.values() {
+    for (&function, accesses) in &program.named_capture_access {
         for access in accesses {
             if access.binding.owner != 0 || access.mode != crate::Mode::Consume { continue; }
             if let Some(span) = program.module_owner_bindings.iter().find(|span| span.start == access.binding.declaration_start) {
-                return Err(Diagnostic::new("module-state-consume",
-                    "Cannot consume program-owned module storage; borrow it or use explicit clone() for an owned copy.", *span));
+                let binding = &program.functions[function].bindings[access.slot];
+                let use_span = binding.transferred
+                    .or_else(|| binding.moved_fields.values().copied().min_by_key(|span| span.start))
+                    .or(binding.used).unwrap_or(*span);
+                consuming_uses.push((use_span, *span));
             }
         }
+    }
+    if let Some((use_span, declaration)) = consuming_uses.into_iter().min_by_key(|(span, _)| (span.start, span.end)) {
+        return Err(Diagnostic::new("module-state-consume",
+            "Cannot consume program-owned module storage; borrow it or use explicit clone() for an owned copy.", use_span)
+            .related(declaration, "Program-owned storage is declared here."));
     }
     Ok(())
 }
@@ -88,6 +96,15 @@ mod tests {
         assert!(matches!(&program.functions[0].body[0].kind, StmtKind::Let { name, .. } if name.text == "first"));
         assert!(matches!(&program.functions[0].body[1].kind, StmtKind::Let { name, .. } if name.text == "second"));
         assert!(program.local_capture_plans.iter().flat_map(|plan| &plan.direct).flatten().any(|capture| capture.name == "second"));
+    }
+
+    #[test]
+    fn consuming_module_storage_points_to_return_use() {
+        let source = "const message = 'hello'; function greeting(): string { return message; } function main() { console.log(greeting()); }";
+        let error = crate::check(source).err().expect("module consumption must fail");
+        assert_eq!(error.code, "module-state-consume");
+        let start = source.find("return message").unwrap() + "return ".len();
+        assert_eq!(error.span, Span::new(start, start + "message".len()));
     }
 
     #[test]

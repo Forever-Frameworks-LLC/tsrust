@@ -54,12 +54,17 @@ impl StorageContract {
                     span,
                 ).related(closure.span,"Carried byte-view environment is created here."));
             }
-            return Err(Diagnostic::new(
+            let mut diagnostic = Diagnostic::new(
                 "callback-escape",
-                "An owned callback requires an environment without borrowed captures.",
+                "An owned callback cannot retain borrowed state, including state borrowed through a called function. Returning clone(state) from that function does not remove its dependency on state. Create owned data before constructing the callback, or remove the function's dependency on outer state.",
                 span,
-            )
-            .related(closure.span, "Borrowed environment is created here."));
+            ).related(closure.span, "Borrowed environment is created here.");
+            for capture in &closure.captures {
+                if matches!(capture.storage, Mode::Read | Mode::Mutate) {
+                    diagnostic = diagnostic.related(capture.span, "This capture requires the outer owner to remain alive.");
+                }
+            }
+            return Err(diagnostic);
         }
         if matches!(self, Self::SharedRead(_) | Self::OwnedRead(_)) && closure.invocation != Mode::Read {
             let message=if matches!(self,Self::SharedRead(_)){"Shared callback storage requires readonly invocation; mutable captures cannot be shared."}else{"Owned readonly callback storage requires readonly invocation; mutable captures are not permitted."};
@@ -174,6 +179,10 @@ fn environment_admission_preserves_origin_and_rejects_borrowed_or_consuming_reus
         assert_eq!(error.code, code);
         assert_eq!(error.span, span);
         assert_eq!(error.related[0].0, closure.span);
+        if code == "callback-escape" {
+            assert!(error.message.contains("through a called function"));
+            assert!(error.message.contains("Create owned data before"));
+        }
     }
 }
 
