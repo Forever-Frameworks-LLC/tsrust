@@ -19,6 +19,50 @@ scaling evidence. Finish affected sections before validation. Full compiler/LSP
 regressions belong at the completed architecture milestone. Keep original failures
 and measurements in SQLite and resume affected/unrun checks.
 
+## Owner correction: architecture and empirical resource limits
+
+The owner's 2026-10-13 direction supersedes the incremental limit-oriented
+approach in the historical sections below. The [pipeline and continuation map](compiler-nesting-pipeline.md)
+records current re-entry and state ownership. Existing constants and convenient
+passing test sizes must not determine the target architecture or acceptance
+boundary. Repeated local guard removal is not the development plan.
+
+Before further local traversal changes, map the complete parse, materialization,
+proof analysis, type checking, emission and disposal path, including re-entry
+between phases. Identify who owns suspended state, how results resume consumers,
+how scopes and diagnostic locations survive suspension, and where dependency
+facts can be reused without losing point-sensitive capture or ownership facts.
+Use that map to implement coherent architectural sections, including their
+cross-phase dependencies. Checkpoints preserve recovery; they do not turn each
+helper conversion into a separate acceptance milestone.
+
+The target is compilation of finite inputs without source-depth-dependent host
+stack consumption. Explicit continuations must preserve evaluation and diagnostic
+order. Dependency analysis must avoid repeatedly traversing completed downstream
+work and copying unrelated caller state. Storage, hashing, cloning and disposal
+costs belong in the same design; replacing recursion with a worklist alone does
+not establish acceptable scaling.
+
+Existing depth, per-declaration and program-instance constants are migration debt
+to audit, not presumed fundamental limits. Do not introduce replacement constants
+before establishing their purpose and evidence. Distinguish semantic cycles or
+nonconverging specialization from finite expensive input and actual resource
+exhaustion. Any retained or new resource policy must be justified by observed work
+or memory costs and account for device capacity. The precise policy remains to be
+derived from evidence, rather than selecting another arbitrary nesting ceiling.
+Temporary guards must be documented and removed as their underlying recursive or
+unbounded paths are resolved; deleting a guard without fixing that path is not
+acceptance either.
+
+Use geometrically growing stress inputs across the complete pipeline to discover
+scaling changes and actual failure modes. Record time, memory, work counts, source
+shape, machine conditions and the phase that fails. Operational test timeouts
+protect the development machine; they are not language limits or evidence that a
+larger input is unsupported. Fixed-size regression witnesses remain useful samples,
+but 64, 128, 512 or any other passing count is not the intended support ceiling.
+Keep benchmark protocols and original evidence intact, and separate diagnostic
+exploration from formal matched measurements.
+
 ## Required optimization phase after nesting
 
 The owner requires optimization of existing code before S12–S21 continuation.

@@ -279,3 +279,6 @@ pub(crate) fn diagnostic_error(source: &str, error: Diagnostic) -> Vec<Diagnosti
 }
 
 pub(crate) use types::unions as unions;
+
+#[cfg(test)]
+mod nesting_probe;
