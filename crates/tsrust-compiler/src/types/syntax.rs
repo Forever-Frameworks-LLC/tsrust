@@ -222,6 +222,49 @@ pub(crate) fn parse_parameter_prefix(
     Ok((parser.access.take(), value?, end))
 }
 
+/// Type arguments after `<`, through the closing `>`. Reading the list here
+/// lets one packed closer end both the last argument and the list. Returns
+/// the cursor to continue from: after the list, or where a failed argument
+/// started.
+pub(crate) fn parse_arguments(
+    tokens: &mut Vec<Token>,
+    index: usize,
+    depth: usize,
+    policy: NestingPolicy,
+) -> (Result<Vec<ValueAnnotation>, Diagnostic>, usize) {
+    let mut parser = AnnotationParser::new(tokens, index, policy, false, None);
+    let mut arguments = Vec::new();
+    let mut failed = None;
+    let result = loop {
+        let start = parser.index;
+        let argument = bounded_nesting(parser.tokens, start, depth, policy).and_then(|()| parser.annotation(depth));
+        match argument {
+            Ok(argument) => arguments.push(argument),
+            Err(error) => {
+                failed = Some(start);
+                break Err(error);
+            }
+        }
+        if arguments.len() > 128 {
+            break Err(Diagnostic::new("generic-limit", "Explicit type argument count exceeds 128.", parser.peek().span));
+        }
+        if parser.is(",") {
+            parser.take();
+            continue;
+        }
+        if parser.peek().kind == TokenKind::Symbol && matches!(parser.peek().text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=") {
+            parser.close_packed();
+        } else if parser.is(">") {
+            parser.take();
+        } else {
+            break Err(Diagnostic::new("syntax", "Expected \">\".", parser.peek().span));
+        }
+        break Ok(arguments);
+    };
+    let end = parser.finish();
+    (result, failed.unwrap_or(end))
+}
+
 /// Whether one result annotation at `index` is followed by `=>`. The probe
 /// reads packed closers in place, so the token stream is unchanged.
 pub(crate) fn arrow_follows_prefix(tokens: &mut Vec<Token>, index: usize, policy: NestingPolicy) -> bool {
@@ -424,10 +467,18 @@ impl<'a> AnnotationParser<'a> {
         Token { text: ">".into(), span: Span::new(at - 1, at), kind: TokenKind::Symbol }
     }
 
-    /// Rewrite every packed closer this parse consumed with one token move.
-    /// The result is the stream that one split per closer produces. Returns
-    /// the cursor in the rewritten stream.
+    /// End the parse at a token boundary. A packed closer that was consumed
+    /// whole stays one token behind the cursor. When the cursor is inside a
+    /// packed closer, that token is rewritten as its separate `>` closers and
+    /// its rest, so the caller continues at an ordinary token. Returns the
+    /// cursor in the resulting stream.
     fn finish(&mut self) -> usize {
+        if self.remainder.is_none() {
+            self.closers.clear();
+            return self.index;
+        }
+        let keep = self.closers.len() - 1;
+        self.closers.drain(..keep);
         let Some(first) = self.closers.first().map(|closer| closer.index) else {
             return self.index;
         };

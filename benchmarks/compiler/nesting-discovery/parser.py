@@ -72,6 +72,7 @@ def valid(family, size):
         'alias-chain': lambda: 'type A0=int;' + ''.join(f'type A{i + 1}=A{i}[];' for i in range(n)) + f'function main(){{const v:A{n}=x;}}',
         'interface-chain': lambda: 'interface I0{f0:int}' + ''.join(f'interface I{i + 1} extends I{i}{{f{i + 1}:int}}' for i in range(n)) + 'function main(){}',
         'enum-initializer': lambda: 'enum E{A=' + '(' * n + '1' + ')' * n + ',B=' + '+'.join(['1'] * n) + ',C=' + '-' * 1 + '~' * n + '1}function main(){}',
+        'generic-closers-spaced': lambda: main_body(''.join('const v' + str(i) + ': Map<string, Array<Box<int>>> = f((a: Box<Box<int>>): Box<Box<int>> => a);' for i in range(n))),
         'generic-closers': lambda: main_body(''.join('const v' + str(i) + ':Map<string,Array<Box<int>>>=f((a:Box<Box<int>>):Box<Box<int>>=>a);' for i in range(n))),
         'declarators-many': lambda: main_body('const ' + ','.join(f'v{i}=[{i}]' for i in range(n)) + ';'),
         # Expressions inside defaults inside closures inside control-flow bodies.
@@ -126,7 +127,7 @@ VALID = ['parentheses', 'blocks', 'arrays', 'records', 'calls', 'indexes', 'temp
          'named-function-expressions', 'closure-defaults', 'named-functions', 'named-defaults', 'if-nested', 'if-braceless',
          'else-if-chain', 'loops-nested', 'try-nested', 'switch-nested', 'switch-clauses', 'match-nested', 'match-arms',
          'labels-nested', 'pattern-arrays', 'pattern-records', 'pattern-defaults', 'pattern-parameters', 'pattern-assignment',
-         'statements-many', 'declarators-many', 'alias-chain', 'interface-chain', 'enum-initializer', 'generic-closers', 'defaults-closures-control', 'annotations-generics-defaults', 'literals-mixed',
+         'statements-many', 'declarators-many', 'alias-chain', 'interface-chain', 'enum-initializer', 'generic-closers', 'generic-closers-spaced', 'defaults-closures-control', 'annotations-generics-defaults', 'literals-mixed',
          'statements-mixed', 'everything-mixed', 'type-groups', 'type-applied', 'type-arrays', 'type-tuples', 'type-arrows',
          'type-arrow-parameters', 'type-functions', 'type-function-arguments', 'type-union-width', 'type-mixed']
 MALFORMED = ['deep-missing-operand', 'deep-closure-error', 'deep-default-error', 'deep-pattern-error', 'deep-type-error',

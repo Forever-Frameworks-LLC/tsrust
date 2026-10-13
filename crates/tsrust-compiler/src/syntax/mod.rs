@@ -3213,27 +3213,17 @@ impl Parser<'_> {
         }
         false
     }
-    fn explicit_call_arguments(
-        &mut self,
-    ) -> Result<Vec<crate::type_syntax::ValueAnnotation>, Diagnostic> {
+    fn explicit_call_arguments(&mut self) -> Result<Vec<crate::type_syntax::ValueAnnotation>, Diagnostic> {
         self.expect("<")?;
-        let mut arguments = Vec::new();
-        loop {
-            arguments.push(self.value_annotation()?);
-            if arguments.len() > 128 {
-                return Err(Diagnostic::new(
-                    "generic-limit",
-                    "Explicit type argument count exceeds 128.",
-                    self.peek().span,
-                ));
+        let (arguments, next) = crate::type_syntax::parse_arguments(&mut self.tokens, self.i, self.depth, self.policy);
+        self.i = next;
+        let mut arguments = arguments?;
+        if !self.aliases.is_empty() {
+            for argument in &mut arguments {
+                crate::type_aliases::expand(argument, &self.aliases);
             }
-            if self.accept(",") {
-                continue;
-            }
-            crate::type_syntax::split_closer(&mut self.tokens, self.i);
-            self.expect(">")?;
-            return Ok(arguments);
         }
+        Ok(arguments)
     }
 
     fn optional_identity(mut expr: &Expr) -> &Expr {
