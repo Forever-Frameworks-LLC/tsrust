@@ -424,3 +424,30 @@ failures and affected repairs are preserved in SQLite under
 `tsrust-nesting-annotation-conversion`. Whole-project formatting changes zero files
 and fingerprints. Installed consumers remain on the last public behavior
 checkpoint; no timing or allocation measurements are claimed for this section.
+
+## Substitution continuations in progress
+
+Generic substitution now keeps parent annotations and child addresses in explicit
+frames. Children move into and out of these frames without cloning the input tree.
+Only supplied replacement arguments are cloned, as before. Simultaneous bindings
+do not re-enter replacement syntax. Parameter access adjustments occur only after
+the corresponding child completes. On an error, frames restore the exact partially
+visited tree: earlier substitutions remain, later siblings remain untouched, and
+the first diagnostic retains its original span.
+
+Private containment projection and copy-mode classification also use heap worklists.
+The production 128-level admission boundary remains because type resolution still
+has recursive consumers. Tests invoke the same substitution engine without that
+boundary to prove 16,384-level traversal, projection, classification and production
+structured-tree disposal. This is evidence for removing the substitution call-stack
+dependency, not public deep-source acceptance. Remove the admission boundary only
+with the resolver conversion; do not increase it or count it as a final contract.
+
+Verification passes ten substitution unit checks, 116 compiler integration checks
+and 66 generic editor checks. Integration coverage includes generic value adapters,
+default built-ins/scope, value signatures, literal types and aliases; three adapter
+cases execute matched TypeScript references. Whole-project formatting changes zero
+files and fingerprints. SQLite records under `tsrust-nesting-substitution` preserve
+outputs and source identity with exact restoration verification. No timings or
+allocation measurements were collected, and no public admission boundary changed.
+Installed consumers remain on the last accepted public behavior checkpoint.

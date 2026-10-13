@@ -97,3 +97,9 @@ Source callback/result wrappers lower through `syntax/annotation_conversion.rs`.
 The reverse adapter lives in `callables/annotations/conversion.rs`. Both use
 explicit construction frames; preserve the distinction between callback ownership
 and inferred result invocation, as well as the established access-wrapper ranges.
+
+Generic substitution in `types/substitution.rs` uses owned parent frames. A frame
+temporarily holds the parent while one child is visited, then restores that child
+before proceeding. Error unwinding reconstructs the partially substituted tree;
+do not replace this with a whole-tree clone or discard earlier valid substitutions.
+Containment projection and copy-mode classification also use worklists.

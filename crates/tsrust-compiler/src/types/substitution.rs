@@ -5,133 +5,246 @@ use std::collections::HashMap;
 
 /// Arguments are already concrete. A replacement is not substituted again.
 /// Replacement coordinates remain those of the argument that supplied it.
-pub(crate) fn apply(
-    value: &mut ValueAnnotation,
-    bindings: &HashMap<String, ValueAnnotation>,
-) -> Result<(), Diagnostic> {
-    if bindings.is_empty() {
-        return Ok(());
+pub(crate) fn apply(value: &mut ValueAnnotation, bindings: &HashMap<String, ValueAnnotation>) -> Result<(), Diagnostic> {
+    // Resolution still has recursive consumers. Preserve its current admission
+    // boundary until those consumers are converted, independently of this stack.
+    apply_with_limit(value, bindings, Some(128))
+}
+
+#[derive(Clone, Copy)]
+enum Child { Inner, Member(usize), Parameter(usize), Result }
+struct Frame { parent: ValueAnnotation, child: Child, adjust_access: bool }
+
+fn child(value: &mut ValueAnnotation, path: Child) -> &mut ValueAnnotation {
+    match (&mut value.kind, path) {
+        (Kind::Array(inner) | Kind::Group(inner), Child::Inner) => inner,
+        (Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments), Child::Member(index)) => &mut arguments[index],
+        (Kind::Callable { parameters, .. }, Child::Parameter(index)) => &mut parameters[index].annotation,
+        (Kind::Callable { result, .. }, Child::Result) => result,
+        _ => unreachable!("substitution child address"),
     }
-    fn visit(
-        value: &mut ValueAnnotation,
-        bindings: &HashMap<String, ValueAnnotation>,
-        depth: usize,
-    ) -> Result<(), Diagnostic> {
-        if depth > 128 {
+}
+
+fn next_child(value: &ValueAnnotation, previous: Option<Child>) -> Option<Child> {
+    match (&value.kind, previous) {
+        (Kind::Array(_) | Kind::Group(_), None) => Some(Child::Inner),
+        (Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments), previous) => {
+            let index = match previous { None => 0, Some(Child::Member(index)) => index + 1, _ => unreachable!() };
+            (index < arguments.len()).then_some(Child::Member(index))
+        }
+        (Kind::Callable { parameters, .. }, previous) => {
+            let index = match previous { None => 0, Some(Child::Parameter(index)) => index + 1, Some(Child::Result) => return None, _ => unreachable!() };
+            Some(if index < parameters.len() { Child::Parameter(index) } else { Child::Result })
+        }
+        _ => None,
+    }
+}
+
+fn take(value: &mut ValueAnnotation) -> ValueAnnotation {
+    let span = value.span;
+    std::mem::replace(value, ValueAnnotation { kind: Kind::Tuple(Vec::new()), span })
+}
+
+fn descend(mut parent: ValueAnnotation, path: Child, bindings: &HashMap<String, ValueAnnotation>, frames: &mut Vec<Frame>) -> ValueAnnotation {
+    let value = take(child(&mut parent, path));
+    let adjust_access = matches!(path, Child::Parameter(_)) &&
+        (matches!(&value.kind, Kind::Named(name) if bindings.contains_key(&name.text)) ||
+         matches!(&value.kind, Kind::Applied { name, .. } if name.text == "@testing:element"));
+    frames.push(Frame { parent, child: path, adjust_access });
+    value
+}
+
+fn apply_with_limit(value: &mut ValueAnnotation, bindings: &HashMap<String, ValueAnnotation>, limit: Option<usize>) -> Result<(), Diagnostic> {
+    if bindings.is_empty() { return Ok(()); }
+    let mut current = take(value);
+    let mut frames: Vec<Frame> = Vec::new();
+    let mut entering = true;
+    let mut project = false;
+    let outcome = loop {
+        if entering {
+            if let Some(limit) = limit && frames.len() > limit {
+                break Err(depth_error(current.span));
+            }
+            if let Kind::Named(name) = &current.kind {
+                if let Some(argument) = bindings.get(&name.text) {
+                    if let Some(limit) = limit && let Err(error) = validate_depth(argument, frames.len(), limit) { break Err(error); }
+                    current = argument.clone();
+                }
+                // Simultaneous replacements never re-enter a supplied argument.
+                project = false;
+            } else {
+                if let Kind::Applied { name, .. } = &current.kind && bindings.contains_key(&name.text) {
+                    break Err(Diagnostic::new("type", "A type parameter cannot be used as a generic type constructor.", name.span));
+                }
+                if let Some(path) = next_child(&current, None) {
+                    current = descend(current, path, bindings, &mut frames);
+                    continue;
+                }
+                project = true;
+            }
+        }
+        if project && let Kind::Applied { name, arguments } = &current.kind && name.text == "@testing:element" {
+            if arguments.len() != 1 {
+                break Err(Diagnostic::new("arity", "Internal containment element projection requires one type argument.", current.span));
+            }
+            current = containment_element(&arguments[0]);
+        }
+        let Some(mut frame) = frames.pop() else { break Ok(()); };
+        if frame.adjust_access && copy_annotation(&current) {
+            let (Kind::Callable { parameters, .. }, Child::Parameter(index)) = (&mut frame.parent.kind, frame.child) else { unreachable!() };
+            parameters[index].access = None;
+        }
+        *child(&mut frame.parent, frame.child) = current;
+        if let Some(path) = next_child(&frame.parent, Some(frame.child)) {
+            current = descend(frame.parent, path, bindings, &mut frames);
+            entering = true;
+        } else {
+            current = frame.parent;
+            entering = false;
+            project = true;
+        }
+    };
+    // Restore the exact partially visited tree on error. Earlier substitutions
+    // remain, later siblings are untouched, and unfinished access adjustments do
+    // not run, matching the former recursive visitor's first-error behavior.
+    while let Some(mut frame) = frames.pop() {
+        *child(&mut frame.parent, frame.child) = current;
+        current = frame.parent;
+    }
+    *value = current;
+    outcome
+}
+
+fn depth_error(span: crate::Span) -> Diagnostic {
+    Diagnostic::new("generic-limit", "Substituted type nesting exceeds 128.", span)
+}
+fn containment_element(root: &ValueAnnotation) -> ValueAnnotation {
+    enum Work<'a> { Visit(&'a ValueAnnotation), Union(crate::Span, usize) }
+    let mut pending = vec![Work::Visit(root)];
+    let mut results = Vec::new();
+    while let Some(work) = pending.pop() {
+        match work {
+            Work::Union(span, start) => {
+                let members = results.drain(start..).collect();
+                results.push(ValueAnnotation { kind: Kind::Union(members), span });
+            }
+            Work::Visit(value) => match &value.kind {
+                Kind::Group(inner) => pending.push(Work::Visit(inner)),
+                Kind::Array(inner) => results.push((**inner).clone()),
+                Kind::Tuple(members) if members.len() == 1 => results.push(members[0].clone()),
+                Kind::Tuple(members) if !members.is_empty() => results.push(ValueAnnotation { kind: Kind::Union(members.clone()), span: value.span }),
+                Kind::Union(members) => {
+                    pending.push(Work::Union(value.span, results.len()));
+                    pending.extend(members.iter().rev().map(Work::Visit));
+                }
+                _ => results.push(value.clone()),
+            }
+        }
+    }
+    results.pop().expect("projected containment element")
+}
+
+fn copy_annotation(value: &ValueAnnotation) -> bool {
+    let mut pending = vec![value];
+    while let Some(value) = pending.pop() {
+        match &value.kind {
+            Kind::Literal(value) if value.copy() => {}
+            Kind::Named(name) if matches!(name.text.as_str(), "int" | "number" | "boolean" | "null" | "undefined") => {}
+            Kind::Group(inner) => pending.push(inner),
+            Kind::Union(members) => pending.extend(members),
+            _ => return false,
+        }
+    }
+    true
+}
+
+fn validate_depth(value: &ValueAnnotation, depth: usize, limit: usize) -> Result<(), Diagnostic> {
+    let mut pending = vec![(value, depth)];
+    while let Some((value, depth)) = pending.pop() {
+        if depth > limit {
             return Err(Diagnostic::new(
                 "generic-limit",
                 "Substituted type nesting exceeds 128.",
                 value.span,
             ));
         }
-        match &mut value.kind {
-            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
-            Kind::Named(name) => {
-                if let Some(argument) = bindings.get(&name.text) {
-                    validate_depth(argument, depth)?;
-                    *value = argument.clone();
-                }
-            }
-            Kind::Group(inner) | Kind::Array(inner) => visit(inner, bindings, depth + 1)?,
-            Kind::Union(members) | Kind::Tuple(members) => {
-                for member in members {
-                    visit(member, bindings, depth + 1)?;
-                }
-            }
-            Kind::Applied { name, arguments } => {
-                if bindings.contains_key(&name.text) {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "A type parameter cannot be used as a generic type constructor.",
-                        name.span,
-                    ));
-                }
-                for argument in arguments.iter_mut() {
-                    visit(argument, bindings, depth + 1)?;
-                }
-                if name.text == "@testing:element" {
-                    if arguments.len() != 1 {
-                        return Err(Diagnostic::new("arity", "Internal containment element projection requires one type argument.", value.span));
-                    }
-                    *value = containment_element(&arguments[0]);
-                }
+        match &value.kind {
+            Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
+            Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
+                pending.extend(arguments.iter().map(|value| (value, depth + 1)))
             }
             Kind::Callable {
                 parameters, result, ..
             } => {
-                for parameter in parameters {
-                    let generic_access = matches!(&parameter.annotation.kind, Kind::Named(name) if bindings.contains_key(&name.text))
-                        || matches!(&parameter.annotation.kind, Kind::Applied { name, .. } if name.text == "@testing:element");
-                    visit(&mut parameter.annotation, bindings, depth + 1)?;
-                    if generic_access
-                        && copy_annotation(&parameter.annotation)
-                    {
-                        // Ownership applies to the generic data case. A concrete
-                        // scalar specialization copies its argument instead.
-                        parameter.access = None;
-                    }
-                }
-                visit(result, bindings, depth + 1)?;
+                pending.extend(
+                    parameters
+                        .iter()
+                        .map(|parameter| (&parameter.annotation, depth + 1)),
+                );
+                pending.push((result, depth + 1));
             }
         }
-        Ok(())
     }
-    fn containment_element(value: &ValueAnnotation) -> ValueAnnotation {
-        match &value.kind {
-            Kind::Group(inner) => containment_element(inner),
-            Kind::Array(inner) => (**inner).clone(),
-            Kind::Tuple(members) if members.len() == 1 => members[0].clone(),
-            Kind::Tuple(members) if !members.is_empty() => ValueAnnotation { kind: Kind::Union(members.clone()), span: value.span },
-            Kind::Union(members) => ValueAnnotation { kind: Kind::Union(members.iter().map(containment_element).collect()), span: value.span },
-            _ => value.clone(),
-        }
-    }
-    fn copy_annotation(value: &ValueAnnotation) -> bool {
-        match &value.kind {
-            Kind::Literal(value)=>value.copy(),
-            Kind::Named(name) => matches!(name.text.as_str(), "int" | "number" | "boolean" | "null" | "undefined"),
-            Kind::Group(inner) => copy_annotation(inner),
-            Kind::Union(members) => members.iter().all(copy_annotation),
-            _ => false,
-        }
-    }
-    fn validate_depth(value: &ValueAnnotation, depth: usize) -> Result<(), Diagnostic> {
-        let mut pending = vec![(value, depth)];
-        while let Some((value, depth)) = pending.pop() {
-            if depth > 128 {
-                return Err(Diagnostic::new(
-                    "generic-limit",
-                    "Substituted type nesting exceeds 128.",
-                    value.span,
-                ));
-            }
-            match &value.kind {
-                Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
-                Kind::Group(inner) | Kind::Array(inner) => pending.push((inner, depth + 1)),
-                Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments) => {
-                    pending.extend(arguments.iter().map(|value| (value, depth + 1)))
-                }
-                Kind::Callable {
-                    parameters, result, ..
-                } => {
-                    pending.extend(
-                        parameters
-                            .iter()
-                            .map(|parameter| (&parameter.annotation, depth + 1)),
-                    );
-                    pending.push((result, depth + 1));
-                }
-            }
-        }
-        Ok(())
-    }
-    visit(value, bindings, 0)
+    Ok(())
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::type_syntax::{parse, CallableOwnership};
+    #[test]
+    fn deep_substitution_engine_preserves_spans_and_production_disposal() {
+        let mut value = parse("T").unwrap();
+        for _ in 0..16_384 { let span = value.span; value = ValueAnnotation { kind: Kind::Group(Box::new(value)), span }; }
+        let argument = parse("/* actual */ int").unwrap();
+        let expected = argument.clone();
+        let bindings = HashMap::from([("T".into(), argument)]);
+        // Public admission remains bounded until recursive type resolution is
+        // converted. The same worklist engine has no call-stack depth dependency.
+        apply_with_limit(&mut value, &bindings, None).unwrap();
+        let mut leaf = &value;
+        let mut depth = 0;
+        while let Kind::Group(inner) = &leaf.kind { leaf = inner; depth += 1; }
+        assert_eq!(depth, 16_384);
+        assert_eq!(leaf, &expected);
+        drop(value);
+    }
+
+    #[test]
+    fn first_error_restores_partial_tree_without_adjusting_unfinished_parameters() {
+        let mut value = parse("Function<T,[first:ReadOnly<T>,second:ReadOnly<Box<T,U<int>>>]>").unwrap();
+        let original = value.clone();
+        let bindings = HashMap::from([("T".into(), parse("int").unwrap()), ("U".into(), parse("string").unwrap())]);
+        let error = apply(&mut value, &bindings).unwrap_err();
+        let Kind::Callable { parameters, result, .. } = &value.kind else { panic!("callable") };
+        let Kind::Callable { parameters: before, result: before_result, .. } = &original.kind else { unreachable!() };
+        assert!(parameters[0].access.is_none());
+        assert_eq!(parameters[0].annotation, bindings["T"]);
+        assert_eq!(parameters[1].access, before[1].access);
+        let Kind::Applied { arguments, .. } = &parameters[1].annotation.kind else { unreachable!() };
+        assert_eq!(arguments[0], bindings["T"]);
+        let Kind::Applied { name, .. } = &arguments[1].kind else { unreachable!() };
+        assert_eq!(error.code, "type"); assert_eq!(error.span, name.span);
+        assert_eq!(result, before_result, "later result must remain unsubstituted");
+    }
+
+    #[test]
+    fn deep_containment_projection_and_copy_modes_use_worklists() {
+        let mut argument = parse("int[]").unwrap();
+        for _ in 0..16_384 { let span = argument.span; argument = ValueAnnotation { kind: Kind::Union(vec![argument]), span }; }
+        let mut value = parse("Function<void,[value:ReadOnly<ElementOf<T>>]>").unwrap();
+        let Kind::Callable { parameters, .. } = &mut value.kind else { unreachable!() };
+        let Kind::Applied { name, .. } = &mut parameters[0].annotation.kind else { unreachable!() };
+        name.text = "@testing:element".into();
+        apply_with_limit(&mut value, &HashMap::from([("T".into(), argument)]), None).unwrap();
+        let Kind::Callable { parameters, .. } = &value.kind else { unreachable!() };
+        assert!(parameters[0].access.is_none());
+        let mut leaf = &parameters[0].annotation;
+        let mut depth = 0;
+        while let Kind::Union(members) = &leaf.kind { assert_eq!(members.len(), 1); leaf = &members[0]; depth += 1; }
+        assert_eq!(depth, 16_384);
+        assert!(matches!(&leaf.kind, Kind::Named(name) if name.text == "int"));
+    }
     #[test]
     fn substitutions_preserve_callable_modes_nominal_names_and_argument_spans() {
         let mut value = parse("Once<Function<T[], [value:ReadOnly<T>, other:Mutable<Box<T>>]>>").unwrap();
