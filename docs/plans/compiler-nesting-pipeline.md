@@ -1374,3 +1374,38 @@ scaling acceptance claim. Emission string construction still needs scaling revie
 SQLite evidence uses `tsrust-nesting-escape-storage-*`. Public admission remains
 unchanged; local-function resolution, other recursive consumers and formal scaling
 remain open. Installed consumers remain at `79295194`; no public contract changed.
+
+
+### Lexical local-function resolution
+
+`callables/local_functions_work.rs` now schedules functions, parameter defaults,
+bodies, expressions and closure scopes on one heap work stack. Hoisting retains
+source order, scope IDs, owner IDs, declaration spans and capture dependencies.
+Lexical rollback replaces cloned outer environments. Named function expressions
+keep their private binding only while their own function resolves.
+
+The resolver records DFS completion order while declarations remain in the tree.
+A separate iterative extraction flattens declarations and assembles the lifted
+list in that recorded order, avoiding self-referential frames or source cloning.
+Placeholder cleanup also uses a worklist. The existing capture-graph worklists
+and subsequent function-value lowering remain intact.
+
+Nine unit checks pass, including 16,384 nested named functions and mixed
+closure/block scopes, defaults, private recursive names, capture identity,
+postorder lifting and normal disposal. All 55 native tests across seven affected
+suites and six editor navigation/signature tests pass. The first unit build found
+a stale replacement fragment in placeholder cleanup; its diagnostic and the
+repaired run are retained. Whole-project formatting changes zero files.
+
+Two linear discovery generators cover named declaration/call chains and mixed
+closure/block/local-function scopes through the normal pipeline. Eight cases
+complete: named functions through 262,144 layers and mixed scopes through 16,384.
+The next cases time out during lowering and emission respectively; the mixed
+case exhausts the overall budget. No crash or stack overflow occurs. Concurrent
+checks and operational budgets make these discovery observations, not formal
+scaling measurements or support ceilings.
+
+SQLite records use `tsrust-nesting-local-resolution-*`. This closes the parser
+handoff's local resolver recursion, not the full compiler architecture. Public
+admission, remaining recursive helpers, formatter/token/alias scaling and formal
+measurements still require work. Consumers remain at `79295194`.

@@ -277,3 +277,11 @@ escape marking. `fixed_storage.rs` uses preorder worklists for statement and
 expression visitors, with closure bodies remaining separate roots. Assertion
 emission joins the shared expression scheduler, retaining integer widening and
 `satisfies` behavior at completion.
+
+
+`callables/local_functions_work.rs` schedules lexical function resolution through
+functions, defaults, statements and closure bodies. Hoisted declarations publish
+before their scope runs; binding changes use rollback entries. Record local
+function completion order during resolution, then extract declarations iteratively
+and assemble the lifted list in that order. This preserves declaration/capture
+identities without retaining Rust frames or cloning outer environments.

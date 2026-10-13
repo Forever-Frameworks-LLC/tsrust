@@ -34,6 +34,7 @@ struct Resolver {
     next_scope: usize,
     declarations: Vec<Declaration>,
     lifted: Vec<Function>,
+    lift_order: Vec<String>,
     capture_plan: crate::local_capture_plan::Planner,
     local_owners: HashMap<usize, usize>,
     /// A local function name occurs outside the callee position of a call.
@@ -49,6 +50,7 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         next_scope: 0,
         declarations: Vec::new(),
         lifted: Vec::new(),
+        lift_order: Vec::new(),
         capture_plan: Default::default(),
         local_owners: HashMap::new(),
         value_uses: false,
@@ -57,8 +59,9 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
         resolver
             .capture_plan
             .owner(owner, function.name.text.clone());
-        resolver.function(function, &Environment::new(), owner, false)?;
+        resolver.function(function, owner)?;
     }
+    resolver.collect_lifted(&mut program.functions)?;
     let plan = resolver
         .capture_plan
         .has_captures()
@@ -92,28 +95,21 @@ pub(crate) fn resolve(program: &mut Program) -> Result<(), Diagnostic> {
 /// as an unreachable statement or as the value of the block.
 fn remove_lifted_placeholders(body: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
     fn statements(body: &mut Vec<Stmt>) {
-        body.retain(|statement| !matches!(&statement.kind, StmtKind::Block(inner) if inner.is_empty()));
-        for statement in body {
-            match &mut statement.kind {
-                StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => statements(body),
-                StmtKind::If { then_body, else_body, .. } => {
-                    statements(then_body);
-                    statements(else_body);
+        let mut work = vec![body];
+        while let Some(body) = work.pop() {
+            body.retain(|statement| !matches!(&statement.kind, StmtKind::Block(inner) if inner.is_empty()));
+            for statement in body.iter_mut().rev() {
+                match &mut statement.kind {
+                    StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => work.push(body),
+                    StmtKind::If { then_body, else_body, .. } => { work.push(else_body); work.push(then_body); },
+                    StmtKind::Loop { body, update, .. } => { work.push(update); work.push(body); },
+                    StmtKind::Try(region) => {
+                        if let Some(finally) = &mut region.finally { work.push(finally); }
+                        if let Some(catch) = &mut region.catch { work.push(&mut catch.body); }
+                        work.push(&mut region.body);
+                    },
+                    _ => {},
                 }
-                StmtKind::Loop { body, update, .. } => {
-                    statements(body);
-                    statements(update);
-                }
-                StmtKind::Try(region) => {
-                    statements(&mut region.body);
-                    if let Some(catch) = &mut region.catch {
-                        statements(&mut catch.body);
-                    }
-                    if let Some(finally) = &mut region.finally {
-                        statements(finally);
-                    }
-                }
-                _ => {}
             }
         }
     }
@@ -126,372 +122,8 @@ fn remove_lifted_placeholders(body: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
     })
 }
 
-impl Resolver {
-    fn function(
-        &mut self,
-        function: &mut Function,
-        outer: &Environment,
-        owner: usize,
-        captures_pending: bool,
-    ) -> Result<(), Diagnostic> {
-        let mut env = outer.clone();
-        for ((name, _, _), initializer) in function
-            .params
-            .iter()
-            .zip(&mut function.parameter_initializers)
-        {
-            self.initializer(initializer, &env, owner, captures_pending)?;
-            env.insert(
-                name.text.clone(),
-                Symbol::Variable {
-                    owner,
-                    span: name.span,
-                },
-            );
-        }
-        self.body(&mut function.body, &env, owner, captures_pending, true)
-    }
-    #[inline(never)]
-    fn body(
-        &mut self,
-        body: &mut [Stmt],
-        outer: &Environment,
-        owner: usize,
-        captures_pending: bool,
-        function_body: bool,
-    ) -> Result<(), Diagnostic> {
-        let scope = self.next_scope;
-        self.next_scope += 1;
-        let mut env = outer.clone();
-        let mut names: HashMap<String, Span> = HashMap::new();
-        for statement in body.iter() {
-            let name = match &statement.kind {
-                StmtKind::LocalFunction(function) => Some(&function.name),
-                StmtKind::Let { name, .. } => Some(name),
-                _ => None,
-            };
-            if let Some(name) = name {
-                if let Some(previous) = names.insert(name.text.clone(), name.span) {
-                    return Err(Diagnostic::new(
-                        "duplicate",
-                        format!("Name {:?} is already declared in this block.", name.text),
-                        name.span,
-                    )
-                    .related(previous, "Previous declaration here."));
-                }
-                if function_body
-                    && matches!(&statement.kind, StmtKind::LocalFunction(_))
-                    && matches!(outer.get(&name.text), Some(Symbol::Variable {owner: previous, ..}) if *previous == owner)
-                {
-                    return Err(Diagnostic::new(
-                        "duplicate",
-                        "A local function cannot redeclare a parameter.",
-                        name.span,
-                    ));
-                }
-                match &statement.kind {
-                    StmtKind::LocalFunction(function) => {
-                        let id = self.capture_plan.declaration();
-                        debug_assert_eq!(id, self.declarations.len());
-                        let function_owner = self.next_owner;
-                        self.next_owner += 1;
-                        self.local_owners.insert(function_owner, id);
-                        let emitted = format!("local#{id}#{}", written_name(&name.text));
-                        self.capture_plan.owner(function_owner, emitted.clone());
-                        // Only calls and value uses create runtime dependencies.
-                        // Unused declaration bodies obtain their types separately
-                        // from completed lexical contexts.
-                        self.declarations.push(Declaration {
-                            id,
-                            scope,
-                            function_owner,
-                            enclosing_owner: owner,
-                            statement_span: statement.span,
-                            source_name: Token { text: written_name(&name.text).to_owned(), ..name.clone() },
-                            emitted_name: emitted.clone(),
-                            function_scope: function.scope_span,
-                        });
-                        env.insert(name.text.clone(), Symbol::Function { emitted, id });
-                    }
-                    _ => {
-                        env.insert(
-                            name.text.clone(),
-                            Symbol::Variable {
-                                owner,
-                                span: name.span,
-                            },
-                        );
-                    }
-                }
-            }
-        }
-        for statement in body {
-            match &mut statement.kind {
-                StmtKind::LocalFunction(_) => {
-                    let StmtKind::LocalFunction(mut function) =
-                        std::mem::replace(&mut statement.kind, StmtKind::Block(Vec::new()))
-                    else {
-                        unreachable!()
-                    };
-                    let symbol = env[&function.name.text].clone();
-                    let Symbol::Function { emitted, id } = &symbol else {
-                        unreachable!()
-                    };
-                    // The written name of a function expression is visible in its
-                    // own body only.
-                    let written = written_name(&function.name.text).to_owned();
-                    let private = (written != function.name.text).then(|| {
-                        let mut inner = env.clone();
-                        inner.insert(written, symbol.clone());
-                        inner
-                    });
-                    function.name.text = emitted.clone();
-                    let local_owner = self.declarations[*id].function_owner;
-                    self.function(&mut function, private.as_ref().unwrap_or(&env), local_owner, true)?;
-                    self.lifted.push(*function);
-                }
-                StmtKind::Let { value, .. }
-                | StmtKind::Throw(value)
-                | StmtKind::Expr(value)
-                | StmtKind::Return(Some(value)) => {
-                    self.expression(value, &env, owner, captures_pending)?
-                }
-                StmtKind::Assign { target, value, .. } => {
-                    self.expression(target, &env, owner, captures_pending)?;
-                    self.expression(value, &env, owner, captures_pending)?;
-                }
-                StmtKind::Block(body) => self.body(body, &env, owner, captures_pending, false)?,
-                StmtKind::If {
-                    condition,
-                    then_body,
-                    else_body,
-                } => {
-                    self.expression(condition, &env, owner, captures_pending)?;
-                    self.body(then_body, &env, owner, captures_pending, false)?;
-                    self.body(else_body, &env, owner, captures_pending, false)?;
-                }
-                StmtKind::While { condition, body } => {
-                    self.expression(condition, &env, owner, captures_pending)?;
-                    self.body(body, &env, owner, captures_pending, false)?;
-                }
-                StmtKind::Loop {
-                    condition,
-                    body,
-                    update,
-                    ..
-                } => {
-                    if let Some(condition) = condition {
-                        self.expression(condition, &env, owner, captures_pending)?;
-                    }
-                    self.body(body, &env, owner, captures_pending, false)?;
-                    self.body(update, &env, owner, captures_pending, false)?;
-                }
-                StmtKind::ForOf {
-                    name,
-                    iterable,
-                    body,
-                    ..
-                } => {
-                    self.expression(iterable, &env, owner, captures_pending)?;
-                    let mut loop_env = env.clone();
-                    loop_env.insert(
-                        name.text.clone(),
-                        Symbol::Variable {
-                            owner,
-                            span: name.span,
-                        },
-                    );
-                    self.body(body, &loop_env, owner, captures_pending, false)?;
-                }
-                StmtKind::Try(region) => {
-                    self.body(&mut region.body, &env, owner, captures_pending, false)?;
-                    if let Some(catch) = &mut region.catch {
-                        let mut catch_env = env.clone();
-                        if let Some(name) = &catch.name {
-                            catch_env.insert(
-                                name.text.clone(),
-                                Symbol::Variable {
-                                    owner,
-                                    span: name.span,
-                                },
-                            );
-                        }
-                        self.body(&mut catch.body, &catch_env, owner, captures_pending, false)?;
-                    }
-                    if let Some(finally) = &mut region.finally {
-                        self.body(finally, &env, owner, captures_pending, false)?;
-                    }
-                }
-                StmtKind::Break | StmtKind::Continue | StmtKind::Return(None) => {}
-            }
-        }
-        Ok(())
-    }
-    fn initializer(
-        &mut self,
-        value: &mut ParameterInitializer,
-        env: &Environment,
-        owner: usize,
-        pending: bool,
-    ) -> Result<(), Diagnostic> {
-        if let ParameterInitializer::Default { value, .. } = value {
-            self.expression(value, env, owner, pending)?;
-        }
-        Ok(())
-    }
-    #[inline(never)]
-    fn expression(
-        &mut self,
-        expression: &mut Expr,
-        env: &Environment,
-        owner: usize,
-        pending: bool,
-    ) -> Result<(), Diagnostic> {
-        match &mut expression.kind {
-            ExprKind::Name(name) => match env.get(name) {
-                Some(Symbol::Function { emitted, id }) => {
-                    if let Some(&source) = self.local_owners.get(&owner) {
-                        self.capture_plan.dependency(source, *id);
-                    }
-                    // The value form is chosen once every capture is known.
-                    *name = format!("{emitted}{}", crate::local_function_values::VALUE_MARK);
-                    self.value_uses = true;
-                }
-                Some(Symbol::Variable {
-                    owner: defining,
-                    span,
-                }) => {
-                    let binding = crate::local_capture_plan::BindingId {
-                        owner: *defining,
-                        declaration_start: span.start,
-                    };
-                    self.capture_plan.variable_use(expression.span, binding);
-                    if pending && *defining != owner {
-                        let function = self.local_owners[&owner];
-                        self.capture_plan.capture(
-                            function,
-                            crate::local_capture_plan::Capture {
-                                binding,
-                                name: name.clone(),
-                                declaration: *span,
-                                usage: expression.span,
-                            },
-                        );
-                    }
-                }
-                _ => {}
-            },
-            ExprKind::Closure { params, body, .. } => {
-                let mut nested = env.clone();
-                for parameter in params {
-                    self.initializer(&mut parameter.initializer, &nested, owner, pending)?;
-                    nested.insert(
-                        parameter.name.text.clone(),
-                        Symbol::Variable {
-                            owner,
-                            span: parameter.name.span,
-                        },
-                    );
-                }
-                self.body(body, &nested, owner, pending, true)?;
-            }
-            ExprKind::Conditional {
-                predicate,
-                consequent,
-                alternate,
-            } => {
-                self.expression(predicate, env, owner, pending)?;
-                self.expression(consequent, env, owner, pending)?;
-                self.expression(alternate, env, owner, pending)?;
-            }
-            ExprKind::Optional {
-                base: left,
-                body: right,
-                ..
-            }
-            | ExprKind::Binary { left, right, .. }
-            | ExprKind::Index(left, right)
-            | ExprKind::CompoundAssign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::Assign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::CoalesceAssign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::LogicalAssign {
-                target: left,
-                value: right,
-                ..
-            } => {
-                self.expression(left, env, owner, pending)?;
-                self.expression(right, env, owner, pending)?;
-            }
-            ExprKind::OptionalChain(value)
-            | ExprKind::Unary { value, .. }
-            | ExprKind::Update { target: value, .. }
-            | ExprKind::Field(value, _)
-            | ExprKind::Inject { value, .. }
-            | ExprKind::Project { value, .. }
-            | ExprKind::TypeAssertion { value, .. } => {
-                self.expression(value, env, owner, pending)?
-            }
-            ExprKind::Record(fields) => {
-                for (_, value) in fields {
-                    self.expression(value, env, owner, pending)?;
-                }
-            }
-            ExprKind::ArrayOf(values, _)
-            | ExprKind::SetConstructor(values, _)
-            | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _)
-            | ExprKind::Array(values)
-            | ExprKind::Template(values)
-            | ExprKind::Sequence(values) => {
-                for value in values {
-                    self.expression(value, env, owner, pending)?;
-                }
-            }
-            ExprKind::Call(callee, arguments) => {
-                let called = match &callee.kind {
-                    ExprKind::Name(name) => match env.get(name) {
-                        Some(Symbol::Function { emitted, id }) => Some((emitted.clone(), *id)),
-                        _ => None,
-                    },
-                    _ => None,
-                };
-                if let Some((emitted, id)) = called {
-                    if let Some(&source) = self.local_owners.get(&owner) {
-                        self.capture_plan.dependency(source, id);
-                    }
-                    callee.kind = ExprKind::Name(emitted);
-                } else {
-                    self.expression(callee, env, owner, pending)?;
-                }
-                for value in arguments {
-                    self.expression(value, env, owner, pending)?;
-                }
-            }
-            ExprKind::SpreadCall(_) | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } => {
-                unreachable!("local resolution precedes checked spread lowering")
-            }
-            ExprKind::String(_)
-            | ExprKind::Integer(_)
-            | ExprKind::EnumMember { .. }
-            | ExprKind::Number(_)
-            | ExprKind::Boolean(_)
-            | ExprKind::Null
-            | ExprKind::Undefined => {}
-        }
-        Ok(())
-    }
-}
+#[path = "local_functions_work.rs"]
+mod work;
 
 #[cfg(test)]
 mod tests {
