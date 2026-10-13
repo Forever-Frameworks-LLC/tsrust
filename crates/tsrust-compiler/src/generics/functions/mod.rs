@@ -353,9 +353,21 @@ impl Cache {
             let ExprKind::Call(callee, _) = &mut expression.kind else {
                 return Ok(());
             };
+            if matches!(&callee.kind,ExprKind::Field(_,member) if member=="recursive")
+                && self.calls.contains_key(&(expression.span.start,expression.span.end)) {
+                return Err(Diagnostic::new("type","Explicit recursive type arguments require the std:schema namespace.",expression.span));
+            }
             let Some((name, callee_span)) = explicit_call_name(callee) else { return Ok(()); };
             if matches!(name.as_str(), "@result:Ok" | "@result:Err") { return Ok(()); }
             let explicit = self.calls.get(&(expression.span.start, expression.span.end));
+            if name == "@schema:recursive" {
+                if let Some(arguments) = explicit {
+                    let mut arguments = arguments.clone();
+                    for argument in &mut arguments { crate::type_substitution::apply(argument, &bindings)?; }
+                    self.value_calls.insert((enclosing_name.clone(), expression.span.start, expression.span.end), arguments);
+                }
+                return Ok(());
+            }
             let shadowed = shadows.iter().any(|(local, span)| {
                 local == name && span.start <= callee_span.start && callee_span.end <= span.end
             });

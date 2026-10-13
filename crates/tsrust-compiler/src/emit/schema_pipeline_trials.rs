@@ -46,8 +46,8 @@ impl Emitter<'_> {
             let child=self.schema_pipeline_trial_impl(plan.body,input,missing,generated,seen,errors);
             let child_roots=self.schema_root_arguments(plan.body);
             let source=self.schema_pipeline_output(plan.body);
-            let inject=self.schema_output_injection(source,output,"value");
-            let inverse=self.schema_selected_output(source,output,"value");
+            let inject=self.schema_recursive_output(source,output,"value");
+            let inverse=self.schema_recursive_output(output,source,"value");
             format!("let schema_root{id}=schema;{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse})")
         } else if let Some(reference)=self.program.schema_pipelines.reference(id) {
             let root=reference.root;

@@ -16,7 +16,7 @@ impl Emitter<'_> {
         if let Some(plan)=self.program.schema_pipelines.recursive(id) {
             let child=self.schema_text_validator(plan.body,generated,owned,errors);
             let roots=self.schema_root_arguments(plan.body);
-            let inject=self.schema_output_injection(self.schema_pipeline_output(plan.body),plan.output,"value");
+            let inject=self.schema_recursive_output(self.schema_pipeline_output(plan.body),plan.output,"value");
             return format!("let schema_root{id}=schema;{child}({roots}&schema.field0,input,path,issues,failure,policy,remaining,committed).map(|value|{inject})");
         }
         if let Some(reference)=self.program.schema_pipelines.reference(id) {

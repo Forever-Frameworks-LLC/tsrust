@@ -36,3 +36,5 @@ pub(crate) mod plans;
 pub(crate) mod pipelines;
 
 mod recursive;
+
+pub(crate) mod type_contract;

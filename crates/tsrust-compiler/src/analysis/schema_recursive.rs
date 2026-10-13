@@ -51,6 +51,13 @@ impl Analyzer {
         };
         if params.len()!=1 || params[0].rest {return Err(Diagnostic::new("schema-recursion","A recursive definition builder expects one self parameter.",builder.span));}
         let parameter=params[0].name.text.clone();
+        let explicit=if let Some(mut arguments)=self.generic_functions.value_arguments(&context.function_name,expr.span) {
+            if arguments.len()!=1 { return Err(Diagnostic::new("arity","s.recursive accepts one output type argument.",expr.span)); }
+            let annotation=&mut arguments[0];
+            self.generic_records.materialize(annotation,&mut self.program.records,&mut self.record_names,&self.unions,&mut self.callables)?;
+            append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
+            Some(self.resolve_value_annotation(annotation,false)?)
+        }else{None};
         let declaration=self.recursive_record("recursive-output",expr.span);
         let input_declaration=self.recursive_record("recursive-input",expr.span);
         let input=self.unions.reserve_recursive(expr.span)?;
@@ -61,7 +68,7 @@ impl Analyzer {
         self.unions.name_recursive(knot,declaration,expr.span)?;
         let root=self.recursive_record("recursive-plan",expr.span);
         let reference=self.recursive_record("recursive-reference",expr.span);
-        self.schema_pipelines.insert_reference(reference,RecursiveReference{root,input,output,json_input:true});
+        self.schema_pipelines.insert_reference(reference,RecursiveReference{root,input,output:explicit.unwrap_or(output),json_input:true});
         replace_self(body,&parameter,reference)?;
         params.clear();
         // An ordinary immediate invocation runs the definition body once and
@@ -81,7 +88,12 @@ impl Analyzer {
         // each node's shape without changing the next node's accepted input.
         self.unions.bind_recursive(input_knot,vec![body_input],expr.span)?;
         self.unions.bind_recursive(knot,vec![body_output],expr.span)?;
-        self.schema_pipelines.insert_recursive(root,RecursivePlan{body:body_id,input:body_input,output:body_output,json_input});
+        if let Some(target)=explicit {
+            if !crate::stdlib::schema::type_contract::equivalent(body_output,target,&self.program.records,&|id|self.unions.members(id)) {
+                return Err(Diagnostic::new("schema-type","The recursive schema output does not match its explicit type argument.",expr.span));
+            }
+        }
+        self.schema_pipelines.insert_recursive(root,RecursivePlan{body:body_id,input:body_input,output:explicit.unwrap_or(body_output),json_input});
         let field=RecordField{name:Token{text:"@schema".into(),kind:TokenKind::Name,span:expr.span},annotation:self.checked_value_annotation(body_type,expr.span)?,ty:Some(body_type),callable_declaration:None,optional:false};
         self.fields[root].insert(field.name.text.clone(),body_type);
         self.program.records[root].fields.push(field.clone());

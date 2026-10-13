@@ -3,6 +3,7 @@ mod json_typed;
 mod json_refinement;
 mod nullable_link_emit;
 mod recursive_union_payload_emit;
+mod schema_recursive_output;
 mod native_view_record_parameters;
 mod native_view_family_emit;
 mod native_view_lifetime_emit;

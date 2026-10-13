@@ -2474,3 +2474,20 @@ SQLite evidence: `tsrust-recursive-owned-probe.log`,
 only the affected rejection witness was rerun. Named recursive type checking,
 complete editor/examples/benchmark support and S11 milestone acceptance remain
 open. No timing or installed-consumer refresh was performed for this section.
+
+
+### Explicit recursive output integration (unfinished)
+
+The parser and generic-call materialization now preserve explicit recursive schema
+output arguments, including aliases of the schema namespace. The checker compares
+the inferred output against the declared shape and exposes the named output.
+Native projection moves record fields by name, handles array/union payloads, and
+remaps observable field order without cloning.
+
+This work is not accepted. The nullable-link witness currently reaches a layout
+panic because layout validation follows only one union layer; recursive input
+knots introduce nested unions. The next repair must follow those layers and retain
+uniquely owned indirection for nullable cycles. Evidence records are
+`tsrust-recursive-explicit-integration.log` (parser rejection) and
+`tsrust-recursive-explicit-parser-repair.log` (layout panic). No native acceptance,
+editor acceptance, benchmark measurement or consumer refresh is claimed.
