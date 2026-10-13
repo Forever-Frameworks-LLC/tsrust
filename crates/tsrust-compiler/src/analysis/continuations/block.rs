@@ -8,6 +8,7 @@ pub(super) struct BlockFrame {
     entry_loans: crate::capture_loan_identity::Boundary,
     shadowed: Vec<(String, usize)>,
     native_shadow_boundary: usize,
+    control_boundary: usize,
     pub(super) exited: bool,
     nested_stores: HashSet<String>,
     whole_stores: HashSet<String>,
@@ -114,27 +115,8 @@ impl Analyzer {
                     exception_state::record_completion(context,kind,stmt.span);
                     frame.exited=true;
                 }
-                StmtKind::If {
-                    condition,
-                    then_body,
-                    else_body,
-                } => {
-                    frame.exited =
-                        self.if_statement(context, condition, then_body, else_body, frame.result_type,stmt.span)?;
-                }
-                StmtKind::Let {
-                    rebindable,
-                    name,
-                    annotation,
-                    value,
-                    binding,
-                } => {
-                    let previous = self.module_literal_scope;
-                    self.module_literal_scope = self.program.module_owner_bindings.contains(&name.span).then_some(value.span);
-                    let checked = self.let_statement(context, *rebindable, name, annotation, value, binding);
-                    self.module_literal_scope = previous;
-                    checked?;
-                },
+                StmtKind::If { .. } => unreachable!("if children are scheduled by the driver"),
+                StmtKind::Let { .. } => unreachable!("declaration children are scheduled by the driver"),
                 StmtKind::Assign {
                     target,
                     value,
@@ -146,27 +128,7 @@ impl Analyzer {
                     capture_restoration::record(context);
                     frame.exited = true;
                 }
-                StmtKind::Expr(value) => {
-                    self.truthy_logical_assignment(context,value);
-                    let removal = Self::array_removal_snapshot(context, value);
-                    let view = self
-                        .expression_type_hint(context, value)
-                        .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
-                    let place_view = self.borrowed_place_hint(context, value);
-                    let ty = if matches!(value.kind,ExprKind::Sequence(_)) {
-                        self.discarded_sequence_statement(context,value,&Loans::new())?
-                    } else {
-                        self.expression(context,value,if view || place_view {Mode::Read}else{Mode::Consume},&Loans::new(),None)?
-                    };
-                    if matches!(ty, Type::Closure(_)) && !matches!(value.kind, ExprKind::Call(..)) {
-                        return Err(Diagnostic::new(
-                            "unsupported",
-                            "Bind a closure before using it.",
-                            value.span,
-                        ));
-                    }
-                    Self::finish_discarded_array_removal(context, value, removal);
-                }
+                StmtKind::Expr(_) => unreachable!("expression statements are scheduled by the driver"),
             }
         Ok(())
     }
@@ -204,20 +166,36 @@ impl Analyzer {
         }
         for (name, _) in &shadowed { context.names.remove(name); }
         self.depth += 1;
+        let control_boundary = context.loops.len();
         let first_local = context.bindings.len();
         let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
         let exited = false;
         let (nested_stores, whole_stores) = nullable_record_fields::control_stores(body);
         let declared = first_local;
         Ok(Box::new(BlockFrame { result_type, keep_names, first_local, entry_loans,
-            shadowed, native_shadow_boundary, exited, nested_stores, whole_stores, declared, next: 0 }))
+            shadowed, native_shadow_boundary, control_boundary, exited, nested_stores, whole_stores, declared, next: 0 }))
     }
 
     pub(super) fn finish_block(&mut self, context: &mut Context, body: &mut [Stmt], frame: Box<BlockFrame>) -> Result<bool, Diagnostic> {
-        let BlockFrame { keep_names, first_local, entry_loans, shadowed, native_shadow_boundary, exited, .. } = *frame;
-        self.record_sequence_carriers(context,body)?;
-        context.storage_exits.record(body, &context.bindings[..first_local]);
-        if !keep_names { Self::check_retained_scope_borrows(context, first_local)?; }
+        let result = (|| {
+            self.record_sequence_carriers(context,body)?;
+            context.storage_exits.record(body, &context.bindings[..frame.first_local]);
+            if !frame.keep_names { Self::check_retained_scope_borrows(context, frame.first_local)?; }
+            Ok(frame.exited)
+        })();
+        self.leave_block(context, frame, result.is_err());
+        result
+    }
+
+    /// Release scope state on both successful completion and child failure.
+    /// Failed function bodies must not keep their partial declaration visibility.
+    pub(super) fn leave_block(&mut self, context: &mut Context, frame: Box<BlockFrame>, failed: bool) {
+        let BlockFrame { keep_names, first_local, entry_loans, shadowed, native_shadow_boundary, control_boundary, .. } = *frame;
+        let keep_names = keep_names && !failed;
+        while context.loops.len() > control_boundary {
+            let abandoned = context.loops.pop().expect("nested control frame");
+            exception_state::consume_target(context, abandoned.target);
+        }
         context.lexical_scopes.pop();
         if !keep_names {
             entry_loans.unwind(&mut context.capture_loans);
@@ -239,7 +217,6 @@ impl Analyzer {
             slots.truncate(native_shadow_boundary);
         }
         self.depth -= 1;
-        Ok(exited)
     }
 
 }

@@ -12,13 +12,6 @@ pub(super) struct Sites {
 }
 
 impl Analyzer {
-    pub(super) fn discarded_sequence_statement(&mut self, context: &mut Context, value: &mut Expr, loans: &Loans) -> Result<Type, Diagnostic> {
-        let precise = self.prepare_removal_sequence(context, value);
-        let result = self.sequence_expression_with_removal(context, value, Mode::Read, loans, None, true, precise)?;
-        if precise { context.storage_exits.record_discarded_sequence(value.span); }
-        Ok(result)
-    }
-
     /// Only a direct final removal receives the selected slot owner. Other final
     /// values still use ordinary sequence analysis until their transport is planned.
     pub(super) fn prepare_bound_removal_sequence(&self, context: &Context, value: &mut Expr) -> bool {
@@ -29,7 +22,7 @@ impl Analyzer {
         self.prepare_removal_sequence(context,value)
     }
 
-    fn prepare_removal_sequence(&self, context: &Context, value: &mut Expr) -> bool {
+    pub(super) fn prepare_removal_sequence(&self, context: &Context, value: &mut Expr) -> bool {
         let mut pending = vec![&*value];
         let mut removal = false;
         let mut safe = true;
@@ -61,18 +54,22 @@ impl Analyzer {
 
     fn safe_discarded_scalar(&self, context: &Context, value: &Expr) -> bool {
         let scalar = |value: &Expr| self.expression_type_hint(context, value).is_some_and(|ty| ty.is_copy() || ty == Type::String);
-        match &value.kind {
-            ExprKind::Integer(_) | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::String(_) | ExprKind::Null | ExprKind::Undefined => true,
-            ExprKind::Name(_) => scalar(value),
-            ExprKind::Field(_, _) => Self::direct_fields(value).is_some() && scalar(value),
-            ExprKind::Index(base, index) => Self::direct_fields(base).is_some() && scalar(value) && self.safe_discarded_scalar(context, index),
-            ExprKind::Unary { value, .. } => self.safe_discarded_scalar(context, value),
-            ExprKind::Binary { left, right, .. } => self.safe_discarded_scalar(context, left) && self.safe_discarded_scalar(context, right),
-            ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. } => self.safe_discarded_scalar(context, target) && self.safe_discarded_scalar(context, value),
-            ExprKind::Update { target, .. } => self.safe_discarded_scalar(context, target),
-            ExprKind::Call(callee, arguments) => matches!(&callee.kind, ExprKind::Field(base, method) if method == "log" && matches!(&base.kind, ExprKind::Name(name) if name == "console" && !context.names.contains_key(name))) && arguments.iter().all(|value| self.safe_discarded_scalar(context, value)),
-            _ => false,
+        let mut pending = vec![value];
+        while let Some(value) = pending.pop() {
+            match &value.kind {
+                ExprKind::Integer(_) | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::String(_) | ExprKind::Null | ExprKind::Undefined => {},
+                ExprKind::Name(_) if scalar(value) => {},
+                ExprKind::Field(_, _) if Self::direct_fields(value).is_some() && scalar(value) => {},
+                ExprKind::Index(base, index) if Self::direct_fields(base).is_some() && scalar(value) => pending.push(index),
+                ExprKind::Unary { value, .. } | ExprKind::Update { target: value, .. } => pending.push(value),
+                ExprKind::Binary { left, right, .. }
+                | ExprKind::Assign { target: left, value: right, .. }
+                | ExprKind::CompoundAssign { target: left, value: right, .. } => { pending.push(right); pending.push(left); },
+                ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Field(base, method) if method == "log" && matches!(&base.kind, ExprKind::Name(name) if name == "console" && !context.names.contains_key(name))) => pending.extend(arguments.iter().rev()),
+                _ => return false,
+            }
         }
+        true
     }
 }
 

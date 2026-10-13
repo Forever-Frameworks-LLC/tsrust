@@ -671,3 +671,46 @@ conditions, loop bodies, exception paths and their scope cleanup must join the
 scheduler. Block errors still require the previously recorded restoration audit.
 Parser/type-syntax work remains separate. Full compiler architecture, formal
 scaling, optimization, S12–S21 and installed consumer refresh remain pending.
+
+
+### Declaration and branch checker continuations
+
+Declaration initializers, expression statements and `if` conditions/arms now
+suspend on the shared checker worklist. Declaration frames preserve contextual
+callback types, view modes, precise removal snapshots and the module-literal
+scope through initializer completion. Branch frames retain incoming availability,
+flow and capture ownership, restore the alternate entry state, then apply the
+existing reachable-arm joins and carrier/storage planning. Partial AST children
+return to their parent slots before propagating errors.
+
+Block scope cleanup now runs after both child failure and final carrier/borrow
+validation failure. It restores lexical visibility, shadowed native slots,
+capture boundaries, mutable view tracking and analysis depth. Failed labeled
+blocks and abandoned compatibility-loop frames release their control targets.
+The discarded-scalar classifier uses an explicit worklist too.
+
+All 14 checker continuation unit tests pass, including new failures through both
+branch arms, closure declaration initializers and labeled loop bodies. All 78 affected compiler integration tests and 19 editor tests pass, including
+native ownership/control flow, comma removal contexts and project diagnostics.
+No architecture acceptance is claimed.
+Discovery completes `if-statements` samples 8/16/32/64 through disposal; 128
+reaches the existing parser guard. `initializer-bodies` completes eight layers
+but overflows the normal parser test-thread stack at sixteen, before the parse
+finish event. Reproduce with the discovery driver's corresponding family; the
+record includes exact generated source and its hash. This belongs to the separate
+parser migration, not a new rejection policy. Discovery ran while the integration
+build was active, so its time/memory observations are not isolated performance
+measurements.
+
+Next work still includes statement assignments, loop and exception continuations,
+statement emission, recursive auxiliary consumers and retirement of obsolete
+analysis guards after their connected paths are migrated. Existing emission
+compatibility paths remain unchanged by this checker section. Formal scaling,
+optimization, S12–S21 and installed consumer refresh remain pending.
+
+Whole-project formatting changes zero files and source fingerprints. SQLite
+records under `tsrust-nesting-statements-*` preserve the interface check, unit and
+integration runs, editor checks, discovery, formatting and exact source/executable
+identities. The recursive `assignments` and `record_field_move_carriers` visitors
+in `analysis/record_branch_carriers.rs` remain explicit audit targets, along with
+loop/exception checking and emission control/storage-epoch visitors.
