@@ -84,6 +84,8 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    ConditionalPredicate { mode: Mode, expected: Option<Type> },
+    ConditionalArm { plan: Box<ConditionalPlan>, mode: Mode, left: Option<Type>, stored: Option<super::StoredValueFrame> },
     Unary { frame: Box<super::operators::UnaryFrame>, expected: Option<Type> },
     BinaryLeft(Box<super::operators::BinaryFrame>),
     BinaryRight(Box<super::operators::BinaryFrame>),
@@ -262,6 +264,26 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
     }
 }
 
+fn schedule_conditional_arm<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, plan: Box<ConditionalPlan>, mode: Mode, left: Option<Type>) -> Step<'a> {
+    let expr = task.expression.value();
+    let ExprKind::Conditional { consequent, alternate, .. } = &mut expr.kind else { unreachable!("conditional arm parent"); };
+    let expected = if left.is_some() { plan.right_context } else { plan.left_context };
+    let value = if left.is_some() { alternate } else { consequent };
+    let stored = if let Some(Type::StoredCallable(family)) = expected {
+        match analyzer.prepare_stored_value(context, value, family) {
+            Ok(frame) => Some(frame),
+            Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+        }
+    } else { None };
+    let child_mode = if stored.is_some() { Mode::Consume } else { mode };
+    let child_expected = stored.as_ref().map_or(expected, |frame| frame.expected);
+    let span = value.span;
+    let value = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)));
+    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, child_mode, task.loans.clone(), child_expected));
+    task.state = ExpressionState::ConditionalArm { plan, mode, left, stored };
+    Step::Push(Task::Expression(task), child)
+}
+
 fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, result: Result<Type, Diagnostic>) -> Step<'a> {
     let expr = task.expression.value();
     let result = if let Some(frame) = task.checked.take() { analyzer.finish_checked_expression(context, expr, frame, result) } else { result };
@@ -399,6 +421,39 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
             }
         }
+        ExpressionState::ConditionalPredicate { mode, expected } => {
+            let Completion::Expression(value, checked) = completion.expect("conditional predicate completed") else { unreachable!("predicate result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Conditional { predicate, consequent, alternate } = &mut expr.kind else { unreachable!("conditional slots"); };
+            *predicate = value.into_child();
+            let plan = checked.and_then(|ty| analyzer.require(ty, Some(Type::Boolean), predicate.span))
+                .and_then(|()| analyzer.conditional_plan(context, predicate, consequent, alternate, mode, expected));
+            match plan {
+                Ok(plan) => schedule_conditional_arm(analyzer, context, task, plan, mode, None),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
+        }
+        ExpressionState::ConditionalArm { mut plan, mode, left, stored } => {
+            let Completion::Expression(value, checked) = completion.expect("conditional arm completed") else { unreachable!("conditional result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Conditional { consequent, alternate, .. } = &mut expr.kind else { unreachable!("conditional slots"); };
+            let destination = if left.is_some() { &mut *alternate } else { &mut *consequent };
+            *destination = value.into_child();
+            let checked = checked.and_then(|actual| {
+                if let Some(stored) = stored { analyzer.finish_stored_value(context, destination, stored, actual) } else { Ok(actual) }
+            });
+            if let Some(left) = left {
+                let result = analyzer.conditional_join(context, consequent, alternate, plan, left, checked);
+                finish_expression(analyzer, context, task, result)
+            } else {
+                match analyzer.conditional_between(context, consequent, alternate, &mut plan, checked) {
+                    Ok(left) => schedule_conditional_arm(analyzer, context, task, plan, mode, Some(left)),
+                    Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                }
+            }
+        }
         ExpressionState::Unary { frame, expected } => {
             let Completion::Expression(value, checked) = completion.expect("unary operand completed") else { unreachable!("unary operand result"); };
             let context = contexts.get(task.context);
@@ -449,6 +504,14 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            if let ExprKind::Conditional { predicate, .. } = &mut expr.kind {
+                analyzer.truthy_condition(context, predicate);
+                let span = predicate.span;
+                let predicate = std::mem::replace(predicate, Box::new(Expr::new(ExprKind::Undefined, span)));
+                let child = Task::Expression(ExpressionTask::new(Expression::Child(predicate), task.context, Mode::Copy, task.loans.clone(), Some(Type::Boolean)));
+                task.state = ExpressionState::ConditionalPredicate { mode, expected };
+                return Step::Push(Task::Expression(task), child);
+            }
             match analyzer.prepare_unary_work(context, expr, mode, expected) {
                 Ok(Some(super::operators::UnaryWork::Ready(ty))) => return finish_expression(analyzer, context, task, Ok(ty)),
                 Ok(Some(super::operators::UnaryWork::Child(frame, operand))) => {
@@ -777,6 +840,23 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn failed_conditional_arm_restores_both_children_and_diagnostic_location() {
+        let source = formatted("function main():int{return true?7:false;}");
+        let mut parsed = crate::syntax::parse(&source).unwrap();
+        let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+        let mut context = Context::new("main".into());
+        let StmtKind::Return(Some(value)) = &mut parsed.functions[0].body[0].kind else { panic!("return"); };
+        let error = check_expression(&mut analyzer, &mut context, value, Mode::Consume, &Loans::new(), Some(Type::Int)).unwrap_err();
+        assert_eq!(error.code, "type");
+        assert_eq!(&source[error.span.start..error.span.end], "false");
+        let ExprKind::Conditional { predicate, consequent, alternate } = &value.kind else { panic!("restored conditional"); };
+        assert_eq!(predicate.ty, Some(Type::Boolean));
+        assert_eq!(consequent.ty, Some(Type::Int));
+        assert!(matches!(alternate.kind, ExprKind::Boolean(false)));
+        assert_eq!(analyzer.depth, 0);
     }
 
     #[test]

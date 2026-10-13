@@ -1342,67 +1342,13 @@ impl Emitter<'_> {
         infer_callable_carrier: bool,
     ) -> String {
         if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
-            let target = &self.program.unions[union.index()].members;
             let actual = value.ty.expect("view injection");
             let source = if infer_callable_carrier && !actual.is_copy() {
                 self.conditional_arm(fun, value, Mode::Read)
             } else {
                 self.expr(fun, value, Mode::Read)
             };
-            if let Some(from) = actual.union() {
-                let arms = self.program.unions[from.index()]
-                    .members
-                    .iter()
-                    .enumerate()
-                    .map(|(i, member)| {
-                        let to = target
-                            .iter()
-                            .position(|ty| {
-                                ty.accepts_scalar_value(*member)
-                                    || matches!((ty,member),(Type::Record(left),Type::Record(right)) if self.program.scoped_records.declaration(*left)==self.program.scoped_records.declaration(*right))
-                                    || matches!(ty, Type::Callback(_))
-                                        && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
-                            })
-                            .expect("view subset");
-                        format!(
-                            "ViewUnion{}::V{i}(payload)=>ViewUnion{}::V{to}(payload)",
-                            from.index(),
-                            union.index()
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                return format!("match {source} {{ {arms} }}");
-            }
-            let to = target
-                .iter()
-                .position(|ty| {
-                    ty.accepts_scalar_value(actual)
-                        || matches!(ty, Type::Callback(_))
-                            && matches!(actual, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
-                })
-                .expect("view member");
-            let source = if actual.is_copy() {
-                format!("&({source})")
-            } else {
-                source
-            };
-            if !infer_callable_carrier
-                && matches!(self.callback_payload(Type::Union(union)), Some(Type::Callback(id)) if !self.program.absent_callback_payloads.contains(&id))
-                && matches!(actual, Type::Null | Type::Undefined)
-            {
-                return format!(
-                    "ViewUnion{}::<TsrAbsentCallable>::V{to}({source})",
-                    union.index()
-                );
-            }
-            if matches!(actual, Type::Null | Type::Undefined)
-                && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
-                && (self.scoped_record_native_parameter(payload) || matches!(payload,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))))
-            {
-                return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
-            }
-            return format!("ViewUnion{}::V{to}({source})", union.index());
+            return self.finish_borrowed_union_injection(value, union, infer_callable_carrier, source);
         }
         if matches!(mode, Mode::Read | Mode::Mutate) {
             return self.conditional_arm(fun, expr, mode);
@@ -1464,6 +1410,65 @@ impl Emitter<'_> {
                 format!("Union{}::V{variant}({})", union.index(),self.union_store_payload(union,actual,&code))
             }
         }
+    }
+
+    fn finish_borrowed_union_injection(&self, value: &Expr, union: UnionId, infer_callable_carrier: bool, source: String) -> String {
+        let target = &self.program.unions[union.index()].members;
+        let actual = value.ty.expect("view injection");
+            if let Some(from) = actual.union() {
+                let arms = self.program.unions[from.index()]
+                    .members
+                    .iter()
+                    .enumerate()
+                    .map(|(i, member)| {
+                        let to = target
+                            .iter()
+                            .position(|ty| {
+                                ty.accepts_scalar_value(*member)
+                                    || matches!((ty,member),(Type::Record(left),Type::Record(right)) if self.program.scoped_records.declaration(*left)==self.program.scoped_records.declaration(*right))
+                                    || matches!(ty, Type::Callback(_))
+                                        && matches!(member, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
+                            })
+                            .expect("view subset");
+                        format!(
+                            "ViewUnion{}::V{i}(payload)=>ViewUnion{}::V{to}(payload)",
+                            from.index(),
+                            union.index()
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return format!("match {source} {{ {arms} }}");
+            }
+            let to = target
+                .iter()
+                .position(|ty| {
+                    ty.accepts_scalar_value(actual)
+                        || matches!(ty, Type::Callback(_))
+                            && matches!(actual, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_))
+                })
+                .expect("view member");
+            let source = if actual.is_copy() {
+                format!("&({source})")
+            } else {
+                source
+            };
+            if !infer_callable_carrier
+                && matches!(self.callback_payload(Type::Union(union)), Some(Type::Callback(id)) if !self.program.absent_callback_payloads.contains(&id))
+                && matches!(actual, Type::Null | Type::Undefined)
+            {
+                return format!(
+                    "ViewUnion{}::<TsrAbsentCallable>::V{to}({source})",
+                    union.index()
+                );
+            }
+            if matches!(actual, Type::Null | Type::Undefined)
+                && let Some(payload) = self.program.unions[union.index()].members.iter().copied().find(|ty| matches!(ty, Type::Record(_)))
+                && (self.scoped_record_native_parameter(payload) || matches!(payload,Type::Record(id) if self.borrowing_records.contains(&self.program.scoped_records.declaration(id))))
+            {
+                return format!("ViewUnion{}::<{}>::V{to}({source})", union.index(), self.native_type(payload));
+            }
+            return format!("ViewUnion{}::V{to}({source})", union.index());
     }
 
     fn value_builtin_bindings(&self, fun: &CheckedFunction, args: &[Expr]) -> String {

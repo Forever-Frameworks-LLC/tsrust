@@ -456,3 +456,38 @@ witness runs, the corrected witness, complete affected integration results,
 discovery sources/events, formatting and source/executable identity. Formal
 matched timing protocols and measurement status are unchanged. This checkpoint
 does not accept the full architecture or refresh installed consumers.
+
+
+### Conditional branch continuation checkpoint
+
+Conditional checking now suspends the predicate and both arms on the expression
+scheduler. Existing branch planning, stored-callable conversion, availability,
+flow and capture-loan joins retain their ordering. A failed-arm witness verifies
+restoration of both AST children, the original diagnostic span and expression
+depth. This does not prove outer block error cleanup.
+
+Emission schedules conditional predicates and arms, including borrowed-union
+injection. Explicit carrier-spine state preserves the existing callable carrier
+inference boundary: inference propagates through conditional branches and view
+injection, without leaking into nested call arguments. Ordinary expression
+wrappers and conditional temporary lifetimes retain their previous boundaries.
+
+Five emission unit witnesses pass, including exact output at 4,096 nested
+conditional arms on the normal test-worker stack. The diagnostic restoration
+witness passes. All 56 integration tests across conditional expressions, nullable
+callables and nullable unions pass, including native ownership, callback failures,
+branch laziness and disposal assertions.
+
+Discovery now includes conditional and mixed conditional/call/record/array/access
+families. Conditional samples 8/16/32 and mixed samples 8/16 complete the full
+pipeline through disposal. Their next geometric samples encounter the existing
+parser 128-level guard. These samples are observations, not support ceilings;
+no formal scaling measurement or full architecture acceptance is claimed.
+
+Whole-project formatting changes zero files and zero benchmark fingerprints.
+SQLite records under `tsrust-nesting-branches-*` preserve interface checks,
+unit/integration results, discovery sources/events, formatting and source identity.
+Coalescing, logical checking, assignment, synthesized wrappers and remaining
+recursive auxiliary consumers still need connected continuation work. Parser work
+remains separately owned. Installed consumers remain at the accepted public
+checkpoint; S12–S21 and optimization remain pending.

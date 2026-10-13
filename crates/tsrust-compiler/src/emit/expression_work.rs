@@ -6,6 +6,8 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    Conditional { infer: bool, temporary: Option<usize> },
+    BorrowedInjection { union: UnionId, infer: bool, temporary: Option<usize> },
     Unary { temporary: Option<usize> },
     Binary,
     NullableParameterField { method: String },
@@ -49,6 +51,8 @@ struct Frame<'a, 'p> {
     expr: &'a Expr,
     mode: Mode,
     boundary: Option<Boundary>,
+    entered: bool,
+    carrier_spine: bool,
     call: Option<CallFrame<'a, 'p>>,
 }
 
@@ -58,6 +62,8 @@ impl<'a, 'p> Frame<'a, 'p> {
             expr,
             mode,
             boundary: None,
+            entered: false,
+            carrier_spine: false,
             call: None,
         }
     }
@@ -94,9 +100,14 @@ impl<'p> Emitter<'p> {
                     let declarations = self.conditional_temporaries.borrow_mut().drain(*first_temporary..).collect::<Vec<_>>().join(" ");
                     code = format!("{{{declarations} let _={code};}}");
                 }
+                if let CallState::Conditional { temporary, .. } = &call.state
+                    && !call.rendered.is_empty() {
+                    code = self.finish_conditional_arm_work(call.children[call.rendered.len()].0, frame.mode, *temporary, code);
+                }
                 call.rendered.push(code);
             }
-            if frame.boundary.is_none() {
+            if !frame.entered {
+                frame.entered = true;
                 // Sequence has its own temporary policy and precedes copy adaptation.
                 if let ExprKind::Sequence(values) = &frame.expr.kind {
                     let code = self.sequence_expression(
@@ -112,17 +123,15 @@ impl<'p> Emitter<'p> {
                     completed = Some(code);
                     continue;
                 }
-                if frame.expr.ty.is_some_and(Type::is_copy) {
-                    frame.mode = Mode::Copy;
+                if !frame.carrier_spine {
+                    if frame.expr.ty.is_some_and(Type::is_copy) { frame.mode = Mode::Copy; }
+                    let depth = self.expression_depth.get();
+                    frame.boundary = Some(Boundary { depth, first_temporary: self.conditional_temporaries.borrow().len() });
+                    self.expression_depth.set(depth + 1);
                 }
-                let depth = self.expression_depth.get();
-                frame.boundary = Some(Boundary {
-                    depth,
-                    first_temporary: self.conditional_temporaries.borrow().len(),
-                });
-                self.expression_depth.set(depth + 1);
-                frame.call = self.prepare_callable_work(fun, frame.expr, frame.mode);
+                frame.call = self.prepare_callable_work(fun, frame.expr, frame.mode, frame.carrier_spine);
             }
+
             let code = if let Some(call) = &mut frame.call {
                 if let Some(&(child, mode)) = call.children.get(call.rendered.len()) {
                     if let CallState::Template { first_temporary } = &mut call.state {
@@ -131,7 +140,21 @@ impl<'p> Emitter<'p> {
                     if let CallState::NamedAccess { first_temporary, .. } = &mut call.state {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
-                    work.push(Frame::new(child, mode));
+                    let mut child_frame = Frame::new(child, mode);
+                    if let CallState::Conditional { infer, temporary } = &mut call.state
+                        && !call.rendered.is_empty() {
+                        let spine = *infer && (matches!(child.kind, ExprKind::Conditional { .. })
+                            || matches!(child.kind, ExprKind::Inject { .. }) && matches!(child.ty, Some(Type::BorrowedUnion(_))));
+                        if spine {
+                            *temporary = None;
+                            child_frame.carrier_spine = true;
+                        } else {
+                            let (access, pending) = self.prepare_conditional_arm_work(fun, child, mode);
+                            child_frame.mode = access;
+                            *temporary = pending;
+                        }
+                    }
+                    work.push(child_frame);
                     continue;
                 }
                 self.finish_callable_work(
@@ -145,15 +168,9 @@ impl<'p> Emitter<'p> {
             } else {
                 self.expr_dispatch(fun, frame.expr, frame.mode)
             };
-            let boundary = frame.boundary.take().expect("entered expression");
-            let code = self.finish_expression_work(
-                fun,
-                frame.expr,
-                frame.mode,
-                boundary.depth,
-                boundary.first_temporary,
-                code,
-            );
+            let code = if let Some(boundary) = frame.boundary.take() {
+                self.finish_expression_work(fun, frame.expr, frame.mode, boundary.depth, boundary.first_temporary, code)
+            } else { code };
             work.pop();
             if work.is_empty() {
                 return code;
@@ -167,7 +184,21 @@ impl<'p> Emitter<'p> {
         fun: &CheckedFunction,
         expr: &'a Expr,
         mode: Mode,
+        force_carrier: bool,
     ) -> Option<CallFrame<'a, 'p>> {
+        if let ExprKind::Conditional { predicate, consequent, alternate } = &expr.kind {
+            let infer = force_carrier || (matches!(expr.ty, Some(Type::BorrowedUnion(_)))
+                && self.callback_payload(expr.ty.unwrap()).is_some() && !Self::absent_callable_initializer(expr));
+            return Some(CallFrame { children: vec![(predicate, Mode::Copy), (consequent, mode), (alternate, mode)],
+                rendered: Vec::new(), invocation: None, state: CallState::Conditional { infer, temporary: None } });
+        }
+        if let ExprKind::Inject { value, union } = &expr.kind && matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
+            let (access, temporary) = if force_carrier && !value.ty.unwrap().is_copy() {
+                self.prepare_conditional_arm_work(fun, value, Mode::Read)
+            } else { (Mode::Read, None) };
+            return Some(CallFrame { children: vec![(value, access)], rendered: Vec::new(), invocation: None,
+                state: CallState::BorrowedInjection { union: *union, infer: force_carrier, temporary } });
+        }
         if let Some((root, method)) = self.nullable_record_parameter_field_work(fun, expr, mode) {
             return Some(CallFrame {
                 children: vec![(root, Mode::Read)],
@@ -427,7 +458,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -436,7 +467,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -683,6 +714,19 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
+            CallState::Conditional { .. } => {
+                let mut rendered = rendered.into_iter();
+                let condition = rendered.next().expect("predicate");
+                let then_value = rendered.next().expect("consequent");
+                let else_value = rendered.next().expect("alternate");
+                return format!("(if {condition} {{ {then_value} }} else {{ {else_value} }})");
+            }
+            CallState::BorrowedInjection { union, infer, temporary } => {
+                let ExprKind::Inject { value, .. } = &expr.kind else { unreachable!("view injection"); };
+                let source = self.finish_conditional_arm_work(value, Mode::Read, temporary, rendered.into_iter().next().expect("view source"));
+                return self.finish_borrowed_union_injection(value, union, infer, source);
+            }
+
             CallState::Unary { temporary } => {
                 let ExprKind::Unary { op, value, .. } = &expr.kind else { unreachable!("unary work"); };
                 let mut rendered = rendered.into_iter().next().map(|code| self.finish_conditional_arm_work(value, Mode::Read, temporary, code));
@@ -1136,6 +1180,29 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn conditional_arms_share_the_emission_stack() {
+        let checked = crate::check("function probe():int{return true?987654321:0;} function main(){console.log(probe());}").unwrap();
+        let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+        let StmtKind::Return(Some(template)) = &fun.body[0].kind else { panic!("return"); };
+        let ExprKind::Conditional { consequent, .. } = &template.kind else { panic!("conditional"); };
+        let emitter = super::super::emitter_for(&checked.program, "");
+        let leaf = emitter.expr(fun, consequent, Mode::Copy);
+        let shallow = emitter.expr(fun, template, Mode::Copy);
+        let (prefix, suffix) = shallow.split_once(&leaf).expect("arm emission");
+        let mut nested = consequent.as_ref().clone();
+        // Phase isolation, not a language nesting ceiling.
+        for _ in 0..4096 {
+            let mut parent = template.clone();
+            let ExprKind::Conditional { consequent, .. } = &mut parent.kind else { unreachable!() };
+            **consequent = nested;
+            nested = parent;
+        }
+        assert!(emitter.expr(fun, &nested, Mode::Copy) == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+        assert_eq!(emitter.expression_depth.get(), 0);
+        assert!(emitter.conditional_temporaries.borrow().is_empty());
+    }
 
     #[test]
     fn mixed_unary_binary_operands_share_the_emission_stack() {
