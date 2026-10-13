@@ -24,20 +24,20 @@ pub struct MatchSyntax {
 
 // Retain ordinary expression and statement trees for the checking integration;
 // the public inspection view exposes only original-source coordinates.
-struct ParsedMatch {
-    scrutinee: Expr,
-    arms: Vec<ParsedArm>,
-    span: Span,
+pub(super) struct ParsedMatch {
+    pub(super) scrutinee: Expr,
+    pub(super) arms: Vec<ParsedArm>,
+    pub(super) span: Span,
 }
 
-struct ParsedArm {
-    pattern: ParsedPattern,
-    body: Vec<Stmt>,
-    body_span: Span,
-    span: Span,
+pub(super) struct ParsedArm {
+    pub(super) pattern: ParsedPattern,
+    pub(super) body: Vec<Stmt>,
+    pub(super) body_span: Span,
+    pub(super) span: Span,
 }
 
-enum ParsedPattern {
+pub(super) enum ParsedPattern {
     Wildcard(Span),
     Variant { name: Token, binding: Option<Token> },
 }
@@ -83,11 +83,10 @@ impl Parser<'_> {
         false
     }
 
-    #[inline(never)]
-    pub(super) fn lower_match_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let mut holder = self.pattern_holder();
-        holder.text = holder.text.replace("pattern#", "match#");
-        let ParsedMatch { scrutinee, arms, span } = self.match_statement_syntax()?;
+    /// Lower one parsed match statement. `holder` was allocated before its
+    /// scrutinee and arms were parsed.
+    pub(super) fn lower_match_statement(&mut self, holder: Token, parsed: ParsedMatch) -> Stmt {
+        let ParsedMatch { scrutinee, arms, span } = parsed;
         let statement = |kind, span| Stmt { labels: Vec::new(), control_target: None, kind, span };
         let intrinsic = |name: &str, tag: Option<(&str, Span)>, span: Span| {
             let mut arguments = vec![Expr::new(ExprKind::Name(holder.text.clone()), span)];
@@ -131,36 +130,10 @@ impl Parser<'_> {
         }
         let mut body = vec![statement(StmtKind::Let { rebindable: false, name: holder, annotation: None, value: scrutinee, binding: None }, span), statement(StmtKind::Expr(coverage), span)];
         body.extend(tail);
-        Ok(statement(StmtKind::Block(body), span))
+        statement(StmtKind::Block(body), span)
     }
 
-    #[inline(never)]
-    fn match_statement_syntax(&mut self) -> Result<ParsedMatch, Diagnostic> {
-        let start = self.expect("match")?.span.start;
-        self.expect("(")?;
-        let scrutinee = self.comma_expression()?;
-        self.expect(")")?;
-        self.expect("{")?;
-        let mut arms = Vec::new();
-        while !self.accept("}") {
-            if self.peek().kind == TokenKind::End { self.expect("}")?; }
-            if self.depth + arms.len() >= 128 { return Err(Diagnostic::new("unsupported", "Match arm nesting exceeds the prototype limit of 128.", self.peek().span)); }
-            let arm_start = self.peek().span.start;
-            let pattern = self.match_pattern()?;
-            self.expect("=>")?;
-            let body_start = self.peek().span.start;
-            let body = self.block()?;
-            let end = self.tokens[self.i - 1].span.end;
-            arms.push(ParsedArm { pattern, body, body_span: Span::new(body_start, end), span: Span::new(arm_start, end) });
-            // Rust-style block arms may omit their separator; a trailing comma
-            // is accepted. A doubled comma remains a malformed next pattern.
-            self.accept(",");
-        }
-        Ok(ParsedMatch { scrutinee, arms, span: Span::new(start, self.tokens[self.i - 1].span.end) })
-    }
-
-    #[inline(never)]
-    fn match_pattern(&mut self) -> Result<ParsedPattern, Diagnostic> {
+    pub(super) fn match_pattern(&mut self) -> Result<ParsedPattern, Diagnostic> {
         let name = self.name()?;
         if name.text == "_" { return Ok(ParsedPattern::Wildcard(name.span)); }
         self.expect("(")?;

@@ -1,4 +1,14 @@
+mod declaration_work;
 mod expression_work;
+mod nesting_policy;
+#[cfg(test)]
+mod nesting_tests;
+#[cfg(test)]
+mod parity_dump;
+#[cfg(test)]
+mod parser_probe;
+mod scheduler;
+mod statement_work;
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
 mod annotation_conversion;
@@ -8,6 +18,7 @@ mod tree_clone;
 pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
+pub(crate) use nesting_policy::NestingPolicy;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TokenKind {
@@ -30,6 +41,11 @@ pub struct Token {
 }
 
 pub fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
+    lex_with(source, NestingPolicy::CONSUMERS)
+}
+
+/// Lex under an explicit admission policy. Template frames are heap state.
+pub(crate) fn lex_with(source: &str, policy: NestingPolicy) -> Result<Vec<Token>, Diagnostic> {
     let mut tokens = Vec::new();
     let bytes = source.as_bytes();
     let mut i = 0;
@@ -66,7 +82,7 @@ pub fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
             let (value, end, interpolation) = template_chunk(source, i)?;
             i = end;
             if interpolation {
-                if templates.len() >= 128 {
+                if policy.reached(templates.len()) {
                     return Err(Diagnostic::new(
                         "unsupported",
                         "Template nesting exceeds the prototype limit of 128.",
@@ -1797,12 +1813,40 @@ fn parse_raw(source: &str, test_entry: bool, imported: crate::type_aliases::Alia
     Parser::new(source, imported, records)?.program(test_entry)
 }
 
+/// Parse one file without nesting limits and without the later lowering
+/// passes. The tree may be deeper than recursive consumers accept.
+#[allow(dead_code)]
+pub(crate) fn parse_unbounded(source: &str) -> Result<Program, Diagnostic> {
+    Parser::with_policy(source, Default::default(), Default::default(), NestingPolicy::UNBOUNDED)?.program(false)
+}
+
+/// Syntax diagnostics with statement recovery and without nesting limits.
+#[allow(dead_code)]
+pub(crate) fn diagnostics_unbounded(source: &str) -> Vec<Diagnostic> {
+    let errors = std::cell::RefCell::new(Vec::new());
+    let result = Parser::with_policy(source, Default::default(), Default::default(), NestingPolicy::UNBOUNDED).and_then(|mut parser| {
+        parser.diagnostics = Some(&errors);
+        parser.program(false).map(|_| ())
+    });
+    if let Err(error) = result { errors.borrow_mut().push(error); }
+    errors.into_inner()
+}
+
 impl<'a> Parser<'a> {
     fn new(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords) -> Result<Self, Diagnostic> {
+        Self::with_policy(source, imported, records, NestingPolicy::CONSUMERS)
+    }
+
+    fn with_policy(source: &'a str, imported: crate::type_aliases::Aliases, records: crate::type_aliases::ImportedRecords, policy: NestingPolicy) -> Result<Self, Diagnostic> {
         Ok(Self {
             source,
             diagnostics: None,
-            tokens: lex(source)?,
+            policy,
+            scheduling: false,
+            parenthesis_closers: Default::default(),
+            typed_arrow_clear: None,
+            validated_switches: Default::default(),
+            tokens: lex_with(source, policy)?,
             i: 0,
             depth: 0,
             next_closure: 0,
@@ -1821,21 +1865,50 @@ impl<'a> Parser<'a> {
 // Registration statements execute in a synthetic function, but retain source-level
 // module rules. Do not descend into expression callbacks or helper functions.
 fn registration_return(body: &[Stmt]) -> Option<Span> {
-    for statement in body {
-        let found = match &statement.kind {
-            StmtKind::Return(_) => Some(statement.span),
-            StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => registration_return(body),
-            StmtKind::Loop { body, update, .. } => registration_return(body).or_else(|| registration_return(update)),
-            StmtKind::If { then_body, else_body, .. } => registration_return(then_body).or_else(|| registration_return(else_body)),
-            _ => None,
+    let mut pending = vec![body.iter()];
+    while let Some(statements) = pending.last_mut() {
+        let Some(statement) = statements.next() else {
+            pending.pop();
+            continue;
         };
-        if found.is_some() { return found; }
+        match &statement.kind {
+            StmtKind::Return(_) => return Some(statement.span),
+            StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => pending.push(body.iter()),
+            StmtKind::Loop { body, update, .. } => {
+                pending.push(update.iter());
+                pending.push(body.iter());
+            }
+            StmtKind::If { then_body, else_body, .. } => {
+                pending.push(else_body.iter());
+                pending.push(then_body.iter());
+            }
+            _ => {}
+        }
     }
     None
 }
 
+/// One pending target of a destructuring assignment.
+enum PatternAssignment {
+    Target { target: Expr, value: Expr, depth: usize },
+    Element { element: Expr, source: Expr, position: usize, count: usize, depth: usize },
+    Field { key: Token, element: Expr, source: Expr, depth: usize },
+}
+
 struct Parser<'a> {
     diagnostics: Option<&'a std::cell::RefCell<Vec<Diagnostic>>>,
+    /// Admission bound for nested syntax; the scheduler itself needs none.
+    policy: NestingPolicy,
+    /// One scheduler run is active. Grammar steps queue work instead of
+    /// starting another run.
+    scheduling: bool,
+    /// Source offsets of known parenthesis pairs; none when unclosed.
+    parenthesis_closers: std::collections::HashMap<usize, Option<usize>>,
+    /// Source range already scanned without finding an unparenthesized typed arrow.
+    typed_arrow_clear: Option<(usize, usize)>,
+    /// Statements produced by a validated switch, by source offset. Their
+    /// bodies hold no break that could leave an enclosing switch.
+    validated_switches: std::collections::HashSet<usize>,
     unresolved_local_function: Option<Token>,
     source: &'a str,
     tokens: Vec<Token>,
@@ -1917,7 +1990,7 @@ impl Parser<'_> {
     }
     fn value_annotation(&mut self) -> Result<crate::type_syntax::ValueAnnotation, Diagnostic> {
         let (mut annotation, index) =
-            crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth)?;
+            crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
         self.i = index;
         if !self.aliases.is_empty() {
             crate::type_aliases::expand(&mut annotation, &self.aliases);
@@ -1984,7 +2057,7 @@ impl Parser<'_> {
                     name.span,
                 ));
             }
-            let (annotation, end) = crate::type_syntax::parse_prefix(&mut self.tokens, index + 3, self.depth)?;
+            let (annotation, end) = crate::type_syntax::parse_prefix(&mut self.tokens, index + 3, self.depth, self.policy)?;
             raw.push((name, annotation));
             index = end;
         }
@@ -2240,7 +2313,7 @@ impl Parser<'_> {
                         name.span,
                     ));
                 }
-                let (_, end) = crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth)?;
+                let (_, end) = crate::type_syntax::parse_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
                 self.i = end;
                 self.expect(";")?;
             } else if self.accept("type") {
@@ -2342,55 +2415,6 @@ impl Parser<'_> {
         ))
     }
 
-    // The opening parenthesis is already consumed. Types are checked later.
-    fn callable_parameters(&mut self, allow_defaults: bool) -> Result<Vec<CallableParameter>, Diagnostic> {
-        let mut params = Vec::new();
-        if !self.is(")") {
-            loop {
-                let rest = self.accept("...");
-                let pattern = allow_defaults && matches!(self.peek().text.as_str(), "[" | "{");
-                let name = if pattern { self.parameter_pattern()? } else { self.name()? };
-                let optional = if self.accept("?") { Some(self.tokens[self.i-1].span) } else { None };
-                let annotated = self.accept(":");
-                if !annotated && !allow_defaults {
-                    return Err(Diagnostic::new("syntax", "Callable signature parameters require a type annotation.", name.span));
-                }
-                let (ty, mut access) = if !annotated {
-                    (ParameterAnnotation::Inferred(name.clone()), None)
-                } else if self.access_wrapper_start() {
-                    self.wrapped_parameter_annotation()?
-                } else {
-                    (self.parameter_annotation()?, None)
-                };
-                if pattern && access.is_none() {
-                    access = Some(Self::pattern_access(&name));
-                }
-                let initializer = self.parameter_initializer(optional, allow_defaults)?;
-                Self::rest_initializer(rest, &initializer, name.span)?;
-                params.push(CallableParameter { rest, name, ty, access, initializer });
-                if rest && self.is(",") { return Err(Diagnostic::new("rest-parameter", "A rest parameter must be last.", self.peek().span)); }
-                if !self.accept(",") {
-                    break;
-                }
-            }
-        }
-        self.expect(")")?;
-        Self::parameter_order(&params.iter().filter(|p|!p.rest).map(|p|p.initializer.clone()).collect::<Vec<_>>(), params.iter().map(|p|p.name.span))?;
-        Ok(params)
-    }
-
-    /// A destructuring pattern in a parameter position, held under a hidden name.
-    #[inline(never)]
-    fn parameter_pattern(&mut self) -> Result<Token, Diagnostic> {
-        let mut whole = self.pattern_holder();
-        let mut positions = Vec::new();
-        self.binding_pattern(&whole, false, &mut positions, 0)?;
-        // Retain the parameter pattern boundary for initialization scheduling.
-        whole.span.end = self.tokens[self.i - 1].span.end;
-        self.parameter_patterns.append(&mut positions);
-        Ok(whole)
-    }
-
     /// A destructured parameter without a stated access is read: its names
     /// borrow the argument's positions. `Owned<T>` lets them move out.
     /// Put destructured parameter names first in a body.
@@ -2415,7 +2439,7 @@ impl Parser<'_> {
     // `values: Mutable<int[]>` states data access through the type; a wrapped
     // Function stays an ordinary callable annotation.
     fn wrapped_parameter_annotation(&mut self) -> Result<(ParameterAnnotation, Option<Token>), Diagnostic> {
-        if self.depth >= 128 {
+        if self.policy.reached(self.depth) {
             return Err(Diagnostic::new(
                 "unsupported",
                 "Type annotation nesting exceeds the prototype limit of 128.",
@@ -2423,7 +2447,7 @@ impl Parser<'_> {
             ));
         }
         let (access, mut annotation, next) =
-            crate::type_syntax::parse_parameter_prefix(&mut self.tokens, self.i, self.depth)?;
+            crate::type_syntax::parse_parameter_prefix(&mut self.tokens, self.i, self.depth, self.policy)?;
         self.i = next;
         crate::type_aliases::expand(&mut annotation, &self.aliases);
         let access = access.map(|access| Token {
@@ -2447,30 +2471,9 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn parameter_initializer(&mut self, optional: Option<Span>, allow_default: bool) -> Result<ParameterInitializer, Diagnostic> {
-        if self.accept("=") {
-            let operator = self.tokens[self.i-1].span;
-            if optional.is_some() {
-                return Err(Diagnostic::new("parameter-initializer", "An optional parameter cannot also have a default initializer.", operator));
-            }
-            if !allow_default {
-                return Err(Diagnostic::new("parameter-initializer", "Executable defaults belong to declarations and arrows, not callable type annotations.", operator));
-            }
-            let declared = self.pending.len();
-            let value = self.expression()?;
-            // A default runs before the body block exists, so there is no block
-            // to hold the private declaration of a named function expression.
-            if let Some(statement) = self.pending[declared..].iter().find(|statement| matches!(statement.kind, StmtKind::LocalFunction(_))) {
-                return Err(Diagnostic::new("unsupported", "A named function expression cannot be a parameter default yet. Use an arrow function, or declare the function and write its name here.", statement.span));
-            }
-            return Ok(ParameterInitializer::Default { span: Span::new(operator.start, value.span.end), value: Box::new(value) });
-        }
-        Ok(optional.map_or(ParameterInitializer::Required, ParameterInitializer::Optional))
-    }
-
-    fn parameter_order(initializers: &[ParameterInitializer], names: impl Iterator<Item=Span>) -> Result<(), Diagnostic> {
+    fn parameter_order<'p>(initializers: impl Iterator<Item = &'p ParameterInitializer>, names: impl Iterator<Item = Span>) -> Result<(), Diagnostic> {
         let mut optional = false;
-        for (initializer, span) in initializers.iter().zip(names) {
+        for (initializer, span) in initializers.zip(names) {
             if optional && matches!(initializer, ParameterInitializer::Required) {
                 return Err(Diagnostic::new("parameter-order", "A required parameter cannot follow an optional parameter.", span));
             }
@@ -2489,46 +2492,6 @@ impl Parser<'_> {
         })
     }
 
-    fn block(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Block nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
-        }
-        self.expect("{")?;
-        self.depth += 1;
-        let mut body = Vec::new();
-        while !self.accept("}") {
-            if self.peek().kind == TokenKind::End {
-                self.expect("}")?;
-            }
-            let start = self.i;
-            let depth = self.depth;
-            let pending = self.pending.len();
-            let arguments = self.call_type_arguments.len();
-            let patterns = self.parameter_patterns.len();
-            match self.block_statement() {
-                Ok(statement) => {
-                    body.push(statement);
-                    body.append(&mut self.pending);
-                }
-                Err(error) => {
-                    let Some(errors) = self.diagnostics else { return Err(error); };
-                    if error.code != "syntax" || errors.borrow().len() >= 63 { return Err(error); }
-                    errors.borrow_mut().push(error);
-                    self.depth = depth;
-                    self.pending.truncate(pending);
-                    self.call_type_arguments.truncate(arguments);
-                    self.parameter_patterns.truncate(patterns);
-                    self.recover_statement(start);
-                }
-            }
-        }
-        self.depth -= 1;
-        Ok(body)
-    }
     // Scan token kinds, so delimiter-looking strings cannot change recovery.
     // Braces preserve the containing block; a semicolon also bounds malformed
     // parentheses. A fresh declaration can follow a missing semicolon.
@@ -2557,305 +2520,6 @@ impl Parser<'_> {
             self.i += 1;
         }
     }
-    /// `switch (value) { case a: ... default: ... }` becomes an if chain over
-    /// strict equality, tested in source order. The discriminant is evaluated
-    /// once. Each case ends with break, return or continue, or groups with the
-    /// next case; running from one case body into the next is not supported.
-    #[inline(never)]
-    fn switch_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let span = self.expect("switch")?.span;
-        self.expect("(")?;
-        let discriminant = self.comma_expression()?;
-        self.expect(")")?;
-        self.expect("{")?;
-        if self.depth >= 128 {
-            return Err(Diagnostic::new("unsupported", "Block nesting exceeds the prototype limit of 128.", span));
-        }
-        self.depth += 1;
-        // Each clause: its case values (none for default) and its body.
-        let mut clauses: Vec<(Vec<Expr>, bool, Vec<Stmt>, Span)> = Vec::new();
-        let mut default_seen = false;
-        while !self.accept("}") {
-            let at = self.peek().span;
-            let mut values = Vec::new();
-            let mut default = false;
-            if !self.is("case") && !self.is("default") {
-                return Err(Diagnostic::new("syntax", "Expected case or default in a switch body.", at));
-            }
-            // Adjacent labels share one body.
-            while self.is("case") || self.is("default") {
-                if self.take().text == "default" {
-                    if default_seen {
-                        return Err(Diagnostic::new("syntax", "A switch can have one default clause.", at));
-                    }
-                    default_seen = true;
-                    default = true;
-                } else {
-                    values.push(self.comma_expression()?);
-                }
-                self.expect(":")?;
-            }
-            let mut body = Vec::new();
-            while !self.is("case") && !self.is("default") && !self.is("}") {
-                if self.peek().kind == TokenKind::End {
-                    self.expect("}")?;
-                }
-                body.push(self.block_statement()?);
-                body.append(&mut self.pending);
-            }
-            clauses.push((values, default, body, at));
-        }
-        self.depth -= 1;
-        if clauses.len() > 120 {
-            return Err(Diagnostic::new("unsupported", "A switch supports at most 120 clauses.", span));
-        }
-        let last = clauses.len().saturating_sub(1);
-        for (index, (_, _, body, at)) in clauses.iter_mut().enumerate() {
-            let ended = Self::end_switch_clause(body);
-            if !ended && index != last && !body.is_empty() {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "This case runs into the next one. End it with break, return or continue, or leave it empty to share the next body.",
-                    *at,
-                ));
-            }
-            if let Some(nested) = Self::switch_break(body) {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "A break inside a nested statement of a case is not supported; make break the last statement of the case, or restructure with if and else.",
-                    nested,
-                ));
-            }
-        }
-        // A named discriminant is compared in place; any other value is held once.
-        let mut held = None;
-        let subject = if matches!(discriminant.kind, ExprKind::Name(_)) {
-            discriminant
-        } else {
-            let holder = self.pattern_holder();
-            let name = Expr::new(ExprKind::Name(holder.text.clone()), discriminant.span);
-            held = Some(Stmt { labels: Vec::new(), control_target: None,
-                kind: StmtKind::Let { rebindable: false, name: holder, annotation: None, value: discriminant, binding: None },
-                span,
-            });
-            name
-        };
-        // Build the chain from the last clause back; default is the final else.
-        let mut default_body = None;
-        let mut chain: Vec<Stmt> = Vec::new();
-        let mut tested = Vec::new();
-        for (values, default, body, at) in clauses {
-            if default {
-                default_body = Some(body);
-            } else {
-                tested.push((values, body, at));
-            }
-        }
-        if let Some(body) = default_body {
-            chain = body;
-        }
-        for (values, body, at) in tested.into_iter().rev() {
-            let mut condition: Option<Expr> = None;
-            for value in values {
-                let value_span = value.span;
-                let equal = Expr::new(
-                    ExprKind::Binary {
-                        op: BinaryOp::Equal,
-                        operator: value_span,
-                        left: Box::new(Expr::new(subject.kind.clone(), subject.span)),
-                        right: Box::new(value),
-                    },
-                    value_span,
-                );
-                condition = Some(match condition {
-                    None => equal,
-                    Some(previous) => Expr::new(
-                        ExprKind::Binary { op: BinaryOp::Or, operator: value_span, left: Box::new(previous), right: Box::new(equal) },
-                        value_span,
-                    ),
-                });
-            }
-            let condition = condition.expect("case clause has a value");
-            chain = vec![Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::If { condition, then_body: body, else_body: chain }, span: at }];
-        }
-        match held {
-            Some(first) => {
-                self.pending.append(&mut chain);
-                Ok(first)
-            }
-            None => Ok(Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Block(chain), span }),
-        }
-    }
-
-    /// Remove the break that ends a clause, also when it ends the clause's
-    /// final block. Report whether the clause ends explicitly.
-    #[inline(never)]
-    fn end_switch_clause(body: &mut Vec<Stmt>) -> bool {
-        if body.last().is_some_and(|statement|matches!(statement.kind,StmtKind::Break)&&!statement.labels.is_empty()) {return true;}
-        match body.last_mut().map(|statement| &mut statement.kind) {
-            Some(StmtKind::Break) => {
-                body.pop();
-                true
-            }
-            Some(StmtKind::Return(_) | StmtKind::Continue) => true,
-            Some(StmtKind::Block(inner)) => Self::end_switch_clause(inner),
-            _ => false,
-        }
-    }
-
-    /// A break that would leave the switch from inside a nested statement.
-    /// Loops own their breaks.
-    #[inline(never)]
-    fn switch_break(body: &[Stmt]) -> Option<Span> {
-        for statement in body {
-            let found = match &statement.kind {
-                StmtKind::Break if statement.labels.is_empty() => Some(statement.span),
-                StmtKind::Block(inner) => Self::switch_break(inner),
-                StmtKind::If { then_body, else_body, .. } => Self::switch_break(then_body).or_else(|| Self::switch_break(else_body)),
-                _ => None,
-            };
-            if found.is_some() {
-                return found;
-            }
-        }
-        None
-    }
-
-    /// The body of if, else, while, do, for or for...of: a block, or one
-    /// statement that forms a block of its own.
-    #[inline(never)]
-    fn body(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
-        if self.is("{") {
-            return self.block();
-        }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Block nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
-        }
-        if self.is(";") {
-            return Err(Diagnostic::new("syntax", "An empty statement cannot be a body; write {} for an empty body.", self.peek().span));
-        }
-        if self.is("const") || self.is("let") || self.is("function") {
-            return Err(Diagnostic::new("syntax", "A declaration cannot be a body without braces; put it in a block.", self.peek().span));
-        }
-        self.depth += 1;
-        let statement = self.block_statement();
-        self.depth -= 1;
-        let mut body = vec![statement?];
-        body.append(&mut self.pending);
-        Ok(body)
-    }
-    // Return directly so recursive blocks retain only one statement temporary.
-    fn block_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        if self.peek().kind == TokenKind::Name && self.tokens.get(self.i+1).is_some_and(|token|token.text==":") {
-            return self.labeled_statement();
-        }
-        if self.is("function") {
-            self.local_function_statement()
-        } else if self.match_statement_header() {
-            self.lower_match_statement()
-        } else if self.is("try") {
-            self.try_statement()
-        } else if self.is("for") {
-            if self.for_of_header() {
-                self.for_of_statement()
-            } else {
-                self.for_statement()
-            }
-        } else if self.is("if") {
-            self.if_statement()
-        } else if self.is("while") {
-            self.while_statement()
-        } else if self.is("do") {
-            self.do_statement()
-        } else if self.is("switch") && self.tokens.get(self.i + 1).is_some_and(|token| token.text == "(") {
-            self.switch_statement()
-        } else if self.is("{") {
-            let span = self.peek().span;
-            self.block().map(|body| Stmt { labels: Vec::new(), control_target: None,
-                kind: StmtKind::Block(body),
-                span,
-            })
-        } else {
-            self.statement(true)
-        }
-    }
-    #[inline(never)]
-    fn try_statement(&mut self)->Result<Stmt,Diagnostic> {
-        let start=self.expect("try")?.span;
-        let body=self.block()?;
-        let catch=if self.accept("catch") {
-            let name=if self.accept("(") {let name=self.name()?;self.expect(")")?;Some(name)}else{None};
-            Some(CatchClause{error_type:None,error_contract:None,name,binding:None,body:self.block()?})
-        }else{None};
-        let finally=if self.accept("finally") {Some(self.block()?)}else{None};
-        if catch.is_none() && finally.is_none() {
-            return Err(Diagnostic::new("syntax","A try block requires catch, finally, or both.",start));
-        }
-        let span=Span::new(start.start,self.tokens[self.i-1].span.end);
-        Ok(Stmt{labels:Vec::new(),control_target:None,kind:StmtKind::Try(Box::new(ExceptionRegion{body,catch,finally})),span})
-    }
-    #[inline(never)]
-    fn labeled_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let mut labels=Vec::new();
-        while self.peek().kind==TokenKind::Name && self.tokens.get(self.i+1).is_some_and(|token|token.text==":") {
-            labels.push(self.name()?);self.expect(":")?;
-            if labels.len()>32 {return Err(Diagnostic::new("unsupported","A statement supports at most 32 labels.",labels[0].span));}
-        }
-        if matches!(self.peek().text.as_str(),"let"|"const"|"type"|"function") {
-            return Err(Diagnostic::new("syntax","A label must precede a statement, not a declaration.",self.peek().span));
-        }
-        if self.is(";") {let span=self.take().span;return Ok(Stmt{labels,control_target:None,kind:StmtKind::Block(Vec::new()),span});}
-        let classic_for=self.is("for") && !self.for_of_header();
-        let mut statement=self.block_statement()?;
-        if classic_for {
-            if let StmtKind::Block(body)=&mut statement.kind {
-                body.last_mut().expect("classic-for loop").labels=labels;
-            }
-        } else if matches!(statement.kind,StmtKind::While{..}|StmtKind::Loop{..}|StmtKind::ForOf{..}|StmtKind::Block(_)) {
-            statement.labels=labels;
-        } else {
-            let span=statement.span;
-            statement=Stmt{labels,control_target:None,kind:StmtKind::Block(vec![statement]),span};
-        }
-        Ok(statement)
-    }
-
-    fn if_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let span = self.expect("if")?.span;
-        self.expect("(")?;
-        let condition = self.comma_expression()?;
-        self.expect(")")?;
-        let then_body = self.body()?;
-        let else_body = self.if_else_body()?;
-        Ok(Self::conditional_statement(span, condition, then_body, else_body))
-    }
-
-    // Else-chain temporaries do not occupy every recursively retained block.
-    #[inline(never)]
-    fn if_else_body(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
-        if !self.accept("else") {
-            return Ok(Vec::new());
-        }
-        if !self.is("if") {
-            return self.body();
-        }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Conditional nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
-        }
-        self.depth += 1;
-        let nested = self.if_statement();
-        self.depth -= 1;
-        Ok(vec![nested?])
-    }
-
     // Construct the large statement value after recursive parsing returns.
     #[inline(never)]
     fn conditional_statement(span: Span, condition: Expr, then_body: Vec<Stmt>, else_body: Vec<Stmt>) -> Stmt {
@@ -2864,68 +2528,6 @@ impl Parser<'_> {
             span,
         }
     }
-    fn while_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let span = self.expect("while")?.span;
-        self.expect("(")?;
-        let condition = self.comma_expression()?;
-        self.expect(")")?;
-        let body = self.body()?;
-        Ok(Stmt { labels: Vec::new(), control_target: None,
-            kind: StmtKind::While { condition, body },
-            span,
-        })
-    }
-    /// `const [a, b] = value;` and `const { x } = value;`. Kept out of the
-    /// recursive statement frame.
-    #[inline(never)]
-    fn pattern_declaration(&mut self) -> Result<StmtKind, Diagnostic> {
-        let rebindable = self.take().text == "let";
-        self.pattern_declarator(rebindable)
-    }
-
-    /// One pattern declarator after `const`, `let` or a comma. Its position
-    /// declarations are appended to `pending`.
-    #[inline(never)]
-    fn pattern_declarator(&mut self, rebindable: bool) -> Result<StmtKind, Diagnostic> {
-        Ok({
-            // `const [a, b] = value;` binds the whole value once, then each
-            // name takes its position under the ordinary binding rules.
-            let whole = self.pattern_holder();
-            let mut positions = Vec::new();
-            self.binding_pattern(&whole, rebindable, &mut positions, 0)?;
-            let annotation = if self.accept(":") {
-                Some(self.value_annotation()?)
-            } else {
-                None
-            };
-            self.expect("=")?;
-            let value = self.expression()?;
-            // A named source needs no holder: each name takes its position
-            // from the source itself, so copied positions leave it usable.
-            let direct = match (&value.kind, &annotation) {
-                (ExprKind::Name(source), None) if !positions.is_empty() => Some(source.clone()),
-                _ => None,
-            };
-            if let Some(source) = direct {
-                for position in &mut positions {
-                    if let StmtKind::Let{value:selected,..}=&mut position.kind {Self::replace_pattern_source(selected,&whole.text,&source,value.span);}
-                }
-                let first = positions.remove(0);
-                self.pending.append(&mut positions);
-                first.into_kind()
-            } else {
-                self.pending.append(&mut positions);
-                StmtKind::Let {
-                    rebindable: false,
-                    name: whole,
-                    annotation,
-                    value,
-                    binding: None,
-                }
-            }
-        })
-    }
-
     /// `[a, b] = value;` and `({ x, y: z } = value);` assign to existing
     /// places. The statement becomes ordinary assignments in source order; the
     /// first is returned and the others follow it through `pending`.
@@ -2951,6 +2553,9 @@ impl Parser<'_> {
                 ));
             }
         }
+        // Targets in source order. Each nested pattern is expanded when its
+        // turn comes, so hidden names and errors keep their source order.
+        let mut work = Vec::new();
         match (target.take_kind(), value.take_kind()) {
             // Each written value is held first, so `[a, b] = [b, a]` swaps
             // without building an array and owned values can move.
@@ -2966,9 +2571,7 @@ impl Parser<'_> {
                         span,
                     });
                 }
-                for (target, value) in targets.into_iter().zip(held) {
-                    self.assign_through_pattern(target, value, span, &mut out, 0)?;
-                }
+                work.extend(targets.into_iter().zip(held).rev().map(|(target, value)| PatternAssignment::Target { target, value, depth: 0 }));
             }
             (target_kind, value_kind) => {
                 let target = Expr::new(target_kind, target.span);
@@ -2985,7 +2588,54 @@ impl Parser<'_> {
                     });
                     name
                 };
-                self.assign_pattern_positions(target, source, span, &mut out, 0)?;
+                self.assign_pattern_positions(target, source, 0, &mut work)?;
+            }
+        }
+        while let Some(step) = work.pop() {
+            let (target, value, depth) = match step {
+                PatternAssignment::Target { target, value, depth } => (target, value, depth),
+                PatternAssignment::Element { element, source, position, count, depth } => {
+                    let at = element.span;
+                    if matches!(element.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }) {
+                        let ExprKind::Unary { value: rest, .. } = element.into_kind() else { unreachable!() };
+                        if position + 1 != count {
+                            return Err(Diagnostic::new("syntax", "A rest target must be last in a destructuring assignment.", at));
+                        }
+                        // Rest explicitly copies the remaining elements.
+                        let slice = Expr::new(ExprKind::Field(Box::new(source), "slice".to_owned()), at);
+                        let start = Expr::new(ExprKind::Integer(position.to_string()), at);
+                        (*rest, Expr::new(ExprKind::Call(Box::new(slice), vec![start]), at), depth + 1)
+                    } else {
+                        let index = Expr::new(ExprKind::Integer(position.to_string()), at);
+                        (element, Expr::new(ExprKind::Index(Box::new(source), Box::new(index)), at), depth + 1)
+                    }
+                }
+                PatternAssignment::Field { key, element, source, depth } => {
+                    if key.text == "record#spread" {
+                        return Err(Diagnostic::new("unsupported", "A record rest target is not supported in a destructuring assignment; declare it with const or let.", key.span));
+                    }
+                    (element, Expr::new(ExprKind::Field(Box::new(source), key.text.clone()), key.span), depth + 1)
+                }
+            };
+            // Assign `value` to one target, which may itself be a nested pattern.
+            match &target.kind {
+                ExprKind::Array(_) | ExprKind::Record(_) => {
+                    let holder = self.pattern_holder();
+                    let name = Expr::new(ExprKind::Name(holder.text.clone()), value.span);
+                    out.push(Stmt { labels: Vec::new(), control_target: None,
+                        kind: StmtKind::Let { rebindable: false, name: holder, annotation: None, value, binding: None },
+                        span,
+                    });
+                    self.assign_pattern_positions(target, name, depth, &mut work)?;
+                }
+                ExprKind::Assign { .. } => {
+                    return Err(Diagnostic::new(
+                        "unsupported",
+                        "Default values are not supported in a destructuring assignment; assign first, then use ??= on the target.",
+                        target.span,
+                    ));
+                }
+                _ => out.push(Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Assign { target, value, operator: None }, span }),
             }
         }
         if out.is_empty() {
@@ -2996,207 +2646,25 @@ impl Parser<'_> {
         Ok(first.into_kind())
     }
 
-    /// Assign each position or field of `source` to the matching target.
-    #[inline(never)]
-    fn assign_pattern_positions(&mut self, target: Expr, source: Expr, span: Span, out: &mut Vec<Stmt>, depth: usize) -> Result<(), Diagnostic> {
-        if depth > 32 {
+    /// Queue each position or field of `source` for its matching target.
+    fn assign_pattern_positions(&mut self, target: Expr, source: Expr, depth: usize, work: &mut Vec<PatternAssignment>) -> Result<(), Diagnostic> {
+        if self.policy.bounded() && depth > 32 {
             return Err(Diagnostic::new("unsupported", "Destructuring pattern nesting exceeds the limit of 32.", target.span));
         }
         let select = |source: &Expr| Expr::new(source.kind.clone(), source.span);
         match target.into_kind() {
             ExprKind::Array(targets) => {
                 let count = targets.len();
-                for (position, element) in targets.into_iter().enumerate() {
-                    let at = element.span;
-                    if matches!(element.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }) {
-                        let ExprKind::Unary { value: rest, .. } = element.into_kind() else { unreachable!() };
-                        if position + 1 != count {
-                            return Err(Diagnostic::new("syntax", "A rest target must be last in a destructuring assignment.", at));
-                        }
-                        // Rest explicitly copies the remaining elements.
-                        let slice = Expr::new(ExprKind::Field(Box::new(select(&source)), "slice".to_owned()), at);
-                        let start = Expr::new(ExprKind::Integer(position.to_string()), at);
-                        let copied = Expr::new(ExprKind::Call(Box::new(slice), vec![start]), at);
-                        self.assign_through_pattern(*rest, copied, span, out, depth + 1)?;
-                        continue;
-                    }
-                    let index = Expr::new(ExprKind::Integer(position.to_string()), at);
-                    let selected = Expr::new(ExprKind::Index(Box::new(select(&source)), Box::new(index)), at);
-                    self.assign_through_pattern(element, selected, span, out, depth + 1)?;
-                }
+                work.extend(targets.into_iter().enumerate().rev().map(|(position, element)| PatternAssignment::Element { element, source: select(&source), position, count, depth }));
             }
             ExprKind::Record(fields) => {
-                for (key, element) in fields {
-                    if key.text == "record#spread" {
-                        return Err(Diagnostic::new("unsupported", "A record rest target is not supported in a destructuring assignment; declare it with const or let.", key.span));
-                    }
-                    let selected = Expr::new(ExprKind::Field(Box::new(select(&source)), key.text.clone()), key.span);
-                    self.assign_through_pattern(element, selected, span, out, depth + 1)?;
-                }
+                work.extend(fields.into_iter().rev().map(|(key, element)| PatternAssignment::Field { key, element, source: select(&source), depth }));
             }
             _ => unreachable!("pattern target"),
         }
         Ok(())
     }
 
-    /// Assign `value` to one target, which may itself be a nested pattern.
-    #[inline(never)]
-    fn assign_through_pattern(&mut self, target: Expr, value: Expr, span: Span, out: &mut Vec<Stmt>, depth: usize) -> Result<(), Diagnostic> {
-        match &target.kind {
-            ExprKind::Array(_) | ExprKind::Record(_) => {
-                let holder = self.pattern_holder();
-                let name = Expr::new(ExprKind::Name(holder.text.clone()), value.span);
-                out.push(Stmt { labels: Vec::new(), control_target: None,
-                    kind: StmtKind::Let { rebindable: false, name: holder, annotation: None, value, binding: None },
-                    span,
-                });
-                self.assign_pattern_positions(target, name, span, out, depth)
-            }
-            ExprKind::Assign { .. } => Err(Diagnostic::new(
-                "unsupported",
-                "Default values are not supported in a destructuring assignment; assign first, then use ??= on the target.",
-                target.span,
-            )),
-            _ => {
-                out.push(Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Assign { target, value, operator: None }, span });
-                Ok(())
-            }
-        }
-    }
-
-    /// Initializer of one named declarator. `let name: Type;` has none and
-    /// gets the deferred placeholder; the variable is assigned later.
-    fn declarator_value(
-        &mut self,
-        rebindable: bool,
-        name: &Token,
-        annotated: bool,
-    ) -> Result<Expr, Diagnostic> {
-        if rebindable && (self.is(";") || self.is(",")) {
-            if !annotated {
-                return Err(Diagnostic::new(
-                    "annotation-required",
-                    format!(
-                        "Declare the type of {:?} when it has no initializer, for example `let {}: int;`.",
-                        name.text, name.text
-                    ),
-                    name.span,
-                ));
-            }
-            return Ok(Expr::deferred(self.tokens[self.i - 1].span));
-        }
-        self.expect("=")?;
-        self.expression()
-    }
-
-    /// The declarators after the first in `let a = 1, [b, c] = pair;`. Each
-    /// becomes an ordinary declaration that follows the first, in source order.
-    #[inline(never)]
-    fn declaration_list(&mut self, rebindable: bool) -> Result<(), Diagnostic> {
-        while self.accept(",") {
-            let span = self.peek().span;
-            if matches!(self.peek().text.as_str(), "[" | "{") {
-                // The declarator's own positions follow its whole-value declaration.
-                let at = self.pending.len();
-                let kind = self.pattern_declarator(rebindable)?;
-                self.pending.insert(at, Stmt { labels: Vec::new(), control_target: None, kind, span });
-                continue;
-            }
-            let name = self.name()?;
-            let annotation = if self.accept(":") { Some(self.value_annotation()?) } else { None };
-            let value = self.declarator_value(rebindable, &name, annotation.is_some())?;
-            self.pending.push(Stmt { labels: Vec::new(), control_target: None,
-                kind: StmtKind::Let { rebindable, name, annotation, value, binding: None },
-                span,
-            });
-        }
-        Ok(())
-    }
-
-    /// `const name = value` or `let name: Type;`. Kept out of the statement
-    /// frame: nested function bodies recurse through this path.
-    #[inline(never)]
-    fn named_declaration(&mut self) -> Result<StmtKind, Diagnostic> {
-        let rebindable = self.take().text == "let";
-        let name = self.name()?;
-        let annotation = if self.accept(":") {
-            Some(self.value_annotation()?)
-        } else {
-            None
-        };
-        let value = self.declarator_value(rebindable, &name, annotation.is_some())?;
-        Ok(StmtKind::Let {
-            rebindable,
-            name,
-            annotation,
-            value,
-            binding: None,
-        })
-    }
-
-    /// Every statement form except a named declaration.
-    #[inline(never)]
-    fn other_statement(&mut self, span: Span, control_label: &mut Option<Token>) -> Result<StmtKind, Diagnostic> {
-        Ok(if self.accept("break") {
-            if self.peek().kind==TokenKind::Name {*control_label=Some(self.name()?);}
-            StmtKind::Break
-        } else if self.accept("continue") {
-            if self.peek().kind==TokenKind::Name {*control_label=Some(self.name()?);}
-            StmtKind::Continue
-        } else if self.is("const") || self.is("let") {
-            self.pattern_declaration()?
-        } else if self.is("function") {
-            // A statement that starts with `function` would be a declaration.
-            return Err(Diagnostic::new(
-                "syntax",
-                "A function declaration belongs at the top level of the file. Inside a function, bind a function expression or an arrow function to a const.",
-                span,
-            ));
-        } else if self.accept("throw") {
-            if self.source[span.end..self.peek().span.start].contains(['\n','\r']) {
-                return Err(Diagnostic::new("syntax","A thrown value must begin on the same line as throw.",span));
-            }
-            StmtKind::Throw(self.comma_expression()?)
-        } else if self.accept("return") {
-            StmtKind::Return(if self.is(";") {
-                None
-            } else {
-                Some(self.comma_expression()?)
-            })
-        } else {
-            let expression = self.comma_expression()?;
-            if matches!(&expression.kind, ExprKind::Assign { target, .. } if matches!(target.kind, ExprKind::Array(_) | ExprKind::Record(_))) {
-                self.destructuring_assignment(expression)?
-            } else {
-                Self::expression_statement(expression)
-            }
-        })
-    }
-
-    // Share clause parsing without retaining an extra Stmt-sized caller frame.
-    fn statement(&mut self, terminated: bool) -> Result<Stmt, Diagnostic> {
-        let span = self.peek().span;
-        let mut control_label=None;
-        let named_declaration = (self.is("const") || self.is("let"))
-            && !self.tokens.get(self.i + 1).is_some_and(|token| matches!(token.text.as_str(), "[" | "{"));
-        let kind = if named_declaration {
-            self.named_declaration()?
-        } else {
-            self.other_statement(span, &mut control_label)?
-        };
-        // A declaration began with its keyword at `span`; a lowered
-        // destructuring assignment also starts with a declaration but did not.
-        if self.is(",")
-            && matches!(kind, StmtKind::Let { .. })
-            && matches!(&self.source[span.start..span.end], "const" | "let")
-        {
-            self.declaration_list(self.source[span.start..span.end] == *"let")?;
-        }
-        if terminated {
-            self.expect(";")?;
-        }
-        Ok(Stmt { labels: control_label.into_iter().collect(), control_target: None, kind, span })
-    }
     // Discarding the result preserves existing standalone owned replacement.
     // Keep Stmt-sized construction out of recursive parser statement frames.
     fn expression_statement(expression: Expr) -> StmtKind {
@@ -3221,51 +2689,12 @@ impl Parser<'_> {
         }
     }
 
-    fn expression(&mut self) -> Result<Expr, Diagnostic> {
-        self.precedence(0)
-    }
-    #[inline(never)]
-    fn comma_expression(&mut self)->Result<Expr,Diagnostic>{
-        let first=self.expression()?;
-        if !self.accept(","){return Ok(first);}
-        self.comma_tail(first)
-    }
-    // Construction and later operands must not occupy every nested index frame.
-    #[inline(never)]
-    fn comma_tail(&mut self, first: Expr)->Result<Expr,Diagnostic>{
-        let mut values=vec![first];
-        loop{
-            if matches!(self.peek().text.as_str(),"let"|"const"|"var"){return Err(Diagnostic::new("syntax","A declaration cannot be a comma operand.",self.peek().span));}
-            values.push(self.expression()?);if !self.accept(","){break;}
-        }
-        Self::finish_sequence(values)
-    }
     #[inline(never)]
     fn finish_sequence(values:Vec<Expr>)->Result<Expr,Diagnostic>{
         let span=Span::new(values.first().unwrap().span.start,values.last().unwrap().span.end);
         Ok(Expr::new(ExprKind::Sequence(values),span))
     }
 
-
-    fn do_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let span = self.expect("do")?.span;
-        let body = self.body()?;
-        self.expect("while")?;
-        self.expect("(")?;
-        let condition = self.comma_expression()?;
-        self.expect(")")?;
-        self.expect(";")?;
-        Ok(Stmt { labels: Vec::new(), control_target: None,
-            kind: StmtKind::Loop {
-                condition: Some(condition),
-                body,
-                update: Vec::new(),
-                post_test: true,
-                tail_reachable: true,
-            },
-            span,
-        })
-    }
 
     fn for_of_header(&self) -> bool {
         // Select the recursive parser before retaining classic-for temporaries.
@@ -3305,163 +2734,33 @@ impl Parser<'_> {
         Token { text: format!("pattern#{}", self.next_pattern), span, kind: TokenKind::Name }
     }
 
-    /// Parse `[a, , b]` or `{ x, label: text }` and append one declaration per
-    /// name. A nested pattern first binds its own position to a hidden name.
     #[inline(never)]
-    fn binding_pattern(&mut self, whole: &Token, rebindable: bool, output: &mut Vec<Stmt>, depth: usize) -> Result<(), Diagnostic> {
-        if depth > 32 {
-            return Err(Diagnostic::new("unsupported", "Destructuring pattern nesting exceeds the limit of 32.", self.peek().span));
-        }
-        let array = self.peek().text == "[";
-        let close = if array { "]" } else { "}" };
-        self.take();
-        let mut position = 0usize;
-        let mut excluded = Vec::new();
-        while !self.accept(close) {
-            if array && self.accept(",") {
-                // An empty slot skips one position.
-                position += 1;
-                continue;
-            }
-            if self.is("...") {
-                if array {self.array_rest_pattern(whole, rebindable, output, position, depth)?;}
-                else {self.record_rest_pattern(whole,rebindable,output,&excluded)?;}
-                self.expect(close)?;
-                break;
-            }
-            let start = self.peek().span;
-            let source = |span: Span| Expr::new(ExprKind::Name(whole.text.clone()), span);
-            // Record patterns name a field, optionally followed by a target.
-            let (mut selected, shorthand) = if array {
-                let index = Expr::new(ExprKind::Integer(position.to_string()), start);
-                (Expr::new(ExprKind::Index(Box::new(source(start)), Box::new(index)), start), None)
-            } else {
-                let field = self.name()?;
-                excluded.push(field.text.clone());
-                let selected = Expr::new(ExprKind::Field(Box::new(source(field.span)), field.text.clone()), field.span);
-                if self.accept(":") { (selected, None) } else { (selected, Some(field)) }
-            };
-            let name = match shorthand {
-                Some(field) => field,
-                None if matches!(self.peek().text.as_str(), "[" | "{") => {
-                    let holder = self.pattern_holder();
-                    let mut children=Vec::new();
-                    self.binding_pattern(&holder, rebindable, &mut children, depth + 1)?;
-                    selected=self.pattern_default(selected)?;
-                    output.push(Stmt { labels: Vec::new(), control_target: None,
-                        kind: StmtKind::Let { rebindable: false, name: holder.clone(), annotation: None, value: selected, binding: None },
-                        span: start,
-                    });
-                    output.append(&mut children);
-                    position += 1;
-                    if !self.is(close) { self.expect(",")?; }
-                    continue;
-                }
-                None => self.name()?,
-            };
-            selected=self.pattern_default(selected)?;
-            // The selection carries the span of its name, which marks the
-            // declaration as a pattern position for editor type facts.
-            selected.span = name.span;
-            output.push(Stmt { labels: Vec::new(), control_target: None,
-                kind: StmtKind::Let { rebindable, name, annotation: None, value: selected, binding: None },
-                span: start,
-            });
-            position += 1;
-            if !self.is(close) { self.expect(",")?; }
-        }
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn record_rest_pattern(&mut self,whole:&Token,rebindable:bool,output:&mut Vec<Stmt>,excluded:&[String])->Result<(),Diagnostic>{
+    pub(super) fn record_rest_pattern(&mut self,whole:&str,rebindable:bool,output:&mut Vec<Stmt>,excluded:&[String])->Result<(),Diagnostic>{
         let start=self.expect("...")?.span;let name=self.name()?;
         if !self.is("}"){return Err(Diagnostic::new("syntax","A rest binding must be last and cannot have a default or trailing comma.",self.peek().span));}
-        let base=Expr::new(ExprKind::Name(whole.text.clone()),name.span);
+        let base=Expr::new(ExprKind::Name(whole.to_owned()),name.span);
         let method=Expr::new(ExprKind::Field(Box::new(base),"pattern#record-rest".into()),name.span);
         let args=excluded.iter().map(|key|Expr::new(ExprKind::String(key.clone()),name.span)).collect();
         let value=Expr::new(ExprKind::Call(Box::new(method),args),name.span);
         output.push(Stmt{labels:Vec::new(),control_target:None,kind:StmtKind::Let{rebindable,name,annotation:None,value,binding:None},span:start});Ok(())
     }
 
-    /// Rest syntax explicitly requests the independent copy provided by slice.
     #[inline(never)]
-    fn array_rest_pattern(&mut self, whole:&Token, rebindable:bool, output:&mut Vec<Stmt>, position:usize, depth:usize)->Result<(),Diagnostic>{
-        let start=self.expect("...")?.span;
-        let mut children=Vec::new();
-        let name=if matches!(self.peek().text.as_str(),"["|"{"){
-            let holder=self.pattern_holder();self.binding_pattern(&holder,rebindable,&mut children,depth+1)?;holder
-        }else{self.name()?};
-        if !self.is("]"){return Err(Diagnostic::new("syntax","A rest binding must be last and cannot have a default or trailing comma.",self.peek().span));}
-        let source=Expr::new(ExprKind::Name(whole.text.clone()),name.span);
-        let method=Expr::new(ExprKind::Field(Box::new(source),"pattern#rest".into()),name.span);
-        let index=Expr::new(ExprKind::Integer(position.to_string()),name.span);
-        let value=Expr::new(ExprKind::Call(Box::new(method),vec![index]),name.span);
-        output.push(Stmt{labels:Vec::new(),control_target:None,kind:StmtKind::Let{rebindable:rebindable && children.is_empty(),name,annotation:None,value,binding:None},span:start});
-        output.append(&mut children);
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn replace_pattern_source(expr:&mut Expr,whole:&str,source:&str,span:Span){
-        match &mut expr.kind {
-            ExprKind::Binary{op:BinaryOp::PatternDefault,left,..}=>Self::replace_pattern_source(left,whole,source,span),
-            ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=>Self::replace_pattern_source(value,whole,source,span),
-            ExprKind::Call(fun,_)=>Self::replace_pattern_source(fun,whole,source,span),
-            ExprKind::Index(base,_)|ExprKind::Field(base,_) if matches!(&base.kind,ExprKind::Name(name) if name==whole)=>{base.kind=ExprKind::Name(source.into());base.span=span;},
-            _=>{},
+    fn replace_pattern_source(mut expr: &mut Expr, whole: &str, source: &str, span: Span) {
+        loop {
+            let next = match &mut expr.kind {
+                ExprKind::Binary { op: BinaryOp::PatternDefault, left, .. } => left,
+                ExprKind::Unary { op: UnaryOp::PatternSelection, value, .. } => value,
+                ExprKind::Call(fun, _) => fun,
+                ExprKind::Index(base, _) | ExprKind::Field(base, _) if matches!(&base.kind, ExprKind::Name(name) if name == whole) => {
+                    base.kind = ExprKind::Name(source.into());
+                    base.span = span;
+                    return;
+                }
+                _ => return,
+            };
+            expr = next;
         }
-    }
-
-    #[inline(never)]
-    fn pattern_default(&mut self,selected:Expr)->Result<Expr,Diagnostic>{
-        if !self.is("="){return Ok(selected);}
-        let operator=self.take().span;
-        let span=selected.span;
-        let selected=Expr::new(ExprKind::Unary{op:UnaryOp::PatternSelection,operator,value:Box::new(selected)},span);
-        let fallback=self.expression()?;
-        Ok(Expr::new(ExprKind::Binary{op:BinaryOp::PatternDefault,operator,left:Box::new(selected),right:Box::new(fallback)},span))
-    }
-
-    // Nested loop bodies recurse through this frame; the header and the
-    // statement construction keep their temporaries in separate helpers.
-    fn for_of_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let header = self.for_of_header_clause()?;
-        let body = self.body()?;
-        Ok(Self::for_of_loop(header, body))
-    }
-
-    #[inline(never)]
-    fn for_of_header_clause(&mut self) -> Result<Box<(Token, bool, Expr, Vec<Stmt>, Span)>, Diagnostic> {
-        let span = self.expect("for")?.span;
-        self.expect("(")?;
-        if !self.is("const") && !self.is("let") {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "for...of requires a const or let iteration binding.",
-                self.peek().span,
-            ));
-        }
-        let rebindable = self.take().text == "let";
-        // A pattern iterates a hidden whole element; its names are declared
-        // first in the body and borrow the element's positions.
-        let mut positions = Vec::new();
-        let (name, rebindable) = if matches!(self.peek().text.as_str(), "[" | "{") {
-            let whole = self.pattern_holder();
-            self.binding_pattern(&whole, rebindable, &mut positions, 0)?;
-            (whole, false)
-        } else {
-            (self.name()?, rebindable)
-        };
-        let keys = self.is("in");
-        if keys && !positions.is_empty() {
-            return Err(Diagnostic::new("unsupported", "for...in requires a named binding.", name.span));
-        }
-        if keys { self.expect("in")?; } else { self.expect("of")?; }
-        let iterable = if keys{self.comma_expression()?}else{self.expression()?};
-        let iterable = if keys { Self::object_key_call("keys#in", vec![iterable], span) } else { iterable };
-        self.expect(")")?;
-        Ok(Box::new((name, rebindable, iterable, positions, span)))
     }
 
     #[inline(never)]
@@ -3483,87 +2782,6 @@ impl Parser<'_> {
         }
     }
 
-    /// The update clause: one or more assignments or expressions separated
-    /// by commas, run in source order on every continuing edge.
-    #[inline(never)]
-    fn for_update(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
-        self.for_expression_list()
-    }
-
-    #[inline(never)]
-    fn for_expression_list(&mut self)->Result<Vec<Stmt>,Diagnostic>{
-        let mut statements=Vec::new();
-        loop {
-            if matches!(self.peek().text.as_str(),"let"|"const"|"var"){
-                return Err(Diagnostic::new("syntax","A declaration cannot be a comma operand.",self.peek().span));
-            }
-            let expression=self.expression()?;
-            let span=expression.span;
-            let pattern=matches!(&expression.kind,ExprKind::Assign{target,..} if matches!(target.kind,ExprKind::Array(_) | ExprKind::Record(_)));
-            let kind=if pattern {self.destructuring_assignment(expression)?}
-                else if matches!(expression.kind,ExprKind::Assign{..} | ExprKind::CompoundAssign{..}){Self::expression_statement(expression)}
-                else {StmtKind::Expr(Expr::new(ExprKind::Sequence(vec![expression]),span))};
-            statements.push(Stmt{labels:Vec::new(),control_target:None,kind,span});
-            statements.append(&mut self.pending);
-            if !self.accept(","){return Ok(statements);}
-        }
-    }
-
-    fn for_statement(&mut self) -> Result<Stmt, Diagnostic> {
-        let span = self.expect("for")?.span;
-        self.expect("(")?;
-        let mut scoped = Vec::new();
-        if !self.is(";") && !matches!(self.peek().text.as_str(),"let"|"const") {
-            scoped.extend(self.for_expression_list()?);
-        } else if !self.is(";") {
-            let initializer = self.statement(false)?;
-            if !matches!(
-                initializer.kind,
-                StmtKind::Let { .. } | StmtKind::Assign { .. } | StmtKind::Expr(_)
-            ) {
-                return Err(Diagnostic::new(
-                    "syntax",
-                    "A for initializer must be a declaration, assignment, or expression.",
-                    initializer.span,
-                ));
-            }
-            scoped.push(initializer);
-            scoped.append(&mut self.pending);
-        }
-        self.expect(";")?;
-        let condition = if self.is(";") {
-            None
-        } else {
-            Some(self.comma_expression()?)
-        };
-        self.expect(";")?;
-        let update = if self.is(")") {
-            Vec::new()
-        } else {
-            self.for_update()?
-        };
-        self.expect(")")?;
-        let body = self.body()?;
-        scoped.push(Stmt { labels: Vec::new(), control_target: None,
-            kind: StmtKind::Loop {
-                condition,
-                body,
-                update,
-                post_test: false,
-                tail_reachable: true,
-            },
-            span,
-        });
-        Ok(Stmt { labels: Vec::new(), control_target: None,
-            kind: StmtKind::Block(scoped),
-            span,
-        })
-    }
-
-    fn precedence(&mut self, minimum: u8) -> Result<Expr, Diagnostic> {
-        self.expression_work(minimum)
-    }
-
     #[inline(never)]
     fn type_assertion_tail(&mut self, value: Expr) -> Result<Expr, Diagnostic> {
         let satisfies = self.take().text == "satisfies";
@@ -3572,7 +2790,7 @@ impl Parser<'_> {
         let expression = Expr::new(ExprKind::TypeAssertion {
             value: Box::new(value), annotation, satisfies,
         }, span);
-        if expression.depth > 128 {
+        if self.policy.exceeded(expression.depth) {
             return Err(Diagnostic::new("unsupported", "Expression nesting exceeds the prototype limit of 128.", span));
         }
         Ok(expression)
@@ -3710,7 +2928,7 @@ impl Parser<'_> {
                     .is_some_and(|t| t.kind != TokenKind::Integer))
         {
             let token = self.take();
-            if operators.len() >= 128 {
+            if self.policy.reached(operators.len()) {
                 return Err(Diagnostic::new(
                     "unsupported",
                     "Expression nesting exceeds the prototype limit of 128.",
@@ -3723,7 +2941,7 @@ impl Parser<'_> {
     }
 
     // Keep operator construction off the recursive primary parsing stack.
-    fn apply_unary_operators(mut value: Expr, operators: Vec<Token>) -> Result<Expr, Diagnostic> {
+    fn apply_unary_operators(&self, mut value: Expr, operators: Vec<Token>) -> Result<Expr, Diagnostic> {
         for token in operators.into_iter().rev() {
             let span = Span::new(token.span.start, value.span.end);
             value = Expr::new(
@@ -3755,7 +2973,7 @@ impl Parser<'_> {
                 },
                 span,
             );
-            if value.depth > 128 {
+            if self.policy.exceeded(value.depth) {
                 return Err(Diagnostic::new(
                     "unsupported",
                     "Expression nesting exceeds the prototype limit of 128.",
@@ -3786,7 +3004,6 @@ impl Parser<'_> {
                 })?;
                 Expr::new(ExprKind::Number(value), token.span)
             }
-            TokenKind::Name if token.text == "new" => return self.set_constructor(token),
             TokenKind::Name => {
                 if ["if", "else", "while", "for", "let", "async", "await", "new"]
                     .contains(&token.text.as_str())
@@ -3820,20 +3037,6 @@ impl Parser<'_> {
         Ok(expr)
     }
 
-    /// Parameters, result annotation and the arrow of an arrow function.
-    #[inline(never)]
-    fn closure_signature(&mut self, start: Span) -> Result<Box<(Vec<CallableParameter>, ResultAnnotation)>, Diagnostic> {
-        let params = if self.accept("(") { self.callable_parameters(true)? } else {
-            let name = self.name()?;
-            vec![CallableParameter { rest: false, ty: ParameterAnnotation::Inferred(name.clone()), name, access: None, initializer: ParameterInitializer::Required }]
-        };
-        let result = if self.accept(":") { self.result_annotation()? } else {
-            ResultAnnotation::Inferred(start)
-        };
-        self.expect("=>")?;
-        Ok(Box::new((params, result)))
-    }
-
     #[inline(never)]
     fn returned(value: Box<Expr>) -> Vec<Stmt> {
         let span = value.span;
@@ -3849,10 +3052,21 @@ impl Parser<'_> {
     // Keep the unparenthesized typed-arrow diagnostic temporaries out of the
     // recursively retained primary frame.
     #[inline(never)]
-    fn typed_arrow_without_parentheses(&self) -> Result<(), Diagnostic> {
+    fn typed_arrow_without_parentheses(&mut self) -> Result<(), Diagnostic> {
         if self.peek().kind == TokenKind::Name && self.tokens.get(self.i + 1).is_some_and(|token| token.text == ":") {
             let mut cursor = self.i + 2;
+            let first = self.tokens.get(cursor).map(|token| token.span.start);
+            // A scan that starts inside a clear range ends where that scan ended.
+            if let (Some(first), Some((from, until))) = (first, self.typed_arrow_clear)
+                && from <= first
+                && first <= until
+            {
+                return Ok(());
+            }
             let mut closing = None;
+            // Packed closers can still be split into `=` or `=>`; a range that
+            // holds one is scanned again.
+            let mut stable = true;
             while let Some(token) = self.tokens.get(cursor) {
                 if matches!(token.text.as_str(), ";" | "{" | "}" | "(" | "?" | "=") { break; }
                 if token.text == ")" { closing = Some(cursor); }
@@ -3865,7 +3079,11 @@ impl Parser<'_> {
                     }
                     break;
                 }
+                stable &= !matches!(token.text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=");
                 cursor += 1;
+            }
+            if let (true, Some(first), Some(last)) = (stable, first, self.tokens.get(cursor.min(self.tokens.len() - 1))) {
+                self.typed_arrow_clear = Some((first, last.span.start));
             }
         }
         Ok(())
@@ -3873,58 +3091,47 @@ impl Parser<'_> {
 
     // Parse exactly one result type. Scanning for a later arrow mistakes a
     // conditional arm's separating colon for an outer closure annotation.
-    fn annotated_arrow_follows(&self, start: usize) -> bool {
-        let mut tokens = self.tokens.clone();
-        match crate::type_syntax::parse_prefix(&mut tokens, start, 0) {
-            Ok((_, end)) => tokens.get(end).is_some_and(|token| token.text == "=>"),
-            // A type past the nesting limit is still a type; the arrow parser reports it.
-            Err(error) => error.code == "unsupported",
-        }
+    fn annotated_arrow_follows(&mut self, start: usize) -> bool {
+        crate::type_syntax::arrow_follows_prefix(&mut self.tokens, start, self.policy)
     }
 
-    fn closure_header(&self) -> bool {
-        let mut nesting = 0;
-        for (position, token) in self.tokens.iter().enumerate().skip(self.i) {
+    /// The `)` that closes the `(` at the cursor. One scan records every
+    /// pair inside it, so nested groups are not scanned again. Pairs are
+    /// recorded by source offset: packed closer splits move token indices but
+    /// never add or remove a parenthesis.
+    fn closing_parenthesis(&mut self) -> Option<usize> {
+        let position = |tokens: &[Token], offset: usize| tokens.partition_point(|token| token.span.start < offset);
+        if let Some(close) = self.parenthesis_closers.get(&self.peek().span.start) {
+            return close.map(|offset| position(&self.tokens, offset));
+        }
+        let mut open = Vec::new();
+        for (index, token) in self.tokens.iter().enumerate().skip(self.i) {
             match token.text.as_str() {
-                "(" => nesting += 1,
-                ")" => { nesting -= 1; if nesting == 0 {return match self.tokens.get(position + 1).map(|token| token.text.as_str()) {
-                    Some("=>") => true,
-                    Some(":") => self.annotated_arrow_follows(position + 2),
-                    _ => false,
-                };} },
-                _ => {},
+                "(" => open.push(token.span.start),
+                ")" => {
+                    let Some(start) = open.pop() else { break };
+                    self.parenthesis_closers.insert(start, Some(token.span.start));
+                    if open.is_empty() {
+                        return Some(index);
+                    }
+                }
+                _ => {}
             }
         }
-        false
+        for start in open {
+            self.parenthesis_closers.insert(start, None);
+        }
+        None
     }
 
-    /// `function (a: int): int { ... }` as a value: an anonymous function
-    /// with the parameters, result and block body of an arrow function.
-    #[inline(never)]
-    fn function_primary(&mut self) -> Result<Expr, Diagnostic> {
-        if self.tokens.get(self.i + 1).is_some_and(|token| token.kind == TokenKind::Name && token.text != "(") {
-            let expr = self.named_function_expression()?;
-            return self.postfix(expr);
-        }
-        let token = self.take();
-        self.expect("(")?;
-        let params = self.callable_parameters(true)?;
-        let result = if self.accept(":") { self.result_annotation()? } else { ResultAnnotation::Inferred(token.span) };
-        if !self.is("{") {
-            return Err(Diagnostic::new(
-                "syntax",
-                "A function expression needs a block body; use an arrow function for an expression body.",
-                self.peek().span,
-            ));
-        }
-        let id = self.next_closure;
-        self.next_closure += 1;
-        let patterns = std::mem::take(&mut self.parameter_patterns);
-        let mut body = self.block()?;
-        Self::open_with_patterns(patterns, &mut body);
-        let end = self.tokens[self.i - 1].span.end;
-        let expr = Expr::new(ExprKind::Closure { id, params, result, body }, Span::new(token.span.start, end));
-        self.postfix(expr)
+    fn closure_header(&mut self) -> bool {
+        let Some(position) = self.closing_parenthesis() else { return false };
+        let annotated = match self.tokens.get(position + 1).map(|token| token.text.as_str()) {
+            Some("=>") => return true,
+            Some(":") => true,
+            _ => false,
+        };
+        annotated && self.annotated_arrow_follows(position + 2)
     }
 
     fn postfix_update(&mut self, expr: Expr) -> Result<Expr, Diagnostic> {
@@ -3953,7 +3160,7 @@ impl Parser<'_> {
             },
             span,
         );
-        if result.depth > 128 {
+        if self.policy.exceeded(result.depth) {
             return Err(Diagnostic::new(
                 "unsupported",
                 "Expression nesting exceeds the prototype limit of 128.",
@@ -3961,49 +3168,6 @@ impl Parser<'_> {
             ));
         }
         Ok(result)
-    }
-
-    // Keep call argument temporaries out of the recursively retained index frame.
-    fn call_arguments(&mut self) -> Result<(Vec<Expr>, Token), Diagnostic> {
-        let mut args = Vec::new();
-        if !self.is(")") {
-            loop {
-                self.call_argument(&mut args)?;
-                if !self.accept(",") {
-                    break;
-                }
-            }
-        }
-        Ok((args, self.expect(")")?))
-    }
-
-    // One argument's Expr temporaries live only while that argument parses.
-    #[inline(never)]
-    fn call_argument(&mut self, args: &mut Vec<Expr>) -> Result<(), Diagnostic> {
-        if self.accept("...") {
-            return self.spread_call_argument(args);
-        }
-        args.push(self.expression()?);
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn spread_call_argument(&mut self, args: &mut Vec<Expr>) -> Result<(), Diagnostic> {
-        args.push(self.spread_argument()?);
-        Ok(())
-    }
-
-    // Spread wrapper temporaries stay out of the ordinary argument frame.
-    #[inline(never)]
-    fn spread_argument(&mut self) -> Result<Expr, Diagnostic> {
-        let operator = self.tokens[self.i - 1].span;
-        let value = self.expression()?;
-        let span = Span::new(operator.start, value.span.end);
-        Ok(Expr::new(ExprKind::Unary {
-            op: UnaryOp::Spread,
-            operator,
-            value: Box::new(value),
-        }, span))
     }
 
     // The indexed-expression parser recursively retains postfix frames. Keep
@@ -4087,13 +3251,6 @@ impl Parser<'_> {
         matches!(&Self::optional_identity(expr).kind, ExprKind::Field(base, method) if method == "of" && matches!(&Self::optional_identity(base).kind, ExprKind::Name(name) if name == "Array"))
     }
 
-    #[inline(never)]
-    fn call_expression(&mut self, expr: Expr) -> Result<Expr, Diagnostic> {
-        let expr = Box::new(expr);
-        let (args, end) = self.call_arguments()?;
-        Self::finish_call_expression(expr, args, end)
-    }
-
     // Construction temporaries must not remain on the recursive argument stack.
     #[inline(never)]
     fn finish_call_expression(expr: Box<Expr>, args: Vec<Expr>, end: Token) -> Result<Expr, Diagnostic> {
@@ -4103,13 +3260,6 @@ impl Parser<'_> {
         } else {
             Ok(Expr::new(ExprKind::Call(expr, args), span))
         }
-    }
-
-    fn explicit_call_expression(&mut self, expr: Expr) -> Result<Expr, Diagnostic> {
-        let arguments = self.explicit_call_arguments()?;
-        self.expect("(")?;
-        let (args, end) = self.call_arguments()?;
-        self.finish_explicit_call(expr, arguments, args, end)
     }
 
     fn finish_explicit_call(&mut self, expr: Expr,
@@ -4141,43 +3291,6 @@ impl Parser<'_> {
         self.call_type_arguments.push((span, arguments));
         Ok(call)
     }
-    fn postfix_call(&mut self, expr: Expr) -> Result<Expr, Diagnostic> {
-        if self.accept("(") {
-            self.call_expression(expr)
-        } else {
-            self.explicit_call_expression(expr)
-        }
-    }
-
-    fn optional_postfix(&mut self, expr: Expr, operator: Span) -> Result<Expr, Diagnostic> {
-        let span = expr.span;
-        let boundary = Expr::new(
-            ExprKind::Unary {
-                op: UnaryOp::OptionalBoundary,
-                operator,
-                value: Box::new(expr),
-            },
-            span,
-        );
-        if self.accept("[") {
-            let index = self.comma_expression()?;
-            let end = self.expect("]")?;
-            Ok(Expr::new(
-                ExprKind::Index(Box::new(boundary), Box::new(index)),
-                Span::new(span.start, end.span.end),
-            ))
-        } else if self.is("(") || self.has_explicit_call_arguments() {
-            self.postfix_call(boundary)
-        } else {
-            let name = self.name()?;
-            let end = name.span.end;
-            Ok(Expr::new(
-                ExprKind::Field(Box::new(boundary), name.text),
-                Span::new(span.start, end),
-            ))
-        }
-    }
-
     fn field_expression(&mut self, base: Expr) -> Result<Expr, Diagnostic> {
         let name = self.name()?;
         let span = Span::new(base.span.start, name.span.end);
@@ -4204,79 +3317,9 @@ impl Parser<'_> {
         Expr::new(ExprKind::Unary { op: UnaryOp::NonNull, operator, value: Box::new(expr) }, span)
     }
 
-    // Each postfix operator owns its Expr temporaries in a dedicated step.
-    // The recursively retained postfix frame keeps one slot only.
     #[inline(never)]
-    fn optional_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        let operator = self.tokens[self.i - 1].span;
-        let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.optional_postfix(expr, operator)?);
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn non_null_step(&mut self, slot: &mut Option<Expr>, optional: bool) {
-        let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.non_null_postfix(expr, optional));
-    }
-
-    #[inline(never)]
-    fn field_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.field_expression(expr)?);
-        Ok(())
-    }
-
-    // The nested index is parsed while the base stays in the caller's slot,
-    // so this retained frame holds one expression, not the base as well.
-    #[inline(never)]
-    fn index_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        let index = Box::new(self.comma_expression()?);
-        self.finish_index(slot, index)
-    }
-
-    #[inline(never)]
-    fn finish_index(&mut self, slot: &mut Option<Expr>, index: Box<Expr>) -> Result<(), Diagnostic> {
-        let end = self.expect("]")?;
-        let base = Box::new(slot.take().expect("postfix operand"));
-        let span = Span::new(base.span.start, end.span.end);
-        *slot = Some(Expr::new(ExprKind::Index(base, index), span));
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn call_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        if !self.accept("(") {
-            return self.explicit_call_step(slot);
-        }
-        let base = Self::take_call_operand(slot);
-        let (arguments, end) = self.call_arguments()?;
-        Self::finish_call_slot(slot, base, arguments, end)
-    }
-
-    // The existing boxed call operand is prepared before argument recursion.
-    #[inline(never)]
-    fn take_call_operand(slot: &mut Option<Expr>) -> Box<Expr> {
-        Box::new(slot.take().expect("postfix operand"))
-    }
-
-    #[inline(never)]
-    fn finish_call_slot(slot: &mut Option<Expr>, base: Box<Expr>, arguments: Vec<Expr>, end: Token) -> Result<(), Diagnostic> {
-        *slot = Some(Self::finish_call_expression(base, arguments, end)?);
-        Ok(())
-    }
-
-    // Explicit type argument construction stays outside ordinary call frames.
-    #[inline(never)]
-    fn explicit_call_step(&mut self, slot: &mut Option<Expr>) -> Result<(), Diagnostic> {
-        let expr = slot.take().expect("postfix operand");
-        *slot = Some(self.explicit_call_expression(expr)?);
-        Ok(())
-    }
-
-    #[inline(never)]
-    fn postfix_depth(expr: &Expr) -> Result<(), Diagnostic> {
-        if expr.depth > 128 {
+    fn postfix_depth(&self, expr: &Expr) -> Result<(), Diagnostic> {
+        if self.policy.exceeded(expr.depth) {
             return Err(Diagnostic::new(
                 "unsupported",
                 "Expression nesting exceeds the prototype limit of 128.",
@@ -4286,39 +3329,6 @@ impl Parser<'_> {
         Ok(())
     }
 
-    #[inline(never)]
-    fn finish_postfix_slot(&mut self, slot: &mut Option<Expr>, optional: bool) -> Result<Expr, Diagnostic> {
-        self.finish_postfix(slot.take().expect("postfix operand"), optional)
-    }
-
-    fn postfix(&mut self, expr: Expr) -> Result<Expr, Diagnostic> {
-        let mut optional = false;
-        let mut slot = Some(expr);
-        loop {
-            Self::postfix_depth(slot.as_ref().expect("postfix operand"))?;
-            if self.is_tagged_template() {
-                return self.reject_tagged_template();
-            }
-            if self.accept("?.") {
-                optional = true;
-                self.optional_step(&mut slot)?;
-            } else if self.accept("!") {
-                self.non_null_step(&mut slot, optional);
-                optional = false;
-            } else if self.accept(".") {
-                self.field_step(&mut slot)?;
-            } else if self.accept("[") {
-                self.index_step(&mut slot)?;
-            } else if self.is("(")
-                || (matches!(slot.as_ref().expect("postfix operand").kind, ExprKind::Name(_) | ExprKind::Field(_, _) | ExprKind::Sequence(_) | ExprKind::Assign { .. } | ExprKind::Conditional { .. } | ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Unary { op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. })
-                    && self.has_explicit_call_arguments())
-            {
-                self.call_step(&mut slot)?;
-            } else {
-                return self.finish_postfix_slot(&mut slot, optional);
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -4408,8 +3418,6 @@ fn hostile_default_call_nesting_returns_a_source_error() {
 }
 
 mod enum_syntax;
-
-mod set_syntax;
 
 /// Returns the validated numeric literal range at a UTF-8 source offset.
 /// Incomplete or invalid numeric spellings have no range.

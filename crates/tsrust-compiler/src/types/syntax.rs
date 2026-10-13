@@ -1,5 +1,7 @@
 //! Structured source type annotations. Parsing does not establish type validity.
-use crate::syntax::{Token, TokenKind, lex};
+use crate::syntax::{NestingPolicy, Token, TokenKind};
+#[cfg(test)]
+use crate::syntax::lex;
 use crate::{Diagnostic, Mode, Span};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -109,8 +111,13 @@ pub fn access_type_text(mode: Mode, ty: &str) -> String {
 /// Parse one complete annotation, retaining original UTF-8 byte coordinates.
 /// Generic names/arity, ownership and available types are checked separately.
 pub fn parse(source: &str) -> Result<ValueAnnotation, Diagnostic> {
-    let mut tokens = lex(source)?;
-    let (value, index) = parse_prefix(&mut tokens, 0, 0)?;
+    parse_with(source, NestingPolicy::CONSUMERS)
+}
+
+/// Parse one complete annotation under an explicit admission policy.
+pub(crate) fn parse_with(source: &str, policy: NestingPolicy) -> Result<ValueAnnotation, Diagnostic> {
+    let mut tokens = crate::syntax::lex_with(source, policy)?;
+    let (value, index) = parse_prefix(&mut tokens, 0, 0, policy)?;
     if tokens[index].kind != TokenKind::End {
         return Err(Diagnostic::new(
             "syntax",
@@ -121,16 +128,18 @@ pub fn parse(source: &str) -> Result<ValueAnnotation, Diagnostic> {
     Ok(value)
 }
 
-/// Reject an annotation whose bracket nesting passes the limit before the
-/// recursive parser descends into it. The recursive guard alone is reached
-/// only after that many frames exist.
-fn bounded_nesting(tokens: &[Token], index: usize, depth: usize) -> Result<(), Diagnostic> {
+/// Reject an annotation whose bracket nesting passes the admission bound
+/// before any annotation work is queued. Only a bounded policy scans.
+fn bounded_nesting(tokens: &[Token], index: usize, depth: usize, policy: NestingPolicy) -> Result<(), Diagnostic> {
+    if !policy.bounded() {
+        return Ok(());
+    }
     // One entry per open bracket level: the result arrows seen at that level.
     // Each bracket and each `=>` result is one level of the recursive parser.
     let mut arrows = vec![0usize];
     let mut total = 0usize;
     let limit = |total: usize, token: &Token| {
-        if depth + total > 128 {
+        if policy.exceeded(depth + total) {
             Err(Diagnostic::new(
                 "unsupported",
                 "Type annotation nesting exceeds the prototype limit of 128.",
@@ -189,9 +198,10 @@ pub(crate) fn parse_prefix(
     tokens: &mut Vec<Token>,
     index: usize,
     depth: usize,
+    policy: NestingPolicy,
 ) -> Result<(ValueAnnotation, usize), Diagnostic> {
-    bounded_nesting(tokens, index, depth)?;
-    let mut parser = AnnotationParser { tokens, index, access_permitted: false, access: None, wrapper_end: None, split_log: None };
+    bounded_nesting(tokens, index, depth, policy)?;
+    let mut parser = AnnotationParser::new(tokens, index, policy, false, None);
     let value = parser.annotation(depth)?;
     Ok((value, parser.index))
 }
@@ -202,11 +212,33 @@ pub(crate) fn parse_parameter_prefix(
     tokens: &mut Vec<Token>,
     index: usize,
     depth: usize,
+    policy: NestingPolicy,
 ) -> Result<(Option<ParameterAccess>, ValueAnnotation, usize), Diagnostic> {
-    bounded_nesting(tokens, index, depth)?;
-    let mut parser = AnnotationParser { tokens, index, access_permitted: true, access: None, wrapper_end: None, split_log: None };
+    bounded_nesting(tokens, index, depth, policy)?;
+    let mut parser = AnnotationParser::new(tokens, index, policy, true, None);
     let value = parser.annotation(depth)?;
     Ok((parser.access.take(), value, parser.index))
+}
+
+/// Whether one result annotation at `index` is followed by `=>`. Packed
+/// closer edits are rolled back, so the caller's token stream is unchanged.
+pub(crate) fn arrow_follows_prefix(tokens: &mut Vec<Token>, index: usize, policy: NestingPolicy) -> bool {
+    // A type past the admission bound is still a type; the arrow parser reports it.
+    if bounded_nesting(tokens, index, 0, policy).is_err() {
+        return true;
+    }
+    let mut edits = Vec::new();
+    let follows = {
+        let mut parser = AnnotationParser::new(tokens, index, policy, false, Some(&mut edits));
+        match parser.annotation(0) {
+            Ok(_) => parser.tokens.get(parser.index).is_some_and(|token| token.text == "=>"),
+            Err(error) => error.code == "unsupported",
+        }
+    };
+    for edit in edits.into_iter().rev() {
+        tokens.splice(edit.index..edit.index + edit.replaced, edit.previous);
+    }
+    follows
 }
 
 pub(crate) fn split_closer(tokens: &mut Vec<Token>, index: usize) {
@@ -253,11 +285,11 @@ struct CloserEdit {
 /// every packed-closer edit, including edits made before a parse failure.
 /// Independent probes therefore see the exact original lexical stream.
 pub(crate) fn parameter_prefix_span(tokens: &mut Vec<Token>, index: usize) -> Result<(Span, bool), Diagnostic> {
-    bounded_nesting(tokens, index, 0)?;
+    let policy = NestingPolicy::CONSUMERS;
+    bounded_nesting(tokens, index, 0, policy)?;
     let mut edits = Vec::new();
     let outcome = {
-        let mut parser = AnnotationParser { tokens, index, access_permitted: true, access: None,
-            wrapper_end: None, split_log: Some(&mut edits) };
+        let mut parser = AnnotationParser::new(tokens, index, policy, true, Some(&mut edits));
         parser.annotation(0).map(|annotation| {
             let span = Span::new(parser.tokens[index].span.start,
                 parser.tokens[parser.index - 1].span.end.max(annotation.span.end));
@@ -275,13 +307,65 @@ struct AnnotationParser<'a> {
     tokens: &'a mut Vec<Token>,
     split_log: Option<&'a mut Vec<CloserEdit>>,
     index: usize,
+    policy: NestingPolicy,
     /// The next outermost member may be a data access wrapper.
     access_permitted: bool,
     access: Option<ParameterAccess>,
     /// End of the access wrapper whose inner type was just returned.
     wrapper_end: Option<usize>,
+    /// Suspended grammar positions. Every nested annotation is a request on
+    /// this stack; no production calls another production.
+    work: Vec<Work>,
+    values: Vec<ValueAnnotation>,
+    /// Access returned beside each completed `Function<...>` or wrapper type.
+    signatures: Vec<Option<ParameterAccess>>,
 }
-impl AnnotationParser<'_> {
+
+/// Parameter syntax read before its annotation is requested.
+struct ParameterHead {
+    start: usize,
+    rest: bool,
+    name: TypeName,
+    omission: crate::ParameterOmission,
+}
+
+struct CallableFrame {
+    start: usize,
+    parameters: Vec<CallableParameter>,
+    depth: usize,
+}
+
+/// `Function<R, [A]>` after its result; `depth` belongs to the argument list.
+struct FunctionFrame {
+    name: Token,
+    result: Box<ValueAnnotation>,
+    parameters: Vec<CallableParameter>,
+    depth: usize,
+}
+
+enum Work {
+    Annotation { depth: usize },
+    UnionHead { depth: usize },
+    UnionNext { start: usize, members: Vec<ValueAnnotation>, depth: usize, validate: bool },
+    Member { depth: usize },
+    MemberSuffix,
+    MemberSignature { permitted: bool },
+    Tuple { start: usize, positions: Vec<ValueAnnotation>, depth: usize },
+    Group { start: usize },
+    Applied { name: TypeName, arguments: Vec<ValueAnnotation>, depth: usize },
+    CallableParameter { frame: CallableFrame, head: ParameterHead },
+    CallableResult { start: usize, parameters: Vec<CallableParameter> },
+    Signature { depth: usize },
+    FunctionResult { name: Token, depth: usize },
+    FunctionArgument { frame: FunctionFrame, head: ParameterHead },
+    WrapperSignature { name: Token, depth: usize },
+    WrapperFinish { name: Token, access: Option<ParameterAccess> },
+}
+
+impl<'a> AnnotationParser<'a> {
+    fn new(tokens: &'a mut Vec<Token>, index: usize, policy: NestingPolicy, access_permitted: bool, split_log: Option<&'a mut Vec<CloserEdit>>) -> Self {
+        Self { tokens, split_log, index, policy, access_permitted, access: None, wrapper_end: None, work: Vec::new(), values: Vec::new(), signatures: Vec::new() }
+    }
     fn peek(&self) -> &Token {
         &self.tokens[self.index]
     }
@@ -328,32 +412,12 @@ impl AnnotationParser<'_> {
         }
         Ok(self.take())
     }
-    fn annotation(&mut self, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
-        let first = self.member(depth)?;
-        if !self.is("|") {
-            return Ok(first);
-        }
-        let start = first.span.start;
-        let mut members = vec![first];
-        while self.is("|") {
-            self.take();
-            members.push(self.member(depth)?);
-        }
-        let end = members.last().unwrap().span.end;
-        let value = ValueAnnotation {
-            kind: ValueAnnotationKind::Union(members),
-            span: Span::new(start, end),
-        };
-        self.validate_nesting(&value)?;
-        Ok(value)
+    fn nesting_limit(span: Span) -> Diagnostic {
+        Diagnostic::new("unsupported", "Type annotation nesting exceeds the prototype limit of 128.", span)
     }
     fn validate_nesting(&self, value: &ValueAnnotation) -> Result<(), Diagnostic> {
-        if value.nesting() > 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Type annotation nesting exceeds the prototype limit of 128.",
-                value.span,
-            ));
+        if self.policy.bounded() && self.policy.exceeded(value.nesting()) {
+            return Err(Self::nesting_limit(value.span));
         }
         Ok(())
     }
@@ -365,70 +429,6 @@ impl AnnotationParser<'_> {
     fn callable_start(&self) -> bool {
         self.is("(") && (self.symbol(1, ")") || self.symbol(1, "...") || self.symbol(2, ":") || (self.symbol(2, "?") && self.symbol(3, ":")))
     }
-    fn callable(&mut self, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
-        let start = self.peek().span.start;
-        self.expect("(")?;
-        let mut parameters = Vec::new();
-        if !self.is(")") {
-            loop {
-                let rest = self.is("...");
-                if rest { self.take(); }
-                if self.peek().kind != TokenKind::Name
-                    || matches!(self.peek().text.as_str(), "true" | "false")
-                {
-                    return Err(self.error("Expected a callable parameter name."));
-                }
-                let token = self.take();
-                let name = TypeName {
-                    text: token.text,
-                    span: token.span,
-                };
-                let omission = if self.is("?") { self.take(); crate::ParameterOmission::Optional } else { crate::ParameterOmission::Required };
-                self.expect(":")?;
-                self.access_permitted = true;
-                let annotation = self.annotation(depth + 1)?;
-                self.access_permitted = false;
-                let wrapped = self.access.take();
-                let end = self.wrapper_end.take().filter(|_| wrapped.is_some()).map_or(annotation.span.end, |end| end.max(annotation.span.end));
-                let access = wrapped;
-                let span = Span::new(name.span.start, end);
-                parameters.push(CallableParameter {
-                    name,
-                    access,
-                    omission,
-                    rest,
-                    annotation,
-                    span,
-                });
-                if rest && self.is(",") { return Err(Diagnostic::new("rest-parameter", "A rest parameter must be last.", self.peek().span)); }
-                if !self.is(",") {
-                    break;
-                }
-                self.take();
-            }
-        }
-        let mut optional = false;
-        for parameter in &parameters {
-            if parameter.rest {
-                if parameter.omission.is_omittable() { return Err(Diagnostic::new("rest-parameter", "A rest parameter cannot be optional.", parameter.name.span)); }
-                continue;
-            }
-            if parameter.omission.is_omittable() { optional = true; }
-            else if optional { return Err(Diagnostic::new("parameter-order", "A required parameter cannot follow an optional parameter.", parameter.name.span)); }
-        }
-        self.expect(")")?;
-        self.expect("=>")?;
-        let result = Box::new(self.annotation(depth + 1)?);
-        let end = result.span.end;
-        Ok(ValueAnnotation {
-            kind: ValueAnnotationKind::Callable {
-                ownership: CallableOwnership::Default,
-                parameters,
-                result,
-            },
-            span: Span::new(start, end),
-        })
-    }
     /// `Function<...>` or an access wrapper applied with `<`.
     fn signature_start(&self) -> bool {
         self.peek().kind == TokenKind::Name
@@ -436,55 +436,314 @@ impl AnnotationParser<'_> {
             && self.symbol(1, "<")
     }
 
+    /// Parse one annotation at `depth`. Suspended parents stay on `work`; the
+    /// native call depth does not grow with the annotation.
+    fn annotation(&mut self, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
+        self.work.push(Work::Annotation { depth });
+        while let Some(work) = self.work.pop() {
+            self.step(work)?;
+        }
+        Ok(self.values.pop().expect("completed annotation"))
+    }
+
+    fn request(&mut self, parent: Work, depth: usize) {
+        self.work.push(parent);
+        self.work.push(Work::Annotation { depth });
+    }
+
+    fn step(&mut self, work: Work) -> Result<(), Diagnostic> {
+        match work {
+            Work::Annotation { depth } => {
+                self.work.push(Work::UnionHead { depth });
+                self.work.push(Work::Member { depth });
+            }
+            Work::UnionHead { depth } => {
+                if self.is("|") {
+                    let first = self.values.pop().expect("first union member");
+                    self.take();
+                    self.work.push(Work::UnionNext { start: first.span.start, members: vec![first], depth, validate: true });
+                    self.work.push(Work::Member { depth });
+                }
+            }
+            Work::UnionNext { start, mut members, depth, validate } => {
+                members.push(self.values.pop().expect("union member"));
+                if self.is("|") {
+                    self.take();
+                    self.work.push(Work::UnionNext { start, members, depth, validate });
+                    self.work.push(Work::Member { depth });
+                } else {
+                    let end = members.last().unwrap().span.end;
+                    let value = ValueAnnotation { kind: ValueAnnotationKind::Union(members), span: Span::new(start, end) };
+                    if validate {
+                        self.validate_nesting(&value)?;
+                    }
+                    self.values.push(value);
+                }
+            }
+            Work::Member { depth } => self.member(depth)?,
+            Work::MemberSuffix => {
+                let mut value = self.values.pop().expect("type member");
+                self.validate_nesting(&value)?;
+                while self.is("[") {
+                    if self.policy.bounded() && self.policy.reached(value.nesting()) {
+                        return Err(Self::nesting_limit(self.peek().span));
+                    }
+                    self.take();
+                    let end = self.expect("]")?.span.end;
+                    let start = value.span.start;
+                    value = ValueAnnotation { kind: ValueAnnotationKind::Array(Box::new(value)), span: Span::new(start, end) };
+                }
+                self.values.push(value);
+            }
+            Work::MemberSignature { permitted } => {
+                if let Some(access) = self.signatures.pop().expect("signature access") {
+                    if !permitted {
+                        return Err(Diagnostic::new(
+                            "callback-access",
+                            "ReadOnly, Mutable and Owned describe a Function or a parameter; this position cannot carry data access.",
+                            access.span,
+                        ));
+                    }
+                    self.access = Some(access);
+                }
+            }
+            Work::Tuple { start, mut positions, depth } => {
+                positions.push(self.values.pop().expect("tuple position"));
+                if self.is(",") {
+                    self.take();
+                    self.tuple_next(start, positions, depth)?;
+                } else {
+                    self.tuple_finish(start, positions)?;
+                }
+            }
+            Work::Group { start } => {
+                let inner = self.values.pop().expect("grouped type");
+                let end = self.expect(")")?.span.end;
+                self.values.push(ValueAnnotation { kind: ValueAnnotationKind::Group(Box::new(inner)), span: Span::new(start, end) });
+            }
+            Work::Applied { name, mut arguments, depth } => {
+                arguments.push(self.values.pop().expect("type argument"));
+                if self.is(",") {
+                    self.take();
+                    self.request(Work::Applied { name, arguments, depth }, depth + 1);
+                } else {
+                    let end = self.expect(">")?.span.end;
+                    let start = name.span.start;
+                    self.values.push(ValueAnnotation { kind: ValueAnnotationKind::Applied { name, arguments }, span: Span::new(start, end) });
+                }
+            }
+            Work::CallableParameter { mut frame, head } => {
+                let annotation = self.values.pop().expect("callable parameter type");
+                self.access_permitted = false;
+                let access = self.access.take();
+                let end = self.wrapper_end.take().filter(|_| access.is_some()).map_or(annotation.span.end, |end| end.max(annotation.span.end));
+                let span = Span::new(head.name.span.start, end);
+                frame.parameters.push(CallableParameter { name: head.name, access, omission: head.omission, rest: head.rest, annotation, span });
+                if head.rest && self.is(",") {
+                    return Err(Diagnostic::new("rest-parameter", "A rest parameter must be last.", self.peek().span));
+                }
+                if self.is(",") {
+                    self.take();
+                    self.callable_parameter(frame)?;
+                } else {
+                    self.callable_result(frame)?;
+                }
+            }
+            Work::CallableResult { start, parameters } => {
+                let result = Box::new(self.values.pop().expect("callable result type"));
+                let end = result.span.end;
+                self.values.push(ValueAnnotation {
+                    kind: ValueAnnotationKind::Callable { ownership: CallableOwnership::Default, parameters, result },
+                    span: Span::new(start, end),
+                });
+            }
+            Work::Signature { depth } => self.signature(depth)?,
+            Work::FunctionResult { name, depth } => {
+                let result = Box::new(self.values.pop().expect("function result type"));
+                let frame = FunctionFrame { name, result, parameters: Vec::new(), depth: depth + 1 };
+                if self.is(",") {
+                    self.take();
+                    if !self.is("[") {
+                        return Err(self.error("Function arguments are written as a list, such as Function<int, [string, int]>."));
+                    }
+                    self.take();
+                    self.function_argument(frame)?;
+                } else {
+                    self.function_finish(frame)?;
+                }
+            }
+            Work::FunctionArgument { mut frame, head } => {
+                let annotation = self.values.pop().expect("function argument type");
+                self.access_permitted = false;
+                let access = self.access.take();
+                let end = self.wrapper_end.take().filter(|_| access.is_some()).map_or(annotation.span.end, |end| end.max(annotation.span.end));
+                if head.rest && head.omission.is_omittable() {
+                    return Err(Diagnostic::new("rest-parameter", "A rest parameter cannot be optional.", head.name.span));
+                }
+                if !head.rest && !head.omission.is_omittable() && frame.parameters.iter().any(|parameter| parameter.omission.is_omittable()) {
+                    return Err(Diagnostic::new("parameter-order", "A required parameter cannot follow an optional parameter.", head.name.span));
+                }
+                let span = Span::new(head.start, end);
+                frame.parameters.push(CallableParameter { rest: head.rest, name: head.name, access, omission: head.omission, annotation, span });
+                if head.rest && self.is(",") {
+                    return Err(Diagnostic::new("rest-parameter", "A rest parameter must be last.", self.peek().span));
+                }
+                if self.is(",") {
+                    self.take();
+                    self.function_argument(frame)?;
+                } else {
+                    self.expect("]")?;
+                    self.function_finish(frame)?;
+                }
+            }
+            Work::WrapperSignature { name, depth } => {
+                let access = self.signatures.pop().expect("wrapped signature access");
+                // A wrapped Function may still join null or undefined.
+                if access.is_none() && self.is("|") {
+                    let first = self.values.pop().expect("wrapped signature");
+                    self.take();
+                    self.work.push(Work::WrapperFinish { name, access });
+                    self.work.push(Work::UnionNext { start: first.span.start, members: vec![first], depth: depth + 1, validate: false });
+                    self.work.push(Work::Member { depth: depth + 1 });
+                } else {
+                    self.wrapper_finish(name, access)?;
+                }
+            }
+            Work::WrapperFinish { name, access } => self.wrapper_finish(name, access)?,
+        }
+        Ok(())
+    }
+
+    fn tuple_next(&mut self, start: usize, positions: Vec<ValueAnnotation>, depth: usize) -> Result<(), Diagnostic> {
+        if self.is("]") {
+            return self.tuple_finish(start, positions);
+        }
+        self.request(Work::Tuple { start, positions, depth }, depth + 1);
+        Ok(())
+    }
+
+    fn tuple_finish(&mut self, start: usize, positions: Vec<ValueAnnotation>) -> Result<(), Diagnostic> {
+        let end = self.expect("]")?.span.end;
+        self.values.push(ValueAnnotation { kind: ValueAnnotationKind::Tuple(positions), span: Span::new(start, end) });
+        Ok(())
+    }
+
+    /// One callable parameter up to its colon; its type is requested next.
+    fn callable_parameter(&mut self, frame: CallableFrame) -> Result<(), Diagnostic> {
+        let rest = self.is("...");
+        if rest {
+            self.take();
+        }
+        if self.peek().kind != TokenKind::Name || matches!(self.peek().text.as_str(), "true" | "false") {
+            return Err(self.error("Expected a callable parameter name."));
+        }
+        let token = self.take();
+        let name = TypeName { text: token.text, span: token.span };
+        let omission = if self.is("?") {
+            self.take();
+            crate::ParameterOmission::Optional
+        } else {
+            crate::ParameterOmission::Required
+        };
+        self.expect(":")?;
+        self.access_permitted = true;
+        let depth = frame.depth + 1;
+        let head = ParameterHead { start: name.span.start, rest, name, omission };
+        self.request(Work::CallableParameter { frame, head }, depth);
+        Ok(())
+    }
+
+    fn callable_result(&mut self, frame: CallableFrame) -> Result<(), Diagnostic> {
+        let mut optional = false;
+        for parameter in &frame.parameters {
+            if parameter.rest {
+                if parameter.omission.is_omittable() {
+                    return Err(Diagnostic::new("rest-parameter", "A rest parameter cannot be optional.", parameter.name.span));
+                }
+                continue;
+            }
+            if parameter.omission.is_omittable() {
+                optional = true;
+            } else if optional {
+                return Err(Diagnostic::new("parameter-order", "A required parameter cannot follow an optional parameter.", parameter.name.span));
+            }
+        }
+        self.expect(")")?;
+        self.expect("=>")?;
+        self.request(Work::CallableResult { start: frame.start, parameters: frame.parameters }, frame.depth + 1);
+        Ok(())
+    }
+
     /// Parse `Function<R, [A]>` and its wrappers into the existing callable
     /// annotation. A wrapper around data returns the argument access instead;
     /// only a Function argument list can accept that.
-    fn signature_type(&mut self, depth: usize) -> Result<(Option<ParameterAccess>, ValueAnnotation), Diagnostic> {
-        if depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Type annotation nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
+    fn signature(&mut self, depth: usize) -> Result<(), Diagnostic> {
+        if self.policy.reached(depth) {
+            return Err(Self::nesting_limit(self.peek().span));
         }
         let name = self.take();
         self.expect("<")?;
         if name.text == "Function" {
-            let result = Box::new(self.annotation(depth + 1)?);
-            let parameters = if self.is(",") {
-                self.take();
-                self.signature_arguments(depth + 1)?
-            } else {
-                Vec::new()
-            };
-            if self.is(",") {
-                return Err(self.error("Function takes a result type and one optional argument list, such as Function<int, [string]>."));
-            }
-            let end = self.expect(">")?.span.end;
-            let value = ValueAnnotation {
-                kind: ValueAnnotationKind::Callable { ownership: CallableOwnership::Default, parameters, result },
-                span: Span::new(name.span.start, end),
-            };
-            self.validate_nesting(&value)?;
-            return Ok((None, value));
-        }
-        let (inner_access, inner) = if self.signature_start() {
-            let (access, mut value) = self.signature_type(depth + 1)?;
-            // A wrapped Function may still join null or undefined.
-            if access.is_none() && self.is("|") {
-                let start = value.span.start;
-                let mut members = vec![value];
-                while self.is("|") {
-                    self.take();
-                    members.push(self.member(depth + 1)?);
-                }
-                let end = members.last().unwrap().span.end;
-                value = ValueAnnotation { kind: ValueAnnotationKind::Union(members), span: Span::new(start, end) };
-            }
-            (access, value)
+            self.request(Work::FunctionResult { name, depth }, depth + 1);
+        } else if self.signature_start() {
+            self.work.push(Work::WrapperSignature { name, depth });
+            self.work.push(Work::Signature { depth: depth + 1 });
         } else {
-            (None, self.annotation(depth + 1)?)
+            self.request(Work::WrapperFinish { name, access: None }, depth + 1);
+        }
+        Ok(())
+    }
+
+    /// `[string, limit?: int, ...values: int[]]`; labels are optional.
+    fn function_argument(&mut self, frame: FunctionFrame) -> Result<(), Diagnostic> {
+        if self.is("]") {
+            self.take();
+            return self.function_finish(frame);
+        }
+        let start = self.peek().span.start;
+        let rest = self.is("...");
+        if rest {
+            self.take();
+        }
+        let labelled = self.peek().kind == TokenKind::Name && (self.symbol(1, ":") || (self.symbol(1, "?") && self.symbol(2, ":")));
+        let (name, omission) = if labelled {
+            let token = self.take();
+            let omission = if self.is("?") {
+                self.take();
+                crate::ParameterOmission::Optional
+            } else {
+                crate::ParameterOmission::Required
+            };
+            self.take();
+            (TypeName { text: token.text, span: token.span }, omission)
+        } else {
+            let at = self.peek().span.start;
+            (TypeName { text: format!("arg{}", frame.parameters.len()), span: Span::new(at, at) }, crate::ParameterOmission::Required)
         };
+        self.access_permitted = true;
+        let depth = frame.depth;
+        let head = ParameterHead { start, rest, name, omission };
+        self.request(Work::FunctionArgument { frame, head }, depth);
+        Ok(())
+    }
+
+    fn function_finish(&mut self, frame: FunctionFrame) -> Result<(), Diagnostic> {
+        if self.is(",") {
+            return Err(self.error("Function takes a result type and one optional argument list, such as Function<int, [string]>."));
+        }
+        let end = self.expect(">")?.span.end;
+        let value = ValueAnnotation {
+            kind: ValueAnnotationKind::Callable { ownership: CallableOwnership::Default, parameters: frame.parameters, result: frame.result },
+            span: Span::new(frame.name.span.start, end),
+        };
+        self.validate_nesting(&value)?;
+        self.values.push(value);
+        self.signatures.push(None);
+        Ok(())
+    }
+
+    fn wrapper_finish(&mut self, name: Token, inner_access: Option<ParameterAccess>) -> Result<(), Diagnostic> {
+        let inner = self.values.pop().expect("wrapped type");
         if self.is(",") {
             return Err(self.error(&format!("{} takes exactly one type.", name.text)));
         }
@@ -511,7 +770,9 @@ impl AnnotationParser<'_> {
                 kind: ValueAnnotationKind::Callable { ownership, parameters: parameters.clone(), result: result.clone() },
                 span,
             };
-            return Ok((None, value));
+            self.values.push(value);
+            self.signatures.push(None);
+            return Ok(());
         }
         let mode = match name.text.as_str() {
             "ReadOnly" => Mode::Read,
@@ -521,59 +782,12 @@ impl AnnotationParser<'_> {
         };
         // The type keeps its own span so diagnostics point at it.
         self.wrapper_end = Some(span.end);
-        Ok((Some(ParameterAccess { mode, span: name.span }), inner))
+        self.values.push(inner);
+        self.signatures.push(Some(ParameterAccess { mode, span: name.span }));
+        Ok(())
     }
 
-    /// `[string, limit?: int, ...values: int[]]`; labels are optional.
-    fn signature_arguments(&mut self, depth: usize) -> Result<Vec<CallableParameter>, Diagnostic> {
-        if !self.is("[") {
-            return Err(self.error("Function arguments are written as a list, such as Function<int, [string, int]>."));
-        }
-        self.take();
-        let mut parameters: Vec<CallableParameter> = Vec::new();
-        while !self.is("]") {
-            let start = self.peek().span.start;
-            let rest = self.is("...");
-            if rest {
-                self.take();
-            }
-            let labelled = self.peek().kind == TokenKind::Name
-                && (self.symbol(1, ":") || (self.symbol(1, "?") && self.symbol(2, ":")));
-            let (name, omission) = if labelled {
-                let token = self.take();
-                let omission = if self.is("?") { self.take(); crate::ParameterOmission::Optional } else { crate::ParameterOmission::Required };
-                self.take();
-                (TypeName { text: token.text, span: token.span }, omission)
-            } else {
-                let at = self.peek().span.start;
-                (TypeName { text: format!("arg{}", parameters.len()), span: Span::new(at, at) }, crate::ParameterOmission::Required)
-            };
-            self.access_permitted = true;
-            let annotation = self.annotation(depth)?;
-            self.access_permitted = false;
-            let access = self.access.take();
-            let end = self.wrapper_end.take().filter(|_| access.is_some()).map_or(annotation.span.end, |end| end.max(annotation.span.end));
-            if rest && omission.is_omittable() {
-                return Err(Diagnostic::new("rest-parameter", "A rest parameter cannot be optional.", name.span));
-            }
-            if !rest && !omission.is_omittable() && parameters.iter().any(|parameter| parameter.omission.is_omittable()) {
-                return Err(Diagnostic::new("parameter-order", "A required parameter cannot follow an optional parameter.", name.span));
-            }
-            let span = Span::new(start, end);
-            parameters.push(CallableParameter { rest, name, access, omission, annotation, span });
-            if rest && self.is(",") {
-                return Err(Diagnostic::new("rest-parameter", "A rest parameter must be last.", self.peek().span));
-            }
-            if !self.is(",") {
-                break;
-            }
-            self.take();
-        }
-        self.expect("]")?;
-        Ok(parameters)
-    }
-
-    fn member(&mut self, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
+    fn member(&mut self, depth: usize) -> Result<(), Diagnostic> {
         if let Some(replacement) = match self.peek().text.as_str() {
             "read" => Some("ReadOnly<T>"),
             "mutate" => Some("Mutable<T>"),
@@ -582,115 +796,64 @@ impl AnnotationParser<'_> {
             _ => None,
         } {
             if self.tokens.get(self.index + 1).is_some_and(|t| t.kind == TokenKind::Name || t.text == "(") {
-            return Err(Diagnostic::new("retired-access-keyword", format!("The `{}` type keyword is retired; use {replacement} instead.", self.peek().text), self.peek().span));
+                return Err(Diagnostic::new("retired-access-keyword", format!("The `{}` type keyword is retired; use {replacement} instead.", self.peek().text), self.peek().span));
             }
         }
-
-        if depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Type annotation nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
+        if self.policy.reached(depth) {
+            return Err(Self::nesting_limit(self.peek().span));
         }
         let permitted = std::mem::take(&mut self.access_permitted);
-        let mut value = if self.callable_start() {
-            self.callable(depth)?
+        self.work.push(Work::MemberSuffix);
+        if self.callable_start() {
+            let start = self.peek().span.start;
+            self.expect("(")?;
+            let frame = CallableFrame { start, parameters: Vec::new(), depth };
+            if self.is(")") {
+                self.callable_result(frame)?;
+            } else {
+                self.callable_parameter(frame)?;
+            }
         } else if self.is("[") {
             let start = self.take().span.start;
-            let mut positions = Vec::new();
-            while !self.is("]") {
-                positions.push(self.annotation(depth + 1)?);
-                if !self.is(",") { break; }
-                self.take();
-            }
-            let end = self.expect("]")?.span.end;
-            ValueAnnotation { kind: ValueAnnotationKind::Tuple(positions), span: Span::new(start, end) }
+            self.tuple_next(start, Vec::new(), depth)?;
         } else if self.is("(") {
             let start = self.take().span.start;
-            let inner = self.annotation(depth + 1)?;
-            let end = self.expect(")")?.span.end;
-            ValueAnnotation {
-                kind: ValueAnnotationKind::Group(Box::new(inner)),
-                span: Span::new(start, end),
-            }
+            self.request(Work::Group { start }, depth + 1);
         } else if self.signature_start() {
-            let (access, value) = self.signature_type(depth)?;
-            if let Some(access) = access {
-                if permitted {
-                    self.access = Some(access);
-                } else {
-                return Err(Diagnostic::new(
-                    "callback-access",
-                    "ReadOnly, Mutable and Owned describe a Function or a parameter; this position cannot carry data access.",
-                    access.span,
-                ));
-                }
+            self.work.push(Work::MemberSignature { permitted });
+            self.work.push(Work::Signature { depth });
+        } else if matches!(self.peek().kind, TokenKind::String | TokenKind::Integer | TokenKind::Number)
+            || self.peek().kind == TokenKind::Name && matches!(self.peek().text.as_str(), "true" | "false")
+            || self.is("-") && self.tokens.get(self.index + 1).is_some_and(|token| matches!(token.kind, TokenKind::Integer | TokenKind::Number))
+        {
+            let start = self.peek().span.start;
+            let negative = self.is("-");
+            if negative {
+                self.take();
             }
-            value
-        } else if matches!(self.peek().kind,TokenKind::String|TokenKind::Integer|TokenKind::Number)
-            || self.peek().kind==TokenKind::Name&&matches!(self.peek().text.as_str(),"true"|"false")
-            || self.is("-")&&self.tokens.get(self.index+1).is_some_and(|token|matches!(token.kind,TokenKind::Integer|TokenKind::Number)) {
-            let start=self.peek().span.start;
-            let negative=self.is("-");if negative{self.take();}
-            let token=self.take();
-            let numeric=if negative{format!("-{}",token.text)}else{token.text.clone()};
-            let literal=match token.kind {
-                TokenKind::String=>LiteralAnnotation::String(token.text),
-                TokenKind::Integer=>LiteralAnnotation::Int(numeric),
-                TokenKind::Number=>LiteralAnnotation::Number(numeric),
-                _=>LiteralAnnotation::Boolean(token.text=="true"),
+            let token = self.take();
+            let numeric = if negative { format!("-{}", token.text) } else { token.text.clone() };
+            let literal = match token.kind {
+                TokenKind::String => LiteralAnnotation::String(token.text),
+                TokenKind::Integer => LiteralAnnotation::Int(numeric),
+                TokenKind::Number => LiteralAnnotation::Number(numeric),
+                _ => LiteralAnnotation::Boolean(token.text == "true"),
             };
-            ValueAnnotation{kind:ValueAnnotationKind::Literal(literal),span:Span::new(start,token.span.end)}
+            self.values.push(ValueAnnotation { kind: ValueAnnotationKind::Literal(literal), span: Span::new(start, token.span.end) });
         } else {
-            if self.peek().kind != TokenKind::Name
-                || matches!(self.peek().text.as_str(), "true" | "false")
-            {
+            if self.peek().kind != TokenKind::Name || matches!(self.peek().text.as_str(), "true" | "false") {
                 return Err(self.error("Expected a type name."));
             }
             let token = self.take();
-            let name = TypeName {
-                text: token.text,
-                span: token.span,
-            };
-            let start = name.span.start;
+            let name = TypeName { text: token.text, span: token.span };
             if self.is("<") && !matches!(name.text.as_str(), "int" | "number" | "string" | "boolean" | "void" | "null" | "undefined") {
                 self.take();
-                let mut arguments = vec![self.annotation(depth + 1)?];
-                while self.is(",") {
-                    self.take();
-                    arguments.push(self.annotation(depth + 1)?);
-                }
-                let end = self.expect(">")?.span.end;
-                ValueAnnotation {
-                    kind: ValueAnnotationKind::Applied { name, arguments },
-                    span: Span::new(start, end),
-                }
+                self.request(Work::Applied { name, arguments: Vec::new(), depth }, depth + 1);
             } else {
-                ValueAnnotation {
-                    span: name.span,
-                    kind: ValueAnnotationKind::Named(name),
-                }
+                self.values.push(ValueAnnotation { span: name.span, kind: ValueAnnotationKind::Named(name) });
             }
-        };
-        self.validate_nesting(&value)?;
-        while self.is("[") {
-            if value.nesting() >= 128 {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Type annotation nesting exceeds the prototype limit of 128.",
-                    self.peek().span,
-                ));
-            }
-            self.take();
-            let end = self.expect("]")?.span.end;
-            let start = value.span.start;
-            value = ValueAnnotation {
-                kind: ValueAnnotationKind::Array(Box::new(value)),
-                span: Span::new(start, end),
-            };
         }
-        Ok(value)
+        Ok(())
     }
 }
 
@@ -710,7 +873,7 @@ mod formatting_probe_tests {
             let original = lex(source).unwrap();
             let identity = |tokens: &[Token]| tokens.iter().map(|token| (token.kind, token.text.clone(), token.span)).collect::<Vec<_>>();
             let mut fresh = original.clone();
-            let expected = parse_parameter_prefix(&mut fresh, 0, 0).map(|(_, annotation, end)| {
+            let expected = parse_parameter_prefix(&mut fresh, 0, 0, NestingPolicy::CONSUMERS).map(|(_, annotation, end)| {
                 (Span::new(original[0].span.start, fresh[end - 1].span.end.max(annotation.span.end)),
                  fresh.get(end).is_some_and(|next| next.text == "("))
             }).map_err(|error| (error.code, error.message, error.span));
