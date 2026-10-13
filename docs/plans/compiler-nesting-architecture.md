@@ -489,3 +489,29 @@ and successful repairs are retained in SQLite under `tsrust-nesting-resolution`.
 Whole-project formatting changes zero files and fingerprints. This section has
 no new timing/allocation samples or public admission-boundary changes; installed
 consumers remain on the last accepted public behavior checkpoint.
+
+## Generic declaration and source-wrapper traversal
+
+Generic record template validation now uses an explicit annotation worklist.
+Constructor arity checks still precede children, children retain source order,
+and callable results retain their grouped-void exception. Result type arguments
+continue to permit only directly named void at this stage. Source parameter and
+result wrappers likewise traverse with mutable-reference worklists, preserving
+parameter-before-result materialization without moving or cloning source trees.
+
+A normal-stack 16,384-level witness validates nested tuple annotations and walks
+source result wrappers. Focused diagnostics verify first-error order, constructor
+arity precedence and the distinct void rules. Structured annotation disposal uses
+the production destructor; source wrapper disposal remains isolated in the test.
+Generic annotation materialization and instance expansion still recurse, and
+existing admission limits remain pending their conversion. This section adds no
+public API, benchmark workload or timing claim.
+
+Verification passes four generic record unit checks and 108 integration checks
+across generic value adapters, generic value signatures and Result matching.
+The native suites retain matched TypeScript references, nominal identities,
+ownership diagnostics and payload cleanup checks. Generic editor verification
+passes 66 checks. Whole-project formatting changes zero files and fingerprints.
+SQLite records under `tsrust-nesting-template` retain outputs and source hashes
+with byte-exact restoration. No timing samples or public admission changes are
+claimed; installed consumers remain on the last public behavior checkpoint.

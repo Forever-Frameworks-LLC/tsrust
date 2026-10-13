@@ -109,3 +109,8 @@ Data annotation resolution lives in `analysis/value_type_resolution.rs`.
 parameters, unions and storage declarations. Its caches are limited to one run
 over immutable annotations. Contract IDs are still published after children;
 grouped storage errors retain their enclosing-range remapping.
+
+Generic record declaration validation and source annotation wrapper traversal live
+in `generics/records/mod.rs`. Their worklists preserve constructor-before-child
+validation and parameter-before-result materialization. Concrete annotation and
+record instance expansion remain separate traversal responsibilities.

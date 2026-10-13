@@ -152,110 +152,114 @@ struct Context<'a> {
     unions: &'a crate::unions::UnionArena,
     callables: &'a mut crate::callable_resolution::Tables,
 }
+enum SourceAnnotation<'a> {
+    Parameter(&'a mut CallableParameter),
+    Result(&'a mut ResultAnnotation),
+}
+
 impl Context<'_> {
     fn validate_template(
         &self,
         value: &ValueAnnotation,
         parameters: &[TypeName],
     ) -> Result<(), Diagnostic> {
-        match &value.kind {
-            Kind::Literal(_) | Kind::Polymorphic { .. } => Ok(()),
-            Kind::Named(name) => {
-                if parameters
-                    .iter()
-                    .any(|parameter| parameter.text == name.text)
-                    || self.names.contains_key(&name.text)
-                    || matches!(
-                        name.text.as_str(),
-                        "int" | "number" | "boolean" | "string" | "null" | "undefined"
-                    )
-                {
-                    return Ok(());
-                }
-                if self.templates.contains_key(&name.text) {
-                    return Err(Diagnostic::new(
-                        "arity",
-                        "Generic record types require explicit type arguments.",
-                        name.span,
-                    ));
-                }
-                Err(Diagnostic::new(
-                    "type",
-                    "Unknown or unsupported type in generic record declaration.",
-                    name.span,
-                ))
-            }
-            Kind::Group(inner) | Kind::Array(inner) => self.validate_template(inner, parameters),
-            Kind::Union(members) | Kind::Tuple(members) => {
-                for member in members {
-                    self.validate_template(member, parameters)?;
-                }
-                Ok(())
-            }
-            Kind::Applied { name, arguments } => {
-                if name.text == "Result" {
-                    if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span)); }
-                    for argument in arguments {
-                        if !matches!(&argument.kind, Kind::Named(name) if name.text == "void") {
-                            self.validate_template(argument, parameters)?;
-                        }
+        let mut pending = vec![value];
+        while let Some(value) = pending.pop() {
+            match &value.kind {
+                Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                Kind::Named(name) => {
+                    if parameters
+                        .iter()
+                        .any(|parameter| parameter.text == name.text)
+                        || self.names.contains_key(&name.text)
+                        || matches!(
+                            name.text.as_str(),
+                            "int" | "number" | "boolean" | "string" | "null" | "undefined"
+                        )
+                    {
+                        continue;
                     }
-                    return Ok(());
-                }
-                if name.text == "Map" {
-                    if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Map requires key and value types.", value.span)); }
-                    for argument in arguments { self.validate_template(argument, parameters)?; }
-                    return Ok(());
-                }
-                if name.text == "Set" {
-                    if arguments.len() != 1 { return Err(Diagnostic::new("arity", "Set requires one key type.", value.span)); }
-                    return self.validate_template(&arguments[0], parameters);
-                }
-                if name.text == "@testing:element" {
-                    if arguments.len() != 1 { return Err(Diagnostic::new("arity", "Internal containment element projection requires one type argument.", value.span)); }
-                    return self.validate_template(&arguments[0], parameters);
-                }
-                if parameters
-                    .iter()
-                    .any(|parameter| parameter.text == name.text)
-                {
+                    if self.templates.contains_key(&name.text) {
+                        return Err(Diagnostic::new(
+                            "arity",
+                            "Generic record types require explicit type arguments.",
+                            name.span,
+                        ));
+                    }
                     return Err(Diagnostic::new(
                         "type",
-                        "A type parameter cannot be used as a generic type constructor.",
+                        "Unknown or unsupported type in generic record declaration.",
                         name.span,
                     ));
                 }
-                let Some(template) = self.templates.get(&name.text) else {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Unknown generic record type.",
-                        name.span,
-                    ));
-                };
-                if template.type_parameters.len() != arguments.len() {
-                    return Err(Diagnostic::new(
-                        "arity",
-                        "Wrong number of generic record type arguments.",
-                        value.span,
-                    ));
+                Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
+                Kind::Union(members) | Kind::Tuple(members) => {
+                    pending.extend(members.iter().rev());
                 }
-                for argument in arguments {
-                    self.validate_template(argument, parameters)?;
+                Kind::Applied { name, arguments } => {
+                    if name.text == "Result" {
+                        if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span)); }
+                        for argument in arguments.iter().rev() {
+                            if !matches!(&argument.kind, Kind::Named(name) if name.text == "void") {
+                                pending.push(argument);
+                            }
+                        }
+                        continue;
+                    }
+                    if name.text == "Map" {
+                        if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Map requires key and value types.", value.span)); }
+                        for argument in arguments.iter().rev() { pending.push(argument); }
+                        continue;
+                    }
+                    if name.text == "Set" {
+                        if arguments.len() != 1 { return Err(Diagnostic::new("arity", "Set requires one key type.", value.span)); }
+                        pending.push(&arguments[0]);
+                        continue;
+                    }
+                    if name.text == "@testing:element" {
+                        if arguments.len() != 1 { return Err(Diagnostic::new("arity", "Internal containment element projection requires one type argument.", value.span)); }
+                        pending.push(&arguments[0]);
+                        continue;
+                    }
+                    if parameters
+                        .iter()
+                        .any(|parameter| parameter.text == name.text)
+                    {
+                        return Err(Diagnostic::new(
+                            "type",
+                            "A type parameter cannot be used as a generic type constructor.",
+                            name.span,
+                        ));
+                    }
+                    let Some(template) = self.templates.get(&name.text) else {
+                        return Err(Diagnostic::new(
+                            "type",
+                            "Unknown generic record type.",
+                            name.span,
+                        ));
+                    };
+                    if template.type_parameters.len() != arguments.len() {
+                        return Err(Diagnostic::new(
+                            "arity",
+                            "Wrong number of generic record type arguments.",
+                            value.span,
+                        ));
+                    }
+                    for argument in arguments.iter().rev() {
+                        pending.push(argument);
+                    }
                 }
-                Ok(())
+                Kind::Callable { parameters: arguments, result, .. } => {
+                    let mut result = result.as_ref();
+                    while let Kind::Group(inner) = &result.kind { result = inner; }
+                    if !matches!(&result.kind, Kind::Named(name) if name.text == "void") {
+                        pending.push(result);
+                    }
+                    pending.extend(arguments.iter().rev().map(|argument| &argument.annotation));
+                },
             }
-            Kind::Callable { parameters: arguments, result, .. } => {
-                for argument in arguments {
-                    self.validate_template(&argument.annotation, parameters)?;
-                }
-                let mut result = result.as_ref();
-                while let Kind::Group(inner) = &result.kind { result = inner; }
-                if !matches!(&result.kind, Kind::Named(name) if name.text == "void") {
-                    self.validate_template(result, parameters)?;
-                }
-                Ok(())
-            },
         }
+        Ok(())
     }
 
     fn annotation(
@@ -533,29 +537,38 @@ impl Context<'_> {
         }
     }
     fn parameter(&mut self, parameter: &mut CallableParameter) -> Result<(), Diagnostic> {
-        match &mut parameter.ty {
-            ParameterAnnotation::Named(value) => self.annotation(value, &HashMap::new()),
-            ParameterAnnotation::Callback(callback) => self.callback(callback),
-            ParameterAnnotation::Inferred(_) => Ok(()),
-        }
+        self.source_annotations(vec![SourceAnnotation::Parameter(parameter)])
     }
     fn callback(&mut self, callback: &mut CallbackAnnotation) -> Result<(), Diagnostic> {
-        for parameter in &mut callback.params {
-            self.parameter(parameter)?;
-        }
-        self.result(&mut callback.result)
+        let mut pending = vec![SourceAnnotation::Result(&mut callback.result)];
+        pending.extend(callback.params.iter_mut().rev().map(SourceAnnotation::Parameter));
+        self.source_annotations(pending)
     }
     fn result(&mut self, result: &mut ResultAnnotation) -> Result<(), Diagnostic> {
-        match result {
-            ResultAnnotation::Inferred(_) => Ok(()),
-            ResultAnnotation::Named(value) => self.annotation(value, &HashMap::new()),
-            ResultAnnotation::Callable { params, result, .. } => {
-                for parameter in params {
-                    self.parameter(parameter)?;
-                }
-                self.result(result)
+        self.source_annotations(vec![SourceAnnotation::Result(result)])
+    }
+    fn source_annotations(&mut self, mut pending: Vec<SourceAnnotation<'_>>) -> Result<(), Diagnostic> {
+        while let Some(annotation) = pending.pop() {
+            match annotation {
+                SourceAnnotation::Parameter(parameter) => match &mut parameter.ty {
+                    ParameterAnnotation::Named(value) => self.annotation(value, &HashMap::new())?,
+                    ParameterAnnotation::Callback(callback) => {
+                        pending.push(SourceAnnotation::Result(&mut callback.result));
+                        pending.extend(callback.params.iter_mut().rev().map(SourceAnnotation::Parameter));
+                    }
+                    ParameterAnnotation::Inferred(_) => {}
+                },
+                SourceAnnotation::Result(result) => match result {
+                    ResultAnnotation::Inferred(_) => {}
+                    ResultAnnotation::Named(value) => self.annotation(value, &HashMap::new())?,
+                    ResultAnnotation::Callable { params, result, .. } => {
+                        pending.push(SourceAnnotation::Result(result));
+                        pending.extend(params.iter_mut().rev().map(SourceAnnotation::Parameter));
+                    }
+                },
             }
         }
+        Ok(())
     }
     fn body(&mut self, body: &mut [Stmt], initializers: &mut [ParameterInitializer]) -> Result<(), Diagnostic> {
         enum Work<'a> {
@@ -698,6 +711,45 @@ impl Context<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deep_template_and_source_wrapper_walks_preserve_diagnostics() {
+        let unions = crate::unions::UnionArena::default();
+        let mut callables = crate::callable_resolution::Tables::default();
+        let mut context = Context {
+            templates: BTreeMap::new(), records: Vec::new(), names: HashMap::new(),
+            instances: HashMap::new(), counts: HashMap::new(), depth: 0,
+            unions: &unions, callables: &mut callables,
+        };
+        let mut annotation = crate::type_syntax::parse("int").unwrap();
+        for _ in 0..16_384 {
+            let span = annotation.span;
+            annotation = ValueAnnotation { kind: Kind::Tuple(vec![annotation]), span };
+        }
+        context.validate_template(&annotation, &[]).unwrap();
+        // Production structured annotation destruction is also iterative.
+        drop(annotation);
+        for (source, code, offset) in [
+            ("(x: Missing) => Other", "type", 4),
+            ("Map<Missing>", "arity", 0),
+            ("Result<void, Missing>", "type", 13),
+            ("Result<(void), int>", "type", 8),
+        ] {
+            let annotation = crate::type_syntax::parse(source).unwrap();
+            let error = context.validate_template(&annotation, &[]).unwrap_err();
+            assert_eq!(error.code, code, "{source}");
+            assert_eq!(error.span.start, offset, "{source}");
+        }
+        context.validate_template(&crate::type_syntax::parse("() => (void)").unwrap(), &[]).unwrap();
+        let span = Span::new(0, 3);
+        let mut result = ResultAnnotation::Named(Box::new(crate::type_syntax::parse("int").unwrap()));
+        for _ in 0..16_384 {
+            result = ResultAnnotation::Callable { kind: None, params: Vec::new(), result: Box::new(result), span };
+        }
+        context.result(&mut result).unwrap();
+        // Source wrapper disposal is a separate, still-pending architecture path.
+        while let ResultAnnotation::Callable { result: inner, .. } = result { result = *inner; }
+    }
 
     #[test]
     fn retained_materialization_appends_without_changing_record_or_union_ids() {
