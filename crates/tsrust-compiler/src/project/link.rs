@@ -4,6 +4,36 @@ use crate::syntax::*;
 use crate::{Analysis, Diagnostic, Span};
 use std::collections::{BTreeMap, BTreeSet};
 
+// Call type arguments are linked before local declarations are lifted. Include
+// their lexical variables so they are not qualified as module-level type names.
+fn extend_nested_call_types(functions: &[Function], span: Span, variables: &mut BTreeSet<String>) {
+    let mut pending = functions.iter().filter(|function| function.scope_span.start <= span.start && span.end <= function.scope_span.end)
+        .map(|function| (function.body.as_slice(), variables.clone())).collect::<Vec<_>>();
+    while let Some((body, scope)) = pending.pop() {
+        for statement in body {
+            match &statement.kind {
+                StmtKind::LocalFunction(function) if function.scope_span.start <= span.start && span.end <= function.scope_span.end => {
+                    let mut nested = scope.clone();
+                    nested.extend(function.type_parameters.iter().map(|parameter| parameter.text.clone()));
+                    variables.extend(nested.iter().cloned());
+                    pending.push((&function.body, nested));
+                }
+                StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } | StmtKind::Loop { body, .. } => pending.push((body, scope.clone())),
+                StmtKind::If { then_body, else_body, .. } => {
+                    pending.push((then_body, scope.clone()));
+                    pending.push((else_body, scope.clone()));
+                }
+                StmtKind::Try(region) => {
+                    pending.push((&region.body, scope.clone()));
+                    if let Some(handler) = &region.catch { pending.push((&handler.body, scope.clone())); }
+                    if let Some(finalizer) = &region.finally { pending.push((finalizer, scope.clone())); }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
 /// Pattern names are locals for later parameter defaults, even though the
 /// declarations remain in the leading body for checked source traversal.
 #[inline(never)]
@@ -400,6 +430,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 .map(|function| function.type_parameters.iter()
                     .chain(lexical_types.get(&function.name.text).into_iter().flatten())
                     .map(|parameter| parameter.text.clone()).collect()).unwrap_or_default();
+            extend_nested_call_types(&program.functions, *span, &mut visitor.type_parameters);
             visitor.span(span);
             for argument in arguments { visitor.value_annotation(argument); }
         }

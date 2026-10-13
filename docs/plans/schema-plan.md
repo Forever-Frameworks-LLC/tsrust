@@ -23,7 +23,7 @@ executing differential cases; current web documentation alone is not a version p
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null, exact literals, string-list enums and declared string/numeric enums checked |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
-| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object arrays integrated for matching owned and JSON input, plus checked int-to-number arrays; other composite elements pending |
+| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object, transformed, collection and recursive elements have focused witnesses; checked int-to-number arrays integrated; full family regression pending |
 | Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable and reusable default factories integrated for owned/JSON object fields; S11 family acceptance pending |
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing pending |
@@ -2808,3 +2808,210 @@ Whole-project formatting passed for the export checkpoint: one file formatted, o
 benchmark fingerprint refreshed after token-preservation checks. Source diff has no
 whitespace errors. Extended JSON Schema import/dialect conformance remains H18; S11
 requires the explicitly scoped export surface in the roadmap.
+
+### S11 family audit at export checkpoint
+
+Checkpoint `8176b6cb` completes the scoped public export implementation. The array
+status above was stale: schema_pipelines.rs covers transformed array elements and
+nested rollback; schema_collections.rs covers collection composition;
+schema_recursive.rs covers recursive arrays, union roots and record collections.
+These focused witnesses do not substitute for the complete family regression.
+
+The full compiler regression runs serially with incremental compilation
+disabled in the documented shared target. Its interrupted first pass is preserved
+in SQLite as `tsrust-s11-compiler-regression.log`. Current resumed log:
+`/private/tmp/tsrust-s11-compiler-resume3.log`. Preserve completed test evidence
+and repair only affected cases before continuing unrun groups. Full LSP regression,
+accumulated schema timings, performance review, installed consumers and the requested
+source cleanup remain required before pausing for the handoff. Do not begin S12.
+
+### Measurement scope frozen before S11 timing
+
+The current manifest contains 31 native-schema workloads. Use its unchanged
+8 warmups, 31 samples and 3 fresh processes per engine; preserve workload-specific
+iteration counts and operation denominators. Select only these registered rows
+with the existing runtime runner's `--only` option. Do not run timing concurrently
+with compiler/editor regressions. Preserve each completed result before advancing
+to the next group, and compare native against Node after TypeScript compilation.
+Handwritten TypeScript counterparts are not Zod throughput measurements.
+
+The export workload includes export, serialization and complete output observation;
+it must not be reported as isolated schema export latency. Existing reusable-plan
+allocation evidence above remains separate from throughput. Original records and
+pre-optimization measurements must remain recoverable in SQLite.
+
+Selected workload identities:
+
+- `native_schema_export`
+- `native_schema_super_refine`
+- `native_schema_recursive`
+- `native_schema_constraint_messages`
+- `native_schema_string`
+- `native_schema_boolean`
+- `native_schema_int`
+- `native_schema_number`
+- `native_schema_number_int`
+- `native_schema_null`
+- `native_schema_string_bounds`
+- `native_schema_int_bounds`
+- `native_schema_int_exclusive`
+- `native_schema_number_bounds`
+- `native_schema_owned_array`
+- `native_schema_json_array`
+- `native_schema_number_array_int`
+- `native_schema_json_fused`
+- `native_schema_json_object`
+- `native_schema_json_object_strip`
+- `native_schema_json_object_retain`
+- `native_schema_json_presence`
+- `native_schema_json_defaults`
+- `native_schema_json_literal`
+- `native_schema_json_enum`
+- `native_schema_json_declared_enum`
+- `native_schema_json_union`
+- `native_schema_json_discriminated_union`
+- `native_schema_pipeline`
+- `native_schema_collections`
+- `native_schema_parse`
+
+### Cleanup inventory (read-only preparation)
+
+The schema implementation currently spans 19 prefixed files directly under
+`analysis`, 20 under `emit`, and three editor files at the LSP source root. After
+family acceptance, group these under their schema owners while preserving Rust
+visibility, embedded runtime paths and public imports. Consolidate duplicated
+presence/field-path traversal only where checker and editor contracts agree.
+
+The family build reports an unused JSON Map import, two irrefutable patterns and
+unused embedded JSON helpers. Diagnose whether helpers are compiler-only imports
+or generated-runtime entry points before deleting them; no blanket dead-code
+suppression. The cleanup must retain schema exact-number behavior and callback
+ownership. Complete all related moves before the cleanup regression batch.
+
+The existing runner supports `--execution-only --engines=native,node-tsc` for the
+required matched comparison. Keep the original manifest sampling protocol and
+explicitly label execution-only evidence; do not claim startup/compiler timings
+from that run.
+
+### Family regression interruption: concat stack depth
+
+The full compiler run at `8176b6cb` completed 72 suites (1,602 passed,
+zero failed assertions, one ignored) before `concat_depth` aborted with a stack
+overflow. SQLite preserves `tsrust-s11-compiler-regression.log`; do not restart
+completed suites. Debugger evidence identifies analysis of the 100-deep string
+case, with `expression_type_hint` exhausting the stack inside repeated
+`collection_concat` and call-dispatch frames. Schema dispatch extraction alone
+did not resolve it. A second repair separates receiver preparation and string/array
+argument validation; the unchanged depth/native witness now passes (one test). Stack size and source-depth
+limits remain unchanged. Debugger and repair logs use `tsrust-s11-concat-*`.
+
+The resumed pass completed three further suites (45 tests) before the combined
+function/branch depth witness aborted in `control_flow`. Debugger frames showed
+retained branch ownership-join temporaries. Moving the availability join into a
+nonrecursive helper preserves the original branch semantics and depth limit.
+The entire affected `control_flow` suite passes: 11 tests. Resume integration
+suites after `control_flow`; retain both interrupted original runs.
+
+### Owner-prioritized handoff: compiler traversal architecture
+
+After S11 acceptance and cleanup, pause as requested. The handoff must prioritize
+replacing compiler call-stack-dependent traversal before further roadmap features,
+not defer it to S21. The owner expected this foundation to be optimized early.
+Start with function dependency analysis and the combined function/block depth
+limit; use explicit work stacks or a dependency worklist while preserving recursive
+ownership inference and diagnostics. Audit parser, type, emitter and tree-disposal
+traversals for equivalent limits. Preserve resource budgets for hostile inputs
+and keep runtime recursion and JSON validation limits separate.
+
+Require deep finite nesting and long ordinary call-chain witnesses on the normal
+worker stack, ownership/error parity and compilation scaling measurements. The
+recent frame-extraction repairs are crash fixes, not completion of this priority.
+Include SQLite records `tsrust-s11-compiler-regression.log`,
+`tsrust-s11-compiler-resume.log`, `tsrust-s11-concat-frames.log` and
+`tsrust-s11-control-flow-frames.log` as starting evidence.
+
+The second resumed pass reached `default_exports`: 36 tests passed and one
+diagnostic-text assertion failed. Module-level default bindings expanded the
+message from local-function-only to “local function or module binding”; the
+missing-name fixture still correctly rejects. Updated that stale expectation.
+The affected two-test suite passes. Resume after `default_exports`.
+
+The third resumed pass completed 15 suites (152 tests) before the 100-level
+record-construction witness in `field_moves` exhausted the worker stack. Debugger
+evidence locates retained expression staging and callback-field finalization
+frames. Finalization extraction alone was insufficient; separating generic/spread
+preparation from ordinary recursive checking is now under validation. Do not
+resume later suites until this affected suite passes. Current log:
+`/private/tmp/tsrust-s11-field-moves-repair2.log`.
+
+The field-move repair passes all 18 tests, including the unchanged 100-level
+native witness. Original failure/debugger/repair logs are byte-verified in SQLite.
+Remaining integration suites resume after `field_moves`, logged in
+`/private/tmp/tsrust-s11-compiler-resume4.log`.
+
+The fourth resumed regression reached `native_declarations` with two schema
+failures (62 other tests in that suite passed). `schema_default_input` trusted
+an array literal hint based on its first element, incorrectly rejecting a later
+undefined element accepted by an optional schema. Literal arrays now retain
+schema-derived contextual input types. Scalar mismatches again report the existing
+`schema-input` diagnostic rather than falling through to `type`. The affected
+`schema_` tests in `native_declarations` are running; current log is
+`/private/tmp/tsrust-s11-schema-input-repair.log`. Resume after
+`native_declarations` only when these pass. Preserve the original fourth run.
+
+All 45 affected schema tests pass after the contextual-input repair, including
+the catalog examples. Original fourth-pass and repair logs are verified in SQLite.
+Resume remaining integration suites after `native_declarations`; current log:
+`/private/tmp/tsrust-s11-compiler-resume5.log`.
+
+The fifth resumed pass reached `project`: 90 tests passed and two failed. The
+rejection table still expected module-level const/exported const to fail; those
+forms are already accepted by module-state coverage. Removed the stale entries.
+A real imported nested-generic defect qualified `U` as a module type before local
+function lifting. Linker call-argument qualification now includes nested lexical
+function parameters using an explicit statement work stack. Project-suite repair
+is running in `/private/tmp/tsrust-s11-project-repair2.log`. Original fifth-pass,
+reproduction, scope trace and initial repair build evidence are verified in SQLite.
+Resume later suites only after the project repair passes.
+
+The repaired project suite passes all 92 tests, including imported nested generic
+parameters and module exports. Evidence is verified in SQLite. Remaining suites
+resume after `project` in `/private/tmp/tsrust-s11-compiler-resume6.log`.
+
+### Compiler family regression completed (2026-10-13)
+
+All 321 registered integration suites are covered across the preserved interrupted
+runs and affected repairs; the two unit targets are also covered. Latest successful
+suite records contain 3,708 passed assertions and three ignored. The schema-only
+repair filtered 19 native-declaration tests already passed in the original run,
+so combined coverage is 3,727 passing tests, three ignored, zero unresolved failed
+assertions or aborted suites. Compiler doctests also finish successfully (zero
+registered). `tsrust-s11-regression-index.json` identifies the exact suite records;
+original failures remain preserved. This is composed regression evidence under
+the resume protocol, not a claim that one uninterrupted command passed.
+
+The complete LSP regression is running in
+`/private/tmp/tsrust-s11-lsp-regression.log`. S11 measurement, consumer refresh,
+whole-project checkpoint formatting and required cleanup remain pending.
+
+The full LSP run reached `intelligence` with 316 passed and two catalog failures.
+The witness registry lacked schema-family dispatch; it now checks their complete
+program examples. Missing inline examples on schema union validation, context and
+public schema error/type entries are filled with executable examples. The full
+affected intelligence suite is running in
+`/private/tmp/tsrust-s11-lsp-catalog-repair.log`. Preserve original LSP evidence
+in SQLite and resume unrun suites only after this repair passes.
+
+The repaired intelligence suite passes all 318 tests, including current-compiler
+witnesses and native catalog output. Evidence is verified in SQLite. Remaining LSP
+suites resume after `intelligence` in `/private/tmp/tsrust-s11-lsp-resume.log`.
+
+Complete LSP regression coverage passes: 645 tests across 48 unit/integration
+suites, zero unresolved failures. This includes 318 intelligence tests and 170
+project-intelligence tests. Original failures and affected repairs remain in SQLite.
+Whole-project formatting and the regression-repair source checkpoint are next;
+measurements, installed consumers and requested cleanup remain pending.
+
+Whole-project checkpoint formatting passes: zero changed files and zero refreshed
+fingerprints. Token-preservation/idempotence checks and source diff whitespace
+checks pass. Evidence: `tsrust-s11-regression-format.log` in SQLite.

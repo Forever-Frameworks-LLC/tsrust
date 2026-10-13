@@ -56,7 +56,9 @@ impl Analyzer {
     }
 
     pub(super) fn schema_default_input(&mut self,context:&Context,output:Type,input:&Expr)->Result<Type,Diagnostic>{
-        if let Some(input_type)=self.expression_type_hint(context,input) && self.schema_owned_input_compatible(output,input_type){return Ok(input_type);}
+        // Array hints can describe only the first element. Preserve schema context
+        // for every literal element, including later null/undefined alternatives.
+        if !matches!(input.kind, ExprKind::Array(_)) && let Some(input_type)=self.expression_type_hint(context,input) && self.schema_owned_input_compatible(output,input_type){return Ok(input_type);}
         if matches!(output,Type::Literal(_,_)|Type::Enum(_,_)|Type::Array(_)|Type::Union(_)){return self.schema_scalar_input(output,input.span);}
         let Type::Record(object)=output else{return Ok(output)};
         let original=self.program.records[object].fields.clone();

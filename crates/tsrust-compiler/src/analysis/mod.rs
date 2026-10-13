@@ -5044,6 +5044,15 @@ impl Analyzer {
             (true, false) => after_else_flow,
             (true, true) => HashMap::new(),
         };
+        Self::join_if_availability(context, before, after_then, then_exits, else_exits);
+        self.record_map_completion_release(context,then_body,else_body,span)?;
+        self.record_branch_carriers(context,then_body,else_body)?;
+        Ok(then_exits && else_exits)
+    }
+
+    // Availability joins carry large ownership records only after both arms finish.
+    #[inline(never)]
+    fn join_if_availability(context: &mut Context, before: Vec<(usize, Availability)>, after_then: Vec<Availability>, then_exits: bool, else_exits: bool) {
         for ((id, entry), then_state) in before.into_iter().zip(after_then) {
             let else_state = Availability::of(&context.bindings[id]);
             let joined = match (then_exits, else_exits) {
@@ -5057,9 +5066,6 @@ impl Analyzer {
             };
             joined.restore(&mut context.bindings[id]);
         }
-        self.record_map_completion_release(context,then_body,else_body,span)?;
-        self.record_branch_carriers(context,then_body,else_body)?;
-        Ok(then_exits && else_exits)
     }
 
     // Legacy replacement selection has its own temporary state. Ordinary
@@ -7764,30 +7770,7 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
-        if matches!(expr.kind,ExprKind::LogicalAssign{..}){self.truthy_logical_assignment(context,expr);}
-        if matches!(expr.kind,ExprKind::Field(_,_)){self.owned_assignment_projection(context,expr);}
-        self.owned_assignment_value(context,expr);
-        if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false);}
-        if let Some(expected) = expected
-            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
-        {
-            if self.lower_selected_generic_factory(context, expr)? {
-                return self.stage_selected_generic_expression(context, expr, expected, loans);
-            }
-        }
-        if let Some(expected) = expected
-            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
-            && self.fresh_generic_origin(context, expr)?.is_some()
-        {
-            return self.stage_generic_expression(context, expr, expected, mode, loans);
-        }
-        self.lower_enum_member(context, expr, mode)?;
-        if matches!(&expr.kind,ExprKind::TypeAssertion{..}) {return self.type_assertion_expression(context,expr,mode,loans,expected);}
-        if matches!(&expr.kind, ExprKind::SpreadValue(_) | ExprKind::SpreadCall(_))
-            || matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if matches!(value.kind, ExprKind::SpreadValue(_)))
-        {
-            return self.checked_spread_expression(context, expr, mode, expected);
-        }
+        if let Some(ty) = self.prepare_other_expression(context, expr, mode, loans, expected)? { return Ok(ty); }
         // A declared nongeneric call already returns its exact tagged type.
         // Do not retain an injection frame while checking its nested arguments.
         let expected = if matches!(expected, Some(Type::Union(_)))
@@ -7797,6 +7780,36 @@ impl Analyzer {
         self.lower_scalar_unary_plus(context, expr);
         self.lower_tuple_expression(context, expr, expected)?;
         self.checked_expression(context, expr, mode, loans, expected)
+    }
+
+    // Generic/spread staging is finished before ordinary recursive checking begins.
+    #[inline(never)]
+    fn prepare_other_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        if matches!(expr.kind,ExprKind::LogicalAssign{..}){self.truthy_logical_assignment(context,expr);}
+        if matches!(expr.kind,ExprKind::Field(_,_)){self.owned_assignment_projection(context,expr);}
+        self.owned_assignment_value(context,expr);
+        if matches!(expr.kind,ExprKind::Sequence(_)){return self.sequence_expression(context,expr,mode,loans,expected,false).map(Some);}
+        if let Some(expected) = expected
+            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
+        {
+            if self.lower_selected_generic_factory(context, expr)? {
+                return self.stage_selected_generic_expression(context, expr, expected, loans).map(Some);
+            }
+        }
+        if let Some(expected) = expected
+            && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
+            && self.fresh_generic_origin(context, expr)?.is_some()
+        {
+            return self.stage_generic_expression(context, expr, expected, mode, loans).map(Some);
+        }
+        self.lower_enum_member(context, expr, mode)?;
+        if matches!(&expr.kind,ExprKind::TypeAssertion{..}) {return self.type_assertion_expression(context,expr,mode,loans,expected).map(Some);}
+        if matches!(&expr.kind, ExprKind::SpreadValue(_) | ExprKind::SpreadCall(_))
+            || matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if matches!(value.kind, ExprKind::SpreadValue(_)))
+        {
+            return self.checked_spread_expression(context, expr, mode, expected).map(Some);
+        }
+        Ok(None)
     }
 
     fn lower_tuple_expression(&self, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<(), Diagnostic> {
@@ -12385,6 +12398,16 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
+        let (receiver, active) = self.concat_receiver(context, base, args, loans, expected)?;
+        if receiver.scalar_base() == Type::String {
+            self.concat_string_arguments(context, args, active)
+        } else {
+            self.concat_array_arguments(context, args, active, receiver, base.span)
+        }
+    }
+
+    #[inline(never)]
+    fn concat_receiver(&mut self, context: &mut Context, base: &mut Expr, args: &mut [Expr], loans: &Loans, expected: Option<Type>) -> Result<(Type, Loans), Diagnostic> {
         let hint = if let ExprKind::Array(values) = &base.kind {
             expected
                 .filter(|ty| matches!(ty, Type::Array(_)))
@@ -12428,9 +12451,11 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .or_default()
                 .push((Mode::Read, base.span));
         }
-        // Dispatch on the checked receiver, not an optional pure type hint.
-        // Factory-returned callbacks can produce strings without a precheck hint.
-        if receiver.scalar_base() == Type::String {
+        Ok((receiver, active))
+    }
+
+    #[inline(never)]
+    fn concat_string_arguments(&mut self, context: &mut Context, args: &mut [Expr], mut active: Loans) -> Result<Type, Diagnostic> {
             for arg in args {
                 let actual =
                     self.expression(context, arg, Mode::Read, &active, Some(Type::String))?;
@@ -12439,13 +12464,16 @@ self.names_materialized_type(element.with_depth(0).ty())
                     active.entry(root).or_default().push((Mode::Read, arg.span));
                 }
             }
-            return Ok(Type::String);
-        }
+            Ok(Type::String)
+    }
+
+    #[inline(never)]
+    fn concat_array_arguments(&mut self, context: &mut Context, args: &mut [Expr], mut active: Loans, receiver: Type, span: Span) -> Result<Type, Diagnostic> {
         let Type::Array(element) = receiver else {
             return Err(Diagnostic::new(
                 "type",
                 "concat() requires a string or array.",
-                base.span,
+                span,
             ));
         };
         let value = element.ty();
@@ -14414,27 +14442,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
-        if let Some(ty)=self.schema_context_issue(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_recursive_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_export(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_parse_call(context, expr, loans, expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_constraint_options(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_message_constraint(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_constructor_options(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_pipeline_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_pipeline_validation(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_union_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_enum_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_literal_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_collection_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(ty);}
-        if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(ty);}
-        self.schema_method_call(context, expr)?;
+        if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(ty); }
         if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected); }
         if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected); }
         self.array_values(context, expr)?;
@@ -14472,6 +14480,33 @@ self.names_materialized_type(element.with_depth(0).ty())
         } else {
             self.builtin_or_method_call(context, expr, loans, expected)
         }
+    }
+
+    // Schema dispatch temporaries must not stay live across ordinary nested calls.
+    #[inline(never)]
+    fn schema_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        if let Some(ty)=self.schema_context_issue(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_recursive_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_export(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_parse_call(context, expr, loans, expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_constraint_options(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_message_constraint(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_constructor_options(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_pipeline_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_pipeline_validation(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_default_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_presence_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_object_policy(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_union_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_enum_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_literal_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_object_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_collection_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
+        if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(Some(ty));}
+        self.schema_method_call(context, expr)?;
+        Ok(None)
     }
 
     // Keep conditional-call target construction off ordinary recursive call frames.

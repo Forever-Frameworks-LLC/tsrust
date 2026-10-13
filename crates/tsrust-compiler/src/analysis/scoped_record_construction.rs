@@ -24,6 +24,12 @@ impl Analyzer {
             })
         };
         let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
+        self.finish_scoped_record_field(value, field_type, payload, actual)
+    }
+
+    // Nullable callback construction does not belong on nested record-check frames.
+    #[inline(never)]
+    fn finish_scoped_record_field(&mut self, value: &mut Expr, field_type: Type, payload: Type, actual: Type) -> Result<Type, Diagnostic> {
         let Type::Callback(declaration) = payload else {
             return Ok(actual);
         };

@@ -9,7 +9,13 @@
         "documentation": "Required message and optional literal path. Omitted or empty path identifies the current value. Fields and nonnegative integer array indices must match T."
       }
     ],
-    "documentation": "Reports a refinement-failed validation issue. Adds the containing schema path before the supplied relative path. Does not throw or stop the callback; any reported issue rejects validation, including issues discarded by retention limits. Invalid paths are checker errors.\n\nExample: ctx.addIssue({ path: ['confirm'], message: 'Passwords differ' }) reports at the confirm field.\n\nOwnership: mutably borrows the temporary context and consumes the message. The context cannot escape its callback."
+    "documentation": "Reports a refinement-failed validation issue. Adds the containing schema path before the supplied relative path. Does not throw or stop the callback; any reported issue rejects validation, including issues discarded by retention limits. Invalid paths are checker errors.\n\nExample: ctx.addIssue({ path: ['confirm'], message: 'Passwords differ' }) reports at the confirm field.\n\nOwnership: mutably borrows the temporary context and consumes the message. The context cannot escape its callback.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}\n```\n\nExpected output:\n```text\nMust be positive\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}",
+        "output": "Must be positive\n"
+      }
+    ]
   }
 ],
   "SchemaPipeline": [
@@ -7147,7 +7153,13 @@
   "name": "ValidationContext",
   "signature": "ValidationContext<T>",
   "parameters": [],
-  "documentation": "Context supplied to a superRefine callback for reporting multiple validation issues. T is the validated input shape; addIssue paths are checked against it. The callback receives temporary mutable access. It cannot construct, clone, retain or transfer this context. Context lifetime ends when the callback returns."
+  "documentation": "Context supplied to a superRefine callback for reporting multiple validation issues. T is the validated input shape; addIssue paths are checked against it. The callback receives temporary mutable access. It cannot construct, clone, retain or transfer this context. Context lifetime ends when the callback returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}\n```\n\nExpected output:\n```text\nMust be positive\n```",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Must be positive\n"
+    }
+  ]
 },
   {
     "name": "s",
@@ -7160,39 +7172,74 @@
     "name": "Schema",
     "signature": "Schema<T>",
     "parameters": [],
-    "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. Scalar safeParse returns a typed Result."
+    "documentation": "Opaque schema with inferred output type T. Construct through the imported s builders. A Schema<string> cannot be assigned to Schema<int>. It cannot be constructed as a record, inspected as data or implicitly copied. Scalar safeParse returns a typed Result.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}\n```\n\nExpected output:\n```text\n1 false\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string();match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);}}}",
+        "output": "1 false\n"
+      }
+    ]
   },
   {
     "name": "ValidationError",
     "signature": "ValidationError",
     "parameters": [],
-    "documentation": "Runtime input validation failure returned by safeParse. Contains issues and a truncated flag indicating omitted issues. Each issue includes a code, property/index path and controlled type summaries; input values are never retained. Invalid rule definitions instead throw SchemaConstructionError. Ownership: the error owns its issue collection."
+    "documentation": "Runtime input validation failure returned by safeParse. Contains issues and a truncated flag indicating omitted issues. Each issue includes a code, property/index path and controlled type summaries; input values are never retained. Invalid rule definitions instead throw SchemaConstructionError. Ownership: the error owns its issue collection.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output:\n```text\nHello\n1\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+        "output": "Hello\n1\n"
+      }
+    ]
   },
   {
     "name": "SchemaIssue",
     "signature": "SchemaIssue",
     "parameters": [],
-    "documentation": "One validation issue: code, path, pathTruncated, expected and observed. The root path is empty. expected and observed describe types rather than input contents. Ownership: owns its strings and path."
+    "documentation": "One validation issue: code, path, pathTruncated, expected and observed. The root path is empty. expected and observed describe types rather than input contents. Ownership: owns its strings and path.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});match(schema.safeParse(JSON.parse('{\"name\":3}'))){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{const issue=error.issues[0];console.log(issue.path.length);}}}\n```\n\nExpected output:\n```text\n1\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});match(schema.safeParse(JSON.parse('{\"name\":3}'))){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{const issue=error.issues[0];console.log(issue.path.length);}}}",
+        "output": "1\n"
+      }
+    ]
   },
   {
     "name": "SchemaPath",
     "signature": "SchemaPath",
     "parameters": [],
-    "documentation": "One path segment. A field segment has field set and index absent; an array segment has index set and field absent. Indices are zero-based. Root issues have no segments. Ownership: owns any field name."
+    "documentation": "One path segment. A field segment has field set and index absent; an array segment has index set and field absent. Indices are zero-based. Root issues have no segments. Ownership: owns any field name.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});match(schema.safeParse(JSON.parse('{\"name\":3}'))){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{const issue=error.issues[0];console.log(issue.path.length);}}}\n```\n\nExpected output:\n```text\n1\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string()});match(schema.safeParse(JSON.parse('{\"name\":3}'))){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{const issue=error.issues[0];console.log(issue.path.length);}}}",
+        "output": "1\n"
+      }
+    ]
   },
   {
-  "name": "SchemaExportError",
-  "signature": "SchemaExportError",
-  "kind": "type",
-  "documentation": "Thrown when a schema rule cannot be represented by JSON Schema export. Fields: code is unrepresentable; path is a JSON Pointer into the schema rule (empty for the root); reason explains the unsupported rule. Pointer segments escape ~ as ~0 and / as ~1. Export does not execute callbacks or default factories and never returns a partial document. Ownership: the error owns its path; catching it does not consume the source schema."
-},
+    "name": "SchemaExportError",
+    "signature": "SchemaExportError",
+    "kind": "type",
+    "documentation": "Thrown when a schema rule cannot be represented by JSON Schema export. Fields: code is unrepresentable; path is a JSON Pointer into the schema rule (empty for the root); reason explains the unsupported rule. Pointer segments escape ~ as ~0 and / as ~1. Export does not execute callbacks or default factories and never returns a partial document. Ownership: the error owns its path; catching it does not consume the source schema.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().refine(value=>value.length>0);try{schema.toJsonSchema();}catch(error){console.log(error.code);}}\n```\n\nExpected output:\n```text\nunrepresentable\n```",
+    "examples": [
+      {
+        "source": "import {s} from 'std:schema';function main(){const schema=s.string().refine(value=>value.length>0);try{schema.toJsonSchema();}catch(error){console.log(error.code);}}",
+        "output": "unrepresentable\n"
+      }
+    ]
+  },
 {
-    "name": "SchemaConstructionError",
-    "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int | number }",
-    "parameters": [],
-    "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits, nonfinite-limit for floating limits, or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied int or number without converting exact integers to floating point. Narrow the limit before arithmetic. This error concerns schema construction, not input validation through safeParse. Contains no input data.",
-    "examples": []
-  }
+  "name": "SchemaConstructionError",
+  "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int | number }",
+  "parameters": [],
+  "documentation": "Thrown when constructing invalid schema bounds. code is negative-length for string limits, nonfinite-limit for floating limits, or contradictory-bounds; operation identifies min, max, gt or lt; limit retains the supplied int or number without converting exact integers to floating point. Narrow the limit before arithmetic. This error concerns schema construction, not input validation through safeParse. Contains no input data.\n\n```tsrust\nimport {s} from 'std:schema';function main(){try{s.string().min(-1);}catch(error){console.log(error.code);}}\n```\n\nExpected output:\n```text\nnegative-length\n```",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){try{s.string().min(-1);}catch(error){console.log(error.code);}}",
+      "output": "negative-length\n"
+    }
+  ]
+}
 ],
   "schemaBuilder": [
   {
@@ -8749,22 +8796,22 @@
   ]
 },
 {
-    "name": "safeParse",
-    "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
-    "parameters": [
-      {
-        "label": "input: Owned<Input>",
-        "documentation": "An owned value matching the output alternatives, or JsonValue. Input transfers on success and failure."
-      }
-    ],
-    "documentation": "Validates owned input against the stored alternatives and returns the exact output union. Ordered unions select the first successful branch; discriminated unions validate only the branch selected by the tag. Errors retain bounded field and array paths. The schema remains reusable.\n\nOwnership: borrows the schema and consumes input on success or failure. Successful strings and fields move without hidden copies.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
-        "output": "true\n"
-      }
-    ]
-  },
+  "name": "safeParse",
+  "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned value matching the output alternatives, or JsonValue. Input transfers on success and failure."
+    }
+  ],
+  "documentation": "Validates owned input against the stored alternatives and returns the exact output union. Ordered unions select the first successful branch; discriminated unions validate only the branch selected by the tag. Errors retain bounded field and array paths. The schema remains reusable.\n\nOwnership: borrows the schema and consumes input on success or failure. Successful strings and fields move without hidden copies.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{console.log(error.issues.length);}}}\n```\n\nExpected output:\n```text\ntrue\n```",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().optional();match(schema.safeParse(undefined)){Ok(value)=>{console.log(value===undefined);},Err(error)=>{console.log(error.issues.length);}}}",
+      "output": "true\n"
+    }
+  ]
+},
   {
     "name": "optional",
     "signature": "optional(): Schema<Output | undefined>",

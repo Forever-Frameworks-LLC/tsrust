@@ -21,7 +21,7 @@ fn defaults_preserve_ownership_and_reject_invalid_exports() {
  for (dependency,main,expected) in [
  ("function one():int{return 1;} export default one; export default one;","import f from './dep.tsr';function main(){f();}","module-duplicate"),
  ("export function one():int{return 1;}","import f from './dep.tsr';function main(){f();}","does not export"),
- ("export default missing;","import f from './dep.tsr';function main(){f();}","local function declaration"),
+ ("export default missing;","import f from './dep.tsr';function main(){f();}","local function or module binding"),
  ("export default 42;","import f from './dep.tsr';function main(){f();}","module-export"),
  ("export default function take(value:string):string{return value;}","import take from './dep.tsr';function main(){const value='owned';take(value);console.log(value);}","transferred"),
  ] {

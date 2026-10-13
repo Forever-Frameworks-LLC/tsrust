@@ -117,6 +117,10 @@ impl Analyzer {
             while let (Type::Array(a),Type::Array(b))=(from,to){from=a.ty();to=b.ty();}
             from.scalar_base()==Type::Int && (to.scalar_base()==Type::Number || matches!(to,Type::Union(id) if self.unions.members(id).iter().any(|ty|ty.scalar_base()==Type::Number) && self.unions.members(id).iter().all(|ty|matches!(ty.scalar_base(),Type::Number|Type::Null|Type::Undefined))))
         });
+        if !json && !conversion && matches!(validation_output, Type::String | Type::Boolean | Type::Int | Type::Number)
+            && hint.is_some_and(|input| input.scalar_base() != validation_output) {
+            return Err(Diagnostic::new("schema-input", "safeParse requires a matching concrete scalar or owned JsonValue input.", args[0].span));
+        }
         let owned_input=if json||conversion {validation_output}else{self.schema_default_input(context,validation_output,&args[0])?};
         let expected_input=if json||conversion {hint}else{Some(owned_input)};
         let actual=self.expression(context,&mut args[0],Mode::Consume,loans,expected_input)?;

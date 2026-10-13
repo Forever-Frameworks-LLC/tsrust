@@ -13,8 +13,10 @@ fn nested(receiver: &str, leaf: &str, depth: usize) -> String {
 fn nested_string_and_array_concat_keep_normal_stack_and_depth_diagnostics() {
     for (receiver, leaf) in [("\"x\"", "String(7)"), ("[1]", "[2]")] {
         let source = nested(receiver, leaf, 100).replace(";}", ";console.log(x.length);}");
+        eprintln!("concat phase: check {receiver} depth 100");
         let analysis = check(&source)
             .unwrap_or_else(|error| panic!("{}", error.render("concat-depth.tsr", &source)));
+        eprintln!("concat phase: emit {receiver} depth 100");
         let emitted = analysis.emit_rust();
         if std::env::var_os("TSR_SKIP_CONCAT_DEPTH_NATIVE").is_none() {
             let directory = support::TempDirectory::new();
@@ -35,6 +37,7 @@ fn nested_string_and_array_concat_keep_normal_stack_and_depth_diagnostics() {
             assert!(output.stderr.is_empty());
         }
         let source = nested(receiver, leaf, 200);
+        eprintln!("concat phase: check {receiver} depth 200");
         let error = check(&source).err().expect("expected diagnostic");
         assert_eq!(error.code, "unsupported");
         assert!(

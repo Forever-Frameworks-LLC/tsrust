@@ -145,13 +145,11 @@ fn unsupported_forms_and_malformed_imports_are_source_errors() {
         ("import { x } from 'dep';", "module-load"),
         ("import { x } from './dep';", "module-load"),
         ("import { x } from 'std:path';", "module-native"),
-        ("export const x = 1;", "module-export"),
         ("export { x };", "module-export"),
         ("import", "module-syntax"),
         ("import { x as", "module-syntax"),
         ("import { x } from", "module-syntax"),
         ("export", "module-export"),
-        ("const x = 1;", "unsupported"),
     ] {
         let memory = Memory::new(&[("main.tsr", source)]);
         assert_eq!(
