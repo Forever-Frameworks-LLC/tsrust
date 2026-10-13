@@ -26,3 +26,4 @@ mod store;
 
 mod branches;
 mod declarations;
+mod loops;

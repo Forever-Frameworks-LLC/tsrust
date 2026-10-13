@@ -4,6 +4,7 @@
 //! expression and control-flow operations use compatibility dispatch while they
 //! are migrated; recursive compatibility entry is not stackless acceptance.
 use super::super::*;
+mod tail;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -68,6 +69,11 @@ impl Expression<'_> {
 }
 
 enum BlockPending {
+    Assignment(usize),
+    Tail(usize),
+    WhileCondition { index: usize, frame: Box<super::loops::Condition> },
+    Iterable(usize),
+    LoopBody { index: usize, frame: Box<super::loops::BodyLoop> },
     Declaration { index: usize, frame: Box<super::declarations::Declaration>, module_scope: Option<Span> },
     IfCondition(usize),
     IfThen { index: usize, frame: Box<super::branches::Then> },
@@ -194,8 +200,9 @@ struct DiscardTask<'a> { expression: Box<Expr>, context: ContextId, loans: Activ
 enum StoreState { Start, Target(super::store::FieldTarget), Value(super::store::Value) }
 struct StoreTask<'a> { expression: Box<Expr>, context: ContextId, loans: ActiveLoans<'a>, state: StoreState, precise: bool }
 
-enum Task<'a> { Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Tail(Box<Stmt>, Result<bool, Diagnostic>),
     Sequence(Box<Expr>, Result<Type, Diagnostic>, Option<Option<Box<crate::capture_loan_owners::Owners>>>),
     Assignment(AssignmentTask<'a>, Result<Type, Diagnostic>),
     Block(Body<'a>, Result<bool, Diagnostic>),
@@ -449,6 +456,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Tail(task) => tail::step(analyzer, &mut contexts, task, completion.take()),
             Task::Store(task) => step_store(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Sequence(task) => step_sequence(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Discard(task) => step_discard(analyzer, contexts.get(task.context), task, completion.take()),
@@ -470,6 +478,59 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
     let action = (|| -> Result<BlockAction<'a>, Diagnostic> {
         if let Some(pending) = task.pending.take() {
             match (pending, completion.expect("block child completed")) {
+                (BlockPending::Assignment(index), completion) => {
+                    let (target, value, result) = match completion {
+                        Completion::Assignment(assignment, result) => (assignment.target, assignment.value, result),
+                        Completion::Expression(expression, result) => {
+                            let ExprKind::Assign { target, value, .. } = expression.into_child().into_kind() else { unreachable!("store statement result") };
+                            (target, value, result)
+                        },
+                        _ => unreachable!("assignment statement completion"),
+                    };
+                    let StmtKind::Assign { target: destination, value: replacement, .. } = &mut task.body.statements()[index].kind else { unreachable!("assignment statement slots") };
+                    *destination = *target;
+                    *replacement = *value;
+                    result?;
+                }
+                (BlockPending::Tail(index), Completion::Tail(statement, result)) => {
+                    task.body.statements()[index] = *statement;
+                    task.frame.as_mut().expect("loop scope").exited = result?;
+                }
+                (BlockPending::WhileCondition { index, frame }, Completion::Expression(expression, result)) => {
+                    let stmt = &mut task.body.statements()[index];
+                    let StmtKind::While { condition, body } = &mut stmt.kind else { unreachable!("while condition slot") };
+                    *condition = *expression.into_child();
+                    let frame = analyzer.prepare_while_body(context, condition, result?, frame, stmt.span, &stmt.labels)?;
+                    let body = std::mem::take(body);
+                    task.pending = Some(BlockPending::LoopBody { index, frame });
+                    return Ok(BlockAction::Push(Task::Block(BlockTask {
+                        body: Body::Child { body, start: 0 }, context: task.context, frame: None, pending: None,
+                        result_type: task.result_type, keep_names: false, label_span: None,
+                    })));
+                }
+                (BlockPending::Iterable(index), Completion::Expression(expression, result)) => {
+                    let stmt = &mut task.body.statements()[index];
+                    let StmtKind::ForOf { name, rebindable, binding, iterable, body } = &mut stmt.kind else { unreachable!("iterable slot") };
+                    *iterable = *expression.into_child();
+                    let frame = analyzer.prepare_iteration_body(context, (name, *rebindable, binding), iterable, result?, stmt.span, &stmt.labels)?;
+                    let body = std::mem::take(body);
+                    task.pending = Some(BlockPending::LoopBody { index, frame });
+                    return Ok(BlockAction::Push(Task::Block(BlockTask {
+                        body: Body::Child { body, start: 0 }, context: task.context, frame: None, pending: None,
+                        result_type: task.result_type, keep_names: false, label_span: None,
+                    })));
+                }
+                (BlockPending::LoopBody { index, frame }, Completion::Block(completed, result)) => {
+                    let stmt = &mut task.body.statements()[index];
+                    let body = match &mut stmt.kind {
+                        StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => body,
+                        _ => unreachable!("loop body slot"),
+                    };
+                    *body = completed.into_child();
+                    let breaks = analyzer.finish_scheduled_loop(context, body, stmt.span, frame, result)?;
+                    if !breaks && let StmtKind::While { condition, .. } = &stmt.kind
+                        && let Some((_, no)) = analyzer.pure_guard_outcomes(context, condition) { context.flow = no; }
+                }
                 (BlockPending::Declaration { index, mut frame, module_scope }, completion) => {
                     let (expression, result) = match completion {
                         Completion::Expression(expression, result) => (expression.into_child(), result),
@@ -561,6 +622,48 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
         };
         let stmt = &mut task.body.statements()[index];
         match &mut stmt.kind {
+            StmtKind::Assign { target, value, operator } => {
+                let precise = operator.is_none() && matches!(target.kind, ExprKind::Name(_))
+                    && analyzer.expression_type_hint(context, target).is_some_and(|ty| analyzer.aggregate_callable_facts(ty).scoped || analyzer.nullable_scoped_record_declaration(ty).is_some())
+                    && analyzer.prepare_bound_removal_sequence(context, value);
+                analyzer.reject_string_position_write(context, target)?;
+                let kind = if let Some((op, _)) = operator { Some(super::assignment::Kind::Compound { op: *op, allow_owned: true }) }
+                    else if !precise && !matches!(crate::flow::place(target, &context.names).and_then(|place| analyzer.place_type(context, &place)), Some(Type::Union(_)))
+                        && matches!(analyzer.expression_type_hint(context, target), Some(Type::Int | Type::Number | Type::Boolean)) { Some(super::assignment::Kind::Scalar) }
+                    else { None };
+                let operator = operator.map_or(target.span, |(_, span)| span);
+                let target = Box::new(std::mem::replace(target, Expr::new(ExprKind::Undefined, target.span)));
+                let value = Box::new(std::mem::replace(value, Expr::new(ExprKind::Undefined, value.span)));
+                let loans = ActiveLoans::Shared(std::rc::Rc::new(Loans::new()));
+                let child = if let Some(kind) = kind {
+                    Task::Assignment(AssignmentTask { target, value, kind, operator, loans, context: task.context, state: AssignmentState::Start })
+                } else {
+                    let expression = Box::new(Expr::new(ExprKind::Assign { target, value, operator }, stmt.span));
+                    Task::Store(StoreTask { expression, context: task.context, loans, state: StoreState::Start, precise })
+                };
+                task.pending = Some(BlockPending::Assignment(index));
+                Ok(BlockAction::Push(child))
+            }
+            StmtKind::Loop { .. } => {
+                let statement = Box::new(std::mem::replace(stmt, Stmt { kind: StmtKind::Break, span: stmt.span, labels: Vec::new(), control_target: None }));
+                task.pending = Some(BlockPending::Tail(index));
+                Ok(BlockAction::Push(Task::Tail(tail::TailTask { statement, context: task.context, result_type: task.result_type,
+                    control_boundary: context.loops.len(), isolated: None, state: tail::State::Start })))
+            }
+            StmtKind::While { condition, .. } => {
+                let frame = Analyzer::prepare_while_condition(context);
+                analyzer.truthy_condition(context, condition);
+                let value = std::mem::replace(condition, Expr::new(ExprKind::Undefined, condition.span));
+                task.pending = Some(BlockPending::WhileCondition { index, frame });
+                Ok(BlockAction::Push(Task::Expression(ExpressionTask::new(Expression::Child(Box::new(value)), task.context,
+                    Mode::Copy, ActiveLoans::Shared(std::rc::Rc::new(Loans::new())), Some(Type::Boolean)))))
+            }
+            StmtKind::ForOf { iterable, .. } => {
+                let value = std::mem::replace(iterable, Expr::new(ExprKind::Undefined, iterable.span));
+                task.pending = Some(BlockPending::Iterable(index));
+                Ok(BlockAction::Push(Task::Expression(ExpressionTask::new(Expression::Child(Box::new(value)), task.context,
+                    Mode::Read, ActiveLoans::Shared(std::rc::Rc::new(Loans::new())), None))))
+            }
             StmtKind::Let { name, annotation, value, binding, .. } => {
                 let module_scope = analyzer.module_literal_scope;
                 analyzer.module_literal_scope = analyzer.program.module_owner_bindings.contains(&name.span).then_some(value.span);
@@ -1349,6 +1452,37 @@ mod tests {
 
     fn analyzer() -> Analyzer {
         Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn scheduled_loop_failures_restore_iterators_tails_and_assignment_children() {
+        for source in [
+            "function main(){outer:{for(const item of [1]){missing;}}}",
+            "function main(){outer:{for(const item of [1]){for(const nested of [2]){missing;}}}}",
+            "function main(){outer:{for(;true;missing){break;}}}",
+            "function main(){outer:{for(;true;missing){continue;}}}",
+            "function main(){outer:{do{break;}while(missing);}}",
+            "function main(){outer:{do{continue;}while(missing);}}",
+            "function main(){let value=0;value=(()=>{for(const item of [1]){missing;}return 1;})();}",
+            "function main(){let value=0;value+=(()=>{do{missing;}while(false);return 1;})();}",
+            r#"function main(){let value="old";value=(()=>{while(true){missing;}return "new";})();}"#,
+        ] {
+            let source = formatted(source);
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let error = check_block(&mut analyzer, &mut context, &mut parsed.functions[0].body, Type::Void, false).unwrap_err();
+            assert_eq!(&source[error.span.start..error.span.end], "missing");
+            assert!(context.names.is_empty());
+            assert!(context.lexical_scopes.is_empty());
+            assert!(context.loops.is_empty());
+            assert!(context.iteration_loans.is_empty());
+            assert!(context.capture_loans.is_empty());
+            assert!(context.mutation_place.is_none());
+            assert!(context.replacement.is_none());
+            assert_eq!(analyzer.depth,0);
+            assert!(format!("{:?}",parsed.functions[0].body).contains("missing"));
+        }
     }
 
     #[test]

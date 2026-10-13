@@ -67,46 +67,9 @@ impl Analyzer {
                     frame.exited=self.check_nested_exception_region(context,region,frame.result_type,stmt.span)?;
                 }
                 StmtKind::Try(_) | StmtKind::Throw(_) => return Err(Diagnostic::new("unsupported","Exception syntax is parsed; error propagation and completion analysis are not implemented yet.",stmt.span)),
-                StmtKind::ForOf {
-                    name,
-                    rebindable,
-                    iterable,
-                    body,
-                    binding,
-                } => {
-                    self.for_of(
-                        context,
-                        (name, *rebindable, binding),
-                        iterable,
-                        body,
-                        frame.result_type,
-                        stmt.span,
-                        &stmt.labels,
-                    )?;
-                }
-                StmtKind::While { condition, body } => {
-                    self.while_loop(context, condition, body, frame.result_type, stmt.span, &stmt.labels)?;
-                }
+                StmtKind::ForOf { .. } | StmtKind::While { .. } => unreachable!("loop children are scheduled by the driver"),
                 StmtKind::Block(_) => unreachable!("block children are scheduled by the driver"),
-                StmtKind::Loop {
-                    condition,
-                    body,
-                    update,
-                    post_test,
-                    tail_reachable,
-                } => {
-                    frame.exited = self.tail_loop(
-                        context,
-                        condition,
-                        body,
-                        update,
-                        *post_test,
-                        tail_reachable,
-                        frame.result_type,
-                        stmt.span,
-                        &stmt.labels,
-                    )?;
-                }
+                StmtKind::Loop { .. } => unreachable!("loop tail is scheduled by the driver"),
                 StmtKind::Break | StmtKind::Continue => {
                     self.control_exit(context, &stmt.labels, &mut stmt.control_target, matches!(stmt.kind,StmtKind::Continue), stmt.span)?;
                     let kind=if matches!(stmt.kind,StmtKind::Continue) {
@@ -117,11 +80,7 @@ impl Analyzer {
                 }
                 StmtKind::If { .. } => unreachable!("if children are scheduled by the driver"),
                 StmtKind::Let { .. } => unreachable!("declaration children are scheduled by the driver"),
-                StmtKind::Assign {
-                    target,
-                    value,
-                    operator,
-                } => self.assign_statement(context, target, value, *operator)?,
+                StmtKind::Assign { .. } => unreachable!("assignment children are scheduled by the driver"),
                 StmtKind::Return(value) => {
                     self.return_statement(context, value, frame.result_type, stmt.span)?;
                     context.storage_exits.record_expression(stmt.span, &context.bindings);

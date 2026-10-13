@@ -164,3 +164,12 @@ completed children in source order. Keep signature/default edges in this shared
 worklist rather than calling a separate recursive clone visitor. Expression
 reconstruction copies stored depth and checked metadata exactly. Leaf variants
 may use their derived clone only when they contain no AST ownership edges.
+
+
+Checker loop ownership and flow boundaries live in `analysis/continuations/loops.rs`.
+`analysis/continuations/driver/tail.rs` schedules counted and post-test loop bodies,
+updates and conditions on the shared checker worklist. Unreachable tails use a
+separate context on that same scheduler; dispose it before joining reachable exits.
+Keep iterator-loan cleanup and control-target cleanup active on diagnostic paths.
+Statement assignments dispatch into the existing assignment/store tasks rather
+than starting a nested checker driver.

@@ -1,4 +1,4 @@
-//! Join loop completion state after recursive body analysis has returned.
+//! Join loop completion state after scheduled body analysis has returned.
 use super::*;
 
 impl Analyzer {

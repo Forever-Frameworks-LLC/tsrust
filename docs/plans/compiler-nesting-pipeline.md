@@ -714,3 +714,57 @@ integration runs, editor checks, discovery, formatting and exact source/executab
 identities. The recursive `assignments` and `record_field_move_carriers` visitors
 in `analysis/record_branch_carriers.rs` remain explicit audit targets, along with
 loop/exception checking and emission control/storage-epoch visitors.
+
+
+### Loop and assignment checker continuations
+
+The shared checker worklist now owns every ordinary loop operand and body:
+`while` conditions, `for...of` iterable evaluation and element scope, and counted
+or post-test loop bodies, updates and predicates. Tail loops keep a separate
+scheduled context for syntactically present unreachable tails. That context is
+removed on success and failure; its availability effects never enter reachable
+exits. Loop frames preserve entry/zero-iteration state, continue and break owners,
+back-edge validation, guard refinement and map-storage edge observations.
+
+Statement assignments select the existing scalar/compound/store tasks directly.
+Their target and replacement trees are restored before diagnostic propagation;
+precise removal sequences keep their prior named-store behavior. Obsolete
+recursive statement dispatch methods are removed. Iterator loans and names are
+released when body checking or back-edge validation fails, as well as on success.
+
+Focused failure witnesses cover nested iterators, reachable and unreachable tails,
+post-test predicates, and scalar/compound/owned assignment initializers containing
+loops. The first unit build found a stale test calling the removed `tail_loop`
+entry and an incorrectly quoted test source. The witness now uses the production
+block scheduler; its break/continue/return owner assertions remain intact. Both
+original errors are preserved. All 271 analysis unit tests, 75 affected compiler
+integrations and 18 editor tests pass. Whole-project formatting changes
+zero files and fingerprints. No full architecture acceptance is claimed.
+
+The remaining checker compatibility dispatch is exception propagation and nested
+exception regions. Ordinary statement emission still recurses through control
+bodies and storage-epoch helpers. Auxiliary owner/flow visitors, including
+`loan_roots`, also require the connected traversal audit. Existing analysis guards
+remain migration debt; no constants or stacks were increased. Parser work remains
+separate, and formal scaling, optimization, S12–S21 and consumer refresh are pending.
+
+Mixed-loop discovery completes samples 8/16/32/64 through disposal; 128 reaches
+the inherited parser guard. The run overlapped integration compilation and is
+not isolated performance evidence. SQLite records under
+`tsrust-nesting-loop-work-*` preserve the original failed unit build, repaired
+checks, discovery, formatting and final source/executable identities.
+
+#### Owner correction: stop repeating known guard observations
+
+The owner reiterated that arbitrary depth caps and incremental limit chasing
+waste effort. No new depth caps or stack increases are authorized. The parser's
+inherited internal counter guard is not a measured hardware limit and does not
+map directly to source nesting depth. Retire it through the connected parser
+migration; retire equivalent checker guards through the connected checker audit.
+Do not repeatedly run geometric full-pipeline discovery merely to rediscover a
+known parser guard. During implementation, batch focused semantic/error-restoration
+checks across coherent subsystems. Use phase-isolated witnesses where they answer
+a new architectural question. Resume broad deep-input and scaling measurements
+once the relevant connected paths and obsolete guards have been removed, or when
+new evidence warrants a specific probe. A successful fixed-depth witness never
+establishes a product ceiling or completes architecture acceptance.

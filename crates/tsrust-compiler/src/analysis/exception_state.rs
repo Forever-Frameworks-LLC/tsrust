@@ -235,10 +235,8 @@ mod tests {
             Analyzer::bind(&mut context, &Token { text: "outer".into(), span: Span::new(0, 1), kind: TokenKind::Name }, Type::String, false).unwrap();
             context.capture_loan_owners.attach(Place { binding: 0, fields: vec![] }, [10]);
             let mut statements = std::mem::take(&mut analyzer.program.functions[0].body);
-            let statement = &mut statements[0];
-            let StmtKind::Loop { condition, body, update, post_test, tail_reachable } = &mut statement.kind else { panic!("post-test loop"); };
-            let abrupt = analyzer.tail_loop(&mut context, condition, body, update, *post_test,
-                tail_reachable, Type::Void, statement.span, &statement.labels).unwrap();
+            // Exercise the production scheduler, including its block boundary.
+            let abrupt = analyzer.block(&mut context, &mut statements, Type::Void).unwrap();
             assert_eq!(!abrupt, normal, "{body_source}");
             assert_eq!(context.capture_loan_owners.live(), if normal { std::collections::BTreeSet::from([10]) } else { Default::default() }, "{body_source}");
         }
