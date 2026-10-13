@@ -130,6 +130,7 @@ fn recursive_placeholders_reject_unproductive_definitions_and_escape() {
         ("const schema=s.recursive(self=>()=>self);","schema-recursion"),
         ("const schema=s.recursive(self=>s.set(self));","set-key"),
         ("const schema=s.recursive(self=>s.map(self,s.int()));","map-key"),
+        ("type Tree={children:Map<string,Tree>;value:string;};const schema=s.recursive<Tree>(self=>s.object({children:s.record(self),value:s.int()}));","schema-type"),
         ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.string(),children:s.array(self)}));","schema-type"),
     ] {
         let source=format!("import {{s}} from 'std:schema';{definition} function main(){{}}");
@@ -208,6 +209,40 @@ function main(){
         strictEqual(error.error.issues[0].path[2].field,'value');
       }else{throw 'Unexpected JSON error';}
     }
+  }
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
+}
+
+#[test]
+fn recursive_collections_accept_owned_input_and_named_output() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+type Tree={value:int;children:Map<string,Tree>;};
+type Leaf={count:int;};
+type Branch={children:Map<string,Leaf>;};
+const bag=s.recursive<Branch>(self=>s.object({children:s.record(s.object({count:s.int()}))}));
+const schema=s.recursive<Tree>(self=>s.object({children:s.record(self),value:s.int()}));
+function main(){
+  match(bag.safeParseJson('{"children":{"leaf":{"count":4}}}')){
+    Ok(value)=>{const named:Branch=value;strictEqual(named.children.size,1);},
+    Err(error)=>{throw 'Nested named Map output rejected';}
+  }
+  const leaf:Tree={value:2,children:new Map<string,Tree>()};
+  let children=new Map<string,Tree>();
+  children.set('leaf',leaf);
+  const input:Tree={value:1,children:children};
+  match(schema.safeParse(input)){
+    Ok(value)=>{const named:Tree=value;strictEqual(named.value,1);strictEqual(named.children.size,1);},
+    Err(error)=>{throw 'Owned recursive collection rejected';}
+  }
+  match(schema.safeParseJson('{"value":3,"children":{}}')){
+    Ok(value)=>{const named:Tree=value;strictEqual(named.value,3);strictEqual(named.children.size,0);},
+    Err(error)=>{throw 'Named recursive collection rejected';}
   }
 }
 "#;

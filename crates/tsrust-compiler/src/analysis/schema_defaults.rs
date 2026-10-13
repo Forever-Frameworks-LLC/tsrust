@@ -24,6 +24,15 @@ impl Analyzer {
             (Type::Union(output),_)=>self.unions.members(output).iter().any(|output|self.schema_owned_input_compatible_at(*output,input,active)),
             (output,Type::Union(input)) if self.unions.is_recursive(input)=>self.unions.members(input).iter().all(|input|self.schema_owned_input_compatible_at(output,*input,active)),
             (Type::Array(output),Type::Array(input))=>self.schema_owned_input_compatible_at(output.ty(),input.ty(),active),
+            (Type::Map(output),Type::Map(input)) if self.program.records[output].native_type==self.program.records[input].native_type=>{
+                let expected=self.program.records[output].map_definition.as_ref().unwrap();
+                let actual=self.program.records[input].map_definition.as_ref().unwrap();
+                self.schema_owned_input_compatible_at(expected.key,actual.key,active)
+                    &&self.schema_owned_input_compatible_at(expected.value,actual.value,active)
+            },
+            (Type::Set(output),Type::Set(input))=>self.schema_owned_input_compatible_at(
+                self.program.records[output].set_definition.as_ref().unwrap().key,
+                self.program.records[input].set_definition.as_ref().unwrap().key,active),
             (Type::Record(output),Type::Record(input)) if self.program.records[output].native_type.is_none()&&self.program.records[input].native_type.is_none()=>{
                 let expected=&self.program.records[output].fields;let actual=&self.program.records[input].fields;
                 actual.iter().all(|field|expected.iter().any(|target|target.name.text==field.name.text&&self.schema_owned_input_compatible_at(target.ty.unwrap(),field.ty.unwrap(),active)))

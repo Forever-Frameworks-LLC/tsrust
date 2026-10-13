@@ -2629,3 +2629,24 @@ restrictions. Initial native failure is preserved in
 `tsrust-recursive-collection-key-rejections.log`. Native owned recursive Map input
 and explicit generic collection output conversion still need audit. This does
 not close recursive or S11 family acceptance.
+
+### Owned recursive collection contracts
+
+Owned schema input matching now traverses Map key/value and Set element contracts
+with the same branch-local cycle guard used for arrays and records. Exact named
+recursive output checking also compares collection contents and preserves native
+collection family identity. Output conversion moves entries into the named
+container shape without cloning keys or values.
+
+The first native witness passes owned recursive Map input and named output from
+JSON (`tsrust-recursive-owned-collections.log`). An expanded section witness also
+checks a named Map whose value record differs from the inferred anonymous record,
+plus rejection of a wrong scalar field after a recursive Map edge. Section-wide
+results are recorded separately; full S11 acceptance remains pending.
+
+All nine recursive public/native witnesses pass after the collection additions
+(`tsrust-recursive-collection-section.log`, 17.79 seconds). This includes the
+existing array/union roots, nullable links, builder-once reuse, transforms and
+rejection cases. Whole-project formatting changed no files or fingerprints
+(`tsrust-recursive-owned-collection-format.log`). Measurements and remaining
+editor recovery work are not covered by this result.

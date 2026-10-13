@@ -8,6 +8,11 @@ pub(crate) fn equivalent(left:Type,right:Type,records:&[Record],members:&impl Fn
         if !active.insert((left,right)) { return true; }
         let result=match (left,right) {
             (Type::Array(left),Type::Array(right))=>visit(left.ty(),right.ty(),records,members,active),
+            (Type::Map(left),Type::Map(right)) if records[left].native_type==records[right].native_type=>{
+                let left=records[left].map_definition.as_ref().unwrap();let right=records[right].map_definition.as_ref().unwrap();
+                visit(left.key,right.key,records,members,active)&&visit(left.value,right.value,records,members,active)
+            },
+            (Type::Set(left),Type::Set(right))=>visit(records[left].set_definition.as_ref().unwrap().key,records[right].set_definition.as_ref().unwrap().key,records,members,active),
             (Type::Record(left),Type::Record(right)) if records[left].native_type.is_none()&&records[right].native_type.is_none()=>{
                 let left=&records[left].fields;let right=&records[right].fields;
                 left.len()==right.len()&&left.iter().all(|field|right.iter().any(|other|

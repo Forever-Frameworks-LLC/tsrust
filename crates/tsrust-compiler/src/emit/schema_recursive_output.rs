@@ -20,6 +20,21 @@ impl Emitter<'_> {
                 let native=self.native_type(Type::Array(target));
                 format!("{{let mut output=<{native}>::from([]);for item in ({value}).tsr_owned_items(){{output.push({converted});}}output}}")
             }
+            (Type::Map(source),Type::Map(target))=>{
+                let original=self.program.records[source].map_definition.as_ref().unwrap();
+                let destination=self.program.records[target].map_definition.as_ref().unwrap();
+                let key=self.schema_recursive_output(original.key,destination.key,"key");
+                let item=self.schema_recursive_output(original.value,destination.value,"item");
+                let native=self.native_type(Type::Map(target));
+                format!("<{native}>::from_values(({value}).tsr_owned_items().map(TsrMapEntry::into_pair).map(|(key,item)|({key},{item})))")
+            }
+            (Type::Set(source),Type::Set(target))=>{
+                let original=self.program.records[source].set_definition.as_ref().unwrap().key;
+                let destination=self.program.records[target].set_definition.as_ref().unwrap().key;
+                let item=self.schema_recursive_output(original,destination,"item");
+                let native=self.native_type(Type::Set(target));
+                format!("<{native}>::from_values(({value}).tsr_owned_items().map(|item|{item}))")
+            }
             (Type::Union(source),Type::Union(target))=>{
                 let destination=&self.program.unions[target.index()].members;
                 let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(from,&member)|{
