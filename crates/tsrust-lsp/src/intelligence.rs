@@ -3314,6 +3314,13 @@ impl SourceIndex {
             };
             let mut items=self.receiver_builtins(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
             items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
+            if !self.symbols.iter().any(|symbol|symbol.owner.as_deref()==Some(ty.as_str())) {
+                for (name, field_type) in self.common_record_fields(&ty, false) {
+                    if name.starts_with(prefix) {
+                        items.push(json!({"label":name,"kind":5,"detail":format!("{}: {}",name,self.display_type(&field_type)),"textEdit":{"range":replace,"newText":name}}));
+                    }
+                }
+            }
             return json!(items);
         }
         let mut items = vec![];

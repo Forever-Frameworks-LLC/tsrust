@@ -40,6 +40,21 @@ pub enum ProjectType {
         result: Box<ProjectType>,
     },
 }
+impl ProjectType {
+    /// Expanded union aliases can close a cycle without carrying the original
+    /// reserved union's recursive flag. Retain the actual back-edge identity.
+    fn references_recursive(&self, target: usize) -> bool {
+        match self {
+            Self::RecursiveReference { identity } => *identity == target,
+            Self::Array(inner) | Self::Recursive { body: inner, .. } | Self::Variant { payload: inner, .. } => inner.references_recursive(target),
+            Self::Union(members) | Self::Tuple(members) | Self::AppliedNative(_, members) | Self::Named { arguments: members, .. } => members.iter().any(|member| member.references_recursive(target)),
+            Self::Structural { fields, .. } => fields.iter().any(|(_, _, ty)| ty.references_recursive(target)),
+            Self::SchemaPipeline { input, output, .. } => input.references_recursive(target) || output.references_recursive(target),
+            Self::Callable { parameters, result, .. } => result.references_recursive(target) || parameters.iter().any(|parameter| parameter.ty.as_ref().is_some_and(|ty| ty.references_recursive(target)) || parameter.body_ty.as_ref().is_some_and(|ty| ty.references_recursive(target))),
+            Self::Native(_) | Self::StructuralReference { .. } => false,
+        }
+    }
+}
 /// Checked argument contract. Unresolved callable shapes remain unknown.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProjectParameterInfo {
@@ -262,8 +277,9 @@ impl ProjectAnalysis {
                 Type::Record(id) => Some(ProjectType::StructuralReference {
                     identity: id, retained: self.analysis.program.records[id].name.text.starts_with("@schema:retained:"),
                 }),
-                Type::Union(id) | Type::BorrowedUnion(id) if self.analysis.program.unions[id.index()].recursive =>
+                Type::Union(id) | Type::BorrowedUnion(id) =>
                     Some(ProjectType::RecursiveReference { identity: id.index() }),
+                Type::Array(element) => Some(ProjectType::Array(Box::new(self.project_type_inner(element.ty(), names, active)?))),
                 _ => None,
             };
         }
@@ -389,7 +405,7 @@ impl ProjectAnalysis {
                         .map(|ty| self.project_type_inner(*ty, names, active))
                         .collect::<Option<_>>()?,
                 );
-                return Some(if self.analysis.program.unions[id.index()].recursive {
+                return Some(if self.analysis.program.unions[id.index()].recursive || body.references_recursive(id.index()) {
                     ProjectType::Recursive { identity: id.index(), body: Box::new(body) }
                 } else { body });
             }

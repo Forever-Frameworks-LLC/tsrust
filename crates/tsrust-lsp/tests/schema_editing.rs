@@ -164,3 +164,21 @@ fn recursive_schema_completion_recovers_before_following_statement() {
         }
     }
 }
+
+#[test]
+fn recursive_union_root_keeps_common_fields_and_finite_hover() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){match(schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}')){Ok(value)=>{console.log(value.kind);},Err(error)=>{}}}";
+    let uri="file:///recursive-union-editing.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    let offset=source.find("console.log(value.").unwrap()+"console.log(value.".len();
+    let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+    assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="kind"),"{items}");
+    assert!(!items.as_array().unwrap().iter().any(|item|item["label"]=="children"||item["label"]=="value"),"{items}");
+    let offset=source.find("const schema").unwrap()+"const sch".len();
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
+    assert!(hover.contains("children")&&hover.contains("kind"),"{hover}");
+    assert!(!hover.contains("__tsrust_private_")&&hover.len()<12000,"{hover}");
+}

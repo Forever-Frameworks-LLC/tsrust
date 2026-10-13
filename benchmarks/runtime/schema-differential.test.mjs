@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {schemaCases,scenarioModes,nativeSource,referencePaths,nativePaths,normalizedPaths} from './schema-differential-cases.mjs';
 test('differential corpus covers implemented schema families and both validation paths',()=>{
  assert.equal(new Set(schemaCases.map(value=>value.id)).size,schemaCases.length);
- for(const id of ['string-codepoints','integer-bounds','nested-array','strict-object','strip-object','presence','validated-default','invalid-default','literal','enum','ordered-union','discriminated-union','readonly-refinement','owned-transform','owned-coercion','array-union','nested-transform','default-transform','retained-extras','readonly-union-fallback','cross-field-refinement','record-values','nested-record','record-transform'])assert(schemaCases.some(value=>value.id===id),id);
+ for(const id of ['recursive-tree','multiple-refinement-issues','string-codepoints','integer-bounds','nested-array','strict-object','strip-object','presence','validated-default','invalid-default','literal','enum','ordered-union','discriminated-union','readonly-refinement','owned-transform','owned-coercion','array-union','nested-transform','default-transform','retained-extras','readonly-union-fallback','cross-field-refinement','record-values','nested-record','record-transform'])assert(schemaCases.some(value=>value.id===id),id);
  const source=nativeSource();
  for(const [index,scenario]of schemaCases.entries()){
   assert(scenario.inputs.length>=3);assert(source.includes(`function scenario${index}()`));

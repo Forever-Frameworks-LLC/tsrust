@@ -1188,7 +1188,7 @@ fn bundled_nullish_matchers_supply_documented_zero_argument_help() {
         let uri="file:///tsrust-intelligence/main.tsr";
         let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
         let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
-        let hover=ask(&index,&entry,name,"textDocument/hover");assert!(hover.to_string().contains("optional { message: string }"),"{hover}");
+        let hover=ask(&index,&entry,name,"textDocument/hover");assert!(hover.to_string().contains("Takes no arguments"),"{hover}");
         let completion=ask(&index,&entry,name,"textDocument/completion");assert!(completion.as_array().unwrap().iter().any(|row|row["label"]==name),"{completion}");
         let help=ask(&index,&entry,");}","textDocument/signatureHelp");assert_eq!(help["signatures"][0]["parameters"].as_array().unwrap().len(),0);
     }

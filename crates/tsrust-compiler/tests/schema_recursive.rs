@@ -250,3 +250,30 @@ function main(){
     let file=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(file),60));
 }
+
+#[test]
+fn recursive_schema_composes_with_nested_definition_and_multi_issue_refinement() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+function main(){
+  const schema=s.recursive(self=>s.object({
+    value:s.int(),children:s.array(self),
+    metadata:s.recursive(entry=>s.object({label:s.string(),children:s.array(entry)}))
+  })).superRefine((value,ctx)=>{
+    if(value.value<0){ctx.addIssue({path:['value'],message:'Negative root'});}
+  });
+  match(schema.safeParseJson('{"value":2,"children":[],"metadata":{"label":"root","children":[{"label":"child","children":[]}]}}')){
+    Ok(value)=>{strictEqual(value.metadata.children[0].label,'child');},
+    Err(error)=>{throw 'Nested definition rejected';}
+  }
+  match(schema.safeParseJson('{"value":-1,"children":[],"metadata":{"label":"root","children":[]}}')){
+    Ok(value)=>{throw 'Refinement bypassed';},
+    Err(error)=>{if(error.kind==='validation'){strictEqual(error.error.issues[0].message,'Negative root');strictEqual(error.error.issues[0].path[0].field,'value');}else{throw 'Wrong error';}}
+  }
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
+}

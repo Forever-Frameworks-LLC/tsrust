@@ -64,26 +64,32 @@ impl SourceIndex {
         Some(json!(items))
     }
     fn schema_path_alternatives(&self, ty: &str) -> Vec<String> {
+        self.record_alternatives(ty, true)
+    }
+    fn record_alternatives(&self, ty: &str, omit_absent: bool) -> Vec<String> {
         use tsrust_compiler::type_syntax::{ValueAnnotation, ValueAnnotationKind};
-        fn flatten(value: &ValueAnnotation, source: &str, output: &mut Vec<String>) {
+        fn flatten(value: &ValueAnnotation, source: &str, output: &mut Vec<String>, omit_absent: bool) {
             match &value.kind {
-                ValueAnnotationKind::Union(members) => for member in members { flatten(member, source, output); },
-                ValueAnnotationKind::Group(inner) => flatten(inner, source, output),
+                ValueAnnotationKind::Union(members) => for member in members { flatten(member, source, output, omit_absent); },
+                ValueAnnotationKind::Group(inner) => flatten(inner, source, output, omit_absent),
                 _ => {
                     let text = source[value.span.start..value.span.end].trim();
-                    if !matches!(text, "null" | "undefined") { output.push(text.to_owned()); }
+                    if !omit_absent || !matches!(text, "null" | "undefined") { output.push(text.to_owned()); }
                 }
             }
         }
         let ty = self.type_aliases.get(ty).map_or(ty, String::as_str);
         let mut result = Vec::new();
-        if let Ok(value) = tsrust_compiler::type_syntax::parse(ty) { flatten(&value, ty, &mut result); }
+        if let Ok(value) = tsrust_compiler::type_syntax::parse(ty) { flatten(&value, ty, &mut result, omit_absent); }
         else { result.push(ty.to_owned()); }
         result
     }
 
     fn schema_path_fields(&self, ty: &str) -> std::collections::BTreeMap<String, String> {
-        let mut alternatives = self.schema_path_alternatives(ty).into_iter();
+        self.common_record_fields(ty, true)
+    }
+    pub(super) fn common_record_fields(&self, ty: &str, omit_absent: bool) -> std::collections::BTreeMap<String, String> {
+        let mut alternatives = self.record_alternatives(ty, omit_absent).into_iter();
         let fields = |owner: &str| self.symbols.iter()
             .filter(|symbol| symbol.owner.as_deref() == Some(owner))
             .map(|symbol| (symbol.name.clone(), symbol.ty.clone()))

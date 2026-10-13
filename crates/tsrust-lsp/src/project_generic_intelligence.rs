@@ -125,7 +125,7 @@ impl SourceIndex {
             }
             ProjectType::Array(inner) => {
                 let spelling = self.project_type_spelling(graph, current, inner, dependencies)?;
-                Some(if matches!(inner.as_ref(), ProjectType::Callable { .. }) {
+                Some(if matches!(inner.as_ref(), ProjectType::Callable { .. } | ProjectType::Union(_) | ProjectType::Recursive { .. }) {
                     format!("({spelling})[]")
                 } else {
                     format!("{spelling}[]")
@@ -322,6 +322,7 @@ impl SourceIndex {
         self.refresh_checked_initializers();
         self.apply_module_value_facts(graph, current, facts, dependencies);
         self.materialize_generic_fields();
+        self.recover_result_payloads();
     }
 
     /// Use the owning declaration's checked type for both local and imported

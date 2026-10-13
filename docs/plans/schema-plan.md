@@ -8,7 +8,8 @@ Exact literals, string-list enums and declared enum schemas preserve inferred ty
 Readonly refinements, owned transforms and explicit coercion pipelines have focused
 compiler/native/editor acceptance, including nested union rollback and defaults.
 Fused JSON text decoding has focused public/compiler/editor acceptance.
-Remaining composite APIs and family acceptance remain pending.
+Recursive schemas and multi-issue refinements now have focused implementation evidence.
+JSON Schema export and family acceptance remain pending.
 
 ## Required surface and coverage
 
@@ -28,8 +29,8 @@ executing differential cases; current web documentation alone is not a version p
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
 | parse | Return inferred output directly; throw the existing ValidationError on validation failure | Focused compiler/native/editor and untimed parity accepted; family timing pending |
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
-| Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; richer cross-field issue APIs remain required |
-| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and composition audit remain in progress |
+| Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; superRefine with bounded typed-path ctx.addIssue is integrated |
+| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and nested composition have focused witnesses; final family audit remains pending |
 | Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Public record/map/set constructors, reversible validation, collision rejection, editor types and matched workload checked; family acceptance pending |
 | JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Second tranche, still required |
 | Async refinements | approved task semantics and cancellation/ownership checks | Follows S14 |
@@ -2727,3 +2728,19 @@ Keep this work marked unverified until the complete section checks pass.
 `.superRefine` now checks two callback parameters, readonly validated input, void output, and temporary context access. Owned and fused JSON validation collect relative issues with bounded retention; union rollback preserves input before consuming stages. Native witnesses passed for nested paths, limits, invalid paths/input mutation, union fallback, exceptions, and context clone/capture rejection (4 + 1 tests). Editor completion/path witness passed; the catalog example executed with expected output. Original failed runs and repaired results are preserved under `tsrust-super-refine-*.log` in SQLite.
 
 The earlier unfinished integration notes above are superseded by this section. Runtime issue tests pass (10); affected editor regression tests pass (6). The matched `native_schema_super_refine` workload, compiled TypeScript counterpart, independent checksum, source guards and mutation witness are registered. Ten native/compiled-Node cells agree; 32 benchmark contract tests and the additional guard mutation test pass. Whole-project formatting completed with token preservation, idempotence and source behavior checks. Evidence is in SQLite under `tsrust-super-refine-*`. Implementation section is ready for checkpoint. S11 family regressions and timing remain pending; this workload is unmeasured.
+
+### Approved JSON Schema export contract (2026-10-12)
+
+The owner approved `schema.toJsonSchema()` returning an owned `JsonValue` using
+JSON Schema Draft 2020-12. The reusable schema is borrowed. Export throws a
+structured `SchemaExportError` with path and reason when a rule cannot be
+represented faithfully. Never silently omit callbacks, default factories or
+native Map/Set semantics. Plain JSON-compatible schemas export normally.
+Implementation, exact numeric/unknown-field/presence handling, recursive references,
+editor examples and conformance witnesses remain required before acceptance.
+
+### Recursive composition follow-up (in progress)
+
+Nested independent recursive definitions composed with superRefine pass native execution. The pinned differential corpus now passes 29 families / 277 observations, including recursive trees and multi-issue refinements; corpus contract tests pass. Evidence is stored as `tsrust-schema-recursive-multi-*` and `tsrust-schema-recursive-composition.log` in SQLite.
+
+The recursive union-root editor defect is repaired: expanded union aliases can close a cycle without the reserved recursive flag. Project facts now retain actual back-edge identities, including array back edges; editor array spellings group union elements, and member completion intersects alternative fields without dropping null/undefined alternatives. Result payload recovery runs after checked facts are installed. All 14 schema editor witnesses pass. The project IntelliSense suite passed 168 cases; one stale zero-argument matcher documentation assertion was repaired against the current API and its targeted rerun passes. Original failed evidence and repairs remain in SQLite under `tsrust-schema-*union*.log` and `tsrust-union-*`. No full family regression or timing has run.

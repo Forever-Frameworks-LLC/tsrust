@@ -1,6 +1,8 @@
 // Exact reference adapters for the currently implemented, comparable S11 surface.
 import {z} from 'zod';
 export const schemaCases=[
+ {id:'recursive-tree',native:'s.recursive(self=>s.object({value:s.int(),children:s.array(self)}))',reference:()=>{const tree=z.lazy(()=>z.strictObject({value:z.int(),children:z.array(tree)}));return tree;},inputs:['{"value":1,"children":[]}','{"value":1,"children":[{"value":2,"children":[]}]}','{"value":1,"children":[{"value":"bad","children":[]}]}','{"value":1,"children":[],"extra":true}','null']},
+ {id:'multiple-refinement-issues',native:"s.object({low:s.int(),high:s.int()}).superRefine((value,ctx)=>{if(value.low>value.high){ctx.addIssue({path:['high'],message:'Invalid range'});}if(value.low<0){ctx.addIssue({path:['low'],message:'Negative lower bound'});}})",reference:()=>z.strictObject({low:z.int(),high:z.int()}).superRefine((value,ctx)=>{if(value.low>value.high){ctx.addIssue({code:'custom',path:['high'],message:'Invalid range'});}if(value.low<0){ctx.addIssue({code:'custom',path:['low'],message:'Negative lower bound'});}}),inputs:['{"low":1,"high":2}','{"low":3,"high":2}','{"low":-1,"high":-2}','{"low":-1,"high":2}','{"low":"bad","high":2}']},
  {id:'string-codepoints',native:'s.string().min(2).max(4)',reference:()=>z.string().refine(value=>[...value].length>=2&&[...value].length<=4),inputs:['"ok"','"x"','"hello"','"é😀"','"é"','42','null']},
  {id:'integer-bounds',native:'s.int().gt(-3).lt(4)',reference:()=>z.int().gt(-3).lt(4),inputs:['-3','-2','0','3','4','1.5','"2"','true']},
  {id:'number-bounds',native:'s.number().min(-1.5).max(2.5)',reference:()=>z.number().min(-1.5).max(2.5),inputs:['-2','-1.5','-0.0','2','2.5','3','"2"']},
