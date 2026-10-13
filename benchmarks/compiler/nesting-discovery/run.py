@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals')
 
 
 def source(family, size):
@@ -26,6 +26,11 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family == 'mixed-literals':
+        value = '7'
+        for _ in range(size):
+            value = 'identity(({value:[' + value + ']}).value[0])'
+        return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments'):
         callee = {
             'declared-arguments': 'identity',

@@ -284,3 +284,63 @@ returned a value from `main`; another oracle repeated the integer literal suffix
 Both are corrected without changing compiler behavior. The original raw output
 comparison also retains differences caused by its distinct temporary directories.
 No full compiler/LSP milestone or consumer refresh is claimed here.
+
+## Parser continuation migration (working tree)
+
+`syntax/expression_work.rs` now queues precedence, associativity, unary completion,
+grouping/comma operands, ordinary/explicit/optional call arguments, indexing,
+array/record/template children and postfix completion. Operator frames retain token
+indices because grouping and negative integer folding erase syntax needed by
+exponentiation and nullish-mixing diagnostics. Explicit type arguments are published
+at the same completed-call span. No nesting guard is increased or retired yet.
+
+The first implementation still entered the driver recursively through arrow block
+bodies. Normal-stack discovery caught a parser overflow at closure-body size 32;
+LLDB identified the driver/closure-body/block/return/expression cycle. Arrow bodies,
+ordinary nested blocks and return/throw/expression statements now yield to the
+same work stack. Block recovery checkpoints retain token position, pending local
+statements, explicit type applications, pattern prologues and completed-value
+stack boundaries. Failed expression-bodied arrows restore their outer pending
+statements. Four focused grammar/scope witnesses pass, and closure-body discovery
+again completes sizes 8, 16 and 32 before the existing guard at 64. Inline-call
+arguments complete through 64 before their parser guard at 128.
+
+This exposes unfinished work rather than a new accepted boundary. Named declarations,
+control statements, anonymous/named function bodies, parameter defaults, type syntax
+and constructor-specific parsing still have synchronous compatibility paths. They
+must join the scheduler with their own scope and recovery state. The current work
+is not parser acceptance, and no supported depth follows from these observations.
+
+The new mixed-literals discovery family combines grouping, record and array
+construction, field/index access and calls. Size 8 completes the pipeline; size 16
+parses but overflows during analysis. LLDB captures repeated checker-driver entry
+through `record_literal`, `temporary_field` and `temporary_array_index`. Separate
+binary and array discoveries also overflow during analysis at size 64. The
+`assignment_values` integration suite aborts in its retained depth/diagnostic
+witness; this failure remains open and must not be counted as passed or bypassed
+with a new source guard. Preserve the completed array-literal-spread suite and
+resume unrun suites. Parser migration and the remaining checker expression frames
+must converge before whole-pipeline acceptance. Both debugger children are killed
+explicitly after backtrace capture.
+
+The resumed batch completes six suites (35 tests): call spread, comma expressions,
+`in`, nesting continuations, numeric literals and optional chaining. Another 24
+individual tests pass before four suites abort in their depth witnesses:
+`comma_contexts::indexed_depth_canary_keeps_analysis_and_emission_bounded`,
+`nullish_coalescing::nullish_parser_type_borrow_and_normal_depth_diagnostics_are_precise`,
+`operators::unary_and_binary_nesting_are_bounded`, and
+`templates::template_types_transfers_incoming_loans_and_normal_stack_are_diagnosed`.
+Together with the earlier assignment witness, these are five unresolved integration
+failures, not accepted exceptions. The completed checks remain preserved; tests
+after an aborted witness still need execution after repair. Do not rerun passed
+unaffected groups simply to produce a single green log.
+
+Twelve representative valid/invalid inputs retain byte-identical generated output,
+diagnostic text and exit status against `3f435e18`, using the same temporary source
+path. Declared/inline matched check, emit and Node-tsc validations pass at 8 and 32
+without timing. Whole-project formatting changes zero files/fingerprints. SQLite
+records under `tsrust-nesting-parser-expression` and `tsrust-nesting-parser-body`
+retain the original failures, phase observations, backtraces, corrected unit checks,
+partial integration runs, output comparison and untimed benchmark validation.
+This source checkpoint preserves unfinished migration; it does not accept the
+parser or checker, refresh public consumers, or close the architecture requirement.

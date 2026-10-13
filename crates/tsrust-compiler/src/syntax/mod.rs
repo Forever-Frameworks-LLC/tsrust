@@ -1,3 +1,4 @@
+mod expression_work;
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
 mod annotation_conversion;
@@ -3560,126 +3561,7 @@ impl Parser<'_> {
     }
 
     fn precedence(&mut self, minimum: u8) -> Result<Expr, Diagnostic> {
-        // Keep hostile/deep source from overflowing the recursive parser/AST stack.
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Expression nesting exceeds the prototype limit of 128.",
-                self.peek().span,
-            ));
-        }
-        self.depth += 1;
-        let result = self.binary(minimum);
-        self.depth -= 1;
-        result
-    }
-    fn binary(&mut self, minimum: u8) -> Result<Expr, Diagnostic> {
-        // Token provenance stays in this parser frame: grouping is erased by
-        // primary(), and negative integer spelling is folded by atom().
-        let unary_base = matches!(self.peek().text.as_str(), "-" | "+" | "!" | "~");
-        let left_start = self.i;
-        let left = self.unary()?;
-        self.binary_tail(minimum, left, left_start, unary_base)
-    }
-
-    // Operator construction begins only after the recursively parsed primary
-    // returns, so its temporary operands do not occupy every argument frame.
-    fn binary_tail(
-        &mut self,
-        minimum: u8,
-        left: Expr,
-        left_start: usize,
-        unary_base: bool,
-    ) -> Result<Expr, Diagnostic> {
-        // Finish ordinary operators before entering a conditional arm. Their
-        // temporaries must not remain on every recursive conditional frame.
-        let left = self.binary_operator_tail(minimum, left, left_start, unary_base)?;
-        if minimum == 0 && self.is("?") {
-            self.conditional_tail(left)
-        } else {
-            Ok(left)
-        }
-    }
-
-    fn binary_operator_tail(
-        &mut self,
-        minimum: u8,
-        mut left: Expr,
-        left_start: usize,
-        mut unary_base: bool,
-    ) -> Result<Expr, Diagnostic> {
-        loop {
-            if minimum <= 8 && (self.is("as") || self.is("satisfies")) {
-                left = self.type_assertion_tail(left)?;
-                unary_base = false;
-                continue;
-            }
-            // The caller parses conditional arms after this frame returns.
-            if minimum == 0 && self.is("?") {
-                break;
-            }
-            if self.is("in") && minimum <= 8 {
-                self.take();
-                let right = self.precedence(9)?;
-                let span = Span::new(self.tokens[left_start].span.start, self.tokens[self.i - 1].span.end);
-                left = Self::object_key_call("hasOwn#in", vec![right, left], span);
-                if left.depth > 128 {
-                    return Err(Diagnostic::new("unsupported", "Expression nesting exceeds the prototype limit of 128.", left.span));
-                }
-                unary_base = false;
-                continue;
-            }
-            let Some((op, precedence)) = (self.peek().kind == TokenKind::Symbol)
-                .then(|| match self.peek().text.as_str() {
-                    "=" => Some((BinaryOp::Equal, 0)),
-                    "&&=" => Some((BinaryOp::And, 0)),
-                    "||=" => Some((BinaryOp::Or, 0)),
-                    _ => BinaryOp::assignment(&self.peek().text)
-                        .map(|op| (op, 0))
-                        .or_else(|| BinaryOp::parse(&self.peek().text)),
-                })
-                .flatten()
-            else {
-                break;
-            };
-            if precedence < minimum {
-                break;
-            }
-            let assignment = precedence == 0;
-            let operator = self.take().span;
-            if op == BinaryOp::Exponent && unary_base {
-                return Err(Diagnostic::new(
-                    "syntax",
-                    "Parenthesize a unary expression used as an exponentiation base.",
-                    operator,
-                ));
-            }
-            let right_start = self.i;
-            let right = self.precedence(if assignment || op == BinaryOp::Exponent {
-                precedence
-            } else {
-                precedence + 1
-            })?;
-            if !assignment {
-                self.nullish_mixing(&left, &right, op, operator, left_start, right_start)?;
-            }
-            unary_base = false;
-            left = Self::binary_expression(left, right, op, operator, assignment);
-            if op == BinaryOp::Coalesce {
-                left.span = Span::new(
-                    self.tokens[left_start].span.start,
-                    self.tokens[self.i - 1].span.end,
-                );
-            }
-            if left.depth > 128 {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Expression nesting exceeds the prototype limit of 128.",
-                    left.span,
-                ));
-            }
-        }
-        Ok(left)
+        self.expression_work(minimum)
     }
 
     #[inline(never)]
@@ -3750,21 +3632,6 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn conditional_tail(&mut self, predicate: Expr) -> Result<Expr, Diagnostic> {
-        self.expect("?")?;
-        let consequent = self.precedence(0)?;
-        self.expect(":")?;
-        let alternate = self.precedence(0)?;
-        let expression = Self::conditional_expression(predicate, consequent, alternate);
-        if expression.depth > 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Expression nesting exceeds the prototype limit of 128.",
-                expression.span,
-            ));
-        }
-        Ok(expression)
-    }
     fn conditional_expression(predicate: Expr, consequent: Expr, alternate: Expr) -> Expr {
         let span = Span::new(predicate.span.start, alternate.span.end);
         Expr::new(
@@ -3827,7 +3694,7 @@ impl Parser<'_> {
         )
     }
 
-    fn unary(&mut self) -> Result<Expr, Diagnostic> {
+    fn unary_operators(&mut self) -> Result<Vec<Token>, Diagnostic> {
         let mut operators = Vec::new();
         while self.is("!")
             || self.is("typeof")
@@ -3852,8 +3719,7 @@ impl Parser<'_> {
             }
             operators.push(token);
         }
-        let value = self.primary()?;
-        Self::apply_unary_operators(value, operators)
+        Ok(operators)
     }
 
     // Keep operator construction off the recursive primary parsing stack.
@@ -3954,54 +3820,6 @@ impl Parser<'_> {
         Ok(expr)
     }
 
-    fn record_literal(&mut self) -> Result<Expr, Diagnostic> {
-        let token = self.expect("{")?;
-        let mut fields = Vec::new();
-        if !self.is("}") {
-            loop {
-                if self.is("...") {
-                    let mut key=self.take();key.text="record#spread".into();
-                    fields.push((key,self.expression()?));
-                }else{
-                    let key = self.name()?;
-                    // `{ x }` is shorthand for `{ x: x }`.
-                    if self.is(",") || self.is("}") {
-                        let value = Expr::new(ExprKind::Name(key.text.clone()), key.span);
-                        fields.push((key, value));
-                    } else {
-                        self.expect(":")?;
-                        fields.push((key, self.expression()?));
-                    }
-                }
-                if !self.accept(",") || self.is("}") {
-                    break;
-                }
-            }
-        }
-        let end = self.expect("}")?;
-        Ok(Expr::new(
-            ExprKind::Record(fields),
-            Span::new(token.span.start, end.span.end),
-        ))
-    }
-
-    fn closure_literal(&mut self) -> Result<Expr, Diagnostic> {
-        // Parameter defaults can contain another arrow. Its pattern prologue
-        // belongs to that arrow, not to the enclosing parameter list.
-        let outer_patterns=std::mem::take(&mut self.parameter_patterns);
-        let start = self.peek().span;
-        // Boxed: nested function bodies recurse through this frame.
-        let header = self.closure_signature(start)?;
-        let id = self.next_closure;
-        self.next_closure += 1;
-        let patterns = std::mem::take(&mut self.parameter_patterns);
-        self.parameter_patterns=outer_patterns;
-        let mut body = self.closure_body()?;
-        Self::open_with_patterns(patterns, &mut body);
-        let end = self.tokens[self.i - 1].span.end;
-        Ok(Self::closure_expression(id, header, body, Span::new(start.start, end)))
-    }
-
     /// Parameters, result annotation and the arrow of an arrow function.
     #[inline(never)]
     fn closure_signature(&mut self, start: Span) -> Result<Box<(Vec<CallableParameter>, ResultAnnotation)>, Diagnostic> {
@@ -4016,21 +3834,6 @@ impl Parser<'_> {
         Ok(Box::new((params, result)))
     }
 
-    /// A block body, or an expression body as its return statement.
-    #[inline(never)]
-    fn closure_body(&mut self) -> Result<Vec<Stmt>, Diagnostic> {
-        if self.is("{") {
-            return self.block();
-        }
-        // A named function expression in the body is declared inside the arrow,
-        // where the arrow parameters are visible.
-        let outer = std::mem::take(&mut self.pending);
-        let value = self.expression();
-        let mut body = std::mem::replace(&mut self.pending, outer);
-        body.append(&mut Self::returned(Box::new(value?)));
-        Ok(body)
-    }
-
     #[inline(never)]
     fn returned(value: Box<Expr>) -> Vec<Stmt> {
         let span = value.span;
@@ -4041,67 +3844,6 @@ impl Parser<'_> {
     fn closure_expression(id: usize, header: Box<(Vec<CallableParameter>, ResultAnnotation)>, body: Vec<Stmt>, span: Span) -> Expr {
         let (params, result) = *header;
         Expr::new(ExprKind::Closure { id, params, result, body }, span)
-    }
-
-    // Keep array recursion outside the larger record parser frame.
-    fn array_literal(&mut self) -> Result<Expr, Diagnostic> {
-        let start = self.expect("[")?;
-        let mut values = Vec::new();
-        if !self.is("]") {
-            loop {
-                values.push(if self.accept("...") { self.spread_argument()? } else { self.expression()? });
-                if !self.accept(",") || self.is("]") {
-                    break;
-                }
-            }
-        }
-        let end = self.expect("]")?;
-        Ok(Expr::new(
-            ExprKind::Array(values),
-            Span::new(start.span.start, end.span.end),
-        ))
-    }
-
-    // Keep recursive interpolation parsing in a separate small frame.
-    fn template_literal(&mut self) -> Result<Expr, Diagnostic> {
-        let head = self.take();
-        let start = head.span.start;
-        let mut parts = vec![Expr::new(ExprKind::String(head.text), head.span)];
-        loop {
-            parts.push(self.comma_expression()?);
-            let chunk = self.take();
-            if !matches!(
-                chunk.kind,
-                TokenKind::TemplateMiddle | TokenKind::TemplateTail
-            ) {
-                return Err(Diagnostic::new(
-                    "syntax",
-                    "Expected a template interpolation boundary.",
-                    chunk.span,
-                ));
-            }
-            let tail = chunk.kind == TokenKind::TemplateTail;
-            let end = chunk.span.end;
-            parts.push(Expr::new(ExprKind::String(chunk.text), chunk.span));
-            if tail {
-                let result = Expr::new(ExprKind::Template(parts), Span::new(start, end));
-                if result.depth > 128 {
-                    return Err(Diagnostic::new(
-                        "unsupported",
-                        "Expression nesting exceeds the prototype limit of 128.",
-                        result.span,
-                    ));
-                }
-                return Ok(result);
-            }
-        }
-    }
-
-    // Keep the template Result/Expr temporaries out of ordinary recursive
-    // primary parsing, including hostile indexed expressions rejected at depth 128.
-    fn template_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let expression = self.template_literal()?;
-        self.postfix(expression)
     }
 
     // Keep the unparenthesized typed-arrow diagnostic temporaries out of the
@@ -4127,33 +3869,6 @@ impl Parser<'_> {
             }
         }
         Ok(())
-    }
-
-    fn primary(&mut self) -> Result<Expr, Diagnostic> {
-        self.typed_arrow_without_parentheses()?;
-        if self.peek().kind == TokenKind::TemplateHead {
-            return self.template_primary();
-        }
-        // Keep recursive literals and grouping outside the larger atom frame.
-        let single_arrow = self.peek().kind == TokenKind::Name && self.tokens.get(self.i + 1).is_some_and(|token| token.text == "=>");
-        if single_arrow { return self.closure_primary(); }
-        if self.is("function") {
-            return self.function_primary();
-        }
-        let arrow = self.is("(") && self.closure_header();
-        if self.is("(") && !arrow {
-            return self.grouped_primary();
-        }
-        if self.is("(") {
-            return self.closure_primary();
-        }
-        if self.is("{") {
-            return self.record_primary();
-        }
-        if self.is("[") {
-            return self.array_primary();
-        }
-        self.atom_primary()
     }
 
     // Parse exactly one result type. Scanning for a later arrow mistakes a
@@ -4183,13 +3898,6 @@ impl Parser<'_> {
         false
     }
 
-    fn grouped_primary(&mut self) -> Result<Expr, Diagnostic> {
-        self.take();
-        let expr = self.comma_expression()?;
-        self.expect(")")?;
-        self.postfix(expr)
-    }
-
     /// `function (a: int): int { ... }` as a value: an anonymous function
     /// with the parameters, result and block body of an arrow function.
     #[inline(never)]
@@ -4216,26 +3924,6 @@ impl Parser<'_> {
         Self::open_with_patterns(patterns, &mut body);
         let end = self.tokens[self.i - 1].span.end;
         let expr = Expr::new(ExprKind::Closure { id, params, result, body }, Span::new(token.span.start, end));
-        self.postfix(expr)
-    }
-
-    fn closure_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let expr = self.closure_literal()?;
-        self.postfix(expr)
-    }
-
-    fn record_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let expr = self.record_literal()?;
-        self.postfix(expr)
-    }
-
-    fn array_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let expr = self.array_literal()?;
-        self.postfix(expr)
-    }
-
-    fn atom_primary(&mut self) -> Result<Expr, Diagnostic> {
-        let expr = self.atom()?;
         self.postfix(expr)
     }
 
@@ -4421,6 +4109,12 @@ impl Parser<'_> {
         let arguments = self.explicit_call_arguments()?;
         self.expect("(")?;
         let (args, end) = self.call_arguments()?;
+        self.finish_explicit_call(expr, arguments, args, end)
+    }
+
+    fn finish_explicit_call(&mut self, expr: Expr,
+        arguments: Vec<crate::type_syntax::ValueAnnotation>, args: Vec<Expr>, end: Token,
+    ) -> Result<Expr, Diagnostic> {
         let span = Span::new(expr.span.start, end.span.end);
         if Self::is_array_of(&expr) {
             if arguments.len() != 1 {
