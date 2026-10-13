@@ -818,3 +818,22 @@ handler-bookkeeping restoration. A production-used region-body adapter remains
 available outside test builds; retaining its availability does not change its
 code under `cfg(test)`. Installed consumers remain at the last accepted public
 checkpoint; full nesting architecture and measurements remain unaccepted.
+
+## Ownership provenance helper worklists
+
+The checker now collects loan roots and view sources with explicit expression
+worklists. Root binding lookup uses a loop, and stable receiver classification
+uses a worklist. Loan roots preserve first-encounter order and deduplication;
+view sources retain sorted deduplication. Sequence prefixes and conditional
+predicates remain excluded, and receiver access modes retain their prior rules.
+The directly invoked field-path and named-storage helpers already use loops.
+
+Two focused tests pass, including a parser-independent 16,384-layer checked
+expression witness on the normal test-worker stack with normal disposal. The
+analysis batch passes 274 tests. Whole-project formatting changes zero files or
+fingerprints. Evidence uses the `tsrust-nesting-ownership-*` SQLite records.
+The final source differs from the tested source only by indentation in root
+binding lookup. No parser discovery, scaling measurement, public contract change,
+or consumer refresh is claimed. Record carrier walks, result discovery and
+statement emission remain among the connected migration work; compiler-wide
+architecture acceptance remains open.

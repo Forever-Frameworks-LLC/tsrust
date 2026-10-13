@@ -4796,9 +4796,11 @@ impl Analyzer {
     }
 
     fn loan_roots(expr: &Expr, mode: Mode) -> Vec<usize> {
-        fn collect(expr: &Expr, mode: Mode, roots: &mut Vec<usize>) {
+        let mut roots = Vec::new();
+        let mut work = vec![(expr, mode)];
+        while let Some((expr, mode)) = work.pop() {
             if let ExprKind::Sequence(values)=&expr.kind {
-                if let Some(last)=values.last(){collect(last,mode,roots);}
+                if let Some(last)=values.last(){work.push((last, mode));}
             } else if let ExprKind::Selected { source, .. } = &expr.kind {
                 for root in &source.roots {
                     if !roots.contains(root) {
@@ -4806,7 +4808,7 @@ impl Analyzer {
                     }
                 }
             } else if let ExprKind::Optional { body, .. } = &expr.kind {
-                collect(body, mode, roots);
+                work.push((body, mode));
             } else if matches!(
                 expr.target,
                 Some(CallTarget::HeapMethod(HeapMethod::Peek) | CallTarget::DequeMethod(DequeMethod::Front | DequeMethod::Back | DequeMethod::At) | CallTarget::MapMethod(MapMethod::Get) | CallTarget::ArrayAt | CallTarget::ArrayFind | CallTarget::ArrayFindLast)
@@ -4815,19 +4817,19 @@ impl Analyzer {
                 if let ExprKind::Call(callee, _) = &expr.kind
                     && let ExprKind::Field(base, _) = &callee.kind
                 {
-                    collect(base, Mode::Read, roots);
+                    work.push((base, Mode::Read));
                 }
             } else if let ExprKind::CoalesceAssign { target, .. } = &expr.kind {
                 if !expr.ty.is_some_and(|ty| ty.owning().is_copy()) {
-                    collect(target, Mode::Read, roots);
+                    work.push((target, Mode::Read));
                 }
             } else if let ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } = &expr.kind {
-                collect(value, mode, roots);
+                work.push((value, mode));
             } else if let ExprKind::Inject { value, .. } = &expr.kind {
                 if matches!(expr.ty, Some(Type::BorrowedUnion(_)))
                     || value.ty.is_some_and(Type::is_copy)
                 {
-                    collect(value, mode, roots);
+                    work.push((value, mode));
                 }
             } else if let ExprKind::Unary {
                 op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull | UnaryOp::ParameterMutableInput,
@@ -4835,7 +4837,7 @@ impl Analyzer {
                 ..
             } = &expr.kind
             {
-                collect(value, mode, roots);
+                work.push((value, mode));
             } else if let ExprKind::Binary {
                 op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
                 left,
@@ -4843,24 +4845,22 @@ impl Analyzer {
                 ..
             } = &expr.kind
             {
-                collect(left, mode, roots);
-                collect(right, mode, roots);
+                work.push((right, mode));
+                work.push((left, mode));
             } else if let ExprKind::Conditional {
                 consequent,
                 alternate,
                 ..
             } = &expr.kind
             {
-                collect(consequent, mode, roots);
-                collect(alternate, mode, roots);
+                work.push((alternate, mode));
+                work.push((consequent, mode));
             } else if let Some(root) = Analyzer::loan_root(expr, mode)
                 && !roots.contains(&root)
             {
                 roots.push(root);
             }
         }
-        let mut roots = Vec::new();
-        collect(expr, mode, &mut roots);
         roots
     }
 
@@ -5044,25 +5044,27 @@ impl Analyzer {
             || matches!(&expr.kind, ExprKind::SpreadValue(selected) if selected.stable && selected.selection==SpreadSelection::Receiver)
     }
 
-    fn root_binding(expr: &Expr) -> Option<usize> {
-        match &expr.kind {
-            ExprKind::Sequence(values)=>values.last().and_then(Self::root_binding),
-            ExprKind::SpreadValue(selected) => selected.source.place.as_ref().map(|(root,_)|*root).or_else(||selected.source.roots.first().copied()),
-            ExprKind::Selected { source, .. } => source
-                .place
-                .as_ref()
-                .map(|(root, _)| *root)
-                .or_else(|| source.roots.first().copied()),
-            ExprKind::Name(_) => expr.binding,
-            ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } | ExprKind::Inject {value,..}
-            | ExprKind::Unary {
-                op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull | UnaryOp::ParameterMutableInput,
-                value,
-                ..
-            } => Self::root_binding(value),
-            ExprKind::Field(base, _) | ExprKind::Index(base, _) => Self::root_binding(base),
-            _ => None,
-        }
+    fn root_binding(mut expr: &Expr) -> Option<usize> {
+        loop {
+            match &expr.kind {
+                ExprKind::Sequence(values)=>expr=values.last()?,
+                ExprKind::SpreadValue(selected) => return selected.source.place.as_ref().map(|(root,_)|*root).or_else(||selected.source.roots.first().copied()),
+                ExprKind::Selected { source, .. } => return source
+                    .place
+                    .as_ref()
+                    .map(|(root, _)| *root)
+                    .or_else(|| source.roots.first().copied()),
+                ExprKind::Name(_) => return expr.binding,
+                ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } | ExprKind::Inject {value,..}
+                | ExprKind::Unary {
+                    op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull | UnaryOp::ParameterMutableInput,
+                    value,
+                    ..
+                } => expr=value,
+                ExprKind::Field(base, _) | ExprKind::Index(base, _) => expr=base,
+                _ => return None,
+            }
+    }
     }
 
     fn pack_rest_arguments(args: &mut Vec<Expr>, fixed: usize, span: Span) {
@@ -8262,43 +8264,45 @@ impl Analyzer {
 
     // Optional element views retain their selected receiver roots through aliases.
     fn view_sources(context: &Context, expr: &Expr) -> Vec<usize> {
-        fn collect(context: &Context, expr: &Expr, out: &mut Vec<usize>) {
+        let mut roots = Vec::new();
+        let mut work = vec![expr];
+        while let Some(expr) = work.pop() {
             match &expr.kind {
-                ExprKind::Sequence(values)=>{if let Some(last)=values.last(){collect(context,last,out);}},
-                ExprKind::Optional { body, .. } => collect(context, body, out),
-                ExprKind::Selected { source, .. } => out.extend(source.roots.iter().copied()),
-                ExprKind::CoalesceAssign { target, .. } => collect(context, target, out),
+                ExprKind::Sequence(values)=>{if let Some(last)=values.last(){work.push(last);}},
+                ExprKind::Optional { body, .. } => work.push(body),
+                ExprKind::Selected { source, .. } => roots.extend(source.roots.iter().copied()),
+                ExprKind::CoalesceAssign { target, .. } => work.push(target),
                 ExprKind::Name(_) => {
                     if let Some(id) = expr.binding {
                         if context.bindings[id].view_roots.is_empty() {
-                            out.push(id);
+                            roots.push(id);
                         } else {
-                            out.extend(context.bindings[id].view_roots.iter().copied());
+                            roots.extend(context.bindings[id].view_roots.iter().copied());
                         }
                     }
                 }
                 ExprKind::Inject { value, .. }
                     if matches!(expr.ty, Some(Type::BorrowedUnion(_))) =>
                 {
-                    collect(context, value, out)
+                    work.push(value)
                 }
                 ExprKind::Unary {
                     op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
                     value,
                     ..
-                } => collect(context, value, out),
+                } => work.push(value),
                 ExprKind::Binary {
                     op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
                     left,
                     right,
                     ..
                 } => {
-                    collect(context, left, out);
-                    collect(context, right, out);
+                    work.push(right);
+                    work.push(left);
                 }
                 ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. }
                 | ExprKind::Field(value, _)
-                | ExprKind::Index(value, _) => collect(context, value, out),
+                | ExprKind::Index(value, _) => work.push(value),
                 ExprKind::Call(callee, _)
                     if matches!(
                         expr.target,
@@ -8308,7 +8312,7 @@ impl Analyzer {
                     ) =>
                 {
                     if let ExprKind::Field(base, _) = &callee.kind {
-                        collect(context, base, out);
+                        work.push(base);
                     }
                 }
                 ExprKind::Conditional {
@@ -8316,29 +8320,34 @@ impl Analyzer {
                     alternate,
                     ..
                 } => {
-                    collect(context, consequent, out);
-                    collect(context, alternate, out);
+                    work.push(alternate);
+                    work.push(consequent);
                 }
                 _ => {}
             }
         }
-        let mut roots = Vec::new();
-        collect(context, expr, &mut roots);
         roots.sort_unstable();
         roots.dedup();
         roots
     }
 
     fn stable_at_receiver(expr: &Expr) -> bool {
-        if let ExprKind::Sequence(values)=&expr.kind{return values.last().is_some_and(Self::stable_at_receiver);}
-        match &expr.kind {
-            ExprKind::Conditional {
-                consequent,
-                alternate,
-                ..
-            } => Self::stable_at_receiver(consequent) && Self::stable_at_receiver(alternate),
-            _ => Self::named_storage(expr),
+        let mut work = vec![expr];
+        while let Some(expr) = work.pop() {
+            match &expr.kind {
+                ExprKind::Sequence(values) => {
+                    let Some(last) = values.last() else { return false; };
+                    work.push(last);
+                }
+                ExprKind::Conditional { consequent, alternate, .. } => {
+                    work.push(alternate);
+                    work.push(consequent);
+                }
+                _ if !Self::named_storage(expr) => return false,
+                _ => {}
+            }
         }
+        true
     }
 
     fn array_at(
@@ -13942,3 +13951,47 @@ fn native_callback_graph_retains_selected_generic_method_identity() {
 
 #[path = "../stdlib/collections/ordered_set_check.rs"]
 mod ordered_sets;
+
+#[cfg(test)]
+mod ownership_walk_tests {
+    use super::*;
+
+    fn selected(roots: Vec<usize>) -> Expr {
+        Expr::new(ExprKind::Selected {
+            source: Box::new(crate::syntax::SelectedSource {
+                readonly: false, roots, place: None, span: Span::default(),
+            }),
+            slot: 0, owned: false, access: Mode::Read,
+        }, Span::default())
+    }
+
+    #[test]
+    fn ownership_walks_preserve_root_order_and_ignore_sequence_prefixes() {
+        let context = Context::new("walk".into());
+        let branch = Expr::new(ExprKind::Conditional {
+            predicate: Box::new(selected(vec![99])),
+            consequent: Box::new(selected(vec![7, 2, 7])),
+            alternate: Box::new(selected(vec![2, 4])),
+        }, Span::default());
+        let value = Expr::new(ExprKind::Sequence(vec![selected(vec![98]), branch]), Span::default());
+        assert_eq!(Analyzer::loan_roots(&value, Mode::Read), vec![7, 2, 4]);
+        assert_eq!(Analyzer::view_sources(&context, &value), vec![2, 4, 7]);
+        assert!(Analyzer::stable_at_receiver(&value));
+        assert_eq!(Analyzer::root_binding(&value), None);
+    }
+
+    #[test]
+    fn ownership_walks_use_normal_stack_for_deep_checked_expressions() {
+        let context = Context::new("walk".into());
+        let mut value = selected(vec![7, 2]);
+        // Phase-isolated witness: parser admission is irrelevant to these walks.
+        for _ in 0..16384 {
+            value = Expr::new(ExprKind::Sequence(vec![value]), Span::default());
+        }
+        assert_eq!(Analyzer::root_binding(&value), Some(7));
+        assert_eq!(Analyzer::loan_roots(&value, Mode::Read), vec![7, 2]);
+        assert_eq!(Analyzer::view_sources(&context, &value), vec![2, 7]);
+        assert!(Analyzer::stable_at_receiver(&value));
+        drop(value);
+    }
+}
