@@ -627,8 +627,8 @@ mod tests {
             result = ResultAnnotation::Callable { kind: None, params: Vec::new(), result: Box::new(result), span };
         }
         context.result(&mut result).unwrap();
-        // Source wrapper disposal is a separate, still-pending architecture path.
-        while let ResultAnnotation::Callable { result: inner, .. } = result { result = *inner; }
+        // Exercise production source wrapper disposal after materialization.
+        drop(result);
     }
 
     #[test]

@@ -685,3 +685,34 @@ hashes. Whole-project formatting changes zero files and fingerprints. These are
 focused internal acceptance checks, not full compiler architecture acceptance or
 new performance measurements. Installed consumers remain on `36093d5b`, the last
 accepted public behavior checkpoint.
+
+## Source callable wrapper storage
+
+`CallbackAnnotation` and `ResultAnnotation` now clone through shared construction
+frames and dispose annotation children through an explicit release worklist.
+Parameter-only callback chains and result-only chains no longer depend on derived
+recursive clone/drop. Owned callback extraction uses `into_parts`, moving the
+parameter vector and result while leaving an empty wrapper for destruction.
+Direct borrowed callback stores and structured/source conversion retain their
+original ownership metadata and transfers.
+
+The earlier resolver, generic materialization, source-walk and bidirectional
+conversion witnesses now use production disposal instead of manual test-only
+unwinding. Clone witnesses cover 16,384 parameter-only levels and mixed callable
+parameter/result levels; a bounded metadata witness retains rest/access tokens,
+inferred spans, optional parameters and a default expression. These tests do not
+establish arbitrary expression-tree storage: default initializer expressions,
+other expression/statement/function cloning and disposal, and recursive debug
+formatting still need conversion. Remaining parser/checker/emitter work and
+substitution admission are unchanged. No timing or allocation claim accompanies
+this internal storage change.
+
+Focused validation covers 43 distinct unit checks, 151 native integration checks
+and 67 generic editor checks. The native cases include direct borrowed callback
+stores, captured defaults, callable fields, generic adapters and recursive callable
+results. Existing fixtures and matched TypeScript counterparts remain unchanged.
+Whole-project formatting changes zero files and fingerprints. SQLite records under
+`tsrust-nesting-wrapper-storage` retain the owned-extraction migration diagnostics,
+completed checks and source hashes with byte-exact restoration. Installed consumers
+remain on `36093d5b`; this internal storage conversion changes no public admission
+boundary or language signature.

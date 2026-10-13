@@ -143,3 +143,10 @@ later invalid annotations cannot preempt earlier constraint diagnostics. Source
 patterns borrow annotations; substituted union payloads own annotations and move
 children through `constraint_children`. Union-member continuations retain one
 pending template rather than cloning every member in advance.
+
+Source wrapper cloning and disposal live in `syntax/annotation_storage.rs`.
+Callback and result annotations share explicit construction and release worklists;
+parameter annotations reach them through their callback variants. Consume callback
+fields through `CallbackAnnotation::into_parts` so the emptied wrapper still runs
+its destructor. Parameter defaults retain their expression trees; expression
+clone/drop and recursive debug formatting remain separate pending conversions.

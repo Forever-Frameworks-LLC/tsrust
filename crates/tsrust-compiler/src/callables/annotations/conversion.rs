@@ -59,7 +59,8 @@ fn convert(root: Work<'_>) -> Converted {
             }
             Work::AsResult(kind, span) => {
                 let Converted::Callback(value) = results.pop().expect("converted callback") else { unreachable!() };
-                results.push(Converted::Result(ResultAnnotation::Callable { kind, params: value.params, result: value.result, span }));
+                let (_, params, result, _) = value.into_parts();
+                results.push(Converted::Result(ResultAnnotation::Callable { kind, params, result, span }));
             }
             Work::AsParameter => {
                 let Converted::Callback(value) = results.pop().expect("converted callback") else { unreachable!() };
@@ -85,23 +86,6 @@ mod tests {
     use super::*;
     use crate::{Span, type_syntax::TypeName};
 
-    // Source wrapper disposal is still a separate conversion. Do not let this
-    // isolated adapter witness claim that source AST storage is already safe.
-    fn dispose(root: ResultAnnotation) {
-        let mut pending = vec![root];
-        while let Some(value) = pending.pop() {
-            if let ResultAnnotation::Callable { params, result, .. } = value {
-                pending.push(*result);
-                for parameter in params {
-                    assert!(matches!(parameter.initializer, crate::syntax::ParameterInitializer::Required));
-                    if let ParameterAnnotation::Callback(callback) = parameter.ty {
-                        pending.push(ResultAnnotation::Callable { kind: Some(callback.kind), params: callback.params, result: callback.result, span: callback.span });
-                    }
-                }
-            }
-        }
-    }
-
     #[test]
     fn deep_bidirectional_annotation_conversion_preserves_owned_signatures() {
         let span = Span::new(11, 19);
@@ -119,10 +103,16 @@ mod tests {
         let source = result(&annotation);
         let round_trip = source.value_annotation();
         assert!(round_trip == annotation);
-        dispose(source);
+        let copied = source.clone();
+        assert!(copied.value_annotation() == annotation);
+        drop(copied);
+        drop(source);
         let source = callback(&annotation);
         assert!(source.value_annotation() == annotation);
-        dispose(ResultAnnotation::Callable { kind: Some(source.kind), params: source.params, result: source.result, span: source.span });
+        let copied = source.clone();
+        assert!(copied.value_annotation() == annotation);
+        drop(copied);
+        drop(source);
         // Structured annotations use the production stack-safe destructor.
         drop(annotation); drop(round_trip);
     }

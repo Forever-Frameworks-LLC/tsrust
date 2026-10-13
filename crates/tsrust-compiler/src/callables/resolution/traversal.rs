@@ -309,9 +309,8 @@ mod tests {
         }
         let names = HashMap::new(); let unions = crate::unions::UnionArena::default(); let mut tables = Tables::default();
         let resolved = tables.resolver(&names, &unions).resolve_result(&source);
-        // Wrapper storage still needs its own conversion; isolate resolver depth
-        // without attributing this explicit test disposal to production storage.
-        while let ResultAnnotation::Callable { result, .. } = source { source = *result; }
+        // Use production wrapper disposal for the deep resolver witness.
+        drop(source);
         assert!(matches!(resolved.unwrap(), Type::Callable(_)));
         assert_eq!(tables.results.len(), 16_384);
     }

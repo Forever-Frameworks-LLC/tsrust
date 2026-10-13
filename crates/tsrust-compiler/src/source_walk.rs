@@ -330,28 +330,25 @@ mod annotation_worklist_tests {
             visited.push(value.span);
             Ok(())
         });
-        // This witness isolates traversal. Recursive syntax disposal is a
-        // separate, still-open architecture requirement.
-        while let ResultAnnotation::Callable { result: inner, .. } = result {
-            result = *inner;
-        }
+        // Exercise production wrapper disposal after the traversal.
+        drop(result);
         outcome.unwrap();
         assert_eq!(visited, vec![Span { start: 7, end: 8 }]);
     }
 
     #[test]
     fn annotation_order_and_first_error_preserve_parameter_then_result_spans() {
-        let ResultAnnotation::Named(first) = named("first", 1) else { unreachable!() };
-        let ResultAnnotation::Named(second) = named("second", 2) else { unreachable!() };
+        let ResultAnnotation::Named(ref first) = named("first", 1) else { unreachable!() };
+        let ResultAnnotation::Named(ref second) = named("second", 2) else { unreachable!() };
         let mut result = ResultAnnotation::Callable {
             kind: None,
             params: vec![
                 parameter("callback", ParameterAnnotation::Callback(Box::new(CallbackAnnotation {
                     kind: CallbackKind::Read,
-                    params: vec![parameter("first", ParameterAnnotation::Named(first))],
+                    params: vec![parameter("first", ParameterAnnotation::Named(first.clone()))],
                     result: Box::new(named("nested_result", 3)), span: Span::default(),
                 }))),
-                parameter("second", ParameterAnnotation::Named(second)),
+                parameter("second", ParameterAnnotation::Named(second.clone())),
             ],
             result: Box::new(named("outer_result", 4)), span: Span::default(),
         };

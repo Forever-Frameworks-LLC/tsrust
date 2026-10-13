@@ -1,6 +1,7 @@
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
 mod annotation_conversion;
+mod annotation_storage;
 pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
@@ -1659,7 +1660,7 @@ pub struct CallableParameter {
     pub initializer: ParameterInitializer,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CallbackAnnotation {
     pub kind: CallbackKind,
     pub params: Vec<CallableParameter>,
@@ -1684,7 +1685,7 @@ impl ParameterAnnotation {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum ResultAnnotation {
     Inferred(Span),
     Named(Box<crate::type_syntax::ValueAnnotation>),

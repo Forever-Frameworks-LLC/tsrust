@@ -31,7 +31,7 @@ impl Analyzer {
         let annotation = self.checked_value_annotation(Type::Callback(contract), span)?;
         let signature = crate::callable_annotations::callback(&annotation)
             .expect("checked callback annotation");
-        let mut parameters = signature.params;
+        let (_, mut parameters, result, _) = signature.into_parts();
         let arguments = parameters
             .iter_mut()
             .enumerate()
@@ -59,7 +59,7 @@ impl Analyzer {
             ExprKind::Closure {
                 id: usize::MAX / 3 + span.start,
                 params: parameters,
-                result: *signature.result,
+                result: *result,
                 body: vec![Stmt {
                     kind: StmtKind::Return(Some(call)),
                     span,
