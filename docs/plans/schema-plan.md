@@ -2230,3 +2230,12 @@ arbitrary callback control flow remain for checked lowering, rather than being
 rejected by spelling. Productive definitions still require type inference and
 runtime plan lowering; this is not public recursive-schema acceptance. New
 structural source witnesses are deferred until the recursive section is ready.
+
+Recursive pipeline metadata now separates an owned definition body from a self
+reference to its compiler identity. These identities are not runtime handles.
+Type queries can describe both; dependency, coercion and text-domain analysis now
+traverse cycles with visited sets. Native Map/Set text restrictions and coercion
+boundaries are preserved. New witnesses cover repeated traversal from the root
+and from self, callback discovery, and recursive collection boundaries. Source
+lowering does not yet create these plans and native emission is still pending;
+this change does not make the public recursive API usable.

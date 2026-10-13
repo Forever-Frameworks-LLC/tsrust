@@ -92,11 +92,32 @@ pub(crate) struct Wrapper {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum WrapperKind { Presence(Type), Default(usize), Message }
 
+/// Compiler-only identity of a definition and its uniquely owned body plan.
+/// Native storage must borrow this root when a reference edge is validated.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RecursivePlan {
+    pub body: usize,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+
+/// A self edge contains no runtime schema, allocation, or shared owner.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RecursiveReference {
+    pub root: usize,
+    pub input: Type,
+    pub output: Type,
+    pub json_input: bool,
+}
+
 #[derive(Default)]
 pub(crate) struct Pipelines {
     // Records preserve exact chain identity through variables and record fields.
     // Never index this registry by output: unrelated input contracts can produce
     // the same output, and must not become interchangeable.
+    recursive: std::collections::BTreeMap<usize, RecursivePlan>,
+    references: std::collections::BTreeMap<usize, RecursiveReference>,
     wrappers: std::collections::BTreeMap<usize, Wrapper>,
     stages: std::collections::BTreeMap<usize, Stage>,
     arrays: std::collections::BTreeMap<usize, ArrayPlan>,
@@ -109,7 +130,9 @@ impl Pipelines {
     pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
     pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| plan.kind == WrapperKind::Message) }
     pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {
-        self.wrapper(record).map(|plan|(plan.input,plan.output,plan.json_input)).or_else(||self.get(record).map(|stage| (stage.input, stage.output, stage.json_input)))
+        self.recursive(record).map(|plan|(plan.input,plan.output,plan.json_input))
+            .or_else(||self.reference(record).map(|plan|(plan.input,plan.output,plan.json_input)))
+            .or_else(||self.wrapper(record).map(|plan|(plan.input,plan.output,plan.json_input))).or_else(||self.get(record).map(|stage| (stage.input, stage.output, stage.json_input)))
             .or_else(|| self.collection(record).map(|plan| (plan.input, plan.output, plan.json_input)))
             .or_else(|| self.array(record).map(|plan| (plan.input, plan.output, plan.json_input)))
             .or_else(|| self.object(record).map(|plan| (plan.input, plan.output, plan.json_input)))
@@ -119,15 +142,40 @@ impl Pipelines {
     /// Explicit coercion supplies a native child input after decoding its own raw
     /// input shape, so a Map/Set underneath that boundary needs no wire encoding.
     pub(crate) fn accepts_text(&self,record:usize)->bool {
-        if let Some(stage)=self.get(record) {
-            return stage.operation==Operation::Coerce || self.accepts_text(stage.source);
+        let mut pending=vec![record];
+        let mut seen=std::collections::HashSet::new();
+        while let Some(record)=pending.pop() {
+            if !seen.insert(record) {continue;}
+            if let Some(stage)=self.get(record) {
+                if stage.operation!=Operation::Coerce {pending.push(stage.source);}
+            } else if let Some(plan)=self.collection(record) {
+                if plan.kind!=CollectionKind::Record {return false;}
+                pending.push(plan.element);
+            } else {pending.extend(self.children(record));}
         }
-        if let Some(plan)=self.wrapper(record){return self.accepts_text(plan.source);}
-        if let Some(plan)=self.collection(record){return plan.kind==CollectionKind::Record&&self.accepts_text(plan.element);}
-        if let Some(plan)=self.array(record){return self.accepts_text(plan.element);}
-        if let Some(plan)=self.object(record){return plan.fields.iter().all(|child|self.accepts_text(*child));}
-        if let Some(plan)=self.union(record){return plan.branches.iter().all(|child|self.accepts_text(*child));}
         true
+    }
+    pub(crate) fn recursive(&self,record:usize)->Option<&RecursivePlan> {self.recursive.get(&record)}
+    pub(crate) fn reference(&self,record:usize)->Option<&RecursiveReference> {self.references.get(&record)}
+    pub(crate) fn insert_recursive(&mut self,record:usize,plan:RecursivePlan) {
+        assert!(self.types(record).is_none());
+        self.recursive.insert(record,plan);
+    }
+    pub(crate) fn insert_reference(&mut self,record:usize,plan:RecursiveReference) {
+        assert!(self.types(record).is_none());
+        self.references.insert(record,plan);
+    }
+    /// Analysis follows self edges; this is not a native storage layout walk.
+    fn children(&self,record:usize)->Vec<usize> {
+        if let Some(plan)=self.recursive(record) {vec![plan.body]}
+        else if let Some(plan)=self.reference(record) {vec![plan.root]}
+        else if let Some(plan)=self.wrapper(record) {vec![plan.source]}
+        else if let Some(plan)=self.get(record) {vec![plan.source]}
+        else if let Some(plan)=self.collection(record) {plan.key.into_iter().chain(std::iter::once(plan.element)).collect()}
+        else if let Some(plan)=self.array(record) {vec![plan.element]}
+        else if let Some(plan)=self.object(record) {plan.fields.clone()}
+        else if let Some(plan)=self.union(record) {plan.branches.clone()}
+        else {Vec::new()}
     }
     pub(crate) fn collection(&self, record: usize) -> Option<&CollectionPlan> { self.collections.get(&record) }
     pub(crate) fn collection_record(&self, plan: &CollectionPlan) -> Option<usize> {
@@ -167,14 +215,14 @@ impl Pipelines {
     }
     pub(crate) fn array(&self, record: usize) -> Option<&ArrayPlan> { self.arrays.get(&record) }
     pub(crate) fn has_coercion(&self, record: usize) -> bool {
-        if let Some(plan)=self.wrapper(record) { self.has_coercion(plan.source) }
-        else if let Some(stage) = self.get(record) {
-            stage.operation == Operation::Coerce || self.has_coercion(stage.source)
-        } else if let Some(plan)=self.collection(record) {
-            plan.key.is_some_and(|key|self.has_coercion(key)) || self.has_coercion(plan.element)
-        } else { self.array(record).is_some_and(|plan| self.has_coercion(plan.element))
-            || self.object(record).is_some_and(|plan| plan.fields.iter().any(|child| self.has_coercion(*child)))
-            || self.union(record).is_some_and(|plan| plan.branches.iter().any(|child| self.has_coercion(*child))) }
+        let mut pending=vec![record];
+        let mut seen=std::collections::HashSet::new();
+        while let Some(record)=pending.pop() {
+            if !seen.insert(record) {continue;}
+            if self.get(record).is_some_and(|stage|stage.operation==Operation::Coerce) {return true;}
+            pending.extend(self.children(record));
+        }
+        false
     }
     pub(crate) fn array_record(&self, plan: &ArrayPlan) -> Option<usize> {
         self.arrays.iter().find_map(|(record, existing)| (existing == plan).then_some(*record))
@@ -184,7 +232,8 @@ impl Pipelines {
         if let Some(previous) = self.arrays.get(&record) { assert_eq!(previous, &plan); }
         else { self.arrays.insert(record, plan); }
     }
-    /// Enumerate actual stored children; output identity cannot recover them.
+    /// Enumerate semantic dependencies, including self edges. This does not
+    /// describe native ownership: reference edges never store their root.
     pub(crate) fn dependencies(&self, root: usize) -> (Vec<usize>, Vec<usize>) {
         let mut pending = vec![root];
         let mut seen = std::collections::HashSet::new();
@@ -192,7 +241,9 @@ impl Pipelines {
         let mut leaves = Vec::new();
         while let Some(record) = pending.pop() {
             if !seen.insert(record) { continue; }
-            if let Some(plan)=self.wrapper(record) {
+            if let Some(plan)=self.recursive(record) {pending.push(plan.body);}
+            else if let Some(plan)=self.reference(record) {pending.push(plan.root);}
+            else if let Some(plan)=self.wrapper(record) {
                 pending.push(plan.source);
                 if let WrapperKind::Default(family)=plan.kind { callbacks.push(family); }
             }
@@ -241,6 +292,37 @@ mod tests {
             callback_input: input, callback_output: Type::Int,
             input, output: Type::Int, json_input: false,
         }
+    }
+
+    #[test]
+    fn recursive_metadata_visits_each_plan_without_owning_its_root() {
+        let mut plans=Pipelines::default();
+        plans.insert_reference(11,RecursiveReference{root:10,input:Type::Int,output:Type::Int,json_input:true});
+        plans.insert_array(12,ArrayPlan{element:11,input:Type::Int,output:Type::Int,json_input:true});
+        plans.insert(13,Stage{operation:Operation::Refine,..stage(Type::Int)});
+        plans.insert_union(14,UnionPlan{branches:vec![12,13],selector:None,input:Type::Int,output:Type::Int,json_input:true});
+        plans.insert_recursive(10,RecursivePlan{body:14,input:Type::Int,output:Type::Int,json_input:true});
+        assert_eq!(plans.types(11),plans.types(10));
+        assert!(plans.accepts_text(10));
+        assert!(!plans.has_coercion(10));
+        assert_eq!(plans.dependencies(10),(vec![4],vec![2]));
+        assert_eq!(plans.dependencies(11),(vec![4],vec![2]));
+    }
+
+    #[test]
+    fn recursive_text_acceptance_preserves_native_collection_boundaries() {
+        let mut plans=Pipelines::default();
+        plans.insert_reference(11,RecursiveReference{root:10,input:Type::Int,output:Type::Int,json_input:false});
+        plans.insert_collection(12,CollectionPlan{kind:CollectionKind::Set,key:None,element:11,input:Type::Int,output:Type::Int,json_input:false});
+        plans.insert_recursive(10,RecursivePlan{body:12,input:Type::Int,output:Type::Int,json_input:false});
+        assert!(!plans.accepts_text(10));
+        assert!(!plans.has_coercion(10));
+        assert_eq!(plans.dependencies(10),(vec![],vec![]));
+        // A coercion supplies its own raw input domain before native validation.
+        plans.insert(13,Stage{source:10,..stage(Type::String)});
+        assert!(plans.accepts_text(13));
+        assert!(plans.has_coercion(13));
+        assert_eq!(plans.dependencies(13),(vec![4],vec![]));
     }
 
     #[test]
