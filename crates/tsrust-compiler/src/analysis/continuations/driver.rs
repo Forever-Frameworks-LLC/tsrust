@@ -86,6 +86,21 @@ enum ExpressionState {
     Start,
     Closure { frame: Box<super::closure::Frame>, child: ContextId },
     Callee { frame: super::call::CalleeFrame, publish_type: bool },
+    InvocationCallee { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
+    StoredFieldCallee { params: Vec<ArgumentContract>, result: Type, invocation: Mode, family: usize },
+    Argument { call: Box<CallArguments>, index: usize, frame: super::arguments::ArgumentFrame },
+}
+
+enum InvocationFinish {
+    Conditional { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
+    Declared { index: usize, captures: Vec<(usize, Mode)>, resolve_completed: bool },
+    Bound { binding: usize, result: Type, target: CallTarget },
+    StoredField { family: usize, result: Type },
+}
+
+struct CallArguments {
+    arguments: super::arguments::Arguments,
+    finish: InvocationFinish,
 }
 
 #[derive(Clone)]
@@ -273,9 +288,50 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expr = task.expression.value();
             let ExprKind::Call(destination, _) = &mut expr.kind else { unreachable!("call continuation") };
             *destination = callee.into_child();
-            let expected = task.checked.as_ref().expect("checked call frame").expected;
-            let result = result.and_then(|ty| finish_call(analyzer, context, expr, &task.loans, expected, frame, Some(ty), publish_type));
-            finish_expression(analyzer, context, task, result)
+            match result {
+                Ok(ty) => start_call(analyzer, context, task, frame, Some(ty), publish_type),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
+        }
+        ExpressionState::InvocationCallee { frame, mut invocation, publish_type } => {
+            let Completion::Expression(callee, result) = completion.expect("invocation callee completed") else { unreachable!("callee result") };
+            let context = contexts.get(task.context);
+            let ExprKind::Call(destination, _) = &mut task.expression.value().kind else { unreachable!("invocation callee slot") };
+            *destination = callee.into_child();
+            let prepared = result.and_then(|actual| analyzer.finish_invocation_callee(context, destination, &mut invocation, actual, &task.loans));
+            match prepared {
+                Ok(arguments) => schedule_argument(analyzer, context, task, Box::new(CallArguments {
+                    arguments, finish: InvocationFinish::Conditional { frame, invocation, publish_type },
+                })),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
+        }
+        ExpressionState::StoredFieldCallee { params, result, invocation, family } => {
+            let Completion::Expression(callee, checked) = completion.expect("stored field callee completed") else { unreachable!("stored field result") };
+            let context = contexts.get(task.context);
+            let ExprKind::Call(destination, _) = &mut task.expression.value().kind else { unreachable!("stored field callee slot") };
+            *destination = callee.into_child();
+            let actual = match checked {
+                Ok(actual) => actual,
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            };
+            // A temporary factory may specialize its returned field family.
+            let family = match actual { Type::StoredCallable(family) | Type::BorrowedCallable(family) => family, _ => family };
+            let mut active = (*task.loans).clone();
+            for root in Analyzer::loan_roots(destination, invocation) { active.entry(root).or_default().push((invocation, destination.span)); }
+            let arguments = super::arguments::Arguments::new(params, active, context, false, false, false);
+            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::StoredField { family, result } }))
+        }
+        ExpressionState::Argument { mut call, index, frame } => {
+            let Completion::Expression(argument, result) = completion.expect("argument completed") else { unreachable!("argument result") };
+            let context = contexts.get(task.context);
+            let ExprKind::Call(_, args) = &mut task.expression.value().kind else { unreachable!("argument parent") };
+            args[index] = *argument.into_child();
+            let result = result.and_then(|actual| analyzer.finish_argument(&mut args[index], &mut call.arguments, frame, actual));
+            match result {
+                Ok(()) => schedule_argument(analyzer, context, task, call),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
         }
         ExpressionState::Start => {
             debug_assert!(completion.is_none());
@@ -326,6 +382,22 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
                     match dispatch {
                         Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
+                        Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
+                        Ok(CallDispatch::Bound { binding, params, result, invocation, target }) => {
+                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("bound call") };
+                            let mut active = (*task.loans).clone();
+                            active.entry(binding).or_default().push((invocation, callee.span));
+                            let arguments = super::arguments::Arguments::new(params, active, context, false, false, false);
+                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Bound { binding, result, target } }))
+                        }
+                        Ok(CallDispatch::StoredField { field_type, params, result, invocation, family }) => {
+                            let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("stored field call") };
+                            let span = callee.span;
+                            let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
+                            let child = Task::Expression(ExpressionTask::new(Expression::Child(callee), task.context, invocation, task.loans.clone(), Some(field_type)));
+                            task.state = ExpressionState::StoredFieldCallee { params, result, invocation, family };
+                            Step::Push(Task::Expression(task), child)
+                        }
                         Err(error) => finish_expression(analyzer, context, task, Err(error)),
                         Ok(CallDispatch::Conditional { publish_type }) => {
                             let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("conditional call") };
@@ -344,8 +416,10 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                                 Step::Push(Task::Expression(task), child)
                             } else {
                                 let hint = analyzer.callback_value_hint(context, callee);
-                                let result = hint.and_then(|hint| finish_call(analyzer, context, expr, &task.loans, expected, frame, hint, publish_type));
-                                finish_expression(analyzer, context, task, result)
+                                match hint {
+                                    Ok(hint) => start_call(analyzer, context, task, frame, hint, publish_type),
+                                    Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                                }
                             }
                         }
                     }
@@ -358,17 +432,107 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
     }
 }
 
-/// Argument and dynamic method requests remain synchronous during migration.
-/// Callee evaluation and its closure body already suspend on the shared stack.
-fn finish_call(analyzer: &mut Analyzer, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>, frame: super::call::CalleeFrame, hint: Option<Type>, publish_type: bool) -> Result<Type, Diagnostic> {
-    let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("call completion") };
-    let frame = analyzer.finish_conditional_callee(callee, args.len(), expr.span, frame, hint)?;
-    let result = analyzer.checked_callable_expression_call(context, callee, args, loans, expr.span, frame.hint, frame.checked_callee, expected)?;
+fn complete_conditional_call(analyzer: &mut Analyzer, context: &mut Context, expr: &mut Expr, frame: super::call::CallCompletion, result: (CallTarget, Type), publish_type: bool) -> Result<Type, Diagnostic> {
+    let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("call completion") };
     let (target, ty) = analyzer.finish_conditional_call(context, callee, frame, result)?;
     expr.target = Some(target);
     if publish_type { expr.ty = Some(ty); }
     analyzer.resolve_completed_capture_invocation(context, expr, ty);
     Ok(ty)
+}
+
+fn start_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, frame: super::call::CalleeFrame, hint: Option<Type>, publish_type: bool) -> Step<'a> {
+    let expr = task.expression.value();
+    let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("call preparation") };
+    let frame = match analyzer.finish_conditional_callee(callee, args.len(), expr.span, frame, hint) {
+        Ok(frame) => frame,
+        Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+    };
+    let expected = task.checked.as_ref().expect("checked call frame").expected;
+    let prepared = analyzer.prepare_callable_invocation(context, callee, args, &task.loans, expr.span, frame.hint, frame.checked_callee, expected);
+    let mut invocation = match prepared {
+        Ok(super::call::PreparedInvocation::Ready(result)) => {
+            let result = complete_conditional_call(analyzer, context, expr, frame, result, publish_type);
+            return finish_expression(analyzer, context, task, result);
+        }
+        Ok(super::call::PreparedInvocation::Check(invocation)) => invocation,
+        Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+    };
+    if !frame.checked_callee {
+        let span = callee.span;
+        let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
+        let child = Task::Expression(ExpressionTask::new(
+            Expression::Child(callee), task.context, invocation.invocation,
+            task.loans.clone(), Some(frame.hint),
+        ));
+        task.state = ExpressionState::InvocationCallee { frame, invocation, publish_type };
+        return Step::Push(Task::Expression(task), child);
+    }
+    let actual = callee.ty.expect("checked expression callee");
+    match analyzer.finish_invocation_callee(context, callee, &mut invocation, actual, &task.loans) {
+        Ok(arguments) => schedule_argument(analyzer, context, task, Box::new(CallArguments {
+            arguments, finish: InvocationFinish::Conditional { frame, invocation, publish_type },
+        })),
+        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+    }
+}
+
+fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, resolve_completed: bool) -> Step<'a> {
+    let expr = task.expression.value();
+    let prepared = (|| {
+        let (index, captures, params) = analyzer.declared_call_contract(context, expr)?;
+        let ExprKind::Call(_, args) = &mut expr.kind else { unreachable!("declared call") };
+        Analyzer::prepare_arguments(args, &params, expr.span)?;
+        Ok::<_, Diagnostic>((index, captures, params))
+    })();
+    match prepared {
+        Ok((index, captures, params)) => {
+            let arguments = super::arguments::Arguments::new(params, (*task.loans).clone(), context, true, true, true);
+            schedule_argument(analyzer, context, task, Box::new(CallArguments {
+                arguments, finish: InvocationFinish::Declared { index, captures, resolve_completed },
+            }))
+        }
+        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+    }
+}
+
+fn schedule_argument<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, mut call: Box<CallArguments>) -> Step<'a> {
+    let expr = task.expression.value();
+    let ExprKind::Call(_, args) = &mut expr.kind else { unreachable!("argument scheduling") };
+    if let Some((index, frame)) = analyzer.next_argument(context, args, &mut call.arguments) {
+        let span = args[index].span;
+        let argument = std::mem::replace(&mut args[index], Expr::new(ExprKind::Undefined, span));
+        let child = Task::Expression(ExpressionTask::new(
+            Expression::Child(Box::new(argument)), task.context, frame.mode,
+            ActiveLoans::Shared(call.arguments.active.clone()), frame.expected,
+        ));
+        task.state = ExpressionState::Argument { call, index, frame };
+        return Step::Push(Task::Expression(task), child);
+    }
+    call.arguments.finish(context);
+    let result = match call.finish {
+        InvocationFinish::Conditional { frame, invocation, publish_type } => {
+            analyzer.finish_callable_invocation(context, args, expr.span, invocation)
+                .and_then(|result| complete_conditional_call(analyzer, context, expr, frame, result, publish_type))
+        }
+        InvocationFinish::Bound { binding, result, target } => {
+            analyzer.finish_bound_call(context, expr, binding, result, target)
+                .map(|ty| { analyzer.resolve_completed_capture_invocation(context, expr, ty); ty })
+        }
+        InvocationFinish::StoredField { family, result } => {
+            analyzer.remember_native_family_returns(context, family, expr.span).map(|()| {
+                expr.target = Some(CallTarget::StoredCallableField(family));
+                expr.ty = Some(result);
+                analyzer.resolve_completed_capture_invocation(context, expr, result);
+                result
+            })
+        }
+        InvocationFinish::Declared { index, captures, resolve_completed } => {
+            analyzer.finish_declared_call(context, expr, index, &captures, &call.arguments.params, &task.loans)
+                .map(|ty| { if resolve_completed { analyzer.resolve_completed_capture_invocation(context, expr, ty); } ty })
+        }
+    };
+    finish_expression(analyzer, context, task, result)
 }
 
 #[cfg(test)]
@@ -383,6 +547,24 @@ mod tests {
 
     fn analyzer() -> Analyzer {
         Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn failed_argument_restores_callee_and_previously_checked_arguments() {
+        let source = formatted("function pair(left: int, right: int): int { return left; } function main(): int { return pair(1, true); }");
+        let mut parsed = crate::syntax::parse(&source).unwrap();
+        let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+        let mut context = Context::new("main".into());
+        let body = &mut parsed.functions[1].body;
+        let error = check_block(&mut analyzer, &mut context, body, Type::Int, false).unwrap_err();
+        assert_eq!(error.code, "type");
+        assert_eq!(&source[error.span.start..error.span.end], "true");
+        let StmtKind::Return(Some(value)) = &body[0].kind else { panic!("restored return") };
+        let ExprKind::Call(callee, arguments) = &value.kind else { panic!("restored call") };
+        assert!(matches!(&callee.kind, ExprKind::Name(name) if name == "pair"));
+        assert_eq!(arguments.len(), 2);
+        assert_eq!(arguments[0].ty, Some(Type::Int));
+        assert!(matches!(arguments[1].kind, ExprKind::Boolean(true)));
     }
 
     #[test]

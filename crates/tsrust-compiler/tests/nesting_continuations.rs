@@ -8,6 +8,33 @@ fn nested(value: &str, result: &str, depth: usize) -> String {
     value
 }
 
+fn argument_chain(callee: &str, depth: usize) -> String {
+    let mut value = "7".to_owned();
+    for _ in 0..depth { value = format!("{callee}({value})"); }
+    value
+}
+
+#[test]
+fn queued_arguments_cover_declared_bound_inline_and_stored_calls() {
+    let declared = argument_chain("identity", 32);
+    let bound = argument_chain("action", 32);
+    let inline = argument_chain("((value: int): int => { return value; })", 16);
+    let stored = argument_chain("holder.run", 32);
+    let source = format!(r#"
+        type Holder = {{ run: ReadOnly<Function<int, [value: int]>>; }};
+        function identity(value: int): int {{ return value; }}
+        function main() {{
+            const action = (value: int): int => {{ return value; }};
+            const holder: Holder = {{ run: (value: int): int => {{ return value; }} }};
+            console.log({declared});
+            console.log({bound});
+            console.log({inline});
+            console.log({stored});
+        }}
+    "#);
+    support::execute(&source, "7\n7\n7\n7\n", None);
+}
+
 #[test]
 fn queued_closure_bodies_preserve_owned_and_mutable_captures() {
     // This samples the original normal-stack crash, not a supported-depth limit.

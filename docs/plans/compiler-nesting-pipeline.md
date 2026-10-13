@@ -185,10 +185,58 @@ corrected order witness is rerun alone; the other two new witnesses retain their
 original passing results. These are focused migration checks. They do not replace
 whole-pipeline acceptance, full compiler/LSP regressions or formal measurements.
 
-Arguments, defaults, remaining expression variants, branches, loops, exceptions
-and dynamically requested dependencies still need to yield to this driver.
+Defaults, remaining expression variants, branches, loops, exceptions and
+dynamically requested dependencies still need to yield to this driver. Native,
+forwarded and specialized call paths also retain compatibility argument checking.
 Compatibility calls can still start nested driver invocations, so the work is
 not accepted as a stackless checker. Parser/type-syntax, final analysis, emission
 and the other cross-phase paths in this map remain required. Whole-pipeline
 stress, matched scaling measurements and integrated consumer acceptance remain
 pending; the retained guards have no new justification from these samples.
+
+## Queued call arguments and the next observed failure
+
+Declared functions, ordinary local callable bindings, inline/conditional callees
+and stored callable fields now queue their argument expressions on the shared
+checker stack. Parameter adaptation retains optional borrowed-union and mutable
+input conversions. Each call retains its original loan policy: declared calls
+keep precise record-field loans and owned-inline-callback marking, while other
+callable forms retain their existing root loans and capture-release boundaries.
+Loan state is shared with the active child and updated after that child completes;
+there is no additional loan-map copy for each sibling argument. Failed arguments
+restore the callee and all partially checked arguments before propagating errors.
+
+Five driver restoration witnesses, the stored-call consuming-access unit witness
+and 86 affected integration tests pass. Integration coverage includes callable
+expressions and fields, callbacks, optional parameters and facts, and native
+nested-call witnesses. An initial unit build caught a private test still calling
+the old synchronous named-call entry; that test now exercises the expression
+scheduler while retaining its signature, target and consuming-access assertions.
+The original failed build remains in SQLite.
+
+Geometric discovery completes analysis at sampled size 64 for all four callable
+forms. Declared arguments also complete emission and disposal at 64, then meet
+the parser guard at 128. Bound, inline and stored-field arguments **overflow the
+normal worker stack during emission at 64**. These are observed failures, not new
+support limits. LLDB reproduces the bound-call failure and captures the repeated
+`Emitter::expr` / `expr_dispatch` / `expr_dispatch_inner` / `expr_inner` cycle,
+with closure-argument rendering in `expr_inner` recursively re-entering `expr`.
+The debugger child is explicitly terminated after capturing the backtrace.
+
+The next cross-phase implementation priority is an emitter work stack retaining
+expression mode, logical expression depth, conditional temporary boundaries,
+callee/argument ordering and ownership adapters. Merely moving the large leaf,
+rewriting `map` as a loop, increasing the worker stack or adding an admission
+limit would leave the recursive cycle intact. Remaining checker compatibility
+paths and parser/type work stay required; the newly exposed emitter failure does
+not narrow the architecture goal.
+
+Matched compilation workloads are registered in `benchmarks/compiler/call-arguments`
+using the existing two-warmup, eleven-sample protocol. All four forms validate
+compiler check/emission and Node-after-tsc strict checking at sizes 8 and 32,
+without timing samples. Native and Node execution both produce the independent
+`7\n` oracle at size 32. The old generator's 28 sampled output combinations remain
+byte-identical. Larger registered samples remain pending, and none of this is a
+completed scaling measurement or whole-pipeline acceptance. SQLite records under
+`tsrust-nesting-arguments` preserve sources, tool and source hashes, checks,
+original failures, phase events, debugger output and untimed matched validation.

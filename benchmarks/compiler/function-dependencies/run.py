@@ -13,7 +13,9 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False, call_arguments=None):
+    if call_arguments:
+        return argument_source(count, scalar, call_main, call_arguments)
     functions = []
     if generic_functions:
         for index in range(count):
@@ -55,6 +57,28 @@ def source(count, scalar, call_main, recursive=False, inferred=False, callable_r
                       *(['main();'] if call_main else []), ''])
 
 
+def argument_source(count, scalar, call_main, kind):
+    callee = {
+        'declared': 'identity',
+        'bound': 'action',
+        'inline': f'((value: {scalar}): {scalar} => {{ return value; }})',
+        'field': 'holder.run',
+    }[kind]
+    value = '7'
+    for _ in range(count):
+        value = f'{callee}({value})'
+    declarations = [f'function identity(value: {scalar}): {scalar} {{ return value; }}']
+    setup = ''
+    if kind == 'bound':
+        setup = f'const action = (value: {scalar}): {scalar} => {{ return value; }};'
+    elif kind == 'field':
+        contract = f'(value: {scalar}) => {scalar}' if call_main else f'ReadOnly<Function<{scalar}, [value: {scalar}]>>'
+        declarations.append(f'type Holder = {{ run: {contract}; }};')
+        setup = f'const holder: Holder = {{ run: (value: {scalar}): {scalar} => {{ return value; }} }};'
+    declarations.append(f'function main() {{ {setup} console.log({value}); }}')
+    return '\n'.join([*declarations, *(['main();'] if call_main else []), ''])
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -63,13 +87,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--call-arguments', choices=['declared', 'bound', 'inline', 'field'], help='Use nested arguments through one callable form')
     parser.add_argument('--generic-functions', action='store_true', help='Use explicit generic function dependency chains')
     parser.add_argument('--generic-records', action='store_true', help='Use the generic materialization workload; incompatible with recursive function variants')
     parser.add_argument('--record', action='store_true', help='Return data records through a recursive group; requires --recursive')
     parser.add_argument('--callable', action='store_true', help='Resolve recursive callable environments; requires --recursive')
     parser.add_argument('--inferred', action='store_true', help='Infer native recursive results; requires --recursive')
     parser.add_argument('--recursive', action='store_true', help='Use the annotated recursive-group manifest')
-    parser.add_argument('--only', type=int, nargs='+', choices=MANIFEST['functionCounts'])
+    parser.add_argument('--only', type=int, nargs='+', help='Registered sample counts from the selected workload manifest')
     parser.add_argument('--phases', nargs='+', choices=list(MANIFEST['phases']))
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
@@ -90,8 +115,12 @@ def main():
         if args.recursive or args.generic_records or variants:
             parser.error('Generic function chains are separate from other variants')
         manifest_path = MANIFEST_PATH.parent.parent / 'generic-function-dependencies/manifest.json'
+    if args.call_arguments:
+        if args.recursive or args.generic_records or args.generic_functions or variants:
+            parser.error('Nested call arguments are separate from dependency workloads')
+        manifest_path = MANIFEST_PATH.parent.parent / 'call-arguments/manifest.json'
     manifest = json.loads(manifest_path.read_text())
-    counts = manifest.get('declarationCounts', manifest.get('functionCounts'))
+    counts = manifest.get('nestingCounts', manifest.get('declarationCounts', manifest.get('functionCounts')))
     if args.only and any(count not in counts for count in args.only):
         parser.error('Requested count is not registered for this workload')
     compiler = args.compiler.resolve(strict=True)
@@ -111,6 +140,9 @@ def main():
         'measurement': args.measure, 'groups': [], 'complete': False,
     }
 
+    if args.call_arguments:
+        record['callableForm'] = args.call_arguments
+
     def save():
         args.output.write_text(json.dumps(record, indent=2) + '\n')
 
@@ -121,13 +153,13 @@ def main():
             for count in args.only or counts:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 assert native.read_bytes() == formatted, 'Formatter must be idempotent'
-                group = {('declarationCount' if args.generic_records else 'functionCount'): count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
+                group = {('nestingCount' if args.call_arguments else 'declarationCount' if args.generic_records else 'functionCount'): count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
                          'nativeSha256': digest(formatted), 'referenceSha256': digest(reference.read_bytes()), 'phases': {}}
                 record['groups'].append(group)
                 commands = {

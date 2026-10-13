@@ -14,7 +14,9 @@ only the disposal-finish event establishes full pipeline completion. Peak RSS is
 for each fresh probe process, including the test harness. It is not per-phase RSS.
 
 The initial families cover grouping, blocks, binary expressions, type groups,
-array literals, explicit/inferred generic chains and alternating call/closure/body nesting. This is not yet complete
+array literals, explicit/inferred generic chains, alternating call/closure/body nesting,
+and nested arguments through declared functions, local bindings, inline callees
+and stored callable fields. This is not yet complete
 mixed-shape, project, editor, native-backend or resource-policy acceptance. Exact
 sources, compiler-test binary hash, machine memory, stage events and original
 output are retained in the JSON. Import closed records into SQLite and verify

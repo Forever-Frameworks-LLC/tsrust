@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments')
 
 
 def source(family, size):
@@ -26,6 +26,25 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family in ('declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments'):
+        callee = {
+            'declared-arguments': 'identity',
+            'bound-arguments': 'action',
+            'inline-arguments': '((value:int):int=>{return value;})',
+            'field-arguments': 'holder.run',
+        }[family]
+        value = '7'
+        for _ in range(size):
+            value = callee + '(' + value + ')'
+        declarations = 'function identity(value:int):int{return value;}\n'
+        if family == 'field-arguments':
+            declarations += 'type Holder={run:ReadOnly<Function<int,[value:int]>>;};\n'
+        setup = ''
+        if family == 'bound-arguments':
+            setup = 'const action=(value:int):int=>{return value;};'
+        elif family == 'field-arguments':
+            setup = 'const holder:Holder={run:(value:int):int=>{return value;}};'
+        return declarations + 'function main(){' + setup + 'console.log(' + value + ');}'
     elif family == 'arrays':
         body = 'const value=' + '[' * size + '7' + ']' * size + ';console.log(value.length);'
     else:

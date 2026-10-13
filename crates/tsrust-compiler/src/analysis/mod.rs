@@ -6407,55 +6407,6 @@ impl Analyzer {
         }
     }
 
-    fn parameter_argument(
-        &mut self,
-        context: &mut Context,
-        argument: &mut Expr,
-        contract: ArgumentContract,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
-        if !contract.omission.is_omittable() && !(contract.mode==Mode::Mutate && matches!(contract.ty,Type::Union(id) if !id.copy) && self.unions.payload(contract.ty).is_none()) {
-            return self.expression(context, argument, contract.mode, loans, Some(contract.ty));
-        }
-        self.omittable_parameter_argument(context, argument, contract, loans)
-    }
-
-    fn omittable_parameter_argument(&mut self, context: &mut Context, argument: &mut Expr, contract: ArgumentContract, loans: &Loans) -> Result<Type,Diagnostic> {
-        if contract.mode == Mode::Mutate
-            && let Type::Union(id) = contract.ty && !id.copy
-            && (contract.omission.is_omittable() || self.unions.payload(contract.ty).is_none()) {
-            let hint = self.expression_type_hint(context, argument);
-            let expected = if hint.is_some_and(|ty| ty.union().is_some()) {None}
-                else {hint.filter(|ty| matches!(ty,Type::Null|Type::Undefined)).or_else(||self.unions.payload(contract.ty))};
-            let access = if hint.is_some_and(|ty| matches!(ty,Type::Null|Type::Undefined)) {Mode::Copy} else {Mode::Mutate};
-            let actual = self.expression(context, argument, access, loans, expected)?;
-            self.require(actual, Some(contract.ty), argument.span)?;
-            let span = argument.span;
-            let value = std::mem::replace(argument, Expr::new(ExprKind::Undefined, span));
-            *argument = Expr::new(ExprKind::Unary {op:UnaryOp::ParameterMutableInput,value:Box::new(value),operator:span},span);
-            let physical = if let Some(Type::Callback(callback)) = self.unions.payload(contract.ty) {
-                let payload = if matches!(actual,Type::Null|Type::Undefined) {self.absent_callback(callback)} else {self.unions.payload(actual).unwrap_or(actual)};
-                self.unions.intern(self.unions.members(id).into_iter().map(|member|if matches!(member,Type::Callback(_)){payload}else{member}),span)?
-            } else {contract.ty};
-            argument.ty = Some(physical);
-            return Ok(physical);
-        }
-        // Nullable callback records must retain their concrete capture environment.
-        // Their ordinary injection path already borrows present and absent values.
-        if contract.omission.is_omittable() && contract.mode==Mode::Read
-            && self.nullable_scoped_record_declaration(contract.ty).is_none()
-            && let Type::Union(id)=contract.ty && !id.copy
-            && !matches!(argument.kind,ExprKind::Conditional{..}) {
-                let hint=self.expression_type_hint(context,argument);
-                let expected=if hint.is_some_and(|ty|ty.union().is_some()) {None} else {hint.filter(|ty|matches!(ty,Type::Null|Type::Undefined)).or_else(||self.unions.payload(contract.ty))};
-                let actual=self.expression(context,argument,Mode::Read,loans,expected)?;
-                self.require(actual,Some(contract.ty),argument.span)?;
-                argument.inject(id);argument.ty=Some(Type::BorrowedUnion(id));
-                return Ok(Type::BorrowedUnion(id));
-        }
-        self.expression(context,argument,contract.mode,loans,Some(contract.ty))
-    }
-
     fn pack_rest_arguments(args: &mut Vec<Expr>, fixed: usize, span: Span) {
         if args.len() == fixed + 1
             && args.last().is_some_and(|argument| {
@@ -12772,122 +12723,6 @@ self.names_materialized_type(element.with_depth(0).ty())
 
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
-    fn checked_callable_expression_call(
-        &mut self, context:&mut Context, callee:&mut Expr, args:&mut Vec<Expr>,
-        loans:&Loans, span:Span, hint:Type, checked_callee:bool, expected: Option<Type>,
-    )->Result<(CallTarget,Type),Diagnostic>{
-        if let Type::Closure(origin) = hint {
-            let (origin, once) = match self.closures[origin].forward {
-                Some(ClosureForward::Once(inner)) => (inner, true),
-                _ => (origin, false),
-            };
-            if self.deferred_generic_values.contains_key(&origin) {
-                let (method, result) = self.deferred_generic_call(context, None, origin, callee, args, loans, span, once, expected, checked_callee)?;
-                return Ok((CallTarget::ClosureMethod(method), result));
-            }
-        }
-        let (params, result, invocation, target) = match hint {
-            Type::Closure(id) => {
-                let closure = &self.closures[id];
-                let invocation = Self::conditional_callback_metadata(context, callee)?
-                    .and_then(|x| x.0)
-                    .unwrap_or(closure.invocation);
-                (
-                    closure
-                        .parameters
-                        .iter()
-                        .map(|&p| ArgumentContract::from(&closure.function.bindings[p]))
-                        .collect::<Vec<_>>(),
-                    closure.function.result,
-                    invocation,
-                    CallTarget::ConditionalClosure(id),
-                )
-            }
-            Type::Callback(id) => {
-                let contract = &self.callables.callbacks[id];
-                (
-                    contract.params.clone(),
-                    contract.result,
-                    contract.invocation(&self.callables.shapes),
-                    CallTarget::ConditionalCallback(id),
-                )
-            }
-            Type::StoredCallable(family)|Type::BorrowedCallable(family) => {
-                let declaration = self
-                    .callables
-                    .storage
-                    .declaration(family)
-                    .expect("stored signature");
-                let contract = &self.callables.callbacks[declaration];
-                (
-                    contract.params.clone(),
-                    contract.result,
-                    contract.invocation(&self.callables.shapes),
-                    CallTarget::StoredCallableField(family),
-                )
-            }
-            _ => {
-                return Err(Diagnostic::new(
-                    "type",
-                    "This expression must produce a callable value with a compatible signature.",
-                    callee.span,
-                ));
-            }
-        };
-        Self::prepare_arguments(args, &params, span)?;
-        let actual = if checked_callee {callee.ty.expect("checked IIFE closure")} else {self.expression(context, callee, invocation, loans, Some(hint))?};
-        self.require(actual, Some(hint), callee.span)?;
-        Self::conditional_callback_metadata(context, callee)?;
-        let mut active = loans.clone();
-        for root in Self::loan_roots(callee, invocation) {
-            active
-                .entry(root)
-                .or_default()
-                .push((invocation, callee.span));
-        }
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        for (arg, contract) in args.iter_mut().zip(params) {
-            let actual =
-                self.parameter_argument(context, arg, contract, &active)?;
-            self.require(actual, Some(contract.ty), arg.span)?;
-            if !actual.is_copy() {
-                for root in Self::loan_roots(arg, contract.mode) {
-                    active
-                        .entry(root)
-                        .or_default()
-                        .push((contract.mode, arg.span));
-                }
-            }
-        }
-        capture_boundary.unwind(&mut context.capture_loans);
-        if let Type::Closure(origin) = hint {
-            let (origin, _) = match self.closures[origin].forward {
-                Some(ClosureForward::Once(inner)) => (inner, true),
-                _ => (origin, false),
-            };
-            if let Some(ClosureForward::Function(function)) = self.closures[origin].forward {
-                let (function, result) = self.resolved_call(context, function, args, span)?;
-                return Ok((CallTarget::ForwardFunction(function), result));
-            }
-            if self.closures[origin].polymorphic {
-                let (method, result) = self.materialize_closure_method(origin, args, span)?;
-                let result =
-                    self.closure_method_result(context, origin, method, result, args, span);
-                return Ok((CallTarget::ClosureMethod(method), result));
-            }
-        }
-        let result = if let Type::Callable(contract) = result {
-            if context.template || self.discovering_results {
-                self.result_shape(contract)
-            } else {
-                return Err(Self::pending_result(span));
-            }
-        } else {
-            result
-        };
-        Ok((target, result))
-    }
-
     fn console_inspectable(&self, ty: Type) -> bool {
         let mut pending = vec![ty];
         let mut seen = HashSet::new();
@@ -13228,7 +13063,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 && !args.iter().any(|argument| matches!(&argument.kind,
                     ExprKind::Unary { op: UnaryOp::Spread, .. })));
         if declared {
-            return self.declared_named_call(context, expr, loans).map(CallDispatch::Ready);
+            return Ok(CallDispatch::Declared { resolve_completed: false });
         }
         let result = self.expression_call_other(context, expr, loans, expected)?;
         if let CallDispatch::Ready(ty) = result { self.resolve_completed_capture_invocation(context, expr, ty); }
@@ -13303,7 +13138,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if !matches!(name.as_str(), "String" | "Boolean" | "Number" | "clone")));
         if ordinary_name {
             self.prepare_generic_call(context, expr, expected)?;
-            self.named_call(context, expr, loans, expected).map(CallDispatch::Ready)
+            self.prepare_named_call(context, expr, loans, expected)
         } else {
             self.prepare_builtin_call_work(context, expr, loans, expected)
         }
@@ -13422,13 +13257,13 @@ self.names_materialized_type(element.with_depth(0).ty())
         true
     }
 
-    fn named_call(
+    fn prepare_named_call(
         &mut self,
         context: &mut Context,
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
+    ) -> Result<CallDispatch, Diagnostic> {
         let ExprKind::Call(callee, _) = &expr.kind else {
             unreachable!("named call dispatch");
         };
@@ -13441,7 +13276,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         {
             return self.bound_named_call(context, expr, loans, expected);
         }
-        self.declared_named_call(context, expr, loans)
+        Ok(CallDispatch::Declared { resolve_completed: true })
     }
 
     fn bound_named_call(
@@ -13450,7 +13285,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
+    ) -> Result<CallDispatch, Diagnostic> {
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             unreachable!("named call dispatch");
@@ -13492,10 +13327,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                 }
                 expr.target = Some(CallTarget::NativeBinding(id));
                 expr.ty = Some(native_type(binding.result, &self.program.records));
-                return Ok(native_type(binding.result, &self.program.records));
+                return Ok(CallDispatch::Ready(native_type(binding.result, &self.program.records)));
             }
             if binding.result == crate::native_bindings::NativeType::SharedCallback {
-                return self.shared_callback_call(context, expr, loans);
+                return self.shared_callback_call(context, expr, loans).map(CallDispatch::Ready);
             }
             if let Some((local, _)) = stored_native {
                 let invocation = context.bindings[local]
@@ -13549,7 +13384,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             expr.target = Some(CallTarget::NativeBinding(id));
             expr.ty = Some(result);
-            return Ok(result);
+            return Ok(CallDispatch::Ready(result));
         }
         if self.discovering_results && context.pending_names.contains(name) {
             return Err(Self::pending_result(span));
@@ -13563,7 +13398,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 self.remember_native_function_returns(context,function,span)?;
                 expr.target = Some(CallTarget::ForwardFunction(function));
                 expr.ty = Some(result);
-                return Ok(result);
+                return Ok(CallDispatch::Ready(result));
             }
             if let Type::Closure(origin) = context.bindings[binding].ty
                 && let Some(ClosureForward::Once(inner)) = self.closures[origin].forward
@@ -13574,7 +13409,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 self.remember_native_function_returns(context,function,span)?;
                 expr.target = Some(CallTarget::ForwardFunction(function));
                 expr.ty = Some(result);
-                return Ok(result);
+                return Ok(CallDispatch::Ready(result));
             }
             if let Type::Closure(origin) = context.bindings[binding].ty
                 && (self.closures[origin].polymorphic
@@ -13587,7 +13422,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 if self.native_borrow_types {expr.callable_origin=Some(CallableOrigin::Closure(native_origin));}
                 expr.target = Some(CallTarget::ClosureMethod(method));
                 expr.ty = Some(result);
-                return Ok(result);
+                return Ok(CallDispatch::Ready(result));
             }
             let (params, result, invocation, target) = match context.bindings[binding].ty {
                 Type::StoredCallable(family) | Type::BorrowedCallable(family) => {
@@ -13643,24 +13478,15 @@ self.names_materialized_type(element.with_depth(0).ty())
             };
             Self::prepare_arguments(args, &params, span)?;
             Self::access(context, binding, invocation, callee.span, loans)?;
-            let mut active = loans.clone();
-            active
-                .entry(binding)
-                .or_default()
-                .push((invocation, callee.span));
-            for (arg, contract) in args.iter_mut().zip(params) {
-                let actual =
-                    self.parameter_argument(context, arg, contract, &active)?;
-                self.require(actual, Some(contract.ty), arg.span)?;
-                if !actual.is_copy() {
-                    for binding in Self::loan_roots(arg, contract.mode) {
-                        active
-                            .entry(binding)
-                            .or_default()
-                            .push((contract.mode, arg.span));
-                    }
-                }
-            }
+            return Ok(CallDispatch::Bound { binding, params, result, invocation, target });
+
+        }
+        unreachable!("bound named-call dispatch");
+    }
+
+    fn finish_bound_call(&mut self, context: &mut Context, expr: &mut Expr, binding: usize, result: Type, target: CallTarget) -> Result<Type, Diagnostic> {
+        let span = expr.span;
+        let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("bound call completion") };
             let result = if let Type::Callable(contract) = result {
                 if context.template || self.discovering_results {
                     self.result_shape(contract)
@@ -13688,9 +13514,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             expr.target = Some(target);
             expr.ty = Some(result);
-            return Ok(result);
-        }
-        unreachable!("bound named-call dispatch");
+            Ok(result)
     }
 
     fn shared_callback_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans) -> Result<Type, Diagnostic> {
@@ -13774,24 +13598,6 @@ self.names_materialized_type(element.with_depth(0).ty())
         }
         selected_capture_boundary.unwind(&mut context.capture_loans);
         Ok(())
-    }
-
-    /// Nested call arguments recurse through this function, so its own frame stays
-    /// small: the work before and after the arguments lives in separate functions.
-    fn declared_named_call(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
-        let span = expr.span;
-        let (index, capture_slots, params) = self.declared_call_contract(context, expr)?;
-        let ExprKind::Call(_, args) = &mut expr.kind else {
-            unreachable!("declared call dispatch");
-        };
-        Self::prepare_arguments(args, &params, span)?;
-        self.check_call_arguments(context, args, &params, loans)?;
-        self.finish_declared_call(context, expr, index, &capture_slots, &params, loans)
     }
 
     #[inline(never)]
@@ -13936,58 +13742,6 @@ self.names_materialized_type(element.with_depth(0).ty())
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             unreachable!("call dispatched from expression")
         };
-        if matches!(callee.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-            && let Some(field_type @ (Type::StoredCallable(family) | Type::BorrowedCallable(family))) = self.expression_type_hint(context, callee)
-        {
-            let declaration = self
-                .callables
-                .storage
-                .declaration(family)
-                .expect("checked field storage signature");
-            let contract = &self.callables.callbacks[declaration];
-            let params = contract.params.clone();
-            let result = contract.result;
-            let invocation = contract.invocation(&self.callables.shapes);
-            Self::prepare_arguments(args, &params, span)?;
-            let actual = self.expression(
-                context,
-                callee,
-                invocation,
-                loans,
-                Some(field_type),
-            )?;
-            // Checking a temporary factory call can specialize its returned record.
-            // Use the resulting field family for provenance and error effects,
-            // rather than the declaration-only family from the earlier hint.
-            let family = match actual {
-                Type::StoredCallable(family) | Type::BorrowedCallable(family) => family,
-                _ => family,
-            };
-            let mut active = loans.clone();
-            for root in Self::loan_roots(callee, invocation) {
-                active
-                    .entry(root)
-                    .or_default()
-                    .push((invocation, callee.span));
-            }
-            for (arg, parameter) in args.iter_mut().zip(params) {
-                let actual =
-                    self.parameter_argument(context,arg,parameter,&active)?;
-                self.require(actual, Some(parameter.ty), arg.span)?;
-                if !actual.is_copy() {
-                    for root in Self::loan_roots(arg, parameter.mode) {
-                        active
-                            .entry(root)
-                            .or_default()
-                            .push((parameter.mode, arg.span));
-                    }
-                }
-            }
-            self.remember_native_family_returns(context,family,span)?;
-            expr.target = Some(CallTarget::StoredCallableField(family));
-            expr.ty = Some(result);
-            return Ok(result);
-        }
         let ty = match &mut callee.kind {
             ExprKind::Name(name) if matches!(name.as_str(), "String" | "Boolean") => {
                 self.value_builtin_arguments(context, args, loans, name == "String")?;
@@ -15401,7 +15155,7 @@ fn stored_named_calls_use_registered_signature_hints_and_consuming_access() {
         assert!(context.bindings[binding].used.is_none());
         assert_eq!(
             analyzer
-                .named_call(&mut context, &mut call, &Loans::new(), None)
+                .expression(&mut context, &mut call, Mode::Consume, &Loans::new(), None)
                 .unwrap(),
             Type::Int
         );
@@ -15409,14 +15163,14 @@ fn stored_named_calls_use_registered_signature_hints_and_consuming_access() {
         if once {
             assert_eq!(
                 analyzer
-                    .named_call(&mut context, &mut call, &Loans::new(), None)
+                    .expression(&mut context, &mut call, Mode::Consume, &Loans::new(), None)
                     .unwrap_err()
                     .code,
                 "closure-consumed"
             );
         } else {
             analyzer
-                .named_call(&mut context, &mut call, &Loans::new(), None)
+                .expression(&mut context, &mut call, Mode::Consume, &Loans::new(), None)
                 .unwrap();
             assert!(context.bindings[binding].mutable);
         }
