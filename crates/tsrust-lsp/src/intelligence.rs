@@ -2446,7 +2446,7 @@ impl SourceIndex {
         if let Some(ty) = self.checked_view(dot - 1) {
             return ty.into();
         }
-        let ty = self.receiver_type_end(dot - 1, 0);
+        let ty = self.written_type(&self.receiver_type_end(dot - 1, 0));
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
                 && (self.native_type_aliases.contains_key(inner) || self.deque_element(inner).is_some()) {
@@ -3246,7 +3246,7 @@ impl SourceIndex {
             }
         }
         if (matches!(self.text(token), "flat" | "flatMap")
-            || (receiver=="@namespace:std:schema#s" && matches!(self.text(token),"union"|"discriminatedUnion"))
+            || (receiver=="@namespace:std:schema#s" && matches!(self.text(token),"union"|"discriminatedUnion"|"recursive"))
             || (receiver == "Array" && matches!(self.text(token),"of"|"from"))
             || (receiver == "Map" && self.text(token)=="groupBy"))
             && let Some(open) = self.member_call_open(token)

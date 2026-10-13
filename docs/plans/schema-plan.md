@@ -2517,3 +2517,42 @@ failure remains in `tsrust-recursive-explicit-layout-repair.log`. This is focuse
 compiler/native evidence, not complete recursive or S11 acceptance. Recursive
 IntelliSense, executable catalog examples, matched benchmark support and milestone
 regressions/measurements remain open. Installed consumers are unchanged.
+
+### Recursive editor integration in progress
+
+The editor catalog now documents `s.recursive`, including inferred and explicit
+outputs, builder-once evaluation, terminating recursion, ownership and a nested
+JSON example. Completion/hover regression witnesses cover namespace aliases.
+Checked method signatures now include recursive builders when substituting their
+actual result type. These changes are not yet validated or accepted.
+
+The next editor repair must preserve recursive identity in project facts.
+`project_type_inner` currently returns no fact on a repeated type, while
+`project_record` starts a fresh traversal for structural fields. Recursive schema
+objects therefore need a bounded graph reference representation, shared traversal
+state and editor references that retain nested member completion without endlessly
+expanding hover text. Cover inferred objects, explicit named outputs, array/union
+roots, incomplete editing and nested Result payloads before section validation.
+The catalog example and matched recursive workload support remain unverified.
+
+### Recursive project facts and first editor evidence
+
+Project facts now share traversal state through structural fields and schema
+input/output types. Recursive union definitions and structural back references
+remain explicit rather than disappearing or recursively restarting traversal.
+The editor registers access aliases separately from bounded `self` hover labels.
+
+The schema-editing section passed ten witnesses initially; its new recursive
+witness passed nested field completion but exposed an internal name in hover.
+After the display repair, that witness passes too. Evidence:
+`tsrust-recursive-editor-section.log` and
+`tsrust-recursive-editor-hover-repair.log`. This covers inferred recursive object
+completion and bounded hover, alongside existing schema editing and the new
+aliased recursive builder completion/hover. Explicit named outputs, recursive
+array/union roots and incomplete recursive editing still need dedicated editor
+coverage. Catalog example execution and matched recursive benchmarks remain open.
+No full S11 acceptance, timing or installed-consumer refresh is claimed.
+
+The recursive catalog example also executed successfully with the verified native
+CLI (`tsrust-recursive-catalog-example.log`). Whole-project checkpoint formatting
+changed no files or source fingerprints (`tsrust-recursive-editor-checkpoint-format.log`).

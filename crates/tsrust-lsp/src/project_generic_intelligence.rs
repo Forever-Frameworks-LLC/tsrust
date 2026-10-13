@@ -89,12 +89,32 @@ impl SourceIndex {
                     &self.project_type_spelling(graph, current, result, dependencies)?,
                 ))
             }
+            ProjectType::StructuralReference { identity, retained } => {
+                let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+                let flavor=if *retained {"retained_"}else{""};
+                Some(format!("__tsrust_private_schema_{flavor}{source}_{identity}"))
+            }
+            ProjectType::RecursiveReference { identity } => {
+                let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+                Some(format!("__tsrust_private_recursive_{source}_{identity}"))
+            }
+            ProjectType::Recursive { identity, body } => {
+                let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
+                let owner=format!("__tsrust_private_recursive_{source}_{identity}");
+                // Register the back edge before visiting fields. Hover uses a finite
+                // self label; access expands the alias only at the requested hop.
+                self.generic_display_names.insert(owner.clone(), "self".into());
+                let body=self.project_type_spelling(graph,current,body,dependencies)?;
+                self.type_aliases.insert(owner, body.clone());
+                Some(body)
+            }
             ProjectType::Structural { identity, retained, fields } => {
                 let source=current.0.as_bytes().iter().map(|byte|format!("{byte:02x}")).collect::<String>();
                 let flavor=if *retained {"retained_"}else{""};
                 let owner=format!("__tsrust_private_schema_{flavor}{source}_{identity}");
+                self.generic_display_names.insert(owner.clone(), "self".into());
                 let fields=fields.iter().map(|(name,optional,ty)|Some((name.clone(),*optional,self.project_type_spelling(graph,current,ty,dependencies)?))).collect::<Option<Vec<_>>>()?;
-                let display=format!("{{ {} }}",fields.iter().map(|(name,optional,ty)|format!("{name}{}: {};",if *optional {"?"}else{""},self.generic_display_names.get(ty).unwrap_or(ty))).collect::<Vec<_>>().join(" "));
+                let display=format!("{{ {} }}",fields.iter().map(|(name,optional,ty)|format!("{name}{}: {};",if *optional {"?"}else{""},self.display_type(ty))).collect::<Vec<_>>().join(" "));
                 self.generic_display_names.insert(owner.clone(),display);
                 if !self.symbols.iter().any(|symbol|symbol.owner.as_ref()==Some(&owner)) {
                     for (name,optional,ty) in fields {

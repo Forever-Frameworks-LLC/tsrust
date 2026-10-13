@@ -27,6 +27,9 @@ pub enum ProjectType {
         arguments: Vec<ProjectType>,
     },
     Structural { identity: usize, retained: bool, fields: Vec<(String, bool, ProjectType)> },
+    StructuralReference { identity: usize, retained: bool },
+    Recursive { identity: usize, body: Box<ProjectType> },
+    RecursiveReference { identity: usize },
     Array(Box<ProjectType>),
     Union(Vec<ProjectType>),
     Tuple(Vec<ProjectType>),
@@ -255,7 +258,14 @@ impl ProjectAnalysis {
         active: &mut HashSet<Type>,
     ) -> Option<ProjectType> {
         if !active.insert(ty) {
-            return None;
+            return match ty {
+                Type::Record(id) => Some(ProjectType::StructuralReference {
+                    identity: id, retained: self.analysis.program.records[id].name.text.starts_with("@schema:retained:"),
+                }),
+                Type::Union(id) | Type::BorrowedUnion(id) if self.analysis.program.unions[id.index()].recursive =>
+                    Some(ProjectType::RecursiveReference { identity: id.index() }),
+                _ => None,
+            };
         }
         let result = self.project_type_value(ty, names, active);
         active.remove(&ty);
@@ -352,7 +362,7 @@ impl ProjectAnalysis {
                 return self.project_type_inner(Type::Callback(declaration), names, active);
             }
             Type::Map(id) => {
-                if self.analysis.program.records[id].native_type.is_some(){return self.project_record(id,names);}
+                if self.analysis.program.records[id].native_type.is_some(){return self.project_record_inner(id,names,active);}
                 let map=self.analysis.program.records[id].map_definition.as_ref()?;
                 return Some(ProjectType::Named {name:"Map".into(),declaration:None,arguments:vec![self.project_type_inner(map.key,names,active)?,self.project_type_inner(map.value,names,active)?]});
             },
@@ -361,7 +371,7 @@ impl ProjectAnalysis {
                 arguments: vec![self.project_type_inner(self.analysis.program.records[id].set_definition.as_ref()?.key, names, active)?],
             }),
             Type::Literal(id,_)=>return Some(ProjectType::Named{name:self.analysis.program.records[id].literal_definition.as_ref()?.text(),declaration:None,arguments:vec![]}),
-            Type::Record(id) | Type::Enum(id, _) => return self.project_record(id, names),
+            Type::Record(id) | Type::Enum(id, _) => return self.project_record_inner(id, names, active),
             Type::Array(element) => {
                 return Some(ProjectType::Array(Box::new(self.project_type_inner(
                     element.ty(),
@@ -374,13 +384,14 @@ impl ProjectAnalysis {
                     let arguments = variants.into_iter().map(|record| self.project_type_inner(crate::result_identity::payload(&self.analysis.program.records[record])?, names, active)).collect::<Option<_>>()?;
                     return Some(ProjectType::Named { name: "Result".into(), declaration: None, arguments });
                 }
-                return Some(ProjectType::Union(
-                    self.analysis.program.unions[id.index()]
-                        .members
-                        .iter()
+                let body = ProjectType::Union(
+                    self.analysis.program.unions[id.index()].members.iter()
                         .map(|ty| self.project_type_inner(*ty, names, active))
                         .collect::<Option<_>>()?,
-                ));
+                );
+                return Some(if self.analysis.program.unions[id.index()].recursive {
+                    ProjectType::Recursive { identity: id.index(), body: Box::new(body) }
+                } else { body });
             }
             _ => return None,
         };
@@ -391,11 +402,14 @@ impl ProjectAnalysis {
         })
     }
     fn project_record(&self, id: usize, names: &HashMap<&str, usize>) -> Option<ProjectType> {
+        self.project_type(Type::Record(id), names)
+    }
+    fn project_record_inner(&self, id: usize, names: &HashMap<&str, usize>, active: &mut HashSet<Type>) -> Option<ProjectType> {
         let record = &self.analysis.program.records[id];
         if let Some((input, output, json_input)) = self.analysis.program.schema_pipelines.types(id) {
             return Some(ProjectType::SchemaPipeline {
-                identity: id, input: Box::new(self.project_type(input, names)?),
-                output: Box::new(self.project_type(output, names)?), json_input,
+                identity: id, input: Box::new(self.project_type_inner(input, names, active)?),
+                output: Box::new(self.project_type_inner(output, names, active)?), json_input,
                 text_input: self.analysis.program.schema_pipelines.accepts_text(id),
                 scalar_constraints: self.analysis.program.schema_pipelines.wrapper(id).is_some_and(|plan|
                     matches!(output, Type::Int | Type::Number | Type::String)
@@ -414,7 +428,7 @@ impl ProjectAnalysis {
         }
         if let Some(identity) = record.native_type {
             if let Some(application) = &record.application {
-                let arguments = application.resolved_arguments.iter().map(|ty| self.project_type(*ty, names)).collect::<Option<Vec<_>>>()?;
+                let arguments = application.resolved_arguments.iter().map(|ty| self.project_type_inner(*ty, names, active)).collect::<Option<Vec<_>>>()?;
                 if !arguments.is_empty() { return Some(ProjectType::AppliedNative(identity, arguments)); }
             }
             return Some(ProjectType::Native(identity));
@@ -422,14 +436,14 @@ impl ProjectAnalysis {
         if let Some(application) = &record.application {
             let variant = match application.declaration.text.as_str() { "Result#Ok" => Some("Ok"), "Result#Err" => Some("Err"), _ => None };
             if let Some(name) = variant {
-                return Some(ProjectType::Variant { name: name.into(), payload: Box::new(self.project_type(crate::result_identity::payload(record)?, names)?) });
+                return Some(ProjectType::Variant { name: name.into(), payload: Box::new(self.project_type_inner(crate::result_identity::payload(record)?, names, active)?) });
             }
         }
         if record.is_tuple() {
-            return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type(field.ty?,names)).collect::<Option<_>>()?));
+            return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type_inner(field.ty?,names,active)).collect::<Option<_>>()?));
         }
         if record.name.text.starts_with("@module:object:")||record.name.text.starts_with("@schema:decode-error-")||record.name.text.starts_with("@schema:object:")||record.name.text.starts_with("@schema:input:")||record.name.text.starts_with("@schema:retained:") {
-            return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), field.optional, self.project_type(field.ty?, names)?))).collect::<Option<_>>()? });
+            return Some(ProjectType::Structural { identity: id, retained: record.name.text.starts_with("@schema:retained:"), fields: record.fields.iter().map(|field| Some((field.name.text.clone(), field.optional, self.project_type_inner(field.ty?, names, active)?))).collect::<Option<_>>()? });
         }
         let declaration = self.source_location(
             record

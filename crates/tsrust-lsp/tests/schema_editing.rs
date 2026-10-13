@@ -92,3 +92,36 @@ fn constraint_options_offer_message_inside_second_argument() {
     let items=request(source,"{ mes","textDocument/completion");
     assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="message"),"{items}");
 }
+
+#[test]
+fn recursive_builder_completes_with_aliases_and_explains_self() {
+    for namespace in ["s", "rules"] {
+        let source=format!("import {{s as {namespace}}} from 'std:schema';function main(){{{namespace}.\nconsole.log('next');}}");
+        let items=request(&source,&format!("{namespace}."),"textDocument/completion");
+        assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="recursive"),"{items}");
+        let source=format!("import {{s as {namespace}}} from 'std:schema';const tree={namespace}.recursive(self=>{namespace}.object({{value:{namespace}.int(),children:{namespace}.array(self)}}));function main(){{}}");
+        let hover=request(&source,".recursive","textDocument/hover").to_string();
+        assert!(hover.contains("once") && hover.contains("self") && hover.contains("owned"),"{hover}");
+    }
+}
+
+#[test]
+fn recursive_checked_outputs_keep_nested_members_and_bounded_hover() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    let source="import {s} from 'std:schema';const tree=s.recursive(self=>s.object({value:s.int(),children:s.array(self)}));function main(){match(tree.safeParseJson('{\"value\":1,\"children\":[]}')){Ok(value)=>{console.log(value.children[0].value);},Err(error)=>{console.log('invalid');}}}";
+    let uri="file:///recursive-schema-editing.tsr";
+    let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
+    let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for needle in ["console.log(value.","console.log(value.children[0]."] {
+        let offset=source.find(needle).unwrap()+needle.len();
+        let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        for field in ["value","children"] {
+            assert!(items.as_array().unwrap().iter().any(|item|item["label"]==field),"{needle}: {items}");
+        }
+    }
+    let offset=source.find("const tree").unwrap()+"const tr".len();
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
+    assert!(hover.contains("children") && hover.contains("value"),"{hover}");
+    assert!(!hover.contains("__tsrust_private_") && hover.len()<12000,"{hover}");
+}
