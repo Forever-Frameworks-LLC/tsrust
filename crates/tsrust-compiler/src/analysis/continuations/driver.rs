@@ -84,6 +84,9 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    Unary { frame: Box<super::operators::UnaryFrame>, expected: Option<Type> },
+    BinaryLeft(Box<super::operators::BinaryFrame>),
+    BinaryRight(Box<super::operators::BinaryFrame>),
     IndexBase(super::access::IndexFrame),
     IndexOperand(super::access::IndexOperand),
     Field { frame: super::access::FieldFrame, mode: Mode, rewrite: Option<String> },
@@ -396,6 +399,42 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
             }
         }
+        ExpressionState::Unary { frame, expected } => {
+            let Completion::Expression(value, checked) = completion.expect("unary operand completed") else { unreachable!("unary operand result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Unary { value: destination, .. } = &mut expr.kind else { unreachable!("unary operand slot"); };
+            *destination = value.into_child();
+            let result = analyzer.finish_unary_work(context, expr, *frame, checked, expected);
+            finish_expression(analyzer, context, task, result)
+        }
+        ExpressionState::BinaryLeft(mut frame) => {
+            let Completion::Expression(value, checked) = completion.expect("left operand completed") else { unreachable!("binary operand result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Binary { left, .. } = &mut expr.kind else { unreachable!("left operand slot"); };
+            *left = value.into_child();
+            let operand = match analyzer.finish_binary_left_work(context, expr, &mut frame, checked, &task.loans) {
+                Ok(operand) => operand,
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            };
+            let ExprKind::Binary { right, .. } = &mut expr.kind else { unreachable!("right operand slot"); };
+            let span = right.span;
+            let value = std::mem::replace(right, Box::new(Expr::new(ExprKind::Undefined, span)));
+            let loans = operand.loans.map_or_else(|| task.loans.clone(), |loans| ActiveLoans::Shared(std::rc::Rc::new(loans)));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, operand.mode, loans, operand.expected));
+            task.state = ExpressionState::BinaryRight(frame);
+            Step::Push(Task::Expression(task), child)
+        }
+        ExpressionState::BinaryRight(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("right operand completed") else { unreachable!("binary operand result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Binary { right, .. } = &mut expr.kind else { unreachable!("right operand slot"); };
+            *right = value.into_child();
+            let result = analyzer.finish_binary_right_work(context, expr, *frame, checked);
+            finish_expression(analyzer, context, task, result)
+        }
         ExpressionState::Start => {
             debug_assert!(completion.is_none());
             let context = contexts.get(task.context);
@@ -410,6 +449,31 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            match analyzer.prepare_unary_work(context, expr, mode, expected) {
+                Ok(Some(super::operators::UnaryWork::Ready(ty))) => return finish_expression(analyzer, context, task, Ok(ty)),
+                Ok(Some(super::operators::UnaryWork::Child(frame, operand))) => {
+                    let ExprKind::Unary { value, .. } = &mut expr.kind else { unreachable!("unary first operand"); };
+                    let span = value.span;
+                    let value = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, operand.mode, task.loans.clone(), operand.expected));
+                    task.state = ExpressionState::Unary { frame: Box::new(frame), expected };
+                    return Step::Push(Task::Expression(task), child);
+                }
+                Ok(None) => (),
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            }
+            match analyzer.prepare_binary_work(context, expr, expected) {
+                Ok(Some((frame, operand))) => {
+                    let ExprKind::Binary { left, .. } = &mut expr.kind else { unreachable!("binary first operand"); };
+                    let span = left.span;
+                    let value = std::mem::replace(left, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, operand.mode, task.loans.clone(), operand.expected));
+                    task.state = ExpressionState::BinaryLeft(Box::new(frame));
+                    return Step::Push(Task::Expression(task), child);
+                }
+                Ok(None) => (),
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            }
             match analyzer.prepare_literal_work(context, expr, expected) {
                 Ok(Some(frame)) => return schedule_literal(analyzer, context, task, Box::new(frame)),
                 Ok(None) => {},
@@ -712,6 +776,32 @@ mod tests {
                     assert!(matches!(index.kind, ExprKind::Boolean(true)));
                 }
             }
+        }
+    }
+
+    #[test]
+    fn failed_operator_operands_restore_observation_and_partial_trees() {
+        for (result, expression) in [
+            ("string", "typeof (1 + true)"),
+            ("boolean", "null === (1 + true)"),
+            ("boolean", "undefined !== (1 + true)"),
+        ] {
+            let source = formatted(&format!("function main():{result}{{return {expression};}}"));
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let body = &mut parsed.functions[0].body;
+            let ty = if result == "string" { Type::String } else { Type::Boolean };
+            let StmtKind::Return(Some(value)) = &mut body[0].kind else { panic!("return expression"); };
+            // Isolate expression cleanup from the block's separate error policy.
+            let error = check_expression(&mut analyzer, &mut context, value, Mode::Consume, &Loans::new(), Some(ty)).unwrap_err();
+            assert_eq!(error.code, "type");
+            assert_eq!(&source[error.span.start..error.span.end], "+");
+            assert!(!analyzer.observing_values);
+            assert!(context.observer_places.is_empty());
+            assert!(context.flow.keys().all(|place| place.fields.iter().all(|field| !field.starts_with("\0comparison:"))));
+            assert_eq!(analyzer.depth, 0);
+            assert!(matches!(body[0].kind, StmtKind::Return(Some(_))));
         }
     }
 

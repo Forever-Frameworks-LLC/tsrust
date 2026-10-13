@@ -51,6 +51,11 @@ impl Emitter<'_> {
     pub(super) fn logical_not(&self, fun: &CheckedFunction, value: &Expr) -> String {
         let ty = value.ty.expect("checked truthiness operand");
         let source = if ty.is_copy() { self.expr(fun, value, Mode::Copy) } else { self.conditional_arm(fun, value, Mode::Read) };
+        self.finish_logical_not(value, source)
+    }
+
+    pub(super) fn finish_logical_not(&self, value: &Expr, source: String) -> String {
+        let ty = value.ty.expect("checked truthiness operand");
         let view = matches!(ty, Type::BorrowedUnion(_)) || ty.union().is_some_and(|id| !id.copy);
         let test = self.logical_truthy("logical_left", if view { Type::BorrowedUnion(ty.union().expect("union view")) } else { ty }, !ty.is_copy());
         format!("{{let logical_left={source}; !({test})}}")

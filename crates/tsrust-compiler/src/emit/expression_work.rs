@@ -6,6 +6,8 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    Unary { temporary: Option<usize> },
+    Binary,
     NullableParameterField { method: String },
     NamedAccess { discards: Vec<bool>, first_temporary: usize },
     TemporaryAccess {
@@ -176,6 +178,30 @@ impl<'p> Emitter<'p> {
         }
         if let Some(access) = self.prepare_storage_access_work(fun, expr) {
             return Some(access);
+        }
+        if let ExprKind::Unary { op, value, .. } = &expr.kind
+            && matches!(op, UnaryOp::Typeof | UnaryOp::Void | UnaryOp::VariantIs(_) | UnaryOp::Not | UnaryOp::Positive | UnaryOp::Negate | UnaryOp::BitNot)
+        {
+            let unresolved = matches!(op, UnaryOp::Typeof | UnaryOp::Void)
+                && matches!(&value.kind, ExprKind::Name(_) if value.binding.is_none() && value.ty == Some(Type::Undefined));
+            let logical = *op == UnaryOp::Not && value.ty.is_some_and(|ty| !matches!(ty, Type::Boolean | Type::Null | Type::Undefined));
+            let conditional = (*op == UnaryOp::Typeof && value.ty.and_then(Type::union).is_some())
+                || (logical && !value.ty.unwrap().is_copy());
+            let (child_mode, temporary) = if conditional { self.prepare_conditional_arm_work(fun, value, Mode::Read) }
+                else { (if matches!(op, UnaryOp::Typeof | UnaryOp::Void | UnaryOp::VariantIs(_)) { Mode::Read } else { Mode::Copy }, None) };
+            let children = if unresolved { Vec::new() } else { vec![(value.as_ref(), child_mode)] };
+            return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Unary { temporary } });
+        }
+        if let ExprKind::Binary { op, left, right, .. } = &expr.kind
+            && !matches!(op, BinaryOp::Coalesce | BinaryOp::PatternDefault)
+            && (!matches!(op, BinaryOp::And | BinaryOp::Or) || (left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)))
+        {
+            let comparison = matches!(op, BinaryOp::Equal | BinaryOp::NotEqual)
+                && (matches!(left.ty, Some(Type::Null | Type::Undefined))
+                    || matches!(right.ty, Some(Type::Null | Type::Undefined))
+                    || left.ty.and_then(Type::union).is_some() || right.ty.and_then(Type::union).is_some());
+            let mode = if comparison || left.ty.map(Type::scalar_base) == Some(Type::String) { Mode::Read } else { Mode::Copy };
+            return Some(CallFrame { children: vec![(left, mode), (right, mode)], rendered: Vec::new(), invocation: None, state: CallState::Binary });
         }
         let structural = match &expr.kind {
             ExprKind::Array(values) | ExprKind::ArrayOf(values, _) => Some((
@@ -401,7 +427,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -410,7 +436,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -657,6 +683,37 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
+            CallState::Unary { temporary } => {
+                let ExprKind::Unary { op, value, .. } = &expr.kind else { unreachable!("unary work"); };
+                let mut rendered = rendered.into_iter().next().map(|code| self.finish_conditional_arm_work(value, Mode::Read, temporary, code));
+                if *op == UnaryOp::BitNot && value.ty == Some(Type::Number) {
+                    let code = rendered.take().expect("bitwise operand");
+                    return format!("{{ let number_value: f64 = {code}; (!tsr_math_uint32(number_value) as i32) as f64 }}");
+                }
+                if *op == UnaryOp::Not && value.ty.is_some_and(|ty| !matches!(ty, Type::Boolean | Type::Null | Type::Undefined)) {
+                    return self.finish_logical_not(value, rendered.take().expect("truthiness operand"));
+                }
+                return match self.unary_expression_code_with(expr, mode, &mut |_, _, _| rendered.take().expect("completed unary operand")) {
+                    Ok(code) => Self::access_wrapped(expr, mode, code),
+                    Err(complete) => complete,
+                };
+            }
+
+            CallState::Binary => {
+                let ExprKind::Binary { op, operator, left, .. } = &expr.kind else { unreachable!("binary work"); };
+                let mut rendered = rendered.into_iter();
+                if op.bitwise_or_power() {
+                    let first = rendered.next().expect("left operand");
+                    let second = rendered.next().expect("right operand");
+                    return if left.ty == Some(Type::Int) { self.int_bitwise_or_power(*op, &first, &second, *operator) }
+                        else { Self::number_operation(*op, &first, &second) };
+                }
+                return match self.binary_expression_code_with(expr, &mut |_, _| rendered.next().expect("completed binary operand")) {
+                    Ok(code) => Self::access_wrapped(expr, mode, code),
+                    Err(complete) => complete,
+                };
+            }
+
             CallState::NullableParameterField { method } => {
                 return Self::finish_nullable_record_parameter_field(expr, &method, rendered.into_iter().next().expect("completed nullable receiver"));
             }
@@ -1079,6 +1136,33 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mixed_unary_binary_operands_share_the_emission_stack() {
+        fn payload(expr: &mut Expr) -> &mut Expr {
+            let ExprKind::Unary { value, .. } = &mut expr.kind else { panic!("unary"); };
+            let ExprKind::Binary { left, .. } = &mut value.kind else { panic!("binary"); };
+            left
+        }
+        let checked = crate::check("function probe():int{return -(987654321+1);} function main(){console.log(probe());}").unwrap();
+        let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+        let StmtKind::Return(Some(template)) = &fun.body[0].kind else { panic!("return"); };
+        let emitter = super::super::emitter_for(&checked.program, "");
+        let mut parent = template.clone();
+        let mut nested = payload(&mut parent).clone();
+        let leaf = emitter.expr(fun, &nested, Mode::Copy);
+        let shallow = emitter.expr(fun, template, Mode::Copy);
+        let (prefix, suffix) = shallow.split_once(&leaf).expect("operand emission");
+        // Emission isolation; this is a witness, not a source-language ceiling.
+        for _ in 0..4096 {
+            let mut parent = template.clone();
+            *payload(&mut parent) = nested;
+            nested = parent;
+        }
+        assert!(emitter.expr(fun, &nested, Mode::Copy) == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+        assert_eq!(emitter.expression_depth.get(), 0);
+        assert!(emitter.conditional_temporaries.borrow().is_empty());
+    }
 
     #[test]
     fn named_index_operands_share_the_emission_stack() {

@@ -6830,8 +6830,13 @@ impl Analyzer {
     }
 
     fn non_null_assertion(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
-        let ExprKind::Unary { value, operator, .. } = &mut expr.kind else { unreachable!() };
+        let ExprKind::Unary { value, .. } = &mut expr.kind else { unreachable!() };
         let actual = self.expression(context, value, mode, loans, None)?;
+        self.finish_non_null_work(expr, mode, expected, actual)
+    }
+
+    fn finish_non_null_work(&mut self, expr: &mut Expr, mode: Mode, expected: Option<Type>, actual: Type) -> Result<Type, Diagnostic> {
+        let ExprKind::Unary { value, operator, .. } = &mut expr.kind else { unreachable!("non-null completion"); };
         let result = if let Some(union) = actual.union() {
             let present = self.unions.members(union).into_iter().filter(|ty| !matches!(ty,Type::Null|Type::Undefined)).collect::<Vec<_>>();
             if present.is_empty() { return Err(Diagnostic::new("non-null", "This value can only be null or undefined; `!` cannot produce a present value. Use `??` with a fallback instead.", *operator)); }
@@ -7495,6 +7500,14 @@ impl Analyzer {
         self.observing_values = observing;
         capture_boundary.unwind(&mut context.capture_loans);
         let (left_type, right_type, stable) = result?;
+        self.finish_union_equality_work(context, (expr_span, operator), op, left, right, left_type, right_type, stable)
+    }
+
+    fn finish_union_equality_work(
+        &mut self, context: &mut Context, spans: (Span, Span), op: BinaryOp,
+        left: &Expr, right: &Expr, left_type: Type, right_type: Type, stable: bool,
+    ) -> Result<Type, Diagnostic> {
+        let (expr_span, operator) = spans;
         let primitive = |ty: Type| {
             matches!(ty.scalar_base(), Type::Int | Type::Number | Type::Boolean | Type::String | Type::Null | Type::Undefined | Type::Enum(_,_))
         };

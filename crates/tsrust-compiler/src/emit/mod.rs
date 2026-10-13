@@ -7292,41 +7292,31 @@ impl Emitter<'_> {
     }
 
     fn conditional_arm(&self, fun: &CheckedFunction, arm: &Expr, mode: Mode) -> String {
-        if Self::borrowed_place_expression(fun, arm) {
-            return self.expr(fun, arm, mode);
-        }
-        if matches!(arm.ty, Some(Type::BorrowedUnion(_))) {
-            return self.expr(fun, arm, Mode::Read);
-        }
+        let (child_mode, temporary) = self.prepare_conditional_arm_work(fun, arm, mode);
+        let code = self.expr(fun, arm, child_mode);
+        self.finish_conditional_arm_work(arm, mode, temporary, code)
+    }
+
+    fn prepare_conditional_arm_work(&self, fun: &CheckedFunction, arm: &Expr, mode: Mode) -> (Mode, Option<usize>) {
+        if Self::borrowed_place_expression(fun, arm) { return (mode, None); }
+        if matches!(arm.ty, Some(Type::BorrowedUnion(_))) { return (Mode::Read, None); }
         if matches!(mode, Mode::Read | Mode::Mutate)
-            && !matches!(
-                arm.kind,
-                ExprKind::CoalesceAssign { .. }
-                    | ExprKind::Conditional { .. }
-                    | ExprKind::Binary {
-                        op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or,
-                        ..
-                    }
-            )
+            && !matches!(arm.kind, ExprKind::CoalesceAssign { .. } | ExprKind::Conditional { .. }
+                | ExprKind::Binary { op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or, .. })
             && Self::temporary_storage(arm)
         {
             let id = self.conditional_next.get();
             self.conditional_next.set(id + 1);
-            self.conditional_temporaries
-                .borrow_mut()
-                .push(format!("let mut conditional_temporary_{id};"));
-            let owned = self.expr(fun, arm, Mode::Consume);
-            let borrow = if mode == Mode::Mutate { "&mut " } else { "&" };
-            let code = format!(
-                "{{ conditional_temporary_{id} = {owned}; {borrow}conditional_temporary_{id} }}"
-            );
-            return if matches!(arm.ty,Some(Type::Union(id)) if !id.copy) && mode == Mode::Read {
-                format!("({code}).tsr_view()")
-            } else {
-                code
-            };
-        }
-        self.expr(fun, arm, mode)
+            self.conditional_temporaries.borrow_mut().push(format!("let mut conditional_temporary_{id};"));
+            (Mode::Consume, Some(id))
+        } else { (mode, None) }
+    }
+
+    fn finish_conditional_arm_work(&self, arm: &Expr, mode: Mode, temporary: Option<usize>, code: String) -> String {
+        let Some(id) = temporary else { return code; };
+        let borrow = if mode == Mode::Mutate { "&mut " } else { "&" };
+        let code = format!("{{ conditional_temporary_{id} = {code}; {borrow}conditional_temporary_{id} }}");
+        if matches!(arm.ty, Some(Type::Union(id)) if !id.copy) && mode == Mode::Read { format!("({code}).tsr_view()") } else { code }
     }
 
     fn concat_call(
@@ -8059,6 +8049,12 @@ impl Emitter<'_> {
 
     // Err carries code that is already complete for the requested access.
     fn unary_expression_code(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> Result<String, String> {
+        self.unary_expression_code_with(expr, mode, &mut |value, mode, conditional| {
+            if conditional { self.conditional_arm(fun, value, mode) } else { self.expr(fun, value, mode) }
+        })
+    }
+
+    fn unary_expression_code_with(&self, expr: &Expr, mode: Mode, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> Result<String, String> {
         let ExprKind::Unary { op, operator, value } = &expr.kind else {
             unreachable!("unary expression")
         };
@@ -8067,27 +8063,27 @@ impl Emitter<'_> {
             let union = value.ty.and_then(Type::union).expect("checked variant test");
             let index = self.program.unions[union.index()].members.iter().position(|member| member == variant).expect("checked alternative");
             let family = if !union.copy || matches!(value.ty, Some(Type::BorrowedUnion(_))) { "ViewUnion" } else { "Union" };
-            return Err(format!("matches!({}, {family}{}::V{index}(_))", self.expr(fun, value, Mode::Read), union.index()));
+            return Err(format!("matches!({}, {family}{}::V{index}(_))", render(value, Mode::Read, false), union.index()));
         }
         if matches!(op, UnaryOp::Typeof | UnaryOp::Void) {
             let unresolved = matches!(&value.kind, ExprKind::Name(_) if value.binding.is_none() && value.ty == Some(Type::Undefined));
             if *op == UnaryOp::Typeof
                 && let Some(union) = value.ty.and_then(Type::union)
             {
-                let value = self.conditional_arm(fun, value, Mode::Read);
+                let value = render(value, Mode::Read, true);
                 return Err(Self::access_wrapped(expr, mode, self.union_typeof(union, &format!("&({value})"))));
             }
             if *op==UnaryOp::Typeof && matches!(value.ty,Some(Type::Record(id)) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::StringView)) {
-                let operand=self.expr(fun,value,Mode::Read);return Err(Self::access_wrapped(expr,mode,format!("{{let _={operand};String::Borrowed(\"string\")}}")));
+                let operand=render(value, Mode::Read, false);return Err(Self::access_wrapped(expr,mode,format!("{{let _={operand};String::Borrowed(\"string\")}}")));
             }
             if *op == UnaryOp::Typeof && matches!(value.ty, Some(Type::Record(id)) if matches!(self.program.records[id].native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
-                let operand = self.expr(fun, value, Mode::Read);
+                let operand = render(value, Mode::Read, false);
                 return Err(Self::access_wrapped(expr, mode, format!("String::Borrowed(tsrust_native_json::type_of(&({operand}).value))")));
             }
             let operand = if unresolved {
                 String::new()
             } else {
-                format!("let _ = {}; ", self.expr(fun, value, Mode::Read))
+                format!("let _ = {}; ", render(value, Mode::Read, false))
             };
             if *op == UnaryOp::Void {
                 return Err(format!("{{ {operand}TsrUndefined }}"));
@@ -8132,10 +8128,10 @@ impl Emitter<'_> {
             });
         }
         if *op == UnaryOp::Not && matches!(value.ty, Some(Type::Null | Type::Undefined)) {
-            return Err(format!("{{ let _ = {}; true }}", self.expr(fun, value, Mode::Copy)));
+            return Err(format!("{{ let _ = {}; true }}", render(value, Mode::Copy, false)));
         }
         let number = value.ty == Some(Type::Number);
-        let value = self.expr(fun, value, Mode::Copy);
+        let value = render(value, Mode::Copy, false);
         match op {
             UnaryOp::VariantIs(_) => unreachable!("variant test emitted separately"),
             UnaryOp::PatternSelection=>unreachable!("pattern selection lowered before emission"),
@@ -8306,6 +8302,10 @@ impl Emitter<'_> {
     // Equality operands are bound by a match scrutinee: its temporaries live
     // for the whole comparison, so a view of an owned call result stays valid.
     fn binary_expression_code(&self, fun: &CheckedFunction, expr: &Expr) -> Result<String, String> {
+        self.binary_expression_code_with(expr, &mut |value, mode| self.expr(fun, value, mode))
+    }
+
+    fn binary_expression_code_with(&self, expr: &Expr, render: &mut impl FnMut(&Expr, Mode) -> String) -> Result<String, String> {
         let ExprKind::Binary { op, operator, left, right } = &expr.kind else {
             unreachable!("binary expression")
         };
@@ -8338,8 +8338,8 @@ impl Emitter<'_> {
             };
             return Err(format!(
                 "match ({}, {}) {{ (equality_left, equality_right) => {{ let _ = (&equality_left, &equality_right); {} }} }}",
-                self.expr(fun, left, Mode::Read),
-                self.expr(fun, right, Mode::Read),
+                render(left, Mode::Read),
+                render(right, Mode::Read),
                 if *op == BinaryOp::Equal {
                     equal
                 } else {
@@ -8353,15 +8353,15 @@ impl Emitter<'_> {
             let equal = self.union_equality(left.ty.expect("checked operand"), right.ty.expect("checked operand"));
             return Err(format!(
                 "match ({}, {}) {{ (equality_left, equality_right) => {{ let _ = (&equality_left, &equality_right); {} }} }}",
-                self.expr(fun, left, Mode::Read),
-                self.expr(fun, right, Mode::Read),
+                render(left, Mode::Read),
+                render(right, Mode::Read),
                 if *op == BinaryOp::Equal { equal } else { format!("!({equal})") }
             ));
         }
         let string = left.ty.map(Type::scalar_base) == Some(Type::String);
         let number = left.ty.map(Type::scalar_base) == Some(Type::Number);
-        let left = self.expr(fun, left, if string { Mode::Read } else { Mode::Copy });
-        let right = self.expr(fun, right, if string { Mode::Read } else { Mode::Copy });
+        let left = render(left, if string { Mode::Read } else { Mode::Copy });
+        let right = render(right, if string { Mode::Read } else { Mode::Copy });
         let checked = Self::checked_operator(*op);
         if string && *op == BinaryOp::Add {
             let failure = format!(

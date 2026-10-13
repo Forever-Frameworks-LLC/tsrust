@@ -404,3 +404,55 @@ an unfinished architecture migration. Parser/type-syntax work is assigned throug
 `docs/handoffs/2026-10-13-claude-parser-context.md`; Codex retains checker and emitter
 work and the integration/evidence writer role. No parser changes are included in
 this aggregate/access section.
+
+## Operator continuation source checkpoint
+
+`analysis/continuations/operators.rs` now retains operand modes, contextual types,
+string loans, observer places, capture-loan boundaries and comparison guard
+snapshots across the shared checker work stack. Arithmetic, ordering, ordinary
+strict equality, typeof guards, absent-sentinel equality and primitive-union
+equality schedule their left and right operands. Unary arithmetic, negation,
+truthiness, inspection, variant tests and non-null assertions schedule their
+operands while preserving diagnostic locations and narrowing completion.
+
+The emitter schedules ordinary unary/binary operands on its expression work
+stack. Conditional-arm preparation and completion are separate, preserving
+materialized temporary declarations and borrowed-union view conversion for typeof
+and truthiness. Equality still binds operands in its match scrutinee, preserving
+operand temporary lifetimes; checked arithmetic and special equality retain their
+existing access-wrapper policy. Non-null projection emission and synthesized
+wrappers remain compatibility paths and are not claimed stackless here.
+
+All 58 tests across operators, int operators, number operators, string operators,
+truthiness, data unions, nullable narrowing, non-null assertions and JSON typeof
+pass against matching CLI/library builds. This includes the formerly overflowing
+unary/binary nesting witness. A phase-isolated mixed unary/binary emission witness
+passes at 4,096 layers on a normal test-worker stack with exact output and empty
+temporary bookkeeping. The original operand-filtered unit run preserves three
+passes and a failed new cleanup witness; the corrected expression-only witness
+passes separately. No passing unrelated groups were restarted.
+
+The new witness initially assumed the wrong arithmetic diagnostic span (the
+existing contract points at `+`, not its boolean operand). It also expected a
+failed block to restore the analyzer's outer block depth. Existing block error
+handling returns without its successful scope-exit cleanup, so that assumption
+was outside the operator change. The corrected witness exercises the expression
+driver directly and proves observer, comparison-marker and expression-depth
+restoration while retaining the failed tree. Error restoration for suspended
+block scopes remains a concrete audit item; it must not be inferred from these
+expression checks.
+
+Full-source binary discovery completes samples 8, 16, 32 and 64 through disposal;
+size 128 still encounters the retained parser guard. These are diagnostic
+observations, not a support ceiling or formal scaling acceptance. The pending
+original depth failures are now assignment values and nullish coalescing. Logical
+branch checking, conditional/assignment state, synthesized wrappers, generic
+requests and other compatibility paths still require connected continuations.
+Parser/type-syntax work remains separate under the Claude handoff.
+
+Whole-project formatting changes zero files/fingerprints. SQLite records under
+`tsrust-nesting-operators-*` preserve the original interface output, both failed
+witness runs, the corrected witness, complete affected integration results,
+discovery sources/events, formatting and source/executable identity. Formal
+matched timing protocols and measurement status are unchanged. This checkpoint
+does not accept the full architecture or refresh installed consumers.
