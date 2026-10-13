@@ -301,36 +301,7 @@ impl Analyzer {
         value.wrap_record_carrier(destination);
         Ok(())
     }
-    /// Join two nullable callback-record unions of one declaration. The result
-    /// keeps the nullish members and holds one environment for every origin.
-    pub(super) fn join_nullable_record_unions(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic>{
-        if left==right{return Ok(None);}
-        let(Some(union),Some(_))=(left.union(),right.union())else{return Ok(None);};
-        let(Some(Type::Record(a)),Some(Type::Record(b)))=(self.unions.payload(left),self.unions.payload(right))else{return Ok(None);};
-        if self.scoped_records.declaration(a)!=self.scoped_records.declaration(b){return Ok(None);}
-        // An absent value holds no callback instance; the other environment is the join.
-        // The declaration itself names no environment either.
-        let declaration=self.scoped_records.declaration(a);
-        let empty=self.empty_scoped_record_environment(declaration)?;
-        let payload=if a==b || empty==Type::Record(b) || b==declaration{Type::Record(a)}else if empty==Type::Record(a) || a==declaration{Type::Record(b)}else{
-            let Some(joined)=self.join_sticky_record_types(a,b,span)? else{return Ok(None);};
-            joined
-        };
-        let members=self.unions.members(union).into_iter().map(|member|if matches!(member,Type::Record(_)){payload}else{member}).collect::<Vec<_>>();
-        self.unions.intern(members,span).map(Some)
-    }
-    /// Record join that also joins nullable callback-record fields.
-    pub(super) fn join_sticky_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
-        let(mut left,mut right)=(a,b);
-        for path in self.nullable_record_field_paths(Type::Record(a)) {
-            let(Some(first),Some(second))=(self.record_field_type(Type::Record(left),&path),self.record_field_type(Type::Record(right),&path))else{continue;};
-            let Some(joined)=self.join_nullable_record_unions(first,second,span)? else{continue;};
-            left=self.record_type_with_field(left,&path,joined).expect("checked nullable field path");
-            right=self.record_type_with_field(right,&path,joined).expect("checked nullable field path");
-        }
-        if left==right{return Ok((left!=a || right!=b).then_some(Type::Record(left)));}
-        Ok(self.join_record_types(left,right,span)?.or((left!=a).then_some(Type::Record(left))))
-    }
+
 
 
 }

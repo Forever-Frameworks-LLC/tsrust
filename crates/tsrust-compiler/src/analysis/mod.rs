@@ -2970,65 +2970,72 @@ impl Analyzer {
         Ok(checked)
     }
 
-    fn absent_callback(&mut self, id: usize) -> Type {
-        if let Some(&empty) = self.absent_callback_payloads.get(&id) {
-            return Type::Callback(empty);
-        }
-        let c = &self.callables.callbacks[id];
-        let contract = CallbackContract {
-            structural: c.structural,
-            parameter_names: c.parameter_names.clone(),
-            params: c.params.clone(),
-            result: c.result,
-            kind: c.kind,
-        };
-        let result = if let Type::Callable(result) = contract.result {
-            let c = &self.callables.results[result];
-            let shape = crate::callable_resolution::ResultContract {
+    fn absent_callback(&mut self, mut id: usize) -> Type {
+        let mut parents=Vec::new();
+        let mut result=loop {
+            if let Some(&empty) = self.absent_callback_payloads.get(&id) {
+                break Type::Callback(empty);
+            }
+            let c = &self.callables.callbacks[id];
+            let contract = CallbackContract {
                 structural: c.structural,
+                parameter_names: c.parameter_names.clone(),
                 params: c.params.clone(),
                 result: c.result,
+                kind: c.kind,
             };
-            let source = if let Some(source) = self
-                .callables
-                .callbacks
-                .iter()
-                .position(|c| c.structural == shape.structural)
-            {
-                source
-            } else {
-                let source = self.callables.callbacks.len();
-                let kind = self
+            if let Type::Callable(result) = contract.result {
+                let c = &self.callables.results[result];
+                let shape = crate::callable_resolution::ResultContract {
+                    structural: c.structural,
+                    params: c.params.clone(),
+                    result: c.result,
+                };
+                let source = if let Some(source) = self
                     .callables
-                    .shapes
-                    .get(shape.structural)
-                    .kind
-                    .unwrap_or(CallbackKind::Owned);
-                self.callables.callbacks.push(CallbackContract {
-                    structural: shape.structural,
-                    parameter_names: (0..shape.params.len())
-                        .map(|i| format!("argument{i}"))
-                        .collect(),
-                    params: shape.params,
-                    result: shape.result,
-                    kind,
-                });
-                source
-            };
-            self.absent_callback(source)
-        } else {
-            contract.result
+                    .callbacks
+                    .iter()
+                    .position(|c| c.structural == shape.structural)
+                {
+                    source
+                } else {
+                    let source = self.callables.callbacks.len();
+                    let kind = self
+                        .callables
+                        .shapes
+                        .get(shape.structural)
+                        .kind
+                        .unwrap_or(CallbackKind::Owned);
+                    self.callables.callbacks.push(CallbackContract {
+                        structural: shape.structural,
+                        parameter_names: (0..shape.params.len())
+                            .map(|i| format!("argument{i}"))
+                            .collect(),
+                        params: shape.params,
+                        result: shape.result,
+                        kind,
+                    });
+                    source
+                };
+                parents.push((id,contract));
+                id=source;
+            } else {
+                let result=contract.result;parents.push((id,contract));break result;
+            }
         };
-        let empty = self.callables.callbacks.len();
-        self.callables.callbacks.push(CallbackContract {
-            structural: contract.structural,
-            parameter_names: contract.parameter_names,
-            params: contract.params,
-            result,
-            kind: contract.kind,
-        });
-        self.absent_callback_payloads.insert(id, empty);
-        Type::Callback(empty)
+        for (id,contract) in parents.into_iter().rev(){
+            let empty = self.callables.callbacks.len();
+            self.callables.callbacks.push(CallbackContract {
+                structural: contract.structural,
+                parameter_names: contract.parameter_names,
+                params: contract.params,
+                result,
+                kind: contract.kind,
+            });
+            self.absent_callback_payloads.insert(id, empty);
+            result=Type::Callback(empty);
+        }
+        result
     }
 
     fn absent_callable_type(&self, ty: Type) -> bool {

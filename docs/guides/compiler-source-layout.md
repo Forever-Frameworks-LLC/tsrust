@@ -193,3 +193,8 @@ unwinds; completed sibling mutations preserve the existing partial-error behavio
 `analysis/carrier_literal_join.rs` joins paired record expressions with owned
 parent frames. Child joins and fallback conversions complete in declaration field
 order; both trees are restored before a diagnostic returns.
+
+Nullable/sticky record joins also use `analysis/carrier_type_join.rs`.
+`analysis/empty_scoped_maps.rs` shares work frames for empty record, map and union
+environments. Absent callback return contracts use parent frames in
+`Analyzer::absent_callback`, retaining bottom-up publication and cache identity.

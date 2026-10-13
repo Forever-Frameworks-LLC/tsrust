@@ -9,7 +9,15 @@ struct Fields {
     changed:bool,
     pending:Option<(Type,Type,Resume)>,
 }
+struct Sticky {
+    original_left:usize,original_right:usize,left:usize,right:usize,
+    paths:std::vec::IntoIter<Vec<String>>,pending:Option<Vec<String>>,
+}
 enum Task {
+    Nullable(Type,Type),
+    NullablePayload(Type),
+    Sticky(Sticky),
+    StickyResult(usize,usize),
     Record(usize,usize),
     Map(usize,usize),
     MapValue(usize),
@@ -17,6 +25,15 @@ enum Task {
 }
 
 impl Analyzer {
+    pub(super) fn join_nullable_record_unions(&mut self,left:Type,right:Type,span:Span)->Result<Option<Type>,Diagnostic>{
+        self.join_carrier_work(Task::Nullable(left,right),span)
+    }
+    pub(super) fn join_sticky_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
+        self.join_carrier_work(self.sticky_join_task(a,b),span)
+    }
+    fn sticky_join_task(&self,a:usize,b:usize)->Task{
+        Task::Sticky(Sticky{original_left:a,original_right:b,left:a,right:b,paths:self.nullable_record_field_paths(Type::Record(a)).into_iter(),pending:None})
+    }
     pub(super) fn join_record_types(&mut self,a:usize,b:usize,span:Span)->Result<Option<Type>,Diagnostic>{
         self.join_carrier_work(Task::Record(a,b),span)
     }
@@ -33,6 +50,40 @@ impl Analyzer {
         let mut result=None;
         while let Some(task)=work.pop(){
             match task {
+                Task::Nullable(left,right)=>{
+                    result=None;
+                    if left==right{continue;}
+                    if left.union().is_none() || right.union().is_none(){continue;}
+                    let(Some(Type::Record(a)),Some(Type::Record(b)))=(self.unions.payload(left),self.unions.payload(right))else{continue;};
+                    let declaration=self.scoped_records.declaration(a);
+                    if declaration!=self.scoped_records.declaration(b){continue;}
+                    let empty=self.empty_scoped_record_environment(declaration)?;
+                    work.push(Task::NullablePayload(left));
+                    if a==b || empty==Type::Record(b) || b==declaration{result=Some(Type::Record(a));}
+                    else if empty==Type::Record(a) || a==declaration{result=Some(Type::Record(b));}
+                    else{work.push(self.sticky_join_task(a,b));}
+                }
+                Task::NullablePayload(left)=>{
+                    if let Some(payload)=result{
+                        let members=self.unions.members(left.union().unwrap()).into_iter().map(|member|if matches!(member,Type::Record(_)){payload}else{member}).collect::<Vec<_>>();
+                        result=Some(self.unions.intern(members,span)?);
+                    }
+                }
+                Task::Sticky(mut frame)=>{
+                    if let Some(path)=frame.pending.take() && let Some(joined)=result{
+                        frame.left=self.record_type_with_field(frame.left,&path,joined).expect("checked nullable field path");
+                        frame.right=self.record_type_with_field(frame.right,&path,joined).expect("checked nullable field path");
+                    }
+                    let mut child=None;
+                    for path in frame.paths.by_ref(){
+                        let(Some(first),Some(second))=(self.record_field_type(Type::Record(frame.left),&path),self.record_field_type(Type::Record(frame.right),&path))else{continue;};
+                        frame.pending=Some(path);child=Some(Task::Nullable(first,second));break;
+                    }
+                    if let Some(child)=child{work.push(Task::Sticky(frame));work.push(child);}
+                    else if frame.left==frame.right{result=(frame.left!=frame.original_left || frame.right!=frame.original_right).then_some(Type::Record(frame.left));}
+                    else{work.push(Task::StickyResult(frame.original_left,frame.left));work.push(Task::Record(frame.left,frame.right));}
+                }
+                Task::StickyResult(original,left)=>{result=result.or((left!=original).then_some(Type::Record(left)));}
                 Task::Record(a,b)=>{
                     let declaration=self.scoped_records.declaration(a);
                     if declaration!=self.scoped_records.declaration(b){result=None;continue;}
@@ -143,5 +194,23 @@ mod tests {
         let b=instance(&mut analyzer,Type::Boolean);
         assert_eq!(analyzer.join_record_types(a,b,Span::default()).unwrap(),None);
         assert_eq!(analyzer.join_scoped_map_types(Type::Record(a),Type::Record(b),Span::default()).unwrap(),None);
+    }
+}
+
+#[cfg(test)]
+mod nullable_tests {
+    use super::*;
+    #[test]
+    fn nullable_join_keeps_left_nullish_members_and_absent_environment_rules(){
+        let mut analyzer=Analyzer::new(crate::syntax::parse("type Holder={run:ReadOnly<Function<int>>;};function main(){}").unwrap()).unwrap();
+        let empty=analyzer.empty_scoped_record_environment(0).unwrap();
+        let left=analyzer.unions.intern(vec![Type::Record(0),Type::Null],Span::default()).unwrap();
+        let right=analyzer.unions.intern(vec![empty,Type::Undefined],Span::default()).unwrap();
+        let joined=analyzer.join_nullable_record_unions(left,right,Span::default()).unwrap().unwrap();
+        assert!(analyzer.unions.members(joined.union().unwrap()).contains(&Type::Null));
+        assert!(!analyzer.unions.members(joined.union().unwrap()).contains(&Type::Undefined));
+        assert_eq!(analyzer.unions.payload(joined),Some(Type::Record(0)));
+        assert_eq!(analyzer.join_nullable_record_unions(left,left,Span::default()).unwrap(),None);
+        assert_eq!(analyzer.join_sticky_record_types(0,0,Span::default()).unwrap(),None);
     }
 }

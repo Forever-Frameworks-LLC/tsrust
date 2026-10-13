@@ -978,3 +978,32 @@ and empty scoped record/map environment construction. Address those paths as one
 subsystem, including their recursive environment helpers. Result discovery and
 statement emission also remain open. No public contract change, consumer refresh,
 formal scaling acceptance or full compiler architecture acceptance is claimed.
+
+### Nullable joins and empty environments
+
+Nullable and sticky record joins now share the carrier type-join stack. Empty
+record and map environment construction uses one worklist, including union
+members, preserving the distinct map-only and callback-environment traversal
+rules. Absent callback construction also replaces recursive callback return-chain
+expansion with parent frames and bottom-up cache publication. Field order,
+nullish member selection, original declaration preference, materialization order
+and spans retain their existing rules.
+
+The initial subsystem version passes 295 analysis tests and 35 native composition
+cases (26 `nullable`, nine `empty`). The follow-through audit then found and
+migrated absent callback result recursion. Final source passes 296 analysis tests
+and reruns all nine affected `empty` native cases. The initial 26-case nullable
+run is preserved with its source identity; it is not relabeled as a final-source
+run. Both whole-project formatter runs change zero files or fingerprints.
+
+New normal-stack witnesses cover 16,384 empty record layers, callback expansion
+through a nullable record, unchanged map-only callback traversal, preservation of
+left nullish members, and 4,096 absent callback return contracts with cache reuse.
+SQLite evidence uses `tsrust-nesting-nullable-environment-*`, with separate initial
+and final source/check records. These are correctness witnesses, not measured
+support ceilings or formal compilation scaling results.
+
+No public contract or IntelliSense change is introduced; consumers remain
+unchanged. The wider audit, result discovery and statement emission remain open
+before obsolete checker guards can be retired. Full compiler architecture,
+scaling, optimization and S12–S21 acceptance remain unfinished.
