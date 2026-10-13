@@ -1,3 +1,5 @@
+mod continuations;
+use continuations::CallDispatch;
 mod value_type_resolution;
 mod function_scheduling;
 mod result_discovery;
@@ -2043,401 +2045,6 @@ impl Analyzer {
         Ok(())
     }
 
-
-    fn closure(
-        &mut self,
-        outer: &mut Context,
-        syntax: (usize, &[CallableParameter], &ResultAnnotation),
-        contextual: Option<Type>,
-        body: &mut Vec<Stmt>,
-        span: Span,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
-        let (origin, params, result) = syntax;
-        let generic_wrapper = if let [statement] = body.as_slice()
-            && let StmtKind::Return(Some(call)) = &statement.kind
-            && let ExprKind::Call(callee, _) = &call.kind
-            && call.span == span && callee.span == span
-            && let ExprKind::Name(name) = &callee.kind
-            && self.generic_functions.template(name).is_some() { Some(name.as_str()) } else { None };
-        if let Some(name) = generic_wrapper
-            && (contextual.is_none() || matches!(contextual, Some(Type::Closure(id)) if self.deferred_generic_values.contains_key(&id)))
-            && (params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_)))
-                || (params.is_empty() && matches!(result, ResultAnnotation::Inferred(_)))) {
-            return self.deferred_captured_generic_value(outer, name, origin, span, loans);
-        }
-        let contextual_result = generic_wrapper.and_then(|_| contextual)
-            .and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
-            .map(|(_, result)| result);
-        let inferred_result = matches!(result, ResultAnnotation::Inferred(_)) && contextual_result.is_none();
-        let mut result = if let Some(result) = contextual_result { result }
-            else if inferred_result { Type::Void } else { self.resolve_result(result)? };
-        let escapes = self.escaping.contains(&origin);
-        let mut visible = outer.names.values().copied().collect::<Vec<_>>();
-        // A nested function called in the body can need a variable that has no
-        // visible name here: a shadowed one, or one that only a called function uses.
-        let hidden_captures = !self.program.local_capture_plans.is_empty();
-        if hidden_captures {
-            visible.extend(outer.source_bindings.values().copied());
-        }
-        visible.sort_unstable();
-        visible.dedup();
-        let mut context = capture_context::project(outer, &visible);
-        capture_context::retain_module_references(&mut context, &self.program.module_owner_bindings);
-        // Preserve lexical aliases as well as binding declaration names. Adapter
-        // wrappers introduce a private alias to avoid parameter-name shadowing.
-        context.names = outer.names.iter().map(|(name, slot)| (name.clone(), visible.binary_search(slot).expect("visible name"))).collect();
-        context.caller_error_origins = outer.caller_error_origins.clone();
-        context.inferred_body_result = inferred_result;
-        if self.discovering_results {
-            context.pending_names = outer.pending_names.clone();
-        }
-        let contextual = contextual.and_then(|ty| match self.unions.payload(ty).unwrap_or(ty) {
-            Type::Callback(id) => Some(self.callables.callbacks[id].params.clone()),
-            Type::Callable(id) => Some(self.callables.results[id].params.clone()),
-            Type::StoredCallable(id) => self.callables.storage.declaration(id).map(|id|self.callables.callbacks[id].params.clone()),
-            _ => None,
-        });
-        let mut parameters = Vec::new();
-        let mut declared = Vec::new();
-        let inherited_names = context.names.clone();
-        // Parameter names shadow captures, but must remain unique among themselves.
-        context.names.clear();
-        for (position, param) in params.iter().enumerate() {
-            let ty = match &param.ty {
-                ParameterAnnotation::Named(annotation) => self.callable_resolver().resolve_value_annotation(annotation,true)?,
-                ParameterAnnotation::Callback(annotation) => self.resolve_callback(annotation)?,
-                ParameterAnnotation::Inferred(_) => contextual.as_ref().and_then(|params|params.get(position)).map_or(Type::Void, |parameter| {
-                    // The compiler's accepted input type supplies context; its
-                    // undefined admission is not a body type inference rule.
-                    if matches!(param.initializer,ParameterInitializer::Default{..}) {
-                        parameter.ty.union().and_then(|id|self.unions.intern(self.unions.members(id).into_iter().filter(|ty|*ty!=Type::Undefined),param.name.span).ok()).unwrap_or(parameter.ty)
-                    } else {parameter.ty}
-                }),
-            };
-            let ty = self.scoped_records.recursive_parameter(ty);
-            self.arrow_parameter_contract(param, ty)?;
-            let binding = Self::bind(&mut context,&param.name,ty,true)?;
-            parameters.push(binding);
-            declared.push(ty);
-        }
-        context.names = inherited_names;
-        for (position, (param,&binding)) in params.iter().zip(&parameters).enumerate() {
-            let mut body_ty=declared[position];
-            let default_mode=if body_ty.is_copy(){Mode::Copy}else{match param.access.as_ref().map(|access|access.text.as_str()){Some("read")=>Mode::Read,Some("mutate")=>Mode::Mutate,_=>Mode::Consume}};
-            let checked_initializer = if body_ty == Type::Void && matches!(param.ty,ParameterAnnotation::Inferred(_)) {
-                let ParameterInitializer::Default{value,..}=&param.initializer else {return Err(Diagnostic::new("parameter-inference",format!("Cannot infer the type of arrow parameter `{}`. Add a type annotation, such as `({}: string) => ...`, or pass this arrow where a callback parameter type is known.", param.name.text, param.name.text),param.name.span));};
-                let mut value=value.clone();
-                let expected=self.expression_type_hint(&context,&value);
-                body_ty=self.expression(&mut context,&mut value,Mode::Consume,&Loans::new(),expected)?;
-                Some(value)
-            } else {self.check_parameter_default(&mut context,&param.initializer,body_ty,default_mode)?};
-            let input_ty=if param.initializer.omission().is_omittable() {self.unions.intern([body_ty,Type::Undefined],param.name.span)?} else {body_ty};
-            if matches!(param.initializer,ParameterInitializer::Optional(_)) {body_ty=input_ty;}
-            context.bindings[binding].ty=body_ty;
-            context.bindings[binding].input_ty=Some(input_ty);
-            context.bindings[binding].omission=param.initializer.omission();
-            context.bindings[binding].rest=param.rest;
-            if param.rest {
-                if !matches!(body_ty,Type::Array(_)) {return Err(Diagnostic::new("rest-type","A rest parameter requires a supported homogeneous array type.",param.name.span));}
-                if param.access.as_ref().is_some_and(|access|access.text!="consume") {return Err(Diagnostic::new("rest-access","A rest parameter owns its pack; only explicit consume access is supported.",param.name.span));}
-                context.bindings[binding].mode=Mode::Consume;
-            }
-            context.bindings[binding].declaration_span=Some(param.name.span);
-            context.bindings[binding].initializer=checked_initializer;
-            if matches!(default_mode,Mode::Read|Mode::Mutate)
-                && let Some(value)=context.bindings[binding].initializer.as_deref()
-                && Self::root_binding(value).is_some() {
-                context.bindings[binding].view_roots=Self::view_sources(&context,value);
-            }
-            context.names.insert(param.name.text.clone(),binding);
-            self.initialized_parameter_fact(&mut context,binding);
-            if body_ty.is_copy() {context.bindings[binding].mode=Mode::Copy;}
-            if let Type::Callback(id)=self.unions.payload(body_ty).unwrap_or(body_ty) {
-                let kind=self.callables.callbacks[id].kind;
-                context.bindings[binding].callback_kind=Some(kind);
-                context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
-                context.bindings[binding].callback_invocation=Some(kind.invocation());
-                if kind.is_owned()||kind.is_once() {context.bindings[binding].mode=Mode::Consume;}
-            }
-            if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
-                context.readonly_parameters.insert(binding);
-            }
-            if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
-                context.mutable_parameters.insert(binding);
-            }
-            self.initialize_parameter_pattern(&mut context,&param.name,body,param.access.as_ref().is_some_and(|access|access.text=="consume"))?;
-        }
-        let method_template = parameters.iter().any(|&parameter| matches!(self.unions.payload(context.bindings[parameter].ty).unwrap_or(context.bindings[parameter].ty),Type::Callback(_)));
-        let source_body=method_template.then(||body.clone());
-        let declared_result=result;
-        let method_context = method_template.then(|| context.clone());
-        if method_template {
-            context.template = true;
-        }
-        for (param, &binding) in params.iter().zip(&parameters) {
-            if param.access.as_ref().is_some_and(|access| access.text == "read") && !param.rest && !context.bindings[binding].ty.is_copy() {
-                context.readonly_parameters.insert(binding);
-            }
-        }
-        let restoration=capture_restoration::Tracker::new((0..visible.len()).collect());
-        context.capture_restoration=Some(restoration.clone());
-        let returned = self
-            .check_source_callable_body(&mut context, Self::uninitialized_body(body), result)
-            .map_err(|error| self.filter_ownership_fixes(&context, error))?;
-        for (param, &binding) in params.iter().zip(&parameters) {
-            if let Some(access) = param.access.as_ref().filter(|_| !param.rest) {
-                let declared = match access.text.as_str() {
-                    "read" => Mode::Read,
-                    "mutate" => Mode::Mutate,
-                    _ => Mode::Consume,
-                };
-                Self::stated_parameter_access(&param.name.text, &mut context.bindings[binding], declared, access.span)?;
-            }
-        }
-        if inferred_result { result = self.inferred_body_result(body)?; }
-        if result != Type::Void && !returned {
-            return Err(Diagnostic::new(
-                "type",
-                "Closure must return a value on every path.",
-                span,
-            ));
-        }
-        let result = if self.callable_result_type(result) {
-            if self.discovering_results && context.returned_callable.is_none() {
-                return Err(Self::pending_result(span));
-            }
-            context
-                .returned_callable
-                .expect("checked callable closure return")
-        } else {
-            result
-        };
-        let result = if method_template && !inferred_result {
-            declared_result
-        } else {
-            result
-        };
-        self.finalize_nullable_locals(&mut context.bindings, body)?;
-        let restoration_bounded=capture_restoration::bounded_body(body);
-        let mut captures = Vec::new();
-        let mut invocation = Mode::Read;
-        for (inner, &outer_id) in visible.iter().enumerate() {
-            let binding = &context.bindings[inner];
-            if let Some(usage) = binding.used {
-                if self.discovering_results && self.has_pending_result(binding.ty) {
-                    return Err(Self::pending_result(span));
-                }
-                let access = binding.mode;
-                let restored=access==Mode::Consume && restoration.permits(inner) && restoration_bounded;
-                invocation = invocation.max(if restored {Mode::Mutate}else{access});
-                if escapes && binding.callback_kind.is_some_and(|kind| !kind.is_owned()) {
-                    return Err(Diagnostic::new("callback-escape",
-                        "An owned escaping closure cannot retain a borrowed callback input. Use an owned callback parameter or keep the borrowing closure in the caller's scope.", span));
-                }
-                let module_capture = self.program.module_owner_bindings.iter()
-                    .any(|declaration| context.source_bindings.get(&declaration.start) == Some(&inner));
-                let storage = if module_capture {
-                    if access == Mode::Consume {
-                        return Err(Diagnostic::new("module-state-consume", "A callback cannot consume program-owned module storage; use explicit clone().", usage));
-                    }
-                    access.max(Mode::Read)
-                } else if binding.ty.is_copy() {
-                    if access == Mode::Mutate && !escapes {
-                        Mode::Mutate
-                    } else {
-                        Mode::Copy
-                    }
-                } else if escapes {
-                    Mode::Consume
-                } else {
-                    access
-                };
-                if !self.effects_only
-                    && escapes
-                    && let Type::Closure(id) = binding.ty
-                    && self.closures[id].borrowed
-                    && self.borrows_local_storage(binding.ty)
-                {
-                    return Err(Diagnostic::new(
-                        "closure-escape",
-                        "An escaping closure cannot retain a borrowed callable environment.",
-                        span,
-                    )
-                    .related(self.closures[id].span, "Borrowed callable is created here."));
-                }
-                Self::access(outer, outer_id, storage, span, loans)?;
-                if matches!(storage, Mode::Read | Mode::Mutate) {
-                    outer.capture_loans.push((outer_id, storage, span));
-                }
-                captures.push(Capture {
-                    restored,
-                    outer: outer_id,
-                    inner,
-                    storage,
-                    access,
-                    span: usage,
-                });
-            }
-        }
-        // Captured scalar writes borrow local storage, or mutate a private copied
-        // field in an escaping environment. Record the actual representation so
-        // scalar reads and whole-binding stores lower through references correctly.
-        for capture in &captures {
-            let binding = &mut context.bindings[capture.inner];
-            binding.capture_reference = match capture.storage {
-                Mode::Read if matches!(binding.ty, Type::BorrowedUnion(_) | Type::Union(_)) => {
-                    false
-                }
-                Mode::Read | Mode::Mutate => true,
-                Mode::Consume => invocation != Mode::Consume,
-                Mode::Copy => capture.access == Mode::Mutate && invocation == Mode::Mutate,
-            };
-            binding.mode = if capture.storage == Mode::Consume
-                || (capture.storage == Mode::Copy && binding.capture_reference)
-            {
-                invocation
-            } else {
-                capture.storage
-            };
-        }
-        // Provisional recursive summaries can overstate borrowed lifetimes.
-        // Cap the count just above the supported limit; inference never emits
-        // this layout, and final checking still enforces the actual guard.
-        let lifetime_count = captures.iter().fold(0usize, |total, capture| {
-            let nested = crate::environment_lifetimes::count_with_storage(
-                context.bindings[capture.inner].ty, &self.program.records, &self.callables.storage,
-                |id| self.unions.members(id),
-                |ty| match ty {
-                    Type::Closure(id) => self.closures[id].lifetime_count,
-                    Type::BorrowedCallable(id) => self.callables.storage.origins(id).expect("checked borrowed origins").iter().map(|&origin| self.closures[origin].lifetime_count).sum(),
-                    // A captured scoped family keeps one lifetime for each carried view.
-                    Type::StoredCallable(id) => self.callables.storage.scoped_native_family(id).map_or(0, crate::native_view_callable_storage::Family::lifetimes),
-                    _ => 0,
-                },
-            );
-            (total + usize::from(matches!(capture.storage, Mode::Read | Mode::Mutate)) + nested)
-                .min(129)
-        });
-        if !self.effects_only && lifetime_count > 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Closure environment lifetime complexity exceeds the prototype limit of 128.",
-                span,
-            ));
-        }
-        let borrowed = lifetime_count != 0;
-        let key = ClosureKey {
-            origin,
-            template: outer.template,
-            escapes,
-            depth: context.closure_depth,
-            result,
-            invocation,
-            captures: captures
-                .iter()
-                .map(|capture| {
-                    let binding = &context.bindings[capture.inner];
-                    CaptureKey {
-                        name: binding.name.clone(),
-                        ty: binding.ty,
-                        storage: capture.storage,
-                        access: capture.access,
-                        callback_invocation: binding.callback_invocation,
-                        callback_reference: binding.callback_reference,
-                        callback_kind: binding.callback_kind,
-                    }
-                })
-                .collect(),
-            parameters: parameters
-                .iter()
-                .map(|&id| {
-                    let binding = &context.bindings[id];
-                    (binding.ty, binding.mode)
-                })
-                .collect(),
-        };
-        if let Some(&id) = self.closure_types.get(&key) {
-            // Creation effects and loans above still apply to this invocation.
-            // Emission reuses the first fully checked body and capture layout.
-            if !self.discovering_results {
-                self.closures[id].function.native_returns = context.native_returns.clone();
-                self.closures[id].function.native_mutations = context.native_mutations.clone();
-                self.closures[id].function.storage_exits = context.storage_exits.clone();
-                self.closures[id].function.bindings = context.bindings;
-                self.closures[id].function.body = if method_template {
-                    body.clear();
-                    Vec::new()
-                } else {
-                    std::mem::take(body)
-                };
-                self.closures[id].captures = captures;
-                self.closures[id].parameters = parameters;
-                self.validated_closures.insert(id);
-            } else {
-                body.clear();
-            }
-            if let (Some(context), Some(body)) = (method_context, source_body) {
-                self.closure_method_sources.insert(
-                    id,
-                    ClosureMethodSource {
-                        context,
-                        parameters: self.closures[id].parameters.clone(),
-                        result: declared_result,
-                        body,
-                    },
-                );
-            }
-            self.remember_native_environment(outer,id);
-            return Ok(Type::Closure(id));
-        }
-        let id = self.closures.len();
-        self.closure_types.insert(key, id);
-        if let (Some(context), Some(body)) = (method_context, source_body) {
-            self.closure_method_sources.insert(
-                id,
-                ClosureMethodSource {
-                    context,
-                    parameters: parameters.clone(),
-                    result: declared_result,
-                    body,
-                },
-            );
-        }
-        if !self.discovering_results {
-            self.validated_closures.insert(id);
-        }
-        self.closures.push(CheckedClosure {
-            polymorphic: method_template,
-            methods: Vec::new(),
-            forward: None,
-            borrowed,
-            lifetime_count,
-            depth: context.closure_depth,
-            parameters,
-            function: CheckedFunction {
-                storage_exits: context.storage_exits.clone(), native_returns: context.native_returns.clone(), native_mutations: context.native_mutations.clone(),
-                template: outer.template,
-                specialization: false,
-                name: outer.function_name.clone(),
-                bindings: context.bindings,
-                parameter_count: 0,
-                result,
-                body: if method_template {
-                    body.clear();
-                    Vec::new()
-                } else {
-                    std::mem::take(body)
-                },
-            },
-            captures,
-            span,
-            escapes,
-            invocation,
-        });
-        self.remember_native_environment(outer,id);
-        Ok(Type::Closure(id))
-    }
 
     // Resolve declared values in an independent function context. Forwarding
     // environments have no owners, while argument modes remain the target's
@@ -4871,13 +4478,18 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_source_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
+        self.enter_source_callable_body(context)?;
+        let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
+        self.validate_native_returns(context)?;
+        Ok(returned)
+    }
+
+    fn enter_source_callable_body(&mut self, context: &mut Context) -> Result<(), Diagnostic> {
         context.callable_scope_depth = context.lexical_scopes.len();
         context.native_returns=None;
         context.native_mutations=None;
         self.seed_native_parameters(context)?;
-        let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
-        self.validate_native_returns(context)?;
-        Ok(returned)
+        Ok(())
     }
 
     #[inline(never)]
@@ -5256,208 +4868,6 @@ impl Analyzer {
         true
     }
 
-    #[inline(never)]
-    fn block_with_scope(&mut self, context: &mut Context, body: &mut [Stmt], result_type: Type, keep_names: bool) -> Result<bool, Diagnostic> {
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Combined analysis nesting exceeds the prototype limit of 128.",
-                body.first().map_or(Span::default(), |stmt| stmt.span),
-            ));
-        }
-        context.lexical_scopes.push(
-            body.iter()
-                .filter_map(|stmt| match &stmt.kind {
-                    StmtKind::Let { name, .. } => Some(name.text.clone()),
-                    _ => None,
-                })
-                .collect(),
-        );
-        // Remove only names actually shadowed by this block. Their typed slots
-        // and source identities remain available to captured named bodies.
-        let mut shadowed = Vec::new();
-        for name in context.lexical_scopes.last().expect("entered lexical scope") {
-            if let Some(&slot) = context.names.get(name)
-                && (context.lexical_scopes.len() != context.callable_scope_depth + 1 || context.is_capture(slot)) {
-                shadowed.push((name.clone(), slot));
-            }
-        }
-        let native_shadow_boundary = context.native_shadowed_bindings.as_ref().map_or(0, |slots| slots.len());
-        if self.native_borrow_types && !shadowed.is_empty() {
-            context.native_shadowed_bindings.get_or_insert_with(Default::default)
-                .extend(shadowed.iter().map(|(_, slot)| *slot));
-        }
-        for (name, _) in &shadowed { context.names.remove(name); }
-        self.depth += 1;
-        let first_local = context.bindings.len();
-        let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let mut exited = false;
-        let (nested_stores, whole_stores) = nullable_record_fields::control_stores(body);
-        let mut declared = first_local;
-        for stmt in body.iter_mut() {
-            // Only diagnostic replay sets these keys; executable analysis never does.
-            // Keep declarations in the lexical prepass so shadowed outer names cannot
-            // become visible after an invalid initializer is skipped.
-            if !self.program.diagnostic_skips.is_empty() && self.skip_diagnostic_statement(stmt) {continue;}
-
-            if exited {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Statement is unreachable after all preceding paths exit this block.",
-                    stmt.span,
-                ));
-            }
-            for id in declared..context.bindings.len() {
-                let binding = &context.bindings[id];
-                if !context.lexical_scopes.last().is_some_and(|names| names.contains(&binding.name)) { continue; }
-                if nested_stores.contains(&binding.name)
-                    || whole_stores.contains(&binding.name) && !self.nullable_record_field_paths(binding.ty).is_empty()
-                { context.control_stored.insert(id); }
-            }
-            declared = context.bindings.len();
-            context.storage_exits.record_before(stmt.span, &context.bindings);
-            match &mut stmt.kind {
-                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                StmtKind::Throw(value) if context.completion_frame.is_some() => {
-                    self.check_throw_value(context,value)?;
-                    exited=true;
-                }
-                StmtKind::Try(region) if context.exception_environment.is_some() && context.completion_frame.is_some() => {
-                    exited=self.check_nested_exception_region(context,region,result_type,stmt.span)?;
-                }
-                StmtKind::Try(_) | StmtKind::Throw(_) => return Err(Diagnostic::new("unsupported","Exception syntax is parsed; error propagation and completion analysis are not implemented yet.",stmt.span)),
-                StmtKind::ForOf {
-                    name,
-                    rebindable,
-                    iterable,
-                    body,
-                    binding,
-                } => {
-                    self.for_of(
-                        context,
-                        (name, *rebindable, binding),
-                        iterable,
-                        body,
-                        result_type,
-                        stmt.span,
-                        &stmt.labels,
-                    )?;
-                }
-                StmtKind::While { condition, body } => {
-                    self.while_loop(context, condition, body, result_type, stmt.span, &stmt.labels)?;
-                }
-                StmtKind::Block(body) => {
-                    exited = if stmt.labels.is_empty() {self.block(context, body, result_type)?} else {self.labeled_block(context,body,result_type,stmt.span,&stmt.labels)?};
-                }
-                StmtKind::Loop {
-                    condition,
-                    body,
-                    update,
-                    post_test,
-                    tail_reachable,
-                } => {
-                    exited = self.tail_loop(
-                        context,
-                        condition,
-                        body,
-                        update,
-                        *post_test,
-                        tail_reachable,
-                        result_type,
-                        stmt.span,
-                        &stmt.labels,
-                    )?;
-                }
-                StmtKind::Break | StmtKind::Continue => {
-                    self.control_exit(context, &stmt.labels, &mut stmt.control_target, matches!(stmt.kind,StmtKind::Continue), stmt.span)?;
-                    let kind=if matches!(stmt.kind,StmtKind::Continue) {
-                        crate::completion::CompletionKind::Continue(stmt.control_target)
-                    } else {crate::completion::CompletionKind::Break(stmt.control_target)};
-                    exception_state::record_completion(context,kind,stmt.span);
-                    exited=true;
-                }
-                StmtKind::If {
-                    condition,
-                    then_body,
-                    else_body,
-                } => {
-                    exited =
-                        self.if_statement(context, condition, then_body, else_body, result_type,stmt.span)?;
-                }
-                StmtKind::Let {
-                    rebindable,
-                    name,
-                    annotation,
-                    value,
-                    binding,
-                } => {
-                    let previous = self.module_literal_scope;
-                    self.module_literal_scope = self.program.module_owner_bindings.contains(&name.span).then_some(value.span);
-                    let checked = self.let_statement(context, *rebindable, name, annotation, value, binding);
-                    self.module_literal_scope = previous;
-                    checked?;
-                },
-                StmtKind::Assign {
-                    target,
-                    value,
-                    operator,
-                } => self.assign_statement(context, target, value, *operator)?,
-                StmtKind::Return(value) => {
-                    self.return_statement(context, value, result_type, stmt.span)?;
-                    context.storage_exits.record_expression(stmt.span, &context.bindings);
-                    capture_restoration::record(context);
-                    exited = true;
-                }
-                StmtKind::Expr(value) => {
-                    self.truthy_logical_assignment(context,value);
-                    let removal = Self::array_removal_snapshot(context, value);
-                    let view = self
-                        .expression_type_hint(context, value)
-                        .is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_)));
-                    let place_view = self.borrowed_place_hint(context, value);
-                    let ty = if matches!(value.kind,ExprKind::Sequence(_)) {
-                        self.discarded_sequence_statement(context,value,&Loans::new())?
-                    } else {
-                        self.expression(context,value,if view || place_view {Mode::Read}else{Mode::Consume},&Loans::new(),None)?
-                    };
-                    if matches!(ty, Type::Closure(_)) && !matches!(value.kind, ExprKind::Call(..)) {
-                        return Err(Diagnostic::new(
-                            "unsupported",
-                            "Bind a closure before using it.",
-                            value.span,
-                        ));
-                    }
-                    Self::finish_discarded_array_removal(context, value, removal);
-                }
-            }
-        }
-        self.record_sequence_carriers(context,body)?;
-        context.storage_exits.record(body, &context.bindings[..first_local]);
-        if !keep_names { Self::check_retained_scope_borrows(context, first_local)?; }
-        context.lexical_scopes.pop();
-        if !keep_names {
-            entry_loans.unwind(&mut context.capture_loans);
-            let _ = context.capture_loan_owners.leave_scope(first_local);
-            Self::restore_live_capture_loans(context);
-            context.mutable_match_borrows.retain(|id| *id < first_local);
-            for (id, binding) in context.bindings.iter().enumerate().skip(first_local) {
-                // A nested block may already have restored an outer binding with
-                // this name. Remove only the local slot still visible here.
-                if context.names.get(&binding.name) == Some(&id) {
-                    context.names.remove(&binding.name);
-                }
-            }
-        }
-        if !keep_names {
-            context.names.extend(shadowed);
-        }
-        if let Some(slots) = context.native_shadowed_bindings.as_mut() {
-            slots.truncate(native_shadow_boundary);
-        }
-        self.depth -= 1;
-        Ok(exited)
-    }
-
     /// One named declaration. Kept out of the block loop, whose frame is
     /// retained across nested statement bodies.
     #[inline(never)]
@@ -5615,91 +5025,6 @@ impl Analyzer {
             context.constant_absence.insert(id,ty);
         }
         *binding = Some(id);
-        Ok(())
-    }
-
-    /// One return statement; the caller marks the block as exited.
-    #[inline(never)]
-    fn return_statement(
-        &mut self,
-        context: &mut Context,
-        value: &mut Option<Expr>,
-        result_type: Type,
-        span: Span,
-    ) -> Result<(), Diagnostic> {
-        context.returning_closure = self.callable_result_type(result_type) || matches!(result_type,Type::Closure(_))
-            || (context.inferred_body_result && value.as_ref().and_then(|value|self.expression_type_hint(context,value)).is_some_and(|ty|matches!(self.unions.payload(ty).unwrap_or(ty),Type::Closure(_)) || self.callable_result_type(ty)));
-        let mut actual = match value {
-            Some(value) => self.expression(
-                context,
-                value,
-                Mode::Consume,
-                &Loans::new(),
-                if context.inferred_body_result { None } else { Some(result_type) },
-            )?,
-            None => Type::Void,
-        };
-        context.returning_closure = false;
-        let facts = self.aggregate_callable_facts(actual);
-        // An absent nullable record holds no callback instance to escape.
-        let absent_record = self.nullable_scoped_record_declaration(actual).is_some()
-            && value.as_ref().is_some_and(|value| matches!(&value.kind, ExprKind::Inject { value, .. } if matches!(value.kind, ExprKind::Null | ExprKind::Undefined)));
-        if (facts.unknown || facts.scoped && self.borrows_local_storage(actual)) && !absent_record {
-            return Err(Diagnostic::new("callback-escape","A returned value cannot contain a callable that borrows local storage.",span));
-        }
-        let converted =
-            self.callable_result_value(context, result_type, actual, span);
-        if converted != actual
-            && let Some(value) = value
-            && let Type::Closure(origin) = converted
-        {
-            value.wrap_once(origin);
-        }
-        actual = converted;
-        if !context.inferred_body_result { self.require(actual, Some(result_type), span)?; }
-        if let Some(value)=value {self.record_native_return(context,value)?;}
-        if self.discovering_results && self.has_pending_result(actual) {
-            return Ok(());
-        }
-        if matches!(
-            self.unions.payload(actual).unwrap_or(actual),
-            Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
-        ) {
-            // A template body is symbolic: a call it returns names a concrete
-            // copy, whose closure literals have their own identities. The copy
-            // itself is checked against this rule.
-            let symbolic_call = context.template
-                && value.as_ref().is_some_and(|value| matches!(value.kind, ExprKind::Call(_, _)));
-            // A returned literal replaces a symbolic call; two literals must agree.
-            let symbolic = symbolic_call || context.returned_symbolic_call;
-            if symbolic && context.returned_callable.is_some() {
-                if !symbolic_call {
-                    context.returned_callable = Some(actual);
-                    context.returned_symbolic_call = false;
-                }
-                self.record_typed_completion(context,crate::completion::CompletionKind::Return,actual,span);
-                return Ok(());
-            }
-            if !self.effects_only
-                && context.returned_callable.is_some_and(|previous| {
-                    previous != actual
-                        && !self.absent_callable_type(previous)
-                        && !self.absent_callable_type(actual)
-                })
-            {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "A factory must return one closure origin; mixed environments are unsupported.",
-                    span,
-                ));
-            }
-            if !self.absent_callable_type(actual) || context.returned_callable.is_none()
-            {
-                context.returned_callable = Some(actual);
-                context.returned_symbolic_call = symbolic_call;
-            }
-        }
-        self.record_typed_completion(context,crate::completion::CompletionKind::Return,actual,span);
         Ok(())
     }
 
@@ -7335,48 +6660,6 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn expression(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        if let Some(Type::Union(union))=expected {
-            let literal=self.unions.members(union).into_iter().find(|ty|if let Type::Literal(id,kind)=*ty {
-                crate::literal_types::LiteralValue::expression(expr,kind).is_some_and(|value|value.is_ok_and(|value|self.program.records[id].literal_definition.as_ref()==Some(&value)))
-            }else{false});
-            if let Some(literal)=literal{self.expression(context,expr,mode,loans,Some(literal))?;expr.inject(union);expr.ty=expected;return Ok(expected.unwrap());}
-        }
-        if let Some(Type::Literal(id,kind))=expected && let Some(value)=crate::literal_types::LiteralValue::expression(expr,kind) {
-            let value=value?;
-            if self.program.records[id].literal_definition.as_ref()!=Some(&value){return Err(Diagnostic::new("literal-type",format!("Expected {}, found {}.",self.type_name(Type::Literal(id,kind)),value.text()),expr.span));}
-            self.expression(context,expr,mode,loans,Some(kind.base()))?;
-            expr.ty=expected;return Ok(expected.unwrap());
-        }
-        let checked = if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }
-            if !matches!(value.kind, ExprKind::SpreadValue(_))) {
-            self.rest_pack_expression(context, expr, mode, loans, expected)
-        } else {
-            self.expression_other(context, expr, mode, loans, expected)
-        };
-        if checked.is_ok() { self.apply_native_call_stores(context, expr)?; }
-        if checked.is_ok() && matches!(expr.kind, ExprKind::Call(..) | ExprKind::Index(..) | ExprKind::Binary { .. } | ExprKind::Unary { .. }) {
-            // Failure occurs after operand/argument evaluation. Exact spans
-            // distinguish a nested call from a parent starting at the same byte.
-            context.storage_exits.record_expression(expr.span, &context.bindings);
-            match &expr.kind {
-                ExprKind::Call(callee, _) => context.storage_exits.record_expression(callee.span, &context.bindings),
-                ExprKind::Binary { operator, .. } | ExprKind::Unary { operator, .. } => context.storage_exits.record_expression(*operator, &context.bindings),
-                _ => {},
-            }
-        }
-        if checked.is_ok() { self.refresh_native_recursive_shapes(context); }
-        checked
-    }
-
-    #[inline(never)]
     fn rest_pack_expression(
         &mut self,
         context: &mut Context,
@@ -7401,27 +6684,6 @@ impl Analyzer {
             return Ok(ty);
         }
         unreachable!("rest pack dispatch");
-    }
-
-    #[inline(never)]
-    fn expression_other(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        if let Some(ty) = self.prepare_other_expression(context, expr, mode, loans, expected)? { return Ok(ty); }
-        // A declared nongeneric call already returns its exact tagged type.
-        // Do not retain an injection frame while checking its nested arguments.
-        let expected = if matches!(expected, Some(Type::Union(_)))
-            && matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if !context.names.contains_key(name) && self.function_names.contains_key(name) && self.generic_functions.template(name).is_none()))
-            && self.expression_type_hint(context, expr) == expected
-        { None } else { expected };
-        self.lower_scalar_unary_plus(context, expr);
-        self.lower_tuple_expression(context, expr, expected)?;
-        self.checked_expression(context, expr, mode, loans, expected)
     }
 
     // Generic/spread staging is finished before ordinary recursive checking begins.
@@ -7483,42 +6745,6 @@ impl Analyzer {
             _ => {}
         }
         Ok(())
-    }
-
-    // Rare early outcomes and result bookkeeping own their temporaries in
-    // dedicated helpers; this frame is retained across expression nesting.
-    fn checked_expression(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        if let Some(ty) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
-            expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
-            return Ok(ty);
-        }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Combined analysis nesting exceeds the prototype limit of 128.",
-                expr.span,
-            ));
-        }
-        self.depth += 1;
-        let invocation=matches!(expr.kind,ExprKind::Call(_, _));
-        let bounds_or_nonnull=matches!(expr.kind,ExprKind::Index(_,_)|ExprKind::Unary{op:UnaryOp::NonNull,..});
-        let integer_operation=matches!(&expr.kind,ExprKind::Unary{op:UnaryOp::Negate,..}) || matches!(&expr.kind,ExprKind::Binary{op,..} if crate::error_effects::integer_operation(*op));
-        let result = if invocation {
-            self.expression_call(context, expr, loans, expected)
-        } else {
-            self.expression_kind(context, expr, mode, loans, expected)
-        };
-        if result.is_ok() && (invocation || bounds_or_nonnull || (integer_operation && result.as_ref().is_ok_and(|ty|*ty==Type::Int))) {exception_state::record_point(context,expr.span);}
-        let result = self.checked_expression_result(context, expr, mode, expected, result);
-        self.depth -= 1;
-        result
     }
 
     #[inline(never)]
@@ -13545,48 +12771,6 @@ self.names_materialized_type(element.with_depth(0).ty())
     }
 
     #[inline(never)]
-    fn conditional_call(
-        &mut self,
-        context: &mut Context,
-        callee: &mut Expr,
-        args: &mut Vec<Expr>,
-        loans: &Loans,
-        span: Span,
-        expected: Option<Type>,
-    ) -> Result<(CallTarget, Type), Diagnostic> {
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let distinct_conditional=if let ExprKind::Conditional{consequent,alternate,..}=&callee.kind {
-            let left=self.callback_value_hint(context,consequent)?;
-            let right=self.callback_value_hint(context,alternate)?;
-            left.is_none() || right.is_none() || left!=right
-        }else{false};
-        let checked_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _)) || distinct_conditional;
-        if matches!(callee.kind,ExprKind::Closure{..}) {
-            self.contextual_expression_callee(context,callee,args)?;
-        }
-        let hint = if checked_callee {Some(self.expression(context,callee,Mode::Consume,loans,None)?)} else {self.callback_value_hint(context, callee)?};
-        let hint=hint.map(|hint|if let Type::Callable(id)=hint {self.result_shape(id)}else{hint});
-        let hint = hint.ok_or_else(|| {
-            Diagnostic::new(
-                "unsupported",
-                "Conditional invocation requires a resolved callable origin.",
-                callee.span,
-            )
-        })?;
-        let hint = if let Type::Closure(origin) = hint
-            && let Some(ClosureForward::Native(id)) = self.closures[origin].forward
-        {
-            self.native_function_shape(id, span, args.len(), false)?
-        } else {
-            hint
-        };
-        let result=self.checked_callable_expression_call(context,callee,args,loans,span,hint,checked_callee,expected)?;
-        self.remember_native_expression_call(context,result.0,callee,hint,span)?;
-        if checked_callee && !self.expression_result_retains_captures(result.1){capture_boundary.unwind(&mut context.capture_loans);}
-        Ok(result)
-    }
-
-    #[inline(never)]
     #[allow(clippy::too_many_arguments)]
     fn checked_callable_expression_call(
         &mut self, context:&mut Context, callee:&mut Expr, args:&mut Vec<Expr>,
@@ -14026,13 +13210,13 @@ self.names_materialized_type(element.with_depth(0).ty())
     }
 
     #[inline(never)]
-    fn expression_call(
+    fn prepare_call_work(
         &mut self,
         context: &mut Context,
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
+    ) -> Result<CallDispatch, Diagnostic> {
         // A direct nongeneric declaration needs no builtin or conditional state.
         let declared = matches!(&expr.kind, ExprKind::Call(callee, args)
             if matches!(&callee.kind, ExprKind::Name(name)
@@ -14044,10 +13228,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                 && !args.iter().any(|argument| matches!(&argument.kind,
                     ExprKind::Unary { op: UnaryOp::Spread, .. })));
         if declared {
-            return self.declared_named_call(context, expr, loans);
+            return self.declared_named_call(context, expr, loans).map(CallDispatch::Ready);
         }
         let result = self.expression_call_other(context, expr, loans, expected)?;
-        self.resolve_completed_capture_invocation(context, expr, result);
+        if let CallDispatch::Ready(ty) = result { self.resolve_completed_capture_invocation(context, expr, ty); }
         Ok(result)
     }
 
@@ -14057,7 +13241,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
+    ) -> Result<CallDispatch, Diagnostic> {
         self.stage_assignment_callee(context, expr)?;
         if let ExprKind::Call(callee, _) = &mut expr.kind {
             self.global_number_name(context, callee, true);
@@ -14074,19 +13258,19 @@ self.names_materialized_type(element.with_depth(0).ty())
             // field. Preparation establishes types without evaluating arguments.
             self.prepare_generic_call(context, receiver, None)?;
         }
-        if Self::map_group_by_callee(context,expr) {return self.map_group_by(context,expr,loans,expected);}
+        if Self::map_group_by_callee(context,expr) {return self.map_group_by(context,expr,loans,expected).map(CallDispatch::Ready);}
         if Self::array_from_callee(context, expr) {
             self.array_from(context, expr)?;
         }
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
-            return self.array_from_mapping(context,expr,loans,expected);
+            return self.array_from_mapping(context,expr,loans,expected).map(CallDispatch::Ready);
         }
-        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected);}
-        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
-        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
-        if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(ty); }
-        if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected); }
-        if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected); }
+        if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
+        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
+        if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
+        if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
+        if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         self.array_values(context, expr)?;
         self.string_at(context, expr);
         self.string_raw(context, expr)?;
@@ -14094,7 +13278,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.string_code_point_at(context, expr)?;
         self.string_locale_case(context, expr)?;
         if matches!(&expr.kind, ExprKind::Call(_, args) if args.iter().any(|arg| matches!(arg.kind, ExprKind::Unary {op:UnaryOp::Spread,..}))) {
-            return self.spread_call(context, expr, loans, expected);
+            return self.spread_call(context, expr, loans, expected).map(CallDispatch::Ready);
         }
         if let ExprKind::Call(callee, _) = &expr.kind
             && matches!(callee.kind, ExprKind::Field(_, _))
@@ -14102,25 +13286,26 @@ self.names_materialized_type(element.with_depth(0).ty())
                 .expression_type_hint(context, callee)
                 .is_some_and(|ty| matches!(ty, Type::StoredCallable(_)))
         {
-            return self.builtin_or_method_call(context, expr, loans, expected);
+            return self.prepare_builtin_call_work(context, expr, loans, expected);
         }
-        if let Some(result) = self.conditional_value_call(context, expr, loans, expected)? {
-            return Ok(result);
+        if let ExprKind::Call(callee, _) = &expr.kind
+            && self.flow_view(context, callee).is_some_and(|(_, _, payload)| matches!(payload, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_))) {
+            return Ok(CallDispatch::Conditional { publish_type: false });
         }
         // Recursive concat arguments must not retain the full builtin dispatch frame.
         if matches!(&expr.kind, ExprKind::Call(callee, _)
             if matches!(&callee.kind, ExprKind::Field(_, name) if name == "concat"))
         {
-            return self.concat_call(context, expr, loans, expected);
+            return self.concat_call(context, expr, loans, expected).map(CallDispatch::Ready);
         }
         let ordinary_name = matches!(&expr.kind, ExprKind::Call(callee, _)
             if matches!(&callee.kind, ExprKind::Name(name)
                 if !matches!(name.as_str(), "String" | "Boolean" | "Number" | "clone")));
         if ordinary_name {
             self.prepare_generic_call(context, expr, expected)?;
-            self.named_call(context, expr, loans, expected)
+            self.named_call(context, expr, loans, expected).map(CallDispatch::Ready)
         } else {
-            self.builtin_or_method_call(context, expr, loans, expected)
+            self.prepare_builtin_call_work(context, expr, loans, expected)
         }
     }
 
@@ -14148,33 +13333,6 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_array_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
         if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(Some(ty));}
         self.schema_method_call(context, expr)?;
-        Ok(None)
-    }
-
-    // Keep conditional-call target construction off ordinary recursive call frames.
-    #[inline(never)]
-    fn conditional_value_call(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Option<Type>, Diagnostic> {
-        if let ExprKind::Call(callee, args) = &mut expr.kind
-            && self
-                .flow_view(context, callee)
-                .is_some_and(|(_, _, payload)| {
-                    matches!(
-                        payload,
-                        Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_)
-                    )
-                })
-        {
-            let span = expr.span;
-            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
-            expr.target = Some(target);
-            return Ok(Some(result));
-        }
         Ok(None)
     }
 
@@ -14827,37 +13985,6 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             self.remember_native_family_returns(context,family,span)?;
             expr.target = Some(CallTarget::StoredCallableField(family));
-            expr.ty = Some(result);
-            return Ok(result);
-        }
-        if matches!(callee.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-            && self.expression_type_hint(context, callee).is_some_and(|ty| matches!(ty, Type::Closure(_) | Type::Callback(_)))
-        {
-            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
-            expr.target = Some(target);
-            expr.ty = Some(result);
-            return Ok(result);
-        }
-        if matches!(
-            callee.kind,
-            ExprKind::Selected { .. }
-                | ExprKind::CoalesceAssign { .. }
-                | ExprKind::SpreadValue(_)
-                | ExprKind::Call(_, _)
-                | ExprKind::Sequence(_)
-                | ExprKind::Closure { .. }
-                | ExprKind::Conditional { .. }
-                | ExprKind::Binary {
-                    op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
-                    ..
-                }
-                | ExprKind::Unary {
-                    op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
-                    ..
-                }
-        ) {
-            let (target, result) = self.conditional_call(context, callee, args, loans, span, expected)?;
-            expr.target = Some(target);
             expr.ty = Some(result);
             return Ok(result);
         }

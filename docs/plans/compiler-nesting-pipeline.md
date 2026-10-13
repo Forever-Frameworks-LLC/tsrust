@@ -109,3 +109,86 @@ SQLite records under `tsrust-nesting-discovery` retain both sweeps, source bytes
 phase events, debugger transcripts and build/format evidence. The debugger child
 is explicitly terminated after capture. No production limit or behavior changes
 in this diagnostic checkpoint, and no formal timing acceptance is claimed.
+
+## Checker continuation migration in progress
+
+The working implementation begins by making suspended state explicit across the
+whole observed cycle. `analysis/continuations` separates closure preparation and
+publication, block entry/cursor/scope restoration, return inference/escape checks,
+typed-expression failure-point publication, expression completion effects and
+call capture-loan cleanup. These boundaries retain existing evaluation order;
+closure capture access is still applied after its body is checked, block names and
+loans are restored at the existing scope boundary, and call completion does not
+publish native effects before argument evaluation finishes.
+
+This is unfinished migration, not stackless acceptance. Remaining compatibility
+operations can still recurse through closure parameter defaults, expression
+preludes, contextual callee preparation, arguments, branches and exceptions. No
+guard is removed and no stress ceiling is claimed. Installed consumers remain at
+the last accepted public checkpoint while this migration is incomplete.
+
+The driver must own a work stack and transfer partially checked nodes between
+request and completion frames. Context slots must retain stable identities without
+cloning entire caller contexts at every child expression. Child closure contexts
+remain distinct from the suspended parent's context; finishing the closure applies
+its captured accesses back to that parent. On failure, pending scope/callable
+frames must preserve the existing ownership-diagnostic filtering and restore any
+state required by callers that recover. Recursive entry into a second driver would
+merely relocate the same problem, so all body/expression/default/dependency requests
+must return to the same scheduler. Scalar or capture-free special cases are not the
+intended architecture.
+
+The first connected driver now schedules block bodies, including labeled blocks.
+It moves each child body's existing allocation into a work frame while retaining
+the parent statement's metadata. Scope entry, statement cursor advancement and
+storage observations run once; completion restores the child tree before the
+parent proceeds. Error propagation restores every suspended body without running
+successful-scope completion effects. Labeled blocks retain their existing break,
+owner and flow joins. No caller context is cloned for this scheduling operation.
+
+Four focused internal witnesses pass for shadow restoration, typed child
+preservation, nested-error tree restoration and locations, return reachability,
+and labeled-break completion. These resolve the ownership-transfer uncertainty
+needed to extend the driver; they are not a feature-family acceptance run.
+SQLite records under `tsrust-nesting-driver` retain the checks and exact tested
+source hashes. A follow-up run also passes all four witnesses after removing the
+unreachable legacy block dispatch and its unused synchronous labeled-block
+wrapper. That run checks formatted fixture behavior and formatter idempotence.
+
+The driver now also schedules return expressions, conditional callees and closure
+bodies on the same work stack. Closure contexts occupy separate owned slots; the
+parent context remains suspended until capture effects are applied at completion.
+Failed expression and body results carry their partially checked syntax back to
+the parent, preserving callable ownership-diagnostic filtering. Root expressions
+borrow their existing loans, and child callee tasks share them without copying
+the loan map. Contextual literal completion uses explicit wrapper state.
+
+The original mixed closure-body discovery now completes all phases at sampled
+sizes 8, 16 and 32 on the normal test-worker stack. Size 16 previously overflowed
+during analysis. Size 64 encounters the existing parser expression-depth guard;
+that guard is remaining architectural debt, not an observed resource boundary.
+These single diagnostic observations are not formal timing or scaling acceptance.
+SQLite records under `tsrust-nesting-unified-driver` preserve the exact source,
+phase events, executable hash and source hashes.
+
+Focused native witnesses check nested owned and mutable captures, capture-transfer
+diagnostic locations, callee-before-argument evaluation, argument order, default
+parameters and contextual literal types. One initial order fixture tried to
+replace a scalar while a returned callable still held its capture access. The
+installed eee661c3 compiler rejects the same fixture with `capture-conflict`;
+the fixture was corrected to observe callee order without violating that existing
+contract. The original failure and baseline reproduction are retained.
+
+The four driver restoration witnesses, three new integration witnesses and 31
+existing callable-result, callback-return and literal-type regressions pass. The
+corrected order witness is rerun alone; the other two new witnesses retain their
+original passing results. These are focused migration checks. They do not replace
+whole-pipeline acceptance, full compiler/LSP regressions or formal measurements.
+
+Arguments, defaults, remaining expression variants, branches, loops, exceptions
+and dynamically requested dependencies still need to yield to this driver.
+Compatibility calls can still start nested driver invocations, so the work is
+not accepted as a stackless checker. Parser/type-syntax, final analysis, emission
+and the other cross-phase paths in this map remain required. Whole-pipeline
+stress, matched scaling measurements and integrated consumer acceptance remain
+pending; the retained guards have no new justification from these samples.

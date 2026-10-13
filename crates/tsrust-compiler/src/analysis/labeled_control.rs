@@ -66,13 +66,15 @@ impl Analyzer {
         Ok(true)
     }
 
-    #[inline(never)]
-    pub(super) fn labeled_block(&mut self,context:&mut Context,body:&mut [Stmt],result_type:Type,span:Span,labels:&[Token])->Result<bool,Diagnostic>{
+    pub(in crate::analysis) fn enter_labeled_block(&mut self, context: &mut Context, span: Span, labels: &[Token]) -> Result<(), Diagnostic> {
         Self::validate_control_labels(context,labels)?;
         let mut ids=context.names.values().copied().collect::<Vec<_>>();ids.sort_unstable();
         let entry=ids.into_iter().map(|id|(id,Availability::of(&context.bindings[id]))).collect::<Vec<_>>();
         context.loops.push(LoopFrame{labels:labels.to_vec(),target:ControlTarget::Block(span.start),flow_entry:context.flow.clone(),flow_required:HashMap::new(),break_flow:None,continue_flow:None,breaks:vec![Availability::default();entry.len()],break_seen:false, break_owners:None, continue_owners:None,scope_start:context.bindings.len(),defer_continue:false,continues:None,entry,span});
-        let exits=self.block(context,body,result_type)?;
+        Ok(())
+    }
+
+    pub(in crate::analysis) fn finish_labeled_block(&mut self, context: &mut Context, body: &mut [Stmt], exits: bool, span: Span) -> Result<bool, Diagnostic> {
         let frame=context.loops.pop().expect("matching label frame");
         exception_state::consume_target(context,frame.target);
         context.capture_loan_owners=crate::capture_loan_owners::Owners::reaching(
