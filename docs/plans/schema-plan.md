@@ -68,8 +68,8 @@ shape. Borrow the reusable schema and preserve the same input ownership contract
 as `safeParse`. Callback exceptions propagate unchanged; construction failures
 remain `SchemaConstructionError`. Checker exception inference, catch payload
 IntelliSense, chained receiver completion and executable success/failure examples
-must be included. This API is currently missing; this entry records pending work,
-not implementation acceptance.
+must be included. The scoped API is implemented at a110f270; the acceptance evidence and consumer
+refresh are recorded below. S11 family acceptance remains separate.
 
 ## Approved contracts
 
@@ -2212,3 +2212,21 @@ editor checks also exposed and repaired missing catch-binding refresh after
 project facts were installed. Evidence is stored under `tsrust-schema-parse-*`.
 This accepts the scoped parse implementation; S11 family acceptance, timings and
 the installed-consumer refresh remain pending.
+
+
+### Parse consumer refresh and recursive diagnostic integration
+
+Both CLI and configured language-server consumers were refreshed from a110f270.
+Installed checks cover scalar and inline-object parse, caught validation issues,
+Result help and parse completion. The tsrust_test server was restarted and its
+open editor reported No Problems. Release and installed evidence are stored as
+`tsrust-schema-parse-release.log` and `tsrust-schema-parse-installed.log` in SQLite.
+
+The recursive graph is now connected to linked recursive call preprocessing.
+Structural direct-self and nonterminating required-object definitions receive
+`schema-recursion` diagnostics. The precheck recognizes the linked namespace,
+not a user method with the same spelling. Unknown local schema expressions and
+arbitrary callback control flow remain for checked lowering, rather than being
+rejected by spelling. Productive definitions still require type inference and
+runtime plan lowering; this is not public recursive-schema acceptance. New
+structural source witnesses are deferred until the recursive section is ready.

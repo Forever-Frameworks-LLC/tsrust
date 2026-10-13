@@ -135,3 +135,116 @@ mod tests {
         assert_eq!(definition.validate(NodeId(100)), Err(Invalid::MissingNode(NodeId(100))));
     }
 }
+
+
+/// Early structural diagnostics use only linked namespace identity. Aliased local
+/// schema values and arbitrary callback control flow remain the checker's job.
+pub(super) fn check_source_call(expression: &crate::syntax::Expr) -> Result<(), crate::Diagnostic> {
+    use crate::syntax::{ExprKind, StmtKind};
+    let ExprKind::Call(callee, arguments) = &expression.kind else { return Ok(()); };
+    if builder(callee) != Some("recursive") { return Ok(()); }
+    let [callback] = arguments.as_slice() else {
+        return Err(crate::Diagnostic::new("arity", "s.recursive expects one definition builder.", expression.span));
+    };
+    let ExprKind::Closure { params, body, .. } = &callback.kind else {
+        // Callable identities require checked analysis, not spelling inference.
+        return Ok(());
+    };
+    if params.len() != 1 || params[0].rest {
+        return Err(crate::Diagnostic::new("schema-recursion", "A recursive definition builder expects one self parameter.", callback.span));
+    }
+    let Some(statement) = body.last() else { return Ok(()); };
+    let StmtKind::Return(Some(output)) = &statement.kind else { return Ok(()); };
+    let mut definition = Definition::default();
+    let Some(root) = source_shape(&mut definition, output, &params[0].name.text) else { return Ok(()); };
+    definition.validate(root).map_err(|error| crate::Diagnostic::new("schema-recursion", match error {
+        Invalid::UnguardedReference(_) => "Recursive self references must descend through an input container before referring to the definition again.",
+        Invalid::NoFiniteValue(_) => "This recursive schema has no finite value. Add a terminating alternative or use an array that can be empty.",
+        Invalid::MissingNode(_) => "The recursive schema definition contains an unresolved reference.",
+    }, output.span))
+}
+
+fn builder(expression: &crate::syntax::Expr) -> Option<&str> {
+    use crate::syntax::ExprKind;
+    let ExprKind::Field(base, method) = &expression.kind else { return None; };
+    matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()).then_some(method)
+}
+
+fn source_shape(definition: &mut Definition, expression: &crate::syntax::Expr, self_name: &str) -> Option<NodeId> {
+    use crate::syntax::ExprKind;
+    if matches!(&expression.kind, ExprKind::Name(name) if name == self_name) {
+        return Some(definition.push(Shape::Reference));
+    }
+    let ExprKind::Call(callee, arguments) = &expression.kind else { return None; };
+    let shape = match builder(callee) {
+        Some("string" | "int" | "number" | "boolean" | "null" | "literal" | "enum") => Shape::Leaf,
+        Some("array") => {
+            let [child] = arguments.as_slice() else { return None; };
+            Shape::Array(source_shape(definition, child, self_name)?)
+        },
+        Some("object") => {
+            let Some(fields) = arguments.first() else { return None; };
+            let ExprKind::Record(fields) = &fields.kind else { return None; };
+            Shape::Object(fields.iter().map(|(_, child)| source_shape(definition, child, self_name)).collect::<Option<Vec<_>>>()?)
+        },
+        Some("union") => {
+            let [branches] = arguments.as_slice() else { return None; };
+            let ExprKind::Array(branches) = &branches.kind else { return None; };
+            Shape::Choice(branches.iter().map(|child| source_shape(definition, child, self_name)).collect::<Option<Vec<_>>>()?)
+        },
+        None => {
+            let ExprKind::Field(base, method) = &callee.kind else { return None; };
+            let child = source_shape(definition, base, self_name)?;
+            match method.as_str() {
+                "nullable" | "optional" if arguments.is_empty() => {
+                    let absent = definition.push(Shape::Leaf);
+                    Shape::Choice(vec![child, absent])
+                },
+                "min" | "max" | "gt" | "lt" | "refine" | "strip" | "retain" => Shape::Adapter(child),
+                _ => return None,
+            }
+        },
+        _ => return None,
+    };
+    Some(definition.push(shape))
+}
+
+#[cfg(test)]
+mod source_tests {
+    use super::*;
+    use crate::syntax::ExprKind;
+
+    fn check(source: &str) -> Result<(), crate::Diagnostic> {
+        let mut program = crate::syntax::parse(source)?;
+        for function in &mut program.functions {
+            crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+                if matches!(&expression.kind, ExprKind::Name(name) if name == "s") {
+                    expression.kind = ExprKind::Name(crate::native_exports::Namespace::Schema.symbol().into());
+                }
+                Ok(())
+            })?;
+            crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| check_source_call(expression))?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn linked_definitions_reject_direct_and_required_self_cycles() {
+        for definition in ["self", "s.union([self,s.int()])", "s.object({child:self})", "self.nullable()"] {
+            let error = check(&format!("function main(){{s.recursive(self=>{definition});}}")).unwrap_err();
+            assert_eq!(error.code, "schema-recursion");
+        }
+    }
+
+    #[test]
+    fn linked_definitions_accept_structurally_terminating_roots() {
+        for definition in ["s.array(self)", "s.union([s.int(),s.array(self)])", "s.object({left:self.nullable(),right:self.nullable()})"] {
+            check(&format!("function main(){{s.recursive(self=>{definition});}}")).unwrap();
+        }
+    }
+
+    #[test]
+    fn unrelated_recursive_methods_are_not_schema_calls() {
+        check("function main(){other.recursive(self=>self);}").unwrap();
+    }
+}

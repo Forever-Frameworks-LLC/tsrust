@@ -177,6 +177,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut uses_bounds = false;
     for function in &mut program.functions {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+            super::recursive::check_source_call(expression)?;
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
             uses_safe_parse |= matches!(member.as_str(), "safeParse" | "parse");
             uses_parse |= member == "parse";
