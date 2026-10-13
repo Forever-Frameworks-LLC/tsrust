@@ -2225,7 +2225,7 @@ impl Parser<'_> {
         use crate::type_syntax::{TypeName, ValueAnnotation, ValueAnnotationKind as Kind};
         let span = annotation.span;
         let absent = ValueAnnotation { kind: Kind::Named(TypeName { text: "undefined".into(), span }), span };
-        let members = match annotation.kind {
+        let members = match annotation.into_kind() {
             Kind::Union(mut members) => {
                 if !members.iter().any(|member| matches!(&member.kind, Kind::Named(name) if name.text == "undefined")) {
                     members.push(absent);

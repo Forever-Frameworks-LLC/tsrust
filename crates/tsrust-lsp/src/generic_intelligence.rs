@@ -173,7 +173,7 @@ impl SourceIndex {
                 let Ok(annotation) = parse(&instance) else {
                     continue;
                 };
-                let Kind::Applied { name, arguments } = annotation.kind else {
+                let Kind::Applied { name, arguments } = annotation.into_kind() else {
                     continue;
                 };
                 let Some(parameters) = self.generic_parameters.get(&name.text) else {

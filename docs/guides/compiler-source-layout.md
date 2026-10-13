@@ -86,3 +86,9 @@ escaping cleanup effects. Operation and callable contracts remain in
 `error_effects/mod.rs`. The shared `completion.rs` worklist proves abrupt cleanup
 for both analysis and emission; keep labeled-block and loop fallthrough boundaries
 conservative.
+
+Annotation storage operations live in `types/annotation_storage.rs`. Clone,
+equality, nesting inspection and destruction use heap worklists. Use
+`ValueAnnotation::into_kind` when consuming an annotation variant so its children
+can be moved without bypassing the stack-safe destructor. Parser, substitution
+and type-resolution traversal remain separate responsibilities.

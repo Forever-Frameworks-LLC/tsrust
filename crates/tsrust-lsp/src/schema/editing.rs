@@ -52,7 +52,7 @@ impl SourceIndex {
             let Some((ty,end))=self.simple_expression_type(keyword+2,self.tokens[keyword].span.start,0) else {continue;};
             if end!=close || !ty.starts_with("Result<") {continue;}
             let Ok(annotation)=parse(&ty) else {continue;};
-            let ValueAnnotationKind::Applied {arguments,..}=annotation.kind else {continue;};
+            let ValueAnnotationKind::Applied {arguments,..}=annotation.into_kind() else {continue;};
             if arguments.len()!=2 {continue;}
             let Some(scope)=self.scopes.iter().position(|scope|scope.span.start==self.tokens[close+1].span.start) else {continue;};
             let end=self.pairs[close+1].unwrap_or(self.tokens.len());

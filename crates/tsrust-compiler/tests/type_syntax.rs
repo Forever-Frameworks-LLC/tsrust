@@ -8,10 +8,10 @@ fn structured_annotations_preserve_nested_types_and_original_byte_spans() {
         &source[value.span.start..value.span.end],
         "Result<(User | null)[], Map<string, Box<int>>>[]"
     );
-    let Kind::Array(applied) = value.kind else {
+    let Kind::Array(applied) = value.into_kind() else {
         panic!("outer array")
     };
-    let Kind::Applied { name, arguments } = applied.kind else {
+    let Kind::Applied { name, arguments } = applied.into_kind() else {
         panic!("result application")
     };
     assert_eq!(name.text, "Result");
@@ -109,7 +109,7 @@ fn callable_annotations_preserve_modes_nested_types_and_coordinates() {
         ownership,
         parameters,
         result,
-    } = value.kind
+    } = value.into_kind()
     else {
         panic!("callable")
     };
@@ -153,7 +153,7 @@ fn callable_annotations_preserve_modes_nested_types_and_coordinates() {
     let array = parse("((path: ReadOnly<string>)=>string)[]").unwrap();
     assert!(matches!(array.kind, Kind::Array(_)));
     let named = parse("(value: read)=>int").unwrap();
-    let Kind::Callable { parameters, .. } = named.kind else {
+    let Kind::Callable { parameters, .. } = named.into_kind() else {
         panic!("callable")
     };
     assert!(parameters[0].access.is_none());
@@ -227,7 +227,7 @@ fn explicit_mutable_callable_annotations_preserve_borrowing_and_spans() {
     let source = "Mutable<Function<string, [value: ReadOnly<string>]>>";
     let annotation = parse(source).unwrap();
     assert_eq!(annotation.span, tsrust_compiler::Span::new(0, source.len()));
-    let ValueAnnotationKind::Callable { ownership, parameters, .. } = annotation.kind else { panic!("callable annotation"); };
+    let ValueAnnotationKind::Callable { ownership, parameters, .. } = annotation.into_kind() else { panic!("callable annotation"); };
     assert_eq!(ownership, CallableOwnership::Reusable);
     assert_eq!(parameters[0].access.as_ref().unwrap().mode, tsrust_compiler::Mode::Read);
     assert_eq!(&source[parameters[0].name.span.start..parameters[0].name.span.end], "value");
@@ -253,7 +253,7 @@ fn literal_annotations_keep_exact_payloads_and_reject_expressions() {
         ("true",Literal::Boolean(true)),
         ("false",Literal::Boolean(false)),
     ] {
-        let Kind::Literal(actual)=parse(source).unwrap().kind else{panic!("literal type: {source}")};
+        let Kind::Literal(actual)=parse(source).unwrap().into_kind() else{panic!("literal type: {source}")};
         assert_eq!(actual,expected);
         assert_eq!(parse(&actual.text()).unwrap().kind,Kind::Literal(actual));
     }

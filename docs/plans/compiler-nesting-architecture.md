@@ -353,3 +353,38 @@ Original failure and affected repair are retained separately. No new timings or
 allocation measurements are claimed. SQLite evidence uses the
 `tsrust-nesting-effects` prefix. Installed consumers remain on `ee3dd790` for this
 internal traversal checkpoint; no public API changes were introduced.
+
+## Annotation storage conversion in progress
+
+`types/annotation_storage.rs` gives owned annotation trees iterative cloning,
+equality, nesting inspection and destruction. Clone retains callable ownership,
+parameter names/access/omission/rest metadata, polymorphic identities, exact
+literal spellings, child ordering and every source span. Leaf clone/equality
+avoids allocating traversal storage. Owned extraction uses `into_kind`; compiler
+and editor consumers move their children through that boundary.
+
+A 16,384-level mixed tree covers arrays, groups, unions, tuples, applications,
+callable results and callable parameters. Its clone and differing copy use the
+ordinary production destructor on the normal test worker stack. This closes the
+`ValueAnnotation` clone/drop prerequisite; source parameter/result annotation
+wrappers, expression/statement tree disposal, annotation parsing/substitution/
+resolution and recursive debug rendering remain pending.
+Existing substitution and parser guards remain until those traversals are safe.
+No guard was raised and no larger worker stack was introduced.
+
+All-target checking is used during the ownership migration to locate required
+move-site changes. Original migration diagnostics are retained as evidence.
+Public Tsrust type contracts and benchmark sources remain unchanged; focused
+generic, native-declaration and editor witnesses validate existing consumers.
+Compilation timing remains a separate architecture-milestone requirement.
+
+Verification passes 28 type unit checks, including the production deep-storage
+witness, plus 86 compiler integration checks across type syntax, aliases, generic
+default scope, generic value signatures and native declarations. The latter
+executes the existing schema catalog examples with formatting and output checks.
+Editor verification passes 66 generic checks and 39 schema checks, with no overlap.
+All-target migration checking passes; whole-project formatting changes zero files
+and fingerprints. Evidence, including original ownership-migration diagnostics,
+is byte-verified in SQLite under `tsrust-nesting-annotation-storage`. No new timing
+or allocation samples are claimed. This internal storage checkpoint leaves
+installed consumers on the last public behavior checkpoint, `ee3dd790`.

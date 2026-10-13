@@ -42,7 +42,7 @@ impl SourceIndex {
             } else {
                 use tsrust_compiler::type_syntax::{ValueAnnotationKind, LiteralAnnotation};
                 let parsed = tsrust_compiler::type_syntax::parse(written).ok()?;
-                let ValueAnnotationKind::Literal(LiteralAnnotation::String(field)) = parsed.kind else { return Some(json!([])); };
+                let ValueAnnotationKind::Literal(LiteralAnnotation::String(field)) = parsed.into_kind() else { return Some(json!([])); };
                 output = self.schema_path_fields(&output).remove(&field)?;
             }
             segment = comma + 1;

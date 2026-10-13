@@ -192,7 +192,7 @@ mod tests {
         let signature = Signature::Result(&Signature::Parameter(0), &Signature::Parameter(1));
         let arguments = [Signature::Named(NativeTypeId::ByteView), Signature::Int];
         let projected = project_with_parameters(&mut records, &signature, &arguments, span).unwrap();
-        let Kind::Applied { name, arguments } = projected.kind else { panic!("expected Result"); };
+        let Kind::Applied { name, arguments } = projected.into_kind() else { panic!("expected Result"); };
         assert_eq!(name.text, "Result");
         let Kind::Named(value) = &arguments[0].kind else { panic!("expected view identity"); };
         assert_eq!(value.text, linked_name(NativeTypeId::ByteView));
@@ -202,7 +202,7 @@ mod tests {
         assert_eq!(failed.code, "native-type-argument");
         assert_eq!(records.len(), count);
         let optional = project_with_parameters(&mut records, &Signature::Optional(&Signature::Parameter(0)), &[Signature::Named(NativeTypeId::ByteView)], span).unwrap();
-        let Kind::Union(alternatives) = optional.kind else { panic!("expected optional union"); };
+        let Kind::Union(alternatives) = optional.into_kind() else { panic!("expected optional union"); };
         assert_eq!(alternatives.len(), 2);
         let Kind::Named(absent) = &alternatives[1].kind else { panic!("expected undefined"); };
         assert_eq!(absent.text, "undefined");

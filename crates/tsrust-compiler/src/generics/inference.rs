@@ -534,8 +534,8 @@ mod tests {
         assert!(types.annotation(root,Span::default()).is_err());
         unions.name_recursive(id,0,Span::default()).unwrap();
         let annotation=types.annotation(array,Span::default()).unwrap();
-        let Kind::Array(child)=annotation.kind else {panic!("array annotation")};
-        let Kind::Named(name)=child.kind else {panic!("named recursive element")};
+        let Kind::Array(child)=annotation.into_kind() else {panic!("array annotation")};
+        let Kind::Named(name)=child.into_kind() else {panic!("named recursive element")};
         assert_eq!(name.text,"RecursiveValue");
         assert_eq!(unions.named_type(0),root);
         let resumed=crate::unions::UnionArena::from_snapshot_with_records(unions.snapshot(),&program.records);

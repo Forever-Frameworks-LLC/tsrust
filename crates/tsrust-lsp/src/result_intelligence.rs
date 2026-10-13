@@ -72,7 +72,7 @@ impl SourceIndex {
         }
         let source = format!("Result<{}>", self.snippet(callee + 2, open - 1));
         let Ok(annotation) = parse(&source) else { return; };
-        let ValueAnnotationKind::Applied { arguments, .. } = annotation.kind else { return; };
+        let ValueAnnotationKind::Applied { arguments, .. } = annotation.into_kind() else { return; };
         if arguments.len() != 2 { return; }
         let types = arguments.iter().map(|argument| source[argument.span.start..argument.span.end].trim()).collect::<Vec<_>>();
         let payload = types[usize::from(name == "Err")];

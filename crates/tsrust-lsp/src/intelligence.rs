@@ -1267,7 +1267,7 @@ impl SourceIndex {
                         let written = if nesting != 0 || whole.is_empty() {
                             String::new()
                         } else if array_pattern {
-                            match tsrust_compiler::type_syntax::parse(&whole).map(|annotation| annotation.kind) {
+                            match tsrust_compiler::type_syntax::parse(&whole).map(|annotation| annotation.into_kind()) {
                                 Ok(tsrust_compiler::type_syntax::ValueAnnotationKind::Tuple(positions)) => positions
                                     .get(position)
                                     .map(|field| whole[field.span.start..field.span.end].to_owned())
@@ -2170,7 +2170,7 @@ impl SourceIndex {
             if self.text(end) == "[" {
                 let close = self.pairs.get(end).copied().flatten()?;
                 ty = if let Ok(annotation) = tsrust_compiler::type_syntax::parse(&ty) {
-                    if let tsrust_compiler::type_syntax::ValueAnnotationKind::Tuple(positions) = annotation.kind {
+                    if let tsrust_compiler::type_syntax::ValueAnnotationKind::Tuple(positions) = annotation.into_kind() {
                         let position = self.text(end + 1).parse::<usize>().ok()?;
                         if close != end + 2 { return None; }
                         let field = positions.get(position)?;
@@ -4225,7 +4225,7 @@ fn builtin_type_substitution(text:&str,types:&[(&str,&str)])->String {
 // Literal identities stay precise in hover; member lookup uses their scalar API.
 fn literal_scalar_family(ty: &str) -> Option<&'static str> {
     use tsrust_compiler::type_syntax::{ValueAnnotationKind, LiteralAnnotation};
-    let ValueAnnotationKind::Literal(value) = tsrust_compiler::type_syntax::parse(ty).ok()?.kind else { return None; };
+    let ValueAnnotationKind::Literal(value) = tsrust_compiler::type_syntax::parse(ty).ok()?.into_kind() else { return None; };
     Some(match value { LiteralAnnotation::String(_) => "string", LiteralAnnotation::Int(_) => "int",
         LiteralAnnotation::Number(_) => "number", LiteralAnnotation::Boolean(_) => "boolean" })
 }

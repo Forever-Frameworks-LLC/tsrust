@@ -1007,7 +1007,7 @@ mod annotation_tests {
         linker.type_parameters.clear();
         let mut annotation = parse("T").unwrap();
         linker.value_annotation(&mut annotation);
-        let Kind::Named(name) = annotation.kind else { panic!("nominal") };
+        let Kind::Named(name) = annotation.into_kind() else { panic!("nominal") };
         assert_eq!(name.text, "__tsrust_module_0_ImportedT");
     }
 }

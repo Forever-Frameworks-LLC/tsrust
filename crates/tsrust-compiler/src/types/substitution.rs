@@ -142,7 +142,7 @@ mod tests {
             ownership,
             parameters,
             result,
-        } = value.kind
+        } = value.into_kind()
         else {
             panic!("callable");
         };
@@ -161,7 +161,7 @@ mod tests {
         };
         assert_eq!(name.text, "Box");
         assert_eq!(arguments[0], argument);
-        let Kind::Array(inner) = result.kind else {
+        let Kind::Array(inner) = result.into_kind() else {
             panic!("array");
         };
         assert_eq!(*inner, argument);
@@ -174,7 +174,7 @@ mod tests {
             ("U".into(), parse("int").unwrap()),
         ]);
         apply(&mut value, &bindings).unwrap();
-        assert!(matches!(value.kind,Kind::Named(name) if name.text=="U"));
+        assert!(matches!(value.into_kind(),Kind::Named(name) if name.text=="U"));
         let mut value = parse("T<int>").unwrap();
         let error = apply(&mut value, &bindings).unwrap_err();
         assert_eq!(error.code, "type");
@@ -221,7 +221,7 @@ fn containment_projection_remains_private_and_checks_arity() {
     use crate::type_syntax::parse;
     let bindings=HashMap::from([("T".into(),parse("int[]").unwrap())]);
     let mut ordinary=parse("ElementOf<T>").unwrap();apply(&mut ordinary,&bindings).unwrap();
-    assert!(matches!(ordinary.kind,Kind::Applied{name,..} if name.text=="ElementOf"));
+    assert!(matches!(ordinary.into_kind(),Kind::Applied{name,..} if name.text=="ElementOf"));
     let mut invalid=parse("ElementOf<T,T>").unwrap();
     let Kind::Applied{name,..}=&mut invalid.kind else {panic!("constructor")};name.text="@testing:element".into();
     assert_eq!(apply(&mut invalid,&bindings).unwrap_err().code,"arity");
@@ -236,7 +236,7 @@ fn containment_element_retains_actual_element_coordinates() {
     let Kind::Applied{name,..}=&mut annotation.kind else {panic!("projection")};name.text="@testing:element".into();
     apply(&mut annotation,&HashMap::from([("T".into(),argument)])).unwrap();
     assert_eq!(annotation.span,expected_span);
-    let Kind::Named(name)=annotation.kind else {panic!("element")};assert_eq!(name.span,expected_span);assert_eq!(name.text,"string");
+    let Kind::Named(name)=annotation.into_kind() else {panic!("element")};assert_eq!(name.span,expected_span);assert_eq!(name.text,"string");
 }
 
 #[cfg(test)]
@@ -245,7 +245,7 @@ fn literal_arguments_remain_values_during_generic_substitution() {
     use crate::type_syntax::{parse,LiteralAnnotation};
     let mut value=parse("Function<T,['T',T]>").unwrap();
     apply(&mut value,&HashMap::from([("T".into(),parse("9007199254740993").unwrap())])).unwrap();
-    let Kind::Callable{parameters,result,..}=value.kind else{panic!("callable")};
+    let Kind::Callable{parameters,result,..}=value.into_kind() else{panic!("callable")};
     assert_eq!(result.kind,Kind::Literal(LiteralAnnotation::Int("9007199254740993".into())));
     assert_eq!(parameters[0].annotation.kind,Kind::Literal(LiteralAnnotation::String("T".into())));
     assert_eq!(parameters[1].annotation.kind,result.kind);

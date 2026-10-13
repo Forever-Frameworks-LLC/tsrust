@@ -96,7 +96,7 @@ fn recursive_native_projection_keeps_ids_and_rolls_back_failures() {
     let mut records = Vec::new();
     let signature = Signature::Result(&Signature::Array(&Signature::Named(NativeTypeId::Bytes)), &Signature::Named(NativeTypeId::ByteError));
     let annotation = project(&mut records, &signature, span).unwrap();
-    let Kind::Applied { name, arguments } = annotation.kind else { panic!("Result annotation"); };
+    let Kind::Applied { name, arguments } = annotation.into_kind() else { panic!("Result annotation"); };
     assert_eq!(name.text, "Result");
     let Kind::Array(element) = &arguments[0].kind else { panic!("array payload"); };
     assert!(matches!(&element.kind, Kind::Named(name) if name.text == linked_name(NativeTypeId::Bytes)));
@@ -297,7 +297,7 @@ fn recursive_borrowed_native_projection_keeps_distinct_identities() {
     let mut records = Vec::new();
     let signature = Signature::Result(&Signature::Array(&Signature::Named(NativeTypeId::ByteView)), &Signature::Named(NativeTypeId::ByteError));
     let projected = project(&mut records, &signature, span).unwrap();
-    let Kind::Applied { arguments, .. } = projected.kind else { panic!("Result projection"); };
+    let Kind::Applied { arguments, .. } = projected.into_kind() else { panic!("Result projection"); };
     let Kind::Array(element) = &arguments[0].kind else { panic!("view array projection"); };
     assert!(matches!(&element.kind, Kind::Named(name) if name.text == linked_name(NativeTypeId::ByteView)));
     let view = intern(&mut records, NativeTypeId::ByteView, span).unwrap();

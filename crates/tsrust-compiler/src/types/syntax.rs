@@ -8,7 +8,7 @@ pub struct TypeName {
     pub span: Span,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Eq)]
 pub struct ValueAnnotation {
     pub kind: ValueAnnotationKind,
     pub span: Span,
@@ -80,32 +80,6 @@ pub enum ValueAnnotationKind {
     Group(Box<ValueAnnotation>),
     Union(Vec<ValueAnnotation>),
     Tuple(Vec<ValueAnnotation>),
-}
-
-impl ValueAnnotation {
-    fn nesting(&self) -> usize {
-        match &self.kind {
-            ValueAnnotationKind::Literal(_) | ValueAnnotationKind::Named(_) | ValueAnnotationKind::Polymorphic { .. } => 0,
-            ValueAnnotationKind::Callable {
-                parameters, result, ..
-            } => {
-                1 + parameters
-                    .iter()
-                    .map(|parameter| parameter.annotation.nesting())
-                    .chain(std::iter::once(result.nesting()))
-                    .max()
-                    .unwrap_or(0)
-            }
-            ValueAnnotationKind::Applied { arguments, .. }
-            | ValueAnnotationKind::Union(arguments)
-            | ValueAnnotationKind::Tuple(arguments) => {
-                1 + arguments.iter().map(Self::nesting).max().unwrap_or(0)
-            }
-            ValueAnnotationKind::Array(inner) | ValueAnnotationKind::Group(inner) => {
-                1 + inner.nesting()
-            }
-        }
-    }
 }
 
 /// Canonical spelling of a function type. `wrapper` is ReadOnly, Mutable or
