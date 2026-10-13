@@ -589,3 +589,37 @@ bare-function probe failed inference in both builds and is preserved separately;
 it is not counted as deep-source acceptance. Parser, constraint unification and
 source wrapper storage must be completed before removing the remaining admission
 boundary. These probes collect no timing samples.
+
+## Generic contract key storage
+
+The inference audit found another recursive dependency: generic function keys
+used nested enums whose derived clone, hash, equality and drop recursed through
+source structure. Keys now retain a flat prefix-token sequence. A temporary arena
+interns canonical nodes using local child IDs; serialization removes those IDs so
+construction order cannot affect key equality across requests. Token variants and
+container arities distinguish every structural boundary.
+
+Direct union/group boundaries are flattened before constructing their children,
+avoiding repeated intermediate union prefixes. Stable null/undefined ordering and
+adjacent-only deduplication preserve the existing contract. Callable names and
+spans remain excluded; rest, access mode, omission and normalized ownership retain
+their prior identity rules. A bounded reference implementation checks equivalence
+across 6,400 ordered annotation pairs. Normal-stack 16,384-level witnesses cover
+construction, clone, hash, equality, cache lookup and disposal, plus skewed union
+normalization with production source-tree disposal.
+
+No public admission boundary or benchmark protocol changes in this section.
+Generic constraint unification and source wrapper storage still require conversion
+before lifting substitution admission. These storage witnesses do not establish
+end-to-end deep-source acceptance; no timing or allocation samples are claimed.
+
+Verification passes 11 generic function unit checks, 108 native integration checks
+across generic defaults, function values and adapters, 43 generic project checks,
+and 67 generic editor checks. Existing coverage retains cache reuse, exact instance
+budgets, private nominal identities, callable ownership and matched TypeScript
+fixtures; the registered generic pipeline executes at both native optimization
+levels. Whole-project formatting changes zero files and fingerprints. SQLite
+records under `tsrust-nesting-contract-keys` preserve exact outputs and source
+identity with restoration verification. Installed consumers remain on `36093d5b`,
+the last accepted public behavior checkpoint; this section changes private key
+storage without changing admitted programs or public signatures.

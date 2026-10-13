@@ -124,3 +124,9 @@ checked node at a time; the builder schedules children in source order and assem
 parents after their children. Active-path type identities reject structural cycles
 without rejecting repeated acyclic subgraphs. Preserve named recursive union
 boundaries, callable ownership/access metadata and cached annotation span behavior.
+
+Generic function cache keys live in `generics/functions/contract_keys.rs`. A local
+arena canonicalizes contract nodes; only a flat prefix-token sequence survives in
+the cache. Keep construction, cloning, hashing, equality and disposal independent
+of source nesting. Group removal, stable absent-member ordering, adjacent-only
+union deduplication and callable metadata normalization preserve existing identity.

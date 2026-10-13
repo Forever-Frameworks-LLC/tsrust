@@ -7,43 +7,9 @@ use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
 use std::collections::{BTreeMap, HashMap};
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum Key {
-    Polymorphic(usize, String),
-    Named(String),
-    Literal(crate::type_syntax::LiteralAnnotation),
-    Array(Box<Key>),
-    Applied(String, Vec<Key>),
-    Union(Vec<Key>),
-    Tuple(Vec<Key>),
-    Callable(CallbackKind, Vec<(bool, crate::Mode, bool, Key)>, Box<Key>),
-}
-fn key(value: &ValueAnnotation) -> Result<Key, Diagnostic> {
-    Ok(match &value.kind {
-        Kind::Polymorphic { origin, declaration } => Key::Polymorphic(*origin,declaration.text.clone()),
-        Kind::Named(name) => Key::Named(name.text.clone()),
-        Kind::Literal(value) => Key::Literal(value.clone()),
-        Kind::Group(inner) => return key(inner),
-        Kind::Array(inner) => Key::Array(Box::new(key(inner)?)),
-        Kind::Applied { name, arguments } => Key::Applied(name.text.clone(),arguments.iter().map(key).collect::<Result<_,_>>()?),
-        Kind::Tuple(members) => Key::Tuple(members.iter().map(key).collect::<Result<_,_>>()?),
-        Kind::Union(members) => {
-            let mut keys=Vec::new();
-            for member in members {
-                match key(member)? { Key::Union(inner)=>keys.extend(inner), other=>keys.push(other) }
-            }
-            keys.sort_by_key(|key|match key { Key::Named(name) if name=="null"=>1,Key::Named(name) if name=="undefined"=>2,_=>0 });
-            keys.dedup();
-            if keys.len()==1 {return Ok(keys.remove(0));}
-            Key::Union(keys)
-        }
-        Kind::Callable { parameters, result, .. } => Key::Callable(crate::callable_annotations::ownership(value).expect("callable ownership"),
-            parameters.iter().map(|parameter| Ok((parameter.rest,
-                parameter.access.as_ref().map_or(crate::Mode::Copy, |access| access.mode),
-                parameter.omission.is_omittable(), key(&parameter.annotation)?))).collect::<Result<_, Diagnostic>>()?,
-            Box::new(key(result)?)),
-    })
-}
+mod contract_keys;
+use contract_keys::{Key, key};
+
 pub(crate) fn same_annotation_contract(left: &ValueAnnotation, right: &ValueAnnotation) -> bool {
     matches!((key(left), key(right)), (Ok(left), Ok(right)) if left == right)
 }
