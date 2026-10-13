@@ -61,6 +61,7 @@ mod native_view_emit;
 mod schema_validation;
 mod schema_decode;
 mod schema_decode_call;
+mod schema_export;
 mod schema_decode_input;
 mod schema_decode_pipelines;
 mod schema_pipelines;
@@ -2408,6 +2409,11 @@ impl Emitter<'_> {
             output.push_str("\n}\n");
         }
         output.push_str(self.schema_choice_storage());
+        if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaExportError)) {
+            output.push_str("mod tsrust_schema_export {\n");
+            output.push_str(include_str!("../stdlib/schema/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
+            output.push_str("\n}\n");
+        }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if record.literal_definition.is_some(){continue;}
@@ -8714,6 +8720,7 @@ impl Emitter<'_> {
                     format!("{{let issue_context={};let issue_message={};let start=issue_context.issues.items.len();issue_context.issues.push(&[{path}],tsrust_schema_issues::Code::Refinement,tsrust_schema_issues::Kind::{kind},tsrust_schema_issues::Kind::{kind});if issue_context.issues.items.len()>start{{issue_context.issues.items[start].message=Some(issue_message.into_owned());}}}}",self.expr(fun,&args[0],Mode::Mutate),self.expr(fun,&args[1],Mode::Consume))
                 },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
+                CallTarget::SchemaExport(failure) => self.schema_export_call(fun,expr,args,failure),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {

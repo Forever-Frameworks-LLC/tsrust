@@ -1880,6 +1880,7 @@ impl SourceIndex {
         Some(format!("{schema}<{element}[]>"))
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
+        if method=="toJsonSchema" && (self.schema_pipeline_types.contains_key(&receiver)||self.schema_element(&receiver).is_some()) { return "JsonValue".into(); }
         if let Some((_, output, _, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "parse" { return output.clone(); }
             if matches!(method, "refine" | "superRefine") { return receiver; }

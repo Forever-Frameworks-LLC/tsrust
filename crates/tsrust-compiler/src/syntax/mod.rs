@@ -646,6 +646,8 @@ pub enum CallTarget {
     JsonDecode,
     JsonEncode,
     SchemaValidate,
+    /// Carries the structured export error record identity.
+    SchemaExport(usize),
     SchemaAddIssue(usize),
     /// Forward a scalar constraint through an owned diagnostic-message wrapper.
     SchemaConstraint(usize),

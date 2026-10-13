@@ -9,7 +9,8 @@ Readonly refinements, owned transforms and explicit coercion pipelines have focu
 compiler/native/editor acceptance, including nested union rollback and defaults.
 Fused JSON text decoding has focused public/compiler/editor acceptance.
 Recursive schemas and multi-issue refinements now have focused implementation evidence.
-JSON Schema export and family acceptance remain pending.
+JSON Schema export has focused native/editor/example and matched untimed evidence.
+Family acceptance remains pending.
 
 ## Required surface and coverage
 
@@ -32,7 +33,7 @@ executing differential cases; current web documentation alone is not a version p
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; superRefine with bounded typed-path ctx.addIssue is integrated |
 | Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and nested composition have focused witnesses; final family audit remains pending |
 | Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Public record/map/set constructors, reversible validation, collision rejection, editor types and matched workload checked; family acceptance pending |
-| JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Second tranche, still required |
+| JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Draft 2020-12 export integrated with explicit unsupported-rule errors; focused checks pass, family acceptance pending |
 | Async refinements | approved task semantics and cancellation/ownership checks | Follows S14 |
 | Regex/date/format validators | corresponding verified runtime semantics | Follow their dependency gates |
 
@@ -2744,3 +2745,66 @@ editor examples and conformance witnesses remain required before acceptance.
 Nested independent recursive definitions composed with superRefine pass native execution. The pinned differential corpus now passes 29 families / 277 observations, including recursive trees and multi-issue refinements; corpus contract tests pass. Evidence is stored as `tsrust-schema-recursive-multi-*` and `tsrust-schema-recursive-composition.log` in SQLite.
 
 The recursive union-root editor defect is repaired: expanded union aliases can close a cycle without the reserved recursive flag. Project facts now retain actual back-edge identities, including array back edges; editor array spellings group union elements, and member completion intersects alternative fields without dropping null/undefined alternatives. Result payload recovery runs after checked facts are installed. All 14 schema editor witnesses pass. The project IntelliSense suite passed 168 cases; one stale zero-argument matcher documentation assertion was repaired against the current API and its targeted rerun passes. Original failed evidence and repairs remain in SQLite under `tsrust-schema-*union*.log` and `tsrust-union-*`. No full family regression or timing has run.
+
+### JSON Schema export implementation section (in progress)
+
+Public witnesses now cover runtime string bounds, strict object required fields,
+optional properties, schema reuse after export, finite recursive `$ref` targets,
+and rejection without executing callbacks/default factories. They are intentionally
+unrun until the export section is integrated. Export errors use `code`, `path`,
+and `reason` strings; `path` is a JSON Pointer into the schema being exported,
+with an empty string for the root. This identifies schema rules rather than
+inventing a runtime instance index for an array element rule.
+
+Use the authoritative [Draft 2020-12 validation vocabulary](https://json-schema.org/draft/2020-12/json-schema-validation)
+and [core reference rules](https://json-schema.org/draft/2020-12/json-schema-core).
+Runtime bounds must be read from the borrowed plan. Numeric range/precision,
+unknown-field policies, presence wrappers and nonrepresentable transformations
+need explicit handling; do not generate a partial schema on failure.
+
+The matcher documentation assertion was also audited against history: bundled
+`Expectation` has zero-argument nullish methods since the initial repository
+checkpoint, and `testing_library.rs::nullish_failures_are_recoverable_and_zero_argument_signatures_are_enforced`
+explicitly rejects extra arguments. The editor expectation correction preserves
+that contract; it does not remove previously supported optional messages.
+
+Export scaffolding now includes a dedicated checked call target and explicit
+SchemaExportError effects, readonly receiver access, effective runtime bound
+accessors, and shared document/JSON Pointer assembly helpers. The error catalog
+entry documents root paths and escaping. Native plan traversal and call emission are now integrated; focused section
+verification is recorded below. Do not install until acceptance is complete.
+
+### Approved numeric export boundary (2026-10-12)
+
+The owner approved exporting numeric types and bounds even though JSON Schema
+cannot express every native checked floating-point conversion. `s.number()`
+exports numeric constraints; native validation still rejects exact integers that
+cannot be converted to `number` without precision loss. Export documentation and
+IntelliSense must state this limitation. An external JSON Schema validator passing
+an input does not guarantee that native numeric conversion succeeds.
+
+This exception does not permit omitting user-defined rules. Integer bounds remain
+exact integers, and unsupported callbacks, factories and native collection rules
+continue to throw `SchemaExportError`. Add a witness showing both the exported
+numeric constraints and the retained native precision rejection before acceptance.
+
+Export visitors and the public call boundary are now integrated, including runtime
+choices, native plans, wrappers, objects, collections and structured exceptions.
+Seven public native witnesses pass across the initial repaired run and two affected
+reruns. The first run exposed a generated module import error and missing nested-call
+inference; both were repaired. Two assertions were corrected against runtime plan
+storage: message constraints inherit tighter prior bounds, and scalar union plans
+intersect their anyOf branches with outer bounds using allOf.
+
+All 34 benchmark contract checks pass, plus the added export observation mutation
+control. Closed evidence is byte-verified in SQLite as `tsrust-schema-export-*`.
+Editor completion/hover for native and chained plans passes. The catalog example
+executes with its documented output. All ten native/compiled-Node workload cells
+match the independent oracle without timing. Formatting, checkpoint and broader
+S11 acceptance remain pending. No timing or consumer refresh
+is claimed.
+
+Whole-project formatting passed for the export checkpoint: one file formatted, one
+benchmark fingerprint refreshed after token-preservation checks. Source diff has no
+whitespace errors. Extended JSON Schema import/dialect conformance remains H18; S11
+requires the explicitly scoped export surface in the roadmap.

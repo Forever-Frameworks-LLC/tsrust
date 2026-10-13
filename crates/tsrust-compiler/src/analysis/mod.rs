@@ -3,6 +3,7 @@ mod json_typed;
 mod schema;
 mod schema_recursive;
 mod schema_decode;
+mod schema_export;
 mod schema_objects;
 mod schema_presence;
 mod schema_defaults;
@@ -10289,6 +10290,14 @@ impl Analyzer {
     }
 
     fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
+        if let ExprKind::Call(callee,args)=&expr.kind
+            && args.is_empty()
+            && let ExprKind::Field(base,member)=&callee.kind
+            && member=="toJsonSchema"
+            && let Some(Type::Record(id))=self.expression_type_hint(context,base)
+            && (self.schema_pipelines.types(id).is_some()||self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
+            return self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).map(Type::Record);
+        }
         if let Some(ty)=self.schema_union_type_hint(context,expr){return Some(ty);}
         if let ExprKind::Call(callee, _) = &expr.kind
             && let ExprKind::Field(base, member) = &callee.kind
@@ -14408,6 +14417,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_context_issue(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_recursive_constructor(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_export(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_parse_call(context, expr, loans, expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_constraint_options(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_message_constraint(context,expr,loans,expected)? {return Ok(ty);}

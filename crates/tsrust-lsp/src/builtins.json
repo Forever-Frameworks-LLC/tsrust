@@ -14,6 +14,18 @@
 ],
   "SchemaPipeline": [
 {
+  "name": "toJsonSchema",
+  "signature": "toJsonSchema(): JsonValue",
+  "parameters": [],
+  "documentation": "Exports the reusable schema as an owned JSON Schema Draft 2020-12 document. Takes no arguments and leaves the receiver unchanged. Strict object properties, required fields, scalar bounds, literals, enums, arrays, string-keyed records and recursive references are preserved. Overlapping union branches use anyOf. Optional object properties may be absent; undefined elsewhere has no JSON representation.\n\nThrows SchemaExportError with code, path and reason for callbacks, default factories, native Map/Set schemas and output transformations such as strip or retain. path is a JSON Pointer into the schema; an empty string identifies the root. Export never invokes callbacks or returns a partial document. Custom validation messages do not change exported acceptance rules.\n\nNumeric types and bounds are exported, but native checked conversion still applies: an external validator can accept an exact integer that native number conversion rejects for precision loss. Integer bounds remain exact.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.boolean();console.log(JSON.stringify(schema.toJsonSchema()));}\n```\n\nExpected document: {\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"boolean\"}.\n\nOwnership: borrows the schema and allocates an independently owned JsonValue. Export does not clone the plan.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.boolean();console.log(JSON.stringify(schema.toJsonSchema()));}",
+      "output": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"boolean\"}\n"
+    }
+  ]
+},
+{
   "name": "superRefine",
   "signature": "superRefine(callback: (value: ReadOnly<Output>, ctx: Mutable<ValidationContext<Output>>) => void): Schema<Output>",
   "parameters": [
@@ -7169,6 +7181,12 @@
     "documentation": "One path segment. A field segment has field set and index absent; an array segment has index set and field absent. Indices are zero-based. Root issues have no segments. Ownership: owns any field name."
   },
   {
+  "name": "SchemaExportError",
+  "signature": "SchemaExportError",
+  "kind": "type",
+  "documentation": "Thrown when a schema rule cannot be represented by JSON Schema export. Fields: code is unrepresentable; path is a JSON Pointer into the schema rule (empty for the root); reason explains the unsupported rule. Pointer segments escape ~ as ~0 and / as ~1. Export does not execute callbacks or default factories and never returns a partial document. Ownership: the error owns its path; catching it does not consume the source schema."
+},
+{
     "name": "SchemaConstructionError",
     "signature": "type SchemaConstructionError = { code: string; operation: string; limit: int | number }",
     "parameters": [],

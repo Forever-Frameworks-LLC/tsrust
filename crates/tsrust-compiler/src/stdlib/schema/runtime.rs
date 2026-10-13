@@ -5,6 +5,8 @@ pub struct ConstructionError<T = i64> { pub code: &'static str, pub operation: &
 #[derive(Debug, Default, Clone, Copy)]
 pub struct StringBounds { min: Option<u64>, max: Option<u64> }
 impl StringBounds {
+    /// Read effective runtime bounds when exporting a borrowed schema plan.
+    pub fn limits(&self) -> (Option<u64>, Option<u64>) { (self.min, self.max) }
     /// Merge construction limits without copying schema storage or messages.
     /// Preserve the new operation and its written limit in any construction error.
     pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: i64) -> Result<Self, ConstructionError<i64>> {
@@ -46,6 +48,8 @@ impl StringBounds {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct IntBounds { min: Option<i64>, max: Option<i64> }
 impl IntBounds {
+    /// Read effective runtime bounds when exporting a borrowed schema plan.
+    pub fn limits(&self) -> (Option<i64>, Option<i64>) { (self.min, self.max) }
     /// Merge construction limits without copying schema storage or messages.
     /// Preserve the new operation and its written limit in any construction error.
     pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: i64) -> Result<Self, ConstructionError<i64>> {
@@ -89,6 +93,8 @@ impl IntBounds {
 #[derive(Debug, Default, Clone, Copy)]
 pub struct NumberBounds { min: Option<f64>, max: Option<f64> }
 impl NumberBounds {
+    /// Read effective runtime bounds when exporting a borrowed schema plan.
+    pub fn limits(&self) -> (Option<f64>, Option<f64>) { (self.min, self.max) }
     /// Merge construction limits without copying schema storage or messages.
     /// Preserve the new operation and its written limit in any construction error.
     pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: f64) -> Result<Self, ConstructionError<f64>> {

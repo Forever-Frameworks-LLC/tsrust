@@ -3023,3 +3023,24 @@ fn super_refine_context_completion_and_paths_use_checked_output() {
     assert!(items.as_array().unwrap().iter().any(|item| item["label"] == "confirm"), "{items}");
     assert!(items.as_array().unwrap().iter().all(|item| item["label"] == "confirm" || item["label"] == "password"), "{items}");
 }
+
+#[test]
+fn schema_export_completion_and_hover_cover_native_and_chained_plans() {
+    for plan in ["s.string()", "s.string({message:'Expected text'}).min(1)"] {
+        let entry=format!("import {{s}} from 'std:schema';function main(){{const schema={plan};const document=schema.toJsonSchema();}}");
+        let uri="file:///tsrust-intelligence/main.tsr";
+        let mut workspace=Workspace::default();
+        workspace.open(source_id(uri).unwrap(),1,entry.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let items=ask(&index,&entry,"toJsonSchema()","textDocument/completion");
+        let export=items.as_array().unwrap().iter().find(|item|item["label"]=="toJsonSchema").expect("schema export completion");
+        assert!(export.to_string().contains("JsonValue"),"{export}");
+        let hover=ask(&index,&entry,"toJsonSchema()","textDocument/hover");
+        for expected in ["Draft 2020-12","SchemaExportError","precision","Takes no arguments"] {
+            assert!(hover.to_string().contains(expected),"{expected}: {hover}");
+        }
+        let hover=ask(&index,&entry,"document=","textDocument/hover");
+        assert!(hover.to_string().contains("JsonValue"),"{hover}");
+    }
+}

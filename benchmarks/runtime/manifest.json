@@ -9,6 +9,30 @@
   "compileSamples": 3,
   "workloads": [
 {
+  "id": "native_schema_export",
+  "category": "schema",
+  "description": "JSON Schema export and complete document observation",
+  "source": "workloads/native_schema_export.tsr",
+  "counterpart": "workloads/native_schema_export.ts",
+  "iterations": 2000,
+  "operationsPerIteration": 2,
+  "operationUnit": "One schema export, JSON serialization and complete output comparison",
+  "result": "int",
+  "parameters": [
+    "int",
+    "int",
+    "string"
+  ],
+  "family": "native-schema",
+  "inputText": "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"maxLength\":8,\"minLength\":2,\"type\":\"string\"}",
+  "measured": false,
+  "measurementStatus": "unmeasured-schema-family",
+  "specification": "Export bounded string and boolean-array plans. Compare both full documents; checksum seed + 202*n.",
+  "notes": "Plans outside loop. Handwritten TypeScript counterpart, not Zod. Includes serialization and observation; not isolated export timing.",
+  "sourceSha256": "a73a4a493d7bf25cf2dcea494e289f74b417d2c2090e9b0acbc51e92805b6772",
+  "counterpartSha256": "a720c925d9fa7b8210439e09e87d6a1a30123f5fd6bca9993baac1b9544c71cb"
+},
+{
   "id": "native_schema_super_refine",
   "category": "schema",
   "description": "Multiple callback validation issues",
