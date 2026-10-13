@@ -8,7 +8,7 @@ impl Analyzer {
             let mut arm_results=results.clone();
             self.scoped_map_entry_epochs_with_demand(context,body,&mut arm_results,demand,local)?;
             let mut restore=Vec::new();
-            if !crate::completion::definitely_abrupt(body,0) {
+            if !crate::completion::definitely_abrupt(body) {
                 for place in local {
                     let (Some(input),Some(output))=(arm_results.get(&place.binding),results.get(&place.binding)) else{continue;};
                     if self.scoped_array_field_type(*input,&place.fields)==self.scoped_array_field_type(*output,&place.fields){continue;}

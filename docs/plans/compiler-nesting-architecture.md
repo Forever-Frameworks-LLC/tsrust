@@ -19,6 +19,17 @@ scaling evidence. Finish affected sections before validation. Full compiler/LSP
 regressions belong at the completed architecture milestone. Keep original failures
 and measurements in SQLite and resume affected/unrun checks.
 
+## Required optimization phase after nesting
+
+The owner requires optimization of existing code before S12–S21 continuation.
+Compare matched workloads against handwritten Rust timings and allocations, and
+require at least comparable Node-after-tsc performance. Preserve semantics,
+ownership and safety checks, independent result oracles, original measurement
+protocols and baseline records. Report unmatched contracts and unresolved gaps
+explicitly; implementation acceptance does not imply measured parity. Begin with
+the handoff’s collection, recursive, pipeline and export hotspots after nesting
+acceptance.
+
 ## Initial audit and section boundaries
 
 - `analysis/mod.rs` shares one depth counter among ordinary functions, blocks,
@@ -310,3 +321,35 @@ functions pass. Whole-project formatting changes zero files/fingerprints. SQLite
 preserves exact outputs, generated sources and source identity under the
 `tsrust-nesting-record-groups` prefix. These checks do not establish acceptance
 of the remaining contextual dependency or deep-syntax paths.
+
+## Regional effects and completion worklists in progress
+
+Expression and statement error annotation now retain continuations on heap stacks.
+Catch contracts are published after their body is annotated; unreachable handlers
+are still annotated but do not contribute escaping failures. Finally effects
+replace pending failures only when the completion proof establishes an abrupt
+exit. The completion proof also uses a heap worklist. The old depth-dependent
+unknown-effect fallback and conservative completion cutoff are removed from these
+walkers; parser and checker guards remain until their own conversion.
+
+Payload ordering retains the existing list-fold behavior. Optional absent branches
+and uninvoked closure bodies remain unvisited. New isolated 16,384-level witnesses
+cover expression point annotations, nested regions and abrupt cleanup. They build
+syntax directly and dispose it iteratively, so they do not claim production parser,
+checker, emission or disposal acceptance. Existing native exception/optional suites
+cover observable behavior; no public signature or built-in documentation changes.
+Compilation measurements remain pending for the completed architecture milestone.
+
+Focused compiler verification passes 46 effect unit checks and 72 native
+integration checks across exception handling, return moves, native completion,
+native exception regions, optional chaining, unreachable handlers and array
+callback failures. Four catch hover/ownership editor witnesses and the project catch/finally
+navigation/signature witness pass. Whole-project
+formatting changes zero files and fingerprints. Benchmark source/oracle checks
+retain the existing matched exception and callback workloads. The original
+exception registration test incorrectly required its already measured S07 row
+to remain unmeasured; the corrected assertion names the existing S07 evidence.
+Original failure and affected repair are retained separately. No new timings or
+allocation measurements are claimed. SQLite evidence uses the
+`tsrust-nesting-effects` prefix. Installed consumers remain on `ee3dd790` for this
+internal traversal checkpoint; no public API changes were introduced.

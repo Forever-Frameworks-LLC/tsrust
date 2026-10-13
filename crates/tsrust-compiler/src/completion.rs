@@ -20,21 +20,41 @@ impl CompletionKind {
 /// Loops and labeled blocks remain unproven: their targeted exits can reach
 /// normal fallthrough. This proof does not depend on native unwinding.
 #[inline(never)]
-pub(crate) fn definitely_abrupt(body:&[crate::syntax::Stmt],depth:usize)->bool {
-    use crate::syntax::StmtKind;
-    if depth>=128 {return false;}
-    for statement in body {
-        let abrupt=match &statement.kind {
-            StmtKind::Return(_)|StmtKind::Throw(_)|StmtKind::Break|StmtKind::Continue=>true,
-            StmtKind::Block(body) if statement.labels.is_empty()=>definitely_abrupt(body,depth+1),
-            StmtKind::If{then_body,else_body,..}=>definitely_abrupt(then_body,depth+1) && definitely_abrupt(else_body,depth+1),
-            StmtKind::Try(region)=>{
-                region.finally.as_ref().is_some_and(|body|definitely_abrupt(body,depth+1)) ||
-                (definitely_abrupt(&region.body,depth+1) && region.catch.as_ref().is_none_or(|handler|definitely_abrupt(&handler.body,depth+1)))
+pub(crate) fn definitely_abrupt(body:&[crate::syntax::Stmt])->bool {
+    use crate::syntax::{Stmt,StmtKind};
+    enum Work<'a> { Body(&'a [Stmt]), Statement(&'a Stmt), Any(usize), All(usize) }
+    let mut pending=vec![Work::Body(body)];
+    let mut results=Vec::new();
+    while let Some(work)=pending.pop() {
+        match work {
+            Work::Body(body)=>{
+                pending.push(Work::Any(body.len()));
+                pending.extend(body.iter().rev().map(Work::Statement));
             }
-            _=>false,
-        };
-        if abrupt {return true;}
+            Work::Any(count)=>{
+                let start=results.len()-count;
+                let found=results[start..].iter().any(|value|*value);
+                results.truncate(start);results.push(found);
+            }
+            Work::All(count)=>{
+                let start=results.len()-count;
+                let found=results[start..].iter().all(|value|*value);
+                results.truncate(start);results.push(found);
+            }
+            Work::Statement(statement)=>match &statement.kind {
+                StmtKind::Return(_)|StmtKind::Throw(_)|StmtKind::Break|StmtKind::Continue=>results.push(true),
+                StmtKind::Block(body) if statement.labels.is_empty()=>pending.push(Work::Body(body)),
+                StmtKind::If{then_body,else_body,..}=>pending.extend([Work::All(2),Work::Body(else_body),Work::Body(then_body)]),
+                StmtKind::Try(region)=>{
+                    pending.push(Work::Any(1+usize::from(region.finally.is_some())));
+                    pending.push(Work::All(1+usize::from(region.catch.is_some())));
+                    if let Some(handler)=&region.catch {pending.push(Work::Body(&handler.body));}
+                    pending.push(Work::Body(&region.body));
+                    if let Some(body)=&region.finally {pending.push(Work::Body(body));}
+                }
+                _=>results.push(false),
+            }
+        }
     }
-    false
+    results.pop().expect("root completion proof")
 }

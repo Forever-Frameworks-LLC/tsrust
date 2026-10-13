@@ -74,7 +74,7 @@ impl Emitter<'_> {
         let (input_pattern,input_restore)=restoration(&values(&normal_input),&format!("control_normal_input{first}"));
         let (output_pattern,output_restore)=restoration(&values(&normal_output),&format!("control_normal_output{first}"));
         let normal_cleanup=if body_normal{self.field_control_body(fun,cleanup,first+1,error_name,contract,runtime,&name,&controls,&return_fields,true,&normal_output,cleaned_normal,None)}else{"unreachable!(\"no normal body completion\")".into()};
-        let returned_cleanup=self.field_control_body(fun,cleanup,first+2,error_name,contract,runtime,&name,&controls,&return_fields,true,&return_fields[1],!crate::completion::definitely_abrupt(cleanup,0),None);
+        let returned_cleanup=self.field_control_body(fun,cleanup,first+2,error_name,contract,runtime,&name,&controls,&return_fields,true,&return_fields[1],!crate::completion::definitely_abrupt(cleanup),None);
         let returned=format!("{{{return_restore}match {returned_cleanup}{{TsrCompletion::Normal(fields)=>TsrCompletion::Return({name}::Return((pending_return,fields))),TsrCompletion::Return(value)=>TsrCompletion::Return(value),TsrCompletion::Throw(error)=>TsrCompletion::Throw(error),_=>unreachable!(\"checked carried return cleanup\")}}}}");
         let (error_pattern,thrown)=if let Some(fields)=&inherited_errors {
             let (pattern,restore)=restoration(&values(fields),&format!("pending_control_error{first}"));

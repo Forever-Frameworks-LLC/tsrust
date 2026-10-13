@@ -94,7 +94,7 @@ impl Emitter<'_> {
             let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(*kind)).map(|plan|plan.function(fun));let planned=plan.as_ref().unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
             let normal=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(*kind));
             let id=self.completion_next.get();self.completion_next.set(id+1);
-            let resume=if crate::completion::definitely_abrupt(cleanup,0){"unreachable!(\"cleanup cannot resume control\")".into()}else{self.map_selected_control_dispatch(fun,*kind,normal,span)};
+            let resume=if crate::completion::definitely_abrupt(cleanup){"unreachable!(\"cleanup cannot resume control\")".into()}else{self.map_selected_control_dispatch(fun,*kind,normal,span)};
             let normal_code=format!("let {pattern}=storage;{resume}");
             arms.push(self.map_finish_cleanup(fun,planned,region,body,declarations,id,cleanup_name,contract,runtime,places,storage,pattern,span,normal,&normal_code,""));
         }arms

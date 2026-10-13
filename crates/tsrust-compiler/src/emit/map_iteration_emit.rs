@@ -55,7 +55,7 @@ impl Emitter<'_> {
         let places=epochs.iter().map(|epoch|self.map_entry_epoch_place(fun,&epoch.entry)).collect::<Vec<_>>();
         let pattern=places.iter().map(|place|format!("mut {place}")).collect::<Vec<_>>().join(",");
         let names=places.join(",");
-        let exits=crate::completion::definitely_abrupt(body,0);
+        let exits=crate::completion::definitely_abrupt(body);
         let annotation=if exits {
             let types=epochs.iter().map(|epoch|self.native_type(self.map_storage_leaf_type(epoch.body.output,&epoch.entry.place.fields).expect("checked iteration owner"))).collect::<Vec<_>>().join(",");
             format!(":(bool,{types},)")

@@ -53,7 +53,7 @@ impl Emitter<'_> {
         let planned=plan.as_ref().unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let returned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Return));
         let owner=self.map_outgoing_return_storage(fun,span,returned);
-        let resumed=if !crate::completion::definitely_abrupt(cleanup,0){self.exception_regions.dispatch_return("pending_return",span,owner.as_deref())}else{"unreachable!(\"cleanup cannot resume return\")".into()};
+        let resumed=if !crate::completion::definitely_abrupt(cleanup){self.exception_regions.dispatch_return("pending_return",span,owner.as_deref())}else{"unreachable!(\"cleanup cannot resume return\")".into()};
         let normal=format!("let {pattern}=storage;{resumed}");
         self.map_finish_cleanup(fun,planned,region,body,declarations,first,cleanup_name,cleanup_contract,runtime,places,storage,pattern,span,returned,&normal,"drop(pending_return);")
     }

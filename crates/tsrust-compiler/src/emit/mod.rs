@@ -3508,7 +3508,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn completion_handlers(&self,fun:&CheckedFunction,region:&ExceptionRegion,ids:(usize,usize,usize),names:(&str,&str),outgoing:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
-        if let Some(cleanup)=&region.finally && crate::completion::definitely_abrupt(cleanup,0) {
+        if let Some(cleanup)=&region.finally && crate::completion::definitely_abrupt(cleanup) {
             let mut pending_region=region.clone();pending_region.finally=None;
             let mut statements=vec![Stmt{labels:vec![],control_target:None,kind:StmtKind::Try(Box::new(pending_region.clone())),span:crate::Span::default()}];
             let pending_contract=crate::error_effects::annotate_region_body(&mut statements,&self.program.error_effects);
@@ -3526,8 +3526,8 @@ impl Emitter<'_> {
         let partial_return=exception_contract_emit::has_partial_return(fun,&region.body)
             || region.catch.as_ref().is_some_and(|handler|exception_contract_emit::has_partial_return(fun,&handler.body))
             || region.finally.as_ref().is_some_and(|body|exception_contract_emit::has_partial_return(fun,body));
-        let terminal_body=crate::completion::definitely_abrupt(&region.body,0)
-            && region.catch.as_ref().is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body,0))
+        let terminal_body=crate::completion::definitely_abrupt(&region.body)
+            && region.catch.as_ref().is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body))
             && exception_contract_emit::escaping_controls(&region.body).is_empty()
             && region.catch.as_ref().is_none_or(|handler|exception_contract_emit::escaping_controls(&handler.body).is_empty())
             && region.finally.as_ref().is_none_or(|body|exception_contract_emit::escaping_controls(body).is_empty());

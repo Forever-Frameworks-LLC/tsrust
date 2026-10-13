@@ -88,7 +88,7 @@ impl Emitter<'_> {
         let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
         let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let throw_finish=if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty(){
-            let resume=if crate::completion::definitely_abrupt(cleanup,0){"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&incoming_name,&incoming,runtime,statement.span,cleaned_error)};
+            let resume=if crate::completion::definitely_abrupt(cleanup){"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&incoming_name,&incoming,runtime,statement.span,cleaned_error)};
             let fields=field_completion_transport::tuple(&error_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>());
             let (fields_pattern,restore)=field_completion_transport::restoration(&error_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>(),&format!("map_cleaned_error{first}"));
             let normal=format!("let ({pattern},{fields_pattern})=storage;{restore}{resume}");
@@ -103,7 +103,7 @@ impl Emitter<'_> {
             "match pending_exit {{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}"
         );
         let resume_control = self.map_cleanup_control_dispatch(fun,&resumed,statement.span);
-        let resume_control = if crate::completion::definitely_abrupt(cleanup, 0) {
+        let resume_control = if crate::completion::definitely_abrupt(cleanup) {
             "unreachable!(\"abrupt cleanup cannot resume pending control\")".into()
         } else {
             format!("{resume_control};unreachable!()")

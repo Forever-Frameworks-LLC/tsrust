@@ -9,7 +9,7 @@ import {reportCategory} from './report.mjs';
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
 const row=JSON.parse(read('./manifest.json')).workloads.find(x=>x.id==='exception_completion');
 test('exception registration retains matched source and oracle',()=>{
- assert.equal(row.measured,false);assert.equal(reportCategory(row.id),'other');
+ assert.equal(row.measured,true);assert.equal(row.measurementEvidence,'runtime/results/s07-measurement-proof-2026-10-11.json');assert.equal(reportCategory(row.id),'other');
  for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){
   const source=read('./'+name);assertExceptionCompletionSource(source,row,kind);
   assert.throws(()=>assertExceptionCompletionSource(source+' ',row,kind));

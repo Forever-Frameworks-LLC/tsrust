@@ -1,5 +1,7 @@
 //! Checked error effects are separate from scheduling and native representation.
 mod generic_invocation_effects;
+mod traversal;
+use traversal::{body_effect,expression_effect};
 use crate::analysis::{CheckedProgram,CheckedFunction,ClosureForward};
 use crate::syntax::*;
 
@@ -678,57 +680,13 @@ fn annotate_partial_with_contracts(functions:&mut [Option<&mut CheckedFunction>]
 fn function_effect(function:&mut CheckedFunction,effects:&ErrorEffects)->FailureSet {
     let mut failure=FailureSet::default();
     for binding in &mut function.bindings {
-        if let Some(value)=&mut binding.initializer {failure |= expression_effect(value,effects,0);}
+        if let Some(value)=&mut binding.initializer {failure |= expression_effect(value,effects);}
     }
-    failure | body_effect(&mut function.body,effects,0)
+    failure | body_effect(&mut function.body,effects)
 }
 #[inline(never)]
-pub(crate) fn annotate_region_body(body:&mut [Stmt],effects:&ErrorEffects)->FailureSet {body_effect(body,effects,0)}
+pub(crate) fn annotate_region_body(body:&mut [Stmt],effects:&ErrorEffects)->FailureSet {body_effect(body,effects)}
 
-#[inline(never)]
-fn body_effect(body:&mut [Stmt],effects:&ErrorEffects,depth:usize)->FailureSet {
-    if depth>=128 {return FailureSet::unknown();}
-    let mut failure=FailureSet::default();
-    for statement in body {
-        let operation_failure=statement_operation_effect(statement).is_some_and(|(_,fails)|fails);
-        failure |= match &mut statement.kind {
-            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-            StmtKind::Throw(value)=>expression_effect(value,effects,depth+1)|FailureSet::thrown(value.ty),
-            StmtKind::Try(region)=>{
-                let mut found=body_effect(&mut region.body,effects,depth+1);
-                // The body must still be annotated at each failure point for
-                // catch-entry state. Its errors leave this region only when
-                // there is no handler; errors in the handler escape normally.
-                if let Some(handler)=&mut region.catch {
-                    let reachable=found.may_fail();
-                    handler.error_contract=Some(Box::new(found));
-                    let handled=body_effect(&mut handler.body,effects,depth+1);
-                    found=if reachable {handled}else{FailureSet::default()};
-                }
-                if let Some(body)=&mut region.finally {
-                    let cleanup=body_effect(body,effects,depth+1);
-                    if crate::completion::definitely_abrupt(body,0) {found=cleanup;}else{found |= cleanup;}
-                }
-                found
-            }
-            StmtKind::Let{value,..}|StmtKind::Expr(value)=>expression_effect(value,effects,depth+1),
-            StmtKind::Return(value)=>value.as_mut().map(|value|expression_effect(value,effects,depth+1)).unwrap_or_default(),
-            StmtKind::Assign{target,value,..}=>{
-                (if operation_failure {FailureSet::runtime()}else{FailureSet::default()}) | expression_effect(target,effects,depth+1) | expression_effect(value,effects,depth+1)
-            }
-            StmtKind::Block(body)=>body_effect(body,effects,depth+1),
-            StmtKind::If{condition,then_body,else_body}=>expression_effect(condition,effects,depth+1)|body_effect(then_body,effects,depth+1)|body_effect(else_body,effects,depth+1),
-            StmtKind::While{condition,body}=>expression_effect(condition,effects,depth+1)|body_effect(body,effects,depth+1),
-            StmtKind::ForOf{iterable,body,..}=>expression_effect(iterable,effects,depth+1)|body_effect(body,effects,depth+1),
-            StmtKind::Loop{condition,body,update,..}=>{
-                let mut found=condition.as_mut().map(|value|expression_effect(value,effects,depth+1)).unwrap_or_default();
-                found |= body_effect(body,effects,depth+1);found | body_effect(update,effects,depth+1)
-            }
-            StmtKind::Break|StmtKind::Continue=>FailureSet::default(),
-        };
-    }
-    failure
-}
 /// Map only annotated own effects, using mutation operator spans when applicable.
 pub(crate) fn expression_operation_effect(value:&Expr)->Option<(crate::Span,bool)> {
     if !value.effects_checked {return None;}
@@ -834,9 +792,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         _=>FailureSet::runtime(),
     }
 }
-#[inline(never)]
-fn expression_effect(value:&mut Expr,effects:&ErrorEffects,depth:usize)->FailureSet {
-    if depth>=128 {value.may_fail=true;value.own_may_fail=true;value.effects_checked=true;return FailureSet::unknown();}
+fn own_expression_effect(value:&Expr,effects:&ErrorEffects)->FailureSet {
     let runtime=match &value.kind {
         ExprKind::SpreadCall(plan)=>plan.segments.iter().any(|segment|segment.length.is_none()) && (plan.minimum>0 || plan.maximum.is_some()),
         ExprKind::Index(_,_)=>true,
@@ -846,7 +802,7 @@ fn expression_effect(value:&mut Expr,effects:&ErrorEffects,depth:usize)->Failure
         ExprKind::Binary{op,..}=>value.ty==Some(Type::Int) && integer_operation(*op),
         _=>false,
     };
-    let own=if runtime {FailureSet::runtime()}else {
+    if runtime {FailureSet::runtime()}else {
         match value.target {
             Some(CallTarget::Function(id)|CallTarget::ForwardFunction(id)|CallTarget::SchemaConstraint(id))=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
             Some(CallTarget::Closure(_))=>value.closure_origin().and_then(|origin|effects.closure_errors.get(origin).cloned()).unwrap_or_else(FailureSet::unknown),
@@ -856,30 +812,7 @@ fn expression_effect(value:&mut Expr,effects:&ErrorEffects,depth:usize)->Failure
             Some(target)=>native_effect(target,value,effects),
             None=>FailureSet::default(),
         }
-    };
-    value.own_may_fail=own.may_fail();
-    value.effects_checked=true;
-    let next=depth+1;
-    let children=match &mut value.kind {
-        ExprKind::SpreadCall(plan)=>plan.expressions_mut().fold(FailureSet::default(),|found,value|expression_effect(value,effects,next)|found),
-        ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value)|ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::Update{target:value,..}|ExprKind::Field(value,_)=>expression_effect(value,effects,next),
-        ExprKind::Optional{base,body,branch,..}=>{
-            let found=expression_effect(base,effects,next);
-            if *branch==NullishBranch::Absent {found}else{found|expression_effect(body,effects,next)}
-        }
-        ExprKind::Index(base,index)|ExprKind::Binary{left:base,right:index,..}=>expression_effect(base,effects,next)|expression_effect(index,effects,next),
-        ExprKind::Assign{target,value,..}|ExprKind::CompoundAssign{target,value,..}|ExprKind::CoalesceAssign{target,value,..}|ExprKind::LogicalAssign{target,value,..}=>expression_effect(target,effects,next)|expression_effect(value,effects,next),
-        ExprKind::Conditional{predicate,consequent,alternate}=>expression_effect(predicate,effects,next)|expression_effect(consequent,effects,next)|expression_effect(alternate,effects,next),
-        ExprKind::Call(callee,args)=>{
-            let mut found=expression_effect(callee,effects,next);
-            for value in args {found |= expression_effect(value,effects,next);}found
-        }
-        ExprKind::Array(values)|ExprKind::ArrayOf(values,_)|ExprKind::SetConstructor(values,_)|ExprKind::MapConstructor(values,_) | ExprKind::NativeConstructor(values,_)|ExprKind::Template(values) | ExprKind::Sequence(values)=>values.iter_mut().fold(FailureSet::default(),|found,value|expression_effect(value,effects,next)|found),
-        ExprKind::Record(fields)=>fields.iter_mut().fold(FailureSet::default(),|found,(_,value)|expression_effect(value,effects,next)|found),
-        // An environment is created here; its body runs only on invocation.
-        ExprKind::Closure{..}|ExprKind::SpreadValue(_)|ExprKind::Selected{..}|ExprKind::Name(_)|ExprKind::String(_)|ExprKind::Integer(_)|ExprKind::EnumMember { .. } | ExprKind::Number(_)|ExprKind::Boolean(_)|ExprKind::Null|ExprKind::Undefined=>FailureSet::default(),
-    };
-    let failures=own|children;value.may_fail=failures.may_fail();failures
+    }
 }
 
 #[cfg(test)]
@@ -994,7 +927,7 @@ mod tests {
         value.ty=Some(Type::Int);
         assert_eq!(expression_operation_effect(&value),None);
         let effects=ErrorEffects::default();
-        expression_effect(&mut value,&effects,0);
+        expression_effect(&mut value,&effects);
         assert_eq!(expression_operation_effect(&value),Some((value.span,false)));
         let program=crate::check("function main(){let value:int=1;const result=value++;}").unwrap().program;
         let main=program.functions.iter().find(|function|function.name=="main").unwrap();
@@ -1293,7 +1226,7 @@ mod tests {
     fn handled_errors_do_not_escape_but_handler_and_cleanup_errors_do() {
         fn escaping(source:&str)->bool {
             let mut program=crate::syntax::parse(source).unwrap();
-            body_effect(&mut program.functions[0].body,&ErrorEffects::default(),0).may_fail()
+            body_effect(&mut program.functions[0].body,&ErrorEffects::default()).may_fail()
         }
         assert!(!escaping("function main(){try{throw 1;}catch{}}"));
         assert!(!escaping("function main(){try{throw 1;}catch(error){}finally{}}"));

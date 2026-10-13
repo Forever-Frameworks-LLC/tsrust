@@ -119,7 +119,7 @@ impl Emitter<'_> {
             if fun.storage_exits.expression_points().filter(|point|point.0>=start.span.start && point.1<=end).any(|point|
                 body_places.iter().any(|place|fun.storage_exits.transfer_at_expression(point,place.binding,&place.fields).is_some())) {return None;}
         }
-        if crate::completion::definitely_abrupt(cleanup,0) || crate::completion::definitely_abrupt(&region.body,0) && catch.is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body,0)) {
+        if crate::completion::definitely_abrupt(cleanup) || crate::completion::definitely_abrupt(&region.body) && catch.is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body)) {
             return Some(FieldPlan{input_fields:vec![],output_fields:vec![]});
         }
         normalize(fun,statement.span.start,&mut body_places);

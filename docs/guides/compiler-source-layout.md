@@ -79,3 +79,10 @@ Callable result discovery lives in `analysis/result_discovery.rs`. Its queue
 records actual unresolved function-result dependencies and wakes their consumers
 when a concrete environment becomes known. Keep discovery flags, source spans
 and newly instantiated function admission aligned with this queue.
+
+Regional error annotation lives in `error_effects/traversal.rs`. Its heap
+continuations separate expression point effects, catch-entry contracts and
+escaping cleanup effects. Operation and callable contracts remain in
+`error_effects/mod.rs`. The shared `completion.rs` worklist proves abrupt cleanup
+for both analysis and emission; keep labeled-block and loop fallthrough boundaries
+conservative.

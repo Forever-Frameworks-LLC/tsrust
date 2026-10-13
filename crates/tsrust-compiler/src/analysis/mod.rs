@@ -3857,7 +3857,7 @@ impl Analyzer {
     fn discover_exception_result(&mut self,context:&Context,region:&ExceptionRegion,result:Type,_span:Span)->Result<Option<Type>,Diagnostic> {
         let cleanup=if let Some(body)=&region.finally {
             let found=self.discover_body(&mut context.clone(),body,result)?;
-            if crate::completion::definitely_abrupt(body,0) {return Ok(found);}
+            if crate::completion::definitely_abrupt(body) {return Ok(found);}
             found
         }else{None};
         if region.catch.as_ref().is_some_and(|handler|handler.name.is_some() && handler.error_type.is_none() && handler.error_contract.is_none()) {
@@ -3902,7 +3902,7 @@ impl Analyzer {
                     if let Some(ty)=self.discover_exception_result(context,region,result,stmt.span)? {
                         if self.absent_callable_type(ty) {absent=Some(ty);}else{return Ok(Some(ty));}
                     }
-                    if crate::completion::definitely_abrupt(std::slice::from_ref(stmt),0) {return Ok(absent);}
+                    if crate::completion::definitely_abrupt(std::slice::from_ref(stmt)) {return Ok(absent);}
                 }
                 StmtKind::Throw(value) => {
                     self.discover_throw_value(context,value)?;
@@ -5130,7 +5130,7 @@ impl Analyzer {
                 context.bindings.truncate(entry.bindings.len());
                 context.bindings.extend(bindings.into_iter().skip(entry.bindings.len()));
             }
-            if crate::completion::definitely_abrupt(&source,0) {outgoing=cleanup_contract;}else{outgoing|=cleanup_contract;}
+            if crate::completion::definitely_abrupt(&source) {outgoing=cleanup_contract;}else{outgoing|=cleanup_contract;}
         }
         if let Some(boundary)=map_boundary {pending.record_completion_storage(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Cleaned);}
         if let Some(boundary)=map_boundary {self.plan_map_completion_layouts(context,boundary)?;}
