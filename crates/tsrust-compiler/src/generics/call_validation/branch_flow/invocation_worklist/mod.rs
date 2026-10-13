@@ -408,6 +408,23 @@ mod tests {
         validate(&mut program).unwrap();
     }
     #[test]
+    #[ignore = "Opt-in generic dependency proof diagnostic; run alone with an external bound"]
+    fn trace_generic_dependency_chain_cost() {
+        let count = std::env::var("TSRUST_GENERIC_CHAIN_LENGTH").map(|value| value.parse::<usize>().expect("positive chain length")).unwrap_or(32);
+        assert!((1..=512).contains(&count), "diagnostic input must contain 1..=512 functions");
+        let mut source = String::new();
+        for index in 0..count {
+            let returned = if index + 1 == count { "value".to_owned() } else { format!("step{}<T>(value)", index + 1) };
+            source.push_str(&format!("function step{index}<T>(value:T):T{{return {returned};}}\n"));
+        }
+        source.push_str("function main(){console.log(step0<int>(7));}\n");
+        let mut program = crate::syntax::parse(&source).unwrap();
+        eprintln!("generic-chain functions={count} source-bytes={}", source.len());
+        for function in &program.functions { eprintln!("source-function span={}..{} name={}", function.name.span.start, function.name.span.end, function.name.text); }
+        // Isolate source proofs from specialization admission and body checking.
+        validate(&mut program).unwrap();
+    }
+    #[test]
     fn independent_aggregate_returns_do_not_replay_completed_prefixes() {
         for (shape,result,expression) in [("array","int[]","[value]"),("record","Box","{value:value}"),("literal","int","1")] {
             for calls in [8,32,64] {
