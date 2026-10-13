@@ -54,10 +54,9 @@ pub(super) fn generic_spans(tokens: &[Token]) -> Vec<Span> {
         }
     }
     let mut spans: Vec<Span> = Vec::new();
+    let mut annotation_tokens = tokens.to_vec();
     for (index, token) in real.iter().enumerate() {
-        if spans
-            .iter()
-            .any(|span| span.start <= token.span.start && token.span.start < span.end)
+        if spans.last().is_some_and(|span| span.start <= token.span.start && token.span.start < span.end)
         {
             continue;
         }
@@ -86,23 +85,16 @@ pub(super) fn generic_spans(tokens: &[Token]) -> Vec<Span> {
         if !type_position && !application {
             continue;
         }
-        let mut annotation_tokens = tokens.to_vec();
-        if let Ok((_, annotation, end)) =
-            crate::type_syntax::parse_parameter_prefix(&mut annotation_tokens, index, 0)
-        {
-            let call = application
-                && annotation_tokens
-                    .get(end)
-                    .is_some_and(|next| next.text == "(");
-            if type_position || call {
-                spans.push(Span::new(
-                    token.span.start,
-                    annotation_tokens[end - 1].span.end.max(annotation.span.end),
-                ));
-            }
+        if let Ok((span, call)) = crate::type_syntax::parameter_prefix_span(&mut annotation_tokens, index) {
+            if type_position || application && call { spans.push(span); }
         }
     }
     spans
+}
+
+pub(super) fn contains(spans: &[Span], at: usize) -> bool {
+    let end = spans.partition_point(|span| span.start <= at);
+    end > 0 && at < spans[end - 1].end
 }
 
 /// Normalize lexer-packed generic closers on both sides of token preservation.
@@ -113,7 +105,7 @@ pub(super) fn normalized_tokens(source: &str) -> Result<Vec<Token>, crate::Diagn
     let mut index = 0;
     while index < tokens.len() {
         if matches!(tokens[index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
-            && spans.iter().any(|span| span.start <= tokens[index].span.start && tokens[index].span.start < span.end)
+            && contains(&spans, tokens[index].span.start)
         {
             crate::type_syntax::split_closer(&mut tokens, index);
         }

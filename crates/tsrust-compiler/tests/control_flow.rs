@@ -295,7 +295,7 @@ function main() { const flag: Flag = { value: true }; if (true) { both(flag, fla
 }
 
 #[test]
-fn branch_and_combined_analysis_nesting_are_bounded() {
+fn branch_depth_stays_bounded_while_function_dependencies_use_worklists() {
     let deep = format!(
         "function main() {{ {} console.log(true); {} }}",
         "if (true) {".repeat(200),
@@ -312,7 +312,7 @@ fn branch_and_combined_analysis_nesting_are_bounded() {
         ));
     }
     source.push_str("function f50() {}\n");
-    reject(&source, "unsupported");
+    check(&support::format_round_trip(&source)).unwrap();
 }
 
 #[test]

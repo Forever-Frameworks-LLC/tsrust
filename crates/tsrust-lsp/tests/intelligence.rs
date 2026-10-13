@@ -9963,3 +9963,26 @@ fn json_encoding_editor_documents_typed_values_and_undefined_policy() {
         assert!(help["signatures"][0]["label"].as_str().unwrap().contains("value: T"),"{help}");
     }
 }
+
+#[test]
+fn long_function_dependencies_keep_inferred_hover_signature_and_definition() {
+    let mut source = String::new();
+    for index in 0..512 {
+        let result = if index == 511 { "value".to_owned() } else { format!("step{}(value)", index + 1) };
+        source.push_str(&format!("function step{index}(value:int){{return {result};}}\n"));
+    }
+    source.push_str("function main(){const result=step0(7);console.log(result);}");
+    let source = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let index = SourceIndex::new(&source);
+    let request = |method: &str, needle: &str| index.request(method,
+        &json!({"position":at(&source,needle,0),"context":{"includeDeclaration":true}}), "file:///test.tsr").unwrap();
+    let hover = request("textDocument/hover", "result =");
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
+    let help = request("textDocument/signatureHelp", "7);");
+    let signature = help["signatures"][0]["label"].as_str().unwrap_or("");
+    assert!(signature.contains("value: int") && signature.ends_with(": int"), "{help}");
+    let definition = request("textDocument/definition", "step0(7)");
+    assert_eq!(definition["range"]["start"], json!(at(&source, "step0(value", 0)));
+}

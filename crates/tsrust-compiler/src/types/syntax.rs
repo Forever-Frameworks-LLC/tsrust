@@ -217,7 +217,7 @@ pub(crate) fn parse_prefix(
     depth: usize,
 ) -> Result<(ValueAnnotation, usize), Diagnostic> {
     bounded_nesting(tokens, index, depth)?;
-    let mut parser = AnnotationParser { tokens, index, access_permitted: false, access: None, wrapper_end: None };
+    let mut parser = AnnotationParser { tokens, index, access_permitted: false, access: None, wrapper_end: None, split_log: None };
     let value = parser.annotation(depth)?;
     Ok((value, parser.index))
 }
@@ -230,7 +230,7 @@ pub(crate) fn parse_parameter_prefix(
     depth: usize,
 ) -> Result<(Option<ParameterAccess>, ValueAnnotation, usize), Diagnostic> {
     bounded_nesting(tokens, index, depth)?;
-    let mut parser = AnnotationParser { tokens, index, access_permitted: true, access: None, wrapper_end: None };
+    let mut parser = AnnotationParser { tokens, index, access_permitted: true, access: None, wrapper_end: None, split_log: None };
     let value = parser.annotation(depth)?;
     Ok((parser.access.take(), value, parser.index))
 }
@@ -269,8 +269,37 @@ pub(crate) fn split_closer(tokens: &mut Vec<Token>, index: usize) {
     }
 }
 
+struct CloserEdit {
+    index: usize,
+    previous: Vec<Token>,
+    replaced: usize,
+}
+
+/// Probe one formatting annotation using reusable scratch tokens. Roll back
+/// every packed-closer edit, including edits made before a parse failure.
+/// Independent probes therefore see the exact original lexical stream.
+pub(crate) fn parameter_prefix_span(tokens: &mut Vec<Token>, index: usize) -> Result<(Span, bool), Diagnostic> {
+    bounded_nesting(tokens, index, 0)?;
+    let mut edits = Vec::new();
+    let outcome = {
+        let mut parser = AnnotationParser { tokens, index, access_permitted: true, access: None,
+            wrapper_end: None, split_log: Some(&mut edits) };
+        parser.annotation(0).map(|annotation| {
+            let span = Span::new(parser.tokens[index].span.start,
+                parser.tokens[parser.index - 1].span.end.max(annotation.span.end));
+            let call = parser.tokens.get(parser.index).is_some_and(|next| next.text == "(");
+            (span, call)
+        })
+    };
+    for edit in edits.into_iter().rev() {
+        tokens.splice(edit.index..edit.index + edit.replaced, edit.previous);
+    }
+    outcome
+}
+
 struct AnnotationParser<'a> {
     tokens: &'a mut Vec<Token>,
+    split_log: Option<&'a mut Vec<CloserEdit>>,
     index: usize,
     /// The next outermost member may be a data access wrapper.
     access_permitted: bool,
@@ -297,7 +326,18 @@ impl AnnotationParser<'_> {
     }
     fn expect(&mut self, text: &str) -> Result<Token, Diagnostic> {
         if text == ">" {
-            split_closer(self.tokens, self.index);
+            if let Some(log) = &mut self.split_log
+                && self.tokens[self.index].kind == TokenKind::Symbol
+                && matches!(self.tokens[self.index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
+            {
+                let previous = self.tokens[self.index..(self.index + 3).min(self.tokens.len())].to_vec();
+                let before = self.tokens.len();
+                split_closer(self.tokens, self.index);
+                let replaced = previous.len() + self.tokens.len() - before;
+                log.push(CloserEdit { index: self.index, previous, replaced });
+            } else {
+                split_closer(self.tokens, self.index);
+            }
         }
         if !self.is(text) {
             let error = self.error(&format!("Expected {text:?} in type annotation."));
@@ -677,5 +717,35 @@ impl AnnotationParser<'_> {
             };
         }
         Ok(value)
+    }
+}
+
+#[cfg(test)]
+mod formatting_probe_tests {
+    use super::*;
+
+    #[test]
+    fn formatting_probe_restores_successful_and_failed_packed_closer_edits() {
+        for source in [
+            "Box<Box<int>>", "Box<Box<int>>=value", "Box<int>=>value",
+            "Function<Box<int>,[value:Box<int>]>",
+            "Function<Box<int>,[value:Box<int>]>=>value",
+            "Function<Box<int>,[value:Box<int>]>>(",
+            "Box<Box<int>> |", "Box<Box<int>>[", "Box<Box<int>>, next",
+        ] {
+            let original = lex(source).unwrap();
+            let identity = |tokens: &[Token]| tokens.iter().map(|token| (token.kind, token.text.clone(), token.span)).collect::<Vec<_>>();
+            let mut fresh = original.clone();
+            let expected = parse_parameter_prefix(&mut fresh, 0, 0).map(|(_, annotation, end)| {
+                (Span::new(original[0].span.start, fresh[end - 1].span.end.max(annotation.span.end)),
+                 fresh.get(end).is_some_and(|next| next.text == "("))
+            }).map_err(|error| (error.code, error.message, error.span));
+            let mut scratch = original.clone();
+            for _ in 0..2 {
+                let actual = parameter_prefix_span(&mut scratch, 0).map_err(|error| (error.code, error.message, error.span));
+                assert_eq!(actual, expected, "{source}");
+                assert_eq!(identity(&scratch), identity(&original), "{source}");
+            }
+        }
     }
 }

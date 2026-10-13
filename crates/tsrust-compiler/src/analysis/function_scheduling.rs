@@ -1,18 +1,92 @@
 //! Function body scheduling and lexical capture dependencies.
 use super::*;
+mod dependencies;
 
 impl Analyzer {
-    /// Check completed owners' uncalled nested bodies in the same depth-first
-    /// order as direct invocation, without retaining a Rust frame per owner.
-    /// Direct call dependencies inside a body still use the existing checker.
+    /// Schedule source dependencies with heap continuations. Runtime syntax and
+    /// source function identities remain unchanged. Capturing declarations wait
+    /// for a real defining context, and active recursive edges retain inference.
     pub(super) fn function(&mut self, index: usize) -> Result<(), Diagnostic> {
-        let mut pending = self.check_function_body(index)?;
-        pending.reverse();
-        while let Some(index) = pending.pop() {
-            let uncalled = self.check_function_body(index)?;
-            pending.extend(uncalled.into_iter().rev());
+        if self.discovering_results || self.checked[index].is_some() { return Ok(()); }
+        if self.visiting[index] { return self.check_function_body(index).map(|_| ()); }
+        enum Work { Schedule(usize), Check(usize), Release(Vec<usize>) }
+        let mut pending = vec![Work::Schedule(index)];
+        let mut inserted = Vec::new();
+        let result = (|| {
+            while let Some(work) = pending.pop() {
+                match work {
+                    Work::Schedule(index) => {
+                        if self.checked[index].is_some() { continue; }
+                        if self.scheduled_functions.contains(&index) {
+                            pending.push(Work::Check(index));
+                            continue;
+                        }
+                        let order = self.function_dependency_order(index);
+                        for &id in &order {
+                            if self.scheduled_functions.insert(id) { inserted.push(id); }
+                        }
+                        pending.push(Work::Release(order.clone()));
+                        pending.extend(order.into_iter().rev().map(Work::Check));
+                    }
+                    Work::Check(index) => {
+                        let uncalled = self.check_function_body(index)?;
+                        pending.extend(uncalled.into_iter().rev().map(Work::Schedule));
+                    }
+                    Work::Release(ids) => {
+                        for id in ids { self.scheduled_functions.remove(&id); }
+                    }
+                }
+            }
+            Ok(())
+        })();
+        // Errors can interrupt a schedule before its release continuation.
+        for id in inserted { self.scheduled_functions.remove(&id); }
+        result
+    }
+
+    fn function_dependency_order(&self, root: usize) -> Vec<usize> {
+        enum Work { Enter(usize), Finish(usize) }
+        let mut pending = vec![Work::Enter(root)];
+        let mut discovery = HashMap::new();
+        let mut finish = Vec::new();
+        let mut parents = HashMap::<usize, Vec<usize>>::new();
+        while let Some(work) = pending.pop() {
+            match work {
+                Work::Enter(index) => {
+                    if self.checked[index].is_some() || self.scheduled_functions.contains(&index)
+                        || discovery.contains_key(&index) { continue; }
+                    discovery.insert(index, discovery.len());
+                    pending.push(Work::Finish(index));
+                    let dependencies = dependencies::references(&self.program.functions[index], &self.function_names)
+                        .into_iter().filter(|&dependency| {
+                            self.checked[dependency].is_none() && !self.scheduled_functions.contains(&dependency)
+                                && (!self.named_captures.needs_context(dependency) || self.named_captures.ready(dependency))
+                        }).collect::<Vec<_>>();
+                    for &dependency in &dependencies { parents.entry(dependency).or_default().push(index); }
+                    pending.extend(dependencies.into_iter().rev().map(Work::Enter));
+                }
+                Work::Finish(index) => finish.push(index),
+            }
         }
-        Ok(())
+        // Collapse recursive groups before reversing dependency order. Within
+        // a group keep its first source traversal entry first: provisional
+        // inferred results must be seeded by the same entry as direct checking.
+        let mut groups = Vec::new();
+        let mut seen = HashSet::new();
+        for &root in finish.iter().rev() {
+            if !seen.insert(root) { continue; }
+            let mut group = Vec::new();
+            let mut pending = vec![root];
+            while let Some(index) = pending.pop() {
+                group.push(index);
+                for &parent in parents.get(&index).into_iter().flatten() {
+                    if seen.insert(parent) { pending.push(parent); }
+                }
+            }
+            group.sort_unstable_by_key(|index| discovery[index]);
+            groups.push(group);
+        }
+        groups.into_iter().rev().flatten().collect()
     }
 
     /// Resolve lexical owners before installing an unused-body placeholder.

@@ -719,6 +719,7 @@ struct Analyzer {
     checked: Vec<Option<CheckedFunction>>,
     visiting: Vec<bool>,
     function_stack: Vec<usize>,
+    scheduled_functions: HashSet<usize>,
     assumed_modes: Option<Vec<Vec<Mode>>>,
     effects_only: bool,
     /// The whole analyzer is a discarded access-inference pass. Stored
@@ -1657,6 +1658,7 @@ impl Analyzer {
             checked: (0..count).map(|_| None).collect(),
             visiting: vec![false; count],
             function_stack: Vec::new(),
+            scheduled_functions: HashSet::new(),
             assumed_modes: None,
             effects_only: false,
             speculative_access_run: false,

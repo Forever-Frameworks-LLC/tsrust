@@ -25,7 +25,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
     let ends_operand = |index: usize| operand_ends[index];
     let (match_headers, match_commas) = match_layout::layout(real);
     let generic_spans = types::generic_spans(&tokens);
-    let generic = |at: usize| generic_spans.iter().any(|span| span.start <= at && at < span.end);
+    let generic = |at: usize| types::contains(&generic_spans, at);
     if real.is_empty() {
         return Ok(source.to_owned());
     }

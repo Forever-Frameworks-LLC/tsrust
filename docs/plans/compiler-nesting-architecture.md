@@ -76,3 +76,66 @@ The original cold-build unit run and pre-edit formatting record are also retaine
 No compilation scaling or runtime timing samples were collected. No public API
 changed, so installed consumers remain on the accepted S11 build until the next
 accepted public checkpoint. The shared Cargo target remains active for this goal.
+
+## Ordinary dependency section in progress
+
+Source function references are collected with explicit lexical scope frames.
+Parameters, block bindings, closure parameters, loop variables and catch bindings
+mask global function names. A worklist computes dependency finishing order and
+recursive components without recursion. Components retain their first traversal
+entry so existing recursive result seeds are not reordered. Capturing functions
+wait for their defining typed context. Dynamic specializations continue through
+ordinary checking; recursive component bodies still use the prior inference path.
+
+The new normal-stack source witness checks, emits and disposes a 2,048-function
+acyclic chain. Separate native witnesses cover 512-function inferred-return,
+function-value, owned-string and imported chains, plus a 256-function throw chain
+with argument evaluation order and typed catches. The previous 50-function/four-
+branch combined-depth rejection now checks successfully. Deep syntax and large
+recursive components remain pending; their guards are not raised or removed.
+
+The first test run exposed two incorrect test expectations: the shared native
+helper compares the entire contract map, not a selected subset. Explicit contract
+assertions now check the intended entry after native execution. The original
+failed run is preserved as `tsrust-nesting-dependencies-tests.log` in SQLite.
+
+A live sample of the confirmed long-chain test identified repeated whole-stream
+cloning in formatting annotation probes. The formatter now reuses one scratch
+stream and journals packed-closer edits, restoring them even after failed probes.
+A differential unit witness compares the original parser result and exact token
+restoration. Sorted annotation span membership uses binary search. This repair
+retains formatting's token-preservation check; the whole fixture corpus verifies
+239 lexable fixtures, 84 standalone contracts and idempotence.
+The original sample is `tsrust-nesting-dependencies-sample.log` in SQLite.
+
+`benchmarks/compiler/function-dependencies` registers exact generated native and
+TypeScript chains at 32, 128, 512 and 2,048 functions. The fixed protocol is two
+warmups and eleven fresh-process samples for native checking, native emission and
+Node/TypeScript checking. It retains exact source bytes/hashes, compiler identity,
+commands and durations. This scope excludes recursive components, deep syntax,
+backend compilation and runtime throughput. Registration is not measurement.
+
+## Ordinary dependency focused evidence (2026-10-13)
+
+Focused verification covers 142 compiler checks: the retained 11-test control-flow
+run, 126 successful integration checks after the test-expectation repair, three
+scope/probe unit tests, one imported-chain native check and one formatter corpus
+check. The latter covers 239 fixtures and 84 standalone contracts. Fifteen editor
+intelligence tests pass, including the new 512-function inferred hover/signature/
+definition witness. These are affected checks, not complete compiler/LSP regressions.
+
+The release build passes. All 12 scaling groups pass premeasurement validation
+and complete two warmups plus eleven samples, totaling 132 measured fresh-process
+durations. SQLite stores the original record and proof as
+`tsrust-nesting-dependency-scaling.json` and
+`tsrust-nesting-dependency-scaling-proof.json`; normalized rows use analytics kind
+`compilation` and epoch `function-dependencies-v1`, not runtime throughput.
+From 512 to 2,048 functions, median native check time grows about 3.10x and emission
+about 3.16x for four times as many functions. Small counts are dominated by startup.
+No prior comparable scheduler baseline exists. Recursive components, deep syntax
+and backend compilation remain unmeasured.
+
+Whole-project formatting changes zero files/fingerprints. Remaining recursive
+checking inside components, capture-dependent/dynamically selected calls, parser,
+block/expression analysis, types and syntax disposal are not accepted by this
+section. Keep the full architecture priority active before S12.
