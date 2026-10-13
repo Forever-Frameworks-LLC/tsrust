@@ -90,7 +90,7 @@ pub(crate) struct Wrapper {
     pub json_input: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum WrapperKind { Presence(Type), Default(usize), Message }
+pub(crate) enum WrapperKind { Presence(Type), Default(usize), Message, Constraint(usize) }
 
 /// Compiler-only identity of a definition and its uniquely owned body plan.
 /// Native storage must borrow this root when a reference edge is validated.
@@ -128,7 +128,7 @@ pub(crate) struct Pipelines {
 
 impl Pipelines {
     pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
-    pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| plan.kind == WrapperKind::Message) }
+    pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| matches!(plan.kind,WrapperKind::Message|WrapperKind::Constraint(_))) }
     pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {
         self.recursive(record).map(|plan|(plan.input,plan.output,plan.json_input))
             .or_else(||self.reference(record).map(|plan|(plan.input,plan.output,plan.json_input)))
@@ -164,6 +164,66 @@ impl Pipelines {
     pub(crate) fn insert_reference(&mut self,record:usize,plan:RecursiveReference) {
         assert!(self.types(record).is_none());
         self.references.insert(record,plan);
+    }
+    /// Check the resolved plan, including schemas held in local variables.
+    /// Source syntax alone cannot establish productivity after name resolution.
+    pub(crate) fn validate_recursive_body(&self,body:usize,root:usize)->Result<(),super::recursive::Invalid> {
+        use super::recursive::{Definition,Shape};
+        let mut graph=Definition::default();
+        let mut nodes=std::collections::HashMap::new();
+        let mut pending=vec![(body,false)];
+        while let Some((record,ready))=pending.pop() {
+            if nodes.contains_key(&record) {continue;}
+            let terminal=self.reference(record).is_some()||self.recursive(record).is_some();
+            let children=if terminal {Vec::new()}else{self.children(record)};
+            if !ready && !children.is_empty() {
+                pending.push((record,true));
+                pending.extend(children.into_iter().rev().map(|child|(child,false)));
+                continue;
+            }
+            let child=|id|*nodes.get(&id).expect("checked child schema graph");
+            let shape=if let Some(reference)=self.reference(record) {
+                if reference.root==root {Shape::Reference}else{Shape::Leaf}
+            } else if self.recursive(record).is_some() {Shape::Leaf}
+            else if let Some(plan)=self.array(record) {Shape::Array(child(plan.element))}
+            else if self.collection(record).is_some() {
+                // All supported collections can terminate empty.
+                let elements=graph.push(Shape::Object(children.iter().copied().map(child).collect()));
+                Shape::Array(elements)
+            } else if let Some(plan)=self.object(record) {Shape::Object(plan.fields.iter().copied().map(child).collect())}
+            else if let Some(plan)=self.union(record) {Shape::Choice(plan.branches.iter().copied().map(child).collect())}
+            else if let Some(plan)=self.wrapper(record) {
+                let source=child(plan.source);
+                if matches!(plan.kind,WrapperKind::Presence(_)) {
+                    let absent=graph.push(Shape::Leaf);
+                    Shape::Choice(vec![source,absent])
+                }else{Shape::Adapter(source)}
+            } else if let Some(stage)=self.get(record) {Shape::Adapter(child(stage.source))}
+            else {Shape::Leaf};
+            nodes.insert(record,graph.push(shape));
+        }
+        graph.validate(nodes[&body])
+    }
+    /// Roots that a generated validator must receive as borrowed parameters.
+    /// A definition supplies its own root to its body. Reference markers have
+    /// no stored root, so callers must forward the corresponding borrow.
+    pub(crate) fn borrowed_roots(&self,record:usize)->Vec<usize> {
+        let mut pending=vec![record];
+        let mut seen=std::collections::HashSet::new();
+        let mut required=std::collections::BTreeSet::new();
+        let mut provided=std::collections::BTreeSet::new();
+        while let Some(record)=pending.pop() {
+            if !seen.insert(record) {continue;}
+            if let Some(reference)=self.reference(record) {
+                required.insert(reference.root);
+                // Following this edge would incorrectly turn a borrowed root
+                // into a definition supplied by this subtree.
+            } else {
+                if self.recursive(record).is_some() {provided.insert(record);}
+                pending.extend(self.children(record));
+            }
+        }
+        required.difference(&provided).copied().collect()
     }
     /// Analysis follows self edges; this is not a native storage layout walk.
     fn children(&self,record:usize)->Vec<usize> {
@@ -292,6 +352,40 @@ mod tests {
             callback_input: input, callback_output: Type::Int,
             input, output: Type::Int, json_input: false,
         }
+    }
+
+    #[test]
+    fn resolved_recursive_plans_require_progress_and_finite_values() {
+        let mut plans=Pipelines::default();
+        plans.insert_reference(11,RecursiveReference{root:10,input:Type::Int,output:Type::Int,json_input:true});
+        plans.insert_array(12,ArrayPlan{element:11,input:Type::Int,output:Type::Int,json_input:true});
+        assert!(plans.validate_recursive_body(12,10).is_ok());
+        assert!(plans.validate_recursive_body(11,10).is_err());
+        plans.insert_object(13,ObjectPlan{shape:0,fields:vec![11],input:Type::Int,output:Type::Int,json_input:true,policy:ObjectPolicy::Reject,value:Type::Int});
+        assert!(plans.validate_recursive_body(13,10).is_err());
+        plans.insert_wrapper(14,Wrapper{source:11,kind:WrapperKind::Presence(Type::Null),input:Type::Int,output:Type::Int,json_input:true});
+        plans.insert_object(15,ObjectPlan{shape:0,fields:vec![14],input:Type::Int,output:Type::Int,json_input:true,policy:ObjectPolicy::Reject,value:Type::Int});
+        assert!(plans.validate_recursive_body(15,10).is_ok());
+        // A nullable direct self still makes no structural progress.
+        assert!(plans.validate_recursive_body(14,10).is_err());
+    }
+
+    #[test]
+    fn recursive_validator_parameters_follow_storage_not_reference_edges() {
+        let mut plans=Pipelines::default();
+        plans.insert_reference(11,RecursiveReference{root:10,input:Type::String,output:Type::Int,json_input:true});
+        plans.insert_array(12,ArrayPlan{element:11,input:Type::String,output:Type::Int,json_input:true});
+        plans.insert_recursive(10,RecursivePlan{body:12,input:Type::String,output:Type::Int,json_input:true});
+        assert_eq!(plans.borrowed_roots(11),vec![10]);
+        assert_eq!(plans.borrowed_roots(12),vec![10]);
+        assert!(plans.borrowed_roots(10).is_empty());
+        // An inner definition supplies itself but still borrows an outer root.
+        plans.insert_reference(21,RecursiveReference{root:20,input:Type::String,output:Type::Int,json_input:true});
+        plans.insert_union(22,UnionPlan{branches:vec![11,21,11],selector:None,input:Type::String,output:Type::Int,json_input:true});
+        plans.insert_recursive(20,RecursivePlan{body:22,input:Type::String,output:Type::Int,json_input:true});
+        assert_eq!(plans.borrowed_roots(22),vec![10,20]);
+        assert_eq!(plans.borrowed_roots(20),vec![10]);
+        assert_eq!(plans.types(10),Some((Type::String,Type::Int,true)));
     }
 
     #[test]

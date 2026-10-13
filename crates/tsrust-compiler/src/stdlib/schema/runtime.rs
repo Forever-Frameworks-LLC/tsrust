@@ -2,9 +2,23 @@
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConstructionError<T = i64> { pub code: &'static str, pub operation: &'static str, pub limit: T }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct StringBounds { min: Option<u64>, max: Option<u64> }
 impl StringBounds {
+    /// Merge construction limits without copying schema storage or messages.
+    /// Preserve the new operation and its written limit in any construction error.
+    pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: i64) -> Result<Self, ConstructionError<i64>> {
+        self.min = match (self.min, previous.min) {
+            (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b),
+        };
+        self.max = match (self.max, previous.max) {
+            (Some(a), Some(b)) => Some(a.min(b)), (a, b) => a.or(b),
+        };
+        if let (Some(min), Some(max)) = (self.min, self.max) {
+            if min > max { return Err(ConstructionError { code: "contradictory-bounds", operation, limit }); }
+        }
+        Ok(self)
+    }
     pub fn min(mut self, limit: i64) -> Result<Self, ConstructionError> {
         if limit < 0 { return Err(ConstructionError { code: "negative-length", operation: "min", limit }); }
         let next=self.min.unwrap_or(0).max(limit as u64);
@@ -29,9 +43,23 @@ impl StringBounds {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct IntBounds { min: Option<i64>, max: Option<i64> }
 impl IntBounds {
+    /// Merge construction limits without copying schema storage or messages.
+    /// Preserve the new operation and its written limit in any construction error.
+    pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: i64) -> Result<Self, ConstructionError<i64>> {
+        self.min = match (self.min, previous.min) {
+            (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b),
+        };
+        self.max = match (self.max, previous.max) {
+            (Some(a), Some(b)) => Some(a.min(b)), (a, b) => a.or(b),
+        };
+        if let (Some(min), Some(max)) = (self.min, self.max) {
+            if min > max { return Err(ConstructionError { code: "contradictory-bounds", operation, limit }); }
+        }
+        Ok(self)
+    }
     pub fn gt(self,limit:i64)->Result<Self,ConstructionError>{
         let error=||ConstructionError{code:"contradictory-bounds",operation:"gt",limit};
         let next=limit.checked_add(1).ok_or_else(error)?;
@@ -58,9 +86,23 @@ impl IntBounds {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct NumberBounds { min: Option<f64>, max: Option<f64> }
 impl NumberBounds {
+    /// Merge construction limits without copying schema storage or messages.
+    /// Preserve the new operation and its written limit in any construction error.
+    pub fn intersect(mut self, previous: &Self, operation: &'static str, limit: f64) -> Result<Self, ConstructionError<f64>> {
+        self.min = match (self.min, previous.min) {
+            (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b),
+        };
+        self.max = match (self.max, previous.max) {
+            (Some(a), Some(b)) => Some(a.min(b)), (a, b) => a.or(b),
+        };
+        if let (Some(min), Some(max)) = (self.min, self.max) {
+            if min > max { return Err(ConstructionError { code: "contradictory-bounds", operation, limit }); }
+        }
+        Ok(self)
+    }
     // Every finite exclusive endpoint has a next representable inclusive value,
     // except the largest/smallest finite value. No epsilon or decimal rounding.
     fn bound(mut self, limit:f64, operation:&'static str, lower:bool, exclusive:bool)->Result<Self,ConstructionError<f64>> {
@@ -108,6 +150,24 @@ pub fn validate_array<I,O>(values:impl IntoIterator<Item=I>,mut validate:impl Fn
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn intersected_constraints_reject_contradictions_and_preserve_exact_limits() {
+        let previous = IntBounds::default().min(i64::MAX).unwrap();
+        let error = IntBounds::default().max(i64::MAX - 1).unwrap()
+            .intersect(&previous, "max", i64::MAX - 1).unwrap_err();
+        assert_eq!(error.limit, i64::MAX - 1);
+        assert_eq!(error.operation, "max");
+        assert_eq!(previous.check(i64::MAX), None);
+        let previous = StringBounds::default().min(3).unwrap();
+        assert!(StringBounds::default().max(2).unwrap().intersect(&previous, "max", 2).is_err());
+        let previous = NumberBounds::default().gt(1.0).unwrap();
+        assert!(NumberBounds::default().max(1.0).unwrap().intersect(&previous, "max", 1.0).is_err());
+        let combined = NumberBounds::default().max(2.0).unwrap().intersect(&previous, "max", 2.0).unwrap();
+        assert_eq!(combined.check(1.0), Some("too-small"));
+        assert_eq!(combined.check(1.0_f64.next_up()), None);
+        assert_eq!(combined.check(2.0), None);
+    }
+
     #[test]
     fn array_validation_drops_partial_output_before_later_elements() {
         use std::{cell::Cell,rc::Rc};

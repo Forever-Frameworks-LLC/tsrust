@@ -2256,3 +2256,117 @@ diagnostic instead of unbounded annotation recursion. A witness covers recursive
 array annotation, named lookup, snapshot restoration and renaming rejection.
 User-facing recursive shape rendering remains pending with source integration;
 this internal declaration is not a completed hover representation.
+
+
+### Recursive lowering and validator borrow requirements (in progress)
+
+Source lowering now reserves separate recursive input and output identities,
+checks the definition builder once, and stores its returned plan as one owned
+field. The separation is required for recursive transforms: string input at each
+node may produce integer output without changing the next node's input contract.
+A public witness covers this distinction for owned values and JSON text.
+
+Pipeline metadata now enumerates the root borrows needed by each validator.
+Reference markers request a root parameter without traversing its ownership edge;
+a recursive definition provides its own root while preserving any outer-root
+requirements. Witnesses cover deduplication and nested definitions. This is
+preparation for generated validator parameters, not completed native integration.
+
+These edits are unverified section work. Remaining integration includes explicit
+generic checking, productive checked-plan validation, recursive native layout and
+access, forwarding root borrows through native and text validation, editor shape
+rendering, catalog examples, and matched benchmark support. Run focused checks
+when this section is coherent; do not install this unfinished compiler over the
+verified parse consumers.
+
+Resolved pipeline graphs now also undergo productivity checking before recursive
+type identities are bound. This closes the source-only precheck gap for child
+schemas obtained through local bindings. Witnesses distinguish empty recursive
+arrays, impossible required self fields, nullable fields, and nullable direct
+self references. Native root forwarding is still pending; no acceptance claim
+or consumer refresh accompanies this unchecked section work.
+
+
+Generated owned and fused-text validator helpers now declare and forward the
+required borrowed roots. Recursive definitions supply their own root borrow;
+reference markers call that definition's validator without storing the root.
+Forwarding covers pipeline arrays, objects, collections, branches, presence and
+default wrappers, callbacks, and missing-field decoding. Ordinary schemas emit
+no additional root arguments. Output wrapping preserves the existing trial
+restoration contract. This wiring is not yet validated: recursive type layout,
+transparent access, explicit generic checks, editor presentation and acceptance
+support remain required before the section check and consumer refresh.
+
+### Priority: per-constraint diagnostic options
+
+The user reported that `s.string().min(1, { message: 'Must be at least 1 character' })`
+is rejected. Constructor and refinement messages exist; scalar bounds currently
+accept only a limit. Implement optional message objects for min/max/gt/lt before
+resuming recursive acceptance. Each message must belong to its constraint, retain
+the structured bound issue code, and never replace a type error or another
+constraint's message. Preserve schema ownership, construction-time bound errors,
+Unicode code-point string lengths, and exact integer limits. Carry the contract
+through safeParse, parse, JSON decoding, chained schemas, completion, signature
+help, executable examples and benchmark support. A public regression witness now
+covers separate minimum/maximum messages and constructor type-error precedence.
+This witness is not yet run; the overload remains unimplemented.
+
+Constraint-option lowering and validation adapters are now in progress. A wrapper
+owns the receiving schema and an independently checked scalar bound plus message.
+Owned validation preserves restoration; fused decoding applies the same bound
+code/message only after source validation succeeds. Runtime witnesses cover
+message precedence, allocation restoration, commitment after transforms, and a
+zero issue budget. Before acceptance, finish combined-bound construction checks,
+ordinary constraints after message-bearing constraints, editor/catalog support,
+benchmarks and focused public execution. These changes have not been checked or
+installed; do not describe the public overload as accepted yet.
+
+The scalar runtime now provides consuming bound intersection against borrowed
+previous limits, preserving the new operation and original limit in construction
+errors. Added witnesses cover exact i64 endpoints, exclusive floating endpoints,
+and contradictory string bounds. Public catalog signatures and parameter help now
+include optional constraint messages, with executable message examples for every
+supported scalar bound. Runtime intersection is not yet wired to construction;
+examples and runtime witnesses remain unrun with the unfinished section.
+
+Checked editor facts now preserve scalar-constraint capability for the new
+constraint-message wrapper. Added an editor witness covering min/max/parse/safeParse
+completion after a message-bearing chain and second-argument signature help.
+These witnesses remain deferred until construction integration is complete.
+
+Constraint construction now forwards cumulative numeric endpoint metadata to the
+normal checked bound constructor while retaining the source schema and its
+messages. Only scalar bound metadata is copied, not owned schemas or callbacks.
+Mixed message/no-message chains are lowered through the same wrapper path.
+The first focused section run passed 9 existing diagnostic cases and exposed a
+compiler-generated options-record typing error in the new case. That lowering
+was repaired; the affected native case now passes, including separate min/max
+messages, parse, JSON type-error precedence, mixed chains and contradictory
+floating bounds. Original failure evidence is retained in SQLite under
+`tsrust-constraint-options-section.log`; repaired evidence is
+`tsrust-constraint-options-repair.log`. Editor verification and matched workload
+support remain pending; installed consumers are unchanged.
+
+Constraint-message editor checks now pass (9 tests). Matched native/TypeScript
+workload `native_schema_constraint_messages` is registered with independent
+checksum expectations, explicit message/code/path observations, fingerprints,
+ABI/report registration and mutation guards; schema contract tests pass. These
+records are byte-verified in SQLite as `tsrust-constraint-options-editor.log` and
+`tsrust-constraint-options-contracts.log`. Untimed workload execution, catalog
+example execution and consumer refresh still remain. No timing acceptance.
+
+The ten constraint-message catalog examples pass together after fixing trial
+runtime inclusion for schemas that use no other pipeline feature. Matched native
+and Node-after-tsc execution passes all eight untimed cases (n=0,1,17,2000).
+Failure and repair logs are retained in SQLite under
+`tsrust-constraint-options-examples.log`,
+`tsrust-constraint-options-examples-repair.log`, and
+`tsrust-constraint-options-parity.log`. The follow-up construction traversal now
+carries prior limits through readonly refinements and default wrappers; its
+focused witness is pending. Consumer refresh remains outstanding. No timings.
+
+The readonly-refinement/default construction witness now passes. Evidence:
+`tsrust-constraint-options-adapter-bounds.log` in SQLite. Constraint-message
+implementation has focused native, editor, catalog and untimed parity evidence;
+recursive lowering remains unfinished and must not be marked accepted with this
+source checkpoint. Consumer refresh and S11 milestone measurements remain open.

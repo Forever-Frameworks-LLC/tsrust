@@ -21,6 +21,7 @@ impl Emitter<'_> {
             _ => return format!("issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::Array,tsrust_schema_issues::Kind::{});Trial::Rejected(input)",self.schema_kind(input)),
         };
         let child=self.schema_pipeline_trial(plan.element,child_input,generated,seen,errors);
-        format!("{setup}tsrust_schema_trial::sequence(items,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}(&schema.field0,value,path,issues,failure);path.pop();trial}}).inject(|values|{{let mut output=<{output}>::from([]);for value in values{{output.push(value);}}output}},|value|value.tsr_owned_items().collect()).remap_input(|values|{{{inverse}}})")
+        let child_roots=self.schema_root_arguments(plan.element);
+        format!("{setup}tsrust_schema_trial::sequence(items,|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).inject(|values|{{let mut output=<{output}>::from([]);for value in values{{output.push(value);}}output}},|value|value.tsr_owned_items().collect()).remap_input(|values|{{{inverse}}})")
     }
 }

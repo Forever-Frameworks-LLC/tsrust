@@ -7570,39 +7570,55 @@
     ]
   },
   {
-    "name": "min",
-    "signature": "min(limit: int): Schema<string>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Inclusive minimum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
-      }
-    ],
-    "documentation": "Adds an inclusive minimum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "😀a\n"
-      }
-    ]
-  },
+  "name": "min",
+  "signature": "min(limit: int, options?: { message: string }): Schema<string>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Inclusive minimum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive minimum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "😀a\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1,{message:'Outside allowed range'});match(schema.safeParse('')){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "max",
-    "signature": "max(limit: int): Schema<string>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Inclusive maximum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
-      }
-    ],
-    "documentation": "Adds an inclusive maximum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "😀a\n"
-      }
-    ]
-  },
+  "name": "max",
+  "signature": "max(limit: int, options?: { message: string }): Schema<string>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Inclusive maximum Unicode code-point count. Must be nonnegative and consistent with existing bounds."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive maximum string length and returns a new immutable schema. Counts Unicode code points: 😀 counts as one; e followed by a combining accent counts as two. Repeated bounds retain the stricter bound. Throws SchemaConstructionError immediately for a negative limit (negative-length) or contradictory bounds (contradictory-bounds); fields identify code, operation and limit. Validation remains Result-based through safeParse.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 😀a.\n\nOwnership: consumes the original schema on success and failure. Use the returned schema for repeated validation; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(2).max(3);match(schema.safeParse('😀a')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "😀a\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().max(1,{message:'Outside allowed range'});match(schema.safeParse('xx')){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
 {
   "name": "optional",
   "signature": "optional(): Schema<string | undefined>",
@@ -7758,73 +7774,105 @@
     ]
   },
   {
-    "name": "min",
-    "signature": "min(limit: int): Schema<int>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Inclusive minimum in the full signed 64-bit integer range. Negative limits are valid."
-      }
-    ],
-    "documentation": "Adds an inclusive minimum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "-2\n"
-      }
-    ]
-  },
+  "name": "min",
+  "signature": "min(limit: int, options?: { message: string }): Schema<int>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Inclusive minimum in the full signed 64-bit integer range. Negative limits are valid."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive minimum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "-2\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(1,{message:'Outside allowed range'});match(schema.safeParse(0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "max",
-    "signature": "max(limit: int): Schema<int>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Inclusive maximum in the full signed 64-bit integer range. Negative limits are valid."
-      }
-    ],
-    "documentation": "Adds an inclusive maximum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "-2\n"
-      }
-    ]
-  },
+  "name": "max",
+  "signature": "max(limit: int, options?: { message: string }): Schema<int>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Inclusive maximum in the full signed 64-bit integer range. Negative limits are valid."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive maximum integer bound and returns a new immutable schema. Compares exact integers without floating-point conversion. Repeated constraints retain the stricter bound. Contradictory bounds throw SchemaConstructionError with code contradictory-bounds, operation min or max, and the supplied limit. Validation returns too-small or too-large in ValidationError when input violates a bound.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: -2.\n\nOwnership: consumes the original schema on success and failure. The returned schema can be borrowed for repeated validation; no hidden clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().min(-2).max(2);match(schema.safeParse(-2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "-2\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().max(1,{message:'Outside allowed range'});match(schema.safeParse(2)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "gt",
-    "signature": "gt(limit: int): Schema<int>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Exclusive lower bound in the signed 64-bit integer range. Negative limits are valid."
-      }
-    ],
-    "documentation": "Adds an exclusive lower integer bound and returns a new immutable schema. The supplied endpoint is rejected. Repeated constraints intersect with existing min, max, gt and lt bounds using exact integer comparisons. An empty range, including gt(9223372036854775807), throws SchemaConstructionError with code contradictory-bounds, operation gt, and the original supplied limit. Validation returns too-small or too-large for out-of-range input. No rounding or numeric coercion occurs.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 3; 2 and 4 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable returned schema; no hidden clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "3\n"
-      }
-    ]
-  },
+  "name": "gt",
+  "signature": "gt(limit: int, options?: { message: string }): Schema<int>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Exclusive lower bound in the signed 64-bit integer range. Negative limits are valid."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an exclusive lower integer bound and returns a new immutable schema. The supplied endpoint is rejected. Repeated constraints intersect with existing min, max, gt and lt bounds using exact integer comparisons. An empty range, including gt(9223372036854775807), throws SchemaConstructionError with code contradictory-bounds, operation gt, and the original supplied limit. Validation returns too-small or too-large for out-of-range input. No rounding or numeric coercion occurs.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 3; 2 and 4 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable returned schema; no hidden clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "3\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().gt(1,{message:'Outside allowed range'});match(schema.safeParse(0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "lt",
-    "signature": "lt(limit: int): Schema<int>",
-    "parameters": [
-      {
-        "label": "limit: int",
-        "documentation": "Exclusive upper bound in the signed 64-bit integer range. Negative limits are valid."
-      }
-    ],
-    "documentation": "Adds an exclusive upper integer bound and returns a new immutable schema. The supplied endpoint is rejected. Repeated constraints intersect with existing min, max, gt and lt bounds using exact integer comparisons. An empty range, including lt(-9223372036854775808), throws SchemaConstructionError with code contradictory-bounds, operation lt, and the original supplied limit. Validation returns too-small or too-large for out-of-range input. No rounding or numeric coercion occurs.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 3; 2 and 4 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable returned schema; no hidden clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "3\n"
-      }
-    ]
-  },
+  "name": "lt",
+  "signature": "lt(limit: int, options?: { message: string }): Schema<int>",
+  "parameters": [
+    {
+      "label": "limit: int",
+      "documentation": "Exclusive upper bound in the signed 64-bit integer range. Negative limits are valid."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an exclusive upper integer bound and returns a new immutable schema. The supplied endpoint is rejected. Repeated constraints intersect with existing min, max, gt and lt bounds using exact integer comparisons. An empty range, including lt(-9223372036854775808), throws SchemaConstructionError with code contradictory-bounds, operation lt, and the original supplied limit. Validation returns too-small or too-large for out-of-range input. No rounding or numeric coercion occurs.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 3; 2 and 4 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable returned schema; no hidden clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().gt(2).lt(4);match(schema.safeParse(3)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "3\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().lt(1,{message:'Outside allowed range'});match(schema.safeParse(2)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
 {
   "name": "optional",
   "signature": "optional(): Schema<int | undefined>",
@@ -7907,73 +7955,105 @@
     ]
   },
   {
-    "name": "min",
-    "signature": "min(limit: number): Schema<number>",
-    "parameters": [
-      {
-        "label": "limit: number",
-        "documentation": "Finite floating-point inclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
-      }
-    ],
-    "documentation": "Adds an inclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation min and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "1.5\n"
-      }
-    ]
-  },
+  "name": "min",
+  "signature": "min(limit: number, options?: { message: string }): Schema<number>",
+  "parameters": [
+    {
+      "label": "limit: number",
+      "documentation": "Finite floating-point inclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation min and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "1.5\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(1.0,{message:'Outside allowed range'});match(schema.safeParse(0.0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "max",
-    "signature": "max(limit: number): Schema<number>",
-    "parameters": [
-      {
-        "label": "limit: number",
-        "documentation": "Finite floating-point inclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
-      }
-    ],
-    "documentation": "Adds an inclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation max and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "1.5\n"
-      }
-    ]
-  },
+  "name": "max",
+  "signature": "max(limit: number, options?: { message: string }): Schema<number>",
+  "parameters": [
+    {
+      "label": "limit: number",
+      "documentation": "Finite floating-point inclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an inclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation max and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "1.5\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().max(1.0,{message:'Outside allowed range'});match(schema.safeParse(2.0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "gt",
-    "signature": "gt(limit: number): Schema<number>",
-    "parameters": [
-      {
-        "label": "limit: number",
-        "documentation": "Finite floating-point exclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
-      }
-    ],
-    "documentation": "Adds an exclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation gt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "1.5\n"
-      }
-    ]
-  },
+  "name": "gt",
+  "signature": "gt(limit: number, options?: { message: string }): Schema<number>",
+  "parameters": [
+    {
+      "label": "limit: number",
+      "documentation": "Finite floating-point exclusive lower limit. No default. NaN and infinities throw nonfinite-limit."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an exclusive lower bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation gt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "1.5\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().gt(1.0,{message:'Outside allowed range'});match(schema.safeParse(0.0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
   {
-    "name": "lt",
-    "signature": "lt(limit: number): Schema<number>",
-    "parameters": [
-      {
-        "label": "limit: number",
-        "documentation": "Finite floating-point exclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
-      }
-    ],
-    "documentation": "Adds an exclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation lt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
-    "examples": [
-      {
-        "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
-        "output": "1.5\n"
-      }
-    ]
-  },
+  "name": "lt",
+  "signature": "lt(limit: number, options?: { message: string }): Schema<number>",
+  "parameters": [
+    {
+      "label": "limit: number",
+      "documentation": "Finite floating-point exclusive upper limit. No default. NaN and infinities throw nonfinite-limit."
+    },
+    {
+      "label": "options?: { message: string }",
+      "documentation": "Optional message for this constraint only. Preserves the structured issue code and path. Does not replace type errors or failures from another constraint. Omit to use the default diagnostic."
+    }
+  ],
+  "documentation": "Adds an exclusive upper bound and returns a new immutable number schema. Repeated constraints intersect existing bounds. NaN or infinite limits throw SchemaConstructionError with code nonfinite-limit; intervals with no finite representable value throw contradictory-bounds. The error records operation lt and the original limit in its int | number field. Validation returns too-small or too-large for bound violations; checked conversion failures retain priority. Exclusive bounds reject the endpoint without an arbitrary epsilon. Positive and negative zero compare equally; successful values retain their sign.\n\nOptional options.message supplies the validation message for this constraint only. It does not change the issue code or path, replace type errors, or customize schema-construction exceptions. parse throws the same validation issue that safeParse returns.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}\n```\n\nExpected output: 1.5. Values 1.0 and 2.0 fail validation.\n\nOwnership: consumes the original schema on success and failure. Validation borrows the reusable result; no hidden plan clone.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);match(schema.safeParse(1.5)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}",
+      "output": "1.5\n"
+    },
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.number().lt(1.0,{message:'Outside allowed range'});match(schema.safeParse(2.0)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Outside allowed range\n"
+    }
+  ]
+},
 {
   "name": "optional",
   "signature": "optional(): Schema<number | undefined>",

@@ -8,6 +8,30 @@
   "startupSamples": 11,
   "compileSamples": 3,
   "workloads": [
+{
+  "id": "native_schema_constraint_messages",
+  "category": "schema",
+  "description": "String constraints with per-bound validation messages",
+  "source": "workloads/native_schema_constraint_messages.tsr",
+  "counterpart": "workloads/native_schema_constraint_messages.ts",
+  "iterations": 2000,
+  "operationsPerIteration": 2,
+  "operationUnit": "One JSON parse, schema validation and result observation",
+  "result": "int",
+  "parameters": [
+    "int",
+    "int",
+    "string"
+  ],
+  "family": "native-schema",
+  "inputText": "\"hello\"",
+  "measured": false,
+  "measurementStatus": "unmeasured-schema-family",
+  "specification": "String min 2/max 6; hello succeeds and x fails with too-small and message Too short. Check every issue field and message; checksum adds six.",
+  "notes": "Parse plus bounded validation and observation. Construct plan outside loop. TypeScript counts code points; fixed workload uses ASCII. Handwritten counterpart, not Zod. No timing yet.",
+  "sourceSha256": "4606c405a6569eb4182b2802a5e6bd598a10aefa4d4ef763ba92e74c0dd41ff4",
+  "counterpartSha256": "8c51f6f5b4e3809808e1a20fecba9195ffc9ee6054deb424b4d0b74a47dbd021"
+},
     {
       "id": "scalar_control",
       "iterations": 1000000,

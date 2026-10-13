@@ -8677,6 +8677,9 @@ impl Emitter<'_> {
                     format!("{{let message_plan={receiver};Record{wrapper}{{field0:{value},field1:message_plan.field1}}}}")
                 },
                 CallTarget::SchemaConstraint(index) => {
+                    if matches!(expr.ty,Some(Type::Record(id)) if self.program.schema_pipelines.wrapper(id).is_some_and(|plan| matches!(plan.kind,crate::stdlib::schema::pipelines::WrapperKind::Constraint(_)))) {
+                        return self.schema_constraint_options_value(fun,expr,args,index);
+                    }
                     let receiver = self.expr(fun, &args[0], Mode::Consume);
                     let limit = self.expr(fun, &args[1], Mode::Copy);
                     let name = self.native_call_name(index, args);

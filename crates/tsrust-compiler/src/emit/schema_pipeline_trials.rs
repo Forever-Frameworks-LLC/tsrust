@@ -35,20 +35,34 @@ impl Emitter<'_> {
             // ownership. Merely unwrapping a union is not a user transformation.
             let arms = self.program.unions[union.index()].members.iter().enumerate().map(|(tag, member)| {
                 let child = self.schema_pipeline_trial(id, *member, generated, seen, errors);
-                format!("Union{}::V{tag}(input)=>match {child}(schema,input,path,issues,failure){{Trial::Prepared{{value,restoration}}=>Trial::Prepared{{value,restoration:Box::new(move|value|Union{}::V{tag}(restoration(value)))}},Trial::Rejected(input)=>Trial::Rejected(Union{}::V{tag}(input)),Trial::Absent=>Trial::Absent,Trial::Committed(value)=>Trial::Committed(value),Trial::Aborted(error)=>Trial::Aborted(error)}}", union.index(),union.index(),union.index())
+        let child_roots=self.schema_root_arguments(id);
+                format!("Union{}::V{tag}(input)=>match {child}({child_roots}schema,input,path,issues,failure){{Trial::Prepared{{value,restoration}}=>Trial::Prepared{{value,restoration:Box::new(move|value|Union{}::V{tag}(restoration(value)))}},Trial::Rejected(input)=>Trial::Rejected(Union{}::V{tag}(input)),Trial::Absent=>Trial::Absent,Trial::Committed(value)=>Trial::Committed(value),Trial::Aborted(error)=>Trial::Aborted(error)}}", union.index(),union.index(),union.index())
             }).collect::<Vec<_>>().join(",");
             format!("match input{{{arms}}}")
+        } else if let Some(plan)=self.program.schema_pipelines.recursive(id) {
+            let child=self.schema_pipeline_trial_impl(plan.body,input,missing,generated,seen,errors);
+            let child_roots=self.schema_root_arguments(plan.body);
+            let source=self.schema_pipeline_output(plan.body);
+            let inject=self.schema_output_injection(source,output,"value");
+            let inverse=self.schema_selected_output(source,output,"value");
+            format!("let schema_root{id}=schema;{child}({child_roots}&schema.field0,input,path,issues,failure).inject(|value|{inject},|value|{inverse})")
+        } else if let Some(reference)=self.program.schema_pipelines.reference(id) {
+            let root=reference.root;
+            let child=self.schema_pipeline_trial_impl(root,input,missing,generated,seen,errors);
+            let child_roots=self.schema_root_arguments(root);
+            format!("{child}({child_roots}schema_root{root},input,path,issues,failure)")
         } else if self.program.schema_pipelines.wrapper(id).is_some() {
             self.schema_pipeline_wrapper_trial_body(id,input,missing,generated,seen,errors)
         } else if let Some(plan) = self.program.schema_pipelines.union(id) {
             let mut body = String::from("let checkpoint=issues.checkpoint();let mut input=input;let mut attempted=false;");
             for (branch, child_id) in plan.branches.iter().enumerate() {
                 let child = self.schema_pipeline_trial_impl(*child_id, input, missing, generated, seen, errors);
+        let child_roots=self.schema_root_arguments(*child_id);
                 let child_output = self.schema_pipeline_output(*child_id);
                 let inject = self.schema_output_injection(child_output, output, "value");
                 let inverse = self.schema_selected_output(child_output, output, "value");
                 let absent = if missing { "{}" } else { "unreachable!(\"supplied union branch trial\")" };
-                let attempt = format!("match {child}(&schema.field{branch},input,path,issues,failure).inject(|value|{inject},|value|{inverse}){{Trial::Rejected(restored)=>{{attempted=true;input=restored;}},Trial::Absent=>{absent},Trial::Committed(None)=>return Trial::Committed(None),selected=>{{issues.restore(checkpoint);return selected;}}}}");
+                let attempt = format!("match {child}({child_roots}&schema.field{branch},input,path,issues,failure).inject(|value|{inject},|value|{inverse}){{Trial::Rejected(restored)=>{{attempted=true;input=restored;}},Trial::Absent=>{absent},Trial::Committed(None)=>return Trial::Committed(None),selected=>{{issues.restore(checkpoint);return selected;}}}}");
                 if let Some(selector) = &plan.selector {
                     let condition = if json {
                         let tags = selector.tags[branch].iter().map(|tag|self.schema_json_tag_test("value",tag)).collect::<Vec<_>>().join("||");
@@ -71,12 +85,14 @@ impl Emitter<'_> {
                     format!("issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::{},tsrust_schema_issues::Kind::{});Trial::Rejected(input)",self.schema_kind(stage.callback_input),self.schema_kind(input))
                 } else {
                     let child = self.schema_pipeline_trial(stage.source,stage.callback_output,generated,seen,errors);
+        let child_roots=self.schema_root_arguments(stage.source);
                     let inject = self.schema_output_injection(input,stage.callback_input,"input");
-                    format!("let mut value={inject};match {call}{{Err(error)=>Trial::Aborted(error),Ok(input)=>match {child}(&schema.field0,input,path,issues,failure).finish(){{Ok(value)=>Trial::Committed(value),Err(error)=>Trial::Aborted(error)}}}}")
+                    format!("let mut value={inject};match {call}{{Err(error)=>Trial::Aborted(error),Ok(input)=>match {child}({child_roots}&schema.field0,input,path,issues,failure).finish(){{Ok(value)=>Trial::Committed(value),Err(error)=>Trial::Aborted(error)}}}}")
                 }
             } else {
                 let child = self.schema_pipeline_trial_impl(stage.source,input,missing,generated,seen,errors);
-                let trial = format!("{child}(&schema.field0,input,path,issues,failure)");
+        let child_roots=self.schema_root_arguments(stage.source);
+                let trial = format!("{child}({child_roots}&schema.field0,input,path,issues,failure)");
                 if stage.operation == Operation::Transform {
                     format!("{trial}.transform(|mut value|{call}).boxed()")
                 } else {
@@ -111,7 +127,8 @@ impl Emitter<'_> {
             let child = self.schema_owned_projection(id,input,generated,seen,errors);
             format!("match prepare_{child}(schema,&input,path,issues,failure,None){{Some(state)=>{{let(value,restoration)=project_{child}(input,state);Trial::Prepared{{value,restoration}}}},None=>match failure.take(){{Some(error)=>Trial::Aborted(error),None=>Trial::Rejected(input)}}}}")
         };
-        generated.push_str(&format!("fn {name}<'a>(schema:&Record{},input:{raw},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->tsrust_schema_trial::Trial<{raw},{native},Box<dyn FnOnce({native})->{raw}+'a>,SchemaFactoryFailure>where {raw}:'a,{native}:'a{{use tsrust_schema_trial::Trial;{body}}}",self.native_record_declaration(id)));
+        let roots=self.schema_root_parameters(id);
+        generated.push_str(&format!("fn {name}<'a>({roots}schema:&Record{},input:{raw},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->tsrust_schema_trial::Trial<{raw},{native},Box<dyn FnOnce({native})->{raw}+'a>,SchemaFactoryFailure>where {raw}:'a,{native}:'a{{use tsrust_schema_trial::Trial;{body}}}",self.native_record_declaration(id)));
         name
     }
 }

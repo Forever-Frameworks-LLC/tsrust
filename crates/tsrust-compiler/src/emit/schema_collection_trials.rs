@@ -12,7 +12,8 @@ impl Emitter<'_>{
         if plan.kind==CollectionKind::Set{
             let Some(set)=&definition.set_definition else{return reject()};
             let child=self.schema_pipeline_trial(plan.element,set.key,generated,seen,errors);
-            let trial=format!("tsrust_schema_trial::sequence(input.tsr_owned_items().collect(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}(&schema.field0,value,path,issues,failure);path.pop();trial}}).remap_input(|values|<{}>::from_values(values))",self.native_type(input));
+        let child_roots=self.schema_root_arguments(plan.element);
+            let trial=format!("tsrust_schema_trial::sequence(input.tsr_owned_items().collect(),|index,value|{{path.push(tsrust_schema_issues::Segment::Index(index));let trial={child}({child_roots}&schema.field0,value,path,issues,failure);path.pop();trial}}).remap_input(|values|<{}>::from_values(values))",self.native_type(input));
             let checked=self.schema_collection_collision_check(&trial,false,generated);
             return format!("({checked}).inject(|values|<{output}>::from_values(values),|value|value.tsr_owned_items().collect())");
         }
@@ -23,11 +24,13 @@ impl Emitter<'_>{
             (Type::String,input,format!("let entries=match input.value{{tsrust_native_json::Value::Object(values)=>values.into_iter().map(|(key,value)|(String::Owned(key),Record{record}{{value}})).collect::<Vec<_>>(),value=>{{issues.push(path,tsrust_schema_issues::Code::Type,tsrust_schema_issues::Kind::Object,tsrust_schema_observed(&value));return Trial::Rejected(Record{record}{{value}});}}}};"),format!("Record{record}{{value:tsrust_native_json::Value::Object(values.into_iter().map(|(key,value)|(key.into_owned(),value.value)).collect())}}"))
         }else{return reject()};
         let child=self.schema_pipeline_trial(plan.element,value_type,generated,seen,errors);
+        let child_roots=self.schema_root_arguments(plan.element);
         let entry=if let Some(key)=plan.key{
             let key_child=self.schema_pipeline_trial(key,key_type,generated,seen,errors);
-            format!("path.push(tsrust_schema_issues::Segment::Index(index));path.push(tsrust_schema_issues::Segment::Field(\"key\"));let key={key_child}(&schema.field0,key,path,issues,failure);path.pop();let trial=tsrust_schema_trial::pair(key,value,|value|{{path.push(tsrust_schema_issues::Segment::Field(\"value\"));let trial={child}(&schema.field1,value,path,issues,failure);path.pop();trial}});path.pop();trial")
+        let key_child_roots=self.schema_root_arguments(key);
+            format!("path.push(tsrust_schema_issues::Segment::Index(index));path.push(tsrust_schema_issues::Segment::Field(\"key\"));let key={key_child}({key_child_roots}&schema.field0,key,path,issues,failure);path.pop();let trial=tsrust_schema_trial::pair(key,value,|value|{{path.push(tsrust_schema_issues::Segment::Field(\"value\"));let trial={child}({child_roots}&schema.field1,value,path,issues,failure);path.pop();trial}});path.pop();trial")
         }else{
-            format!("let mut field_path=path.clone();field_path.push(tsrust_schema_issues::Segment::Field(key.as_ref()));let value={child}(&schema.field0,value,&mut field_path,issues,failure);drop(field_path);tsrust_schema_trial::pair(value,key,|key|{{let trial:Trial<_,_,Box<dyn FnOnce(String)->String>,SchemaFactoryFailure>=Trial::Prepared{{value:key,restoration:Box::new(|key|key)}};trial}}).inject(|(value,key)|(key,value),|(key,value)|(value,key)).remap_input(|(value,key)|(key,value))")
+            format!("let mut field_path=path.clone();field_path.push(tsrust_schema_issues::Segment::Field(key.as_ref()));let value={child}({child_roots}&schema.field0,value,&mut field_path,issues,failure);drop(field_path);tsrust_schema_trial::pair(value,key,|key|{{let trial:Trial<_,_,Box<dyn FnOnce(String)->String>,SchemaFactoryFailure>=Trial::Prepared{{value:key,restoration:Box::new(|key|key)}};trial}}).inject(|(value,key)|(key,value),|(key,value)|(value,key)).remap_input(|(value,key)|(key,value))")
         };
         // Record keys are preserved, so only native Map key transformations can
         // introduce collisions. JSON duplicate keys were already resolved.

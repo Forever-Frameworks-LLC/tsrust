@@ -2,6 +2,16 @@
 use super::*;
 
 impl Emitter<'_> {
+    pub(super) fn schema_root_parameters(&self,id:usize)->String {
+        self.program.schema_pipelines.borrowed_roots(id).into_iter().map(|root|
+            format!("schema_root{root}:&Record{},",self.native_record_declaration(root))).collect()
+    }
+
+    pub(super) fn schema_root_arguments(&self,id:usize)->String {
+        self.program.schema_pipelines.borrowed_roots(id).into_iter().map(|root|
+            format!("schema_root{root},")).collect()
+    }
+
     pub(super) fn schema_pipeline_callback_result(&self, family: usize, receiver: &str, errors: &crate::error_effects::FailureSet) -> String {
         let declaration = self.program.stored_contracts.declaration(family).expect("checked pipeline callback");
         let argument = match self.program.callback_contracts[declaration].params.first() {
@@ -33,7 +43,9 @@ impl Emitter<'_> {
         if generated.contains(&marker) { return name; }
         generated.push_str(&marker);
         let trial = self.schema_pipeline_trial(id, input, generated, seen, errors);
-        generated.push_str(&format!("fn {name}(schema:&Record{},input:{},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{}>{{if failure.is_some(){{return None;}}match {trial}(schema,input,path,issues,failure).finish(){{Ok(value)=>value,Err(error)=>{{*failure=Some(error);None}}}}}}",self.native_record_declaration(id),self.native_type(input),self.native_type(self.schema_pipeline_output(id))));
+        let roots=self.schema_root_parameters(id);
+        let root_args=self.schema_root_arguments(id);
+        generated.push_str(&format!("fn {name}({roots}schema:&Record{},input:{},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>)->Option<{}>{{if failure.is_some(){{return None;}}match {trial}({root_args}schema,input,path,issues,failure).finish(){{Ok(value)=>value,Err(error)=>{{*failure=Some(error);None}}}}}}",self.native_record_declaration(id),self.native_type(input),self.native_type(self.schema_pipeline_output(id))));
         name
     }
 }

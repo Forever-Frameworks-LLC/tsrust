@@ -287,3 +287,88 @@ function main() {
     let file = directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(file), 60));
 }
+
+#[test]
+fn constraint_messages_belong_to_the_constraint_that_failed() {
+    let source = r#"
+import { s } from 'std:schema';
+import { strictEqual } from 'std:testing';
+function main() {
+  const schema = s.string({ message: 'Expected text' })
+    .min(1, { message: 'Must be at least 1 character' })
+    .max(3, { message: 'Must be at most 3 characters' });
+  match (schema.safeParse('')) {
+    Ok(value) => { throw 'Minimum ignored'; },
+    Err(error) => { strictEqual(error.issues[0].message, 'Must be at least 1 character'); }
+  }
+  match (schema.safeParse('long')) {
+    Ok(value) => { throw 'Maximum ignored'; },
+    Err(error) => { strictEqual(error.issues[0].message, 'Must be at most 3 characters'); }
+  }
+  strictEqual(schema.parse('ok'), 'ok');
+  const mixed = s.string().min(1, { message: 'Required' }).max(3);
+  strictEqual(mixed.parse('ok'), 'ok');
+  let constructionFailed = false;
+  try { s.number().min(2.5, { message: 'Too small' }).max(1.5, { message: 'Too large' }); }
+  catch (error) {
+    constructionFailed = true;
+    strictEqual(error.code, 'contradictory-bounds');
+    strictEqual(error.operation, 'max');
+    strictEqual(error.limit, 1.5);
+  }
+  strictEqual(constructionFailed, true);
+  constructionFailed = false;
+  try { s.int().min(5, { message: 'Minimum' }).refine(value => true).max(3, { message: 'Maximum' }); }
+  catch (error) { constructionFailed = true; strictEqual(error.code, 'contradictory-bounds'); }
+  strictEqual(constructionFailed, true);
+  constructionFailed = false;
+  try { s.int().min(5, { message: 'Minimum' }).default(() => 6).max(3, { message: 'Maximum' }); }
+  catch (error) { constructionFailed = true; strictEqual(error.code, 'contradictory-bounds'); }
+  strictEqual(constructionFailed, true);
+
+
+  match (schema.safeParseJson('42')) {
+    Ok(value) => { throw 'Type mismatch ignored'; },
+    Err(failure) => {
+      if (failure.kind === 'validation') {
+        strictEqual(failure.error.issues[0].message, 'Expected text');
+      } else { throw 'Wrong error kind'; }
+    }
+  }
+  try { schema.parse(''); }
+  catch (error) { strictEqual(error.issues[0].message, 'Must be at least 1 character'); }
+}
+"#;
+    let directory = support::TempDirectory::new();
+    let file = directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file), 60));
+}
+
+#[test]
+fn constraint_message_catalog_examples_execute_without_other_pipeline_features() {
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../../tsrust-lsp/src/builtins.json")).unwrap();
+    let mut source = String::from("import {s} from 'std:schema';\n");
+    let mut calls = String::new();
+    let mut expected = String::new();
+    let mut count = 0;
+    for key in ["Schema", "SchemaInt", "SchemaNumber"] {
+        for entry in catalog[key].as_array().unwrap() {
+            if !matches!(entry["name"].as_str(), Some("min" | "max" | "gt" | "lt")) { continue; }
+            let example = entry["examples"].as_array().unwrap().last().unwrap();
+            let code = example["source"].as_str().unwrap();
+            assert!(code.contains("message:"));
+            source.push_str(&code.replace("import {s} from 'std:schema';", "")
+                .replace("function main()", &format!("function example{count}()")));
+            calls.push_str(&format!("example{count}();"));
+            expected.push_str(example["output"].as_str().unwrap());
+            count += 1;
+        }
+    }
+    assert_eq!(count, 10);
+    source.push_str(&format!("function main(){{{calls}}}"));
+    let directory = support::TempDirectory::new();
+    let file = directory.source(&support::format_round_trip(&source));
+    let output = support::run(support::cli().arg("run").arg(file), 60);
+    support::success(&output);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), expected);
+}

@@ -106,6 +106,33 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
         }
     }
 
+    /// Apply one built-in constraint without committing a reversible branch.
+    /// Only this check's issue receives its message; earlier failures pass through.
+    pub(super) fn constraint(
+        self, path: &[Segment<'_>], issues: &mut Issues, kind: Kind,
+        message: Option<&str>, check: impl FnOnce(&O) -> Option<Code>,
+    ) -> Self {
+        let mut reject = |code| {
+            let start = issues.items.len();
+            issues.push(path, code, kind, kind);
+            if let Some(message) = message { issues.message_since(start, message); }
+        };
+        match self {
+            Self::Prepared { value, restoration } => match check(&value) {
+                None => Self::Prepared { value, restoration },
+                Some(code) => {
+                    reject(code);
+                    Self::Rejected(restoration.restore(value))
+                }
+            },
+            Self::Committed(Some(value)) => match check(&value) {
+                None => Self::Committed(Some(value)),
+                Some(code) => { reject(code); Self::Committed(None) }
+            },
+            other => other,
+        }
+    }
+
     pub(super) fn refine(
         self, path: &[Segment<'_>], issues: &mut Issues, kind: Kind,
         predicate: impl FnOnce(&O) -> Result<bool, E>,
@@ -295,6 +322,33 @@ mod tests {
             |_| { validated.set(validated.get() + 1); Ok(Some(0)) });
         assert!(matches!(result, Trial::Aborted("conversion")));
         assert_eq!(validated.get(), 1);
+    }
+
+    #[test]
+    fn constraint_messages_preserve_codes_storage_and_previous_failures() {
+        let input = String::from("original");
+        let pointer = input.as_ptr();
+        let trial: Trial<String, _, _, ()> = Trial::Prepared { value: input, restoration: |value| value };
+        let mut issues = Issues::new(4, 4, 32);
+        let trial = trial.constraint(&[], &mut issues, Kind::String, Some("minimum"), |_| Some(Code::TooSmall));
+        let trial = trial.constraint(&[], &mut issues, Kind::String, Some("maximum"), |_| panic!("failed input checked again"));
+        let Trial::Rejected(input) = trial else { panic!("constraint committed input") };
+        assert_eq!(input.as_ptr(), pointer);
+        assert_eq!(issues.items.len(), 1);
+        assert_eq!(issues.items[0].code, Code::TooSmall);
+        assert_eq!(issues.items[0].message.as_deref(), Some("minimum"));
+    }
+
+    #[test]
+    fn constraint_after_transform_stays_committed_with_zero_issue_budget() {
+        let trial: Trial<i64, _, _, ()> = Trial::Prepared { value: 7, restoration: |value| value };
+        let mut issues = Issues::new(0, 0, 0);
+        let trial = trial.transform(|value| Ok(value + 1))
+            .constraint(&[], &mut issues, Kind::Integer, Some("too large"), |_| Some(Code::TooLarge));
+        assert!(matches!(trial, Trial::Committed(None)));
+        assert!(!issues.is_valid());
+        assert!(issues.items.is_empty());
+        assert!(issues.truncated);
     }
 
     #[test]

@@ -73,3 +73,22 @@ fn throwing_parse_catch_exposes_validation_issues() {
     let hover=ProjectIndex::checked(&checked).request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
     assert!(hover.to_string().contains("SchemaIssue"),"{hover}");
 }
+
+#[test]
+fn constraint_message_chains_keep_member_completion_and_parameter_help() {
+    let source="import {s} from 'std:schema';const schema=s.string().min(1,{message:'Required'}).max(8,{message:'Too long'});function main(){\nschema.\nconsole.log('next');}";
+    let items=request(source,"\nschema.","textDocument/completion");
+    for expected in ["min","max","parse","safeParse"] {
+        assert!(items.as_array().unwrap().iter().any(|item|item["label"]==expected),"{expected}: {items}");
+    }
+    let source="import {s} from 'std:schema';function main(){const schema=s.string().min(1, );}";
+    let help=request(source,"min(1, ","textDocument/signatureHelp");
+    assert!(help.to_string().contains("message: string"),"{help}");
+}
+
+#[test]
+fn constraint_options_offer_message_inside_second_argument() {
+    let source="import {s} from 'std:schema';function main(){const schema=s.string().min(1, { mes });}";
+    let items=request(source,"{ mes","textDocument/completion");
+    assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="message"),"{items}");
+}

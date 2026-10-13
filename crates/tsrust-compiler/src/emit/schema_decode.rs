@@ -14,7 +14,8 @@ impl Emitter<'_> {
         let body=if self.program.schema_pipelines.types(id).is_some(){self.schema_text_pipeline_body(id,generated,owned,errors)}else{self.schema_text_native_body(id,generated,owned,errors)};
         let record=self.native_record_declaration(id);
         let native=self.native_type(output);
-        generated.push_str(&format!("fn {name}<'source>(schema:&Record{record},input:tsrust_native_json::source::Node<'source>,path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>,policy:Option<bool>,remaining:&mut Option<std::collections::BTreeMap<std::borrow::Cow<'source,str>,tsrust_native_json::source::Node<'source>>>,committed:&mut bool)->Option<{native}>{{if failure.is_some(){{return None;}}use tsrust_schema_issues::{{Code,Kind}};let observed=tsrust_source_kind(input);{body}}}"));
+        let roots=self.schema_root_parameters(id);
+        generated.push_str(&format!("fn {name}<'source>({roots}schema:&Record{record},input:tsrust_native_json::source::Node<'source>,path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>,policy:Option<bool>,remaining:&mut Option<std::collections::BTreeMap<std::borrow::Cow<'source,str>,tsrust_native_json::source::Node<'source>>>,committed:&mut bool)->Option<{native}>{{if failure.is_some(){{return None;}}use tsrust_schema_issues::{{Code,Kind}};let observed=tsrust_source_kind(input);{body}}}"));
         name
     }
 
@@ -44,12 +45,13 @@ impl Emitter<'_> {
             }
             for(branch,child_output)in choice.branches.iter().enumerate(){
                 let child=self.schema_text_validator(self.schema_child(*child_output),generated,owned,errors);
+        let child_roots=self.schema_root_arguments(self.schema_child(*child_output));
                 let inject=self.schema_output_injection(*child_output,output,"value");
                 let bound=if matches!(output,Type::String|Type::Int|Type::Number){
                     let read=if output==Type::String{"AsRef::<str>::as_ref(&value)"}else{"value"};
                     format!("if let Some(code)=schema.bounds.check({read}){{issues.push(path,tsrust_schema_numeric_code(code),Kind::{},observed);return None;}}",self.schema_kind(output))
                 }else{String::new()};
-                let code=format!("let mut branch_committed=false;let result={child}(field{branch},input,path,issues,failure,policy,remaining,&mut branch_committed);*committed|=branch_committed;if let Some(value)=result{{issues.restore(checkpoint);let value={inject};{bound}return Some(value);}}if failure.is_some()||branch_committed{{return None;}}");
+                let code=format!("let mut branch_committed=false;let result={child}({child_roots}field{branch},input,path,issues,failure,policy,remaining,&mut branch_committed);*committed|=branch_committed;if let Some(value)=result{{issues.restore(checkpoint);let value={inject};{bound}return Some(value);}}if failure.is_some()||branch_committed{{return None;}}");
                 if let Some(selector)=&choice.selector {
                     let condition=selector.tags[branch].iter().map(|tag|self.schema_text_tag("tag",tag)).collect::<Vec<_>>().join("||");
                     attempt.push_str(&format!("if {condition}{{{code}issues.reject();return None;}}"));
@@ -100,32 +102,36 @@ impl Emitter<'_> {
             Type::Union(union)=>{
                 if let Some(base)=self.schema_presence_element(output){
                     let child=self.schema_text_validator(self.schema_child(base),generated,owned,errors);
+        let child_roots=self.schema_root_arguments(self.schema_child(base));
                     let null=self.program.unions[union.index()].members.contains(&Type::Null).then(||format!("if input.kind()==\"null\"{{return Some({});}}",self.schema_output_injection(Type::Null,output,"TsrNull"))).unwrap_or_default();
                     let value=self.schema_output_injection(base,output,"value");
-                    format!("{null}{child}(&schema.inner,input,path,issues,failure,policy,remaining,committed).map(|value|{value})")
+                    format!("{null}{child}({child_roots}&schema.inner,input,path,issues,failure,policy,remaining,committed).map(|value|{value})")
                 }else{"unreachable!(\"ordered union plan required\")".into()}
             },
             Type::Array(element)=>{
                 let child=self.schema_text_validator(self.schema_child(element.ty()),generated,owned,errors);
+        let child_roots=self.schema_root_arguments(self.schema_child(element.ty()));
                 let native=self.native_type(output);
-                format!("if input.kind()!=\"array\"{{{}}}let mut values=Some(<{native}>::from([]));input.elements(|index,input|{{path.push(tsrust_schema_issues::Segment::Index(index));let value={child}(&schema.element,input,path,issues,failure,None,&mut None,committed);path.pop();match(value,&mut values){{(Some(value),Some(values))=>values.push(value),(None,_)=>values=None,_=>{{}}}}failure.is_none()&&(!*committed||values.is_some())}}).expect(\"validated array cursor\");values",mismatch("Array"))
+                format!("if input.kind()!=\"array\"{{{}}}let mut values=Some(<{native}>::from([]));input.elements(|index,input|{{path.push(tsrust_schema_issues::Segment::Index(index));let value={child}({child_roots}&schema.element,input,path,issues,failure,None,&mut None,committed);path.pop();match(value,&mut values){{(Some(value),Some(values))=>values.push(value),(None,_)=>values=None,_=>{{}}}}failure.is_none()&&(!*committed||values.is_some())}}).expect(\"validated array cursor\");values",mismatch("Array"))
             },
             Type::Record(object) if self.program.records[object].name.text.starts_with("@schema:retained:")=>{
                 let fields=&self.program.records[object].fields;let value=fields[0].ty.unwrap();
                 let child=self.schema_text_validator(self.schema_child(value),generated,owned,errors);
+        let child_roots=self.schema_root_arguments(self.schema_child(value));
                 let extra=self.native_type(fields[1].ty.unwrap());
                 let json=self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).unwrap();
-                format!("let mut extra=None;let value={child}(&schema.inner,input,path,issues,failure,Some(false),&mut extra,committed)?;Some(Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}}))){order}}})",self.native_record_declaration(object),self.native_record_declaration(json),order=self.schema_record_order(object))
+                format!("let mut extra=None;let value={child}({child_roots}&schema.inner,input,path,issues,failure,Some(false),&mut extra,committed)?;Some(Record{}{{field0:value,field1:<{extra}>::from_values(extra.unwrap_or_default().into_iter().map(|(key,value)|(String::Owned(key.into_owned()),Record{}{{value:value.retain()}}))){order}}})",self.native_record_declaration(object),self.native_record_declaration(json),order=self.schema_record_order(object))
             },
             Type::Record(object)=>{
                 let mut code=format!("let mut fields=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{{}}}}};let mut valid=true;",mismatch("Object"));
                 let mut values=Vec::new();
                 for(field,member)in self.program.records[object].fields.iter().enumerate(){
                     let output=member.ty.unwrap();let child=self.schema_text_validator(self.schema_child(output),generated,owned,errors);
+        let child_roots=self.schema_root_arguments(self.schema_child(output));
                     let fallback=self.schema_default_value(output,&format!("schema.field{field}"),generated,owned,errors);
                     let absent=if let Type::Union(union)=output && self.program.unions[union.index()].members.contains(&Type::Undefined){format!("Some({})",self.schema_output_injection(Type::Undefined,output,"TsrUndefined"))}
                         else{format!("issues.push(path,Code::Missing,Kind::{},Kind::Missing);None",self.schema_kind(output))};
-                    code.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({key:?}));let field{field}=match fields.remove({key:?}){{Some(input)=>{child}(&schema.field{field},input,path,issues,failure,None,&mut None,committed),None=>match {fallback}{{Some(value)=>value,None=>{{{absent}}}}}}};path.pop();if field{field}.is_none(){{valid=false;}}if failure.is_some()||(*committed&&!valid){{return None;}}",key=member.name.text));
+                    code.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({key:?}));let field{field}=match fields.remove({key:?}){{Some(input)=>{child}({child_roots}&schema.field{field},input,path,issues,failure,None,&mut None,committed),None=>match {fallback}{{Some(value)=>value,None=>{{{absent}}}}}}};path.pop();if field{field}.is_none(){{valid=false;}}if failure.is_some()||(*committed&&!valid){{return None;}}",key=member.name.text));
                     values.push(format!("field{field}:field{field}.unwrap()"));
                 }
                 code.push_str("if policy.unwrap_or(schema.reject_unknown){for(key,value)in &fields{valid=false;let mut unknown=path.clone();unknown.push(tsrust_schema_issues::Segment::Field(key));issues.push(&unknown,Code::UnknownField,Kind::Missing,tsrust_source_kind(*value));}}if !valid{return None;}*remaining=Some(fields);");

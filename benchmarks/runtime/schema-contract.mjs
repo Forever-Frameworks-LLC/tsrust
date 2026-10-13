@@ -7,8 +7,15 @@ export function schemaChecksum(n,seed,input){
  return seed+n*weight;
 }
 export function assertSchemaSource(source,row,kind){
- if(!['native_schema_parse','native_schema_collections','native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
+ if(!['native_schema_constraint_messages','native_schema_parse','native_schema_collections','native_schema_string','native_schema_boolean','native_schema_int','native_schema_number','native_schema_number_int','native_schema_null','native_schema_string_bounds','native_schema_int_bounds','native_schema_int_exclusive','native_schema_number_bounds','native_schema_owned_array','native_schema_json_array','native_schema_number_array_int','native_schema_json_fused','native_schema_json_object','native_schema_json_object_strip','native_schema_json_object_retain','native_schema_json_presence','native_schema_json_defaults','native_schema_json_literal','native_schema_json_enum','native_schema_json_declared_enum','native_schema_pipeline','native_schema_json_union','native_schema_json_discriminated_union'].includes(row.id)||row.family!=='native-schema'||!['native','typescript'].includes(kind))throw Error('Schema identity');
  if(createHash('sha256').update(source).digest('hex')!==row[kind==='native'?'sourceSha256':'counterpartSha256'])throw Error('Schema fingerprint');
+ if(row.id==='native_schema_constraint_messages'){
+  if(row.operationsPerIteration!==2||row.inputText!=='"hello"'||row.iterations!==2000)throw Error('Constraint message denominator');
+  const snippets=['while(i<n)','i++;',"issue.message!=='Too short'","issue.code!=='too-small'",'issue.path.length!==0','issue.pathTruncated','checksum+=1;'];
+  snippets.push(kind==='native'?"s.string().min(2,{message:'Too short'}).max(6,{message:'Too long'})":"length<2?'Too short':'Too long'");
+  for(const snippet of snippets)if(!containsCodeSnippet(source,snippet))throw Error('Constraint message observation: '+snippet);
+  return;
+ }
  if(row.id==='native_schema_parse'){
   if(row.operationsPerIteration!==2||row.inputText!=='hello'||row.iterations!==2000)throw Error('Throwing schema denominator');
   const snippets=['while(i<n)','i++;',"schema.parse('')",'checksum+=value.length;','checksum+=1;','error.truncated','error.issues.length!==1',"issue.code!=='too-small'",'issue.path.length!==0','issue.pathTruncated','if(!rejected)'];

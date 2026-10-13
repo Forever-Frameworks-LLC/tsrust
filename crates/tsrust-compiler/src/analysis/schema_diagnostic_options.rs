@@ -3,6 +3,71 @@ use super::*;
 use crate::stdlib::schema::pipelines::WrapperKind;
 
 impl Analyzer {
+    pub(super) fn schema_constraint_options(
+        &mut self, context:&mut Context, expr:&mut Expr, loans:&Loans, expected:Option<Type>,
+    )->Result<Option<Type>,Diagnostic> {
+        let ExprKind::Call(callee,args)=&expr.kind else{return Ok(None)};
+        let ExprKind::Field(base,method)=&callee.kind else{return Ok(None)};
+        if !matches!(method.as_str(),"min"|"max"|"gt"|"lt") || !(1..=2).contains(&args.len()) {return Ok(None);}
+        let hint=self.expression_type_hint(context,base);
+        let mut options_chain=matches!(hint,Some(Type::Record(id)) if self.schema_pipelines.wrapper(id).is_some_and(|plan|matches!(plan.kind,WrapperKind::Constraint(_))));
+        let mut root=&**base;
+        while let ExprKind::Call(callee,previous_args)=&root.kind {
+            if let ExprKind::Field(base,method)=&callee.kind {
+                options_chain|=matches!(method.as_str(),"min"|"max"|"gt"|"lt")&&previous_args.len()==2;
+                root=base;
+            }else{break;}
+        }
+        let constructing=matches!(&root.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if name.starts_with("@schema:")||name.starts_with("@native:std:schema#")));
+        if !constructing&&!matches!(hint,Some(Type::Record(id)) if self.schema_pipelines.types(id).is_some()||self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)){return Ok(None);}
+        if args.len()==1&&!options_chain{return Ok(None);}
+        let method=method.clone();
+        let limit=args[0].clone();
+        let message=if args.len()==2 {
+            let ExprKind::Record(fields)=&args[1].kind else{return Err(Diagnostic::new("schema-options","Constraint options require an object containing a string message.",args[1].span));};
+            if fields.len()!=1||fields[0].0.text!="message" {return Err(Diagnostic::new("schema-options","Constraint options require one message field.",args[1].span));}
+            fields[0].1.clone()
+        }else{
+            Expr::new(ExprKind::String(if matches!(method.as_str(),"min"|"gt"){ "too-small" }else{ "too-large" }.into()),expr.span)
+        };
+        let mut receiver=(**base).clone();
+        let Type::Record(source)=self.expression(context,&mut receiver,Mode::Consume,loans,None)? else{unreachable!()};
+        let output=self.schema_pipelines.types(source).map(|(_,output,_)|output).or_else(||self.program.records[source].application.as_ref().and_then(|application|application.resolved_arguments.first()).copied());
+        let constructor=match output {
+            Some(Type::String) if matches!(method.as_str(),"min"|"max")=>"__string",
+            Some(Type::Int)=>"__int",Some(Type::Number)=>"__number",
+            _=>return Err(Diagnostic::new("schema-member","This schema does not support this scalar constraint.",expr.span)),
+        };
+        let native=Expr::new(ExprKind::Name(format!("@native:std:schema#{constructor}")),expr.span);
+        let scalar=Expr::new(ExprKind::Call(Box::new(native),vec![]),expr.span);
+        let bound=Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Field(Box::new(scalar),method),expr.span)),vec![limit]),expr.span);
+        let mut bound=bound;
+        let bound_type=self.expression(context,&mut bound,Mode::Consume,loans,None)?;
+        let mut message=message;
+        let message_type=self.expression(context,&mut message,Mode::Consume,loans,Some(Type::String))?;
+        self.require(message_type,Some(Type::String),message.span)?;
+        let options_id=self.program.records.len();
+        let name=format!("@schema:constraint-options:{options_id}");
+        let fields=[("bound",bound_type),("message",Type::String)].into_iter().map(|(name,ty)|Ok(RecordField {
+            name:Token{text:name.into(),kind:TokenKind::Name,span:expr.span},
+            annotation:self.checked_value_annotation(ty,expr.span)?,ty:Some(ty),callable_declaration:None,optional:false,
+        })).collect::<Result<Vec<_>,Diagnostic>>()?;
+        self.record_names.insert(name.clone(),options_id);
+        self.fields.push(fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());
+        let values=vec![(fields[0].name.clone(),bound),(fields[1].name.clone(),message)];
+        self.program.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:None,application:None,
+            name:Token{text:name,span:expr.span,kind:TokenKind::Name},type_parameters:vec![],fields});
+        let mut options=Expr::new(ExprKind::Record(values),expr.span);
+        options.ty=Some(Type::Record(options_id));
+        let ExprKind::Record(fields)=&options.kind else{unreachable!()};
+        let bound=fields.iter().find(|(name,_)|name.text=="bound").unwrap().1.clone();
+        let Some(CallTarget::Function(target))=bound.target else{return Err(Diagnostic::new("schema-constraint","Unresolved scalar constraint constructor.",expr.span));};
+        let ty=self.schema_pipeline_wrapper(expr,source,receiver.clone(),WrapperKind::Constraint(options_id),Some(options.clone()),expected)?;
+        expr.kind=ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@schema:constraint-options".into()),expr.span)),vec![receiver,options]);
+        expr.target=Some(CallTarget::SchemaConstraint(target));
+        Ok(Some(ty))
+    }
+
     pub(super) fn schema_message_policy(
         &mut self, expr: &mut Expr, id: usize, receiver: Expr, retaining: bool,
         expected: Option<Type>,

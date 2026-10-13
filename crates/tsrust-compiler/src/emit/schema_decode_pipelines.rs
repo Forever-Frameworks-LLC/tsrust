@@ -7,14 +7,35 @@ impl Emitter<'_> {
         let name=format!("decode_missing{id}");let marker=format!("/*{name}*/");
         if generated.contains(&marker){return name;}generated.push_str(&marker);
         let trial=self.schema_pipeline_trial_impl(id,Type::Undefined,true,generated,owned,errors);
-        generated.push_str(&format!("fn {name}(schema:&Record{},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>,committed:&mut bool)->Option<Option<{}>>{{use tsrust_schema_trial::Trial;match {trial}(schema,TsrUndefined,path,issues,failure){{Trial::Absent=>None,Trial::Prepared{{value,..}}=>Some(Some(value)),Trial::Rejected(_)=>Some(None),Trial::Committed(value)=>{{*committed=true;Some(value)}},Trial::Aborted(error)=>{{*failure=Some(error);Some(None)}}}}}}",self.native_record_declaration(id),self.native_type(self.schema_pipeline_output(id))));
+        let trial_roots=self.schema_root_arguments(id);
+        let roots=self.schema_root_parameters(id);
+        generated.push_str(&format!("fn {name}({roots}schema:&Record{},path:&mut Vec<tsrust_schema_issues::Segment<'_>>,issues:&mut tsrust_schema_issues::Issues,failure:&mut Option<SchemaFactoryFailure>,committed:&mut bool)->Option<Option<{}>>{{use tsrust_schema_trial::Trial;match {trial}({trial_roots}schema,TsrUndefined,path,issues,failure){{Trial::Absent=>None,Trial::Prepared{{value,..}}=>Some(Some(value)),Trial::Rejected(_)=>Some(None),Trial::Committed(value)=>{{*committed=true;Some(value)}},Trial::Aborted(error)=>{{*failure=Some(error);Some(None)}}}}}}",self.native_record_declaration(id),self.native_type(self.schema_pipeline_output(id))));
         name
     }
     pub(super) fn schema_text_pipeline_body(&self,id:usize,generated:&mut String,owned:&mut HashSet<(usize,Type)>,errors:&crate::error_effects::FailureSet)->String {
+        if let Some(plan)=self.program.schema_pipelines.recursive(id) {
+            let child=self.schema_text_validator(plan.body,generated,owned,errors);
+            let roots=self.schema_root_arguments(plan.body);
+            let inject=self.schema_output_injection(self.schema_pipeline_output(plan.body),plan.output,"value");
+            return format!("let schema_root{id}=schema;{child}({roots}&schema.field0,input,path,issues,failure,policy,remaining,committed).map(|value|{inject})");
+        }
+        if let Some(reference)=self.program.schema_pipelines.reference(id) {
+            let root=reference.root;
+            let child=self.schema_text_validator(root,generated,owned,errors);
+            let roots=self.schema_root_arguments(root);
+            return format!("{child}({roots}schema_root{root},input,path,issues,failure,policy,remaining,committed)");
+        }
         if let Some(plan)=self.program.schema_pipelines.wrapper(id){
             let child=self.schema_text_validator(plan.source,generated,owned,errors);
-            let call=format!("{child}(&schema.field0,input,path,issues,failure,policy,remaining,committed)");
+        let child_roots=self.schema_root_arguments(plan.source);
+            let call=format!("{child}({child_roots}&schema.field0,input,path,issues,failure,policy,remaining,committed)");
             return match plan.kind{
+                WrapperKind::Constraint(_)=>{
+                    let output=self.schema_pipeline_output(plan.source);
+                    let read=if output==Type::String {"AsRef::<str>::as_ref(&value)"}else{"value"};
+                    let kind=self.schema_kind(output);
+                    format!("{{let value={call}?;if let Some(code)=schema.field1.field0.bounds.check({read}){{let start=issues.items.len();issues.push(path,tsrust_schema_numeric_code(code),Kind::{kind},Kind::{kind});issues.message_since(start,schema.field1.field1.as_ref());None}}else{{Some(value)}}}}")
+                },
                 WrapperKind::Default(_)=>call,
                 WrapperKind::Message=>format!("{{let issue_start=issues.items.len();let result={call};issues.message_since(issue_start,schema.field1.as_ref());result}}"),
                 WrapperKind::Presence(added)=>{
@@ -31,10 +52,12 @@ impl Emitter<'_> {
                 // directly. A JsonValue callback explicitly requests dynamic data.
                 let raw=self.schema_text_input(stage.callback_input,generated);
                 let child=self.schema_pipeline_validator(stage.source,stage.callback_output,generated,owned,errors);
-                return format!("let mut value={raw}(input,path,issues)?;*committed=true;let converted=match {call}{{Ok(value)=>value,Err(error)=>{{*failure=Some(error);return None;}}}};{child}(&schema.field0,converted,path,issues,failure)");
+        let child_roots=self.schema_root_arguments(stage.source);
+                return format!("let mut value={raw}(input,path,issues)?;*committed=true;let converted=match {call}{{Ok(value)=>value,Err(error)=>{{*failure=Some(error);return None;}}}};{child}({child_roots}&schema.field0,converted,path,issues,failure)");
             }
             let child=self.schema_text_validator(stage.source,generated,owned,errors);
-            let mut body=format!("let mut value={child}(&schema.field0,input,path,issues,failure,policy,remaining,committed)?;");
+        let child_roots=self.schema_root_arguments(stage.source);
+            let mut body=format!("let mut value={child}({child_roots}&schema.field0,input,path,issues,failure,policy,remaining,committed)?;");
             match stage.operation{
                 Operation::Transform=>body.push_str(&format!("*committed=true;match {call}{{Ok(value)=>Some(value),Err(error)=>{{*failure=Some(error);None}}}}")),
                 Operation::Refine=>{
@@ -49,23 +72,26 @@ impl Emitter<'_> {
         if let Some(plan)=self.program.schema_pipelines.collection(id){
             assert_eq!(plan.kind,crate::stdlib::schema::pipelines::CollectionKind::Record,"checked text collection domain");
             let child=self.schema_text_validator(plan.element,generated,owned,errors);
+        let child_roots=self.schema_root_arguments(plan.element);
             let native=self.native_type(plan.output);
             // Dynamic names borrow each local key only for that validation call.
             // The outer path must not retain a reference to the temporary index.
-            return format!("let fields=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{issues.push(path,Code::Type,Kind::Object,observed);return None;}}}};let mut values=Vec::new();for(key,input)in fields{{let mut field_path=path.clone();field_path.push(tsrust_schema_issues::Segment::Field(key.as_ref()));let value={child}(&schema.field0,input,&mut field_path,issues,failure,None,&mut None,committed);let Some(value)=value else{{return None;}};values.push((String::Owned(key.into_owned()),value));}}Some(<{native}>::from_values(values))");
+            return format!("let fields=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{issues.push(path,Code::Type,Kind::Object,observed);return None;}}}};let mut values=Vec::new();for(key,input)in fields{{let mut field_path=path.clone();field_path.push(tsrust_schema_issues::Segment::Field(key.as_ref()));let value={child}({child_roots}&schema.field0,input,&mut field_path,issues,failure,None,&mut None,committed);let Some(value)=value else{{return None;}};values.push((String::Owned(key.into_owned()),value));}}Some(<{native}>::from_values(values))");
         }
         if let Some(plan)=self.program.schema_pipelines.array(id){
             let child=self.schema_text_validator(plan.element,generated,owned,errors);
+        let child_roots=self.schema_root_arguments(plan.element);
             let native=self.native_type(plan.output);
-            return format!("if input.kind()!=\"array\"{{issues.push(path,Code::Type,Kind::Array,observed);return None;}}let mut values=Some(<{native}>::from([]));input.elements(|index,input|{{path.push(tsrust_schema_issues::Segment::Index(index));let value={child}(&schema.field0,input,path,issues,failure,None,&mut None,committed);path.pop();match(value,&mut values){{(Some(value),Some(values))=>values.push(value),(None,_)=>values=None,_=>{{}}}}failure.is_none()&&values.is_some()}}).expect(\"validated array cursor\");values");
+            return format!("if input.kind()!=\"array\"{{issues.push(path,Code::Type,Kind::Array,observed);return None;}}let mut values=Some(<{native}>::from([]));input.elements(|index,input|{{path.push(tsrust_schema_issues::Segment::Index(index));let value={child}({child_roots}&schema.field0,input,path,issues,failure,None,&mut None,committed);path.pop();match(value,&mut values){{(Some(value),Some(values))=>values.push(value),(None,_)=>values=None,_=>{{}}}}failure.is_none()&&values.is_some()}}).expect(\"validated array cursor\");values");
         }
         if let Some(plan)=self.program.schema_pipelines.union(id){
             let mut body=String::from("let checkpoint=issues.checkpoint();");
             if let Some(selector)=&plan.selector{body.push_str(&format!("let object=match input.fields(){{Ok(fields)=>fields,Err(_)=>{{issues.push(path,Code::Type,Kind::Object,observed);return None;}}}};let Some(tag)=object.get({:?}).copied()else{{path.push(tsrust_schema_issues::Segment::Field({:?}));issues.push(path,Code::Missing,Kind::Union,Kind::Missing);path.pop();return None;}};",selector.field,selector.field));}
             for(branch,child)in plan.branches.iter().enumerate(){
                 let validator=self.schema_text_validator(*child,generated,owned,errors);
+        let validator_roots=self.schema_root_arguments(*child);
                 let inject=self.schema_output_injection(self.schema_pipeline_output(*child),plan.output,"value");
-                let attempt=format!("let mut branch_committed=false;let result={validator}(&schema.field{branch},input,path,issues,failure,policy,remaining,&mut branch_committed);*committed|=branch_committed;if let Some(value)=result{{issues.restore(checkpoint);return Some({inject});}}if failure.is_some()||branch_committed{{return None;}}");
+                let attempt=format!("let mut branch_committed=false;let result={validator}({validator_roots}&schema.field{branch},input,path,issues,failure,policy,remaining,&mut branch_committed);*committed|=branch_committed;if let Some(value)=result{{issues.restore(checkpoint);return Some({inject});}}if failure.is_some()||branch_committed{{return None;}}");
                 if let Some(selector)=&plan.selector{
                     let condition=selector.tags[branch].iter().map(|tag|self.schema_text_tag("tag",tag)).collect::<Vec<_>>().join("||");
                     body.push_str(&format!("if {condition}{{{attempt}issues.reject();return None;}}"));
@@ -84,8 +110,10 @@ impl Emitter<'_> {
         body.push_str(&format!("if policy.unwrap_or({}){{let mut invalid=false;for(key,value)in &fields{{if {unknown}{{invalid=true;let mut unknown_path=path.clone();unknown_path.push(tsrust_schema_issues::Segment::Field(key));issues.push(&unknown_path,Code::UnknownField,Kind::Missing,tsrust_source_kind(*value));}}}}if invalid{{return None;}}}}",plan.policy==ObjectPolicy::Reject));
         for(index,field)in fields.iter().enumerate(){
             let child=self.schema_text_validator(plan.fields[index],generated,owned,errors);
+        let child_roots=self.schema_root_arguments(plan.fields[index]);
             let missing=self.schema_text_missing(plan.fields[index],generated,owned,errors);
-            body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({key:?}));let field{index}=match fields.remove({key:?}){{Some(input)=>{child}(&schema.field0.field{index},input,path,issues,failure,None,&mut None,committed),None=>match {missing}(&schema.field0.field{index},path,issues,failure,committed){{Some(value)=>value,None=>{{issues.push(path,Code::Missing,Kind::{kind},Kind::Missing);None}}}}}};path.pop();let field{index}=field{index}?;",key=field.name.text,kind=self.schema_kind(field.ty.unwrap())));
+        let missing_roots=self.schema_root_arguments(plan.fields[index]);
+            body.push_str(&format!("path.push(tsrust_schema_issues::Segment::Field({key:?}));let field{index}=match fields.remove({key:?}){{Some(input)=>{child}({child_roots}&schema.field0.field{index},input,path,issues,failure,None,&mut None,committed),None=>match {missing}({missing_roots}&schema.field0.field{index},path,issues,failure,committed){{Some(value)=>value,None=>{{issues.push(path,Code::Missing,Kind::{kind},Kind::Missing);None}}}}}};path.pop();let field{index}=field{index}?;",key=field.name.text,kind=self.schema_kind(field.ty.unwrap())));
         }
         let values=(0..fields.len()).map(|field|format!("field{field}")).collect::<Vec<_>>().join(",");
         let value=self.schema_output_record(record,&values);

@@ -42,15 +42,17 @@ impl Emitter<'_> {
             let raw = if json { input } else { provided[index].map(|(_,ty)|ty).unwrap_or(Type::Undefined) };
             let raw_native=self.native_type(raw);
             let child = self.schema_pipeline_trial(plan.fields[index],raw,generated,seen,errors);
+        let child_roots=self.schema_root_arguments(plan.fields[index]);
             let absent = self.schema_pipeline_trial_impl(plan.fields[index],Type::Undefined,true,generated,seen,errors);
+        let absent_roots=self.schema_root_arguments(plan.fields[index]);
             let schema = format!("&schema.field0.field{index}");
             let read = if json {
                 body.push_str(&format!("let(key{index},raw{index})=match values.remove_entry({:?}){{Some((key,value))=>(Some(key),Some(Record{raw_record}{{value}})),None=>(None,None)}};",field.name.text));
-                format!("match raw{index}{{Some(value)=>{child}({schema},value,path,issues,failure).remap_input(Some),None=>{absent}({schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)}}",self.native_type(raw))
+                format!("match raw{index}{{Some(value)=>{child}({child_roots}{schema},value,path,issues,failure).remap_input(Some),None=>{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)}}",self.native_type(raw))
             } else if let Some((position,_)) = provided[index] {
-                format!("{child}({schema},input.field{position},path,issues,failure).remap_input(Some)")
+                format!("{child}({child_roots}{schema},input.field{position},path,issues,failure).remap_input(Some)")
             } else {
-                format!("{absent}({schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)",self.native_type(raw))
+                format!("{absent}({absent_roots}{schema},TsrUndefined,path,issues,failure).remap_input(|_|None::<{}>)",self.native_type(raw))
             };
             let mut reject = String::from("if committed{return Trial::Committed(None);}");
             if json {

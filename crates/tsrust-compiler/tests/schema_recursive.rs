@@ -121,3 +121,29 @@ fn recursive_placeholders_reject_unproductive_definitions_and_escape() {
         assert!(diagnostics.contains(code),"Expected {code} for {definition}: {diagnostics}");
     }
 }
+
+#[test]
+fn recursive_transforms_preserve_distinct_input_and_output_shapes() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+const tree=s.recursive(self=>s.object({
+  value:s.string().transform(value=>value.length),
+  children:s.array(self)
+}));
+function main(){
+  const input={value:'root',children:[{value:'kid',children:[]}]};
+  match(tree.safeParse(input)){
+    Ok(value)=>{strictEqual(value.value,4);strictEqual(value.children[0].value,3);},
+    Err(error)=>{throw 'Recursive transform rejected owned input';}
+  }
+  match(tree.safeParseJson('{"value":"root","children":[{"value":"kid","children":[]}]}')){
+    Ok(value)=>{strictEqual(value.value,4);strictEqual(value.children[0].value,3);},
+    Err(error)=>{throw 'Recursive transform rejected JSON input';}
+  }
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
+}

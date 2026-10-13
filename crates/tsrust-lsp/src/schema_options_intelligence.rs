@@ -15,6 +15,9 @@ impl SourceIndex {
             let parameters = entry["parameters"].as_array()?;
             if !parameters.last()?["label"].as_str()?.starts_with("options?") { return None; }
             (parameters.len() - 1, vec![("message", "string", "Fallback validation message. Child custom messages take precedence.")])
+        } else if matches!(method, "min" | "max" | "gt" | "lt")
+            && (self.schema_element(&receiver).is_some() || self.schema_pipeline_types.contains_key(&receiver)) {
+            (1, vec![("message", "string", "Validation message for this constraint only. Preserves the issue code and path; does not replace type errors or another constraint's message.")])
         } else if method == "refine" && (self.schema_element(&receiver).is_some() || self.schema_pipeline_types.contains_key(&receiver)) {
             (1, vec![("path", "checked field/index path", "Relative diagnostic path. Field names and array indices are checked against the refined value."),
                 ("message", "string", "Message reported when the predicate returns false. Exceptions still propagate.")])

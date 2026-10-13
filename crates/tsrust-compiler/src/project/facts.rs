@@ -398,9 +398,10 @@ impl ProjectAnalysis {
                 output: Box::new(self.project_type(output, names)?), json_input,
                 text_input: self.analysis.program.schema_pipelines.accepts_text(id),
                 scalar_constraints: self.analysis.program.schema_pipelines.wrapper(id).is_some_and(|plan|
-                    plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message
-                    && self.analysis.program.records[plan.source].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
-                    && matches!(output, Type::Int | Type::Number | Type::String)),
+                    matches!(output, Type::Int | Type::Number | Type::String)
+                    && (matches!(plan.kind, crate::stdlib::schema::pipelines::WrapperKind::Constraint(_))
+                        || (plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message
+                            && self.analysis.program.records[plan.source].native_type == Some(crate::native_signatures::NativeTypeId::Schema)))),
                 object_policy: {
                     let plans = &self.analysis.program.schema_pipelines;
                     let source = plans.wrapper(id).filter(|plan| plan.kind == crate::stdlib::schema::pipelines::WrapperKind::Message)

@@ -183,7 +183,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             uses_parse |= member == "parse";
             uses_bounds |= matches!(member.as_str(),"min"|"max"|"gt"|"lt");
             if !matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()) { return Ok(()); }
-            if matches!(member.as_str(),"array"|"object"|"record"|"map"|"set"|"literal"|"enum"|"union"|"discriminatedUnion") {if matches!(member.as_str(),"literal"|"enum"){spans.push((&STRING,expression.span));spans.push((&NULL,expression.span));}expression.kind=ExprKind::Name(format!("@schema:{member}"));return Ok(());}
+            if matches!(member.as_str(),"recursive"|"array"|"object"|"record"|"map"|"set"|"literal"|"enum"|"union"|"discriminatedUnion") {if matches!(member.as_str(),"literal"|"enum"){spans.push((&STRING,expression.span));spans.push((&NULL,expression.span));}expression.kind=ExprKind::Name(format!("@schema:{member}"));return Ok(());}
             let binding = match member.as_str() {
                 "string" => &STRING,
                 "boolean" => &BOOLEAN,
