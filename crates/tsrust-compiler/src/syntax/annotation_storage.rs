@@ -1,85 +1,8 @@
-//! Source callable annotations clone and release through explicit worklists.
+//! Source callable annotations release through explicit worklists.
 use super::{CallableParameter, CallbackAnnotation, ParameterAnnotation, ResultAnnotation};
 use crate::Span;
 
-enum Work<'a> {
-    Result(&'a ResultAnnotation),
-    Callback(&'a CallbackAnnotation),
-    Parameter(&'a ParameterAnnotation),
-    FinishResult(&'a ResultAnnotation, usize),
-    FinishCallback(&'a CallbackAnnotation, usize),
-    AsParameter,
-}
-enum Built { Result(ResultAnnotation), Callback(CallbackAnnotation), Parameter(ParameterAnnotation) }
-
-fn parameters(source: &[CallableParameter], values: impl Iterator<Item = Built>) -> Vec<CallableParameter> {
-    source.iter().zip(values).map(|(parameter, value)| {
-        let Built::Parameter(ty) = value else { unreachable!() };
-        CallableParameter { rest: parameter.rest, name: parameter.name.clone(), ty,
-            access: parameter.access.clone(), initializer: parameter.initializer.clone() }
-    }).collect()
-}
-fn clone_annotation(root: Work<'_>) -> Built {
-    let mut pending = vec![root];
-    let mut built = Vec::new();
-    while let Some(work) = pending.pop() {
-        match work {
-            Work::Result(value) => match value {
-                ResultAnnotation::Inferred(span) => built.push(Built::Result(ResultAnnotation::Inferred(*span))),
-                ResultAnnotation::Named(value) => built.push(Built::Result(ResultAnnotation::Named(value.clone()))),
-                ResultAnnotation::Callable { params, result, .. } => {
-                    pending.push(Work::FinishResult(value, built.len()));
-                    pending.push(Work::Result(result));
-                    pending.extend(params.iter().rev().map(|parameter| Work::Parameter(&parameter.ty)));
-                }
-            },
-            Work::Callback(value) => {
-                pending.push(Work::FinishCallback(value, built.len()));
-                pending.push(Work::Result(&value.result));
-                pending.extend(value.params.iter().rev().map(|parameter| Work::Parameter(&parameter.ty)));
-            }
-            Work::Parameter(value) => match value {
-                ParameterAnnotation::Named(value) => built.push(Built::Parameter(ParameterAnnotation::Named(value.clone()))),
-                ParameterAnnotation::Inferred(value) => built.push(Built::Parameter(ParameterAnnotation::Inferred(value.clone()))),
-                ParameterAnnotation::Callback(value) => {
-                    pending.push(Work::AsParameter);
-                    pending.push(Work::Callback(value));
-                }
-            },
-            Work::FinishResult(value, start) => {
-                let ResultAnnotation::Callable { kind, params, span, .. } = value else { unreachable!() };
-                let Built::Result(result) = built.pop().unwrap() else { unreachable!() };
-                let params = parameters(params, built.drain(start..));
-                built.push(Built::Result(ResultAnnotation::Callable { kind: *kind, params, result: Box::new(result), span: *span }));
-            }
-            Work::FinishCallback(value, start) => {
-                let Built::Result(result) = built.pop().unwrap() else { unreachable!() };
-                let params = parameters(&value.params, built.drain(start..));
-                built.push(Built::Callback(CallbackAnnotation { kind: value.kind, params, result: Box::new(result), span: value.span }));
-            }
-            Work::AsParameter => {
-                let Built::Callback(value) = built.pop().unwrap() else { unreachable!() };
-                built.push(Built::Parameter(ParameterAnnotation::Callback(Box::new(value))));
-            }
-        }
-    }
-    built.pop().unwrap()
-}
-impl Clone for CallbackAnnotation {
-    fn clone(&self) -> Self {
-        let Built::Callback(value) = clone_annotation(Work::Callback(self)) else { unreachable!() };
-        value
-    }
-}
-impl Clone for ResultAnnotation {
-    fn clone(&self) -> Self {
-        let Built::Result(value) = clone_annotation(Work::Result(self)) else { unreachable!() };
-        value
-    }
-}
-
-// Default initializer expressions remain owned by their parameters. Their AST
-// storage is a separate conversion; these worklists flatten annotation edges.
+// AST disposal owns expression edges; this worklist releases annotation edges.
 enum Owned { Result(ResultAnnotation), Callback(CallbackAnnotation) }
 fn detach(params: &mut Vec<CallableParameter>, result: &mut ResultAnnotation, pending: &mut Vec<Owned>) {
     for parameter in std::mem::take(params) {

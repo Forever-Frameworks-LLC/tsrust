@@ -152,6 +152,7 @@ mod tests {
                 Expr::new(ExprKind::Closure { id: index, params: vec![parameter(ParameterAnnotation::Callback(Box::new(callback)), ParameterInitializer::Required)], result: ResultAnnotation::Inferred(span), body: Vec::new() }, span)
             };
         }
+        drop(value.clone());
         drop(value);
     }
     #[test]
@@ -169,6 +170,7 @@ mod tests {
                 value = statement(StmtKind::LocalFunction(Box::new(function)));
             }
         }
+        drop(value.clone());
         drop(value);
     }
     #[test]

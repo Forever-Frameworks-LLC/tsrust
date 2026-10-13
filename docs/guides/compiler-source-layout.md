@@ -144,16 +144,23 @@ patterns borrow annotations; substituted union payloads own annotations and move
 children through `constraint_children`. Union-member continuations retain one
 pending template rather than cloning every member in advance.
 
-Source wrapper cloning and disposal live in `syntax/annotation_storage.rs`.
-Callback and result annotations share explicit construction and release worklists;
+Source wrapper disposal lives in `syntax/annotation_storage.rs`; cloning shares
+`syntax/tree_clone.rs`. Callback and result annotations use explicit worklists;
 parameter annotations reach them through their callback variants. Consume callback
 fields through `CallbackAnnotation::into_parts` so the emptied wrapper still runs
-its destructor. Parameter defaults retain their expression trees; expression
-cloning and recursive debug formatting remain separate pending conversions.
+its destructor. Parameter defaults retain their expression trees in the shared AST clone worklist;
+recursive debug formatting remains a separate pending conversion.
 
 AST disposal lives in `syntax/tree_storage.rs`. Its owned worklist crosses
 expressions, statements, local functions, callable annotations and default
 initializers, including checked spread-plan children. `Expr::into_kind` and
 `Stmt::into_kind` consume a node safely; `Expr::take_kind` retains metadata while
 emptying its payload. Test a variant before extraction when an unmatched node
-must remain intact. AST cloning and debug formatting are separate pending work.
+must remain intact. AST cloning shares signature/default continuations; debug formatting remains pending.
+
+AST and source wrapper cloning share `syntax/tree_clone.rs`. `Source` describes
+borrowed nodes; construction frames retain continuations, and `Values` drains
+completed children in source order. Keep signature/default edges in this shared
+worklist rather than calling a separate recursive clone visitor. Expression
+reconstruction copies stored depth and checked metadata exactly. Leaf variants
+may use their derived clone only when they contain no AST ownership edges.

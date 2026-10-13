@@ -757,3 +757,47 @@ formatting changes zero files and fingerprints. SQLite records under
 and source hashes with exact restoration verification. These checks establish
 this disposal section; full nesting architecture acceptance and scaling remain
 pending. Installed consumers remain on `36093d5b`, with no public admission change.
+
+## Unified AST cloning
+
+`syntax/tree_clone.rs` now shares one construction worklist across expressions,
+statements, local functions, callback/result annotations and default expressions.
+Wrapper cloning delegates to this worklist instead of invoking expression cloning
+from a separate recursive call chain. Each parent consumes completed children in
+source order. Checked spread-plan callees, segments, calls and variants, exception
+bodies and function signature defaults retain their existing structural order.
+
+Expression reconstruction copies all checked metadata, including stored depth,
+effect flags, schema invocation IDs, callable origins, generic invocation IDs and
+capture slots. It does not recompute depth from the copied children. Source tokens,
+access/ownership, omission, labels, control targets and diagnostic coordinates are
+retained. Existing structured annotation cloning remains its own iterative leaf
+operation because structured annotations contain no expression defaults.
+
+Deep storage witnesses now clone and dispose 16,384 mixed expression/signature/
+default levels and block/local-function levels. A separate deep clone witness
+checks every closure ID and source span while descending its copied defaults.
+Bounded source and checked-body comparisons retain every debug-visible field,
+including checked spread plans; a metadata witness sets non-default checked fields
+and proves child mutation does not alias the original. Recursive debug formatting
+and parser/checker/emitter traversal remain unfinished. Admission and benchmark
+protocols are unchanged; these checks do not establish full deep-source acceptance
+or a new compilation scaling result.
+
+Follow-up audit: generic function materialization already drains an explicit
+pending queue, but its depth value also arrives from the analyzer's active
+function stack for checked requests. The retained depth-32 admission therefore
+needs separate explicit-chain and dynamic-request witnesses before removal;
+per-declaration/program instance budgets are distinct from call-stack depth.
+
+Validation passes 1,065 compiler unit checks (one existing opt-in scheduling
+trace remains ignored), 253 targeted native checks and all 494 checks in the
+editor intelligence/project-intelligence suites. Editor validation executes the
+built-in catalog examples with the current compiler and native output oracles.
+Native coverage includes callable/default/nullable/recursive-result behavior,
+spread, destructuring, optional chains, owned arrays and schema pipelines/options.
+Whole-project formatting changes zero files and fingerprints. SQLite records under
+`tsrust-nesting-tree-clone` retain the initial test-enum correction, final checks
+and source identity with byte-exact restoration verification. No runtime or
+compilation performance measurement is claimed. Installed consumers remain on
+`36093d5b`, since this internal storage change does not alter public admission.

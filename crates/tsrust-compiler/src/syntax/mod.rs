@@ -3,6 +3,7 @@ mod named_function_syntax;
 mod annotation_conversion;
 mod annotation_storage;
 mod tree_storage;
+mod tree_clone;
 pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
@@ -1006,7 +1007,7 @@ pub fn global_number_member(name: &str, callee: bool) -> Option<&'static str> {
     })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: Span,
@@ -1460,7 +1461,7 @@ impl Expr {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ControlTarget { Loop(usize), Tail(usize), Block(usize) }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Stmt {
     pub labels: Vec<Token>,
     pub control_target: Option<ControlTarget>,
@@ -1698,7 +1699,7 @@ pub enum ResultAnnotation {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Function {
     pub application: Option<Box<FunctionApplication>>,
     pub scope_span: Span,
