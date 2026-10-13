@@ -189,3 +189,7 @@ continuation stack so mixed aggregate joins cannot re-enter a recursive driver.
 Mutable carrier retargeting lives in `analysis/carrier_retarget.rs`. Owned parent
 frames restore every extracted child before returning, including diagnostic
 unwinds; completed sibling mutations preserve the existing partial-error behavior.
+
+`analysis/carrier_literal_join.rs` joins paired record expressions with owned
+parent frames. Child joins and fallback conversions complete in declaration field
+order; both trees are restored before a diagnostic returns.

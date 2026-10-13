@@ -79,6 +79,7 @@ mod record_array_carriers;
 mod record_value_carriers;
 mod carrier_type_join;
 mod carrier_retarget;
+mod carrier_literal_join;
 mod record_storage_writes;
 mod record_branch_carriers;
 mod named_capture_context;

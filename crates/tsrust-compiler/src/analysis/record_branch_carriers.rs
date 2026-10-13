@@ -216,40 +216,6 @@ impl Analyzer {
         if let Some(root)=self.scoped_array_replace_field(context.bindings[id].ty,&path,ty){context.bindings[id].ty=root;}
         Ok(())
     }
-    fn join_record_values(&mut self,left:&mut Expr,right:&mut Expr)->Result<Option<Type>,Diagnostic>{
-        let(Some(Type::Record(a)),Some(Type::Record(b)))=(left.ty,right.ty) else{return Ok(None);};
-        let declaration=self.scoped_records.declaration(a);
-        if declaration!=self.scoped_records.declaration(b){return Ok(None);}
-        if !matches!((&left.kind,&right.kind),(ExprKind::Record(_),ExprKind::Record(_))){
-            let Some(ty)=self.join_record_types(a,b,left.span)? else{return Ok(None);};
-            for value in [left,right]{if value.ty==Some(ty){continue;}value.wrap_record_carrier(ty);}
-            return Ok(Some(ty));
-        }
-        let(ExprKind::Record(left_fields),ExprKind::Record(right_fields))=(&mut left.kind,&mut right.kind) else{unreachable!()};
-        let mut fields=self.program.records[declaration].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
-        let mut changed=false;
-        for(index,field) in self.program.records[declaration].fields.clone().iter().enumerate(){
-            let Some((_,l))=left_fields.iter_mut().find(|(key,_)|key.text==field.name.text) else{continue;};
-            let Some((_,r))=right_fields.iter_mut().find(|(key,_)|key.text==field.name.text) else{continue;};
-            let lt=l.ty.unwrap();let rt=r.ty.unwrap();
-            if let Some(ty)=self.join_record_values(l,r)?{fields[index]=ty;changed=true;}
-            else if let Some(ty)=self.common_native_view_storage(lt,rt,l.span)? {
-                for value in [&mut *l,&mut *r] {value.wrap_record_carrier(ty);}
-                fields[index]=ty;changed=true;
-            }
-            else if lt!=rt && let Some(ty)=self.join_scoped_map_types(lt,rt,l.span)?{
-                for value in [&mut *l,&mut *r]{if value.ty!=Some(ty){value.wrap_record_carrier(ty);}}
-                fields[index]=ty;changed=true;
-            }
-            else if lt!=rt && let Some(family)=self.common_borrowed_conditional_family(lt,rt,l.span)?{
-                for value in [&mut *l,&mut *r]{if !matches!(value.kind,ExprKind::Unary{op:UnaryOp::CallableStore,..}){value.wrap_storage(family);}value.ty=Some(Type::BorrowedCallable(family));}let ty=Type::BorrowedCallable(family);l.ty=Some(ty);r.ty=Some(ty);fields[index]=ty;changed=true;
-            }else if lt==rt{fields[index]=lt;}
-        }
-        if !changed{return Ok(None);}
-        let instance=self.scoped_records.materialize(declaration,fields,&mut self.program.records);
-        if self.fields.len()<=instance{self.fields.push(self.program.records[instance].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
-        let ty=Type::Record(instance);left.ty=Some(ty);right.ty=Some(ty);Ok(Some(ty))
-    }
     /// Give a stored value the carrier type of its destination. Tagged values
     /// and record literals are retyped in place; other values are converted.
     /// Whether generated code can convert a stored value into its carrier.

@@ -956,3 +956,25 @@ This is internal architecture work with no public contract or IntelliSense chang
 Consumers remain unchanged. Literal record-value joins, result discovery and
 statement emission still need connected migration; full compiler nesting and
 formal scaling acceptance remain open.
+
+### Paired literal record join continuations
+
+`analysis/carrier_literal_join.rs` replaces recursive literal field joins with
+paired owned parent frames. It retains declaration field order, original field
+types for fallback selection, nominal rejection, native-view/map/callable
+conversion order, parent materialization timing and diagnostic spans. Both
+extracted children are restored before either normal completion or error unwind.
+Completed prefix mutations remain visible on a later error, as before.
+
+All 292 analysis tests pass. New witnesses cover 16,384 nested literal pairs with
+normal disposal, a callback-contract error under 4,096 paired parents with exact
+leaf diagnostic span and both trees restored, and incompatible nominal records.
+Native validation passes 42 scoped callable record tests and 11 composition
+`origins` cases. Whole-project formatting changes zero files or fingerprints.
+SQLite evidence uses `tsrust-nesting-literal-join-*`.
+
+The audit identifies a remaining connected cycle between nullable/sticky joins
+and empty scoped record/map environment construction. Address those paths as one
+subsystem, including their recursive environment helpers. Result discovery and
+statement emission also remain open. No public contract change, consumer refresh,
+formal scaling acceptance or full compiler architecture acceptance is claimed.
