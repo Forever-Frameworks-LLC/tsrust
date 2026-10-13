@@ -154,3 +154,7 @@ The [family record](milestones/s07-resources-bytes.md) binds complete regression
 17 native/Node workloads, allocation profiles, two direct Rust reference workloads,
 performance review and six refreshed executable copies including the PATH CLI.
 Coverage tracks these APIs individually and keeps later S08–S21 work pending.
+
+## S11 accepted scope (2026-10-13)
+
+S11 is accepted on macOS for inferred reusable validation schemas, owned/JSON input, fused text decoding, bounded typed issues, pipelines/collections/recursion and scoped Draft 2020-12 export. Complete compiler/LSP regressions, all 31 matched measurements and consumer refresh are recorded in the [acceptance handoff](handoffs/2026-10-13-s11-acceptance.md). H18 extended dialect/import conformance remains pending. Native is slower in 28 of the 31 handwritten-reference workloads; preserve that measured limitation. Compiler nesting architecture is the first next-agent task before S12.

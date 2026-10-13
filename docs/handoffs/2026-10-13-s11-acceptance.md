@@ -1,8 +1,8 @@
 # S11 acceptance and continuation handoff
 
-Status: final cleanup validation and installed-consumer refresh are still pending.
-Do not treat this draft as final acceptance. The current agent must finish those
-steps, record final checkpoints and pause the active goal before handing off.
+Status: S11 implementation, family measurement, source cleanup and consumer refresh
+are accepted on macOS. Stop boundary reached; do not start S12 in this run.
+The compiler nesting architecture below is the next agent’s first priority.
 
 ## First priority: compiler nesting architecture
 
@@ -38,8 +38,8 @@ superRefine and scoped Draft 2020-12 JSON Schema export. Extended standards
 import/dialect conformance belongs to H18; no blanket Zod compatibility claim.
 
 Checkpoints: `8176b6cb` export implementation, `60062e81` family regression repairs,
-`20414343` measured baseline documentation. Final cleanup checkpoint pending.
-Before cleanup: compiler 3,727 passed, three ignored; LSP 645 passed. Compiler
+`20414343` measured baseline documentation; `fe1d75ef` verified cleanup source checkpoint.
+Before and after cleanup: compiler 3,727 passed, three expected ignored; LSP 645 passed. Compiler
 coverage is composed from interrupted runs plus affected repairs, with every one
 of the 321 integration suites accounted for. The exact index is
 `tsrust-s11-regression-index.json` in SQLite. Original failures remain preserved.
@@ -158,9 +158,25 @@ Preserve these unrelated owner files: `UI_VISION.md`,
 `parallel-ui-foundations-plan.md`, `ui-feasibility-review.md`,
 `ui-route-contracts-first-task.md`. Do not stage them with compiler work.
 
-Installed CLI/LSP refresh details and final cleanup evidence must be filled in before
-this handoff is finalized. The editor was pinned to `target/editor/debug/tsrust-lsp`;
-inspect actual settings and restart the active server after atomic replacement.
+Cleanup evidence: `tsrust-s11-cleanup-regression-index.json` accounts for all 321
+compiler integration suites and library targets, with zero unresolved failures.
+The runtime split exposed two missing import boundaries; both original failures and
+affected successful reruns remain in SQLite. Compiler doctests pass (zero cases).
+`tsrust-s11-cleanup-lsp.log` records 645 passes. Whole-project formatting changes
+zero files/fingerprints. Export, recursive, collection and fused-JSON adapters pass
+40 native/compiled-Node correctness cells with zero timing samples.
+
+Consumers built explicitly with both binary names and atomically refreshed from
+`fe1d75ef`: `~/.cargo/bin/tsrust`, `~/.cargo/bin/tsrust-lsp`, and configured
+`target/editor/debug/tsrust-lsp`. Copies are hash-verified in
+`tsrust-s11-consumer-refresh.json`. Both editor windows restarted their servers;
+the workspace's stale Tsrust errors cleared. Restarting Rust analysis also cleared
+its stale syntax errors. Both windows report zero problems. The installed CLI's
+recursive `tsrust check .` passes (`tsrust-s11-installed-project-check.log`).
+
+Obsolete Cargo/test/native output trees are pruned while preserving the five
+current consumer executables. The next Cargo/native build may be cold. See
+`tsrust-s11-output-pruning.json`; no rebuild was run merely to refill caches.
 
 ## Copyable continuation prompt
 
