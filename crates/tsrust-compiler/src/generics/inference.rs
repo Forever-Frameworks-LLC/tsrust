@@ -4,6 +4,7 @@ use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
 use crate::types::reconstruction::{reconstruct, Plan};
 use std::collections::{BTreeSet, HashMap};
+use std::borrow::Cow;
 
 pub(crate) type CallableShapes = HashMap<Type, (Vec<Type>, Type)>;
 pub(crate) type InlineShapes = HashMap<(usize, usize), (Vec<Type>, Type)>;
@@ -27,6 +28,35 @@ fn may_defer(pattern: &ValueAnnotation) -> bool {
         }
     }
     false
+}
+
+// Borrow source constraints; own only substituted union payloads. Moving owned
+// children out keeps traversal linear instead of cloning each remaining subtree.
+type Pattern<'a> = Cow<'a, ValueAnnotation>;
+enum ConstraintWork<'a> {
+    Unify(Pattern<'a>, Type),
+    Resolve(Pattern<'a>, &'a ValueAnnotation, Option<Type>),
+    Callable(Pattern<'a>, &'a [Type], Type),
+    UnionMembers(ValueAnnotation, std::vec::IntoIter<Type>, Vec<Type>, Span),
+}
+fn constraint_children(pattern: Pattern<'_>) -> Vec<Pattern<'_>> {
+    match pattern {
+        Cow::Borrowed(value) => match &value.kind {
+            Kind::Group(inner) | Kind::Array(inner) => vec![Cow::Borrowed(inner)],
+            Kind::Tuple(values) | Kind::Union(values) | Kind::Applied { arguments: values, .. } => values.iter().map(Cow::Borrowed).collect(),
+            Kind::Callable { parameters, result, .. } => parameters.iter().map(|parameter| Cow::Borrowed(&parameter.annotation)).chain(std::iter::once(Cow::Borrowed(result.as_ref()))).collect(),
+            _ => Vec::new(),
+        },
+        Cow::Owned(value) => match value.into_kind() {
+            Kind::Group(inner) | Kind::Array(inner) => vec![Cow::Owned(*inner)],
+            Kind::Tuple(values) | Kind::Union(values) | Kind::Applied { arguments: values, .. } => values.into_iter().map(Cow::Owned).collect(),
+            Kind::Callable { parameters, result, .. } => parameters.into_iter().map(|parameter| Cow::Owned(parameter.annotation)).chain(std::iter::once(Cow::Owned(*result))).collect(),
+            _ => Vec::new(),
+        },
+    }
+}
+fn constraint_mismatch(span: Span) -> Diagnostic {
+    Diagnostic::new("type", "Generic type constraints do not match the checked argument type.", span)
 }
 
 pub(crate) struct Constraints<'a> {
@@ -133,226 +163,250 @@ impl Types<'_> {
         variables: &BTreeSet<String>,
         bindings: &mut HashMap<String, Type>,
     ) -> Result<(), Diagnostic> {
-        let mismatch = || {
-            Diagnostic::new(
-                "type",
-                "Generic type constraints do not match the checked argument type.",
-                pattern.span,
-            )
-        };
-        match &pattern.kind {
-            Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
-            Kind::Named(name) if variables.contains(&name.text) => {
-                if let Some(prior) = bindings.get(&name.text) {
-                    let same_callable = *prior != actual
-                        && self.callable_annotations.is_some_and(|annotations| annotations.contains_key(prior) && annotations.contains_key(&actual))
-                        && self.annotation(*prior, pattern.span).ok().zip(self.annotation(actual, pattern.span).ok())
-                            .is_some_and(|(left, right)| crate::generic_functions::same_annotation_contract(&left, &right));
-                    if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable {
+        self.unify_work(vec![ConstraintWork::Unify(Cow::Borrowed(pattern), actual)], variables, bindings)
+    }
+
+    fn unify_work<'a>(
+        &'a self,
+        mut work: Vec<ConstraintWork<'a>>,
+        variables: &BTreeSet<String>,
+        bindings: &mut HashMap<String, Type>,
+    ) -> Result<(), Diagnostic> {
+        while let Some(next) = work.pop() {
+            let (pattern, actual) = match next {
+                ConstraintWork::Unify(pattern, actual) => (pattern, actual),
+                ConstraintWork::Resolve(pattern, annotation, checked) => {
+                    // Resolve immediately before this child, preserving first-error
+                    // order and the old eager fallback even for a checked field.
+                    let resolved = crate::analysis::resolve_value_type(annotation, false, self.names, self.unions)?;
+                    work.push(ConstraintWork::Unify(pattern, checked.unwrap_or(resolved)));
+                    continue;
+                }
+                ConstraintWork::UnionMembers(pattern, mut members, absent, span) => {
+                    let Some(actual) = members.next() else { continue; };
+                    if matches!(actual, Type::Null | Type::Undefined) {
+                        if !absent.contains(&actual) { return Err(constraint_mismatch(span)); }
+                        work.push(ConstraintWork::UnionMembers(pattern, members, absent, span));
+                        continue;
+                    }
+                    // Retain one template, and clone only the member being checked.
+                    // The final member consumes it; wide unions do not retain one
+                    // deep annotation copy per pending member.
+                    let current = if members.len() == 0 { pattern } else {
+                        let current = pattern.clone();
+                        work.push(ConstraintWork::UnionMembers(pattern, members, absent, span));
+                        current
+                    };
+                    (Cow::Owned(current), actual)
+                }
+                ConstraintWork::Callable(pattern, actual_parameters, actual_result) => {
+                    self.schedule_callable(pattern, actual_parameters, actual_result, &mut work)?;
+                    continue;
+                }
+            };
+            let mismatch_span = pattern.span;
+            let mismatch = || constraint_mismatch(mismatch_span);
+            match &pattern.kind {
+                Kind::Polymorphic { origin, .. } => if actual==Type::Closure(*origin) {Ok(())} else {Err(mismatch())},
+                Kind::Named(name) if variables.contains(&name.text) => {
+                    if let Some(prior) = bindings.get(&name.text) {
+                        let same_callable = *prior != actual
+                            && self.callable_annotations.is_some_and(|annotations| annotations.contains_key(prior) && annotations.contains_key(&actual))
+                            && self.annotation(*prior, pattern.span).ok().zip(self.annotation(actual, pattern.span).ok())
+                                .is_some_and(|(left, right)| crate::generic_functions::same_annotation_contract(&left, &right));
+                        if *prior != actual && !self.unions.accepts(*prior, actual) && !same_callable {
+                            return Err(mismatch());
+                        }
+                    } else {
+                        bindings.insert(name.text.clone(), actual);
+                    }
+                    Ok(())
+                }
+                Kind::Named(name) if name.text == "void" && actual == Type::Void => Ok(()),
+                Kind::Literal(_) | Kind::Named(_) => {
+                    let expected =
+                        crate::analysis::resolve_value_type(&pattern, false, self.names, self.unions)?;
+                    if expected == actual {
+                        Ok(())
+                    } else {
+                        Err(mismatch())
+                    }
+                }
+                Kind::Group(_) => {
+                    work.push(ConstraintWork::Unify(constraint_children(pattern).pop().unwrap(), actual));
+                    Ok(())
+                },
+                Kind::Array(_) => {
+                    let Type::Array(element) = actual else {
+                        return Err(mismatch());
+                    };
+                    work.push(ConstraintWork::Unify(constraint_children(pattern).pop().unwrap(), element.ty()));
+                    Ok(())
+                }
+                Kind::Tuple(positions) => {
+                    let Type::Record(id) = actual else { return Err(mismatch()); };
+                    let record = &self.records[id];
+                    if !record.is_tuple() || record.fields.len() != positions.len() { return Err(mismatch()); }
+                    for (position, field) in constraint_children(pattern).into_iter().zip(&record.fields).rev() {
+                        work.push(ConstraintWork::Resolve(position, &field.annotation, field.ty));
+                    }
+                    Ok(())
+                }
+                Kind::Applied { name, arguments } => {
+                    let (Type::Record(id) | Type::Set(id) | Type::Map(id)) = actual else {
+                        return Err(mismatch());
+                    };
+                    let Some(application) = &self.records[id].application else {
+                        return Err(mismatch());
+                    };
+                    if application.declaration.text != name.text
+                        || application.arguments.len() != arguments.len()
+                    {
                         return Err(mismatch());
                     }
-                } else {
-                    bindings.insert(name.text.clone(), actual);
-                }
-                Ok(())
-            }
-            Kind::Named(name) if name.text == "void" && actual == Type::Void => Ok(()),
-            Kind::Literal(_) | Kind::Named(_) => {
-                let expected =
-                    crate::analysis::resolve_value_type(pattern, false, self.names, self.unions)?;
-                if expected == actual {
-                    Ok(())
-                } else {
-                    Err(mismatch())
-                }
-            }
-            Kind::Group(inner) => self.unify(inner, actual, variables, bindings),
-            Kind::Array(inner) => {
-                let Type::Array(element) = actual else {
-                    return Err(mismatch());
-                };
-                self.unify(inner, element.ty(), variables, bindings)
-            }
-            Kind::Tuple(positions) => {
-                let Type::Record(id) = actual else { return Err(mismatch()); };
-                let record = &self.records[id];
-                if !record.is_tuple() || record.fields.len() != positions.len() { return Err(mismatch()); }
-                for (position, field) in positions.iter().zip(&record.fields) {
-                    let ty = field.ty.unwrap_or(crate::analysis::resolve_value_type(&field.annotation, false, self.names, self.unions)?);
-                    self.unify(position, ty, variables, bindings)?;
-                }
-                Ok(())
-            }
-            Kind::Applied { name, arguments } => {
-                let (Type::Record(id) | Type::Set(id) | Type::Map(id)) = actual else {
-                    return Err(mismatch());
-                };
-                let Some(application) = &self.records[id].application else {
-                    return Err(mismatch());
-                };
-                if application.declaration.text != name.text
-                    || application.arguments.len() != arguments.len()
-                {
-                    return Err(mismatch());
-                }
-                for (pattern, argument) in arguments.iter().zip(&application.arguments) {
-                    let actual = crate::analysis::resolve_value_type(
-                        argument,
-                        false,
-                        self.names,
-                        self.unions,
-                    )?;
-                    self.unify(pattern, actual, variables, bindings)?;
-                }
-                Ok(())
-            }
-            Kind::Union(_) => {
-                let mut pending = vec![pattern];
-                let mut unbound = false;
-                while let Some(value) = pending.pop() {
-                    match &value.kind {
-                        Kind::Literal(_) | Kind::Polymorphic { .. } => {},
-                        Kind::Named(name) => {
-                            unbound |=
-                                variables.contains(&name.text) && !bindings.contains_key(&name.text)
-                        }
-                        Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
-                        Kind::Union(members) | Kind::Tuple(members)
-                        | Kind::Applied {
-                            arguments: members, ..
-                        } => pending.extend(members),
-                        Kind::Callable {
-                            parameters, result, ..
-                        } => {
-                            pending
-                                .extend(parameters.iter().map(|parameter| &parameter.annotation));
-                            pending.push(result);
-                        }
+                    for (pattern, argument) in constraint_children(pattern).into_iter().zip(&application.arguments).rev() {
+                        work.push(ConstraintWork::Resolve(pattern, argument, None));
                     }
+                    Ok(())
                 }
-                if unbound {
-                    let mut absent = Vec::new();
-                    let mut payloads = Vec::new();
-                    let mut pending = vec![pattern];
+                Kind::Union(_) => {
+                    let mut pending = vec![pattern.as_ref()];
+                    let mut unbound = false;
                     while let Some(value) = pending.pop() {
                         match &value.kind {
+                            Kind::Literal(_) | Kind::Polymorphic { .. } => {},
+                            Kind::Named(name) => {
+                                unbound |=
+                                    variables.contains(&name.text) && !bindings.contains_key(&name.text)
+                            }
+                            Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
+                            Kind::Union(members) | Kind::Tuple(members)
+                            | Kind::Applied {
+                                arguments: members, ..
+                            } => pending.extend(members),
+                            Kind::Callable {
+                                parameters, result, ..
+                            } => {
+                                pending
+                                    .extend(parameters.iter().map(|parameter| &parameter.annotation));
+                                pending.push(result);
+                            }
+                        }
+                    }
+                    if unbound {
+                        let mut absent = Vec::new();
+                        let mut payloads = Vec::new();
+                        let mut pending = vec![pattern.as_ref()];
+                        while let Some(value) = pending.pop() {
+                            match &value.kind {
+                                Kind::Group(inner) => pending.push(inner),
+                                Kind::Union(members) => pending.extend(members),
+                                Kind::Named(name) if name.text == "null" => absent.push(Type::Null),
+                                Kind::Named(name) if name.text == "undefined" => {
+                                    absent.push(Type::Undefined)
+                                }
+                                _ => payloads.push(value),
+                            }
+                        }
+                        let mut unresolved = Vec::new();
+                        for value in payloads {
+                            if let Some(known) = self.contextual_type(value, bindings) {
+                                let known = known.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![known]);
+                                absent.extend(known);
+                            } else { unresolved.push(value); }
+                        }
+                        if unresolved.len() != 1 {
+                            return Err(Diagnostic::new("generic-inference", "Union inference requires one unresolved payload pattern; provide explicit type arguments for ambiguous patterns.", pattern.span));
+                        }
+                        let members = match actual {
+                            Type::Union(id) => self.unions.members(id),
+                            value => vec![value],
+                        };
+                        let remaining = members
+                            .into_iter()
+                            .filter(|member| !absent.contains(member))
+                            .collect::<Vec<_>>();
+                        if remaining.is_empty() {
+                            return Err(Diagnostic::new(
+                                "generic-inference",
+                                "An absent value does not determine the generic payload type; provide type arguments or a result context.",
+                                pattern.span,
+                            ));
+                        }
+                        let payload = self.unions.intern(remaining, pattern.span)?;
+                        work.push(ConstraintWork::Unify(Cow::Owned(unresolved[0].clone()), payload));
+                        continue;
+                    }
+                    // Fully known constraints admit checked absent/payload variants.
+                    let mut value = pattern.as_ref().clone();
+                    let arguments = bindings
+                        .iter()
+                        .map(|(name, ty)| Ok((name.clone(), self.annotation(*ty, pattern.span)?)))
+                        .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
+                    crate::type_substitution::apply(&mut value, &arguments)?;
+                    self.materialize_names(&mut value)?;
+                    // Callable payload constraints use checked shapes; ordinary argument
+                    // checking still validates ownership, access and origin contracts.
+                    let mut pending = vec![&value];
+                    let mut callable = None;
+                    let mut absent = Vec::new();
+                    while let Some(member) = pending.pop() {
+                        match &member.kind {
                             Kind::Group(inner) => pending.push(inner),
                             Kind::Union(members) => pending.extend(members),
+                            Kind::Callable { .. } => callable = Some(member),
                             Kind::Named(name) if name.text == "null" => absent.push(Type::Null),
                             Kind::Named(name) if name.text == "undefined" => {
                                 absent.push(Type::Undefined)
                             }
-                            _ => payloads.push(value),
+                            _ => (),
                         }
                     }
-                    let mut unresolved = Vec::new();
-                    for value in payloads {
-                        if let Some(known) = self.contextual_type(value, bindings) {
-                            let known = known.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![known]);
-                            absent.extend(known);
-                        } else { unresolved.push(value); }
+                    if let Some(callable) = callable {
+                        let members = actual
+                            .union()
+                            .map(|id| self.unions.members(id))
+                            .unwrap_or_else(|| vec![actual]);
+                        work.push(ConstraintWork::UnionMembers(callable.clone(), members.into_iter(), absent, mismatch_span));
+                        continue;
                     }
-                    if unresolved.len() != 1 {
-                        return Err(Diagnostic::new("generic-inference", "Union inference requires one unresolved payload pattern; provide explicit type arguments for ambiguous patterns.", pattern.span));
-                    }
-                    let members = match actual {
+                    let expected =
+                        crate::analysis::resolve_value_type(&value, false, self.names, self.unions)?;
+                    let expected_members = match expected {
                         Type::Union(id) => self.unions.members(id),
                         value => vec![value],
                     };
-                    let remaining = members
-                        .into_iter()
-                        .filter(|member| !absent.contains(member))
-                        .collect::<Vec<_>>();
-                    if remaining.is_empty() {
+                    let actual_members = match actual {
+                        Type::Union(id) => self.unions.members(id),
+                        value => vec![value],
+                    };
+                    if actual_members
+                        .iter()
+                        .all(|member| expected_members.contains(member))
+                    {
+                        Ok(())
+                    } else {
+                        Err(mismatch())
+                    }
+                }
+                Kind::Callable { .. } => {
+                    let Some((actual_parameters, actual_result)) =
+                        self.callable_shapes.and_then(|shapes| shapes.get(&actual))
+                    else {
                         return Err(Diagnostic::new(
                             "generic-inference",
-                            "An absent value does not determine the generic payload type; provide type arguments or a result context.",
+                            "Callable signature is not yet known.",
                             pattern.span,
                         ));
-                    }
-                    let payload = self.unions.intern(remaining, pattern.span)?;
-                    return self.unify(unresolved[0], payload, variables, bindings);
-                }
-                // Fully known constraints admit checked absent/payload variants.
-                let mut value = pattern.clone();
-                let arguments = bindings
-                    .iter()
-                    .map(|(name, ty)| Ok((name.clone(), self.annotation(*ty, pattern.span)?)))
-                    .collect::<Result<HashMap<_, _>, Diagnostic>>()?;
-                crate::type_substitution::apply(&mut value, &arguments)?;
-                self.materialize_names(&mut value)?;
-                // Callable payload constraints use checked shapes; ordinary argument
-                // checking still validates ownership, access and origin contracts.
-                let mut pending = vec![&value];
-                let mut callable = None;
-                let mut absent = Vec::new();
-                while let Some(member) = pending.pop() {
-                    match &member.kind {
-                        Kind::Group(inner) => pending.push(inner),
-                        Kind::Union(members) => pending.extend(members),
-                        Kind::Callable { .. } => callable = Some(member),
-                        Kind::Named(name) if name.text == "null" => absent.push(Type::Null),
-                        Kind::Named(name) if name.text == "undefined" => {
-                            absent.push(Type::Undefined)
-                        }
-                        _ => (),
-                    }
-                }
-                if let Some(callable) = callable {
-                    let members = actual
-                        .union()
-                        .map(|id| self.unions.members(id))
-                        .unwrap_or_else(|| vec![actual]);
-                    for member in members {
-                        if matches!(member, Type::Null | Type::Undefined) {
-                            if !absent.contains(&member) {
-                                return Err(mismatch());
-                            }
-                        } else {
-                            self.unify(callable, member, variables, bindings)?;
-                        }
-                    }
-                    return Ok(());
-                }
-                let expected =
-                    crate::analysis::resolve_value_type(&value, false, self.names, self.unions)?;
-                let expected_members = match expected {
-                    Type::Union(id) => self.unions.members(id),
-                    value => vec![value],
-                };
-                let actual_members = match actual {
-                    Type::Union(id) => self.unions.members(id),
-                    value => vec![value],
-                };
-                if actual_members
-                    .iter()
-                    .all(|member| expected_members.contains(member))
-                {
+                    };
+                    work.push(ConstraintWork::Callable(pattern, actual_parameters, *actual_result));
                     Ok(())
-                } else {
-                    Err(mismatch())
                 }
-            }
-            Kind::Callable { .. } => {
-                let Some((actual_parameters, actual_result)) =
-                    self.callable_shapes.and_then(|shapes| shapes.get(&actual))
-                else {
-                    return Err(Diagnostic::new(
-                        "generic-inference",
-                        "Callable signature is not yet known.",
-                        pattern.span,
-                    ));
-                };
-                self.unify_callable(
-                    pattern,
-                    actual_parameters,
-                    *actual_result,
-                    variables,
-                    bindings,
-                )
-            }
+            }?;
         }
+        Ok(())
     }
+
     fn unify_callable(
         &self,
         pattern: &ValueAnnotation,
@@ -361,38 +415,37 @@ impl Types<'_> {
         variables: &BTreeSet<String>,
         bindings: &mut HashMap<String, Type>,
     ) -> Result<(), Diagnostic> {
+        self.unify_work(vec![ConstraintWork::Callable(Cow::Borrowed(pattern), actual_parameters, actual_result)], variables, bindings)
+    }
+
+    fn schedule_callable<'a>(
+        &self,
+        pattern: Pattern<'a>,
+        actual_parameters: &'a [Type],
+        actual_result: Type,
+        work: &mut Vec<ConstraintWork<'a>>,
+    ) -> Result<(), Diagnostic> {
         match &pattern.kind {
-            Kind::Group(inner) => {
-                self.unify_callable(inner, actual_parameters, actual_result, variables, bindings)
-            }
-            Kind::Callable {
-                parameters, result, ..
-            } => {
+            Kind::Group(_) => work.push(ConstraintWork::Callable(constraint_children(pattern).pop().unwrap(), actual_parameters, actual_result)),
+            Kind::Callable { parameters, .. } => {
                 if parameters.len() != actual_parameters.len() {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Generic callable parameter count does not match the argument signature.",
-                        pattern.span,
-                    ));
+                    return Err(Diagnostic::new("type", "Generic callable parameter count does not match the argument signature.", pattern.span));
                 }
-                for (parameter, actual) in parameters.iter().zip(actual_parameters) {
-                    // Optional callback inputs add undefined at the call boundary;
-                    // that omission does not constrain the declared payload variable.
-                    let actual = if parameter.omission.is_omittable() {
-                        match actual {
-                            Type::Union(id) => {
-                                let members = self.unions.members(*id).into_iter().filter(|ty| *ty != Type::Undefined).collect::<Vec<_>>();
-                                if members.len() == 1 { members[0] } else { *actual }
-                            }
-                            _ => *actual,
-                        }
-                    } else { *actual };
-                    self.unify(&parameter.annotation, actual, variables, bindings)?;
+                let actuals = parameters.iter().zip(actual_parameters).map(|(parameter, actual)| {
+                    // Omission adds undefined at the boundary, not to the payload constraint.
+                    if parameter.omission.is_omittable() && let Type::Union(id) = actual {
+                        let members = self.unions.members(*id).into_iter().filter(|ty| *ty != Type::Undefined).collect::<Vec<_>>();
+                        if members.len() == 1 { return members[0]; }
+                    }
+                    *actual
+                }).chain(std::iter::once(actual_result)).collect::<Vec<_>>();
+                for (pattern, actual) in constraint_children(pattern).into_iter().zip(actuals).rev() {
+                    work.push(ConstraintWork::Unify(pattern, actual));
                 }
-                self.unify(result, actual_result, variables, bindings)
             }
-            _ => Ok(()),
+            _ => {},
         }
+        Ok(())
     }
 
     fn materialize_names(&self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
@@ -568,6 +621,95 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn deep_callable_constraints_use_one_worklist_for_borrowed_and_owned_patterns() {
+        let mut shapes = HashMap::new();
+        let mut pattern = parse("T").unwrap();
+        let mut actual = Type::Int;
+        for index in 0..16_384 {
+            let mut outer = parse("(value: int) => int").unwrap();
+            let Kind::Callable { parameters, result, .. } = &mut outer.kind else { unreachable!() };
+            let signature = if index % 2 == 0 {
+                parameters[0].annotation = pattern;
+                (vec![actual], Type::Int)
+            } else {
+                *result = Box::new(pattern);
+                (vec![Type::Int], actual)
+            };
+            pattern = outer;
+            actual = Type::Closure(index);
+            shapes.insert(actual, signature);
+        }
+        let names = HashMap::new();
+        let unions = crate::unions::UnionArena::default();
+        let types = Types { callable_annotations: None, inline_shapes: None, callable_shapes: Some(&shapes), records: &[], names: &names, unions: &unions };
+        let mut bindings = HashMap::new();
+        types.unify(&pattern, actual, &BTreeSet::from(["T".into()]), &mut bindings).unwrap();
+        assert_eq!(bindings["T"], Type::Int);
+        // Exercise owned task disposal and child moves through a substituted union
+        // payload without invoking the still-retained substitution admission guard.
+        let mut concrete = pattern.clone();
+        let mut current = &mut concrete;
+        for index in (0..16_384).rev() {
+            let Kind::Callable { parameters, result, .. } = &mut current.kind else { unreachable!() };
+            current = if index % 2 == 0 { &mut parameters[0].annotation } else { result };
+        }
+        *current = parse("int").unwrap();
+        let span = concrete.span;
+        let nullable = ValueAnnotation { kind: Kind::Union(vec![concrete, parse("null").unwrap()]), span };
+        types.unify(&nullable, actual, &BTreeSet::new(), &mut HashMap::new()).unwrap();
+        drop(nullable);
+        drop(pattern);
+    }
+
+    #[test]
+    fn tuple_constraints_resolve_each_field_only_after_prior_constraints() {
+        let mut program = crate::syntax::parse("function observe(value:[int,int]){}function main(){}").unwrap();
+        crate::generic_records::specialize(&mut program).unwrap();
+        let names = program.records.iter().enumerate().map(|(id, record)| (record.name.text.clone(), id)).collect();
+        let unions = crate::unions::UnionArena::default();
+        let actual = crate::analysis::resolve_value_type(&program.functions[0].params[0].1, false, &names, &unions).unwrap();
+        let Type::Record(id) = actual else { unreachable!() };
+        program.records[id].fields[1].annotation = parse("Missing").unwrap();
+        program.records[id].fields[1].ty = Some(Type::Int);
+        let types = Types { callable_annotations: None, inline_shapes: None, callable_shapes: None, records: &program.records, names: &names, unions: &unions };
+        let variables = BTreeSet::from(["T".into()]);
+        let pattern = parse("[string,T]").unwrap();
+        let Kind::Tuple(positions) = &pattern.kind else { unreachable!() };
+        let mut bindings = HashMap::new();
+        let error = types.unify(&pattern, actual, &variables, &mut bindings).unwrap_err();
+        assert_eq!(error.message, "Generic type constraints do not match the checked argument type.");
+        assert_eq!(error.span, positions[0].span);
+        assert!(bindings.is_empty());
+        let expected = crate::analysis::resolve_value_type(&program.records[id].fields[1].annotation, false, &names, &unions).unwrap_err();
+        let error = types.unify(&parse("[T,int]").unwrap(), actual, &variables, &mut bindings).unwrap_err();
+        assert_eq!(error.code, expected.code);
+        assert_eq!(error.message, expected.message);
+        assert_eq!(error.span, expected.span);
+        assert_eq!(bindings, HashMap::from([("T".into(), Type::Int)]));
+    }
+
+    #[test]
+    fn callable_constraints_preserve_first_error_and_partial_bindings() {
+        let names = HashMap::new();
+        let unions = crate::unions::UnionArena::default();
+        let types = Types { callable_annotations: None, inline_shapes: None, callable_shapes: None, records: &[], names: &names, unions: &unions };
+        let pattern = parse("(first:T, second:T, third:U) => V").unwrap();
+        let Kind::Callable { parameters, .. } = &pattern.kind else { unreachable!() };
+        let span = parameters[1].annotation.span;
+        let mut bindings = HashMap::new();
+        let error = types.unify_callable(&pattern, &[Type::Int, Type::String, Type::Boolean], Type::Int,
+            &BTreeSet::from(["T".into(), "U".into(), "V".into()]), &mut bindings).unwrap_err();
+        assert_eq!(error.code, "type");
+        assert_eq!(error.span, span);
+        assert_eq!(bindings, HashMap::from([("T".into(), Type::Int)]));
+        let optional = parse("(value?:T) => T").unwrap();
+        let actual = unions.intern([Type::Int, Type::Undefined], Span::default()).unwrap();
+        let mut bindings = HashMap::new();
+        types.unify_callable(&optional, &[actual], Type::Int, &BTreeSet::from(["T".into()]), &mut bindings).unwrap();
+        assert_eq!(bindings["T"], Type::Int);
+    }
+
     #[test]
     fn deep_constraint_names_materialize_and_drop_on_normal_stack() {
         let mut program = crate::syntax::parse("type Box<T>={value:T;};function observe(value:Box<int>){}function main(){}").unwrap();

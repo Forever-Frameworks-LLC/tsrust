@@ -651,3 +651,37 @@ formatting and source hashes with byte-exact restoration verification. The first
 unit run predates the additional deep failure-unwind wrapper; the final unit run
 covers that wrapper. Installed consumers remain on `36093d5b`, since admitted
 programs and public signatures are unchanged.
+
+## Generic constraint unification
+
+Generic constraints now share an explicit worklist for structural unification,
+callable signatures, deferred nominal field resolution and nullable callable
+members. Source constraints are borrowed. Substituted payloads own their trees,
+and child extraction moves those trees instead of cloning each nested remainder.
+Union-member continuations retain one template and prepare only the current
+member, so pending members do not each retain a deep annotation copy.
+
+Parameter constraints precede result constraints; tuple fields and generic
+arguments retain source order. Field annotation resolution runs immediately
+before its constraint, including the previous eager fallback for already checked
+fields. First-error spans and partial bindings remain observable in regression
+witnesses. Optional callback inputs still strip only the sole non-undefined
+payload; callback ownership and access checking remain with their existing owner.
+
+Normal-stack tests cover 16,384 alternating callable parameter/result levels,
+borrowed constraints, owned nullable payloads and production disposal. Focused
+ordering tests preserve earlier bindings, untouched later variables and deferred
+field diagnostics. This section does not remove substitution admission: source
+wrapper storage and downstream parser/checker/emitter paths remain unfinished.
+Full architecture acceptance and compilation scaling remain pending; no new
+performance claim or public method is introduced here.
+
+Verification passes 11 inference unit checks, 108 native generic checks and 67
+generic editor checks. Existing native fixtures retain matched TypeScript sources,
+ownership/default/nullable cases and the registered generic pipeline. SQLite
+records under `tsrust-nesting-unification` preserve initial checks, the final
+compiler rerun after the union storage refinement, editor results and source
+hashes. Whole-project formatting changes zero files and fingerprints. These are
+focused internal acceptance checks, not full compiler architecture acceptance or
+new performance measurements. Installed consumers remain on `36093d5b`, the last
+accepted public behavior checkpoint.

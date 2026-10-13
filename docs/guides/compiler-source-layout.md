@@ -134,5 +134,12 @@ union deduplication and callable metadata normalization preserve existing identi
 Constraint name materialization in `generics/inference.rs` uses owned parent
 frames for postorder nominal resolution and exact partial-tree restoration on
 failure. Its nullable deferral classifier uses a read-only worklist. Callable
-contracts remain opaque to these two visitors; recursive constraint unification
-is a separate remaining conversion.
+contracts remain opaque to these two visitors; constraint unification traverses
+them through its separate worklist.
+
+Generic constraint unification now shares `ConstraintWork` in
+`generics/inference.rs`. Keep tuple/application resolution as deferred work so
+later invalid annotations cannot preempt earlier constraint diagnostics. Source
+patterns borrow annotations; substituted union payloads own annotations and move
+children through `constraint_children`. Union-member continuations retain one
+pending template rather than cloning every member in advance.
