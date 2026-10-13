@@ -553,3 +553,39 @@ Whole-project formatting changes zero files and fingerprints. SQLite evidence us
 with an incorrect package name and its corrected invocation. Consumer refresh is
 required for this newly admitted public behavior; full nesting acceptance remains
 pending the remaining parser, analysis, reconstruction and syntax storage paths.
+
+## Checked annotation reconstruction
+
+Checked callable and generic value annotations now share a postorder construction
+worklist in `types/reconstruction.rs`. Callable parameter/result metadata remains
+owned by the analyzer; generic nominal and named recursive union resolution remain
+owned by inference. The constructor preserves child order, shared acyclic subgraphs
+and first-error locations. A structural cycle reports an unsupported recursive
+contract at the requested annotation span. This replaces the analyzer's 128-level
+reconstruction cutoff; finite depth no longer controls this helper's acceptance.
+
+Normal-stack witnesses reconstruct 16,384 mixed callable parameter/result levels
+and 16,384 alternating union/array levels, then use production annotation disposal.
+Callable ownership, parameter access/omission and requested spans survive; an
+injected contract cycle terminates with the expected diagnostic. Named recursive
+unions retain nominal references instead of expanding their recursive payloads.
+Source parser, generic constraint unification, source wrapper storage and other
+consumers remain pending; these isolated witnesses do not establish deep-source
+acceptance. Existing benchmark workloads and protocols remain unchanged, and no
+new timing or allocation claim accompanies this internal construction conversion.
+
+Verification passes ten distinct unit checks, 163 callable/generic integration
+checks, four native schema-object checks and 67 generic editor checks. Existing
+native fixtures retain ownership, recursive environments, nullable storage,
+matched TypeScript references and executable object examples. Whole-project
+formatting changes zero files and fingerprints. SQLite evidence uses the
+`tsrust-nesting-reconstruction` prefix, with exact restoration verification.
+
+A comparative source probe passes a returned callable through generic identity.
+Both the prior checkpoint and current compiler accept 64 inferred callable levels.
+At 160 levels, the prior compiler rejects checked reconstruction; the worklist
+reaches the still-retained substitution guard without stack failure. A preliminary
+bare-function probe failed inference in both builds and is preserved separately;
+it is not counted as deep-source acceptance. Parser, constraint unification and
+source wrapper storage must be completed before removing the remaining admission
+boundary. These probes collect no timing samples.

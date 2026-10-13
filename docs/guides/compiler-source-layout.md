@@ -117,3 +117,10 @@ record instance expansion use owned parent and field continuations in
 `generics/records/materialization.rs`. Publish nominal identities before visiting
 fields; publish completed field lists only after all fields succeed. Result
 alternative allocation remains in `generics/records/result_types.rs`.
+
+Checked annotation construction shares `types/reconstruction.rs` between
+`analysis/checked_value_annotations.rs` and `generics/inference.rs`. Describe one
+checked node at a time; the builder schedules children in source order and assembles
+parents after their children. Active-path type identities reject structural cycles
+without rejecting repeated acyclic subgraphs. Preserve named recursive union
+boundaries, callable ownership/access metadata and cached annotation span behavior.

@@ -2,6 +2,7 @@
 use crate::syntax::{Record, Type};
 use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind as Kind};
 use crate::{Diagnostic, Span};
+use crate::types::reconstruction::{reconstruct, Plan};
 use std::collections::{BTreeSet, HashMap};
 
 pub(crate) type CallableShapes = HashMap<Type, (Vec<Type>, Type)>;
@@ -457,10 +458,14 @@ impl Types<'_> {
         Ok(())
     }
     pub(crate) fn annotation(&self, ty: Type, span: Span) -> Result<ValueAnnotation, Diagnostic> {
+        reconstruct(ty, span, |ty| self.annotation_plan(ty, span))
+    }
+
+    fn annotation_plan(&self, ty: Type, span: Span) -> Result<Plan, Diagnostic> {
         if let Some(annotation) = self.callable_annotations.and_then(|annotations| annotations.get(&ty)) {
             let mut annotation = annotation.clone();
             annotation.span = span;
-            return Ok(annotation);
+            return Ok(Plan::Leaf(annotation));
         }
         let kind = match ty {
             Type::Literal(id,_)=>Kind::Literal(self.records[id].literal_definition.as_ref().unwrap().annotation()),
@@ -492,19 +497,13 @@ impl Types<'_> {
                 text: self.records[id].name.text.clone(),
                 span,
             }),
-            Type::Array(element) => Kind::Array(Box::new(self.annotation(element.ty(), span)?)),
+            Type::Array(element) => return Ok(Plan::Array(element.ty())),
             Type::Union(id) if self.unions.is_recursive(id) => {
                 let declaration=self.unions.recursive_declaration(id).and_then(|id|self.records.get(id))
                     .ok_or_else(||Diagnostic::new("schema-recursion","Recursive type annotation has no resolved declaration.",span))?;
                 Kind::Named(crate::type_syntax::TypeName{text:declaration.name.text.clone(),span})
             },
-            Type::Union(id) => Kind::Union(
-                self.unions
-                    .members(id)
-                    .iter()
-                    .map(|ty| self.annotation(*ty, span))
-                    .collect::<Result<_, _>>()?,
-            ),
+            Type::Union(id) => return Ok(Plan::Union(self.unions.members(id))),
             _ => {
                 return Err(Diagnostic::new(
                     "unsupported",
@@ -513,7 +512,7 @@ impl Types<'_> {
                 ));
             }
         };
-        Ok(ValueAnnotation { kind, span })
+        Ok(Plan::Leaf(ValueAnnotation { kind, span }))
     }
 }
 
@@ -521,6 +520,31 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn deep_union_array_reconstruction_uses_normal_stack_and_production_drop() {
+        let unions = crate::unions::UnionArena::default();
+        let records = Vec::new();
+        let names = HashMap::new();
+        let types = Types { callable_shapes: None, callable_annotations: None, inline_shapes: None, records: &records, names: &names, unions: &unions };
+        let span = Span::new(7, 13);
+        let mut ty = Type::Int;
+        for _ in 0..16_384 {
+            ty = unions.intern([Type::Array(crate::syntax::ArrayElement::from_value_type(ty).unwrap()), Type::Null], span).unwrap();
+        }
+        let annotation = types.annotation(ty, span).unwrap();
+        let mut current = &annotation;
+        let mut levels = 0;
+        while let Kind::Union(members) = &current.kind {
+            assert_eq!(current.span, span);
+            let element = members.iter().find_map(|member| if let Kind::Array(element) = &member.kind { Some(element) } else { None }).unwrap();
+            current = element;
+            levels += 1;
+        }
+        assert_eq!(levels, 16_384);
+        assert!(matches!(&current.kind, Kind::Named(name) if name.text == "int"));
+        drop(annotation);
+    }
+
     #[test]
     fn recursive_annotations_use_the_reserved_declaration_without_expansion() {
         let program=crate::syntax::parse("type RecursiveValue={};function main(){}").unwrap();

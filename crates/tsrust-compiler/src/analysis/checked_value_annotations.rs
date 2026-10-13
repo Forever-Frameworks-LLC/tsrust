@@ -1,5 +1,6 @@
 //! Reconstruct concrete callable contracts without discarding parameter metadata.
 use super::*;
+use crate::types::reconstruction::{reconstruct, Plan};
 use crate::type_syntax::{CallableOwnership, CallableParameter as StructuredParameter, ParameterAccess, TypeName, ValueAnnotation, ValueAnnotationKind as Kind};
 
 impl Analyzer {
@@ -26,15 +27,12 @@ impl Analyzer {
     }
 
     pub(super) fn checked_value_annotation(&self, ty: Type, span: Span) -> Result<ValueAnnotation, Diagnostic> {
-        self.checked_value_annotation_at(ty, span, 0)
+        reconstruct(ty, span, |ty| self.checked_annotation_plan(ty, span))
     }
 
-    fn checked_value_annotation_at(&self, ty: Type, span: Span, depth: usize) -> Result<ValueAnnotation, Diagnostic> {
-        if depth >= 128 {
-            return Err(Diagnostic::new("unsupported", "Checked callable annotation nesting exceeds the limit of 128.", span));
-        }
+    fn checked_annotation_plan(&self, ty: Type, span: Span) -> Result<Plan, Diagnostic> {
         if let Type::Closure(origin)=ty && let Some(source)=self.deferred_generic_values.get(&origin) {
-            return Ok(ValueAnnotation {kind:Kind::Polymorphic {origin,declaration:TypeName {text:source.declaration.clone(),span}},span});
+            return Ok(Plan::Leaf(ValueAnnotation {kind:Kind::Polymorphic {origin,declaration:TypeName {text:source.declaration.clone(),span}},span}));
         }
         let contract = match ty {
             Type::Callable(id) => {
@@ -66,7 +64,7 @@ impl Analyzer {
             }
             _ => None,
         };
-        let kind = if let Some((parameters, names, result, kind)) = contract {
+        let plan = if let Some((parameters, names, result, kind)) = contract {
             let ownership = match kind {
                 CallbackKind::Read => CallableOwnership::Read,
                 CallbackKind::Reusable => CallableOwnership::Reusable,
@@ -75,33 +73,72 @@ impl Analyzer {
                 CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
                 CallbackKind::SharedRead => CallableOwnership::SharedRead,
             };
-            let parameters = parameters.iter().enumerate().map(|(index, parameter)| Ok(StructuredParameter {
+            let parameters = parameters.iter().enumerate().map(|(index, parameter)| (StructuredParameter {
                 rest: parameter.rest,
                 name: TypeName { text: names.get(index).cloned().unwrap_or_else(|| format!("argument{index}")), span },
                 access: (parameter.mode != Mode::Copy && self.checked_generic_callable_shape(self.unions.payload(parameter.ty).unwrap_or(parameter.ty)).is_none()).then_some(ParameterAccess { mode: parameter.mode, span }),
                 omission: parameter.omission,
-                annotation: self.checked_value_annotation_at(parameter.ty, span, depth + 1)?,
+                annotation: ValueAnnotation { kind: Kind::Tuple(Vec::new()), span },
                 span,
-            })).collect::<Result<Vec<_>, Diagnostic>>()?;
-            Kind::Callable { ownership, parameters, result: Box::new(self.checked_value_annotation_at(result, span, depth + 1)?) }
+            }, parameter.ty)).collect();
+            Plan::Callable { ownership, parameters, result }
         } else {
             match ty {
-                Type::Void => Kind::Named(TypeName { text: "void".into(), span }),
-                Type::Array(element) => Kind::Array(Box::new(self.checked_value_annotation_at(element.ty(), span, depth + 1)?)),
-                Type::Union(id) if !self.unions.is_recursive(id) => Kind::Union(self.unions.members(id).into_iter().map(|ty| self.checked_value_annotation_at(ty, span, depth + 1)).collect::<Result<Vec<_>, _>>()?),
+                Type::Void => Plan::Leaf(ValueAnnotation { kind: Kind::Named(TypeName { text: "void".into(), span }), span }),
+                Type::Array(element) => Plan::Array(element.ty()),
+                Type::Union(id) if !self.unions.is_recursive(id) => Plan::Union(self.unions.members(id)),
                 _ => {
                     let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
-                    return types.annotation(ty, span);
+                    return types.annotation(ty, span).map(Plan::Leaf);
                 }
             }
         };
-        Ok(ValueAnnotation { kind, span })
+        Ok(plan)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deep_checked_callable_reconstruction_preserves_modes_and_source_spans() {
+        let mut analyzer = Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        let span = Span::new(11, 19);
+        let leaf = || ValueAnnotation { kind: Kind::Named(TypeName { text: "int".into(), span }), span };
+        let mut annotation = leaf();
+        for level in 0..16_384 {
+            let (parameters, result) = if level % 2 == 0 { (vec![], Box::new(annotation)) } else {
+                (vec![StructuredParameter { rest: false, name: TypeName { text: "input".into(), span }, access: None, omission: crate::ParameterOmission::Required, annotation, span }], Box::new(leaf()))
+            };
+            annotation = ValueAnnotation { kind: Kind::Callable { ownership: CallableOwnership::OwnedOnce, parameters, result }, span };
+        }
+        let ty = analyzer.callables.resolver(&analyzer.record_names, &analyzer.unions).resolve_value_annotation(&annotation, false).unwrap();
+        let rebuilt = analyzer.checked_value_annotation(ty, span).unwrap();
+        let mut current = &rebuilt;
+        let mut count = 0;
+        while let Kind::Callable { ownership, parameters, result } = &current.kind {
+            assert_eq!(*ownership, CallableOwnership::OwnedOnce);
+            assert_eq!(current.span, span);
+            current = if let Some(parameter) = parameters.first() {
+                assert_eq!(parameter.access, None);
+                assert_eq!(parameter.omission, crate::ParameterOmission::Required);
+                &parameter.annotation
+            } else { result };
+            count += 1;
+        }
+        assert_eq!(count, 16_384);
+        assert!(matches!(&current.kind, Kind::Named(name) if name.text == "int"));
+        // A true cycle must still terminate with a diagnostic at the requested span.
+        let Type::Callback(id) = ty else { panic!("root callback") };
+        analyzer.callables.callbacks[id].result = ty;
+        let error = analyzer.checked_value_annotation(ty, span).unwrap_err();
+        assert_eq!(error.code, "unsupported");
+        assert_eq!(error.span, span);
+        assert!(error.message.contains("recursive structural contract"));
+        drop(rebuilt);
+        drop(annotation);
+    }
 
     #[test]
     fn concrete_borrowed_closure_reconstruction_retains_borrowed_invocation() {
