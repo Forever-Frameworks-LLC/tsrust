@@ -240,3 +240,47 @@ byte-identical. Larger registered samples remain pending, and none of this is a
 completed scaling measurement or whole-pipeline acceptance. SQLite records under
 `tsrust-nesting-arguments` preserve sources, tool and source hashes, checks,
 original failures, phase events, debugger output and untimed matched validation.
+
+## Callable emission continuations in progress
+
+`emit/expression_work.rs` now owns the suspended expression boundary and a stack
+of receiver/argument requests. Declared functions, forwarded functions, materialized
+generic methods, concrete closures, stored callables, stored fields and conditional
+callbacks use this stack. Completion retains their existing ownership adapters,
+argument counts, record reification and Result transport. Declared calls retain
+pre-child transport/name lookup; forwarded calls retain post-child lookup. The
+conditional record-point early return still has its distinct access-wrapper policy.
+Logical expression depth and conditional temporary boundaries are restored after
+each completed expression. Conditional receiver-access selection also uses a worklist.
+
+The four original call-argument discovery families now complete all pipeline stages
+at sizes 8, 16, 32 and 64 on normal test-worker stacks. At 128, all four encounter
+the existing parser expression guard. The former bound/inline/field emitter crashes
+at 64 are gone in this sweep. A phase-isolated checked-AST witness also emits and
+drops 4,096 nested calls for each of those four families, checks exact expression
+output and verifies temporary/depth restoration. It bypasses parsing only inside
+an internal emitter test; it does not establish source acceptance at that depth.
+
+This remains a migration checkpoint. Other expression variants, builtin children,
+closure bodies and statement emission can still re-enter synchronous dispatch.
+Repeated descendant string construction also remains a scaling concern. Parser,
+checker compatibility paths, dependency publication and auxiliary consumers remain
+required before removing guards or claiming whole-pipeline acceptance. No new
+language limit, increased stack or completed formal timing is introduced.
+
+The completed focused batch passes 210 integration tests across callable fields,
+callbacks, forwarding, generic methods/adapters, optional parameters, call spread,
+record callback failures and direct borrowed stores. The native nesting witness
+now executes all four argument forms at 64. Ten representative generated-Rust
+outputs match the previous compiler after substituting only the exact temporary
+source filename; diagnostic spans, lines and columns remain compared. Matched
+check/emit/Node-tsc validation passes at 8 and 32 for every form, without timing.
+Whole-project formatting changes zero files and zero fingerprints.
+
+SQLite records under `tsrust-nesting-emitter` retain original build/fixture failures,
+the corrected emitter witness, native regressions, discovery, generated-output
+comparison, benchmark validation and formatting. One initial fixture incorrectly
+returned a value from `main`; another oracle repeated the integer literal suffix.
+Both are corrected without changing compiler behavior. The original raw output
+comparison also retains differences caused by its distinct temporary directories.
+No full compiler/LSP milestone or consumer refresh is claimed here.

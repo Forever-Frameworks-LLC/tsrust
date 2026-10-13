@@ -1,3 +1,4 @@
+mod expression_work;
 mod schema;
 mod json_encoding;
 mod json_typed;
@@ -903,114 +904,26 @@ impl Emitter<'_> {
     }
 
     fn conditional_invocation(&self, fun: &CheckedFunction, callee: &Expr, fallback: Mode) -> Mode {
-        if let ExprKind::Conditional {
-            consequent,
-            alternate,
-            ..
-        } = &callee.kind
-        {
-            return self
-                .conditional_invocation(fun, consequent, fallback)
-                .max(self.conditional_invocation(fun, alternate, fallback));
+        let mut pending = vec![callee];
+        let mut result = None;
+        while let Some(callee) = pending.pop() {
+            match &callee.kind {
+                ExprKind::Conditional { consequent, alternate, .. } => {
+                    pending.push(alternate);
+                    pending.push(consequent);
+                }
+                ExprKind::Unary {
+                    op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
+                    value, ..
+                } => pending.push(value),
+                ExprKind::Binary { op: BinaryOp::Coalesce | BinaryOp::PatternDefault, right, .. } => pending.push(right),
+                _ => {
+                    let mode = callee.binding.and_then(|binding| fun.bindings[binding].callback_invocation).unwrap_or(fallback);
+                    result = Some(result.map_or(mode, |prior: Mode| prior.max(mode)));
+                }
+            }
         }
-        match &callee.kind {
-            ExprKind::Unary {
-                op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
-                value,
-                ..
-            } => return self.conditional_invocation(fun, value, fallback),
-            ExprKind::Binary {
-                op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
-                right,
-                ..
-            } => return self.conditional_invocation(fun, right, fallback),
-            _ => {}
-        }
-        callee
-            .binding
-            .and_then(|binding| fun.bindings[binding].callback_invocation)
-            .unwrap_or(fallback)
-    }
-    fn forward_function_call(
-        &self,
-        fun: &CheckedFunction,
-        callee: &Expr,
-        args: &[Expr],
-        function: usize,
-    ) -> String {
-        let Type::Closure(origin) = callee.ty.expect("checked forwarded receiver") else {
-            unreachable!()
-        };
-        let once = matches!(
-            self.program.closures[origin].forward,
-            Some(ClosureForward::Once(_))
-        );
-        let invocation =
-            self.conditional_invocation(fun, callee, self.program.closures[origin].invocation);
-        let receiver = self.expr(fun, callee, invocation);
-        let mut text = format!("{{ let forward_environment = {receiver}; ");
-        if once {
-            text.push_str("let forward_environment = forward_environment.capture0; ");
-        }
-        let params = &self.program.functions[function].bindings;
-        for (index, (arg, parameter)) in args.iter().zip(params).enumerate() {
-            let value = self.expr(fun, arg, parameter.mode);
-            text.push_str(&format!("let forward_argument{index} = {value}; "));
-        }
-        let mut arguments = (0..args.len()).map(|index| format!("forward_argument{index}")).collect::<Vec<_>>();
-        arguments.extend(self.owner_argument_markers(fun,function,args));
-        let arguments = arguments.join(", ");
-        let result_target=self.result_functions.borrow().get(&function).cloned();
-        let name=self.native_call_name(function,args);
-        text.push_str(&format!("{name}({arguments}) }}"));
-        let code = if let Some((_,source_name))=result_target {
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            self.exception_regions.function_result_call(&text,function,&source_name,&self.program.error_effects,&unions,callee.span).expect("checked forwarded function Result call")
-        } else { text };
-        let updates=self.record_call_reification(fun,args,function);
-        if updates.is_empty(){code}else{format!("{{let forward_result={code};{updates}forward_result}}")}
-    }
-
-    fn materialized_method_call(
-        &self,
-        fun: &CheckedFunction,
-        callee: &Expr,
-        args: &[Expr],
-        method: usize,
-        supplied_count: impl std::fmt::Display,
-    ) -> String {
-        let Type::Closure(origin) = callee.ty.expect("checked method receiver") else {
-            unreachable!()
-        };
-        let (closure, once) = match self.program.closures[origin].forward {
-            Some(ClosureForward::Once(inner)) => (inner, true),
-            _ => (origin, false),
-        };
-        let pairs = [crate::polymorphic_invocation_plans::Pair { origin: closure, method }];
-        let plan = if let Some(id) = callee.generic_invocation.or_else(|| self.program.polymorphic_invocations.index(&pairs)) {
-            self.program.polymorphic_invocations.checked(id, &self.program.closures, callee.span)
-        } else {
-            crate::polymorphic_invocation_plans::Plan::checked(pairs, &self.program.closures, callee.span)
-        }.expect("checked materialized invocation plan");
-        let method_invocation = plan.invocation;
-        let invocation = if once { Mode::Consume } else { self.conditional_invocation(fun, callee, method_invocation) };
-        let receiver = self.expr(fun, callee, invocation);
-        let receiver = if once { format!("({receiver}).capture0") } else { receiver };
-        let mutable = invocation == Mode::Consume && method_invocation == Mode::Mutate;
-        let values = args.iter().zip(&plan.argument_modes).map(|(arg, &mode)| {
-            self.expr(fun, arg, mode)
-        }).collect::<Vec<_>>();
-        let family = self.program.polymorphic_storage.contains(closure).then(|| self.program.polymorphic_storage.checked(closure, &self.program.closures, callee.span).expect("checked invocation storage"));
-        let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        plan.render_with_transport(&receiver, &values, &supplied_count.to_string(),
-            |pair| matches!(self.program.closures[pair.origin].forward, Some(ClosureForward::RestAdapter { counted: true, .. })),
-            mutable, family.as_ref().map(|family| (family.id, family.origins.as_slice())), callee.span,
-            |pair,text| {
-                if let Some(name)=self.result_methods.borrow().get(&(pair.origin,pair.method)).cloned() {
-                    self.exception_regions.result_call(&text,&name,&self.program.error_effects.method_errors[&(pair.origin,pair.method)],&unions,callee.span)
-                } else {Ok(text)}
-            },
-        ).expect("checked materialized invocation arguments and Result transport")
+        result.expect("invocation leaf")
     }
 
     fn capture_layout(
@@ -6951,16 +6864,11 @@ impl Emitter<'_> {
     }
 
     fn expr(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
-        if let ExprKind::Sequence(values)=&expr.kind{return self.sequence_expression(fun,values,mode,expr.ty==Some(Type::Void));}
-        let mode = if expr.ty.is_some_and(Type::is_copy) {
-            Mode::Copy
-        } else {
-            mode
-        };
-        let depth = self.expression_depth.get();
-        let first_temporary = self.conditional_temporaries.borrow().len();
-        self.expression_depth.set(depth + 1);
-        let code = self.expr_dispatch(fun, expr, mode);
+        self.emit_expression_work(fun, expr, mode)
+    }
+
+    fn finish_expression_work(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode,
+        depth: usize, first_temporary: usize, code: String) -> String {
         // Projection, conditional arms and injection already lower borrowed union views.
         let code = if let Some(Type::Union(id)) = expr.ty
             && !id.copy
@@ -7446,48 +7354,6 @@ impl Emitter<'_> {
             .collect()
     }
 
-    fn declared_function_call(
-        &self,
-        fun: &CheckedFunction,
-        expr: &Expr,
-        args: &[Expr],
-        index: usize,
-        mode: Mode,
-    ) -> String {
-        if let Some(code)=self.direct_record_store_call(fun,index,args) {
-            return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),Mode::Consume|Mode::Copy=>code};
-        }
-        let result_target=self.result_functions.borrow().get(&index).cloned();
-        let native_name=self.native_call_name(index,args);
-        let code = {
-            let params = &self.program.functions[index].bindings;
-            let mut args = args
-                .iter()
-                .zip(params)
-                .map(|(arg, param)| self.expr(fun, arg, param.mode))
-                .collect::<Vec<_>>();
-            args.extend(self.named_capture_arguments(fun, index, expr));
-            args.extend(self.owner_call_arguments(fun,index,&expr.kind));
-            let args = args.join(", ");
-            let name=native_name;
-            let call=format!("{name}({args})");
-            if let Some((_,source_name))=&result_target {
-                let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-                self.exception_regions.function_result_call(&call,index,source_name,&self.program.error_effects,&unions,expr.span).expect("checked registered Result call")
-            }else{call}
-        };
-        let updates=self.record_call_reification(fun,args,index);
-        let code=if updates.is_empty(){code}else{format!("{{let record_call_result={code};{updates}record_call_result}}")};
-        if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
-            return code;
-        }
-        match mode {
-            Mode::Read => format!("&({code})"),
-            Mode::Mutate => format!("&mut ({code})"),
-            Mode::Consume | Mode::Copy => code,
-        }
-    }
-
     #[inline(never)]
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
         if let Some(Type::Map(_))=expr.ty {
@@ -7594,13 +7460,6 @@ impl Emitter<'_> {
             mode
         };
         match &expr.kind {
-            ExprKind::Call(_, args) if matches!(expr.target, Some(CallTarget::Function(_))) => {
-                let Some(CallTarget::Function(index)) = expr.target else {
-                    unreachable!()
-                };
-                self.declared_function_call(fun, expr, args, index, mode)
-            }
-            // Keep recursively nested concat arguments off the general expression frame.
             ExprKind::Call(callee, args)
                 if matches!(
                     expr.target,
@@ -9468,175 +9327,13 @@ impl Emitter<'_> {
                         )
                     }
                 }
-                CallTarget::ForwardFunction(function) => {
-                    self.forward_function_call(fun, callee, args, function)
+                CallTarget::ForwardFunction(_) | CallTarget::ClosureMethod(_) => {
+                    unreachable!("callable children are scheduled by expression work stack")
                 }
-                CallTarget::ClosureMethod(method) => {
-                    self.materialized_method_call(fun, callee, args, method, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))
-                }
-                CallTarget::ConditionalClosure(origin) => {
-                    let closure = &self.program.closures[origin];
-                    let invocation = self.conditional_invocation(fun, callee, closure.invocation);
-                    let receiver = self.expr(fun, callee, invocation);
-                    let mut code = format!("{{ let mut conditional_environment = {receiver}; ");
-                    for (index, (arg, &parameter)) in
-                        args.iter().zip(&closure.parameters).enumerate()
-                    {
-                        code.push_str(&format!(
-                            "let conditional_argument{index} = {}; ",
-                            self.expr(fun, arg, closure.function.bindings[parameter].mode)
-                        ));
-                    }
-                    let arguments = (0..args.len())
-                        .map(|index| format!("conditional_argument{index}"))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    if let Some(call) = self.record_point_call(fun, callee, Type::Closure(origin), "conditional_environment", &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len()))) {
-                        code.push_str(&format!("{call} }}"));
-                        return self.registered_closure_call(code,origin,expr.span);
-                    }
-                    if invocation == Mode::Consume && closure.invocation != Mode::Consume {
-                        let arguments = tuple(
-                            (0..args.len()).map(|index| format!("conditional_argument{index}")),
-                        );
-                        code.push_str(&format!("{} }}", self.counted_invocation("OnceCallback::invoke_once", "conditional_environment", &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))));
-                    } else {
-                        code.push_str(&format!("{} }}", self.counted_call("conditional_environment", &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))));
-                    }
-                    // Carrier planning can widen the stored field to a family
-                    // after this call was checked; its Result layout then applies.
-                    match self.record_callee_family(fun, callee) {
-                        Some(family) => self.registered_storage_call(code,family,expr.span),
-                        None => self.registered_closure_call(code,origin,expr.span),
-                    }
-                }
-                CallTarget::ConditionalCallback(contract) => {
-                    let checked = &self.program.callback_contracts[contract];
-                    let once = checked.kind.is_once();
-                    let receiver = self.expr(fun, callee, checked.kind.invocation());
-                    let mut code = format!("{{ let conditional_environment = {receiver}; ");
-                    for (index, (arg, parameter)) in args.iter().zip(&checked.params).enumerate() {
-                        code.push_str(&format!(
-                            "let conditional_argument{index} = {}; ",
-                            self.expr(fun, arg, parameter.mode)
-                        ));
-                    }
-                    let arguments =
-                        tuple((0..args.len()).map(|index| format!("conditional_argument{index}")));
-                    let method = if matches!(checked.kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
-                        "ReadCallback::invoke_read"
-                    } else if once {
-                        "OnceCallback::invoke_once"
-                    } else {
-                        "Callback::invoke"
-                    };
-                    if self.program.absent_callback_payloads.contains(&contract) {
-                        code.push_str(&format!("let absent_result: {} = {}; absent_result }}",self.callback_result_type(contract,expr.ty.expect("checked absent callback result")), self.counted_invocation(method,"conditional_environment",&arguments,expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))));
-                    } else {
-                        code.push_str(&format!("{} }}", self.counted_invocation(method,"conditional_environment",&arguments,expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())))));
-                    }
-                    self.registered_callback_call(code,contract,expr.span)
-                }
-                CallTarget::Closure(binding) => {
-                    let Type::Closure(id) = fun.bindings[binding].ty else {
-                        unreachable!("checked concrete closure")
-                    };
-                    let closure = &self.program.closures[id];
-                    let mut arguments = args
-                        .iter()
-                        .zip(&closure.parameters)
-                        .map(|(arg, &id)| self.expr(fun, arg, closure.function.bindings[id].mode))
-                        .collect::<Vec<_>>();
-                    arguments.extend(self.closure_owner_arguments(fun,id,args,binding));
-                    let args = arguments.join(", ");
-                    let call = if fun.bindings[binding].callback_invocation == Some(Mode::Consume) {
-                        let args = if args.is_empty() {
-                            "()".into()
-                        } else {
-                            format!("({args},)")
-                        };
-                        self.counted_invocation("OnceCallback::invoke_once", &format!("value{binding}"), &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(closure.parameters.len())))
-                    } else {
-                        self.counted_call(&format!("value{binding}"), &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(closure.parameters.len())))
-                    };
-                    let call = self.registered_closure_call(call,id,expr.span);
-                    let ExprKind::Call(_, arguments) = &expr.kind else { unreachable!("closure call") };
-                    let reification = self.record_callable_reification(fun, arguments, borrowed_owner_provenance::Scope::Closure(id));
-                    if reification.is_empty() { call } else { format!("{{let closure_call_result={call};{reification} closure_call_result}}") }
-                }
-                CallTarget::StoredCallable(binding) => {
-                    let (Type::StoredCallable(family)|Type::BorrowedCallable(family)) = fun.bindings[binding].ty else {
-                        unreachable!("checked stored binding");
-                    };
-                    let declaration = self
-                        .program
-                        .stored_contracts
-                        .declaration(family)
-                        .expect("checked storage signature");
-                    let arguments = args
-                        .iter()
-                        .zip(&self.program.callback_contracts[declaration].params)
-                        .map(|(arg, contract)| self.expr(fun, arg, contract.mode))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    let call=self.counted_call(&format!("value{binding}"), &arguments, expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len())));
-                    self.registered_storage_call(call,family,expr.span)
-                }
-                CallTarget::StoredCallableField(family) => {
-                    let declaration = self
-                        .program
-                        .stored_contracts
-                        .declaration(family)
-                        .expect("checked field storage signature");
-                    let contract = &self.program.callback_contracts[declaration];
-                    let receiver = self.expr(
-                        fun,
-                        callee,
-                        contract.invocation(&self.program.callable_shapes),
-                    );
-                    let arguments = args
-                        .iter()
-                        .zip(&contract.params)
-                        .map(|(arg, parameter)| self.expr(fun, arg, parameter.mode))
-                        .collect::<Vec<_>>()
-                        .join(", ");
-                    let count=expr.supplied_count.unwrap_or(CallArgumentCount::Static(args.len()));
-                    let call=self.record_point_call(fun,callee,Type::BorrowedCallable(family),&format!("({receiver})"),&arguments,count).unwrap_or_else(||self.counted_call(&format!("({receiver})"), &arguments,count));
-                    self.registered_storage_call(call,family,expr.span)
-                }
-                CallTarget::Callback(binding) => {
-                    let Type::Callback(id) = fun.bindings[binding].ty else {
-                        unreachable!("checked callback parameter")
-                    };
-                    let args = tuple(
-                        args.iter()
-                            .zip(&self.program.callback_contracts[id].params)
-                            .map(|(arg, contract)| self.expr(fun, arg, contract.mode)),
-                    );
-                    let call=if self.program.absent_callback_payloads.contains(&id) {
-                        let kind = self.program.callback_contracts[id].kind;
-                        let (method, receiver) = if matches!(kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
-                            ("ReadCallback::invoke_read", format!("&value{binding}"))
-                        } else if kind.is_once() {
-                            ("OnceCallback::invoke_once", format!("value{binding}"))
-                        } else {
-                            ("Callback::invoke", format!("&mut value{binding}"))
-                        };
-                        format!(
-                            "{{let absent_result: {} = {}; absent_result}}",
-                            self.callback_result_type(id,expr.ty.expect("checked absent callback result")),
-                            self.counted_invocation(method,&receiver,&args,expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
-                        )
-                    } else if matches!(self.program.callback_contracts[id].kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
-                        let receiver=if fun.bindings[binding].initializer.is_some() || (!fun.bindings[binding].parameter && !fun.bindings[binding].capture_reference) || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&value{binding}")}else{format!("value{binding}")};
-                        self.counted_invocation("ReadCallback::invoke_read", &receiver, &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
-                    } else if self.program.callback_contracts[id].kind.is_once() {
-                        self.counted_invocation("OnceCallback::invoke_once", &format!("value{binding}"), &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
-                    } else {
-                        let receiver=if fun.bindings[binding].initializer.is_some() || (!fun.bindings[binding].parameter && !fun.bindings[binding].capture_reference) || matches!(fun.bindings[binding].mode,Mode::Consume | Mode::Copy){format!("&mut value{binding}")}else{format!("value{binding}")};
-                        self.counted_invocation("Callback::invoke", &receiver, &args, expr.supplied_count.unwrap_or(CallArgumentCount::Static(self.program.callback_contracts[id].params.len())))
-                    };
-                    self.registered_callback_call(call,id,expr.span)
+                CallTarget::ConditionalClosure(_) | CallTarget::ConditionalCallback(_)
+                | CallTarget::Closure(_) | CallTarget::StoredCallable(_)
+                | CallTarget::StoredCallableField(_) | CallTarget::Callback(_) => {
+                    unreachable!("callable children are scheduled by expression work stack")
                 }
                 CallTarget::Function(_) => {
                     unreachable!("ordinary function call has its own emission frame")

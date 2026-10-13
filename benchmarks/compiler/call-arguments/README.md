@@ -19,6 +19,8 @@ Registered counts are measurement samples, not language limits or assertions of
 support. Sizes 128 and 512 remain pending while parser, checker and emitter
 continuations are completed. The discovery driver grows inputs geometrically
 without a maximum depth and records actual failures on normal worker stacks.
-Current discovery completes analysis at size 64 in all four forms, then observes
-emitter stack overflow for the bound, inline and field forms. Those failures must
-be fixed before claiming whole-pipeline nesting acceptance or completed scaling.
+Current discovery completes parse, analysis, emission and disposal at size 64 in
+all four forms after callable emission moves to a work stack. All four encounter
+the existing parser expression guard at 128. Those samples do not establish a
+support ceiling or completed scaling; parser and remaining cross-phase recursion
+still require migration before whole-pipeline nesting acceptance.

@@ -16,10 +16,10 @@ fn argument_chain(callee: &str, depth: usize) -> String {
 
 #[test]
 fn queued_arguments_cover_declared_bound_inline_and_stored_calls() {
-    let declared = argument_chain("identity", 32);
-    let bound = argument_chain("action", 32);
-    let inline = argument_chain("((value: int): int => { return value; })", 16);
-    let stored = argument_chain("holder.run", 32);
+    let declared = argument_chain("identity", 64);
+    let bound = argument_chain("action", 64);
+    let inline = argument_chain("((value: int): int => { return value; })", 64);
+    let stored = argument_chain("holder.run", 64);
     let source = format!(r#"
         type Holder = {{ run: ReadOnly<Function<int, [value: int]>>; }};
         function identity(value: int): int {{ return value; }}
