@@ -1007,3 +1007,37 @@ No public contract or IntelliSense change is introduced; consumers remain
 unchanged. The wider audit, result discovery and statement emission remain open
 before obsolete checker guards can be retired. Full compiler architecture,
 scaling, optimization and S12–S21 acceptance remain unfinished.
+
+### Source-scope result discovery scheduler
+
+`analysis/discovery_work.rs` replaces recursive discovery through blocks, branches,
+loop bodies/updates, iterators and exception regions with explicit tasks. It owns
+one cloned source body, moves ordinary nested bodies into tasks, and preserves
+mutable root-context effects while nested scopes use independent context clones.
+Leaf expression/assignment discovery retains its existing ownership checks and
+pending-result restoration. Branches still choose the first concrete result and
+retain absent fallbacks in the same order.
+
+Exception tasks preserve cleanup-first exploration, abrupt-cleanup precedence,
+catch payload refinement, the existing discovery restart after refinement, and
+body/handler/cleanup candidate preference. Body and handler are both explored
+where previously required, even if body discovery finds a concrete result.
+The checked-region preparation helper now returns refined source instead of
+recursively starting discovery itself.
+
+All 298 analysis tests pass, including 16,384 source scopes on normal stacks and
+a deep diagnostic witness that retains root declarations, excludes child bindings
+and restores return permission and analyzer depth. The compiler integration batch
+passes 80 tests: callable results six, exception handling 21, exception return
+moves 34, named result inference three and recursive callable results 16. Seven
+editor tests pass: exception handling six and nullable callables one. Whole-project
+formatting changes zero files or fingerprints. SQLite evidence is recorded under
+`tsrust-nesting-discovery-work-*`.
+
+The inherited discovery entry guard remains for synchronous checker re-entry;
+queued source scopes no longer consume recursive entries or increment that depth.
+This is not final guard retirement. Expression/closure/default and region-check
+re-entry must be audited together with the wider checker before removing it.
+Parser integration, statement emission, full normal-stack/scaling acceptance,
+optimization and S12–S21 remain unfinished. No new cap, stack increase, formal
+scaling measurement or consumer refresh is claimed.

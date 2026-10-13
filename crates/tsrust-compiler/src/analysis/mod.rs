@@ -3,6 +3,7 @@ use continuations::CallDispatch;
 mod value_type_resolution;
 mod function_scheduling;
 mod result_discovery;
+mod discovery_work;
 mod schema;
 mod thread_transfer;
 mod json_typed;
@@ -3278,7 +3279,7 @@ impl Analyzer {
             ));
         }
         self.depth += 1;
-        let found = self.discover_body_inner(context, body, result);
+        let found = self.discover_body_work(context, body, result);
         self.depth -= 1;
         found
     }
@@ -3319,26 +3320,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn discover_if_result(&mut self,context:&Context,condition:&Expr,then_body:&[Stmt],else_body:&[Stmt],result:Type)->Result<Option<Type>,Diagnostic> {
-        let mut probe=context.clone();
-        if let Some((actual,_))=self.discovery_expression(&mut probe,condition,Some(Type::Boolean))? {
-            // A truthiness condition is converted by the definitive check.
-            if actual==Type::Boolean {self.require(actual,Some(Type::Boolean),condition.span)?;}
-        }
-        let (then_flow,else_flow)=Self::condition_outcomes(&probe,condition);
-        let mut absent=None;
-        for (body,flow) in [(then_body,then_flow),(else_body,else_flow)] {
-            let mut inner=probe.clone();
-            inner.flow=flow;
-            if let Some(ty)=self.discover_body(&mut inner,body,result)? {
-                if self.absent_callable_type(ty) {absent=Some(ty);}else{return Ok(Some(ty));}
-            }
-        }
-        Ok(absent)
-    }
-
-    #[inline(never)]
-    fn discover_checked_exception_result(&mut self,context:&Context,region:&ExceptionRegion,result:Type,runtime:Option<Type>)->Result<Option<Type>,Diagnostic> {
+    fn prepare_discovery_exception(&mut self,context:&Context,region:&ExceptionRegion,result:Type,runtime:Option<Type>)->Result<ExceptionRegion,Diagnostic> {
         let mut checked_body=region.body.clone();
         let mut inner=context.clone();
         let preliminary=self.discovery_error_effects();
@@ -3355,33 +3337,13 @@ impl Analyzer {
         handler.error_type=if let Some(name)=&handler.name {incoming.catch_type(&self.unions,runtime,name.span)?}else{None};
             handler.error_contract=Some(Box::new(incoming));
         }
-        self.discover_exception_result(context,&source,result,Span::default())
+        Ok(source)
     }
 
-    #[inline(never)]
-    fn discover_exception_result(&mut self,context:&Context,region:&ExceptionRegion,result:Type,_span:Span)->Result<Option<Type>,Diagnostic> {
-        let cleanup=if let Some(body)=&region.finally {
-            let found=self.discover_body(&mut context.clone(),body,result)?;
-            if crate::completion::definitely_abrupt(body) {return Ok(found);}
-            found
-        }else{None};
-        if region.catch.as_ref().is_some_and(|handler|handler.name.is_some() && handler.error_type.is_none() && handler.error_contract.is_none()) {
-            return self.discover_checked_exception_result(context,region,result,None);
-        }
-        let body=self.discover_body(&mut context.clone(),&region.body,result)?;
-        let handler=if let Some(handler)=&region.catch
-            && handler.error_contract.as_ref().is_none_or(|contract|contract.runtime || contract.opaque || !contract.explicit.is_empty()) {
-            let mut inner=context.clone();
-            if let Some(name)=&handler.name {
-                let ty=handler.error_type.ok_or_else(||Diagnostic::new("error-effect","Catch result discovery requires a resolved payload type.",name.span))?;
-                inner.names.remove(&name.text);
-                Self::bind(&mut inner,name,ty,false)?;
-            }
-            self.discover_body(&mut inner,&handler.body,result)?
-        }else{None};
-        let candidates=[body,handler,cleanup];
-        Ok(candidates.into_iter().flatten().find(|ty|!self.absent_callable_type(*ty))
-            .or_else(||candidates.into_iter().flatten().next()))
+    #[cfg(test)]
+    fn discover_checked_exception_result(&mut self,context:&Context,region:&ExceptionRegion,result:Type,runtime:Option<Type>)->Result<Option<Type>,Diagnostic>{
+        let source=self.prepare_discovery_exception(context,region,result,runtime)?;
+        self.discover_region_work(context,source,result)
     }
 
     #[inline(never)]
@@ -3393,7 +3355,7 @@ impl Analyzer {
         Ok(())
     }
 
-    fn discover_body_inner(
+    fn discover_leaf_results(
         &mut self,
         context: &mut Context,
         body: &[Stmt],
@@ -3403,12 +3365,7 @@ impl Analyzer {
         for stmt in body {
             match &stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                StmtKind::Try(region) => {
-                    if let Some(ty)=self.discover_exception_result(context,region,result,stmt.span)? {
-                        if self.absent_callable_type(ty) {absent=Some(ty);}else{return Ok(Some(ty));}
-                    }
-                    if crate::completion::definitely_abrupt(std::slice::from_ref(stmt)) {return Ok(absent);}
-                }
+                StmtKind::Try(_) | StmtKind::If{..} | StmtKind::While{..} | StmtKind::Block(_) | StmtKind::Loop{..} | StmtKind::ForOf{..} => unreachable!("discovery composite is scheduled"),
                 StmtKind::Throw(value) => {
                     self.discover_throw_value(context,value)?;
                     return Ok(absent);
@@ -3469,62 +3426,6 @@ impl Analyzer {
                         }
                     } else {
                         context.pending_names.insert(name.text.clone());
-                    }
-                }
-                StmtKind::If { condition,then_body,else_body } => {
-                    if let Some(ty)=self.discover_if_result(context,condition,then_body,else_body,result)? {
-                        if self.absent_callable_type(ty) {absent=Some(ty);}else{return Ok(Some(ty));}
-                    }
-                }
-                StmtKind::While { body, .. } | StmtKind::Block(body) => {
-                    if let Some(ty) = self.discover_body(&mut context.clone(), body, result)? {
-                        if self.absent_callable_type(ty) {
-                            absent = Some(ty);
-                        } else {
-                            return Ok(Some(ty));
-                        }
-                    }
-                }
-                StmtKind::Loop { body, update, .. } => {
-                    let mut inner = context.clone();
-                    if let Some(ty) = self.discover_body(&mut inner, body, result)? {
-                        if self.absent_callable_type(ty) {
-                            absent = Some(ty);
-                        } else {
-                            return Ok(Some(ty));
-                        }
-                    }
-                    if let Some(ty) = self.discover_body(&mut context.clone(), update, result)? {
-                        if self.absent_callable_type(ty) {
-                            absent = Some(ty);
-                        } else {
-                            return Ok(Some(ty));
-                        }
-                    }
-                }
-                StmtKind::ForOf {
-                    name,
-                    rebindable,
-                    iterable,
-                    body,
-                    ..
-                } => {
-                    let mut inner = context.clone();
-                    if let Some((actual, _)) = self.discovery_expression(&mut inner, iterable, None)?
-                        && let Some(element) = self.iterable_element(actual)
-                    {
-                        let id = Self::bind(&mut inner, name, element.ty(), false)?;
-                        inner.bindings[id].rebindable = *rebindable;
-                        if !element.ty().is_copy() {
-                            inner.bindings[id].borrowed_element = Some(iterable.span);
-                        }
-                        if let Some(ty) = self.discover_body(&mut inner, body, result)? {
-                            if self.absent_callable_type(ty) {
-                                absent = Some(ty);
-                            } else {
-                                return Ok(Some(ty));
-                            }
-                        }
                     }
                 }
                 StmtKind::Assign {

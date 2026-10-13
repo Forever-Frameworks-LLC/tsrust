@@ -198,3 +198,9 @@ Nullable/sticky record joins also use `analysis/carrier_type_join.rs`.
 `analysis/empty_scoped_maps.rs` shares work frames for empty record, map and union
 environments. Absent callback return contracts use parent frames in
 `Analyzer::absent_callback`, retaining bottom-up publication and cache identity.
+
+Callable result source-scope traversal lives in `analysis/discovery_work.rs`.
+Body, branch and exception tasks preserve cloned nested contexts and the mutable
+root context. Keep cleanup-first discovery and catch refinement/restart order
+there; expression and region checks still enter the checker through existing
+interfaces and require a separate re-entry audit.
