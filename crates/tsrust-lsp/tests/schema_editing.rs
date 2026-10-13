@@ -125,3 +125,26 @@ fn recursive_checked_outputs_keep_nested_members_and_bounded_hover() {
     assert!(hover.contains("children") && hover.contains("value"),"{hover}");
     assert!(!hover.contains("__tsrust_private_") && hover.len()<12000,"{hover}");
 }
+
+#[test]
+fn recursive_named_and_array_outputs_keep_member_completion() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    for (definition, body, needle, expected) in [
+        ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.int(),children:s.array(self)}));",
+         "match(schema.safeParseJson('{\"value\":1,\"children\":[]}')){Ok(value)=>{console.log(value.children[0].value);},Err(error)=>{}}", "value.children[0].", "value"),
+        ("const schema=s.recursive(self=>s.array(self));",
+         "match(schema.safeParseJson('[[]]')){Ok(value)=>{console.log(value[0].length);},Err(error)=>{}}", "value[0].", "length"),
+    ] {
+        let source=format!("import {{s}} from 'std:schema';{definition}function main(){{{body}}}");
+        let uri="file:///recursive-output-editing.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+        let index=ProjectIndex::checked(&checked);
+        let offset=source.find(needle).unwrap()+needle.len();
+        let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        assert!(items.as_array().unwrap().iter().any(|item|item["label"]==expected),"{definition}: {items}");
+        let offset=source.find("const schema").unwrap()+"const sch".len();
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap().to_string();
+        assert!(!hover.contains("__tsrust_private_")&&hover.len()<12000,"{hover}");
+    }
+}

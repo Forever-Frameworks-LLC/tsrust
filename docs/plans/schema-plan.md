@@ -29,7 +29,7 @@ executing differential cases; current web documentation alone is not a version p
 | parse | Return inferred output directly; throw the existing ValidationError on validation failure | Focused compiler/native/editor and untimed parity accepted; family timing pending |
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; richer cross-field issue APIs remain required |
-| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Second tranche, still required |
+| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and composition audit remain in progress |
 | Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Public record/map/set constructors, reversible validation, collision rejection, editor types and matched workload checked; family acceptance pending |
 | JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Second tranche, still required |
 | Async refinements | approved task semantics and cancellation/ownership checks | Follows S14 |
@@ -2580,3 +2580,25 @@ Evidence: `tsrust-recursive-benchmark-contract.log`,
 `tsrust-recursive-benchmark-check.json`, and
 `tsrust-recursive-benchmark-format.log`. Recursive editor edge coverage and the
 remaining S11 requirements are still open.
+
+### Recursive array editor overflow repair
+
+Dedicated editor coverage now checks explicit named recursive outputs and inferred
+array-root outputs, including nested member completion and bounded hover. The
+array witness exposed a stack overflow in legacy `projections::type_name`, before
+project facts were available. That formatter guarded callable and Result cycles
+but not recursive arrays/unions. It now marks every in-progress type before
+expansion. Unrepresentable recursive text is suppressed; structured project
+identities remain authoritative rather than substituting an invented type.
+
+The named and array witnesses pass after repair. Initial failures are retained in
+`tsrust-recursive-editor-roots.log`,
+`tsrust-recursive-editor-roots-localize.log` and
+`tsrust-recursive-editor-roots-facts.log`; repaired evidence is
+`tsrust-recursive-editor-roots-repair.log`. Incomplete recursive-source recovery
+and dedicated union-root editor coverage remain open. No consumer refresh or S11
+milestone acceptance is claimed.
+
+All six affected projection-filter regressions also pass
+(`tsrust-recursive-projection-regression.log`). Whole-project formatting changed
+no files or fingerprints (`tsrust-recursive-editor-roots-format.log`).

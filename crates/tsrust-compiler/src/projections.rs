@@ -731,6 +731,9 @@ fn type_name(
     if let Some(name) = names.get(&ty) {
         return name.clone();
     }
+    // Legacy text cannot encode recursive arrays/unions. Keep checked identity
+    // facts authoritative and suppress an incomplete spelling on a back edge.
+    names.insert(ty, None);
     if let Some(union) = ty.union() {
         let members = &program.unions[union.index()].members;
         if let Some([ok, error]) = crate::result_identity::variants(&program.records, members) {
