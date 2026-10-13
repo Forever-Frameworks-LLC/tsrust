@@ -2,6 +2,7 @@ mod json_encoding;
 mod json_typed;
 mod json_refinement;
 mod nullable_link_emit;
+mod recursive_union_payload_emit;
 mod native_view_record_parameters;
 mod native_view_family_emit;
 mod native_view_lifetime_emit;
@@ -689,6 +690,11 @@ impl Emitter<'_> {
             let cloneable = cloneability.allows(Type::Union(id), |id| {
                 self.program.unions[id.index()].members.clone()
             });
+            // A named payload breaks Rust's recursive generic-default query
+            // without changing ownership or adding another allocation.
+            for &member in &union.members {
+                self.emit_recursive_payload(output, id, member, cloneable);
+            }
             // An exclusive input can borrow the payload without owning its
             // caller's storage. Keep the usual owned spelling as the default.
             let data_payloads = if !copy && !callable { union.members.iter().copied().filter(|member| !member.is_copy()).collect::<Vec<_>>() } else { Vec::new() };

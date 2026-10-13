@@ -36,7 +36,10 @@ impl Emitter<'_> {
             let arms = self.program.unions[union.index()].members.iter().enumerate().map(|(tag, member)| {
                 let child = self.schema_pipeline_trial(id, *member, generated, seen, errors);
         let child_roots=self.schema_root_arguments(id);
-                format!("Union{}::V{tag}(input)=>match {child}({child_roots}schema,input,path,issues,failure){{Trial::Prepared{{value,restoration}}=>Trial::Prepared{{value,restoration:Box::new(move|value|Union{}::V{tag}(restoration(value)))}},Trial::Rejected(input)=>Trial::Rejected(Union{}::V{tag}(input)),Trial::Absent=>Trial::Absent,Trial::Committed(value)=>Trial::Committed(value),Trial::Aborted(error)=>Trial::Aborted(error)}}", union.index(),union.index(),union.index())
+                let extracted=self.union_move_payload(union,*member,"input");
+                let restored=self.union_store_payload(union,*member,"restoration(value)");
+                let rejected=self.union_store_payload(union,*member,"input");
+                format!("Union{}::V{tag}(input)=>match {child}({child_roots}schema,{extracted},path,issues,failure){{Trial::Prepared{{value,restoration}}=>Trial::Prepared{{value,restoration:Box::new(move|value|Union{}::V{tag}({restored}))}},Trial::Rejected(input)=>Trial::Rejected(Union{}::V{tag}({rejected})),Trial::Absent=>Trial::Absent,Trial::Committed(value)=>Trial::Committed(value),Trial::Aborted(error)=>Trial::Aborted(error)}}", union.index(),union.index(),union.index())
             }).collect::<Vec<_>>().join(",");
             format!("match input{{{arms}}}")
         } else if let Some(plan)=self.program.schema_pipelines.recursive(id) {

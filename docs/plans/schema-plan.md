@@ -2431,3 +2431,23 @@ Evidence: `tsrust-recursive-cycle-traversal.log` (emitter alternative panic) and
 `tsrust-recursive-union-carrier.log` (native default cycle), retained in SQLite.
 The added cloneability unit witness still awaits the next section check. No full
 regression, timing, source checkpoint, or consumer refresh was performed here.
+
+
+### Recursive native payload repair
+
+Checkpoint `afcaf3d0` preserves the integration before native representation
+changes. Recursive array/union knots now use private named payload wrappers to
+break Rust's generic-default query cycle. These wrappers contain their logical
+value directly: no additional heap allocation, shared owner, or implicit copy.
+Borrow/Deref expose the existing value; explicit clone remains a deep clone.
+Union trial extraction and restoration use the same physical storage helpers.
+Nonrecursive unions retain their existing representation.
+
+The array/union-root native witness passed (`tsrust-recursive-named-payload.log`).
+All three focused cloneability tests passed, including rejection of a callable
+inside a recursive array cycle (`tsrust-recursive-cloneability-section.log`). An
+expanded native witness also checks explicit cloning and reuse of the original;
+it passed with formatted-source execution (`tsrust-recursive-array-clone-section.log`).
+Recursive schemas remain implementation-in-progress:
+explicit named-type checking, owned input integration, full editor/examples and
+matched benchmark acceptance still need completion before S11 acceptance.

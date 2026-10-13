@@ -86,7 +86,13 @@ const arrays=s.recursive(self=>s.array(self));
 const nested=s.recursive(self=>s.union([s.int(),s.array(self)]));
 function main(){
   match(arrays.safeParseJson('[[],[[]]]')){
-    Ok(value)=>{strictEqual(value.length,2);strictEqual(value[1][0].length,0);},
+    Ok(value)=>{
+      strictEqual(value.length,2);
+      strictEqual(value[1][0].length,0);
+      const copied=clone(value);
+      strictEqual(copied[1][0].length,0);
+      strictEqual(value.length,2);
+    },
     Err(error)=>{throw 'Recursive array root rejected';}
   }
   match(nested.safeParseJson('[1,[2,[]]]')){
