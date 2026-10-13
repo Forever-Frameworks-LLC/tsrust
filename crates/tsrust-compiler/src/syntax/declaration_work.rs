@@ -117,12 +117,15 @@ impl Parser<'_> {
                 let name = self.name()?;
                 let type_parameters = self.type_parameters()?;
                 self.expect("(")?;
+                // Pattern declarations of an enclosing parameter list stay
+                // out of reach until this function and its body are complete.
+                let outer_patterns = std::mem::take(&mut self.parameter_patterns);
                 machine.request(
-                    Work::NamedFunctionParameters(Box::new((name, type_parameters))),
+                    Work::NamedFunctionParameters { header: Box::new((name, type_parameters)), outer_patterns },
                     Work::Parameters(Box::new(ParametersFrame { params: Vec::new(), declared: true })),
                 );
             }
-            Work::NamedFunctionParameters(header) => {
+            Work::NamedFunctionParameters { header, outer_patterns } => {
                 let (name, type_parameters) = *header;
                 let declared = machine.parameters.pop().expect("completed parameter list");
                 let mut params = Vec::new();
@@ -166,9 +169,10 @@ impl Parser<'_> {
                     result,
                     body,
                 };
-                machine.request(Work::NamedFunctionBody(Box::new(function)), Work::Block);
+                machine.request(Work::NamedFunctionBody { function: Box::new(function), outer_patterns }, Work::Block);
             }
-            Work::NamedFunctionBody(mut function) => {
+            Work::NamedFunctionBody { mut function, outer_patterns } => {
+                self.parameter_patterns = outer_patterns;
                 function.body.append(&mut machine.body());
                 function.scope_span.end = self.tokens[self.i - 1].span.end;
                 machine.functions.push(*function);
@@ -200,7 +204,7 @@ impl Parser<'_> {
                 let params = machine.parameters.pop().expect("completed parameter list");
                 self.closure_body(start, outer_patterns, params, machine)?;
             }
-            Work::FunctionParameters(start) => {
+            Work::FunctionParameters { start, outer_patterns } => {
                 let params = machine.parameters.pop().expect("completed parameter list");
                 let result = if self.accept(":") { self.result_annotation()? } else { ResultAnnotation::Inferred(start) };
                 if !self.is("{") {
@@ -213,10 +217,11 @@ impl Parser<'_> {
                 let id = self.next_closure;
                 self.next_closure += 1;
                 let patterns = std::mem::take(&mut self.parameter_patterns);
-                machine.request(Work::ClosureBlock(Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns })), Work::Block);
+                machine.request(Work::ClosureBlock(Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns, outer_patterns })), Work::Block);
             }
             Work::ClosureBlock(frame) => {
                 let frame = *frame;
+                self.parameter_patterns = frame.outer_patterns;
                 let mut body = machine.body();
                 Self::open_with_patterns(frame.patterns, &mut body);
                 let span = Span::new(frame.start.start, self.tokens[self.i - 1].span.end);
@@ -225,6 +230,7 @@ impl Parser<'_> {
             }
             Work::ClosureValue { frame, outer } => {
                 let frame = *frame;
+                self.parameter_patterns = frame.outer_patterns;
                 let value = machine.value();
                 let mut body = std::mem::replace(&mut self.pending, outer);
                 body.append(&mut Self::returned(Box::new(value)));

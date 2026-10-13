@@ -59,6 +59,9 @@ pub(super) struct ClosureFrame {
     pub(super) start: Span,
     pub(super) header: Box<(Vec<CallableParameter>, ResultAnnotation)>,
     pub(super) patterns: Vec<Stmt>,
+    /// Pattern declarations of the enclosing parameter list. They stay out
+    /// of reach until this callable and its body are complete.
+    pub(super) outer_patterns: Vec<Stmt>,
 }
 
 /// Parser and result-stack extents at the start of one block statement.
@@ -106,6 +109,9 @@ pub(super) struct ForFrame {
 pub(super) struct SwitchFrame {
     pub(super) span: Span,
     pub(super) discriminant: Expr,
+    /// Declarations pending for the enclosing statement list, including the
+    /// hidden declarations of the discriminant and the case values.
+    pub(super) outer: Vec<Stmt>,
     /// Each clause: its case values (none for default) and its body.
     pub(super) clauses: Vec<(Vec<Expr>, bool, Vec<Stmt>, Span)>,
     pub(super) default_seen: bool,
@@ -163,12 +169,14 @@ pub(super) struct ParameterHead {
 }
 
 pub(super) enum Work {
-    // Blocks and bodies. Each completes with one entry on `bodies`.
+    // Blocks and bodies. Each completes with one entry on `bodies`. `outer`
+    // holds the declarations that were pending for the enclosing statement
+    // list; they return to `Parser::pending` when the body completes.
     Block,
-    BlockNext(Vec<Stmt>),
-    BlockAfter { body: Vec<Stmt>, recovery: Recovery },
+    BlockNext { body: Vec<Stmt>, outer: Vec<Stmt> },
+    BlockAfter { body: Vec<Stmt>, outer: Vec<Stmt>, recovery: Recovery },
     Body,
-    BodyStatement,
+    BodyStatement { outer: Vec<Stmt> },
     // Statements. Each completes with one entry on `statements`.
     Statement,
     StatementBlock(Span),
@@ -224,12 +232,12 @@ pub(super) enum Work {
     ParameterDefault { frame: Box<ParametersFrame>, head: Box<ParameterHead> },
     /// A named function after its keyword; completes with one `functions` entry.
     NamedFunction,
-    NamedFunctionParameters(Box<(Token, Vec<crate::type_syntax::TypeName>)>),
-    NamedFunctionBody(Box<Function>),
+    NamedFunctionParameters { header: Box<(Token, Vec<crate::type_syntax::TypeName>)>, outer_patterns: Vec<Stmt> },
+    NamedFunctionBody { function: Box<Function>, outer_patterns: Vec<Stmt> },
     LocalFunction(usize),
     NamedFunctionExpression { outer: Vec<Stmt> },
     ClosureParameters { start: Span, outer_patterns: Vec<Stmt> },
-    FunctionParameters(Span),
+    FunctionParameters { start: Span, outer_patterns: Vec<Stmt> },
     ClosureBlock(Box<ClosureFrame>),
     ClosureValue { frame: Box<ClosureFrame>, outer: Vec<Stmt> },
     // Expressions. Each completes with one entry on `values`.
@@ -319,8 +327,9 @@ impl Parser<'_> {
     fn unwind(&mut self, error: Diagnostic, machine: &mut Machine) -> Result<(), Diagnostic> {
         while let Some(abandoned) = machine.work.pop() {
             match abandoned {
-                Work::ClosureValue { outer, .. } | Work::NamedFunctionExpression { outer } => self.pending = outer,
-                Work::BlockAfter { body, recovery }
+                Work::ClosureValue { outer, .. } | Work::NamedFunctionExpression { outer } | Work::BodyStatement { outer } | Work::BlockNext { outer, .. } => self.pending = outer,
+                Work::SwitchCaseValue { mut frame, .. } | Work::SwitchBodyAfter { mut frame, .. } => self.pending = std::mem::take(&mut frame.outer),
+                Work::BlockAfter { body, outer, recovery }
                     if error.code == "syntax" && self.diagnostics.is_some_and(|errors| errors.borrow().len() < 63) =>
                 {
                     self.diagnostics.unwrap().borrow_mut().push(error);
@@ -335,9 +344,10 @@ impl Parser<'_> {
                     machine.functions.truncate(recovery.functions);
                     machine.matches.truncate(recovery.matches);
                     self.recover_statement(recovery.start);
-                    machine.work.push(Work::BlockNext(body));
+                    machine.work.push(Work::BlockNext { body, outer });
                     return Ok(());
                 }
+                Work::BlockAfter { outer, .. } => self.pending = outer,
                 _ => {}
             }
         }
@@ -363,10 +373,10 @@ impl Parser<'_> {
     fn step(&mut self, task: Work, machine: &mut Machine) -> Result<(), Diagnostic> {
         match task {
             Work::Block
-            | Work::BlockNext(_)
+            | Work::BlockNext { .. }
             | Work::BlockAfter { .. }
             | Work::Body
-            | Work::BodyStatement
+            | Work::BodyStatement { .. }
             | Work::Statement
             | Work::StatementBlock(_)
             | Work::StatementExpression { .. }
@@ -415,11 +425,11 @@ impl Parser<'_> {
             | Work::ParameterDefault { .. }
             | Work::NamedFunction
             | Work::NamedFunctionParameters { .. }
-            | Work::NamedFunctionBody(_)
+            | Work::NamedFunctionBody { .. }
             | Work::LocalFunction(_)
             | Work::NamedFunctionExpression { .. }
             | Work::ClosureParameters { .. }
-            | Work::FunctionParameters(_)
+            | Work::FunctionParameters { .. }
             | Work::ClosureBlock(_)
             | Work::ClosureValue { .. } => self.declaration_step(task, machine),
             _ => self.expression_step(task, machine),

@@ -408,8 +408,8 @@ impl Parser<'_> {
         self.expect("=>")?;
         let id = self.next_closure;
         self.next_closure += 1;
-        let patterns = std::mem::replace(&mut self.parameter_patterns, outer_patterns);
-        let frame = Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns });
+        let patterns = std::mem::take(&mut self.parameter_patterns);
+        let frame = Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns, outer_patterns });
         if self.is("{") {
             machine.request(Work::ClosureBlock(frame), Work::Block);
         } else {
@@ -431,8 +431,9 @@ impl Parser<'_> {
         }
         let token = self.take();
         self.expect("(")?;
+        let outer_patterns = std::mem::take(&mut self.parameter_patterns);
         machine.request(
-            Work::FunctionParameters(token.span),
+            Work::FunctionParameters { start: token.span, outer_patterns },
             Work::Parameters(Box::new(scheduler::ParametersFrame { params: Vec::new(), declared: false })),
         );
         Ok(())

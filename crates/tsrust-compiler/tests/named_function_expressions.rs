@@ -10,6 +10,18 @@ fn named_function_expressions_recurse_capture_and_keep_a_private_name() {
     assert!(output.stdout.is_empty());
 }
 
+// The hidden declaration of a named function expression belongs to the block
+// that holds its statement. Destructured parameters open their own body.
+#[test]
+fn statement_headers_arguments_and_defaults_keep_declarations_in_scope() {
+    let source = include_str!("fixtures/named-function-expressions/statement-headers.tsr");
+    assert_eq!(tsrust_compiler::format(source).unwrap(), source);
+    let directory = support::TempDirectory::new();
+    let output = support::run(support::cli().arg("run").arg(directory.source(source)), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}
+
 #[test]
 fn the_expression_name_is_not_visible_outside_and_obeys_function_rules() {
     for (source, code) in [

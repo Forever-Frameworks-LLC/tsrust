@@ -15,10 +15,9 @@ import time
 
 
 def nest(seed, layer, size):
-    value = seed
-    for _ in range(size):
-        value = layer(value)
-    return value
+    """Apply `layer` around `seed` `size` times in linear time."""
+    before, after = layer('\0').split('\0')
+    return before * size + seed + after * size
 
 
 def main_body(body):

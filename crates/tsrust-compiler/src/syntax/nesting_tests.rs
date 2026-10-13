@@ -269,3 +269,86 @@ fn native_stack_use_does_not_grow_with_nesting() {
         .join()
         .unwrap();
 }
+
+fn main_statements(source: &str) -> Vec<Stmt> {
+    let mut functions = parse_raw(source, false, Default::default(), Default::default()).unwrap().functions;
+    functions.pop().unwrap().body
+}
+
+fn names(body: &[Stmt]) -> Vec<String> {
+    body.iter()
+        .map(|statement| match &statement.kind {
+            StmtKind::LocalFunction(function) => format!("function {}", crate::local_functions::written_name(&function.name.text)),
+            StmtKind::Let { name, .. } => format!("let {}", name.text.split('#').next().unwrap()),
+            StmtKind::If { .. } => "if".into(),
+            StmtKind::While { .. } => "while".into(),
+            StmtKind::ForOf { .. } => "for-of".into(),
+            StmtKind::Loop { .. } => "loop".into(),
+            StmtKind::Block(_) => "block".into(),
+            StmtKind::Return(_) => "return".into(),
+            StmtKind::Expr(_) | StmtKind::Assign { .. } => "expression".into(),
+            _ => "other".into(),
+        })
+        .collect()
+}
+
+#[test]
+fn a_hidden_declaration_follows_the_statement_that_holds_its_expression() {
+    // The declaration of a named function expression belongs to the block
+    // that holds the statement, not to that statement's body.
+    let body = main_statements("function main(){if((function yes():boolean{return true;})()){a();b();}c();}");
+    assert_eq!(names(&body), ["if", "function yes", "expression"]);
+    let StmtKind::If { then_body, .. } = &body[0].kind else { panic!("if statement") };
+    assert_eq!(names(then_body), ["expression", "expression"]);
+
+    let body = main_statements("function main(){if((function no():boolean{return false;})())a();else b();while((function more():boolean{return false;})()){a();}}");
+    assert_eq!(names(&body), ["if", "function no", "while", "function more"]);
+    let StmtKind::If { then_body, else_body, .. } = &body[0].kind else { panic!("if statement") };
+    assert_eq!((names(then_body), names(else_body)), (vec!["expression".to_owned()], vec!["expression".to_owned()]));
+
+    let body = main_statements("function main(){for(const x of (function items():int[]{return [1];})()){a();}switch((function pick():int{return 1;})()){case (function one():int{return 1;})():a();break;default:b();}}");
+    assert_eq!(names(&body), ["for-of", "function items", "let pattern", "function pick", "function one", "if"]);
+
+    // The loop tests its condition inside the block that scopes the loop.
+    let body = main_statements("function main(){for(let i=(function start():int{return 0;})();(function below():boolean{return false;})();i+=(function step():int{return 1;})()){a();}}");
+    assert_eq!(names(&body), ["block"]);
+    let StmtKind::Block(scoped) = &body[0].kind else { panic!("scoped loop block") };
+    assert_eq!(names(scoped), ["let i", "function start", "function below", "loop"]);
+    let StmtKind::Loop { body, update, .. } = &scoped[3].kind else { panic!("loop") };
+    assert_eq!((names(body), names(update)), (vec!["expression".to_owned()], vec!["expression".to_owned(), "function step".to_owned()]));
+
+    // An earlier argument's declaration does not move into a later callback body.
+    let body = main_statements("function main(){f((function seven():int{return 7;})(),()=>{a();},function(){b();});}");
+    assert_eq!(names(&body), ["expression", "function seven"]);
+}
+
+#[test]
+fn parameter_patterns_open_the_body_of_their_own_callable() {
+    let closure = |statement: &Stmt| {
+        let (StmtKind::Let { value, .. } | StmtKind::Expr(value) | StmtKind::Return(Some(value))) = &statement.kind else { panic!("closure holder") };
+        let ExprKind::Closure { params, body, .. } = &value.kind else { panic!("closure") };
+        let inner = params.iter().find_map(|parameter| match &parameter.initializer {
+            ParameterInitializer::Default { value, .. } => match &value.kind {
+                ExprKind::Closure { body, .. } => Some(names(body)),
+                _ => None,
+            },
+            _ => None,
+        });
+        (names(body), inner)
+    };
+    for source in [
+        "function main(){const f=function([a,b]:T,g=function([c]:T){return c;}){return a;};}",
+        "function main(){const f=([a,b]:T,g=function([c]:T){return c;})=>{return a;};}",
+        "function main(){const f=function([a,b]:T,g=([c]:T)=>{return c;}){return a;};}",
+    ] {
+        let body = main_statements(source);
+        let (outer, inner) = closure(&body[0]);
+        assert_eq!(outer, ["let a", "let b", "return"], "{source}");
+        assert_eq!(inner.unwrap(), ["let c", "return"], "{source}");
+    }
+    // A declaration with a pattern inside a default's closure body keeps the
+    // outer parameter's pattern out of its own body.
+    let body = main_statements("function main(){const f=([a]:T,h=(()=>{function inner([x]:T){return x;}return 1;})())=>{return a;};}");
+    let (outer, _) = closure(&body[0]);
+    assert_eq!(outer, ["let a", "return"]);
+}

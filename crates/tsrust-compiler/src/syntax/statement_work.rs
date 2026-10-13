@@ -20,24 +20,32 @@ impl Parser<'_> {
                 }
                 self.expect("{")?;
                 self.depth += 1;
-                machine.work.push(Work::BlockNext(Vec::new()));
+                // Declarations pending for the enclosing statement list, such
+                // as the hidden declaration of a named function expression in
+                // an `if` condition, do not belong to this block.
+                let outer = std::mem::take(&mut self.pending);
+                machine.work.push(Work::BlockNext { body: Vec::new(), outer });
             }
-            Work::BlockNext(body) => {
+            Work::BlockNext { body, outer } => {
                 if self.accept("}") {
                     self.depth -= 1;
+                    self.pending = outer;
                     machine.bodies.push(body);
                 } else {
-                    if self.peek().kind == TokenKind::End {
-                        self.expect("}")?;
+                    if self.peek().kind == TokenKind::End
+                        && let Err(error) = self.expect("}")
+                    {
+                        self.pending = outer;
+                        return Err(error);
                     }
                     let recovery = self.recovery(machine);
-                    machine.request(Work::BlockAfter { body, recovery }, Work::Statement);
+                    machine.request(Work::BlockAfter { body, outer, recovery }, Work::Statement);
                 }
             }
-            Work::BlockAfter { mut body, .. } => {
+            Work::BlockAfter { mut body, outer, .. } => {
                 body.push(machine.statement());
                 body.append(&mut self.pending);
-                machine.work.push(Work::BlockNext(body));
+                machine.work.push(Work::BlockNext { body, outer });
             }
             // The body of if, else, while, do, for or for...of: a block, or
             // one statement that forms a block of its own.
@@ -56,12 +64,14 @@ impl Parser<'_> {
                     return Err(Diagnostic::new("syntax", "A declaration cannot be a body without braces; put it in a block.", self.peek().span));
                 }
                 self.depth += 1;
-                machine.request(Work::BodyStatement, Work::Statement);
+                let outer = std::mem::take(&mut self.pending);
+                machine.request(Work::BodyStatement { outer }, Work::Statement);
             }
-            Work::BodyStatement => {
+            Work::BodyStatement { outer } => {
                 self.depth -= 1;
                 let mut body = vec![machine.statement()];
                 body.append(&mut self.pending);
+                self.pending = outer;
                 machine.bodies.push(body);
             }
             Work::Statement => self.statement(machine)?,
@@ -213,7 +223,9 @@ impl Parser<'_> {
                 scoped.append(&mut self.pending);
                 self.for_condition(span, scoped, machine)?;
             }
-            Work::ForCondition { span, scoped } => {
+            Work::ForCondition { span, mut scoped } => {
+                // The loop tests its condition inside the scoped block.
+                scoped.append(&mut self.pending);
                 let condition = Some(Box::new(machine.value()));
                 self.for_update(span, scoped, condition, machine)?;
             }
@@ -263,9 +275,12 @@ impl Parser<'_> {
                     return Err(Self::block_limit(span));
                 }
                 self.depth += 1;
-                self.switch_next(Box::new(SwitchFrame { span, discriminant, clauses: Vec::new(), default_seen: false }), machine)?;
+                let outer = std::mem::take(&mut self.pending);
+                self.switch_next(Box::new(SwitchFrame { span, discriminant, outer, clauses: Vec::new(), default_seen: false }), machine)?;
             }
-            Work::SwitchCaseValue { frame, mut clause } => {
+            Work::SwitchCaseValue { mut frame, mut clause } => {
+                // A case value is tested outside its clause body.
+                frame.outer.append(&mut self.pending);
                 clause.values.push(machine.value());
                 self.expect(":")?;
                 self.switch_labels(frame, clause, machine)?;
@@ -574,8 +589,9 @@ impl Parser<'_> {
     }
 
     fn switch_finish(&mut self, frame: SwitchFrame, machine: &mut Machine) -> Result<(), Diagnostic> {
-        let SwitchFrame { span, discriminant, mut clauses, .. } = frame;
+        let SwitchFrame { span, discriminant, mut clauses, outer, .. } = frame;
         self.depth -= 1;
+        self.pending = outer;
         if self.policy.bounded() && clauses.len() > 120 {
             return Err(Diagnostic::new("unsupported", "A switch supports at most 120 clauses.", span));
         }
