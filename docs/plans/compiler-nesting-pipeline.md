@@ -837,3 +837,26 @@ binding lookup. No parser discovery, scaling measurement, public contract change
 or consumer refresh is claimed. Record carrier walks, result discovery and
 statement emission remain among the connected migration work; compiler-wide
 architecture acceptance remains open.
+
+### Record ownership statement worklists
+
+Record branch assignment collection and field-move carrier propagation now use
+explicit mutable statement worklists. Child scheduling preserves source order,
+including then/else, loop body/update, and try/catch/finally ordering. Distinct
+owned-closure detection iterates record field pairs instead of recursing.
+Control-store marking uses a body worklist while retaining each lexical body's
+own declaration analysis. It omits descendant store scans for bodies without
+bound declarations, where no local can be marked by that scan.
+
+The analysis batch passes 276 tests. New witnesses check assignment traversal
+order and 16,384 nested statement blocks, including disposal, on normal stacks.
+The scoped callable record, nullable caller callback store and nullable callable
+compaction integration suites pass 56 tests, preserving native results, ownership
+rejections and formatting round trips. Whole-project formatting changes zero
+files or fingerprints. SQLite records use `tsrust-nesting-record-walk-*` names;
+a separate record identifies the final indentation-only source adjustment.
+
+These changes do not retire the remaining compiler guards or establish a depth
+ceiling. Recursive carrier conversion, carrier retargeting and record type joins
+remain connected migration work. No new formal scaling measurement or consumer
+refresh is claimed, and full architecture acceptance remains open.

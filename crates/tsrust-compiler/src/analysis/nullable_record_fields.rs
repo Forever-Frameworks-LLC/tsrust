@@ -154,23 +154,28 @@ impl Analyzer {
     /// Recompute the control-stored locals of a checked body. Each block marks
     /// only its own declarations, exactly as the checking pass does.
     pub(super) fn mark_control_stored(&self,context:&mut Context,body:&[Stmt]) {
-        let (nested,whole)=control_stores(body);
-        for statement in body {
-            match &statement.kind {
-                StmtKind::Let{name,binding:Some(id),..}=>{
-                    if nested.contains(&name.text) || whole.contains(&name.text) && !self.nullable_record_field_paths(context.bindings[*id].ty).is_empty() {context.control_stored.insert(*id);}
+        let mut work=vec![body];
+        while let Some(body)=work.pop() {
+            // Bodies without direct declarations cannot mark any local here.
+            let stores=body.iter().any(|statement|matches!(statement.kind,StmtKind::Let{binding:Some(_),..})).then(||control_stores(body));
+            for statement in body {
+                match &statement.kind {
+                    StmtKind::Let{name,binding:Some(id),..}=>{
+                        let (nested,whole)=stores.as_ref().expect("body has declarations");
+                        if nested.contains(&name.text) || whole.contains(&name.text) && !self.nullable_record_field_paths(context.bindings[*id].ty).is_empty() {context.control_stored.insert(*id);}
+                    }
+                    StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>work.push(body),
+                    StmtKind::If{then_body,else_body,..}=>{work.push(else_body);work.push(then_body);}
+                    StmtKind::Loop{body,update,..}=>{work.push(update);work.push(body);}
+                    StmtKind::Try(region)=>{
+                        if let Some(finally)=&region.finally {work.push(finally);}
+                        if let Some(catch)=&region.catch {work.push(&catch.body);}
+                        work.push(&region.body);
+                    }
+                    _=>{}
                 }
-                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>self.mark_control_stored(context,body),
-                StmtKind::If{then_body,else_body,..}=>{self.mark_control_stored(context,then_body);self.mark_control_stored(context,else_body);}
-                StmtKind::Loop{body,update,..}=>{self.mark_control_stored(context,body);self.mark_control_stored(context,update);}
-                StmtKind::Try(region)=>{
-                    self.mark_control_stored(context,&region.body);
-                    if let Some(catch)=&region.catch {self.mark_control_stored(context,&catch.body);}
-                    if let Some(finally)=&region.finally {self.mark_control_stored(context,finally);}
-                }
-                _=>{}
             }
-        }
+    }
     }
     /// A local whose nullable callback records are stored through control flow.
     pub(super) fn sticky_nullable(&self,context:&Context,binding:usize)->bool {

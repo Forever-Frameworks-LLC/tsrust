@@ -1,18 +1,20 @@
 //! Join concrete record callback environments without changing source ownership.
 use super::*;
+fn assignments(body:&mut [Stmt])->Vec<(&mut Expr,&mut Expr)>{
+    let mut result=Vec::new();
+    let mut work=body.iter_mut().rev().collect::<Vec<_>>();
+    while let Some(stmt)=work.pop(){match &mut stmt.kind{
+        StmtKind::Assign{target,value,operator:None} if matches!(target.kind,ExprKind::Name(_))=>result.push((target,value)),
+        StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>work.extend(body.iter_mut().rev()),
+        StmtKind::If{then_body,else_body,..}=>{work.extend(else_body.iter_mut().rev());work.extend(then_body.iter_mut().rev());},
+        StmtKind::Loop{body,update,..}=>{work.extend(update.iter_mut().rev());work.extend(body.iter_mut().rev());},
+        StmtKind::Try(region)=>{if let Some(finally)=&mut region.finally{work.extend(finally.iter_mut().rev());}if let Some(catch)=&mut region.catch{work.extend(catch.body.iter_mut().rev());}work.extend(region.body.iter_mut().rev());},
+        _=>{}
+    }}result
+}
+
 impl Analyzer {
     pub(super) fn record_branch_carriers(&mut self,context:&mut Context,left:&mut [Stmt],right:&mut [Stmt])->Result<(),Diagnostic>{
-        fn assignments(body:&mut [Stmt])->Vec<(&mut Expr,&mut Expr)>{
-            let mut result=Vec::new();
-            for stmt in body{match &mut stmt.kind{
-                StmtKind::Assign{target,value,operator:None} if matches!(target.kind,ExprKind::Name(_))=>result.push((target,value)),
-                StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>result.extend(assignments(body)),
-                StmtKind::If{then_body,else_body,..}=>{result.extend(assignments(then_body));result.extend(assignments(else_body));},
-                StmtKind::Loop{body,update,..}=>{result.extend(assignments(body));result.extend(assignments(update));},
-                StmtKind::Try(region)=>{result.extend(assignments(&mut region.body));if let Some(catch)=&mut region.catch{result.extend(assignments(&mut catch.body));}if let Some(finally)=&mut region.finally{result.extend(assignments(finally));}},
-                _=>{}
-            }}result
-        }
         let mut left=assignments(left);let mut right=assignments(right);
         for(a_target,a_value) in &mut left{
             let Some(binding)=a_target.binding else{continue;};
@@ -26,7 +28,8 @@ impl Analyzer {
     /// A callback moved out of a field keeps the carrier that the field holds
     /// once every store into that field is planned.
     fn record_field_move_carriers(&self,context:&mut Context,body:&mut[Stmt]){
-        for stmt in body{match &mut stmt.kind{
+        let mut work=body.iter_mut().rev().collect::<Vec<_>>();
+        while let Some(stmt)=work.pop(){match &mut stmt.kind{
             StmtKind::Let{binding:Some(id),value,..}=>{
                 if !matches!(context.bindings[*id].ty,Type::Closure(_) | Type::BorrowedCallable(_)){continue;}
                 let(Some(root),Some((_,path)))=(Self::root_binding(value),Self::direct_fields(value))else{continue;};
@@ -34,13 +37,13 @@ impl Analyzer {
                 let Some(carrier @ Type::BorrowedCallable(_))=self.record_field_type(context.bindings[root].ty,&path)else{continue;};
                 context.bindings[*id].ty=carrier;value.ty=Some(carrier);
             }
-            StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>self.record_field_move_carriers(context,body),
-            StmtKind::If{then_body,else_body,..}=>{self.record_field_move_carriers(context,then_body);self.record_field_move_carriers(context,else_body);}
-            StmtKind::Loop{body,update,..}=>{self.record_field_move_carriers(context,body);self.record_field_move_carriers(context,update);}
+            StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>work.extend(body.iter_mut().rev()),
+            StmtKind::If{then_body,else_body,..}=>{work.extend(else_body.iter_mut().rev());work.extend(then_body.iter_mut().rev());}
+            StmtKind::Loop{body,update,..}=>{work.extend(update.iter_mut().rev());work.extend(body.iter_mut().rev());}
             StmtKind::Try(region)=>{
-                self.record_field_move_carriers(context,&mut region.body);
-                if let Some(catch)=&mut region.catch{self.record_field_move_carriers(context,&mut catch.body);}
-                if let Some(finally)=&mut region.finally{self.record_field_move_carriers(context,finally);}
+                if let Some(finally)=&mut region.finally{work.extend(finally.iter_mut().rev());}
+                if let Some(catch)=&mut region.catch{work.extend(catch.body.iter_mut().rev());}
+                work.extend(region.body.iter_mut().rev());
             }
             _=>{}
         }}
@@ -262,11 +265,17 @@ impl Analyzer {
     }
     /// A conversion that would turn one concrete closure into another.
     fn distinct_owned_closures(&self,source:Type,target:Type)->bool{
-        match(source,target){
-            (Type::Closure(source),Type::Closure(target))=>source!=target,
-            (Type::Record(source),Type::Record(target))=>self.program.records[source].fields.iter().zip(&self.program.records[target].fields).any(|(source,target)|self.distinct_owned_closures(source.ty.unwrap(),target.ty.unwrap())),
-            _=>false,
+        let mut work=vec![(source,target)];
+        while let Some((source,target))=work.pop() {
+            match(source,target){
+                (Type::Closure(source),Type::Closure(target)) if source!=target=>return true,
+                (Type::Record(source),Type::Record(target))=>{
+                    work.extend(self.program.records[source].fields.iter().zip(&self.program.records[target].fields).rev().map(|(source,target)|(source.ty.unwrap(),target.ty.unwrap())));
+                }
+                _=>{}
+            }
         }
+        false
     }
     fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
@@ -356,4 +365,33 @@ impl Analyzer {
         Ok(Some(Type::Record(instance)))
     }
 
+}
+
+#[cfg(test)]
+mod traversal_tests {
+    use super::*;
+
+    #[test]
+    fn carrier_assignments_keep_lexical_branch_and_exception_order() {
+        let mut program=crate::syntax::parse("function main(){a=1;{b=2;}if(true){c=3;}else{d=4;}try{e=5;}catch(error){f=6;}finally{g=7;}h=8;}").unwrap();
+        let found=assignments(&mut program.functions[0].body);
+        let names=found.iter().map(|(target,_)|match &target.kind{ExprKind::Name(name)=>name.as_str(),_=>panic!("named target")}).collect::<Vec<_>>();
+        assert_eq!(names,vec!["a","b","c","d","e","f","g","h"]);
+    }
+
+    #[test]
+    fn carrier_statement_walks_handle_deep_blocks_on_normal_stack() {
+        let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+        let mut context=Context::new("walk".into());
+        let mut body=Vec::new();
+        for _ in 0..16384 {
+            body=vec![Stmt{labels:Vec::new(),control_target:None,kind:StmtKind::Block(body),span:Span::default()}];
+        }
+        assert!(assignments(&mut body).is_empty());
+        analyzer.record_field_move_carriers(&mut context,&mut body);
+        analyzer.record_branch_carriers(&mut context,&mut body,&mut []).unwrap();
+        analyzer.mark_control_stored(&mut context,&body);
+        assert!(context.control_stored.is_empty());
+        drop(body);
+    }
 }
