@@ -19,3 +19,5 @@ mod operators;
 
 mod coalesce;
 mod logical;
+mod assignment;
+pub(super) use assignment::Kind as AssignmentKind;

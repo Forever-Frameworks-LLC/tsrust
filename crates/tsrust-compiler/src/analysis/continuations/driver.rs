@@ -84,6 +84,9 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    Assignment,
+    NullishAssignmentTarget(Box<super::assignment::NullishTarget>),
+    NullishAssignmentValue(Box<super::assignment::NullishValue>),
     LogicalLeft(Box<super::logical::Left>),
     LogicalRight { frame: Box<super::logical::Right>, child_context: Option<ContextId> },
     CoalesceLeft(Box<super::coalesce::Left>),
@@ -146,8 +149,21 @@ impl<'a> ExpressionTask<'a> {
     }
 }
 
-enum Task<'a> { Block(BlockTask<'a>), Expression(ExpressionTask<'a>) }
+enum AssignmentState { Start, Target(super::assignment::Target), Value(super::assignment::Value) }
+
+struct AssignmentTask<'a> {
+    target: Box<Expr>,
+    value: Box<Expr>,
+    kind: super::assignment::Kind,
+    operator: Span,
+    loans: ActiveLoans<'a>,
+    context: ContextId,
+    state: AssignmentState,
+}
+
+enum Task<'a> { Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Assignment(AssignmentTask<'a>, Result<Type, Diagnostic>),
     Block(Body<'a>, Result<bool, Diagnostic>),
     Expression(Expression<'a>, Result<Type, Diagnostic>),
 }
@@ -172,6 +188,57 @@ pub(super) fn check_expression(analyzer: &mut Analyzer, context: &mut Context, e
     result
 }
 
+pub(super) fn check_assignment(analyzer: &mut Analyzer, context: &mut Context, target: &mut Expr, value: &mut Expr, kind: super::assignment::Kind, operator: Span, loans: &Loans) -> Result<Type, Diagnostic> {
+    let target_span = target.span;
+    let value_span = value.span;
+    let task = AssignmentTask {
+        target: Box::new(std::mem::replace(target, Expr::new(ExprKind::Undefined, target_span))),
+        value: Box::new(std::mem::replace(value, Expr::new(ExprKind::Undefined, value_span))),
+        kind, operator, loans: ActiveLoans::Borrowed(loans), context: ContextId(0), state: AssignmentState::Start,
+    };
+    let Completion::Assignment(task, result) = drive(analyzer, context, Task::Assignment(task)) else { unreachable!("assignment result"); };
+    *target = *task.target;
+    *value = *task.value;
+    result
+}
+
+fn step_assignment<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: AssignmentTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
+    match std::mem::replace(&mut task.state, AssignmentState::Start) {
+        AssignmentState::Start => {
+            let frame = match analyzer.prepare_assignment_target(context, &mut task.target, task.kind) {
+                Ok(frame) => frame,
+                Err(error) => return Step::Complete(Completion::Assignment(task, Err(error))),
+            };
+            let span = task.target.span;
+            let target = std::mem::replace(&mut task.target, Box::new(Expr::new(ExprKind::Undefined, span)));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(target), task.context, Mode::Mutate, task.loans.clone(), None));
+            task.state = AssignmentState::Target(frame);
+            Step::Push(Task::Assignment(task), child)
+        }
+        AssignmentState::Target(frame) => {
+            let Completion::Expression(target, checked) = completion.expect("assignment target completed") else { unreachable!("target result"); };
+            task.target = target.into_child();
+            match analyzer.assignment_selected(context, &mut task.target, &mut task.value, frame, task.operator, &task.loans, checked) {
+                Ok(super::assignment::Selected::Ready(ty)) => Step::Complete(Completion::Assignment(task, Ok(ty))),
+                Err(error) => Step::Complete(Completion::Assignment(task, Err(error))),
+                Ok(super::assignment::Selected::Value { frame, mode, loans, expected }) => {
+                    let span = task.value.span;
+                    let value = std::mem::replace(&mut task.value, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, mode, ActiveLoans::Shared(std::rc::Rc::new(loans)), Some(expected)));
+                    task.state = AssignmentState::Value(frame);
+                    Step::Push(Task::Assignment(task), child)
+                }
+            }
+        }
+        AssignmentState::Value(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("assignment value completed") else { unreachable!("value result"); };
+            task.value = value.into_child();
+            let result = checked.and_then(|actual| analyzer.finish_assignment_value(context, &task.target, &task.value, frame, task.operator, &task.loans, actual));
+            Step::Complete(Completion::Assignment(task, result))
+        }
+    }
+}
+
 fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> Completion<'a> {
     let mut contexts = Contexts { root: context, children: Vec::new() };
     let mut tasks = vec![root];
@@ -179,6 +246,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Assignment(task) => step_assignment(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Block(task) => step_block(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Expression(task) => step_expression(analyzer, &mut contexts, task, completion.take()),
         };
@@ -425,6 +493,44 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
             }
         }
+        ExpressionState::NullishAssignmentTarget(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("nullish target completed") else { unreachable!("nullish target result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::CoalesceAssign { target, .. } = &mut expr.kind else { unreachable!("nullish target slot"); };
+            *target = value.into_child();
+            match analyzer.nullish_assignment_selected(context, expr, *frame, &task.loans, checked) {
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                Ok((frame, loans, expected)) => {
+                    let ExprKind::CoalesceAssign { value, .. } = &mut expr.kind else { unreachable!("nullish value slot"); };
+                    let span = value.span;
+                    let value = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, Mode::Consume, ActiveLoans::Shared(std::rc::Rc::new(loans)), Some(expected)));
+                    task.state = ExpressionState::NullishAssignmentValue(Box::new(frame));
+                    Step::Push(Task::Expression(task), child)
+                }
+            }
+        }
+        ExpressionState::NullishAssignmentValue(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("nullish value completed") else { unreachable!("nullish value result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::CoalesceAssign { value: destination, .. } = &mut expr.kind else { unreachable!("nullish value slot"); };
+            *destination = value.into_child();
+            let result = checked.and_then(|actual| analyzer.finish_nullish_assignment_work(context, expr, *frame, &task.loans, actual));
+            finish_expression(analyzer, context, task, result)
+        }
+        ExpressionState::Assignment => {
+            let Completion::Assignment(child, result) = completion.expect("assignment completed") else { unreachable!("assignment completion"); };
+            let expr = task.expression.value();
+            match &mut expr.kind {
+                ExprKind::Assign { target, value, .. } | ExprKind::CompoundAssign { target, value, .. }
+                | ExprKind::LogicalAssign { target, value, .. } => { *target = child.target; *value = child.value; }
+                ExprKind::Update { target, .. } => *target = child.target,
+                _ => unreachable!("assignment slots"),
+            }
+            finish_expression(analyzer, contexts.get(task.context), task, result)
+        }
         ExpressionState::LogicalLeft(frame) => {
             let Completion::Expression(value, checked) = completion.expect("logical left completed") else { unreachable!("logical result"); };
             let context = contexts.get(task.context);
@@ -566,6 +672,36 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            if matches!(expr.kind, ExprKind::CoalesceAssign { .. }) {
+                let frame = match analyzer.prepare_nullish_assignment_work(context, expr, mode, expected) {
+                    Ok(frame) => frame,
+                    Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+                };
+                let ExprKind::CoalesceAssign { target, .. } = &mut expr.kind else { unreachable!("nullish target slot"); };
+                let span = target.span;
+                let target = std::mem::replace(target, Box::new(Expr::new(ExprKind::Undefined, span)));
+                let child = Task::Expression(ExpressionTask::new(Expression::Child(target), task.context, Mode::Mutate, task.loans.clone(), None));
+                task.state = ExpressionState::NullishAssignmentTarget(Box::new(frame));
+                return Step::Push(Task::Expression(task), child);
+            }
+            let assignment = match &mut expr.kind {
+                ExprKind::Assign { target, value, operator } => Some((target, Some(value), super::assignment::Kind::Scalar, *operator)),
+                ExprKind::LogicalAssign { target, value, operator, .. } => Some((target, Some(value), super::assignment::Kind::Logical, *operator)),
+                ExprKind::CompoundAssign { target, value, op, operator } => Some((target, Some(value), super::assignment::Kind::Compound { op: *op, allow_owned: false }, *operator)),
+                ExprKind::Update { target, operator, .. } => Some((target, None, super::assignment::Kind::Update, *operator)),
+                _ => None,
+            };
+            if let Some((target, value, kind, operator)) = assignment {
+                let span = target.span;
+                let target = std::mem::replace(target, Box::new(Expr::new(ExprKind::Undefined, span)));
+                let value = if let Some(value) = value {
+                    let span = value.span;
+                    std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)))
+                } else { Box::new(Expr::new(ExprKind::Undefined, operator)) };
+                let child = Task::Assignment(AssignmentTask { target, value, kind, operator, loans: task.loans.clone(), context: task.context, state: AssignmentState::Start });
+                task.state = ExpressionState::Assignment;
+                return Step::Push(Task::Expression(task), child);
+            }
             if matches!(expr.kind, ExprKind::Binary { op: BinaryOp::And | BinaryOp::Or, .. }) {
                 let frame = Box::new(analyzer.prepare_logical_work(context, expr, mode, expected));
                 let ExprKind::Binary { left, .. } = &mut expr.kind else { unreachable!("logical slots"); };
@@ -919,6 +1055,35 @@ mod tests {
                     assert!(matches!(index.kind, ExprKind::Boolean(true)));
                 }
             }
+        }
+    }
+
+    #[test]
+    fn failed_assignment_operands_restore_mutation_scope_and_trees() {
+        for expression in [
+            "values[true]=1", "values[true]+=1", "values[true]&&=true", "values[true]??=1", "++values[true]",
+            "values[0]=missing", "values[0]+=missing", "values[0]??=missing",
+        ] {
+            let source = formatted(&format!("function main():int{{const values=[1];return {expression};}}"));
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let body = &mut parsed.functions[0].body;
+            let error = check_block(&mut analyzer, &mut context, body, Type::Int, false).unwrap_err();
+            let expected = if expression.contains("missing") { "missing" } else { "true" };
+            assert_eq!(&source[error.span.start..error.span.end], expected);
+            assert!(context.mutation_place.is_none());
+            assert!(context.replacement.is_none());
+            assert!(context.keep_flow.is_empty());
+            assert!(context.suppressed_flow.is_empty());
+            let StmtKind::Return(Some(value)) = &body[1].kind else { panic!("return restored"); };
+            let target = match &value.kind {
+                ExprKind::Assign { target, .. } | ExprKind::CompoundAssign { target, .. }
+                | ExprKind::LogicalAssign { target, .. } | ExprKind::CoalesceAssign { target, .. }
+                | ExprKind::Update { target, .. } => target,
+                _ => panic!("assignment restored"),
+            };
+            assert!(matches!(target.kind, ExprKind::Index(..)));
         }
     }
 

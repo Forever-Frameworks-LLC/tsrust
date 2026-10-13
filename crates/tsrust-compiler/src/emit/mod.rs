@@ -4258,15 +4258,14 @@ impl Emitter<'_> {
         }
     }
 
-    fn update_expression(
-        &self,
-        fun: &CheckedFunction,
-        target: &Expr,
-        increment: bool,
-        prefix: bool,
-        span: crate::diagnostic::Span,
-    ) -> String {
-        let selection = self.storage_selection(fun, target, false);
+    fn update_expression(&self, fun: &CheckedFunction, target: &Expr, increment: bool, prefix: bool, span: crate::diagnostic::Span) -> String {
+        self.update_expression_with(fun, target, increment, prefix, span, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn update_expression_with(&self, fun: &CheckedFunction, target: &Expr, increment: bool, prefix: bool, span: crate::diagnostic::Span, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
+        let selection = self.storage_selection_with(fun, target, false, render);
         let target_type = target.ty.expect("checked update target");
         let result = if target_type == Type::Int {
             let (method, failure) = Self::checked_operator(if increment {
@@ -4289,15 +4288,14 @@ impl Emitter<'_> {
         )
     }
 
-    fn coalesce_assignment(
-        &self,
-        fun: &CheckedFunction,
-        expr: &Expr,
-        target: &Expr,
-        value: &Expr,
-        branch: crate::syntax::NullishBranch,
-    ) -> String {
-        let selection = self.storage_selection(fun, target, false);
+    fn coalesce_assignment(&self, fun: &CheckedFunction, expr: &Expr, target: &Expr, value: &Expr, branch: crate::syntax::NullishBranch) -> String {
+        self.coalesce_assignment_with(fun, expr, target, value, branch, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn coalesce_assignment_with(&self, fun: &CheckedFunction, expr: &Expr, target: &Expr, value: &Expr, branch: crate::syntax::NullishBranch, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
+        let selection = self.storage_selection_with(fun, target, false, render);
         let physical = target.ty.expect("checked assignment storage");
         let logical = expr.ty.expect("checked assignment result").owning();
         let absent = if let Some(id) = physical.union() {
@@ -4320,7 +4318,7 @@ impl Emitter<'_> {
             String::new()
         } else {
             let actual = value.ty.expect("checked replacement").owning();
-            let code = self.expr(fun, value, Mode::Consume);
+            let code = render(value, Mode::Consume, false);
             let stored = if let Some(to) = physical.union() {
                 if let Some(from) = actual.union() {
                     if from == to {
@@ -4419,10 +4417,16 @@ impl Emitter<'_> {
     }
 
     fn scalar_assignment(&self, fun: &CheckedFunction, target: &Expr, value: &Expr) -> String {
+        self.scalar_assignment_with(fun, target, value, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn scalar_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
         // Check every selected bound before RHS effects, without reading old data.
         // Saved indices reconstruct the destination after permitted RHS mutation.
-        let selection = self.storage_selection(fun, target, false);
-        let rhs = self.expr(fun, value, Mode::Copy);
+        let selection = self.storage_selection_with(fun, target, false, render);
+        let rhs = render(value, Mode::Copy, false);
         format!(
             "{{ {}let assigned_value: {} = {rhs}; ({}) = assigned_value; assigned_value }}",
             selection.setup,
@@ -4431,15 +4435,15 @@ impl Emitter<'_> {
         )
     }
 
-    fn logical_assignment(
-        &self,
-        fun: &CheckedFunction,
-        target: &Expr,
-        value: &Expr,
-        and: bool,
-    ) -> String {
-        let selection = self.storage_selection(fun, target, false);
-        let rhs = self.expr(fun, value, Mode::Copy);
+    fn logical_assignment(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, and: bool) -> String {
+        self.logical_assignment_with(fun, target, value, and, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn logical_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, and: bool, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
+        let selection = self.storage_selection_with(fun, target, false, render);
+        let rhs = render(value, Mode::Copy, false);
         format!(
             "{{ {}let logical_old: bool = *({}); if {}logical_old {{ let logical_new: bool = {rhs}; ({}) = logical_new; logical_new }} else {{ logical_old }} }}",
             selection.setup,
@@ -4449,17 +4453,16 @@ impl Emitter<'_> {
         )
     }
 
-    fn compound_assignment(
-        &self,
-        fun: &CheckedFunction,
-        target: &Expr,
-        value: &Expr,
-        op: BinaryOp,
-        span: crate::diagnostic::Span,
-    ) -> String {
+    fn compound_assignment(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, op: BinaryOp, span: crate::diagnostic::Span) -> String {
+        self.compound_assignment_with(fun, target, value, op, span, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn compound_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, op: BinaryOp, span: crate::diagnostic::Span, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
         // All bounds and the old target value precede the RHS. Saved indices
         // reconstruct the destination after shared reads have ended.
-        let selection = self.storage_selection(fun, target, false);
+        let selection = self.storage_selection_with(fun, target, false, render);
         let target_type = target.ty.expect("checked compound target");
         let string = target_type == Type::String;
         let annotation = if string {
@@ -4472,7 +4475,7 @@ impl Emitter<'_> {
         } else {
             format!("*({})", selection.shared)
         };
-        let right = self.expr(fun, value, if string { Mode::Read } else { Mode::Copy });
+        let right = render(value, if string { Mode::Read } else { Mode::Copy }, false);
         let result = if string {
             let failure = format!(
                 "string addition capacity overflow at source bytes {}..{}",

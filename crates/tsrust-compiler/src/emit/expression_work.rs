@@ -6,6 +6,7 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    Assignment { discards: Vec<bool>, first_temporary: usize },
     Logical { plan: super::logical_values_emit::LogicalPlan, temporary: Option<usize> },
     Selected,
     Coalesce { plan: super::coalesce_work::Plan, temporary: Option<usize>, pattern_slot: Option<usize> },
@@ -97,7 +98,7 @@ impl<'p> Emitter<'p> {
                     let part = call.children[call.rendered.len()].0;
                     code = self.finish_template_append(part, &code, &declarations);
                 }
-                if let CallState::NamedAccess { discards, first_temporary } = &call.state
+                if let CallState::NamedAccess { discards, first_temporary } | CallState::Assignment { discards, first_temporary } = &call.state
                     && discards[call.rendered.len()]
                 {
                     let declarations = self.conditional_temporaries.borrow_mut().drain(*first_temporary..).collect::<Vec<_>>().join(" ");
@@ -151,7 +152,7 @@ impl<'p> Emitter<'p> {
                     if let CallState::Template { first_temporary } = &mut call.state {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
-                    if let CallState::NamedAccess { first_temporary, .. } = &mut call.state {
+                    if let CallState::NamedAccess { first_temporary, .. } | CallState::Assignment { first_temporary, .. } = &mut call.state {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
@@ -222,6 +223,28 @@ impl<'p> Emitter<'p> {
         mode: Mode,
         force_carrier: bool,
     ) -> Option<CallFrame<'a, 'p>> {
+        let assignment = match &expr.kind {
+            ExprKind::Assign { target, value, .. } if expr.ty != Some(Type::Void) => Some((target, Some((value, Mode::Copy)))),
+            ExprKind::LogicalAssign { target, value, .. } => Some((target, Some((value, Mode::Copy)))),
+            ExprKind::CompoundAssign { target, value, .. } => Some((target, Some((value, if target.ty == Some(Type::String) { Mode::Read } else { Mode::Copy })))),
+            ExprKind::CoalesceAssign { target, value, branch, .. } => Some((target, if *branch == crate::syntax::NullishBranch::Present { None } else { Some((value, Mode::Consume)) })),
+            ExprKind::Update { target, .. } => Some((target, None)),
+            _ => None,
+        };
+        if let Some((target, value)) = assignment {
+            let (_, steps) = self.storage_steps(target);
+            let mut children = Vec::new();
+            let mut discards = Vec::new();
+            for step in steps {
+                match step {
+                    StorageStep::Index(index, _) => { children.push((index, Mode::Copy)); discards.push(false); }
+                    StorageStep::Discard(prefix) => { children.push((prefix, Mode::Read)); discards.push(true); }
+                    _ => (),
+                }
+            }
+            if let Some((value, mode)) = value { children.push((value.as_ref(), mode)); discards.push(false); }
+            return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Assignment { discards, first_temporary: 0 } });
+        }
         if let ExprKind::Binary { op, left, right, .. } = &expr.kind
             && matches!(op, BinaryOp::And | BinaryOp::Or)
             && !(left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)) {
@@ -510,7 +533,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -519,7 +542,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -766,6 +789,20 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
+            CallState::Assignment { .. } => {
+                let mut values = rendered.into_iter();
+                let mut render = |_: &Expr, _: Mode, _: bool| values.next().expect("scheduled assignment operand");
+                let code = match &expr.kind {
+                    ExprKind::Assign { target, value, .. } => self.scalar_assignment_with(fun, target, value, &mut render),
+                    ExprKind::LogicalAssign { target, value, and, .. } => self.logical_assignment_with(fun, target, value, *and, &mut render),
+                    ExprKind::CompoundAssign { target, value, op, operator } => self.compound_assignment_with(fun, target, value, *op, *operator, &mut render),
+                    ExprKind::CoalesceAssign { target, value, branch, .. } => self.coalesce_assignment_with(fun, expr, target, value, *branch, &mut render),
+                    ExprKind::Update { target, increment, prefix, operator } => self.update_expression_with(fun, target, *increment, *prefix, *operator, &mut render),
+                    _ => unreachable!("assignment work"),
+                };
+                debug_assert!(values.next().is_none());
+                return code;
+            }
             CallState::Logical { plan, .. } => {
                 let mut values = rendered.into_iter();
                 return self.finish_logical_emission(plan, values.next().expect("logical left"), values.next());
@@ -1242,6 +1279,47 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assignment_operands_share_the_emission_stack() {
+        for source in [
+            "function probe():int{let value=0;return value=987654321;} function main(){console.log(probe());}",
+            "function probe():int{let value=0;return value+=987654321;} function main(){console.log(probe());}",
+            "function probe():boolean{let value=false;return value&&=true;} function main(){console.log(probe());}",
+            "function probe():int{let value:int|null=null;return value??=987654321;} function main(){console.log(probe());}",
+            "function probe():int{const values=[1];return ++values[987654321];} function main(){console.log(probe());}",
+        ] {
+            let checked = crate::check(source).unwrap();
+            let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+            let StmtKind::Return(Some(template)) = &fun.body[1].kind else { panic!("return"); };
+            fn operand(expr: &mut Expr) -> &mut Expr {
+                match &mut expr.kind {
+                    ExprKind::Assign { value, .. } | ExprKind::CompoundAssign { value, .. }
+                    | ExprKind::LogicalAssign { value, .. } | ExprKind::CoalesceAssign { value, .. } => value,
+                    ExprKind::Update { target, .. } => {
+                        let ExprKind::Index(_, index) = &mut target.kind else { panic!("update index"); };
+                        index
+                    }
+                    _ => panic!("assignment expression"),
+                }
+            }
+            let emitter = super::super::emitter_for(&checked.program, "");
+            let mut parent = template.clone();
+            let mut nested = operand(&mut parent).clone();
+            let leaf = emitter.expr(fun, &nested, Mode::Copy);
+            let shallow = emitter.expr(fun, template, Mode::Copy);
+            let (prefix, suffix) = shallow.split_once(&leaf).expect("assignment operand emission");
+            // Phase isolation verifies the traversal independently of parser guards.
+            for _ in 0..4096 {
+                let mut parent = template.clone();
+                *operand(&mut parent) = nested;
+                nested = parent;
+            }
+            assert!(emitter.expr(fun, &nested, Mode::Copy) == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+            assert_eq!(emitter.expression_depth.get(), 0);
+            assert!(emitter.conditional_temporaries.borrow().is_empty());
+        }
+    }
 
     #[test]
     fn logical_operands_share_the_emission_stack() {

@@ -5161,81 +5161,16 @@ impl Analyzer {
         Ok(())
     }
 
-    fn mutation_target(
-        &mut self,
-        context: &mut Context,
-        target: &mut Expr,
-        loans: &Loans,
-        suppress_target: bool,
-    ) -> Result<Type, Diagnostic> {
-        let place = crate::flow::place(target, &context.names);
-        let prior = context.mutation_place.clone();
-        context.mutation_place = crate::flow::mutation_footprint(target, &context.names);
-        let first_keep = context.keep_flow.len();
-        // Selecting a stable replacement target has no write effect. Its old
-        // proofs remain usable in the RHS; commit invalidates them afterward.
-        if suppress_target && let Some(place) = &place {
-            context.keep_flow.extend(
-                context
-                    .flow
-                    .keys()
-                    .filter(|prior| {
-                        prior.root == place.root
-                            && (prior.fields.starts_with(&place.fields)
-                                || place.fields.starts_with(&prior.fields))
-                    })
-                    .cloned(),
-            );
-        }
-        if suppress_target && let Some(place) = &place {
-            context.suppressed_flow.insert(place.clone());
-        }
+    fn mutation_target(&mut self, context: &mut Context, target: &mut Expr, loans: &Loans, suppress_target: bool) -> Result<Type, Diagnostic> {
+        let frame = self.prepare_mutation_work(context, target, suppress_target);
         let result = self.expression(context, target, Mode::Mutate, loans, None);
-        if suppress_target && let Some(place) = &place {
-            context.suppressed_flow.remove(place);
-        }
-        context.mutation_place = prior;
-        context.keep_flow.truncate(first_keep);
+        self.finish_mutation_work(context, frame);
         result
     }
 
-    fn update_expression(
-        &mut self,
-        context: &mut Context,
-        target: &mut Expr,
-        loans: &Loans,
-        operator: Span,
-    ) -> Result<Type, Diagnostic> {
-        self.reject_string_position_write(context, target)?;
-        let named = matches!(target.kind, ExprKind::Name(_));
-        if named {
-            self.rebind_target(context, target)?;
-        } else if !Self::named_storage(target)
-            || !matches!(target.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "An update requires a let binding, named record field, or array element.",
-                target.span,
-            ));
-        }
-        // Forward enclosing loans: an expression update is an exclusive access.
-        let ty = self.mutation_target(context, target, loans, false)?;
-        if !matches!(ty, Type::Int | Type::Number) {
-            return Err(Diagnostic::new(
-                "type",
-                "An update requires an int or number target without coercion.",
-                operator,
-            ));
-        }
-        if named {
-            let id = target.binding.expect("checked update name");
-            if context.is_capture(id) {
-                context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
-            }
-        }
-        if ty == Type::Int { exception_state::record_point(context, operator); }
-        Ok(ty)
+    fn update_expression(&mut self, context: &mut Context, target: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
+        let mut unused = Expr::new(ExprKind::Undefined, operator);
+        self.assignment_work(context, target, &mut unused, continuations::AssignmentKind::Update, operator, loans)
     }
 
     /// A const taken from an owned element of a named array, or from a field
@@ -5325,257 +5260,8 @@ impl Analyzer {
         }
     }
 
-    fn coalesce_assignment(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        let ExprKind::CoalesceAssign {
-            target,
-            value,
-            operator,
-            branch,
-        } = &mut expr.kind
-        else {
-            unreachable!()
-        };
-        let named = matches!(target.kind, ExprKind::Name(_));
-        if named {
-            self.rebind_target(context, target)?;
-        } else if !Self::named_storage(target)
-            || !matches!(target.kind, ExprKind::Field(..) | ExprKind::Index(..))
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Nullish assignment requires a mutable let binding, named field, or indexed storage.",
-                target.span,
-            ));
-        }
-        let place = crate::flow::place(target, &context.names);
-        let prior_fact = place.as_ref().and_then(|p| context.flow.get(p)).cloned();
-        let ty = self.mutation_target(context, target, loans, true)?;
-        let members = ty
-            .union()
-            .map(|id| self.unions.members(id))
-            .unwrap_or_else(|| vec![ty]);
-        let possible = prior_fact
-            .map(|fact| fact.members)
-            .unwrap_or_else(|| members.clone());
-        let absent = possible
-            .iter()
-            .any(|ty| matches!(ty, Type::Null | Type::Undefined));
-        *branch = if !absent {
-            crate::syntax::NullishBranch::Present
-        } else if possible
-            .iter()
-            .all(|ty| matches!(ty, Type::Null | Type::Undefined))
-        {
-            crate::syntax::NullishBranch::Absent
-        } else {
-            crate::syntax::NullishBranch::Dynamic
-        };
-        let payload = self.unions.present(ty, expr.span)?;
-        let before = context.clone();
-        if let Some(place) = &place {
-            let nil = possible
-                .iter()
-                .copied()
-                .filter(|ty| matches!(ty, Type::Null | Type::Undefined))
-                .collect::<Vec<_>>();
-            if !nil.is_empty() {
-                context.flow.insert(
-                    place.clone(),
-                    crate::flow::Fact {
-                        members: nil,
-                        origin: Some((expr.span.start, expr.span.end)),
-                    },
-                );
-            }
-        }
-        let hint = self.expression_type_hint(context, value);
-        let mut rhs_members = vec![payload.unwrap_or(ty)];
-        if let Some(hint) = hint {
-            for member in hint
-                .union()
-                .map(|id| self.unions.members(id))
-                .unwrap_or_else(|| vec![hint])
-            {
-                if matches!(member, Type::Null | Type::Undefined) {
-                    rhs_members.push(member);
-                }
-            }
-        }
-        // A sentinel-only destination cannot acquire a different payload.
-        if payload.is_none() {
-            rhs_members = members.clone();
-        }
-        let rhs_context = self.unions.intern(rhs_members, value.span)?;
-        let selected_parent = match &target.kind {
-            ExprKind::Index(base, _) => base.as_ref(),
-            ExprKind::Field(base, _) => match &base.kind {
-                ExprKind::Index(parent, _) => parent.as_ref(),
-                _ => base.as_ref(),
-            },
-            _ => target.as_ref(),
-        };
-        let active = Self::selection_loans(selected_parent, loans);
-        let actual = self.expression(context, value, Mode::Consume, &active, Some(rhs_context))?;
-        self.require(actual, Some(ty), value.span)?;
-        if matches!(ty, Type::Closure(_) | Type::Callback(_)) && actual != ty {
-            return Err(Diagnostic::new(
-                "callable-origin",
-                "Nullish assignment must preserve the callable's concrete origin.",
-                value.span,
-            ));
-        }
-        let actual_members = actual
-            .union()
-            .map(|id| self.unions.members(id))
-            .unwrap_or_else(|| vec![actual]);
-        let actual_members = if let Some(Type::Callback(wanted)) = payload {
-            let actual_payload = self.unions.payload(actual).unwrap_or(actual);
-            if let Type::Callback(found) = actual_payload
-                && wanted != found
-            {
-                return Err(Diagnostic::new(
-                    "callable-origin",
-                    "Nullish assignment must preserve the callback parameter origin; matching signatures alone are insufficient.",
-                    value.span,
-                ));
-            }
-            actual_members
-                .into_iter()
-                .map(|member| {
-                    if matches!(member, Type::Closure(_) | Type::Callback(_)) {
-                        Type::Callback(wanted)
-                    } else {
-                        member
-                    }
-                })
-                .collect::<Vec<_>>()
-        } else {
-            actual_members
-        };
-        let result_members = if absent {
-            possible
-                .iter()
-                .copied()
-                .filter(|ty| !matches!(ty, Type::Null | Type::Undefined))
-                .chain(actual_members)
-                .collect::<Vec<_>>()
-        } else {
-            possible.clone()
-        };
-        let logical = self.unions.intern(result_members, expr.span)?;
-        if absent {
-            Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
-            if possible
-                .iter()
-                .any(|ty| !matches!(ty, Type::Null | Type::Undefined))
-            {
-                for id in before.names.values().copied() {
-                    Availability::of(&before.bindings[id])
-                        .join(Availability::of(&context.bindings[id]))
-                        .restore(&mut context.bindings[id]);
-                }
-                context.flow = crate::flow::join(&before.flow, &context.flow);
-            }
-        } else {
-            // Source-check an unreachable RHS, but retain no access or ownership effects.
-            *context = before;
-        }
-        if let Some(place) = place {
-            crate::flow::invalidate_place(&mut context.flow, &place);
-            context.flow.insert(
-                place,
-                crate::flow::Fact {
-                    members: logical
-                        .union()
-                        .map(|id| self.unions.members(id))
-                        .unwrap_or_else(|| vec![logical]),
-                    origin: Some((expr.span.start, expr.span.end)),
-                },
-            );
-        }
-        if named {
-            let id = target.binding.expect("checked target");
-            context.bindings[id].mutable = true;
-        }
-        if !logical.is_copy() && matches!(mode, Mode::Consume | Mode::Mutate) {
-            return Err(Diagnostic::new(
-                "borrowed-place",
-                "An owned assignment result borrows its destination; use a readonly consumer or clone() for independent ownership.",
-                *operator,
-            ));
-        }
-        self.require(logical, expected, expr.span)?;
-        Ok(if !logical.is_copy() {
-            logical.union().map(Type::BorrowedUnion).unwrap_or(logical)
-        } else {
-            logical
-        })
-    }
-
-    fn scalar_assignment(
-        &mut self,
-        context: &mut Context,
-        target: &mut Expr,
-        value: &mut Expr,
-        loans: &Loans,
-        operator: Span,
-    ) -> Result<Type, Diagnostic> {
-        let named = matches!(target.kind, ExprKind::Name(_));
-        if named {
-            self.rebind_target(context, target)?;
-        } else if !Self::named_storage(target)
-            || !matches!(target.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Assignment values require a let binding, named record field, or array element.",
-                target.span,
-            ));
-        }
-        // Replacement selects storage, but never reads its previous scalar.
-        // Preserve enclosing loans and permit the existing direct-field rules.
-        let prior = context.replacement.replace(target.span);
-        let selected = self.mutation_target(context, target, loans, true);
-        context.replacement = prior;
-        let ty = selected?;
-        if !ty.is_copy() {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "The value of an assignment to an array element or a computed place is supported only for int, number and boolean. Assign in its own statement, then read the place.",
-                operator,
-            ));
-        }
-        // The final indexed record is reacquired from saved indices after RHS.
-        // Preserve loans for its ancestors, rather than holding that final row.
-        let selected_parent = match &target.kind {
-            ExprKind::Index(base, _) => base.as_ref(),
-            ExprKind::Field(base, _) => match &base.kind {
-                ExprKind::Index(parent, _) => parent.as_ref(),
-                _ => base.as_ref(),
-            },
-            _ => target,
-        };
-        let active = Self::selection_loans(selected_parent, loans);
-        let actual = self.expression(context, value, Mode::Copy, &active, Some(ty))?;
-        self.require(actual, Some(ty), value.span)?;
-        // RHS effects are unconditional. Recheck the destination after them.
-        Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
-        if named {
-            let id = target.binding.expect("checked scalar assignment target");
-            if context.is_capture(id) {
-                context.bindings[id].used.get_or_insert(target.span);
-                context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
-            }
-            context.bindings[id].mutable = true;
-        }
-        Ok(ty)
+    fn scalar_assignment(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
+        self.assignment_work(context, target, value, continuations::AssignmentKind::Scalar, operator, loans)
     }
 
     fn discover_scalar_assignment(
@@ -5601,57 +5287,8 @@ impl Analyzer {
         Ok(())
     }
 
-    fn logical_assignment(
-        &mut self,
-        context: &mut Context,
-        target: &mut Expr,
-        value: &mut Expr,
-        loans: &Loans,
-        operator: Span,
-    ) -> Result<Type, Diagnostic> {
-        self.reject_string_position_write(context, target)?;
-        let named = matches!(target.kind, ExprKind::Name(_));
-        if named {
-            self.rebind_target(context, target)?;
-        } else if !Self::named_storage(target)
-            || !matches!(target.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Logical assignment requires a let binding, named record field, or array element.",
-                target.span,
-            ));
-        }
-        // Read existing availability and forward every enclosing expression loan.
-        let ty = self.mutation_target(context, target, loans, false)?;
-        self.require(ty, Some(Type::Boolean), operator)?;
-        let active = match &target.kind {
-            ExprKind::Field(base, _) | ExprKind::Index(base, _) => {
-                Self::selection_loans(base, loans)
-            }
-            _ => loans.clone(),
-        };
-        // Only availability is conditional; inferred effects/capture contracts accumulate.
-        let skipped = context
-            .names
-            .values()
-            .map(|&id| (id, Availability::of(&context.bindings[id])))
-            .collect::<Vec<_>>();
-        let rhs = self.expression(context, value, Mode::Copy, &active, Some(Type::Boolean))?;
-        self.require(rhs, Some(Type::Boolean), operator)?;
-        Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
-        for (id, before) in skipped {
-            before
-                .join(Availability::of(&context.bindings[id]))
-                .restore(&mut context.bindings[id]);
-        }
-        if named {
-            let id = target.binding.expect("checked logical target");
-            if context.is_capture(id) {
-                context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
-            }
-        }
-        Ok(Type::Boolean)
+    fn logical_assignment(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
+        self.assignment_work(context, target, value, continuations::AssignmentKind::Logical, operator, loans)
     }
 
     fn compound_assign(
@@ -5679,90 +5316,8 @@ impl Analyzer {
         Ok(())
     }
 
-    fn compound_assignment_value(
-        &mut self,
-        context: &mut Context,
-        target: &mut Expr,
-        value: &mut Expr,
-        operation: (BinaryOp, Span),
-        loans: &Loans,
-        allow_owned_statement: bool,
-    ) -> Result<Type, Diagnostic> {
-        self.reject_string_position_write(context, target)?;
-        let (op, operator) = operation;
-        let named = matches!(target.kind, ExprKind::Name(_));
-        if named {
-            self.rebind_target(context, target)?;
-        } else if !Self::named_storage(target)
-            || !matches!(target.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _))
-        {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Compound assignment requires a let binding, named record field, or array element.",
-                target.span,
-            ));
-        }
-        // Compound assignment reads the old value; it cannot restore moved storage.
-        let ty = self.mutation_target(context, target, loans, false)?;
-        if !matches!(ty, Type::Int | Type::Number | Type::String)
-            || (ty == Type::String && op != BinaryOp::Add)
-        {
-            return Err(Diagnostic::new(
-                "type",
-                "Compound assignment requires the matching implemented int, number, or string operator.",
-                operator,
-            ));
-        }
-        if ty == Type::String && !allow_owned_statement {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Compound assignment values support int and number; standalone string += remains supported.",
-                operator,
-            ));
-        }
-        let selected_parent = match &target.kind {
-            // Numeric destinations are reacquired after RHS; their final row
-            // is not retained as a loan. String old values remain borrowed.
-            ExprKind::Field(base, _) if ty != Type::String => match &base.kind {
-                ExprKind::Index(parent, _) => parent.as_ref(),
-                _ => base.as_ref(),
-            },
-            ExprKind::Field(base, _) | ExprKind::Index(base, _) => base.as_ref(),
-            _ => target,
-        };
-        let mut active = Self::selection_loans(selected_parent, loans);
-        if ty == Type::String {
-            let root = Self::root_binding(target).expect("checked compound target");
-            active
-                .entry(root)
-                .or_default()
-                .push((Mode::Read, target.span));
-        }
-        if ty == Type::String { self.string_concatenation_operand(context, value)?; }
-        let actual = self.expression(
-            context,
-            value,
-            if ty == Type::String {
-                Mode::Read
-            } else {
-                Mode::Copy
-            },
-            &active,
-            Some(ty),
-        )?;
-        self.require(actual, Some(ty), operator)?;
-        // A copied scalar can permit RHS mutation, but its destination must survive.
-        Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
-        if ty == Type::Int && crate::error_effects::integer_operation(op) {
-            exception_state::record_point(context, operator);
-        }
-        if named {
-            let id = target.binding.expect("checked compound name");
-            if context.is_capture(id) {
-                context.bindings[id].mode = context.bindings[id].mode.max(Mode::Mutate);
-            }
-        }
-        Ok(ty)
+    fn compound_assignment_value(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, operation: (BinaryOp, Span), loans: &Loans, allow_owned_statement: bool) -> Result<Type, Diagnostic> {
+        self.assignment_work(context, target, value, continuations::AssignmentKind::Compound { op: operation.0, allow_owned: allow_owned_statement }, operation.1, loans)
     }
 
     fn bind(
@@ -6985,7 +6540,7 @@ impl Analyzer {
                 self.selected_expression(context, expr, mode, loans, expected)
             }
             ExprKind::CoalesceAssign { .. } => {
-                self.coalesce_assignment(context, expr, mode, loans, expected)
+                unreachable!("nullish assignment is scheduled before expression dispatch")
             }
             ExprKind::Binary {
                 op: BinaryOp::Coalesce | BinaryOp::PatternDefault,

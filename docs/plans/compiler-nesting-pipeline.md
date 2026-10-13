@@ -573,3 +573,53 @@ only expression dispatch would leave a recursive path. Assignment emission,
 control statements, synthesized wrappers and auxiliary traversals remain pending.
 No full architecture acceptance, formal timing or installed consumer refresh is
 claimed. Optimization and S12–S21 remain required.
+
+
+### Assignment operand continuation checkpoint
+
+Scalar, compound and boolean logical assignment, plus update operations, now use
+an assignment task on the shared checker work stack. Legacy statement and scalar
+discovery entry points invoke this task, preserving their existing outer checking
+boundaries. Nested expression assignments suspend directly on the same scheduler.
+Nullish assignment separately retains target/fallback state on that scheduler.
+
+Mutation selection now has explicit prepare/finish boundaries. Target errors
+restore mutation_place, keep_flow, suppressed_flow and scalar replacement state
+before propagation. RHS frames retain selection loans, old-value access policy,
+conditional availability and integer failure-point publication. Nullish frames
+preserve prior narrowing, callback-origin validation and the existing unreachable
+RHS context-restoration policy.
+
+Emission queues storage index/discard operands before RHS values for scalar,
+compound, logical and nullish assignments and updates. Shared rendering helpers
+consume completed operands while preserving saved-index reacquisition, bounds,
+old-value evaluation and conditional stores. Statically present nullish targets
+still omit RHS emission. Owned void stores and sequence traversal remain explicit
+compatibility paths; this checkpoint does not claim all assignment lowering is
+stackless.
+
+Two focused unit tests pass: mutation-scope/tree restoration on target and RHS
+errors, and exact emission at 4,096 layers across scalar, compound, logical,
+nullish and indexed-update shapes. All 32 integration tests pass across assignment
+values, compound assignment/statements, compound values, logical assignment,
+updates, nullish assignment/aliases, owned values and assignment callees. This
+repairs the previously overflowing assignment-value depth witness. Both original
+remaining depth failures (assignment values and nullish coalescing) now pass;
+that fact alone does not prove the broader compiler architecture complete.
+
+Discovery completes scalar and compound assignment samples 8/16/32 and a mixed
+assignment/logical/coalescing/conditional/indexed sample at eight layers through
+disposal. Next geometric samples hit existing parser guards. These observations
+are not language ceilings or formal scaling acceptance. Whole-project formatting
+changes zero files/fingerprints. SQLite records under
+`tsrust-nesting-assignment-*` retain both intermediate interface checks, final
+unit/integration evidence, discovery and exact source/executable hashes.
+
+Next, sequence scheduling must retain per-prefix capture boundaries, projection
+restoration, array-removal snapshots and discarded-value behavior. Discarded owned
+assignments route through assign_statement_with_loans; string compound prefixes
+allow owned statement behavior. Emission prefixes drain their own conditional
+temporaries. These paths must migrate together with owned store completion,
+followed by control statements and auxiliary consumers. Full architecture,
+optimization, S12–S21, formal measurements and installed consumer refresh remain
+pending.

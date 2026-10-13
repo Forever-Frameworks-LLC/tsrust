@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments')
 
 
 def source(family, size):
@@ -26,6 +26,13 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family in ('assignment-values', 'compound-values', 'mixed-assignments'):
+        value = '7'
+        for _ in range(size):
+            value = ('(target+=' if family == 'compound-values' else '(target=') + value + ')'
+            if family == 'mixed-assignments':
+                value = '(values[0]+=(true?(null??(0||' + value + ')):0))'
+        return 'function main(){let target=0;const values=[0];console.log(' + value + ');}'
     elif family in ('logical-values', 'logical-booleans', 'mixed-logical'):
         value = 'true' if family == 'logical-booleans' else '7'
         for _ in range(size):
