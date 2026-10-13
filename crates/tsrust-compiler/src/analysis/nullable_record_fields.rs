@@ -24,7 +24,7 @@ impl Analyzer {
         while matches!(value.kind,ExprKind::Unary{op:UnaryOp::RecordCarrier,..}) {
             let span=value.span;
             let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));
-            let ExprKind::Unary{value:inner,..}=old.kind else{unreachable!()};
+            let ExprKind::Unary{value:inner,..}=old.into_kind() else{unreachable!()};
             *value=*inner;
         }
         let actual=value.ty?;

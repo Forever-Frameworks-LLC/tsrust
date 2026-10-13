@@ -102,7 +102,8 @@ fn expression_mention(value: &mut Expr, variable: Variable) -> Option<crate::Spa
     let original = std::mem::replace(value, Expr::new(ExprKind::Null, span));
     let mut holder = [Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Expr(original), span }];
     let found = mention(&mut holder, variable);
-    let [Stmt { kind: StmtKind::Expr(restored), .. }] = holder else {
+    let [holder] = holder;
+    let StmtKind::Expr(restored) = holder.into_kind() else {
         unreachable!("expression holder");
     };
     *value = restored;

@@ -298,7 +298,7 @@ impl Analyzer {
                 value.ty=Some(Type::Record(current));
                 if current!=target{self.checked_carrier(value,destination)?;}
             }
-            ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=>{self.retarget_nullable_store(inner,destination)?;if inner.ty==Some(destination){let span=value.span;let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));let ExprKind::Unary{value:inner,..}=old.kind else{unreachable!()};*value=*inner;}else{value.ty=Some(destination);}}
+            ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=>{self.retarget_nullable_store(inner,destination)?;if inner.ty==Some(destination){let span=value.span;let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));let ExprKind::Unary{value:inner,..}=old.into_kind() else{unreachable!()};*value=*inner;}else{value.ty=Some(destination);}}
             _=>self.checked_carrier(value,destination)?,
         }
         Ok(())

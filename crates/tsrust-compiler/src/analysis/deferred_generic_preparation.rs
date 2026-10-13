@@ -72,8 +72,8 @@ impl Analyzer {
         });
         let preparation = preparation.as_ref().unwrap_or(context);
         self.prepare_generic_call(preparation, &mut source_call, expected)?;
-        let ExprKind::Call(target, prepared) = source_call.kind else { unreachable!() };
-        let ExprKind::Name(name) = target.kind else { unreachable!() };
+        let ExprKind::Call(target, prepared) = source_call.into_kind() else { unreachable!() };
+        let ExprKind::Name(name) = target.into_kind() else { unreachable!() };
         let function = self.function_names[&name];
         self.named_captures.prepare(function, preparation, &self.program)?;
         self.function(function)?;

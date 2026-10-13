@@ -1011,7 +1011,7 @@ mod tests {
         let StmtKind::Return(Some(value))=program.functions[fail].body[0].kind.clone() else {panic!("return");};
         program.functions[fail].body[0].kind=StmtKind::Throw(value);
         let mut thrown=program.functions[replacement].body[0].clone();
-        let StmtKind::Return(Some(value))=thrown.kind else {panic!("return");};
+        let StmtKind::Return(Some(value))=std::mem::replace(&mut thrown.kind, StmtKind::Break) else {panic!("return");};
         thrown.kind=StmtKind::Throw(value);
         let mut parsed=crate::syntax::parse("function main(){try{}catch{}}").unwrap();
         let mut statement=parsed.functions[0].body.remove(0);
@@ -1031,7 +1031,7 @@ mod tests {
     fn unreachable_handler_does_not_add_an_outgoing_throw_contract() {
         let mut program=crate::check("function value():string{return \"bad\";}function main(){}").unwrap().program;
         let mut thrown=program.functions.iter().find(|function|function.name=="value").unwrap().body[0].clone();
-        let StmtKind::Return(Some(value))=thrown.kind else {panic!("return");};
+        let StmtKind::Return(Some(value))=std::mem::replace(&mut thrown.kind, StmtKind::Break) else {panic!("return");};
         thrown.kind=StmtKind::Throw(value);
         let mut parsed=crate::syntax::parse("function main(){try{}catch{}}").unwrap();
         let mut statement=parsed.functions[0].body.remove(0);
@@ -1270,7 +1270,7 @@ mod tests {
         let StmtKind::Return(Some(value))=program.functions[fail].body[0].kind.clone() else {panic!("checked return");};
         program.functions[fail].body[0].kind=StmtKind::Throw(value);
         let mut parsed=crate::syntax::parse("function main(){try{}catch{}}").unwrap();
-        let StmtKind::Try(mut region)=parsed.functions[0].body.remove(0).kind else {panic!("region");};
+        let StmtKind::Try(mut region)=parsed.functions[0].body.remove(0).into_kind() else {panic!("region");};
         region.body=std::mem::take(&mut program.functions[relay].body);
         let statement=Stmt{labels:vec![],control_target:None,span:crate::Span::new(0,0),kind:StmtKind::Try(region)};
         program.functions[relay].body.push(statement);
@@ -1292,7 +1292,7 @@ mod tests {
         for name in ["text","count"] {
             let function=program.functions.iter().find(|function|function.name==name).unwrap();
             let mut statement=function.body[0].clone();
-            let StmtKind::Return(Some(value))=statement.kind else {panic!("return");};
+            let StmtKind::Return(Some(value))=std::mem::replace(&mut statement.kind, StmtKind::Break) else {panic!("return");};
             statement.kind=StmtKind::Throw(value);throws.push(statement);
         }
         let mut parsed=crate::syntax::parse("function main(){try{try{}catch{}}catch{}}").unwrap();

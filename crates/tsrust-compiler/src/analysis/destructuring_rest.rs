@@ -16,7 +16,7 @@ impl Analyzer {
         for field in self.program.records[id].fields.iter().skip(start).cloned().collect::<Vec<_>>(){
             let mut selected=Expr::new(ExprKind::Field(Box::new(base.clone()),field.name.text),base.span);
             self.expression(context,&mut selected,Mode::Read,loans,None)?;
-            if let ExprKind::Field(checked,_) = selected.kind {*base=*checked;}
+            if let ExprKind::Field(checked,_) = selected.into_kind() {*base=*checked;}
         }
         let fields=self.program.records[id].fields.iter().skip(start).cloned().enumerate().map(|(index,mut field)|{field.name.text=index.to_string();field}).collect::<Vec<_>>();
         let existing=self.program.records.iter().position(|record|record.is_tuple()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.ty==b.ty));
@@ -42,7 +42,7 @@ impl Analyzer {
         for field in &fields {
             let mut selected=Expr::new(ExprKind::Field(Box::new(base.clone()),field.name.text.clone()),base.span);
             self.expression(context,&mut selected,Mode::Read,loans,None)?;
-            if let ExprKind::Field(checked,_) = selected.kind {*base=*checked;}
+            if let ExprKind::Field(checked,_) = selected.into_kind() {*base=*checked;}
         }
         let existing=self.program.records.iter().position(|record|!record.is_tuple()&&record.fields.len()==fields.len()&&record.fields.iter().zip(&fields).all(|(a,b)|a.name.text==b.name.text&&a.ty==b.ty));
         let result=if let Some(existing)=existing{existing}else{

@@ -716,3 +716,44 @@ Whole-project formatting changes zero files and fingerprints. SQLite records und
 completed checks and source hashes with byte-exact restoration. Installed consumers
 remain on `36093d5b`; this internal storage conversion changes no public admission
 boundary or language signature.
+
+## Expression and statement disposal
+
+Expression and statement destructors now detach their payload into an owned
+worklist. The worklist covers every expression and statement variant, including
+checked spread callees/segments/variants, exception bodies, local functions,
+closure bodies and signature defaults. It also traverses callable/result
+annotations to remove default-expression edges before releasing their wrappers.
+This prevents mutual annotation/default/body ownership from reintroducing stack
+recursion across otherwise iterative destructors.
+
+Owned extraction sites use `into_kind` or `take_kind` without cloning their
+children. Callers that retain span/type/binding metadata keep the emptied node;
+callers that retain unmatched variants test the discriminant before extraction.
+The parser's statement conversion and destructuring preserve these distinctions.
+Source diagnostic coordinates and generated evaluation order remain unchanged.
+
+Normal-stack witnesses construct 16,384 alternating expression/closure/default
+levels and block/local-function/default levels. Existing deep effect/completion
+witnesses now use production disposal rather than manual test-only unwinding.
+This is disposal acceptance only: derived AST cloning, debug formatting, parser,
+checker and emitter traversal remain unfinished, and admission guards remain.
+No compilation scaling or runtime allocation measurement is claimed here.
+
+The next clone conversion must share continuations across AST and annotation
+wrappers. Implementing only expression clone while leaving wrapper defaults to
+call it recursively would retain the expression-to-signature-to-default cycle.
+Preserve all checked expression metadata and stored depth instead of rebuilding
+nodes solely through the source constructor.
+
+Validation passes the full compiler unit suite (1,062 passed, one existing opt-in
+scheduling diagnostic ignored), 208 targeted native integration checks and 67
+generic editor checks. Native coverage includes spread calls, callable fields,
+destructuring assignment/rest, generic adapters, optional chains, owned arrays,
+schema options and schema pipelines, including their executable catalog examples.
+Existing matched fixtures and benchmark protocols remain unchanged. Whole-project
+formatting changes zero files and fingerprints. SQLite records under
+`tsrust-nesting-tree-storage` retain migration diagnostics, completed validation
+and source hashes with exact restoration verification. These checks establish
+this disposal section; full nesting architecture acceptance and scaling remain
+pending. Installed consumers remain on `36093d5b`, with no public admission change.

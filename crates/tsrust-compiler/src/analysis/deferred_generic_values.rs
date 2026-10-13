@@ -155,8 +155,8 @@ impl Analyzer {
         let arguments = hints.iter().map(|hint| Expr::checked(ExprKind::Undefined, span, *hint)).collect();
         let mut call = Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(declaration), span)), arguments), span);
         self.prepare_generic_call(&preparation, &mut call, None)?;
-        let ExprKind::Call(callee, _) = call.kind else { unreachable!() };
-        let ExprKind::Name(name) = callee.kind else { unreachable!() };
+        let ExprKind::Call(callee, _) = call.into_kind() else { unreachable!() };
+        let ExprKind::Name(name) = callee.into_kind() else { unreachable!() };
         let function = self.function_names[&name];
         self.named_captures.prepare(function, &preparation, &self.program)?;
         self.function(function)?;

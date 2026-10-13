@@ -137,23 +137,6 @@ mod tests {
         Stmt { kind, span: crate::Span::new(11, 19), labels: vec![], control_target: None }
     }
 
-    // These witnesses isolate effects/completion from the parser and checker,
-    // whose deep syntax and production disposal conversion remain separate work.
-    fn dispose_statements(body: Vec<Stmt>) {
-        let mut pending = body;
-        while let Some(statement) = pending.pop() {
-            match statement.kind {
-                StmtKind::Block(body) => pending.extend(body),
-                StmtKind::Try(region) => {
-                    pending.extend(region.body);
-                    if let Some(handler) = region.catch { pending.extend(handler.body); }
-                    if let Some(body) = region.finally { pending.extend(body); }
-                }
-                _ => {}
-            }
-        }
-    }
-
     #[test]
     fn deep_expression_effects_keep_known_payloads_and_every_point() {
         let span = crate::Span::new(11, 19);
@@ -165,14 +148,15 @@ mod tests {
         }
         assert_eq!(expression_effect(&mut value, &effects), FailureSet::thrown(Some(Type::String)));
         let mut count = 0;
+        let mut current = &value;
         loop {
-            assert!(value.effects_checked && value.may_fail);
-            assert_eq!(value.span, span);
-            if let ExprKind::Unary { value: child, .. } = value.kind {
-                assert!(!value.own_may_fail);
-                value = *child;
+            assert!(current.effects_checked && current.may_fail);
+            assert_eq!(current.span, span);
+            if let ExprKind::Unary { value: child, .. } = &current.kind {
+                assert!(!current.own_may_fail);
+                current = child;
                 count += 1;
-            } else { assert!(value.own_may_fail); break; }
+            } else { assert!(current.own_may_fail); break; }
         }
         assert_eq!(count, 16_384);
     }
@@ -191,7 +175,7 @@ mod tests {
         assert_eq!(body_effect(&mut root, &ErrorEffects::default()), FailureSet::default());
         let StmtKind::Try(region) = &root[0].kind else { unreachable!() };
         assert_eq!(region.catch.as_ref().unwrap().error_contract.as_deref(), Some(&FailureSet::thrown(Some(Type::Int))));
-        dispose_statements(root);
+        drop(root);
     }
 
     #[test]
@@ -204,7 +188,7 @@ mod tests {
             body: vec![statement(StmtKind::Throw(thrown))], catch: None, finally: Some(cleanup),
         })))];
         assert_eq!(body_effect(&mut root, &ErrorEffects::default()), FailureSet::default());
-        dispose_statements(root);
+        drop(root);
     }
 
     #[test]

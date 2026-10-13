@@ -2,6 +2,7 @@ pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
 mod annotation_conversion;
 mod annotation_storage;
+mod tree_storage;
 pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
@@ -2909,7 +2910,7 @@ impl Parser<'_> {
                 }
                 let first = positions.remove(0);
                 self.pending.append(&mut positions);
-                first.kind
+                first.into_kind()
             } else {
                 self.pending.append(&mut positions);
                 StmtKind::Let {
@@ -2929,10 +2930,10 @@ impl Parser<'_> {
     #[inline(never)]
     fn destructuring_assignment(&mut self, expression: Expr) -> Result<StmtKind, Diagnostic> {
         let span = expression.span;
-        let ExprKind::Assign { target, value, .. } = expression.kind else {
+        let ExprKind::Assign { target, value, .. } = expression.into_kind() else {
             unreachable!("destructuring assignment expression")
         };
-        let (target, value) = (*target, *value);
+        let (mut target, mut value) = (*target, *value);
         let mut out = Vec::new();
         let spread = |element: &Expr| matches!(element.kind, ExprKind::Unary { op: UnaryOp::Spread, .. });
         // A written array with fewer values than targets can never fill them.
@@ -2948,7 +2949,7 @@ impl Parser<'_> {
                 ));
             }
         }
-        match (target.kind, value.kind) {
+        match (target.take_kind(), value.take_kind()) {
             // Each written value is held first, so `[a, b] = [b, a]` swaps
             // without building an array and owned values can move.
             (ExprKind::Array(targets), ExprKind::Array(values))
@@ -2990,7 +2991,7 @@ impl Parser<'_> {
         }
         let first = out.remove(0);
         self.pending.append(&mut out);
-        Ok(first.kind)
+        Ok(first.into_kind())
     }
 
     /// Assign each position or field of `source` to the matching target.
@@ -3000,12 +3001,13 @@ impl Parser<'_> {
             return Err(Diagnostic::new("unsupported", "Destructuring pattern nesting exceeds the limit of 32.", target.span));
         }
         let select = |source: &Expr| Expr::new(source.kind.clone(), source.span);
-        match target.kind {
+        match target.into_kind() {
             ExprKind::Array(targets) => {
                 let count = targets.len();
                 for (position, element) in targets.into_iter().enumerate() {
                     let at = element.span;
-                    if let ExprKind::Unary { op: UnaryOp::Spread, value: rest, .. } = element.kind {
+                    if matches!(element.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }) {
+                        let ExprKind::Unary { value: rest, .. } = element.into_kind() else { unreachable!() };
                         if position + 1 != count {
                             return Err(Diagnostic::new("syntax", "A rest target must be last in a destructuring assignment.", at));
                         }
@@ -3196,7 +3198,8 @@ impl Parser<'_> {
     // Discarding the result preserves existing standalone owned replacement.
     // Keep Stmt-sized construction out of recursive parser statement frames.
     fn expression_statement(expression: Expr) -> StmtKind {
-        match expression.kind {
+        if !matches!(expression.kind, ExprKind::CompoundAssign { .. } | ExprKind::Assign { .. }) { return StmtKind::Expr(expression); }
+        match expression.into_kind() {
             ExprKind::CompoundAssign {
                 target,
                 value,
@@ -3212,7 +3215,7 @@ impl Parser<'_> {
                 value: *value,
                 operator: None,
             },
-            _ => StmtKind::Expr(expression),
+            _ => unreachable!("assignment statement"),
         }
     }
 

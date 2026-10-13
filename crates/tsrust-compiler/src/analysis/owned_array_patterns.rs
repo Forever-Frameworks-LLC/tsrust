@@ -71,7 +71,7 @@ fn lower_selection(value: &mut Expr, source: &str, removed: &mut usize, optional
                     left: Box::new(length), right: Box::new(index) }, span);
                 ExprKind::Conditional { predicate: Box::new(condition), consequent: Box::new(call),
                     alternate: Box::new(Expr::new(ExprKind::Undefined, span)) }
-            } else { call.kind };
+            } else { call.into_kind() };
             *removed += 1;
         }
         ExprKind::Call(callee, arguments) if matches!(&callee.kind,

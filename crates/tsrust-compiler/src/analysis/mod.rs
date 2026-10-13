@@ -4015,7 +4015,7 @@ impl Analyzer {
         let value_span=value.span;
         let mut inner=std::mem::replace(value,Box::new(Expr::new(ExprKind::Undefined,value_span)));
         if let ExprKind::Inject{..}=&inner.kind {
-            let ExprKind::Inject{value,..}=inner.kind else {unreachable!()};inner=value;
+            let ExprKind::Inject{value,..}=inner.into_kind() else {unreachable!()};inner=value;
         }
         let op=if selected.union().is_some(){UnaryOp::ParameterDefaultStore}else{UnaryOp::CallableStore};
         *value=Box::new(Expr::new(ExprKind::Unary{op,value:inner,operator:value_span},value_span));
@@ -13883,7 +13883,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let single_spread = codes.len() == 1
             && matches!(&codes[0].kind, ExprKind::Unary { op: UnaryOp::Spread,value,.. } if matches!(self.expression_type_hint(context,value),Some(Type::Array(_))) || matches!(value.kind,ExprKind::Array(_)));
         if single_spread {
-            let ExprKind::Unary { value, .. } = codes.pop().expect("one spread argument").kind else {
+            let ExprKind::Unary { value, .. } = codes.pop().expect("one spread argument").into_kind() else {
                 unreachable!("matched spread argument")
             };
             args.push(*value);
@@ -16263,7 +16263,7 @@ fn stored_named_calls_use_registered_signature_hints_and_consuming_access() {
             .into_iter()
             .next()
             .unwrap()
-            .kind
+            .into_kind()
         else {
             panic!("parsed call");
         };
@@ -16629,10 +16629,10 @@ fn discovery_and_effect_passes_do_not_publish_storage_origins() {
         analyzer.program.records[0].fields[0].callable_declaration = Some(declaration);
         analyzer.discovering_results = discovering;
         analyzer.effects_only = !discovering;
-        let StmtKind::Let { value, .. } = analyzer.program.functions[0].body[0].clone().kind else {
+        let StmtKind::Let { value, .. } = analyzer.program.functions[0].body[0].clone().into_kind() else {
             panic!("holder binding");
         };
-        let ExprKind::Record(mut fields) = value.kind else {
+        let ExprKind::Record(mut fields) = value.into_kind() else {
             panic!("record initializer");
         };
         let mut context = Context::new("main".into());

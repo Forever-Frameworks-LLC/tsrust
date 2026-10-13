@@ -169,8 +169,8 @@ impl Analyzer {
         if args.len() != required + 1 { return Ok(None); }
         let mut receiver = expr.clone();
         let ExprKind::Call(_, args) = &mut receiver.kind else { unreachable!() };
-        let options = args.pop().unwrap();
-        let ExprKind::Record(fields) = options.kind else {
+        let mut options = args.pop().unwrap();
+        let ExprKind::Record(fields) = options.take_kind() else {
             return Err(Diagnostic::new("schema-options", "Schema options require an object containing a string message.", options.span));
         };
         let mut message = None;

@@ -1717,7 +1717,7 @@ mod tests {
         pending.record(CompletionKind::Return,state.clone());
         pending.record(CompletionKind::Break(Some(ControlTarget::Block(42))),state);
         let mut parsed=crate::syntax::parse("function main(){sink(payload);}").unwrap();
-        let StmtKind::Expr(template)=parsed.functions[0].body.remove(0).kind else {panic!("call");};
+        let StmtKind::Expr(template)=parsed.functions[0].body.remove(0).into_kind() else {panic!("call");};
         let mut count=0;
         let output=pending.finally(&mut |state| {
             count+=1;state.restore(&mut context);

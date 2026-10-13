@@ -149,4 +149,11 @@ Callback and result annotations share explicit construction and release worklist
 parameter annotations reach them through their callback variants. Consume callback
 fields through `CallbackAnnotation::into_parts` so the emptied wrapper still runs
 its destructor. Parameter defaults retain their expression trees; expression
-clone/drop and recursive debug formatting remain separate pending conversions.
+cloning and recursive debug formatting remain separate pending conversions.
+
+AST disposal lives in `syntax/tree_storage.rs`. Its owned worklist crosses
+expressions, statements, local functions, callable annotations and default
+initializers, including checked spread-plan children. `Expr::into_kind` and
+`Stmt::into_kind` consume a node safely; `Expr::take_kind` retains metadata while
+emptying its payload. Test a variant before extraction when an unmatched node
+must remain intact. AST cloning and debug formatting are separate pending work.

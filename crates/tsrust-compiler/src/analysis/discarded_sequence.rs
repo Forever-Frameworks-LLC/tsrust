@@ -48,7 +48,8 @@ impl Analyzer {
             let mut pending = std::mem::take(values);
             pending.reverse();
             while let Some(operand) = pending.pop() {
-                if let ExprKind::Sequence(inner) = operand.kind {
+                if matches!(operand.kind, ExprKind::Sequence(_)) {
+                    let ExprKind::Sequence(inner) = operand.into_kind() else { unreachable!() };
                     pending.extend(inner.into_iter().rev());
                 } else {
                     values.push(operand);

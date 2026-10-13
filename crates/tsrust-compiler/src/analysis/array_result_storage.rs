@@ -30,7 +30,7 @@ pub(super) fn eligible_bindings(context: &Context, body: &[Stmt]) -> HashSet<usi
 fn strip_carrier(value: &mut Expr) {
     while matches!(value.kind, ExprKind::Unary { op: UnaryOp::RecordCarrier, .. }) {
         let old = std::mem::replace(value, Expr::new(ExprKind::Null, value.span));
-        let ExprKind::Unary { value: inner, .. } = old.kind else { unreachable!() };
+        let ExprKind::Unary { value: inner, .. } = old.into_kind() else { unreachable!() };
         *value = *inner;
     }
 }
@@ -95,7 +95,7 @@ pub(super) fn unwrap_removal(value: &mut Expr) {
         let ExprKind::Inject { value: inner, .. } = &value.kind else { break; };
         if !matches!(inner.target, Some(CallTarget::ArrayPop | CallTarget::ArrayShift)) { break; }
         let old = std::mem::replace(value, Expr::new(ExprKind::Null, value.span));
-        let ExprKind::Inject { value: inner, .. } = old.kind else { unreachable!() };
+        let ExprKind::Inject { value: inner, .. } = old.into_kind() else { unreachable!() };
         *value = *inner;
     }
 }

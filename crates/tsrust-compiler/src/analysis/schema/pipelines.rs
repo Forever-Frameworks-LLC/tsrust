@@ -142,8 +142,8 @@ impl Analyzer {
         let mut diagnostic_path = Vec::new();
         let mut message = None;
         if args.len() == 2 {
-            let options = args.pop().unwrap();
-            let ExprKind::Record(fields) = options.kind else {
+            let mut options = args.pop().unwrap();
+            let ExprKind::Record(fields) = options.take_kind() else {
                 return Err(Diagnostic::new("schema-options", "Refinement options require an object with path and/or message.", options.span));
             };
             let mut names = HashSet::new();

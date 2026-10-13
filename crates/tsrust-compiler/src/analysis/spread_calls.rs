@@ -103,7 +103,7 @@ impl Analyzer {
         }
         let mut prototype=Expr::new(ExprKind::Call(callee.clone(),normalized),expr.span);
         self.prepare_generic_call(context,&mut prototype,expected)?;
-        let ExprKind::Call(prepared,_)=prototype.kind else{unreachable!()};
+        let ExprKind::Call(prepared,_)=prototype.into_kind() else{unreachable!()};
         let ExprKind::Call(callee,_)=&mut expr.kind else{unreachable!()};*callee=prepared;
         Ok(())
     }
@@ -155,7 +155,7 @@ impl Analyzer {
             }
             let mut prototype=Expr::new(ExprKind::Call(Box::new(callee.clone()),args),span);
             self.prepare_generic_call(context,&mut prototype,expected)?;
-            let ExprKind::Call(prepared,_) = prototype.kind else {unreachable!()}; callee=*prepared;
+            let ExprKind::Call(prepared,_) = prototype.into_kind() else {unreachable!()}; callee=*prepared;
         }
         for segment in &mut segments {
             if !segment.spread && let Some(ty)=self.callback_value_hint(context,&segment.value)? {segment.element=ty;}

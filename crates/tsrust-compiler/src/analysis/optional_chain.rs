@@ -9,8 +9,8 @@ impl Analyzer {
                 if matches!(&callee.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, value, .. } if matches!(value.kind, ExprKind::Name(_) | ExprKind::Field(_, _)) && !self.expression_type_hint(context,value).is_some_and(|ty|ty.union().is_some() || matches!(ty,Type::Null|Type::Undefined)))
                 {
                     let placeholder = Expr::checked(ExprKind::Null, callee.span, None);
-                    let old = std::mem::replace(callee.as_mut(), placeholder);
-                    let ExprKind::Unary { value, .. } = old.kind else {
+                    let mut old = std::mem::replace(callee.as_mut(), placeholder);
+                    let ExprKind::Unary { value, .. } = old.take_kind() else {
                         unreachable!()
                     };
                     **callee = *value;
@@ -21,8 +21,8 @@ impl Analyzer {
                 if matches!(&base.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, value, .. } if matches!(&value.kind, ExprKind::Name(name) if matches!(name.as_str(), "Array"|"Math"|"Number"|"console"|"Boolean"|"String")))
                 {
                     let placeholder = Expr::checked(ExprKind::Null, base.span, None);
-                    let old = std::mem::replace(base.as_mut(), placeholder);
-                    let ExprKind::Unary { value, .. } = old.kind else {
+                    let mut old = std::mem::replace(base.as_mut(), placeholder);
+                    let ExprKind::Unary { value, .. } = old.take_kind() else {
                         unreachable!()
                     };
                     **base = *value;
@@ -326,8 +326,8 @@ impl Analyzer {
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
-        let old = std::mem::replace(expr, Expr::checked(ExprKind::Null, expr.span, None));
-        let ExprKind::OptionalChain(mut body) = old.kind else {
+        let mut old = std::mem::replace(expr, Expr::checked(ExprKind::Null, expr.span, None));
+        let ExprKind::OptionalChain(mut body) = old.take_kind() else {
             unreachable!()
         };
         // Validate explicit callable type arguments before an absent receiver
@@ -336,7 +336,7 @@ impl Analyzer {
         self.optional_static(context, &mut body);
         self.optional_present_storage(context, &mut body);
         let result = self.optional_body(context, &mut body, mode, loans, expected)?;
-        expr.kind = body.kind;
+        expr.kind = body.take_kind();
         expr.ty = Some(result);
         expr.binding = body.binding;
         expr.target = body.target;
