@@ -5,9 +5,11 @@ import {assertOptionalDefaultParameterSource} from './optional-default-parameter
 import {optionalDefaultParameterIds,expectedOptionalDefaultParameterObservation} from './optional-default-parameters-oracle.mjs';
 import {hands} from './optional-default-parameter-hands.mjs';import {observeSliceTree} from './slice-observation.mjs';import {expectedChecksum,expectedExactResult} from './oracle.mjs';import {reportCategory} from './report.mjs';
 const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8'),manifest=JSON.parse(read('./manifest.json')),rows=manifest.workloads.filter(row=>row.family==='optional-default-parameters');
-const oldPrefix='71a7dc68d3b51ba686295da7d3405f7d6881d211c38e754e05bcc9e9daf3d789';
-test('Gate98 registration preserves earlier rows and binds actual optional/default scenario sources',()=>{
- assert.equal(manifestProtocolFingerprint(manifest.workloads.slice(0,691)),oldPrefix);assert.ok(manifest.gate>=98);assert.deepEqual(rows.map(row=>row.id),optionalDefaultParameterIds);assert.equal(rows.length,13);
+// Freeze the accepted S11 protocol metadata at 6fe878c2; current source hashes
+// remain checked independently below. No measurement status changes here.
+const acceptedPrefix='e794c426fd497f15498f98e5e9b413dcc5176a1914ecaa5097140233dfb4b935';
+test('Optional/default registration preserves accepted earlier rows and binds actual optional/default scenario sources',()=>{
+ assert.equal(manifestProtocolFingerprint(manifest.workloads.slice(0,691)),acceptedPrefix);assert.ok(manifest.gate>=98);assert.deepEqual(rows.map(row=>row.id),optionalDefaultParameterIds);assert.equal(rows.length,13);
  for(const row of rows){assert.equal(row.measured,false);assert.equal(row.pendingCheckpoint,101);assert.equal(reportCategory(row.id),'callbacks');for(const [kind,name] of [['native',row.source],['typescript',row.counterpart]]){const source=read('./'+name);assertOptionalDefaultParameterSource(source,row,kind);assert.throws(()=>assertOptionalDefaultParameterSource(replaceCodeSnippet(source, 'output.push(','void('),row,kind));assert.throws(()=>assertOptionalDefaultParameterSource(replaceCodeSnippet(source, 'return output;','return [];'),row,kind));}assert.throws(()=>assertOptionalDefaultParameterSource(read('./'+row.source),{...row,operationsPerIteration:2},'native'));}
  for(const file of ['./run.mjs','./profile-native.mjs']){const text=read(file);assert.match(text,/assertOptionalDefaultParameterSource\(source/);assert.match(text,/assertOptionalDefaultParameterSource\((?:ts|counterpart)/);assert.ok(text.includes("'optional-default-parameters-values-oracle.mjs'"));}
 });

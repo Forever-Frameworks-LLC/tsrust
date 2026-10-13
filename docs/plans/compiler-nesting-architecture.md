@@ -388,3 +388,39 @@ and fingerprints. Evidence, including original ownership-migration diagnostics,
 is byte-verified in SQLite under `tsrust-nesting-annotation-storage`. No new timing
 or allocation samples are claimed. This internal storage checkpoint leaves
 installed consumers on the last public behavior checkpoint, `ee3dd790`.
+
+## Bidirectional callable annotation conversion in progress
+
+Source callback/result wrappers now lower to structured annotations through an
+explicit construction worklist. The reverse adapter also uses construction
+frames, separating parameter callback adaptation from result invocation modes.
+Nullable callable detection traverses nested unions/groups iteratively while
+retaining array and direct-callable boundaries.
+
+The conversion preserves owned/once/shared modes, inferred result and parameter
+markers, omission/rest/access metadata and grouped source spans. Borrowed result
+wrappers retain the existing named-form resolver path. Source parameter ranges
+still end at the annotation payload, excluding access-wrapper closing delimiters;
+the initial new round-trip assertion incorrectly expected the wider parsed range
+and was corrected against the unchanged pre-refactor rule.
+
+A 16,384-level mixed parameter/result tree converts both ways on the normal worker
+stack and compares through the production structured-annotation equality walker.
+A deep union/group witness retains nullable detection boundaries. Structured
+outputs use production disposal; source callback/result wrappers are deliberately
+disposed iteratively by the isolated witness because their storage conversion is
+still pending. Parser, source wrapper clone/drop, substitution and resolution
+remain required before lifting the associated guards or claiming full acceptance.
+No public Tsrust contract or benchmark protocol changes in this section.
+
+Verification covers eight adapter unit checks (seven initial passes plus the
+corrected span assertion), 96 compiler integration checks and 35 callable editor
+checks. Native coverage includes the existing optional/default benchmark source-
+order witness. Both optional/default benchmark registration/oracle checks pass
+after repairing a stale historical prefix assertion: the new fingerprint was
+verified byte-for-byte against the accepted `6fe878c2` protocol prefix. No workload,
+manifest, measurement status or sampling protocol changed. Original unit/benchmark
+failures and affected repairs are preserved in SQLite under
+`tsrust-nesting-annotation-conversion`. Whole-project formatting changes zero files
+and fingerprints. Installed consumers remain on the last public behavior
+checkpoint; no timing or allocation measurements are claimed for this section.

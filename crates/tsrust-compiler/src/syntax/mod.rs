@@ -1,5 +1,6 @@
 pub(crate) mod diagnostic_directives;
 mod named_function_syntax;
+mod annotation_conversion;
 pub(crate) mod numeric_literals;
 pub mod match_syntax;
 use crate::diagnostic::{Diagnostic, Span};
@@ -1693,93 +1694,6 @@ pub enum ResultAnnotation {
         result: Box<ResultAnnotation>,
         span: Span,
     },
-}
-
-fn structured_parameters(
-    params: &[CallableParameter],
-) -> Vec<crate::type_syntax::CallableParameter> {
-    params
-        .iter()
-        .map(|param| {
-            let annotation = match &param.ty {
-                ParameterAnnotation::Named(value) => (**value).clone(),
-                ParameterAnnotation::Callback(callback) => callback.value_annotation(),
-                ParameterAnnotation::Inferred(token) => crate::type_syntax::ValueAnnotation { kind: crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName { text: "__inferred_parameter".into(), span: token.span }), span: token.span },
-            };
-            crate::type_syntax::CallableParameter {
-                name: crate::type_syntax::TypeName {
-                    text: param.name.text.clone(),
-                    span: param.name.span,
-                },
-                omission: param.initializer.omission(),
-                rest: param.rest,
-                access: param
-                    .access
-                    .as_ref()
-                    .map(|access| crate::type_syntax::ParameterAccess {
-                        mode: match access.text.as_str() {
-                            "read" => crate::Mode::Read,
-                            "mutate" => crate::Mode::Mutate,
-                            "consume" => crate::Mode::Consume,
-                            _ => unreachable!("parsed parameter access"),
-                        },
-                        span: access.span,
-                    }),
-                span: Span::new(param.name.span.start, annotation.span.end),
-                annotation,
-            }
-        })
-        .collect()
-}
-
-impl ResultAnnotation {
-    pub(crate) fn value_annotation(&self) -> crate::type_syntax::ValueAnnotation {
-        match self {
-            Self::Inferred(span) => crate::type_syntax::ValueAnnotation { kind: crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName { text: "__inferred_arrow_result".into(), span: *span }), span: *span },
-            Self::Named(value) => (**value).clone(),
-            Self::Callable {
-                kind,
-                params,
-                result,
-                span,
-            } => crate::type_syntax::ValueAnnotation {
-                kind: crate::type_syntax::ValueAnnotationKind::Callable {
-                    ownership: match kind {
-                        Some(CallbackKind::OwnedOnce) => {
-                            crate::type_syntax::CallableOwnership::OwnedOnce
-                        }
-                        Some(CallbackKind::Owned) => crate::type_syntax::CallableOwnership::Owned,
-                        Some(CallbackKind::SharedRead) => crate::type_syntax::CallableOwnership::SharedRead,
-                        _ => crate::type_syntax::CallableOwnership::Default,
-                    },
-                    parameters: structured_parameters(params),
-                    result: Box::new(result.value_annotation()),
-                },
-                span: *span,
-            },
-        }
-    }
-}
-
-impl CallbackAnnotation {
-    pub(crate) fn value_annotation(&self) -> crate::type_syntax::ValueAnnotation {
-        use crate::type_syntax::{CallableOwnership, ValueAnnotation, ValueAnnotationKind};
-        ValueAnnotation {
-            kind: ValueAnnotationKind::Callable {
-                ownership: match self.kind {
-                    CallbackKind::Read => CallableOwnership::Read,
-                    CallbackKind::Reusable => CallableOwnership::Reusable,
-                    CallbackKind::Once => CallableOwnership::Once,
-                    CallbackKind::Owned => CallableOwnership::Owned,
-                    CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
-                    CallbackKind::SharedRead => CallableOwnership::SharedRead,
-                },
-                parameters: structured_parameters(&self.params),
-                result: Box::new(self.result.value_annotation()),
-            },
-            span: self.span,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

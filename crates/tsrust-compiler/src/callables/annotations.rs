@@ -1,4 +1,5 @@
 //! Adapt structured callable syntax to existing source-aware checking contracts.
+mod conversion;
 use crate::syntax::{
     CallableParameter, CallbackAnnotation, CallbackKind, ParameterAnnotation, ResultAnnotation,
     Token, TokenKind,
@@ -45,96 +46,26 @@ pub(crate) fn storage_leaf(mut annotation: &ValueAnnotation) -> (&ValueAnnotatio
 
 /// A union or group whose members include a callable signature.
 pub(crate) fn nullable_callable(annotation: &ValueAnnotation) -> bool {
-    match &ungroup(annotation).kind {
-        Kind::Union(members) => members.iter().any(|member| {
-            matches!(&ungroup(member).kind, Kind::Callable { .. }) || nullable_callable(member)
-        }),
-        _ => false,
+    let Kind::Union(members) = &ungroup(annotation).kind else { return false; };
+    let mut pending = members.iter().collect::<Vec<_>>();
+    while let Some(value) = pending.pop() {
+        match &ungroup(value).kind {
+            Kind::Callable { .. } => return true,
+            Kind::Union(members) => pending.extend(members),
+            _ => {}
+        }
     }
+    false
 }
 
 pub(crate) fn callback(annotation: &ValueAnnotation) -> Option<CallbackAnnotation> {
     let (inner, dimensions) = storage_leaf(annotation);
-    if dimensions != 0 {
-        return None;
-    }
-    let Kind::Callable {
-        ownership,
-        parameters,
-        result,
-    } = &inner.kind
-    else {
-        return None;
-    };
-    Some(CallbackAnnotation {
-        kind: match ownership {
-            CallableOwnership::Default => CallbackKind::Owned,
-            CallableOwnership::Read => CallbackKind::Read,
-            CallableOwnership::Reusable => CallbackKind::Reusable,
-            CallableOwnership::Once => CallbackKind::Once,
-            CallableOwnership::Owned => CallbackKind::Owned,
-            CallableOwnership::OwnedOnce => CallbackKind::OwnedOnce,
-        CallableOwnership::SharedRead => CallbackKind::SharedRead,
-        },
-        params: parameters
-            .iter()
-            .map(|parameter| CallableParameter {
-                rest: parameter.rest,
-                name: Token {
-                    text: parameter.name.text.clone(),
-                    span: parameter.name.span,
-                    kind: TokenKind::Name,
-                },
-                ty: match callback(&parameter.annotation) {
-                    Some(value) => ParameterAnnotation::Callback(Box::new(value)),
-                    None => ParameterAnnotation::Named(Box::new(parameter.annotation.clone())),
-                },
-                initializer: if parameter.omission.is_omittable() { crate::syntax::ParameterInitializer::Optional(parameter.span) } else { crate::syntax::ParameterInitializer::Required },
-                access: parameter.access.as_ref().map(|access| Token {
-                    text: access.mode.as_str().to_owned(),
-                    span: access.span,
-                    kind: TokenKind::Name,
-                }),
-            })
-            .collect(),
-        result: Box::new(result_annotation(result)),
-        span: annotation.span,
-    })
+    if dimensions != 0 || !matches!(inner.kind, Kind::Callable { .. }) { return None; }
+    Some(conversion::callback(annotation))
 }
 
 pub(crate) fn result_annotation(annotation: &ValueAnnotation) -> ResultAnnotation {
-    // Bare results infer invocation. Explicit once results retain a consuming
-    // contract; borrowed result forms are rejected by resolution.
-    if matches!(
-        &ungroup(annotation).kind,
-        Kind::Callable {
-            ownership: CallableOwnership::Default
-                | CallableOwnership::Owned
-                | CallableOwnership::OwnedOnce
-                | CallableOwnership::SharedRead,
-            ..
-        }
-    ) {
-        let value = callback(annotation).expect("callable annotation");
-        ResultAnnotation::Callable {
-            kind: if matches!(
-                &ungroup(annotation).kind,
-                Kind::Callable {
-                    ownership: CallableOwnership::Default,
-                    ..
-                }
-            ) {
-                None
-            } else {
-                Some(value.kind)
-            },
-            params: value.params,
-            result: value.result,
-            span: annotation.span,
-        }
-    } else {
-        ResultAnnotation::Named(Box::new(annotation.clone()))
-    }
+    conversion::result(annotation)
 }
 
 #[cfg(test)]

@@ -92,3 +92,8 @@ equality, nesting inspection and destruction use heap worklists. Use
 `ValueAnnotation::into_kind` when consuming an annotation variant so its children
 can be moved without bypassing the stack-safe destructor. Parser, substitution
 and type-resolution traversal remain separate responsibilities.
+
+Source callback/result wrappers lower through `syntax/annotation_conversion.rs`.
+The reverse adapter lives in `callables/annotations/conversion.rs`. Both use
+explicit construction frames; preserve the distinction between callback ownership
+and inferred result invocation, as well as the established access-wrapper ranges.
