@@ -98,14 +98,6 @@ impl Analyzer {
         Ok(result)
     }
 
-    pub(super) fn set_call_type_hint(&self,context:&Context,id:usize,name:&str,args:&[Expr])->Option<Type>{
-        if matches!(name,"union"|"symmetricDifference"){
-            let Type::Set(other)=self.expression_type_hint(context,args.first()?)? else{return None};
-            if self.program.records[id].set_definition.as_ref()?.key==self.program.records[other].set_definition.as_ref()?.key{return Some(Type::Set(id));}
-            return None;
-        }
-        self.set_method_type(id,name)
-    }
 
     #[inline(never)]
     fn set_algebra_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{

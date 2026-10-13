@@ -1196,3 +1196,30 @@ consumer refresh is claimed.
 Five editor tests pass across comma contexts, nullable callables and optional
 parameters, including native examples and protocol contracts. Whole-project
 formatting changes zero files or benchmark fingerprints.
+
+### Native and schema call-hint dependencies
+
+`analysis/type_hints/calls.rs` adds receiver, callee, callback-result, Set operand
+and schema-branch continuations to the existing structural hint worklist. The
+schema export/refinement/normalized-union cases retain precedence over checked
+metadata and ordinary method dispatch. Schema branches preserve source order and
+stop on an invalid branch; valid mismatched alternatives still query the remaining
+branches before declining the normalized hint. Named, wrapped, general, record
+field and callback call results retain their distinct accepted carrier kinds.
+
+The obsolete recursive schema-union and Set-call hint adapters are removed.
+Two normal-stack witnesses cover 16,384 native receiver/clone layers and 16,384
+mixed schema constraint/union layers, including schema identity precedence over
+checked metadata. All 309 analysis tests pass. These are correctness witnesses,
+not support ceilings or formal compilation scaling results.
+
+Proof helpers and bitwise anchor queries still require re-entry audit, as do the
+remaining checker, parser and emitter boundaries. Full architecture acceptance,
+formal scaling, optimization and S12–S21 remain unfinished. No stack size or depth
+constant is increased. Evidence uses `tsrust-nesting-call-hints-*` in SQLite;
+installed consumers remain unchanged.
+
+The affected native batch passes 42 tests across array reduce/transform, schema
+export/literals/unions and Set algebra. The affected editor batch passes 16 tests
+across schema editing and Set algebra. Whole-project formatting changes zero
+files and zero benchmark fingerprints.

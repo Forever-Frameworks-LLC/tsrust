@@ -39,26 +39,6 @@ impl Analyzer {
         Ok(Some(output))
     }
 
-    // A normalized scalar union can reuse an existing scalar schema identity.
-    // Establish this hint without analyzing (and therefore consuming) any branch.
-    // Callback pipelines retain separate identities and must not enter this path.
-    pub(in crate::analysis) fn schema_union_type_hint(&self,context:&Context,expr:&Expr)->Option<Type>{
-        let ExprKind::Call(callee,args)=&expr.kind else{return None};
-        if !matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:union"){return None;}
-        let [argument]=args.as_slice() else{return None};
-        let ExprKind::Array(branches)=&argument.kind else{return None};
-        let schemas=branches.iter().map(|branch|{
-            let Type::Record(id)=self.expression_type_hint(context,branch)? else{return None};
-            let record=&self.program.records[id];
-            if record.native_type!=Some(crate::native_signatures::NativeTypeId::Schema){return None;}
-            Some((id,*record.application.as_ref()?.resolved_arguments.first()?))
-        }).collect::<Option<Vec<_>>>()?;
-        // Do not widen singleton, nominal or distinct scalar alternatives here.
-        // The hint must agree with the union constructor's actual normalization.
-        let (id,output)=schemas.first()?;
-        (matches!(output,Type::String|Type::Int|Type::Number)&&schemas.iter().all(|(_,branch)|output==branch)).then_some(Type::Record(*id))
-    }
-
     pub(in crate::analysis) fn schema_array_constructor(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Option<Type>,Diagnostic>{
         let ExprKind::Call(callee,args)=&mut expr.kind else{return Ok(None)};
         if !matches!(&callee.kind,ExprKind::Name(name) if name=="@schema:array"){return Ok(None);}

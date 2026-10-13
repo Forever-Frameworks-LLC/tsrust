@@ -243,3 +243,9 @@ structural descent. Keep lazy branches lazy and retain original join spans.
 The memo belongs to one immutable source/context query and must never survive a
 context or program-state change. Native/schema call hint dispatch and other
 compatibility helpers still require a separate re-entry audit.
+
+Call-hint dependencies live in `analysis/type_hints/calls.rs` and use the structural
+hint worklist and query memo. Schema receiver/union hints run before checked
+metadata, preserving existing precedence. Keep named, wrapped, general, record
+field and array-callback result contracts distinct. Set-algebra operand hints and
+schema branch hints suspend there rather than opening another hint driver.

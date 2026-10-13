@@ -1,7 +1,8 @@
 //! Type-hint continuations preserve metadata precedence and lazy child queries.
 use super::*;
+mod calls;
 pub(super) enum Work<'a>{
-    Expression(&'a Expr),Publish(&'a Expr),
+    Expression(&'a Expr),Publish(&'a Expr),Call(calls::Frame<'a>),
     Pattern(&'a Expr),PatternResult(&'a Expr),
     Optional(&'a Expr),OptionalResult(&'a Expr),
     OptionalMissing{cursor:&'a Expr,body:&'a Expr,result:Type},
@@ -28,9 +29,11 @@ impl Analyzer{
         // memo when returning; ownership/flow changes require a fresh query.
         let mut memo:HashMap<*const Expr,Option<Type>>=HashMap::new();
         while let Some(next)=work.pop(){match next{
+            Work::Call(frame)=>calls::step(self,context,frame,&mut work,&mut value),
             Work::Publish(expr)=>{memo.insert(expr as *const Expr,value);},
             Work::Expression(expr)=>{
                 if let Some(ready)=memo.get(&(expr as *const Expr)){value=*ready;continue;}
+                if matches!(expr.kind,ExprKind::Call(..)){work.push(Work::Publish(expr));work.push(Work::Call(calls::Frame::Start(expr)));continue;}
                 if let Some(ready)=self.type_hint_ready(context,expr){value=ready;memo.insert(expr as *const Expr,value);continue;}
                 work.push(Work::Publish(expr));
                 match &expr.kind{
