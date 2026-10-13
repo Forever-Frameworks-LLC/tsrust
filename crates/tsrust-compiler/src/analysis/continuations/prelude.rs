@@ -2,6 +2,7 @@
 use super::super::*;
 pub(in crate::analysis) enum Prelude{
     Ready(Type),
+    Optional{mode:Mode,expected:Option<Type>},
     Child{mode:Mode,expected:Option<Type>,frame:Frame},
 }
 pub(in crate::analysis) enum Frame{
@@ -145,7 +146,7 @@ impl Analyzer{
         context: &mut Context,
         expr: &mut Expr,
         mode: Mode,
-        loans: &Loans,
+        _loans: &Loans,
         union: UnionId,
     ) -> Result<Prelude, Diagnostic> {
         let expected = Type::Union(union);
@@ -163,7 +164,7 @@ impl Analyzer{
         if matches!(expr.kind, ExprKind::OptionalChain(_)) {
             // The present branch receives payload context inside optional_chain;
             // the complete expression still satisfies the nullable expectation.
-            return self.optional_chain(context, expr, mode, loans, Some(expected)).map(Prelude::Ready);
+            return Ok(Prelude::Optional{mode,expected:Some(expected)});
         }
         let member_hint = if hint.is_some_and(|ty| {
             matches!(

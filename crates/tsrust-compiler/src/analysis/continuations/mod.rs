@@ -5,7 +5,7 @@ mod returns;
 mod expression;
 mod checked_expression;
 mod call;
-mod driver;
+pub(super) mod driver;
 pub(super) use call::CallDispatch;
 mod arguments;
 mod defaults;
@@ -33,3 +33,5 @@ mod exceptions;
 pub(super) use exceptions::RegionMode;
 
 pub(super) mod prelude;
+
+mod optional;

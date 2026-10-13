@@ -138,17 +138,14 @@ impl Analyzer {
     pub(super) fn prepare_generic_call(
         &mut self,
         context: &Context,
-        expr: &mut Expr,
+        mut expr: &mut Expr,
         expected: Option<Type>,
     ) -> Result<(), Diagnostic> {
-        match &mut expr.kind {
-            ExprKind::OptionalChain(value)
-            | ExprKind::Unary {
-                op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected,
-                value,
-                ..
-            } => return self.prepare_generic_call(context, value, expected),
-            _ => {}
+        while matches!(&expr.kind,ExprKind::OptionalChain(_)|ExprKind::Unary{op:UnaryOp::OptionalBoundary|UnaryOp::OptionalSelected,..}){
+            expr=match &mut expr.kind{
+                ExprKind::OptionalChain(value)|ExprKind::Unary{value,..}=>value,
+                _=>unreachable!("optional generic receiver"),
+            };
         }
         if matches!(&expr.kind,ExprKind::Call(_,args) if args.iter().any(|arg|matches!(arg.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))) {
             return self.prepare_generic_spread(context,expr,expected);

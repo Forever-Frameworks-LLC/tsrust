@@ -8,12 +8,13 @@ pub(super) struct CheckedExpressionFrame {
     pub(super) mode: Mode,
     pub(super) expected: Option<Type>,
 }
-pub(super) enum PreparedExpression { Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame), Prelude { mode:Mode, expected:Option<Type>, frame:super::prelude::Frame } }
+pub(super) enum PreparedExpression { Optional{mode:Mode,expected:Option<Type>}, Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame), Prelude { mode:Mode, expected:Option<Type>, frame:super::prelude::Frame } }
 
 impl Analyzer {
     pub(super) fn prepare_checked_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<PreparedExpression, Diagnostic> {
         if let Some(prelude) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
             return Ok(match prelude{
+                super::prelude::Prelude::Optional{mode,expected}=>PreparedExpression::Optional{mode,expected},
                 super::prelude::Prelude::Ready(ty)=>{
                     expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
                     PreparedExpression::Ready(ty)

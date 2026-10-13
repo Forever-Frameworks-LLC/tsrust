@@ -1097,3 +1097,43 @@ in SQLite. Installed consumers remain unchanged while architecture acceptance is
 incomplete.
 The nullable-callable editor contract/example test passes. Whole-project
 formatting changes zero files or benchmark fingerprints.
+
+### Optional receiver and branch scheduling
+
+Optional-chain checking now queues receivers and terminal branch expressions on
+the enclosing checker driver. Branch frames retain payload selection, source
+ownership, prior availability/flow, capture-loan boundaries and expected types.
+Successful completion preserves inner-to-outer branch joining and nullable result
+construction. Diagnostic unwinding releases suspended selection scopes and
+restores their entry availability/flow; receiver effects before each branch remain
+outside that branch's rollback boundary.
+
+Static receiver normalization, deepest-boundary extraction, selected-source
+publication, physical-storage normalization and named-source conjunctions use
+cursors or explicit work/parent frames. The optional hint's absence scan is also
+iterative. General expression type hints and their cross-calls still need a wider
+re-entry audit; this is not complete optional-expression architecture acceptance.
+Full parser/checker/emitter integration, formal scaling, optimization and S12–S21
+remain open. No new cap or stack increase is introduced.
+
+The 4,096-selection success witness exposed a recursive optional-wrapper walk in
+`prepare_generic_call`, before chain evaluation began. A normal-stack debugger
+backtrace identifies repeated calls at that preparation boundary. Its wrapper
+traversal now uses a cursor; generic argument inference itself remains a separate
+unfinished scheduling path. Both unchanged deep witnesses then pass, including
+source-location and selection-scope cleanup on failure. The interrupted analysis
+batch preserves 34 earlier passes, reruns the two optional witnesses and resumes
+268 unrun tests, covering 303 distinct analysis tests across retained records.
+No passing size is treated as a ceiling or formal scaling measurement.
+
+The affected compiler integration batch passes 34 tests (optional chaining eight,
+nullable callables 24, borrowed optional fallback two), followed by six optional
+generic-value adapter tests. The nullable-callable editor contract/example test
+also passes. Native checks cover lazy argument/index evaluation, environment
+reuse, receiver loans, allocation/pointer observations and normal/error disposal.
+Original failed builds, the overflow, debugger attempts and final checks remain
+separate records under `tsrust-nesting-optional-work-*` in SQLite. Consumers remain
+unchanged while overall architecture acceptance is incomplete.
+Whole-project formatting changes zero files and benchmark fingerprints. The deep
+witnesses verify checking and disposal on normal stacks, not parser admission or
+backend emission of arbitrary optional depth.

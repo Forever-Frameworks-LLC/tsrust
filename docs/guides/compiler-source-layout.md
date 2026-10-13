@@ -220,3 +220,11 @@ and contextual stored-callable conversions yield child work to the driver.
 Projection frames retain flow suppression and mutation frames retain access state
 until completion; both restore their boundaries on diagnostic paths. Keep these
 transitions on the existing driver rather than starting nested expression checks.
+
+Optional-chain state lives in `analysis/continuations/optional.rs`; its receiver
+and branch-body tasks live in `analysis/continuations/driver/optional.rs`.
+Receiver checks use the enclosing checker worklist. Completed branch frames join
+availability and flow in reverse selection order. Diagnostic unwinding releases
+capture-loan boundaries and selected-access state. Receiver-spine normalization,
+selection and named-source traversal remain in `analysis/optional_chain.rs` and
+use explicit cursors or parent/work frames.

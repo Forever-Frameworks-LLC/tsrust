@@ -7,6 +7,7 @@ use super::super::*;
 mod tail;
 mod region;
 mod closure_parameters;
+mod optional;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -100,6 +101,7 @@ struct BlockTask<'a> {
 enum ExpressionState {
     Start,
     Prelude(super::prelude::Frame),
+    Optional,
     Assignment,
     Sequence,
     NullishAssignmentTarget(Box<super::assignment::NullishTarget>),
@@ -214,7 +216,7 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
     Region(region::Region<'a>, region::ResultStates),
     Tail(Box<Stmt>, Result<bool, Diagnostic>),
@@ -499,6 +501,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Optional(task)=>optional::step(analyzer,contexts.get(task.context),task,completion.take()),
             Task::Callable(task) => step_callable(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Region(task) => region::step(analyzer, &mut contexts, task, completion.take()),
             Task::Tail(task) => tail::step(analyzer, &mut contexts, task, completion.take()),
@@ -868,6 +871,15 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Optional=>{
+            let Completion::Expression(value,result)=completion.expect("optional chain completed") else{unreachable!("optional result")};
+            *task.expression.value()=*value.into_child();
+            let context=contexts.get(task.context);
+            if result.is_ok() && task.checked.is_none(){
+                let expr=task.expression.value();expr.json_string_view=analyzer.json_string_proof(context,expr).is_some() || analyzer.is_string_view(context,expr);
+            }
+            finish_expression(analyzer,context,task,result)
+        },
         ExpressionState::Prelude(frame)=>{
             let Completion::Expression(value,result)=completion.expect("contextual child completed") else{unreachable!("contextual child result")};
             let context=contexts.get(task.context);
@@ -1175,6 +1187,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let prepared = analyzer.prepare_expression_work(context, expr, task.mode, &task.loans, task.expected, &mut task.completion);
             let frame = match prepared {
                 Ok(PreparedExpression::Evaluate(frame)) => frame,
+                Ok(PreparedExpression::Optional{mode,expected})=>return schedule_optional(task,mode,expected),
                 Ok(PreparedExpression::Prelude{mode,expected,frame})=>{
                     let span=expr.span;
                     let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
@@ -1196,6 +1209,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            if matches!(expr.kind,ExprKind::OptionalChain(_)){return schedule_optional(task,mode,expected);}
             if matches!(expr.kind, ExprKind::CoalesceAssign { .. }) {
                 let frame = match analyzer.prepare_nullish_assignment_work(context, expr, mode, expected) {
                     Ok(frame) => frame,
@@ -1914,4 +1928,16 @@ mod tests {
         let StmtKind::Block(second) = &first[0].kind else { panic!("inner label") };
         assert_eq!(second[0].control_target, Some(target));
     }
+}
+
+fn schedule_optional<'a>(mut task:ExpressionTask<'a>,mode:Mode,expected:Option<Type>)->Step<'a>{
+    let expr=task.expression.value();let span=expr.span;
+    let value=Box::new(std::mem::replace(expr,Expr::checked(ExprKind::Null,span,None)));
+    let child=optional::OptionalTask::new(Expression::Child(value),task.context,mode,task.loans.clone(),expected);
+    task.state=ExpressionState::Optional;
+    Step::Push(Task::Expression(task),Task::Optional(Box::new(child)))
+}
+pub(in crate::analysis) fn check_optional(analyzer:&mut Analyzer,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
+    let task=optional::OptionalTask::new(Expression::Root(expression),ContextId(0),mode,ActiveLoans::Borrowed(loans),expected);
+    let Completion::Expression(_,result)=drive(analyzer,context,Task::Optional(Box::new(task))) else{unreachable!("optional root")};result
 }
