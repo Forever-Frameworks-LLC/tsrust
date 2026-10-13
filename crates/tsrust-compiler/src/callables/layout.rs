@@ -422,6 +422,7 @@ fn unused_symbolic_nullable_layouts_do_not_alias_live_native_nodes() {
     assert!(program.stored_contracts.populated().next().is_some());
     let index = program.unions.len();
     program.unions.push(crate::unions::UnionType {
+        recursive: false,
         members: vec![Type::Closure(program.closures.len()), Type::Null],
     });
     let family_count = program
@@ -432,6 +433,7 @@ fn unused_symbolic_nullable_layouts_do_not_alias_live_native_nodes() {
         .unwrap();
     let second_index = program.unions.len();
     program.unions.push(crate::unions::UnionType {
+        recursive: false,
         // The old untyped graph would mistake this removed origin for the
         // union node itself and reject an unused symbolic type as a cycle.
         members: vec![

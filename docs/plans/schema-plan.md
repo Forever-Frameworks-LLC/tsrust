@@ -2239,3 +2239,12 @@ boundaries are preserved. New witnesses cover repeated traversal from the root
 and from self, callback discovery, and recursive collection boundaries. Source
 lowering does not yet create these plans and native emission is still pending;
 this change does not make the public recursive API usable.
+
+Array/union-root inference now has a reserved recursive union identity in the
+checked type arena. It binds once and stays distinct from ordinary canonical
+unions, including after snapshots and closure-origin remapping. Ordinary union
+normalization preserves a recursive reference instead of flattening it into its
+own definition. The identity remains owning and does not imply runtime handles or
+shared ownership. New witnesses cover an array root, optional wrapping, snapshot
+stability and invalid rebinding. Source inference has not begun using these slots;
+layout, rendering and recursive validation integration still require completion.

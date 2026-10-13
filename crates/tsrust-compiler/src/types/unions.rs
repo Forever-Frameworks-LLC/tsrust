@@ -6,6 +6,8 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug)]
 pub struct UnionType {
+    /// A nominal recursive slot is never flattened into its own definition.
+    pub recursive: bool,
     pub members: Vec<Type>,
 }
 
@@ -22,7 +24,7 @@ pub(crate) struct UnionArena(RefCell<ArenaState>);
 impl UnionArena {
     pub(crate) fn len(&self) -> usize { self.0.borrow().types.len() }
     pub(crate) fn from_snapshot(types:Vec<UnionType>)->Self {
-        let identities=types.iter().enumerate().map(|(index,union)| {
+        let identities=types.iter().enumerate().filter(|(_,union)|!union.recursive).map(|(index,union)| {
             (union.members.clone(),UnionId{index:u32::try_from(index).expect("existing union index"),copy:union.members.iter().all(|member|member.is_copy())})
         }).collect();
         Self(RefCell::new(ArenaState{types,identities,named_types:HashMap::new()}))
@@ -50,6 +52,37 @@ impl UnionArena {
     pub(crate) fn named_type(&self, id: usize) -> Type {
         self.0.borrow().named_types.get(&id).copied().unwrap_or(Type::Record(id))
     }
+    pub(crate) fn is_recursive(&self,id:UnionId)->bool {
+        self.0.borrow().types[id.index()].recursive
+    }
+
+    /// Reserve one stable, owning identity before inferring its definition.
+    /// This slot is compiler metadata; no runtime allocation or handle is made.
+    pub(crate) fn reserve_recursive(&self,span:Span)->Result<Type,Diagnostic> {
+        let mut arena=self.0.borrow_mut();
+        let index=u32::try_from(arena.types.len()).map_err(|_|Diagnostic::new("unsupported","Program union type limit exceeded.",span))?;
+        arena.types.push(UnionType{recursive:true,members:Vec::new()});
+        Ok(Type::Union(UnionId{index,copy:false}))
+    }
+
+    /// Resolve a reserved slot once. Structural productivity and native layout
+    /// validation remain separate checks; neither is implied by binding a type.
+    pub(crate) fn bind_recursive(&self,id:UnionId,members:Vec<Type>,span:Span)->Result<(),Diagnostic> {
+        let mut arena=self.0.borrow_mut();
+        let slot=arena.types.get_mut(id.index()).ok_or_else(||Diagnostic::new("schema-recursion","Unknown recursive type slot.",span))?;
+        if !slot.recursive || !slot.members.is_empty() {
+            return Err(Diagnostic::new("schema-recursion","Recursive type definitions resolve exactly once.",span));
+        }
+        if members.is_empty() || members.iter().any(|member|matches!(member,Type::Void)) {
+            return Err(Diagnostic::new("schema-recursion","A recursive type requires a value definition.",span));
+        }
+        if members.contains(&Type::Union(id)) {
+            return Err(Diagnostic::new("schema-recursion","A recursive type cannot directly contain itself.",span));
+        }
+        slot.members=members;
+        Ok(())
+    }
+
     pub fn members(&self, id: UnionId) -> Vec<Type> {
         self.0.borrow().types[id.index()].members.clone()
     }
@@ -75,6 +108,7 @@ impl UnionArena {
             .types
             .iter()
             .enumerate()
+            .filter(|(_, union)| !union.recursive)
             .map(|(index, union)| {
                 (
                     union.members.clone(),
@@ -96,7 +130,7 @@ impl UnionArena {
         let mut seen = HashSet::new();
         for value in types {
             let alternatives = match value {
-                Type::Union(id) => self.members(id),
+                Type::Union(id) if !self.is_recursive(id) => self.members(id),
                 member => vec![member],
             };
             for member in alternatives {
@@ -143,6 +177,7 @@ impl UnionArena {
             copy: members.iter().all(|ty| ty.is_copy()),
         };
         arena.types.push(UnionType {
+            recursive: false,
             members: members.clone(),
         });
         arena.identities.insert(members, id);
@@ -194,6 +229,40 @@ mod tests {
         arena
             .intern(members.iter().copied(), Span::new(0, 1))
             .unwrap()
+    }
+
+    #[test]
+    fn recursive_array_slots_retain_identity_through_normalization_and_snapshots() {
+        let arena=UnionArena::default();
+        let root=arena.reserve_recursive(Span::default()).unwrap();
+        let Type::Union(id)=root else {unreachable!()};
+        let array=Type::Array(ArrayElement::from_value_type(root).unwrap());
+        arena.bind_recursive(id,vec![array],Span::default()).unwrap();
+        assert_eq!(arena.members(id),vec![array]);
+        assert!(!root.is_copy());
+        assert_eq!(intern(&arena,&[root]),root);
+        let optional=intern(&arena,&[root,Type::Null]);
+        let Type::Union(optional_id)=optional else {unreachable!()};
+        assert!(arena.members(optional_id).contains(&root));
+        assert!(!arena.members(optional_id).contains(&array));
+        let resumed=UnionArena::from_snapshot(arena.snapshot());
+        assert!(resumed.is_recursive(id));
+        assert_eq!(intern(&resumed,&[root,Type::Null]),optional);
+        resumed.remap_closure_origins(&[]);
+        assert_eq!(intern(&resumed,&[root]),root);
+    }
+
+    #[test]
+    fn recursive_type_binding_is_single_assignment_and_rejects_direct_self() {
+        let arena=UnionArena::default();
+        let root=arena.reserve_recursive(Span::default()).unwrap();
+        let Type::Union(id)=root else {unreachable!()};
+        assert!(arena.bind_recursive(id,vec![root],Span::default()).is_err());
+        assert!(arena.bind_recursive(id,Vec::new(),Span::default()).is_err());
+        let array=Type::Array(ArrayElement::from_value_type(root).unwrap());
+        arena.bind_recursive(id,vec![Type::Int,array],Span::default()).unwrap();
+        assert!(arena.bind_recursive(id,vec![Type::String],Span::default()).is_err());
+        assert_eq!(arena.members(id),vec![Type::Int,array]);
     }
 
     #[test]

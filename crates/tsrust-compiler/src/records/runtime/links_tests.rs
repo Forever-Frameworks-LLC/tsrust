@@ -16,7 +16,7 @@ fn nullable_links_clone_move_and_drop_iteratively() {
             record(&[Type::Array(ArrayElement::Record(3,0)),Type::Union(union)]),
             record(&[Type::Array(ArrayElement::Record(4,0)),Type::Record(2)]),
         ];
-        let unions = [UnionType { members: vec![Type::Record(target), Type::Undefined] }];
+        let unions = [UnionType { recursive:false, members: vec![Type::Record(target), Type::Undefined] }];
         let runtime = RecordRuntime::new(&records, &unions).emit(&records);
         let other = if mutual { "struct Record1 { field0:Record0 }" } else { "" };
         let link_value = if mutual { "Record1 { field0: root }" } else { "root" };
@@ -80,7 +80,7 @@ pub fn run() {{
         let mut view=record(&[]);
         view.native_type=Some(if mutable {crate::native_signatures::NativeTypeId::ByteViewMut}else{crate::native_signatures::NativeTypeId::ByteView});
         let records=[record(&[Type::Union(union),Type::Record(1)]),view];
-        let unions=[UnionType{members:vec![Type::Record(0),Type::Undefined]}];
+        let unions=[UnionType{recursive:false,members:vec![Type::Record(0),Type::Undefined]}];
         let runtime=RecordRuntime::new(&records,&unions).emit(&records);
         assert!(!runtime.contains("impl Clone"));
         assert!(!runtime.contains("unsafe"));
