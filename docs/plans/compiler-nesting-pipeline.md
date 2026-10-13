@@ -934,3 +934,25 @@ affected suites rather than restarting that full composition pass. No formal
 scaling measurement, public contract change or consumer refresh is claimed.
 Expression carrier retargeting, literal record-value joins, result discovery and
 statement emission remain connected work before full architecture acceptance.
+
+### Mutable carrier retargeting continuations
+
+`analysis/carrier_retarget.rs` replaces recursive nullable-store retargeting with
+owned parent frames for injections, arrays, record fields and carrier wrappers.
+Completed children are restored before parent metadata is published. Diagnostic
+unwinds restore every extracted child without publishing unfinished parent tags
+or types, while retaining completed prefix mutations as the original traversal
+did. Wrapper removal preserves the inner expression and its span. Record fields
+continue to use the iterative field replacement and carrier compatibility paths.
+
+All 289 analysis tests pass. New witnesses exercise 16,384 wrappers on normal
+stacks for both success and failure, exact diagnostic spans, complete parent
+restoration, array prefix mutation before a later failure, and unchanged injection
+tags on payload failure. Native validation passes 42 scoped callable record tests
+and 26 nullable scoped-record composition tests. Whole-project formatting changes
+zero files or fingerprints. SQLite evidence uses `tsrust-nesting-carrier-retarget-*`.
+
+This is internal architecture work with no public contract or IntelliSense change.
+Consumers remain unchanged. Literal record-value joins, result discovery and
+statement emission still need connected migration; full compiler nesting and
+formal scaling acceptance remain open.

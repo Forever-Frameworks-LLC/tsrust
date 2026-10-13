@@ -328,39 +328,11 @@ impl Analyzer {
         }
         false
     }
-    fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
+    pub(super) fn checked_carrier(&self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
         if value.ty.is_some_and(|source|!self.carrier_convertible(source,destination)) {
             return Err(Diagnostic::new("unsupported","Different callbacks that own all their captures cannot share one record variable yet. Capture a local array or record, or keep each callback in its own variable.",value.span));
         }
         value.wrap_record_carrier(destination);
-        Ok(())
-    }
-    pub(super) fn retarget_nullable_store(&mut self,value:&mut Expr,destination:Type)->Result<(),Diagnostic>{
-        if value.ty==Some(destination){return Ok(());}
-        match &mut value.kind {
-            ExprKind::Inject{value:inner,union:tag} if destination.union().is_some()=>{
-                if let(Some(Type::Record(_)),Some(payload))=(inner.ty,self.unions.payload(destination)){self.retarget_nullable_store(inner,payload)?;}
-                *tag=destination.union().unwrap();value.ty=Some(destination);
-            }
-            ExprKind::Array(elements) if matches!(destination,Type::Array(_))=>{
-                let Type::Array(element)=destination else{unreachable!()};
-                for item in elements.iter_mut(){self.retarget_nullable_store(item,element.ty())?;}
-                value.ty=Some(destination);
-            }
-            ExprKind::Record(values)=>{
-                let(Type::Record(target),Some(Type::Record(mut current)))=(destination,value.ty)else{return self.checked_carrier(value,destination);};
-                for(name,field)in values.iter_mut(){
-                    let Some(wanted)=self.program.records[target].fields.iter().find(|candidate|candidate.name.text==name.text).and_then(|candidate|candidate.ty)else{continue;};
-                    if field.ty==Some(wanted) || !(wanted.union().is_some() || matches!(wanted,Type::Record(_)|Type::Array(_))){continue;}
-                    self.retarget_nullable_store(field,wanted)?;
-                    if field.ty==Some(wanted) && let Some(next)=self.record_type_with_field(current,std::slice::from_ref(&name.text),wanted){current=next;}
-                }
-                value.ty=Some(Type::Record(current));
-                if current!=target{self.checked_carrier(value,destination)?;}
-            }
-            ExprKind::Unary{op:UnaryOp::RecordCarrier,value:inner,..}=>{self.retarget_nullable_store(inner,destination)?;if inner.ty==Some(destination){let span=value.span;let old=std::mem::replace(value,Expr::new(ExprKind::Null,span));let ExprKind::Unary{value:inner,..}=old.into_kind() else{unreachable!()};*value=*inner;}else{value.ty=Some(destination);}}
-            _=>self.checked_carrier(value,destination)?,
-        }
         Ok(())
     }
     /// Join two nullable callback-record unions of one declaration. The result
