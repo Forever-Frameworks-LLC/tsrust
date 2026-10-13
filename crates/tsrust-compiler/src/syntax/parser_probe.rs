@@ -70,6 +70,18 @@ fn observe_parser_stages() {
         }
         Err(error) => event(start, "parse", "diagnostic", diagnostic(&error)),
     }
+    // Module ownership lowering and local function resolution finish the
+    // public parse entry. They walk the tree the unbounded parser produced.
+    if stage("lowering") {
+        if let Ok(mut program) = parse_unbounded(&source) {
+            event(start, "lowering", "start", serde_json::Value::Null);
+            let lowered = crate::callables::module_state::lower(&mut program).and_then(|()| crate::local_functions::resolve(&mut program));
+            match lowered {
+                Ok(()) => event(start, "lowering", "finish", serde_json::json!({"functions": program.functions.len()})),
+                Err(error) => event(start, "lowering", "diagnostic", diagnostic(&error)),
+            }
+        }
+    }
     // Statement recovery retains every suspended scope while it resynchronizes.
     if stage("recovery") {
         event(start, "recovery", "start", serde_json::Value::Null);

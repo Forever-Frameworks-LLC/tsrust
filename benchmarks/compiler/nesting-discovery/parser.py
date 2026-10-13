@@ -142,7 +142,7 @@ def main():
     parser.add_argument('--start', type=int, default=64)
     parser.add_argument('--factor', type=int, default=4)
     parser.add_argument('--max-size', type=int, default=1 << 20)
-    parser.add_argument('--stages', default='core,recovery,format,bounded', help='Probe stages after lexing: core, recovery, format, bounded')
+    parser.add_argument('--stages', default='core,recovery,format,bounded', help='Probe stages after lexing: core, lowering, recovery, format, bounded')
     parser.add_argument('--seconds-per-case', type=float, required=True)
     parser.add_argument('--seconds-total', type=float, required=True)
     args = parser.parse_args()

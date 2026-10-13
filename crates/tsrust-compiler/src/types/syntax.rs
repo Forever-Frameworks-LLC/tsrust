@@ -202,8 +202,9 @@ pub(crate) fn parse_prefix(
 ) -> Result<(ValueAnnotation, usize), Diagnostic> {
     bounded_nesting(tokens, index, depth, policy)?;
     let mut parser = AnnotationParser::new(tokens, index, policy, false, None);
-    let value = parser.annotation(depth)?;
-    Ok((value, parser.index))
+    let value = parser.annotation(depth);
+    let end = parser.finish();
+    Ok((value?, end))
 }
 
 /// Consume one parameter type. An outermost ReadOnly, Mutable or Owned around
@@ -216,29 +217,23 @@ pub(crate) fn parse_parameter_prefix(
 ) -> Result<(Option<ParameterAccess>, ValueAnnotation, usize), Diagnostic> {
     bounded_nesting(tokens, index, depth, policy)?;
     let mut parser = AnnotationParser::new(tokens, index, policy, true, None);
-    let value = parser.annotation(depth)?;
-    Ok((parser.access.take(), value, parser.index))
+    let value = parser.annotation(depth);
+    let end = parser.finish();
+    Ok((parser.access.take(), value?, end))
 }
 
-/// Whether one result annotation at `index` is followed by `=>`. Packed
-/// closer edits are rolled back, so the caller's token stream is unchanged.
+/// Whether one result annotation at `index` is followed by `=>`. The probe
+/// reads packed closers in place, so the token stream is unchanged.
 pub(crate) fn arrow_follows_prefix(tokens: &mut Vec<Token>, index: usize, policy: NestingPolicy) -> bool {
     // A type past the admission bound is still a type; the arrow parser reports it.
     if bounded_nesting(tokens, index, 0, policy).is_err() {
         return true;
     }
-    let mut edits = Vec::new();
-    let follows = {
-        let mut parser = AnnotationParser::new(tokens, index, policy, false, Some(&mut edits));
-        match parser.annotation(0) {
-            Ok(_) => parser.tokens.get(parser.index).is_some_and(|token| token.text == "=>"),
-            Err(error) => error.code == "unsupported",
-        }
-    };
-    for edit in edits.into_iter().rev() {
-        tokens.splice(edit.index..edit.index + edit.replaced, edit.previous);
+    let mut parser = AnnotationParser::new(tokens, index, policy, false, None);
+    match parser.annotation(0) {
+        Ok(_) => parser.peek().text == "=>",
+        Err(error) => error.code == "unsupported",
     }
-    follows
 }
 
 pub(crate) fn split_closer(tokens: &mut Vec<Token>, index: usize) {
@@ -290,10 +285,12 @@ pub(crate) fn parameter_prefix_span(tokens: &mut Vec<Token>, index: usize) -> Re
     let mut edits = Vec::new();
     let outcome = {
         let mut parser = AnnotationParser::new(tokens, index, policy, true, Some(&mut edits));
-        parser.annotation(0).map(|annotation| {
+        let annotation = parser.annotation(0);
+        let end = parser.finish();
+        annotation.map(|annotation| {
             let span = Span::new(parser.tokens[index].span.start,
-                parser.tokens[parser.index - 1].span.end.max(annotation.span.end));
-            let call = parser.tokens.get(parser.index).is_some_and(|next| next.text == "(");
+                parser.tokens[end - 1].span.end.max(annotation.span.end));
+            let call = parser.tokens.get(end).is_some_and(|next| next.text == "(");
             (span, call)
         })
     };
@@ -319,6 +316,20 @@ struct AnnotationParser<'a> {
     values: Vec<ValueAnnotation>,
     /// Access returned beside each completed `Function<...>` or wrapper type.
     signatures: Vec<Option<ParameterAccess>>,
+    /// Packed closers such as `>>` that closed one bracket per `>`, in token
+    /// order. The token stream is rewritten once, when parsing ends.
+    closers: Vec<PackedCloser>,
+    /// The unconsumed part of the packed closer at the cursor.
+    remainder: Option<Token>,
+}
+
+/// One lexer token that starts with several `>` and closed type brackets.
+struct PackedCloser {
+    index: usize,
+    /// Leading `>` characters that became separate closers.
+    consumed: usize,
+    /// The remaining `=` joined the adjacent `>` as `=>`; that token ends here.
+    arrow_end: Option<usize>,
 }
 
 /// Parameter syntax read before its annotation is requested.
@@ -364,43 +375,111 @@ enum Work {
 
 impl<'a> AnnotationParser<'a> {
     fn new(tokens: &'a mut Vec<Token>, index: usize, policy: NestingPolicy, access_permitted: bool, split_log: Option<&'a mut Vec<CloserEdit>>) -> Self {
-        Self { tokens, split_log, index, policy, access_permitted, access: None, wrapper_end: None, work: Vec::new(), values: Vec::new(), signatures: Vec::new() }
+        Self { tokens, split_log, index, policy, access_permitted, access: None, wrapper_end: None, work: Vec::new(), values: Vec::new(), signatures: Vec::new(), closers: Vec::new(), remainder: None }
     }
     fn peek(&self) -> &Token {
-        &self.tokens[self.index]
+        self.remainder.as_ref().unwrap_or(&self.tokens[self.index])
     }
     fn is(&self, text: &str) -> bool {
         self.peek().kind == TokenKind::Symbol && self.peek().text == text
     }
     fn take(&mut self) -> Token {
+        if let Some(rest) = self.remainder.take() {
+            // The rest of a packed closer, with the `>` it may have joined.
+            let joined = self.closers.last().is_some_and(|closer| closer.arrow_end.is_some());
+            self.index += 1 + usize::from(joined);
+            return rest;
+        }
         let token = self.peek().clone();
         if token.kind != TokenKind::End {
             self.index += 1;
         }
         token
     }
+
+    /// Close one bracket with the first `>` of a packed closer. The token
+    /// stream keeps its length until `finish`; the cursor sees the rest of
+    /// the token exactly as a split would leave it.
+    fn close_packed(&mut self) -> Token {
+        if self.remainder.is_none() {
+            self.closers.push(PackedCloser { index: self.index, consumed: 0, arrow_end: None });
+        }
+        let closer = self.closers.last_mut().expect("packed closer at the cursor");
+        closer.consumed += 1;
+        let original = &self.tokens[self.index];
+        let at = original.span.start + closer.consumed;
+        let mut rest = Token { text: original.text[closer.consumed..].into(), span: Span::new(at, original.span.end), kind: TokenKind::Symbol };
+        // Maximal lexing reads >=> as >= followed by >. Once this
+        // context consumes the generic closer, restore the adjacent arrow.
+        if rest.text == "="
+            && let Some(next) = self.tokens.get(self.index + 1)
+            && next.text == ">"
+            && rest.span.end == next.span.start
+        {
+            rest.text = "=>".into();
+            rest.span.end = next.span.end;
+            closer.arrow_end = Some(next.span.end);
+        }
+        self.remainder = Some(rest);
+        Token { text: ">".into(), span: Span::new(at - 1, at), kind: TokenKind::Symbol }
+    }
+
+    /// Rewrite every packed closer this parse consumed with one token move.
+    /// The result is the stream that one split per closer produces. Returns
+    /// the cursor in the rewritten stream.
+    fn finish(&mut self) -> usize {
+        let Some(first) = self.closers.first().map(|closer| closer.index) else {
+            return self.index;
+        };
+        let last = self.closers.last().expect("packed closer");
+        let affected = last.index + 1 + usize::from(last.arrow_end.is_some());
+        let previous = self.split_log.is_some().then(|| self.tokens[first..affected].to_vec());
+        let mut closers = std::mem::take(&mut self.closers).into_iter().peekable();
+        let mut rewritten = Vec::with_capacity(affected - first + 2);
+        let mut cursor = None;
+        let mut joined = false;
+        for physical in first..affected {
+            if std::mem::take(&mut joined) {
+                continue;
+            }
+            let vacant = Token { text: String::new(), span: Span::default(), kind: TokenKind::End };
+            let token = std::mem::replace(&mut self.tokens[physical], vacant);
+            let Some(closer) = closers.next_if(|closer| closer.index == physical) else {
+                rewritten.push(token);
+                continue;
+            };
+            let start = token.span.start;
+            rewritten.extend((0..closer.consumed).map(|consumed| Token { text: ">".into(), span: Span::new(start + consumed, start + consumed + 1), kind: TokenKind::Symbol }));
+            if physical == self.index && self.remainder.is_some() {
+                cursor = Some(first + rewritten.len());
+            }
+            let rest = Span::new(start + closer.consumed, closer.arrow_end.unwrap_or(token.span.end));
+            joined = closer.arrow_end.is_some();
+            let text = if joined { "=>".into() } else { token.text[closer.consumed..].into() };
+            rewritten.push(Token { text, span: rest, kind: TokenKind::Symbol });
+        }
+        let replaced = rewritten.len();
+        // The cursor is inside the last packed closer or after every rewritten token.
+        self.index = cursor.unwrap_or(self.index + replaced - (affected - first));
+        self.remainder = None;
+        self.tokens.splice(first..affected, rewritten);
+        if let (Some(log), Some(previous)) = (&mut self.split_log, previous) {
+            log.push(CloserEdit { index: first, previous, replaced });
+        }
+        self.index
+    }
     fn error(&self, message: &str) -> Diagnostic {
         Diagnostic::new("syntax", message, self.peek().span)
     }
     fn expect(&mut self, text: &str) -> Result<Token, Diagnostic> {
-        if text == ">" {
-            if let Some(log) = &mut self.split_log
-                && self.tokens[self.index].kind == TokenKind::Symbol
-                && matches!(self.tokens[self.index].text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=")
-            {
-                let previous = self.tokens[self.index..(self.index + 3).min(self.tokens.len())].to_vec();
-                let before = self.tokens.len();
-                split_closer(self.tokens, self.index);
-                let replaced = previous.len() + self.tokens.len() - before;
-                log.push(CloserEdit { index: self.index, previous, replaced });
-            } else {
-                split_closer(self.tokens, self.index);
-            }
+        if text == ">" && self.peek().kind == TokenKind::Symbol && matches!(self.peek().text.as_str(), ">>" | ">>>" | ">=" | ">>=" | ">>>=") {
+            return Ok(self.close_packed());
         }
         if !self.is(text) {
             let error = self.error(&format!("Expected {text:?} in type annotation."));
             return Err(if matches!(text, ")" | "]") && self.index > 0 {
-                let offset = self.tokens[self.index - 1].span.end;
+                // After part of a packed closer, the last accepted token is its `>`.
+                let offset = self.remainder.as_ref().map_or_else(|| self.tokens[self.index - 1].span.end, |rest| rest.span.start);
                 error.fix(
                     format!("Insert missing {text}"),
                     Span::new(offset, offset),
@@ -756,7 +835,7 @@ impl<'a> AnnotationParser<'a> {
         while let ValueAnnotationKind::Group(next) = &leaf.kind {
             leaf = next;
         }
-        if let ValueAnnotationKind::Callable { ownership, parameters, result } = &leaf.kind {
+        if let ValueAnnotationKind::Callable { ownership, .. } = &leaf.kind {
             if *ownership != CallableOwnership::Default {
                 return Err(Diagnostic::new("callback-access", "A Function accepts one ownership wrapper: ReadOnly, Mutable, Once or Owned.", name.span));
             }
@@ -766,11 +845,15 @@ impl<'a> AnnotationParser<'a> {
                 "Once" => CallableOwnership::OwnedOnce,
                 _ => CallableOwnership::Owned,
             };
-            let value = ValueAnnotation {
-                kind: ValueAnnotationKind::Callable { ownership, parameters: parameters.clone(), result: result.clone() },
-                span,
+            // The wrapper replaces its groups and the Function inside them.
+            let mut kind = inner.into_kind();
+            while let ValueAnnotationKind::Group(next) = kind {
+                kind = next.into_kind();
+            }
+            let ValueAnnotationKind::Callable { parameters, result, .. } = kind else {
+                unreachable!("wrapped function type")
             };
-            self.values.push(value);
+            self.values.push(ValueAnnotation { kind: ValueAnnotationKind::Callable { ownership, parameters, result }, span });
             self.signatures.push(None);
             return Ok(());
         }

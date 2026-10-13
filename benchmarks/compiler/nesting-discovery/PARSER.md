@@ -5,8 +5,9 @@ test `syntax::parser_probe::observe_parser_stages` in a fresh process on the
 ordinary test worker stack, without `RUST_MIN_STACK`.
 
 The probe uses the unbounded admission policy for lexing, parsing, tree clone,
-disposal and statement recovery. It then observes two consumers: the formatter
-and the public bounded parse. `--stages` selects the stages after lexing, so a
+disposal and statement recovery. It then observes consumers: module lowering
+with local function resolution (`lowering`, off by default), the formatter and
+the public bounded parse. `--stages` selects the stages after lexing, so a
 slow consumer does not end parser discovery.
 
 Valid families cover each grammar scope alone, then mixed shapes: expressions

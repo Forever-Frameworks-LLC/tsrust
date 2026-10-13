@@ -235,3 +235,37 @@ fn annotated_arrow_detection_leaves_packed_closers_for_the_real_parse() {
     let formatted = crate::format(&source).unwrap();
     assert_eq!(crate::format(&formatted).unwrap(), formatted);
 }
+
+#[test]
+fn native_stack_use_does_not_grow_with_nesting() {
+    // Every grammar scope together: statements, a function expression with a
+    // pattern parameter, a default that holds a closure, a nested declaration
+    // with a generic default, a template, an index, an assertion and a switch.
+    let layer = |inner: &str| {
+        format!(
+            "label:if(a){{for(let i=0;i<1;i++){{switch(a){{case 1:{{try{{const f=function([b,{{c=((d:Map<string,Array<int>>=new Map<string,Array<int>>()):int=>{{{inner}}})()}}]:T,...r:int[]):int{{function g<U>(u:U=`x${{[r[0]?.k!,b as int]}}`):U{{return u;}}return g(1);}};}}finally{{}}break;}}default:}}}}}}else if(e){{}}else{{}}"
+        )
+    };
+    let valid = main_body(&nest("return 7;", 1_000, layer));
+    let invalid = main_body(&nest("return +;", 1_000, layer));
+    let annotation = nest("int", 50_000, |inner| format!("Function<Box<({inner})[]>|null,[a:ReadOnly<Map<string,int>[]>,b?:(c:int)=>[int,string]|null]>"));
+    // An eighth of the ordinary 2 MiB worker stack is enough at any depth.
+    std::thread::Builder::new()
+        .stack_size(256 * 1024)
+        .spawn(move || {
+            let program = parse_unbounded(&valid).unwrap();
+            assert_eq!(program.functions[1].scope_span.end, valid.len());
+            drop(program.clone());
+            drop(program);
+            // The innermost block recovers; every enclosing scope then completes.
+            let errors = diagnostics_unbounded(&invalid);
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].span.start, invalid.find("+;").unwrap() + 1);
+            assert_eq!(parse_unbounded(&invalid).unwrap_err().span, errors[0].span);
+            let parsed = crate::type_syntax::parse_with(&annotation, NestingPolicy::UNBOUNDED).unwrap();
+            assert_eq!(parsed.span.end, annotation.len());
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
