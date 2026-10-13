@@ -1,5 +1,6 @@
 """Discover pipeline behavior geometrically; operational budgets are not language limits."""
 import argparse
+from collections import deque
 import hashlib
 import json
 import os
@@ -40,65 +41,47 @@ def source(family, size):
     elif family == 'type-groups':
         body = 'const value:' + '(' * size + 'int' + ')' * size + '=7;console.log(value);'
     elif family == 'closure-bodies':
-        value = '7'
-        for _ in range(size):
-            value = '(():int=>{return ' + value + ';})()'
+        value = repeated('7', size, '(():int=>{return ', ';})()')
         body = 'console.log(' + value + ');'
     elif family == 'mixed-loops':
-        body = 'console.log(7);'
-        for level in range(size):
-            if level % 3 == 0:
-                body = 'while(true){' + body + 'break;}'
-            elif level % 3 == 1:
-                body = 'for(const item' + str(level) + ' of [1]){' + body + '}'
-            else:
-                body = 'do{' + body + '}while(false);'
+        layers = [('while(true){', 'break;}') if level % 3 == 0 else
+                  ('for(const item' + str(level) + ' of [1]){', '}') if level % 3 == 1 else
+                  ('do{', '}while(false);') for level in range(size)]
+        body = ''.join(opening for opening, _ in reversed(layers)) + 'console.log(7);' + ''.join(closing for _, closing in layers)
     elif family == 'if-statements':
-        body = 'console.log(7);'
-        for _ in range(size):
-            body = 'if(true){' + body + '}else{}'
+        body = repeated('console.log(7);', size, 'if(true){', '}else{}')
     elif family == 'initializer-bodies':
-        value = '7'
-        for _ in range(size):
-            value = '(():int=>{const value=' + value + ';if(true){return value;}else{return 0;}})()'
+        value = repeated('7', size, '(():int=>{const value=', ';if(true){return value;}else{return 0;}})()')
         body = 'const result=' + value + ';console.log(result);'
     elif family in ('sequences', 'owned-store-sequences'):
-        value = '7'
-        for _ in range(size):
-            value = ('(text="next",' if family == 'owned-store-sequences' else '(0,') + value + ')'
+        value = repeated('7', size, '(text="next",' if family == 'owned-store-sequences' else '(0,', ')')
         return 'function main(){let text="old";console.log(' + value + ');}'
     elif family in ('assignment-values', 'compound-values', 'mixed-assignments'):
-        value = '7'
-        for _ in range(size):
-            value = ('(target+=' if family == 'compound-values' else '(target=') + value + ')'
-            if family == 'mixed-assignments':
-                value = '(values[0]+=(true?(null??(0||' + value + ')):0))'
+        opening, closing = ('(target+=' if family == 'compound-values' else '(target='), ')'
+        if family == 'mixed-assignments':
+            opening, closing = '(values[0]+=(true?(null??(0||' + opening, closing + ')):0))'
+        value = repeated('7', size, opening, closing)
         return 'function main(){let target=0;const values=[0];console.log(' + value + ');}'
     elif family in ('logical-values', 'logical-booleans', 'mixed-logical'):
-        value = 'true' if family == 'logical-booleans' else '7'
-        for _ in range(size):
-            value = ('(true&&' if family == 'logical-booleans' else '(0||') + value + ')'
-            if family == 'mixed-logical':
-                value = 'identity(({value:[true?(null??' + value + '):0]}).value[0])'
+        opening, closing = ('(true&&' if family == 'logical-booleans' else '(0||'), ')'
+        if family == 'mixed-logical':
+            opening, closing = 'identity(({value:[true?(null??' + opening, closing + '):0]}).value[0])'
+        value = repeated('true' if family == 'logical-booleans' else '7', size, opening, closing)
         return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('coalescing', 'mixed-coalescing'):
-        value = '7'
-        for _ in range(size):
-            value = '(null??' + value + ')'
-            if family == 'mixed-coalescing':
-                value = 'identity(({value:[true?' + value + ':0]}).value[0])'
+        opening, closing = '(null??', ')'
+        if family == 'mixed-coalescing':
+            opening, closing = 'identity(({value:[true?' + opening, closing + ':0]}).value[0])'
+        value = repeated('7', size, opening, closing)
         return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('conditionals', 'mixed-branches'):
-        value = '7'
-        for _ in range(size):
-            value = '(true?' + value + ':0)'
-            if family == 'mixed-branches':
-                value = 'identity(({value:[' + value + ']}).value[0])'
+        opening, closing = '(true?', ':0)'
+        if family == 'mixed-branches':
+            opening, closing = 'identity(({value:[' + opening, closing + ']}).value[0])'
+        value = repeated('7', size, opening, closing)
         return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family == 'mixed-literals':
-        value = '7'
-        for _ in range(size):
-            value = 'identity(({value:[' + value + ']}).value[0])'
+        value = repeated('7', size, 'identity(({value:[', ']}).value[0])')
         return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments'):
         callee = {
@@ -107,9 +90,7 @@ def source(family, size):
             'inline-arguments': '((value:int):int=>{return value;})',
             'field-arguments': 'holder.run',
         }[family]
-        value = '7'
-        for _ in range(size):
-            value = callee + '(' + value + ')'
+        value = repeated('7', size, callee + '(', ')')
         declarations = 'function identity(value:int):int{return value;}\n'
         if family == 'field-arguments':
             declarations += 'type Holder={run:ReadOnly<Function<int,[value:int]>>;};\n'
@@ -137,6 +118,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--families', nargs='+', choices=FAMILIES, default=list(FAMILIES))
     parser.add_argument('--unbounded-parser', action='store_true', help='Bypass parser admission only; retain normal lowering, checking, emission and disposal')
+    parser.add_argument('--breadth-first', action='store_true', help='Observe every family at one size before expanding successful families')
     parser.add_argument('--start', type=int, default=8)
     parser.add_argument('--factor', type=int, default=2)
     parser.add_argument('--seconds-per-case', type=float, required=True)
@@ -149,6 +131,7 @@ def main():
     probe = args.probe.resolve(strict=True)
     record = {'scope': 'diagnostic discovery, not formal timing or a support ceiling',
               'machine': platform.uname()._asdict(), 'cpu_count': os.cpu_count(),
+              'breadth_first': args.breadth_first,
               'parser_policy': 'unbounded' if args.unbounded_parser else 'public',
               'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
               'source_diff': subprocess.check_output(['git', 'diff', '--', 'crates/tsrust-compiler'], text=True),
@@ -168,47 +151,50 @@ def main():
     deadline = time.monotonic() + args.seconds_total
     with tempfile.TemporaryDirectory(prefix='tsrust-nesting-discovery-') as temporary:
         directory = Path(temporary)
-        for family in args.families:
-            size = args.start
-            while time.monotonic() < deadline:
-                text = source(family, size)
-                path = directory / 'source.tsr'
-                path.write_text(text)
-                env = os.environ.copy()
-                env.pop('RUST_MIN_STACK', None)
-                env['TSRUST_NESTING_PROBE_SOURCE'] = str(path)
-                env['TSRUST_NESTING_PROBE_POLICY'] = 'unbounded' if args.unbounded_parser else 'public'
-                command = [str(probe), 'nesting_probe::observe_pipeline_stages', '--exact', '--ignored', '--nocapture', '--test-threads=1']
-                started = time.monotonic()
-                case_deadline = min(deadline, started + args.seconds_per_case)
-                timed_out = False
-                with (directory / 'output.log').open('w') as output:
-                    child = subprocess.Popen(command, env=env, stdout=output, stderr=subprocess.STDOUT)
-                    while True:
-                        pid, status, usage = os.wait4(child.pid, os.WNOHANG)
-                        if pid:
-                            break
-                        if time.monotonic() >= case_deadline:
-                            timed_out = True
-                            child.kill()
-                            _, status, usage = os.wait4(child.pid, 0)
-                            break
-                        time.sleep(0.02)
-                    child.returncode = os.waitstatus_to_exitcode(status)
-                output = (directory / 'output.log').read_text()
-                events = [json.loads(line.split('TSRUST_NESTING_EVENT ', 1)[1]) for line in output.splitlines() if 'TSRUST_NESTING_EVENT ' in line]
-                complete = child.returncode == 0 and any(e['phase'] == 'dispose' and e['status'] == 'finish' for e in events)
-                result = {'family': family, 'size': size, 'source': text, 'source_sha256': hashlib.sha256(text.encode()).hexdigest(),
-                          'events': events, 'output': output, 'returncode': child.returncode,
-                          'elapsed_seconds': time.monotonic() - started, 'operational_timeout': timed_out,
-                          'peak_rss_bytes': usage.ru_maxrss * (1 if platform.system() == 'Darwin' else 1024),
-                          'pipeline_complete': complete}
-                record['cases'].append(result)
-                save()
-                print(f'{family} {size}: complete={complete} timeout={timed_out} rss={result["peak_rss_bytes"]}', flush=True)
-                if not complete:
-                    break
-                size *= args.factor
+        pending = deque((family, args.start) for family in args.families)
+        while pending and time.monotonic() < deadline:
+            family, size = pending.popleft()
+            text = source(family, size)
+            path = directory / 'source.tsr'
+            path.write_text(text)
+            env = os.environ.copy()
+            env.pop('RUST_MIN_STACK', None)
+            env['TSRUST_NESTING_PROBE_SOURCE'] = str(path)
+            env['TSRUST_NESTING_PROBE_POLICY'] = 'unbounded' if args.unbounded_parser else 'public'
+            command = [str(probe), 'nesting_probe::observe_pipeline_stages', '--exact', '--ignored', '--nocapture', '--test-threads=1']
+            started = time.monotonic()
+            case_deadline = min(deadline, started + args.seconds_per_case)
+            timed_out = False
+            with (directory / 'output.log').open('w') as output:
+                child = subprocess.Popen(command, env=env, stdout=output, stderr=subprocess.STDOUT)
+                while True:
+                    pid, status, usage = os.wait4(child.pid, os.WNOHANG)
+                    if pid:
+                        break
+                    if time.monotonic() >= case_deadline:
+                        timed_out = True
+                        child.kill()
+                        _, status, usage = os.wait4(child.pid, 0)
+                        break
+                    time.sleep(0.02)
+                child.returncode = os.waitstatus_to_exitcode(status)
+            output = (directory / 'output.log').read_text()
+            events = [json.loads(line.split('TSRUST_NESTING_EVENT ', 1)[1]) for line in output.splitlines() if 'TSRUST_NESTING_EVENT ' in line]
+            complete = child.returncode == 0 and any(e['phase'] == 'dispose' and e['status'] == 'finish' for e in events)
+            result = {'family': family, 'size': size, 'source': text, 'source_sha256': hashlib.sha256(text.encode()).hexdigest(),
+                      'events': events, 'output': output, 'returncode': child.returncode,
+                      'elapsed_seconds': time.monotonic() - started, 'operational_timeout': timed_out,
+                      'peak_rss_bytes': usage.ru_maxrss * (1 if platform.system() == 'Darwin' else 1024),
+                      'pipeline_complete': complete}
+            record['cases'].append(result)
+            save()
+            print(f'{family} {size}: complete={complete} timeout={timed_out} rss={result["peak_rss_bytes"]}', flush=True)
+            if complete:
+                if args.breadth_first:
+                    pending.append((family, size * args.factor))
+                else:
+                    pending.appendleft((family, size * args.factor))
+        record['pending_cases'] = [{'family': family, 'size': size} for family, size in pending]
     record['finished'] = True
     record['total_budget_exhausted'] = time.monotonic() >= deadline
     save()

@@ -1409,3 +1409,29 @@ SQLite records use `tsrust-nesting-local-resolution-*`. This closes the parser
 handoff's local resolver recursion, not the full compiler architecture. Public
 admission, remaining recursive helpers, formatter/token/alias scaling and formal
 measurements still require work. Consumers remain at `79295194`.
+
+
+### Broad unbounded pipeline audit after local resolution
+
+Discovery now supports breadth-first family scheduling, so one successful family
+does not consume the whole budget before unrelated shapes are observed. Pending
+cases are recorded for continuation. Former quadratic source generators now
+construct nested wrappers by joining prefixes/suffixes; 175 byte comparisons
+across all 35 families preserve original source spellings and behavior.
+
+The broad audit covers expression, closure, generic-call and control-flow
+families through the unbounded parser and normal lowering/checking/emission/drop.
+Normal-stack debugger traces for 1,024 nested blocks and mixed loops identify
+`definite_assignment::check` as a remaining recursive path. Its connected
+`flow`/exception-assignment traversal and control-flow emission must be addressed
+as a section; removing only the shallow wrapper would leave recursive children.
+Generic explicit/inferred chains also reach operational timeouts during analysis.
+These observations are discovery failures, not new language limits or acceptance.
+
+The 240-second run closes with 41 observations: 32 complete,
+6 operational timeouts and 3 stack-overflow aborts. The record retains
+17 pending geometric cases; previously passed observations need no replay.
+Whole-project formatting changes zero files. Records use
+`tsrust-nesting-broad-*` in SQLite. Compiler source
+remains at `06deeecf`; this audit changes discovery support only. Public admission
+and formal performance acceptance remain pending.
