@@ -129,7 +129,7 @@ fn replace_self(body:&mut [Stmt],name:&str,reference:usize)->Result<(),Diagnosti
         if inside(expression.span,&shadows){return Ok(());}
         if let ExprKind::Call(callee,args)=&mut expression.kind {
             match &mut callee.kind {
-                ExprKind::Name(method) if method=="@schema:array"=>{for arg in args{replace(arg);}},
+                ExprKind::Name(method) if matches!(method.as_str(),"@schema:array"|"@schema:record"|"@schema:map"|"@schema:set")=>{for arg in args{replace(arg);}},
                 ExprKind::Name(method) if method=="@schema:object"=>{if let Some(Expr{kind:ExprKind::Record(fields),..})=args.first_mut(){for(_,value)in fields{replace(value);}}},
                 ExprKind::Name(method) if method=="@schema:union"=>{if let Some(Expr{kind:ExprKind::Array(branches),..})=args.first_mut(){for value in branches{replace(value);}}},
                 ExprKind::Field(base,method) if matches!(method.as_str(),"nullable"|"optional"|"refine"|"transform"|"default")=>replace(base),

@@ -392,7 +392,7 @@ impl Context<'_> {
     }
     #[inline(never)]
     fn set_instance(&mut self, key: Type, arguments: &[ValueAnnotation], span: Span) -> Result<usize, Diagnostic> {
-        let members = key.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![key]);
+        let members = key.union().filter(|id| !self.unions.is_recursive(*id)).map(|id| self.unions.members(id)).unwrap_or_else(|| vec![key]);
         if !members.iter().all(|member| matches!(member, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String | Type::Enum(_, _))) {
             return Err(Diagnostic::new("set-key", "Set keys require numeric, boolean, string, null, undefined, or enum values; owned object identity is not supported.", span));
         }
@@ -408,7 +408,7 @@ impl Context<'_> {
     }
     #[inline(never)]
     fn map_instance(&mut self, key: Type, value: Type, arguments: &[ValueAnnotation], span: Span) -> Result<usize, Diagnostic> {
-        let members = key.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![key]);
+        let members = key.union().filter(|id| !self.unions.is_recursive(*id)).map(|id| self.unions.members(id)).unwrap_or_else(|| vec![key]);
         if !members.iter().all(|member| matches!(member, Type::Int | Type::Number | Type::Boolean | Type::Null | Type::Undefined | Type::String | Type::Enum(_, _))) {
             return Err(Diagnostic::new("map-key", "Map keys require scalar or enum values; owned object identity is unsupported.", span));
         }
@@ -503,6 +503,10 @@ impl Context<'_> {
             Type::Null => "null".into(),
             Type::Undefined => "undefined".into(),
             Type::Record(id) | Type::Enum(id, _) | Type::Set(id) | Type::Map(id) => self.records[id].name.text.clone(),
+            Type::Union(id) if self.unions.is_recursive(id) => {
+                let declaration=self.unions.recursive_declaration(id).expect("named recursive type");
+                self.records[declaration].name.text.clone()
+            },
             Type::Union(id) => self
                 .unions
                 .members(id)

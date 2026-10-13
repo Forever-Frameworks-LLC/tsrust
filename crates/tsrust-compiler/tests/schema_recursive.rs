@@ -128,6 +128,8 @@ fn recursive_placeholders_reject_unproductive_definitions_and_escape() {
         ("const schema=s.recursive(self=>self);","schema-recursion"),
         ("const schema=s.recursive(self=>s.union([self,s.int()]));","schema-recursion"),
         ("const schema=s.recursive(self=>()=>self);","schema-recursion"),
+        ("const schema=s.recursive(self=>s.set(self));","set-key"),
+        ("const schema=s.recursive(self=>s.map(self,s.int()));","map-key"),
         ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.string(),children:s.array(self)}));","schema-type"),
     ] {
         let source=format!("import {{s}} from 'std:schema';{definition} function main(){{}}");
@@ -184,4 +186,32 @@ function main(){
     assert_eq!(output.status.code(),Some(1));
     let diagnostics=String::from_utf8(output.stdout).unwrap();
     assert!(diagnostics.contains("\"code\":\"type\""),"{diagnostics}");
+}
+
+#[test]
+fn recursive_record_collections_validate_nested_values_and_paths() {
+    let source=r#"
+import {s} from 'std:schema';
+import {strictEqual} from 'std:testing';
+const tree=s.recursive(self=>s.object({value:s.int(),children:s.record(self)}));
+function main(){
+  match(tree.safeParseJson('{"value":1,"children":{"leaf":{"value":2,"children":{}}}}')){
+    Ok(value)=>{strictEqual(value.value,1);strictEqual(value.children.size,1);},
+    Err(error)=>{throw 'Recursive record collection rejected';}
+  }
+  match(tree.safeParseJson('{"value":1,"children":{"leaf":{"value":"bad","children":{}}}}')){
+    Ok(value)=>{throw 'Invalid recursive record collection accepted';},
+    Err(error)=>{
+      if(error.kind==='validation'){
+        strictEqual(error.error.issues[0].path[0].field,'children');
+        strictEqual(error.error.issues[0].path[1].field,'leaf');
+        strictEqual(error.error.issues[0].path[2].field,'value');
+      }else{throw 'Unexpected JSON error';}
+    }
+  }
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(file),60));
 }

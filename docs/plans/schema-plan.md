@@ -2602,3 +2602,30 @@ milestone acceptance is claimed.
 All six affected projection-filter regressions also pass
 (`tsrust-recursive-projection-regression.log`). Whole-project formatting changed
 no files or fingerprints (`tsrust-recursive-editor-roots-format.log`).
+
+
+### Approved multiple-issue validation contract
+
+The owner approved `.superRefine((value, ctx) => { ctx.addIssue({ path:
+['confirm'], message: 'Passwords differ' }); })`. The input is read-only; paths
+must be checked and supported by IntelliSense. Issue collection remains bounded.
+The callback cannot retain `ctx`, and thrown exceptions propagate normally.
+Existing `.refine()` remains unchanged. This API is approved but not implemented.
+
+### Recursive collection composition repair
+
+Recursive placeholders now enter collection constructors as child schemas.
+A nested `s.record(self)` witness exposed input/output Map applications collapsing
+under one empty label while recursive knots were unresolved. Generic collection
+labels now retain the reserved recursive declaration identity. Map/Set key checks
+also reject an unresolved recursive type instead of accepting its temporarily
+empty member list as scalar-compatible.
+
+Nested JSON record validation and its full `children/leaf/value` failure path
+pass. Recursive Set elements and Map keys report their ordinary scalar-key
+restrictions. Initial native failure is preserved in
+`tsrust-recursive-record-collection.log`; repaired evidence is
+`tsrust-recursive-record-collection-repair.log` and
+`tsrust-recursive-collection-key-rejections.log`. Native owned recursive Map input
+and explicit generic collection output conversion still need audit. This does
+not close recursive or S11 family acceptance.
