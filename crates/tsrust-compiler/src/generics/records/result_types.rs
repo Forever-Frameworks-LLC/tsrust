@@ -3,24 +3,11 @@
 use super::*;
 
 impl Context<'_> {
-    #[inline(never)]
-    pub(super) fn result_annotation(&mut self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
-        if self.depth >= 32 {
-            return Err(Diagnostic::new("generic-limit", "Result specialization exceeds its nesting limit of 32.", value.span));
-        }
-        self.depth += 1;
-        let result = self.result_annotation_inner(value);
-        self.depth -= 1;
-        result
-    }
-
-    #[inline(never)]
-    fn result_annotation_inner(&mut self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
+    pub(super) fn finish_result_annotation(&mut self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
         let Kind::Applied { arguments, .. } = &mut value.kind else { unreachable!("Result application"); };
         if arguments.len() != 2 {
             return Err(Diagnostic::new("arity", "Result requires success and error types.", value.span));
         }
-        for argument in arguments.iter_mut() { self.annotation(argument, &HashMap::new())?; }
         let types = arguments.iter().map(|argument| {
             let mut resolver = self.callables.resolver(&self.names, self.unions);
             if let Some((ty, _)) = resolver.storage_declaration(argument)? { Ok(ty) }

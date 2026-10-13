@@ -13,8 +13,14 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False):
     functions = []
+    if generic_records:
+        for index in range(count):
+            field = 'value: T' if index + 1 == count else f'next: Layer{index + 1}<T>[]'
+            functions.append(f'type Layer{index}<T> = {{ {field}; }};')
+        functions.append(f'function main() {{ const root: Layer0<{scalar}> = {{ next: [] }}; console.log(root.next.length); }}')
+        return '\n'.join([*functions, *(['main();'] if call_main else []), ''])
     if record_result:
         functions.append(f'type Item = {{ value: {scalar}; }};')
         for index in range(count):
@@ -51,6 +57,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--generic-records', action='store_true', help='Use the generic materialization workload; incompatible with recursive function variants')
     parser.add_argument('--record', action='store_true', help='Return data records through a recursive group; requires --recursive')
     parser.add_argument('--callable', action='store_true', help='Resolve recursive callable environments; requires --recursive')
     parser.add_argument('--inferred', action='store_true', help='Infer native recursive results; requires --recursive')
@@ -68,7 +75,14 @@ def main():
         parser.error('Select only one recursive variant')
     manifest_name = (variants[0] + '-' if variants else '') + 'recursive-manifest.json'
     manifest_path = MANIFEST_PATH.with_name(manifest_name) if args.recursive else MANIFEST_PATH
+    if args.generic_records:
+        if args.recursive or variants:
+            parser.error('Generic materialization is separate from recursive function variants')
+        manifest_path = MANIFEST_PATH.parent.parent / 'generic-materialization/manifest.json'
     manifest = json.loads(manifest_path.read_text())
+    counts = manifest.get('declarationCounts', manifest.get('functionCounts'))
+    if args.only and any(count not in counts for count in args.only):
+        parser.error('Requested count is not registered for this workload')
     compiler = args.compiler.resolve(strict=True)
     tsc = ROOT / 'benchmarks/runtime/node_modules/typescript/bin/tsc'
     record = {
@@ -93,16 +107,16 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix='tsrust-function-dependencies-') as directory:
             directory = Path(directory)
-            for count in args.only or manifest['functionCounts']:
+            for count in args.only or counts:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 assert native.read_bytes() == formatted, 'Formatter must be idempotent'
-                group = {'functionCount': count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
+                group = {('declarationCount' if args.generic_records else 'functionCount'): count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
                          'nativeSha256': digest(formatted), 'referenceSha256': digest(reference.read_bytes()), 'phases': {}}
                 record['groups'].append(group)
                 commands = {

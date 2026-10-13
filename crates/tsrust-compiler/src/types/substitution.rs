@@ -6,7 +6,7 @@ use std::collections::HashMap;
 /// Arguments are already concrete. A replacement is not substituted again.
 /// Replacement coordinates remain those of the argument that supplied it.
 pub(crate) fn apply(value: &mut ValueAnnotation, bindings: &HashMap<String, ValueAnnotation>) -> Result<(), Diagnostic> {
-    // Generic materialization and source wrapper storage still have recursive
+    // Checked-type reconstruction and source wrapper storage still have recursive
     // consumers. Preserve admission until those consumers are converted.
     apply_with_limit(value, bindings, Some(128))
 }

@@ -3044,3 +3044,21 @@ fn schema_export_completion_and_hover_cover_native_and_chained_plans() {
         assert!(hover.to_string().contains("JsonValue"),"{hover}");
     }
 }
+
+#[test]
+fn generic_record_expansion_beyond_former_depth_keeps_field_help() {
+    let mut source = String::new();
+    for index in 0..64 {
+        let field = if index == 63 { "value:T".to_owned() } else { format!("next:Layer{}<T>[]", index + 1) };
+        source.push_str(&format!("type Layer{index}<T>={{{field};}};"));
+    }
+    source.push_str("function main(){const root:Layer0<int>={next:[]};console.log(root.next.length);}");
+    let mut workspace = Workspace::default();
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    workspace.open(source_id(uri).unwrap(), 1, source.clone());
+    let input = workspace.snapshot();
+    let checked = input.check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::new(&checked.graph);
+    let hover = ask(&index, &source, "next.length", "textDocument/hover");
+    assert!(hover["contents"]["value"].as_str().unwrap().contains("Layer1<int>[]"), "{hover}");
+}

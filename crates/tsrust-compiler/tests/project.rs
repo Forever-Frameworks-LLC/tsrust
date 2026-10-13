@@ -1943,3 +1943,28 @@ strictEqual(constant(),7);let caught=false;try{failing(8);}catch(error){caught=t
     let checked=tsrust_compiler::project::check_graph(load_project(&memory,"main.tsr").unwrap()).unwrap();
     for optimization in ["0","3"] {assert_eq!(native_stdout(&checked.emit_rust(),optimization),"");}
 }
+
+#[test]
+fn generic_record_expansion_uses_worklists_beyond_the_former_depth_boundary() {
+    fn source(count: usize) -> String {
+        let mut source = String::new();
+        for index in 0..count {
+            let field = if index + 1 == count { "value:T".to_owned() } else { format!("next:Layer{}<T>[]", index + 1) };
+            source.push_str(&format!("type Layer{index}<T>={{{field};}};"));
+        }
+        source.push_str("function main(){const root:Layer0<int>={next:[]};console.log(root.next.length);}");
+        source
+    }
+    let checked = tsrust_compiler::check(&source(512)).unwrap();
+    assert!(!checked.emit_rust().is_empty());
+    let checked = tsrust_compiler::check(&source(64)).unwrap();
+    assert_eq!(native_stdout(&checked.emit_rust(), "0"), "0\n");
+}
+
+#[test]
+fn result_materialization_exceeds_the_former_depth_boundary() {
+    let annotation = format!("{}int{}", "Result<".repeat(40), ",string>".repeat(40));
+    let source = format!("type Holder={{value:{annotation};}};function main(){{console.log(7);}}");
+    let checked = tsrust_compiler::check(&source).unwrap();
+    assert_eq!(native_stdout(&checked.emit_rust(), "0"), "7\n");
+}

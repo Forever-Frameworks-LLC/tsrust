@@ -113,4 +113,7 @@ grouped storage errors retain their enclosing-range remapping.
 Generic record declaration validation and source annotation wrapper traversal live
 in `generics/records/mod.rs`. Their worklists preserve constructor-before-child
 validation and parameter-before-result materialization. Concrete annotation and
-record instance expansion remain separate traversal responsibilities.
+record instance expansion use owned parent and field continuations in
+`generics/records/materialization.rs`. Publish nominal identities before visiting
+fields; publish completed field lists only after all fields succeed. Result
+alternative allocation remains in `generics/records/result_types.rs`.

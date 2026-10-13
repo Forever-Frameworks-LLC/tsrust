@@ -4,6 +4,7 @@ use crate::type_syntax::{TypeName, ValueAnnotation, ValueAnnotationKind as Kind}
 use crate::{Diagnostic, Span};
 use std::collections::{BTreeMap, HashMap};
 mod result_types;
+mod materialization;
 
 #[derive(Default)]
 pub(crate) struct Cache {
@@ -31,7 +32,6 @@ impl Cache {
             counts: std::mem::take(&mut self.counts),
             records: std::mem::take(records),
             names: std::mem::take(names),
-            depth: 0,
             unions,
             callables,
         };
@@ -62,7 +62,6 @@ pub(crate) fn specialize_in(
         names: HashMap::new(),
         instances: HashMap::new(),
         counts: HashMap::new(),
-        depth: 0,
         unions,
         callables,
     };
@@ -148,7 +147,6 @@ struct Context<'a> {
     names: HashMap<String, usize>,
     instances: HashMap<(String, Vec<Type>), usize>,
     counts: HashMap<String, usize>,
-    depth: usize,
     unions: &'a crate::unions::UnionArena,
     callables: &'a mut crate::callable_resolution::Tables,
 }
@@ -262,138 +260,6 @@ impl Context<'_> {
         Ok(())
     }
 
-    fn annotation(
-        &mut self,
-        value: &mut ValueAnnotation,
-        bindings: &HashMap<String, ValueAnnotation>,
-    ) -> Result<(), Diagnostic> {
-        if !bindings.is_empty() {
-            crate::type_substitution::apply(value, bindings)?;
-            return self.annotation(value, &HashMap::new());
-        }
-        if matches!(&value.kind, Kind::Applied { name, .. } if name.text == "Result") {
-            return self.result_annotation(value);
-        }
-        match &mut value.kind {
-            Kind::Literal(literal) => {
-                let definition=crate::literal_types::LiteralValue::checked(literal,value.span)?;
-                let name=definition.key();let kind=definition.kind();
-                let id=if let Some(&id)=self.names.get(&name){id}else{
-                    let id=self.records.len();self.names.insert(name.clone(),id);
-                    self.records.push(Record{native_type:None,map_definition:None,set_definition:None,enum_definition:None,literal_definition:Some(definition),application:None,name:Token{text:name,span:value.span,kind:TokenKind::Symbol},type_parameters:Vec::new(),fields:Vec::new()});id
-                };
-                self.unions.register_literal_type(id,kind);
-            },
-            Kind::Polymorphic { .. } => {},
-            Kind::Named(name) => {
-                if name.text == "Result" {
-                    return Err(Diagnostic::new("arity", "Result requires success and error types, for example Result<int, string>.", value.span));
-                } else if let Some(argument) = bindings.get(&name.text) {
-                    *value = argument.clone();
-                } else if self.templates.contains_key(&name.text) {
-                    return Err(Diagnostic::new(
-                        "arity",
-                        "Generic record types require explicit type arguments.",
-                        value.span,
-                    ));
-                }
-            }
-            Kind::Group(inner) | Kind::Array(inner) => self.annotation(inner, bindings)?,
-            Kind::Union(members) => {
-                for member in members {
-                    self.annotation(member, bindings)?;
-                }
-            }
-            Kind::Tuple(positions) => {
-                for position in positions.iter_mut() { self.annotation(position, bindings)?; }
-                let types = positions.iter().map(|position| crate::analysis::resolve_value_type(position, false, &self.names, self.unions)).collect::<Result<Vec<_>, _>>()?;
-                let label = format!("[{}]", types.iter().map(|ty|self.label(*ty)).collect::<Vec<_>>().join(","));
-                let id = if let Some(&id) = self.names.get(&label) { id } else {
-                    let id = self.records.len();
-                    let fields = positions.iter().enumerate().map(|(index, annotation)| RecordField {
-                        name: Token { kind: TokenKind::Symbol, text: index.to_string(), span: annotation.span },
-                        annotation: annotation.clone(), ty: None, callable_declaration: None, optional: false,
-                    }).collect();
-                    self.records.push(Record { native_type: None, map_definition: None, set_definition: None, enum_definition: None,literal_definition:None, application: None, name: Token { kind: TokenKind::Symbol, text:label.clone(), span:value.span }, type_parameters: Vec::new(), fields });
-                    self.names.insert(label.clone(), id);
-                    id
-                };
-                value.kind = Kind::Named(TypeName { text: self.records[id].name.text.clone(), span: value.span });
-            }
-            Kind::Callable {
-                parameters, result, ..
-            } => {
-                for parameter in parameters {
-                    self.annotation(&mut parameter.annotation, bindings)?;
-                }
-                self.annotation(result, bindings)?;
-            }
-            Kind::Applied { name, arguments } => {
-                if name.text == "Map" {
-                    if arguments.len() != 2 { return Err(Diagnostic::new("arity", "Map requires key and value types.", value.span)); }
-                    for argument in arguments.iter_mut() { self.annotation(argument, bindings)?; }
-                    let key = crate::analysis::resolve_value_type(&arguments[0], false, &self.names, self.unions)?;
-                    let result = crate::analysis::resolve_value_type(&arguments[1], false, &self.names, self.unions)?;
-                    let id = self.map_instance(key, result, arguments, value.span)?;
-                    value.kind = Kind::Named(TypeName { text: self.records[id].name.text.clone(), span: value.span });
-                    return Ok(());
-                }
-                if name.text == "Set" {
-                    if arguments.len() != 1 { return Err(Diagnostic::new("arity", "Set requires one key type.", value.span)); }
-                    self.annotation(&mut arguments[0], bindings)?;
-                    let key = crate::analysis::resolve_value_type(&arguments[0], false, &self.names, self.unions)?;
-                    let id = self.set_instance(key, arguments, value.span)?;
-                    value.kind = Kind::Named(TypeName { text: self.records[id].name.text.clone(), span: value.span });
-                    return Ok(());
-                }
-                if bindings.contains_key(&name.text) {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "A type parameter cannot be used as a generic type constructor.",
-                        name.span,
-                    ));
-                }
-                let Some(template) = self.templates.get(&name.text) else {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Unknown generic record type.",
-                        name.span,
-                    ));
-                };
-                if arguments.len() != template.type_parameters.len() {
-                    return Err(Diagnostic::new(
-                        "arity",
-                        format!(
-                            "Generic record expects {} type arguments, received {}.",
-                            template.type_parameters.len(),
-                            arguments.len()
-                        ),
-                        value.span,
-                    ));
-                }
-                for argument in arguments.iter_mut() {
-                    self.annotation(argument, bindings)?;
-                }
-                let types = arguments
-                    .iter()
-                    .map(|argument| {
-                        crate::analysis::resolve_value_type(
-                            argument,
-                            false,
-                            &self.names,
-                            self.unions,
-                        )
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let index = self.instance(&name.text, arguments, types, value.span)?;
-                value.kind = Kind::Named(TypeName {
-                    text: self.records[index].name.text.clone(),
-                    span: value.span,
-                });
-            }
-        }
-        Ok(())
-    }
     #[inline(never)]
     fn set_instance(&mut self, key: Type, arguments: &[ValueAnnotation], span: Span) -> Result<usize, Diagnostic> {
         let members = key.union().filter(|id| !self.unions.is_recursive(*id)).map(|id| self.unions.members(id)).unwrap_or_else(|| vec![key]);
@@ -424,24 +290,23 @@ impl Context<'_> {
             application: Some(Box::new(RecordApplication { resolved_arguments: vec![key, value], declaration: Token { text: "Map".into(), span, kind: TokenKind::Name }, arguments: arguments.to_vec() })) });
         self.names.insert(label, id); self.unions.register_map_type(id); Ok(id)
     }
-    fn instance(
+    fn begin_instance(
         &mut self,
         name: &str,
         arguments: &[ValueAnnotation],
         types: Vec<Type>,
         span: Span,
-    ) -> Result<usize, Diagnostic> {
+    ) -> Result<(usize, Option<(Vec<RecordField>, HashMap<String, ValueAnnotation>)>), Diagnostic> {
         let key = (name.to_owned(), types.clone());
         if let Some(&index) = self.instances.get(&key) {
-            return Ok(index);
+            return Ok((index, None));
         }
-        if self.depth >= 32
-            || self.instances.len() >= 1024
+        if self.instances.len() >= 1024
             || self.counts.get(name).copied().unwrap_or(0) >= 128
         {
             return Err(Diagnostic::new(
                 "generic-limit",
-                "Generic record specialization exceeds its depth (32), per-declaration (128), or program (1024) limit.",
+                "Generic record specialization exceeds its per-declaration (128) or program (1024) limit.",
                 span,
             ));
         }
@@ -488,53 +353,68 @@ impl Context<'_> {
             .zip(arguments)
             .map(|(parameter, argument)| (parameter.text.clone(), argument.clone()))
             .collect();
-        self.depth += 1;
-        let mut fields = template.fields;
-        for field in &mut fields {
-            self.annotation(&mut field.annotation, &bindings)?;
-        }
-        self.depth -= 1;
-        self.records[index].fields = fields;
-        Ok(index)
+        Ok((index, Some((template.fields, bindings))))
     }
+
     fn label(&self, ty: Type) -> String {
-        match ty {
-            Type::Literal(id,_) => self.records[id].literal_definition.as_ref().unwrap().text(),
-            Type::Int => "int".into(),
-            Type::Number => "number".into(),
-            Type::Boolean => "boolean".into(),
-            Type::String => "string".into(),
-            Type::Null => "null".into(),
-            Type::Undefined => "undefined".into(),
-            Type::Record(id) | Type::Enum(id, _) | Type::Set(id) | Type::Map(id) => self.records[id].name.text.clone(),
-            Type::Union(id) if self.unions.is_recursive(id) => {
-                let declaration=self.unions.recursive_declaration(id).expect("named recursive type");
-                self.records[declaration].name.text.clone()
-            },
-            Type::Union(id) => self
-                .unions
-                .members(id)
-                .into_iter()
-                .map(|member| self.label(member))
-                .collect::<Vec<_>>()
-                .join("|"),
-            Type::Array(element) => {
-                let base = match element {
-                    ArrayElement::Literal(id,_,_) => self.records[id].literal_definition.as_ref().unwrap().text(),
-                    ArrayElement::Int(_) => "int".into(),
-                    ArrayElement::Number(_) => "number".into(),
-                    ArrayElement::Boolean(_) => "boolean".into(),
-                    ArrayElement::String(_) => "string".into(),
-                    ArrayElement::Null(_) => "null".into(),
-                    ArrayElement::Undefined(_) => "undefined".into(),
-                    ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => self.records[id].name.text.clone(),
-                    ArrayElement::StoredCallable(id, _) => format!("callable{id}"),
-                    ArrayElement::Union(id, _) => format!("({})", self.label(Type::Union(id))),
-                };
-                format!("{base}{}", "[]".repeat(element.depth() as usize + 1))
+        enum Work { Value(Type), Text(&'static str), Dimensions(u8) }
+        let mut pending = vec![Work::Value(ty)];
+        let mut output = String::new();
+        while let Some(work) = pending.pop() {
+            let ty = match work {
+                Work::Text(text) => { output.push_str(text); continue; }
+                Work::Dimensions(depth) => { for _ in 0..=depth { output.push_str("[]"); } continue; }
+                Work::Value(ty) => ty,
+            };
+            match ty {
+                Type::Literal(id, _) => output.push_str(&self.records[id].literal_definition.as_ref().unwrap().text()),
+                Type::Int => output.push_str("int"),
+                Type::Number => output.push_str("number"),
+                Type::Boolean => output.push_str("boolean"),
+                Type::String => output.push_str("string"),
+                Type::Null => output.push_str("null"),
+                Type::Undefined => output.push_str("undefined"),
+                Type::Record(id) | Type::Enum(id, _) | Type::Set(id) | Type::Map(id) => output.push_str(&self.records[id].name.text),
+                Type::Union(id) if self.unions.is_recursive(id) => {
+                    let declaration = self.unions.recursive_declaration(id).expect("named recursive type");
+                    output.push_str(&self.records[declaration].name.text);
+                }
+                Type::Union(id) => {
+                    let members = self.unions.members(id);
+                    for (index, member) in members.into_iter().enumerate().rev() {
+                        pending.push(Work::Value(member));
+                        if index > 0 { pending.push(Work::Text("|")); }
+                    }
+                }
+                Type::Array(element) => {
+                    pending.push(Work::Dimensions(element.depth()));
+                    if let ArrayElement::Union(id, _) = element {
+                        pending.push(Work::Text(")"));
+                        pending.push(Work::Value(Type::Union(id)));
+                        pending.push(Work::Text("("));
+                    } else if let ArrayElement::StoredCallable(id, _) = element {
+                        output.push_str(&format!("callable{id}"));
+                    } else {
+                        pending.push(Work::Value(match element {
+                            ArrayElement::Literal(id, kind, _) => Type::Literal(id, kind),
+                            ArrayElement::Int(_) => Type::Int,
+                            ArrayElement::Number(_) => Type::Number,
+                            ArrayElement::Boolean(_) => Type::Boolean,
+                            ArrayElement::String(_) => Type::String,
+                            ArrayElement::Null(_) => Type::Null,
+                            ArrayElement::Undefined(_) => Type::Undefined,
+                            ArrayElement::Record(id, _) => Type::Record(id),
+                            ArrayElement::Enum(id, kind, _) => Type::Enum(id, kind),
+                            ArrayElement::Set(id, _) => Type::Set(id),
+                            ArrayElement::Map(id, _) => Type::Map(id),
+                            ArrayElement::Union(..) | ArrayElement::StoredCallable(..) => unreachable!(),
+                        }));
+                    }
+                }
+                _ => unreachable!("validated value type argument"),
             }
-            _ => unreachable!("validated value type argument"),
         }
+        output
     }
     fn parameter(&mut self, parameter: &mut CallableParameter) -> Result<(), Diagnostic> {
         self.source_annotations(vec![SourceAnnotation::Parameter(parameter)])
@@ -718,7 +598,7 @@ mod tests {
         let mut callables = crate::callable_resolution::Tables::default();
         let mut context = Context {
             templates: BTreeMap::new(), records: Vec::new(), names: HashMap::new(),
-            instances: HashMap::new(), counts: HashMap::new(), depth: 0,
+            instances: HashMap::new(), counts: HashMap::new(),
             unions: &unions, callables: &mut callables,
         };
         let mut annotation = crate::type_syntax::parse("int").unwrap();

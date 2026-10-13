@@ -515,3 +515,41 @@ passes 66 checks. Whole-project formatting changes zero files and fingerprints.
 SQLite records under `tsrust-nesting-template` retain outputs and source hashes
 with byte-exact restoration. No timing samples or public admission changes are
 claimed; installed consumers remain on the last public behavior checkpoint.
+
+## Generic materialization continuations
+
+Concrete annotation materialization now uses owned parent continuations, visiting
+children in source order before resolving their enclosing tuple or application.
+Record expansion shares that worklist: a nominal identity is published before
+its fields, each field receives simultaneous lexical substitution, and the complete
+field list is published only after all fields succeed. Errors restore the caller's
+partially processed syntax, preserving earlier changes and leaving later siblings
+untouched. Failed record expansion retains its published identity and empty fields.
+
+Result arguments use the same worklist, and specialization label rendering uses
+an explicit output stack. The obsolete 32-level Result and record specialization
+guards are removed. Existing per-declaration and program instance-count budgets
+remain independent limits; parser, substitution and checked-type reconstruction
+still have pending nesting boundaries. This does not establish full architecture
+acceptance. Matched generic-declaration compilation sources are registered under
+`benchmarks/compiler/generic-materialization` with the existing fresh-process
+measurement protocol; registration and untimed validation are not measurements.
+
+Verification passes six unit checks, 43 generic project checks, the new nested
+Result native witness, and 170 native integration checks across generic adapters,
+Result matching and native declarations (including executable schema examples).
+The normal-stack witnesses cover 16,384 mixed annotation levels with production
+clone/drop, 512 generated record layers through checking/emission, native execution
+at 64 layers, and native compilation/execution with 40 nested Results. Error tests
+preserve partially materialized parents and unpublished record fields. All 67
+generic editor checks pass, including field help beyond the former depth boundary.
+
+Six untimed compilation phases pass at 32 and 512 declarations. At 32 declarations,
+native and Node-after-tsc execution match the independent empty-array oracle `0`.
+Existing function workload generators retain exact source bytes across twenty
+representative native/TypeScript pairs. No timing or allocation samples were added.
+Whole-project formatting changes zero files and fingerprints. SQLite evidence uses
+`tsrust-nesting-materialization`, including the original consumer build invocation
+with an incorrect package name and its corrected invocation. Consumer refresh is
+required for this newly admitted public behavior; full nesting acceptance remains
+pending the remaining parser, analysis, reconstruction and syntax storage paths.
