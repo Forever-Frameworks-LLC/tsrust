@@ -101,38 +101,6 @@ impl Analyzer {
         }}
     }
 
-    pub(super) fn optional_hint(&self, context: &Context, body: &Expr) -> Option<Type> {
-        let result = self.expression_type_hint(context, body)?;
-        fn missing(analyzer:&Analyzer,context:&Context,mut expr:&Expr)->bool{
-            loop{match &expr.kind{
-                ExprKind::Unary{op:UnaryOp::OptionalBoundary,value,..}=>{
-                    if analyzer.expression_type_hint(context,value).is_some_and(|ty|ty.union().is_some_and(|id|analyzer.unions.members(id).iter().any(|ty|matches!(ty,Type::Null|Type::Undefined))) || matches!(ty,Type::Null|Type::Undefined)){return true;}
-                    expr=value;
-                },
-                ExprKind::Field(base,_)|ExprKind::Index(base,_)|ExprKind::Call(base,_)=>expr=base,
-                _=>return false,
-            }}
-        }
-        if missing(self, context, body) {
-            let result = if result == Type::Void {
-                Type::Undefined
-            } else {
-                result.owning()
-            };
-            let joined = self
-                .unions
-                .intern([result, Type::Undefined], body.span)
-                .ok()?;
-            if self.optional_borrowed_hint(context, body) && !joined.is_copy() {
-                joined.union().map(Type::BorrowedUnion)
-            } else {
-                Some(joined)
-            }
-        } else {
-            Some(result)
-        }
-    }
-
     pub(super) fn optional_borrowed_hint(&self,context:&Context,body:&Expr)->bool{
         self.optional_named_work(context,body,true)
     }

@@ -235,3 +235,11 @@ until the earlier predicate fails. Indexed-element hints unwrap sequence and
 assertion sources with a cursor before inspecting the field/index path. General
 type-hint dependencies remain separate and must not be described as stack-safe
 merely because these source walks are iterative.
+
+Structural type hints use `analysis/type_hints.rs`. Its continuation stack owns
+conditional, coalescing/logical, unary, arithmetic, array, field/index, pattern
+and optional-hint dependencies. Metadata and flow projections are checked before
+structural descent. Keep lazy branches lazy and retain original join spans.
+The memo belongs to one immutable source/context query and must never survive a
+context or program-state change. Native/schema call hint dispatch and other
+compatibility helpers still require a separate re-entry audit.

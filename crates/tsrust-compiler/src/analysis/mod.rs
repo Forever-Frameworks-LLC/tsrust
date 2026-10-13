@@ -6284,17 +6284,8 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn pattern_selection_hint(&self,context:&Context,value:&Expr)->Option<Type>{
-        match &value.kind {
-            ExprKind::Index(base,_)=>match self.expression_type_hint(context,base)? {
-                Type::Array(element)=>{let ty=self.unions.intern([element.ty(),Type::Undefined],value.span).ok()?;Some(if !ty.is_copy(){Type::BorrowedUnion(ty.union()?)}else{ty})},
-                Type::Record(id)=>Some(Self::flat_literal_depth(match &value.kind{ExprKind::Index(_,index)=>index,_=>unreachable!()}).and_then(|position|self.fields[id].get(&position.to_string()).copied()).unwrap_or(Type::Undefined)),
-                _=>None,
-            },
-            ExprKind::Field(base,name)=>match self.expression_type_hint(context,base)?{Type::Record(id)=>Some(self.fields[id].get(name).copied().unwrap_or(Type::Undefined)),_=>None},
-            _=>self.expression_type_hint(context,value),
-        }
-    }
+    fn pattern_selection_hint(&self,context:&Context,value:&Expr)->Option<Type>{self.type_hint_work(context,type_hints::Work::Pattern(value))}
+
     #[inline(never)]
     fn pattern_selection(&mut self,context:&mut Context,expr:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
         let ExprKind::Unary{value,..}=&mut expr.kind else{unreachable!()};
@@ -6323,36 +6314,8 @@ impl Analyzer {
         self.expression(context,expr,mode,loans,expected)
     }
 
-    fn coalesce_hint(
-        &self,
-        context: &Context,
-        left: &Expr,
-        right: &Expr,
-        span: Span,
-        undefined_only:bool,
-    ) -> Option<Type> {
-        let lhs = self.expression_type_hint(context, left)?;
-        if lhs==Type::Undefined || (!undefined_only && lhs==Type::Null) {
-            return self.expression_type_hint(context, right);
-        }
-        let Some(_) = lhs.union() else {
-            return Some(lhs);
-        };
-        let payload = if undefined_only {let members=self.unions.members(lhs.union()?).into_iter().filter(|ty|*ty!=Type::Undefined).collect::<Vec<_>>();if members.is_empty(){None}else{self.unions.intern(members,span).ok()}}else{self.unions.present(lhs.owning(), span).ok().flatten()};
-        let rhs = self.expression_type_hint(context, right);
-        let joined = match (payload, rhs) {
-            (None, rhs) => return rhs,
-            (Some(payload), None) => payload,
-            (Some(payload), Some(rhs)) => self.unions.intern([payload, rhs.owning()], span).ok()?,
-        };
-        Some(
-            if matches!(lhs, Type::BorrowedUnion(_)) || matches!(rhs, Some(Type::BorrowedUnion(_)))
-            {
-                joined.union().map(Type::BorrowedUnion).unwrap_or(joined)
-            } else {
-                joined
-            },
-        )
+    fn coalesce_hint(&self,context:&Context,left:&Expr,right:&Expr,span:Span,undefined_only:bool)->Option<Type>{
+        self.type_hint_work(context,type_hints::Work::Coalesce{left,right,span,undefined_only})
     }
 
     // Branch planning, the state between arms and the final join own their
@@ -6642,46 +6605,8 @@ impl Analyzer {
         })
     }
 
-    fn conditional_hint(
-        &self,
-        context: &Context,
-        consequent: &Expr,
-        alternate: &Expr,
-    ) -> Option<Type> {
-        let left = self.expression_type_hint(context, consequent);
-        let right = self.expression_type_hint(context, alternate);
-        if let (Some(left), Some(right)) = (left, right)
-            && (left.union().is_some()
-                || right.union().is_some()
-                || matches!(left, Type::Null | Type::Undefined)
-                || matches!(right, Type::Null | Type::Undefined))
-        {
-            let joined = self
-                .unions
-                .intern([left.owning(), right.owning()], alternate.span)
-                .ok()?;
-            return Some(
-                if matches!(left, Type::BorrowedUnion(_)) || matches!(right, Type::BorrowedUnion(_))
-                {
-                    Type::BorrowedUnion(joined.union()?)
-                } else {
-                    joined
-                },
-            );
-        }
-        if matches!(
-            left,
-            Some(Type::Number | Type::Array(ArrayElement::Number(_)))
-        ) {
-            left
-        } else if matches!(
-            right,
-            Some(Type::Number | Type::Array(ArrayElement::Number(_)))
-        ) {
-            right
-        } else {
-            left.or(right)
-        }
+    fn conditional_hint(&self,context:&Context,consequent:&Expr,alternate:&Expr)->Option<Type>{
+        self.type_hint_work(context,type_hints::Work::Conditional(consequent,alternate))
     }
 
     /// An omitted `name?: Type` field holds `undefined`. The record keeps
@@ -6820,63 +6745,55 @@ impl Analyzer {
         }
     }
 
-    fn expression_type_hint(&self, context: &Context, expr: &Expr) -> Option<Type> {
+    fn expression_type_hint(&self,context:&Context,expr:&Expr)->Option<Type>{self.type_hint_work(context,type_hints::Work::Expression(expr))}
+    fn type_hint_ready(&self,context:&Context,expr:&Expr)->Option<Option<Type>>{
         if let ExprKind::Call(callee,args)=&expr.kind
             && args.is_empty()
             && let ExprKind::Field(base,member)=&callee.kind
             && member=="toJsonSchema"
             && let Some(Type::Record(id))=self.expression_type_hint(context,base)
             && (self.schema_pipelines.types(id).is_some()||self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
-            return self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).map(Type::Record);
+            return Some(self.program.records.iter().position(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::JsonValue)).map(Type::Record));
         }
-        if let Some(ty)=self.schema_union_type_hint(context,expr){return Some(ty);}
+        if let Some(ty)=self.schema_union_type_hint(context,expr){return Some(Some(ty));}
         if let ExprKind::Call(callee, _) = &expr.kind
             && let ExprKind::Field(base, member) = &callee.kind
             && matches!(member.as_str(),"min"|"max"|"gt"|"lt"|"default")
             && let Some(Type::Record(id)) = self.expression_type_hint(context,base)
             && self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::Schema)
             && (member=="default" || matches!(self.program.records[id].application.as_ref().and_then(|application|application.resolved_arguments.first()),Some(Type::String|Type::Int|Type::Number))) {
-            return Some(Type::Record(id));
+            return Some(Some(Type::Record(id)));
         }
 
         if matches!(expr.kind, ExprKind::Selected { .. }) {
-            return expr.ty;
+            return Some(expr.ty);
         }
         if let ExprKind::Project { narrowed, .. } = &expr.kind {
-            return Some(*narrowed);
+            return Some(Some(*narrowed));
         }
-        if self.json_boolean_proof(context,expr).is_some(){return Some(Type::Boolean);}
-        if let Some(ty)=self.json_string_projection_type(context,expr){return Some(ty);}
+        if self.json_boolean_proof(context,expr).is_some(){return Some(Some(Type::Boolean));}
+        if let Some(ty)=self.json_string_projection_type(context,expr){return Some(Some(ty));}
         if let Some((_, _, narrowed)) = self.flow_view(context, expr) {
-            return Some(narrowed);
+            return Some(Some(narrowed));
         }
         if let Some(ty) = expr.ty {
-            return Some(ty);
+            return Some(Some(ty));
         }
         if let ExprKind::Field(base, _) = &expr.kind
             && let ExprKind::Name(name) = &base.kind
             && !context.names.contains_key(name)
             && let Some(&id) = self.record_names.get(name)
             && let Some(definition) = &self.program.records[id].enum_definition {
-            return Some(Type::Enum(id, definition.kind));
+            return Some(Some(Type::Enum(id, definition.kind)));
         }
-        match &expr.kind {
-            ExprKind::Sequence(values)=>values.last().and_then(|value|self.expression_type_hint(context,value)),
-            ExprKind::EnumMember { enumeration, .. } => self.program.records[*enumeration].enum_definition.as_ref().map(|definition| Type::Enum(*enumeration, definition.kind)),
-            ExprKind::Optional { .. } | ExprKind::Selected { .. } | ExprKind::SpreadCall(_) | ExprKind::SpreadValue(_) => expr.ty,
-            ExprKind::TypeAssertion {value,annotation,satisfies} => if *satisfies {self.expression_type_hint(context,value)}else{self.resolve_value_annotation(annotation,false).ok()},
-            ExprKind::OptionalChain(value) => self.optional_hint(context, value),
-            ExprKind::Unary { op: UnaryOp::NonNull, value, .. } => {
-                let ty = self.expression_type_hint(context, value)?;
-                self.unions.payload(ty.owning()).or_else(|| (!matches!(ty, Type::Null | Type::Undefined | Type::Void) && ty.union().is_none()).then_some(ty))
-            }
-            ExprKind::Unary {
-                op: UnaryOp::OptionalBoundary,
-                value,
-                ..
-            } => self
-                .expression_type_hint(context, value)
-                .and_then(|ty| self.unions.payload(ty).or(Some(ty))),
+        None
+    }
+    fn type_hint_leaf(&self,context:&Context,expr:&Expr)->Option<Type>{
+        match &expr.kind{
+            ExprKind::EnumMember{enumeration,..}=>self.program.records[*enumeration].enum_definition.as_ref().map(|definition|Type::Enum(*enumeration,definition.kind)),
+            ExprKind::Optional{..}|ExprKind::Selected{..}|ExprKind::SpreadCall(_)|ExprKind::SpreadValue(_)=>expr.ty,
+            ExprKind::TypeAssertion{annotation,..}=>self.resolve_value_annotation(annotation,false).ok(),
+            ExprKind::Inject{union,..}=>Some(Type::Union(*union)),
             ExprKind::Integer(_) => Some(Type::Int),
             ExprKind::Number(_) => Some(Type::Number),
             ExprKind::Boolean(_) => Some(Type::Boolean),
@@ -6914,137 +6831,12 @@ impl Analyzer {
                         .and_then(|id| self.function_values.get(id))
                         .map(|&id| Type::Closure(id))
                 }),
-            ExprKind::Project { narrowed, .. } => Some(*narrowed),
-            ExprKind::Inject { union, .. } => Some(Type::Union(*union)),
-            ExprKind::Conditional {
-                consequent,
-                alternate,
-                ..
-            } => self.conditional_hint(context, consequent, alternate),
-            ExprKind::CoalesceAssign { target, value, .. } => {
-                self.coalesce_hint(context, target, value, expr.span, false)
-            }
-            ExprKind::LogicalAssign { target, .. } => self.expression_type_hint(context, target).or(Some(Type::Boolean)),
-            ExprKind::Update { target, .. }
-            | ExprKind::Assign { target, .. }
-            | ExprKind::CompoundAssign { target, .. } => self.expression_type_hint(context, target),
-            ExprKind::Unary {
-                op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected,
-                value,
-                ..
-            } => self.expression_type_hint(context, value),
-            ExprKind::Binary {
-                op,
-                left,
-                right,
-                ..
-            } if matches!(op,BinaryOp::Coalesce|BinaryOp::PatternDefault) => self.coalesce_hint(context, left, right, expr.span,*op==BinaryOp::PatternDefault),
-            ExprKind::Unary { op, value, .. } => {
-                if matches!(op, UnaryOp::VariantIs(_)) { return Some(Type::Boolean); }
-                if *op==UnaryOp::PatternSelection {return self.pattern_selection_hint(context,value);}
-                if *op == UnaryOp::OptionalBoundary {
-                    let ty = self.expression_type_hint(context, value)?;
-                    return self.unions.present(ty.owning(), expr.span).ok().flatten();
-                }
-                if *op == UnaryOp::Typeof {
-                    return Some(Type::String);
-                }
-                if *op == UnaryOp::Void {
-                    return Some(Type::Undefined);
-                }
-                if *op == UnaryOp::Positive && self.expression_type_hint(context, value).is_some_and(|ty| !matches!(ty, Type::Int | Type::Number)) {
-                    Some(Type::Number)
-                } else if *op == UnaryOp::BitNot {
-                    Some(self.bitwise_or_power_type(context, value, None, None))
-                } else if *op == UnaryOp::Not {
-                    Some(Type::Boolean)
-                } else {
-                    self.expression_type_hint(context, value)
-                }
-            }
-            ExprKind::Binary {
-                op, left, right, ..
-            } => match op {
-                BinaryOp::And | BinaryOp::Or => self.logical_value_hint(context, left, right, *op, expr.span),
-                op if op.bitwise_or_power() => {
-                    Some(self.bitwise_or_power_type(context, left, Some(right), None))
-                }
-                BinaryOp::Add
-                | BinaryOp::Subtract
-                | BinaryOp::Multiply
-                | BinaryOp::Divide
-                | BinaryOp::Remainder => {
-                    let left = self.expression_type_hint(context, left);
-                    let right = self.expression_type_hint(context, right);
-                    if *op == BinaryOp::Add
-                        && (left == Some(Type::String) || right == Some(Type::String))
-                    {
-                        Some(Type::String)
-                    } else if left == Some(Type::Number) || right == Some(Type::Number) {
-                        Some(Type::Number)
-                    } else {
-                        Some(Type::Int)
-                    }
-                }
-                _ => Some(Type::Boolean),
-            },
-            ExprKind::Field(base, name) if matches!(&base.kind, ExprKind::Name(namespace) if NumericConstant::lookup(namespace, name).is_some()) => {
-                Some(Type::Number)
-            }
-            ExprKind::Field(base, name) => {
-                let hint = self.expression_type_hint(context, base)?;
-                let direct = matches!(base.kind, ExprKind::Unary { op: UnaryOp::OptionalBoundary, .. });
-                let optional = Self::optional_hint_boundary(base);
-                let receiver = if direct {self.unions.payload(hint.owning()).unwrap_or(hint.owning())}
-                    else if optional && let Some(id)=hint.union(){self.unions.intern(self.unions.members(id).into_iter().filter(|ty|*ty!=Type::Undefined),base.span).ok()?}
-                    else{hint};
-                let result = match receiver {
-                    Type::Set(_) | Type::Map(_) if name == "size" => Some(Type::Int),
-                    Type::Record(id) if name == "length" && self.program.records[id].is_tuple() => Some(Type::Int),
-                    Type::Record(id) => self.fields[id].get(name).copied(),
-                    Type::Union(union) => self.record_union_field(union,name),
-                    Type::Array(_) | Type::String if name == "length" => Some(Type::Int),
-                    _ => None,
-                }?;
-                if optional {
-                    let result = self.unions.intern([result, Type::Undefined], expr.span).ok()?;
-                    Some(if matches!(hint, Type::BorrowedUnion(_)) && !result.is_copy() { Type::BorrowedUnion(result.union()?) } else { result })
-                } else { Some(result) }
-            },
-            ExprKind::Index(base, index) => {
-                let hint=self.expression_type_hint(context,base)?;
-                let optional=Self::optional_hint_boundary(base);
-                let receiver=if optional && let Some(id)=hint.union(){self.unions.intern(self.unions.members(id).into_iter().filter(|ty|*ty!=Type::Undefined),base.span).ok()?}else{hint};
-                let result=match receiver {
-                    Type::Record(id) if self.program.records[id].is_tuple()=>self.fields[id].get(&Self::flat_literal_depth(index)?.to_string()).copied(),
-                    Type::Array(element)=>Some(element.ty()),
-                    Type::String=>Some(Type::String),
-                    _=>None,
-                }?;
-                if optional{self.unions.intern([result,Type::Undefined],expr.span).ok()}else{Some(result)}
-            },
             ExprKind::SetConstructor(_, Some(annotation)) | ExprKind::MapConstructor(_, Some(annotation)) | ExprKind::NativeConstructor(_, Some(annotation)) => self.resolve_value_annotation(annotation, false).ok(),
             ExprKind::SetConstructor(_, None) | ExprKind::MapConstructor(_, None) | ExprKind::NativeConstructor(_, None) => None,
             ExprKind::ArrayOf(_, Some(element)) => self
                 .resolve_value_annotation(element, false)
                 .ok()
                 .and_then(|ty| self.constructor_array_type(ty, expr.span).ok()),
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, None) => {
-                let hints = values
-                    .iter()
-                    .filter_map(|value| {
-                        if let ExprKind::Unary { op: UnaryOp::Spread, value, .. } = &value.kind {
-                            match self.expression_type_hint(context, value)? { Type::Array(element) => Some(element.ty()), _ => None }
-                        } else { self.expression_type_hint(context, value) }
-                    })
-                    .collect::<Vec<_>>();
-                let leaf = hints
-                    .iter()
-                    .copied()
-                    .find(|ty| matches!(ty, Type::Number | Type::Array(ArrayElement::Number(_))))
-                    .or_else(|| hints.first().copied())?;
-                ArrayElement::from_value_type(leaf).map(Type::Array)
-            }
             ExprKind::Call(callee, arguments) => {
                 if matches!(
                     callee.kind,
@@ -7303,7 +7095,7 @@ impl Analyzer {
                     _ => None,
                 }
             }
-            ExprKind::Closure { .. } | ExprKind::Record(_) => None,
+            ExprKind::Closure { .. } | ExprKind::Record(_) => None,            _=>unreachable!("structural hint is scheduled by the worklist"),
         }
     }
 
@@ -13497,3 +13289,5 @@ mod ownership_walk_tests {
 }
 
 mod borrow_hints;
+
+mod type_hints;

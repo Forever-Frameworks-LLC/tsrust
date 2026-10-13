@@ -28,14 +28,6 @@ impl Analyzer {
         (selected, reaches_right)
     }
 
-    pub(super) fn logical_value_hint(&self, context: &Context, left: &Expr, right: &Expr, op: BinaryOp, span: Span) -> Option<Type> {
-        let lhs = self.expression_type_hint(context, left)?;
-        let (mut selected, reaches_right) = self.logical_selection(lhs, op);
-        if reaches_right { selected.push(self.expression_type_hint(context, right)?.owning()); }
-        let result = self.unions.intern(selected, span).ok()?;
-        Some(if matches!(lhs, Type::BorrowedUnion(_)) {
-            result.union().map(Type::BorrowedUnion).unwrap_or(result)
-        } else { result })
-    }
+
 
 }

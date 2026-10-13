@@ -1161,3 +1161,38 @@ measured support ceilings or formal compilation scaling evidence. Evidence uses
 `tsrust-nesting-borrow-hints-*` in SQLite; installed consumers remain unchanged.
 Both affected editor tests pass. Whole-project formatting changes zero files or
 benchmark fingerprints. No full compiler/LSP matrix or timing run is claimed.
+
+### Structural type-hint dependencies
+
+`analysis/type_hints.rs` schedules structural child hints rather than recursively
+entering the hint function for every operator or container. Conditional arms
+retain left-to-right querying; coalescing and logical hints skip unreachable hint
+branches according to their existing type rules. Array hints still query all
+elements in order and retain numeric precedence. Field/index, pattern selection,
+nullable ownership and optional-hint joins retain their original result rules
+and diagnostic spans. Checked metadata, JSON proofs and flow views retain their
+precedence over structural hints.
+
+Optional absence scans and borrowed/named source queries share this scheduler.
+A memo scoped to one immutable source/context query avoids repeated subtree work,
+including optional-hint re-queries. It is discarded on return; no hint result is
+reused after ownership, binding, flow or signature state changes. New witnesses
+cover a 16,384-layer mixed graph, skipped invalid branches and changed binding
+types between queries. All 307 analysis tests pass; the now-unused logical hint
+adapter is removed afterward without changing reachable behavior.
+
+Native/schema call hint dispatch, bitwise anchor dependencies and proof helpers
+still have compatibility entry points requiring further audit. This does not
+establish complete type-hint or compiler architecture acceptance. Formal scaling,
+parser/emitter integration, optimization and S12–S21 remain pending. No stack size
+or depth constant is increased.
+
+The affected compiler integration batch passes 60 tests: array literal spread ten,
+conditional expressions 28, logical values five, nullable narrowing four, nullish
+coalescing five and optional chaining eight. Native witnesses retain lazy
+execution, ownership, allocation/disposal and formatting assertions. Evidence is
+stored under `tsrust-nesting-type-hints-*` in SQLite; no formal timing run or
+consumer refresh is claimed.
+Five editor tests pass across comma contexts, nullable callables and optional
+parameters, including native examples and protocol contracts. Whole-project
+formatting changes zero files or benchmark fingerprints.
