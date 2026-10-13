@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing')
 
 
 def source(family, size):
@@ -26,6 +26,13 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family in ('coalescing', 'mixed-coalescing'):
+        value = '7'
+        for _ in range(size):
+            value = '(null??' + value + ')'
+            if family == 'mixed-coalescing':
+                value = 'identity(({value:[true?' + value + ':0]}).value[0])'
+        return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('conditionals', 'mixed-branches'):
         value = '7'
         for _ in range(size):

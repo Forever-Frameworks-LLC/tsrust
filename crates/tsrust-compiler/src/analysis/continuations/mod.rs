@@ -16,3 +16,5 @@ mod access;
 pub(super) use access::FieldDispatch;
 
 mod operators;
+
+mod coalesce;

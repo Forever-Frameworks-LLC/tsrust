@@ -491,3 +491,44 @@ Coalescing, logical checking, assignment, synthesized wrappers and remaining
 recursive auxiliary consumers still need connected continuation work. Parser work
 remains separately owned. Installed consumers remain at the accepted public
 checkpoint; S12–S21 and optimization remain pending.
+
+
+### Coalescing operand continuation checkpoint
+
+Coalescing and destructuring defaults now schedule both checked operands on the
+shared expression work stack. The left frame retains pre-evaluation availability
+and flow; the right frame distinguishes always-left, always-fallback and joined
+branches. Unreachable fallbacks use a scheduler-owned child context and still
+produce their original diagnostics. Joined branches preserve absent-source
+availability, fallback loans, contextual types and capture-owner/flow joins.
+The selected-left rewrite transfers its subtree directly instead of cloning it
+as a disposable placeholder.
+
+Emission separates operand planning from branch output, including physical-tag
+selection for narrowed union sources. Each operand uses the expression work
+stack with its original access mode. Pattern-default owner allocation and
+conditional temporaries retain their preparation/completion order. Selected
+coalescing, optional-selected and rest-pack wrappers also schedule their child.
+Other optional-chain and assignment traversal remains migration work.
+
+Two focused unit tests pass: reachable/unreachable fallback errors restore child
+nodes and diagnostic spans, and absent/dynamic/selected coalescing emission
+matches exact expected output at 4,096 layers on normal test-worker stacks.
+All 24 integration tests across nullish coalescing, destructuring defaults and
+nested rest patterns pass. The previously overflowing nullish normal-depth
+witness now passes, alongside laziness, ownership, source-loan and disposal
+checks. Assignment-value depth failure remains pending.
+
+Geometric discovery completes coalescing samples 8/16/32 and mixed
+coalescing/conditional/call/record/array/access samples 8/16 through disposal.
+The next samples encounter the existing parser guard. No sample count becomes
+a support ceiling, and discovery is not formal matched scaling acceptance.
+Whole-project formatting changes zero files/fingerprints. Closed evidence and
+source/executable hashes are retained under `tsrust-nesting-coalesce-*` in SQLite.
+
+Logical values and boolean guard checking remain recursive operand consumers.
+Their continuation must preserve skipped/reached flow, borrowed selected-left
+loans and separate contexts for unreachable-right validation. These are next
+connected branch paths, followed by assignment/control-flow and auxiliary
+consumers. The full architecture, optimization and S12–S21 remain unaccepted;
+installed consumers are unchanged.

@@ -84,6 +84,8 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    CoalesceLeft(Box<super::coalesce::Left>),
+    CoalesceRight { frame: Box<super::coalesce::Right>, child_context: Option<ContextId> },
     ConditionalPredicate { mode: Mode, expected: Option<Type> },
     ConditionalArm { plan: Box<ConditionalPlan>, mode: Mode, left: Option<Type>, stored: Option<super::StoredValueFrame> },
     Unary { frame: Box<super::operators::UnaryFrame>, expected: Option<Type> },
@@ -421,6 +423,35 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
             }
         }
+        ExpressionState::CoalesceLeft(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("coalescing left completed") else { unreachable!("coalescing result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Binary { left, .. } = &mut expr.kind else { unreachable!("coalescing slots"); };
+            *left = value.into_child();
+            let mut frame = match checked.and_then(|lhs| analyzer.coalesce_right_work(context, expr, *frame, lhs, &task.loans)) {
+                Ok(frame) => Box::new(frame),
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            };
+            let child_context = frame.context.take().map(|context| contexts.push(context));
+            let ExprKind::Binary { right, .. } = &mut expr.kind else { unreachable!("coalescing slots"); };
+            let span = right.span;
+            let value = std::mem::replace(right, Box::new(Expr::new(ExprKind::Undefined, span)));
+            let loans = ActiveLoans::Shared(std::rc::Rc::new(std::mem::take(&mut frame.loans)));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(value), child_context.unwrap_or(task.context), frame.access, loans, frame.expected));
+            task.state = ExpressionState::CoalesceRight { frame, child_context };
+            Step::Push(Task::Expression(task), child)
+        }
+        ExpressionState::CoalesceRight { frame, child_context } => {
+            let Completion::Expression(value, checked) = completion.expect("coalescing fallback completed") else { unreachable!("coalescing result"); };
+            if let Some(child) = child_context { drop(contexts.take(child)); }
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Binary { right, .. } = &mut expr.kind else { unreachable!("coalescing slots"); };
+            *right = value.into_child();
+            let result = checked.and_then(|rhs| analyzer.finish_coalesce_work(context, expr, *frame, rhs));
+            finish_expression(analyzer, context, task, result)
+        }
         ExpressionState::ConditionalPredicate { mode, expected } => {
             let Completion::Expression(value, checked) = completion.expect("conditional predicate completed") else { unreachable!("predicate result"); };
             let context = contexts.get(task.context);
@@ -504,6 +535,15 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            if matches!(expr.kind, ExprKind::Binary { op: BinaryOp::Coalesce | BinaryOp::PatternDefault, .. }) {
+                let frame = Box::new(analyzer.prepare_coalesce_work(context, expr, mode, expected));
+                let ExprKind::Binary { left, .. } = &mut expr.kind else { unreachable!("coalescing slots"); };
+                let span = left.span;
+                let value = std::mem::replace(left, Box::new(Expr::new(ExprKind::Undefined, span)));
+                let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, frame.access, task.loans.clone(), frame.operand_expected));
+                task.state = ExpressionState::CoalesceLeft(frame);
+                return Step::Push(Task::Expression(task), child);
+            }
             if let ExprKind::Conditional { predicate, .. } = &mut expr.kind {
                 analyzer.truthy_condition(context, predicate);
                 let span = predicate.span;
@@ -839,6 +879,24 @@ mod tests {
                     assert!(matches!(index.kind, ExprKind::Boolean(true)));
                 }
             }
+        }
+    }
+
+    #[test]
+    fn failed_coalescing_fallback_restores_reachable_and_unreachable_children() {
+        for expression in ["null??missing", "7??missing"] {
+            let source = formatted(&format!("function main():int{{return {expression};}}"));
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let StmtKind::Return(Some(value)) = &mut parsed.functions[0].body[0].kind else { panic!("return"); };
+            let error = check_expression(&mut analyzer, &mut context, value, Mode::Consume, &Loans::new(), Some(Type::Int)).unwrap_err();
+            assert_eq!(error.code, "name");
+            assert_eq!(&source[error.span.start..error.span.end], "missing");
+            let ExprKind::Binary { left, right, .. } = &value.kind else { panic!("restored coalescing operands"); };
+            assert!(left.ty.is_some());
+            assert!(matches!(&right.kind, ExprKind::Name(name) if name == "missing"));
+            assert_eq!(analyzer.depth, 0);
         }
     }
 

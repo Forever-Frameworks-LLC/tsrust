@@ -6,6 +6,8 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    Selected,
+    Coalesce { plan: super::coalesce_work::Plan, temporary: Option<usize>, pattern_slot: Option<usize> },
     Conditional { infer: bool, temporary: Option<usize> },
     BorrowedInjection { union: UnionId, infer: bool, temporary: Option<usize> },
     Unary { temporary: Option<usize> },
@@ -100,6 +102,13 @@ impl<'p> Emitter<'p> {
                     let declarations = self.conditional_temporaries.borrow_mut().drain(*first_temporary..).collect::<Vec<_>>().join(" ");
                     code = format!("{{{declarations} let _={code};}}");
                 }
+                if let CallState::Coalesce { plan, temporary, pattern_slot } = &call.state {
+                    let index = call.rendered.len();
+                    let child = call.children[index].0;
+                    let mode = if index == 0 { plan.left_mode } else if pattern_slot.is_some() { Mode::Consume } else { plan.right_mode };
+                    code = self.finish_conditional_arm_work(child, mode, *temporary, code);
+                    if index == 1 { code = self.finish_pattern_fallback_work(child, *pattern_slot, code); }
+                }
                 if let CallState::Conditional { temporary, .. } = &call.state
                     && !call.rendered.is_empty() {
                     code = self.finish_conditional_arm_work(call.children[call.rendered.len()].0, frame.mode, *temporary, code);
@@ -141,6 +150,20 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
+                    if let CallState::Coalesce { plan, temporary, pattern_slot } = &mut call.state {
+                        let index = call.rendered.len();
+                        *temporary = None;
+                        let mode = if index == 1 && plan.undefined_only {
+                            let (access, slot) = self.prepare_pattern_fallback_work(child, mode);
+                            *pattern_slot = slot;
+                            access
+                        } else { mode };
+                        if index != 0 || !plan.absent_only {
+                            let (access, pending) = self.prepare_conditional_arm_work(fun, child, mode);
+                            child_frame.mode = access;
+                            *temporary = pending;
+                        }
+                    }
                     if let CallState::Conditional { infer, temporary } = &mut call.state
                         && !call.rendered.is_empty() {
                         let spine = *infer && (matches!(child.kind, ExprKind::Conditional { .. })
@@ -186,6 +209,14 @@ impl<'p> Emitter<'p> {
         mode: Mode,
         force_carrier: bool,
     ) -> Option<CallFrame<'a, 'p>> {
+        if let ExprKind::Unary { op: UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::RestPack, value, .. } = &expr.kind {
+            return Some(CallFrame { children: vec![(value, mode)], rendered: Vec::new(), invocation: None, state: CallState::Selected });
+        }
+        if let ExprKind::Binary { op: BinaryOp::Coalesce | BinaryOp::PatternDefault, left, right, .. } = &expr.kind {
+            let (plan, left) = self.prepare_coalesce_emission(expr, left, mode);
+            return Some(CallFrame { children: vec![(left, plan.left_mode), (right, plan.right_mode)],
+                rendered: Vec::new(), invocation: None, state: CallState::Coalesce { plan, temporary: None, pattern_slot: None } });
+        }
         if let ExprKind::Conditional { predicate, consequent, alternate } = &expr.kind {
             let infer = force_carrier || (matches!(expr.ty, Some(Type::BorrowedUnion(_)))
                 && self.callback_payload(expr.ty.unwrap()).is_some() && !Self::absent_callable_initializer(expr));
@@ -458,7 +489,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -467,7 +498,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -714,6 +745,12 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
+            CallState::Selected => return rendered.into_iter().next().expect("selected child"),
+            CallState::Coalesce { plan, .. } => {
+                let ExprKind::Binary { right, .. } = &expr.kind else { unreachable!("coalescing operands"); };
+                let mut values = rendered.into_iter();
+                return self.finish_coalesce_emission(plan, right, values.next().unwrap(), values.next().unwrap());
+            }
             CallState::Conditional { .. } => {
                 let mut rendered = rendered.into_iter();
                 let condition = rendered.next().expect("predicate");
@@ -1180,6 +1217,41 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coalescing_fallbacks_and_selected_values_share_the_emission_stack() {
+        for source in [
+            "function probe():int{return null??987654321;} function main(){console.log(probe());}",
+            "function probe(value:int|null):int{return value??987654321;} function main(){console.log(probe(null));}",
+            "function probe():int{return 987654321??0;} function main(){console.log(probe());}",
+        ] {
+            let checked = crate::check(source).unwrap();
+            let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+            let StmtKind::Return(Some(template)) = &fun.body[0].kind else { panic!("return"); };
+            fn payload(expr: &mut Expr) -> &mut Expr {
+                match &mut expr.kind {
+                    ExprKind::Binary { right, .. } => right,
+                    ExprKind::Unary { op: UnaryOp::CoalesceSelected, value, .. } => value,
+                    _ => panic!("coalescing expression"),
+                }
+            }
+            let emitter = super::super::emitter_for(&checked.program, "");
+            let mut parent = template.clone();
+            let mut nested = payload(&mut parent).clone();
+            let leaf = emitter.expr(fun, &nested, Mode::Copy);
+            let shallow = emitter.expr(fun, template, Mode::Copy);
+            let (prefix, suffix) = shallow.split_once(&leaf).expect("fallback emission");
+            // Phase-isolated witness; no source-language depth policy.
+            for _ in 0..4096 {
+                let mut parent = template.clone();
+                *payload(&mut parent) = nested;
+                nested = parent;
+            }
+            assert!(emitter.expr(fun, &nested, Mode::Copy) == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+            assert_eq!(emitter.expression_depth.get(), 0);
+            assert!(emitter.conditional_temporaries.borrow().is_empty());
+        }
+    }
 
     #[test]
     fn conditional_arms_share_the_emission_stack() {
