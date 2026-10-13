@@ -1,5 +1,35 @@
 {
+  "ValidationContext": [
+  {
+    "name": "addIssue",
+    "signature": "addIssue(options: { path?: Path<T>; message: string }): void",
+    "parameters": [
+      {
+        "label": "options: { path?: Path<T>; message: string }",
+        "documentation": "Required message and optional literal path. Omitted or empty path identifies the current value. Fields and nonnegative integer array indices must match T."
+      }
+    ],
+    "documentation": "Reports a refinement-failed validation issue. Adds the containing schema path before the supplied relative path. Does not throw or stop the callback; any reported issue rejects validation, including issues discarded by retention limits. Invalid paths are checker errors.\n\nExample: ctx.addIssue({ path: ['confirm'], message: 'Passwords differ' }) reports at the confirm field.\n\nOwnership: mutably borrows the temporary context and consumes the message. The context cannot escape its callback."
+  }
+],
   "SchemaPipeline": [
+{
+  "name": "superRefine",
+  "signature": "superRefine(callback: (value: ReadOnly<Output>, ctx: Mutable<ValidationContext<Output>>) => void): Schema<Output>",
+  "parameters": [
+    {
+      "label": "callback: (value: ReadOnly<Output>, ctx: Mutable<ValidationContext<Output>>) => void",
+      "documentation": "Reusable callback. Read the validated value and report zero or more issues with ctx.addIssue. Return void; thrown exceptions propagate."
+    }
+  ],
+  "documentation": "Checks a validated value and can report multiple issues without changing its output type. Zero issues accepts the value; any issue rejects it. Later stages do not run after rejection. The callback continues after addIssue, even after the retention limit is reached. Validation retains at most 64 issues with 32 path segments and 1024 path bytes each; truncated reports discarded information. Paths are relative to this value and checked against its fields and array elements. Input and captures cannot be mutated or consumed.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}\n```\n\nExpected output: Must be positive.\n\nOwnership: consumes the receiving schema; validation borrows the reusable callback. The callback temporarily borrows its value and context. The context cannot be cloned, consumed or retained.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.int().superRefine((value,ctx)=>{if(value<1){ctx.addIssue({message:'Must be positive'});}});match(schema.safeParse(0)){Ok(value)=>{throw 'Expected rejection';},Err(error)=>{console.log(error.issues[0].message);}}}",
+      "output": "Must be positive\n"
+    }
+  ]
+},
 {
   "name": "safeParseJson",
   "signature": "safeParseJson(text: ReadOnly<string>): Result<Output, { kind: 'json'; error: JsonError } | { kind: 'validation'; error: ValidationError }>",
@@ -7101,6 +7131,12 @@
 }
 ],
   "std:schema": [
+{
+  "name": "ValidationContext",
+  "signature": "ValidationContext<T>",
+  "parameters": [],
+  "documentation": "Context supplied to a superRefine callback for reporting multiple validation issues. T is the validated input shape; addIssue paths are checked against it. The callback receives temporary mutable access. It cannot construct, clone, retain or transfer this context. Context lifetime ends when the callback returns."
+},
   {
     "name": "s",
     "signature": "s: schema builder namespace",

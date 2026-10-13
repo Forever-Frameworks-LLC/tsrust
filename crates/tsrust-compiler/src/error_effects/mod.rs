@@ -816,7 +816,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),
         MathSqrt|MathFloor|MathCeil|MathTrunc|MathRound|MathSign|MathFround|MathF16round|
         NumberIsFinite|NumberIsNaN|NumberIsInteger|NumberIsSafeInteger|
-        SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
+        SchemaAddIssue(_)|SchemaMessagePolicy(_)|SchemaChoice(_)|SchemaDefault|SchemaPresence|SchemaRetain|SchemaStrip|JsonEncode|JsonDecode|ArrayIsArray|ObjectIs|BooleanConversion|JsonBoolean|JsonStringLength|JsonStringView=>FailureSet::default(),
         ArrayMap|MapGroupBy|ArrayFlatMap|ArrayFilter|ArrayForEach|ArraySome|ArrayEvery|
         ArrayFind|ArrayFindLast|ArrayFindIndex|ArrayFindLastIndex|ArrayReduce|
         ArrayReduceRight|ArraySort|ArrayToSorted=>{

@@ -2412,6 +2412,9 @@ impl Emitter<'_> {
         for (index, record) in self.program.records.iter().enumerate() {
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
+            if record.native_type==Some(crate::native_signatures::NativeTypeId::ValidationContext) {
+                let _=writeln!(output,"struct Record{index} {{ issues: tsrust_schema_issues::Issues }}");continue;
+            }
             if let Some(declaration)=self.schema_plan_declaration(index){output.push_str(&declaration);continue;}
             if let Some(definition) = &record.enum_definition {
                 let variants = (0..definition.members.len()).map(|member| format!("V{member}")).collect::<Vec<_>>().join(",");
@@ -8699,6 +8702,16 @@ impl Emitter<'_> {
                     let Type::Record(id) = expr.ty.unwrap() else { unreachable!() };
                     let id = self.native_record_declaration(id);
                     format!("{{let message_plan={receiver};let message_limit={limit};let constrained={call};Record{id}{{field0:constrained,field1:message_plan.field1}}}}")
+                },
+                CallTarget::SchemaAddIssue(id) => {
+                    use crate::stdlib::schema::pipelines::DiagnosticSegment;
+                    let call=self.program.schema_pipelines.issue_call(id);
+                    let path=call.path.iter().map(|segment|match segment {
+                        DiagnosticSegment::Field(name)=>format!("tsrust_schema_issues::Segment::Field({name:?})"),
+                        DiagnosticSegment::Index(index)=>format!("tsrust_schema_issues::Segment::Index({index})"),
+                    }).collect::<Vec<_>>().join(",");
+                    let kind=self.schema_kind(call.output);
+                    format!("{{let issue_context={};let issue_message={};let start=issue_context.issues.items.len();issue_context.issues.push(&[{path}],tsrust_schema_issues::Code::Refinement,tsrust_schema_issues::Kind::{kind},tsrust_schema_issues::Kind::{kind});if issue_context.issues.items.len()>start{{issue_context.issues.items[start].message=Some(issue_message.into_owned());}}}}",self.expr(fun,&args[0],Mode::Mutate),self.expr(fun,&args[1],Mode::Consume))
                 },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),

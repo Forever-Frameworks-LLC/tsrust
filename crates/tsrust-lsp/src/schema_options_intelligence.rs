@@ -21,6 +21,9 @@ impl SourceIndex {
         } else if method == "refine" && (self.schema_element(&receiver).is_some() || self.schema_pipeline_types.contains_key(&receiver)) {
             (1, vec![("path", "checked field/index path", "Relative diagnostic path. Field names and array indices are checked against the refined value."),
                 ("message", "string", "Message reported when the predicate returns false. Exceptions still propagate.")])
+        } else if method == "addIssue" && self.validation_context_element(&receiver).is_some() {
+            (0, vec![("path", "checked field/index path", "Relative diagnostic path checked against the validated value."),
+                ("message", "string", "Required validation message. Reporting an issue does not stop the callback.")])
         } else { return None; };
         let mut cursor = call + 1;
         let mut index = 0;

@@ -158,6 +158,25 @@ impl<I, O, R: Restore<I, O>, E> Trial<I, O, R, E> {
         }
     }
 
+    /// A multi-issue refinement preserves restoration until its callback succeeds.
+    pub(super) fn refine_issues(
+        self, predicate: impl FnOnce(&O) -> Result<bool, E>,
+    ) -> Self {
+        match self {
+            Self::Prepared { value, restoration } => match predicate(&value) {
+                Ok(true) => Self::Prepared { value, restoration },
+                Ok(false) => Self::Rejected(restoration.restore(value)),
+                Err(error) => Self::Aborted(error),
+            },
+            Self::Committed(Some(value)) => match predicate(&value) {
+                Ok(true) => Self::Committed(Some(value)),
+                Ok(false) => Self::Committed(None),
+                Err(error) => Self::Aborted(error),
+            },
+            other => other,
+        }
+    }
+
     pub(super) fn transform<N>(self, convert: impl FnOnce(O) -> Result<N, E>) -> Trial<I, N, Committed, E> {
         let value = match self {
             Self::Prepared { value, restoration } => {

@@ -42,7 +42,7 @@ impl Analyzer {
         let hint = self.expression_type_hint(context, base);
         let constructing = matches!(&base.kind, ExprKind::Call(callee, _)
             if matches!(&callee.kind, ExprKind::Field(_, method)
-                if matches!(method.as_str(), "refine" | "transform" | "coerce")));
+                if matches!(method.as_str(), "refine" | "superRefine" | "transform" | "coerce")));
         if !constructing && !matches!(hint, Some(Type::Record(id)) if self.schema_pipelines.types(id).is_some()) {
             return Ok(None);
         }
@@ -107,11 +107,12 @@ impl Analyzer {
         let ExprKind::Call(callee, args) = &mut expr.kind else { return Ok(None); };
         let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
         let operation = match method.as_str() {
-            "refine" => Operation::Refine,
+            "refine" | "superRefine" => Operation::Refine,
             "transform" => Operation::Transform,
             "coerce" => Operation::Coerce,
             _ => return Ok(None),
         };
+        let multiple_issues = method == "superRefine";
         let hint = self.expression_type_hint(context, base);
         let mut root = &**base;
         while let ExprKind::Call(callee, _) = &root.kind {
@@ -125,7 +126,7 @@ impl Analyzer {
         if !constructing && !matches!(hint, Some(Type::Record(id))
             if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
                 || self.schema_pipelines.types(id).is_some()) { return Ok(None); }
-        if args.len() != 1 && !(operation == Operation::Refine && args.len() == 2) {
+        if args.len() != 1 && !(operation == Operation::Refine && !multiple_issues && args.len() == 2) {
             return Err(Diagnostic::new("arity", "Schema pipeline methods expect one reusable callback; refine also accepts diagnostic options.", expr.span));
         }
         let mut receiver = (**base).clone();
@@ -162,14 +163,20 @@ impl Analyzer {
             }
         }
 
+        let context_type = if multiple_issues { Some(self.schema_context_type(output, expr.span)?) } else { None };
         let callback = &mut args[0];
         if let ExprKind::Closure { params, result, .. } = &mut callback.kind {
-            if operation != Operation::Coerce && params.len() == 1
+            if operation != Operation::Coerce && params.len() == (if multiple_issues { 2 } else { 1 })
                 && matches!(params[0].ty, ParameterAnnotation::Inferred(_)) {
                 params[0].ty = ParameterAnnotation::Named(Box::new(self.checked_value_annotation(output, callback.span)?));
             }
+            if let Some(context_type) = context_type {
+                if params.len() == 2 && matches!(params[1].ty, ParameterAnnotation::Inferred(_)) {
+                    params[1].ty = ParameterAnnotation::Named(Box::new(self.checked_value_annotation(context_type, callback.span)?));
+                }
+            }
             if operation == Operation::Refine && matches!(result, ResultAnnotation::Inferred(_)) {
-                *result = ResultAnnotation::Named(Box::new(self.checked_value_annotation(Type::Boolean, callback.span)?));
+                *result = ResultAnnotation::Named(Box::new(self.checked_value_annotation(if multiple_issues { Type::Void } else { Type::Boolean }, callback.span)?));
             }
         }
         if let ExprKind::Closure { id, .. } = &callback.kind { self.escaping.insert(*id); }
@@ -180,9 +187,9 @@ impl Analyzer {
         let closure = &self.closures[origin];
         let parameters = closure.parameters.iter()
             .map(|&id| ArgumentContract::from(&closure.function.bindings[id])).collect::<Vec<_>>();
-        if parameters.len() != 1 || parameters[0].rest
-            || parameters[0].omission != crate::ParameterOmission::Required {
-            return Err(Diagnostic::new("schema-callback", "A schema pipeline callback requires exactly one required parameter.", callback.span));
+        if parameters.len() != (if multiple_issues { 2 } else { 1 }) || parameters.iter().any(|parameter| parameter.rest
+            || parameter.omission != crate::ParameterOmission::Required) {
+            return Err(Diagnostic::new("schema-callback", "A schema callback requires one value parameter; superRefine also requires an issue context.", callback.span));
         }
         let callback_input = parameters[0].ty;
         let callback_output = closure.function.result;
@@ -191,7 +198,13 @@ impl Analyzer {
         match operation {
             Operation::Refine => {
                 self.require(output, Some(callback_input), callback.span)?;
-                self.require(callback_output, Some(Type::Boolean), callback.span)?;
+                self.require(callback_output, Some(if multiple_issues { Type::Void } else { Type::Boolean }), callback.span)?;
+                if let Some(context_type) = context_type {
+                    self.require(parameters[1].ty, Some(context_type), callback.span)?;
+                    if parameters[1].mode == Mode::Consume {
+                        return Err(Diagnostic::new("schema-context-escape", "Validation context may only be borrowed during superRefine; it cannot be consumed or retained.", callback.span));
+                    }
+                }
                 if matches!(parameters[0].mode, Mode::Mutate | Mode::Consume) {
                     return Err(Diagnostic::new("schema-refinement", "Refinements may only read their input. Use transform for mutation or consumption.", callback.span));
                 }
@@ -209,12 +222,12 @@ impl Analyzer {
                 if !accepts { self.require(callback_output, Some(input), callback.span)?; }
             }
         }
-        if callback_output == Type::Void {
+        if callback_output == Type::Void && !multiple_issues {
             return Err(Diagnostic::new("schema-callback", "Schema conversion callbacks must return a value.", callback.span));
         }
         let structural = self.callables.shapes.intern_rest(
             parameters.iter().map(|p| (p.ty.into(), p.mode)).collect(),
-            callback_output.into(), Some(CallbackKind::Read), 1, false,
+            callback_output.into(), Some(CallbackKind::Read), parameters.len(), false,
         );
         let declaration = self.callables.callbacks.len();
         let contract = CallbackContract {

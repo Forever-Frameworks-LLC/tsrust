@@ -1,0 +1,60 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.int().superRefine((value, ctx) => {
+    if (value < 1) {
+      ctx.addIssue({
+        message: 'Must be positive'
+      });
+    }
+
+    if (value % 2 === 0) {
+      ctx.addIssue({
+        message: 'Must be odd'
+      });
+    }
+  });
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        checksum += value;
+      },
+      Err(error) => {
+        throw 'Expected success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('0'))) {
+      Ok(value) => {
+        throw 'Expected rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 2) {
+          throw 'Invalid issue count';
+        }
+
+        if (error.issues[0].message !== 'Must be positive' || error.issues[1].message !== 'Must be odd') {
+          throw 'Invalid messages';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'refinement-failed' || issue.path.length !== 0 || issue.pathTruncated || issue.expected !== 'integer' || issue.observed !== 'integer') {
+            throw 'Invalid issue';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '5'));
+}

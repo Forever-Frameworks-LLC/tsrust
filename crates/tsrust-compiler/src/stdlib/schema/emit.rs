@@ -109,7 +109,11 @@ pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::na
 
 pub(crate) fn issue_bridge(program:&CheckedProgram, ordered:&std::collections::HashSet<usize>)->String {
     let record=|kind|program.records.iter().position(|record|record.native_type==Some(kind));
-    let Some(error)=record(NativeTypeId::ValidationError) else{return String::new();};
+    let Some(error)=record(NativeTypeId::ValidationError) else{
+        return if record(NativeTypeId::ValidationContext).is_some() {
+            format!("mod tsrust_schema_issues {{\n{}\n}}\n",include_str!("issues.rs").trim_start_matches("//! Bounded validation errors containing type summaries, never input values.\n"))
+        }else{String::new()};
+    };
     let issue=record(NativeTypeId::SchemaIssue).unwrap();
     let path=record(NativeTypeId::SchemaPath).unwrap();
     let optional=|field:usize,payload:Type|{

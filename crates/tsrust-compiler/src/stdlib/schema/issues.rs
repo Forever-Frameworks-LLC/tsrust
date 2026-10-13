@@ -64,6 +64,26 @@ impl Issues {
     pub(super) fn message_since(&mut self, start: usize, message: &str) {
         for issue in &mut self.items[start..] { if issue.message.is_none() { issue.message = Some(message.to_owned()); } }
     }
+    /// Move callback-local issues into the enclosing validation path. The
+    /// receiver's remaining budgets apply again after adding the parent prefix.
+    /// Failure remains observable even when either collector retains no issues.
+    pub(super) fn append_relative(&mut self, prefix: &[Segment<'_>], incoming: Issues) {
+        self.invalid |= incoming.invalid;
+        self.truncated |= incoming.truncated;
+        for issue in incoming.items {
+            let path = prefix.iter().copied().chain(issue.path.iter().map(|segment| match segment {
+                OwnedSegment::Field(name) => Segment::Field(name.as_str()),
+                OwnedSegment::Index(index) => Segment::Index(*index),
+            })).take(self.max_segments.saturating_add(1)).collect::<Vec<_>>();
+            let start = self.items.len();
+            self.push(&path, issue.code, issue.expected, issue.observed);
+            if self.items.len() > start {
+                let retained = self.items.last_mut().unwrap();
+                retained.path_truncated |= issue.path_truncated;
+                retained.message = issue.message;
+            }
+        }
+    }
     pub(super) fn reject(&mut self) { self.invalid = true; }
     pub(super) fn new(max_issues: usize, max_segments: usize, max_path_bytes: usize) -> Self {
         Self { items: Vec::new(), truncated: false, invalid: false, max_issues, max_segments, max_path_bytes }
@@ -94,6 +114,52 @@ impl Issues {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn callback_issues_rebase_paths_move_messages_and_preserve_order() {
+        let mut callback = Issues::new(8, 8, 64);
+        callback.push(&[Segment::Field("confirm")], Code::Refinement, Kind::Object, Kind::Object);
+        callback.message_since(0, "Passwords differ");
+        callback.push(&[Segment::Field("age")], Code::Refinement, Kind::Object, Kind::Object);
+        callback.message_since(1, "Age is too small");
+        let mut parent = Issues::new(8, 8, 64);
+        parent.append_relative(&[Segment::Field("users"), Segment::Index(2)], callback);
+        assert!(!parent.is_valid());
+        assert_eq!(parent.items.len(), 2);
+        assert_eq!(parent.items[0].path, vec![OwnedSegment::Field("users".into()), OwnedSegment::Index(2), OwnedSegment::Field("confirm".into())]);
+        assert_eq!(parent.items[0].message.as_deref(), Some("Passwords differ"));
+        assert_eq!(parent.items[1].message.as_deref(), Some("Age is too small"));
+        assert!(!parent.truncated);
+    }
+
+    #[test]
+    fn callback_issue_merge_honors_parent_limits_and_rolls_back() {
+        let mut callback = Issues::new(8, 8, 64);
+        for field in ["name", "confirm"] {
+            callback.push(&[Segment::Field(field)], Code::Refinement, Kind::Object, Kind::Object);
+        }
+        let mut parent = Issues::new(1, 1, 2);
+        let checkpoint = parent.checkpoint();
+        parent.append_relative(&[Segment::Field("éé")], callback);
+        assert_eq!(parent.items.len(), 1);
+        assert_eq!(parent.items[0].path, vec![OwnedSegment::Field("é".into())]);
+        assert!(parent.items[0].path_truncated && parent.truncated);
+        parent.restore(checkpoint);
+        assert!(parent.is_valid());
+        assert!(parent.items.is_empty());
+        assert!(!parent.truncated);
+    }
+
+    #[test]
+    fn callback_rejection_survives_zero_retention_budget() {
+        let mut callback = Issues::new(0, 0, 0);
+        callback.push(&[], Code::Refinement, Kind::String, Kind::String);
+        let mut parent = Issues::new(8, 8, 64);
+        parent.append_relative(&[], callback);
+        assert!(!parent.is_valid());
+        assert!(parent.truncated);
+        assert!(parent.items.is_empty());
+    }
+
     #[test]
     fn custom_messages_preserve_child_precedence_and_issue_budget() {
         let mut errors = Issues::new(1, 8, 64);

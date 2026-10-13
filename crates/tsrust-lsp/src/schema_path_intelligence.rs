@@ -9,12 +9,13 @@ impl SourceIndex {
                 && self.pairs[id].is_none_or(|end| offset <= self.tokens[end].span.start)
         })?;
         let call = (2..array).rev().find(|&id| {
-            self.text(id) == "(" && self.text(id - 1) == "refine"
+            self.text(id) == "(" && matches!(self.text(id - 1), "refine" | "addIssue")
                 && self.text(id - 2) == "."
                 && self.pairs[id].is_none_or(|end| end > array)
         })?;
-        let mut cursor = call + 1;
-        while cursor < array && self.text(cursor) != "," {
+        let add_issue = self.text(call - 1) == "addIssue";
+        let mut cursor = if add_issue { call } else { call + 1 };
+        while !add_issue && cursor < array && self.text(cursor) != "," {
             cursor = self.pairs[cursor].filter(|end| *end > cursor)
                 .map_or(cursor + 1, |end| end + 1);
         }
@@ -23,9 +24,9 @@ impl SourceIndex {
         }
         if self.pairs[cursor + 1].is_some_and(|end| end < array) { return None; }
         let receiver = self.receiver_type(call - 2);
-        let mut output = self.schema_pipeline_types.get(&receiver)
+        let mut output = if add_issue { self.validation_context_element(&receiver).map(str::to_owned) } else { self.schema_pipeline_types.get(&receiver)
             .map(|(_, output, _, _, _, _)| output.clone())
-            .or_else(|| self.schema_element(&receiver).map(str::to_owned))?;
+            .or_else(|| self.schema_element(&receiver).map(str::to_owned)) }?;
         // Only completed segments advance the path. The current segment may be
         // an unfinished string and must not require successful compilation.
         let mut segment = array + 1;

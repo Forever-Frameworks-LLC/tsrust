@@ -103,7 +103,10 @@ impl Emitter<'_> {
                     format!("{trial}.transform(|mut value|{call}).boxed()")
                 } else {
                     let binding = if stage.output.is_copy(){"let value=*borrowed;"}else{"let value=borrowed;"};
-                    {
+                    if stage.callback_output == Type::Void {
+                        let setup=self.schema_issue_context_setup(stage.callback);
+                        format!("{{let trial={trial};trial.refine_issues(|borrowed|{{{binding}{setup}match {call}{{Ok(())=>{{let valid=issue_context.issues.is_valid();issues.append_relative(path,issue_context.issues);Ok(valid)}},Err(error)=>Err(error)}}}})}}")
+                    } else {
                         let setup=self.schema_refinement_path_setup(stage);
                         let message=self.schema_refinement_message(stage);
                         format!("{{let trial={trial};{setup}let issue_start=issues.items.len();let result=trial.refine(&refinement_path,issues,tsrust_schema_issues::Kind::{},|borrowed|{{{binding}{call}}});{message}result}}",self.schema_kind(stage.output))

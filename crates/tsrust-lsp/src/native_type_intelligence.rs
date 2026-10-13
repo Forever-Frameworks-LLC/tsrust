@@ -23,6 +23,7 @@ impl SourceIndex {
         (self.native_type_aliases.get(name.trim()) == Some(&identity)).then(|| arguments.strip_suffix('>')).flatten()
     }
     pub(super) fn schema_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::Schema) }
+    pub(super) fn validation_context_element<'a>(&self, ty: &'a str) -> Option<&'a str> { self.native_collection_element(ty, tsrust_compiler::native_signatures::NativeTypeId::ValidationContext) }
     fn schema_integer_alternative(element:&str)->Option<String> {
         let mut leaf=element.trim();let mut depth=0;
         while let Some(inner)=leaf.strip_suffix("[]"){leaf=inner.trim();depth+=1;}
@@ -70,6 +71,16 @@ impl SourceIndex {
             }
             return entries;
         }
+        if let Some(output) = self.validation_context_element(ty) {
+            let mut entries = builtins_for("ValidationContext");
+            for entry in &mut entries {
+                if let Some(signature) = entry["signature"].as_str() { entry["signature"] = json!(builtin_type_substitution(signature, &[("T", output)])); }
+                if let Some(parameters) = entry["parameters"].as_array_mut() {
+                    for parameter in parameters { if let Some(label) = parameter["label"].as_str() { parameter["label"] = json!(builtin_type_substitution(label, &[("T", output)])); } }
+                }
+            }
+            return entries;
+        }
         let mut entries = self.receiver_base_builtins(ty);
         if let Some(output) = self.schema_element(ty) {
             let input = entries.iter().find(|entry| entry["name"] == "safeParse")
@@ -77,7 +88,7 @@ impl SourceIndex {
                 .and_then(|label| label.strip_prefix("input: "))
                 .map(str::to_owned).unwrap_or_else(|| format!("{output} | JsonValue"));
             entries.extend(self.schema_pipeline_entries(&input, output, output).into_iter()
-                .filter(|entry| matches!(entry["name"].as_str(),Some("refine"|"transform"|"coerce"|"safeParseJson"))));
+                .filter(|entry| matches!(entry["name"].as_str(),Some("refine"|"superRefine"|"transform"|"coerce"|"safeParseJson"))));
         }
         entries
     }

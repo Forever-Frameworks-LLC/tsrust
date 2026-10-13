@@ -1882,7 +1882,7 @@ impl SourceIndex {
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if let Some((_, output, _, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "parse" { return output.clone(); }
-            if method == "refine" { return receiver; }
+            if matches!(method, "refine" | "superRefine") { return receiver; }
             if method == "safeParseJson" { return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
             if method == "safeParse" {
                 return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::ValidationError)

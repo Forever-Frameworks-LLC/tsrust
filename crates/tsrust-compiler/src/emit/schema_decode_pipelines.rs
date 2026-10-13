@@ -61,6 +61,10 @@ impl Emitter<'_> {
             let mut body=format!("let mut value={child}({child_roots}&schema.field0,input,path,issues,failure,policy,remaining,committed)?;");
             match stage.operation{
                 Operation::Transform=>body.push_str(&format!("*committed=true;match {call}{{Ok(value)=>Some(value),Err(error)=>{{*failure=Some(error);None}}}}")),
+                Operation::Refine if stage.callback_output == Type::Void => {
+                    let setup=self.schema_issue_context_setup(stage.callback);
+                    body.push_str(&format!("{setup}match {call}{{Ok(())=>{{let valid=issue_context.issues.is_valid();issues.append_relative(path,issue_context.issues);if valid{{Some(value)}}else{{None}}}},Err(error)=>{{*failure=Some(error);None}}}}"));
+                },
                 Operation::Refine=>{
                     let setup=self.schema_refinement_path_setup(stage);
                     let message=self.schema_refinement_message(stage);

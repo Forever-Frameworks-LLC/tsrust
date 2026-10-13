@@ -84,6 +84,15 @@ static VALIDATION_ERROR: Declaration = Declaration {
     ], ..FS_ERROR
 };
 
+// The callback receives a mutable borrow of this collector. Its generic
+// argument is the validated output domain used for checked issue paths.
+static VALIDATION_CONTEXT: Declaration = Declaration {
+    id: NativeTypeId::ValidationContext, module: "std:schema", name: "ValidationContext",
+    type_parameters: &["T"], representation: Representation::Opaque,
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+
 static SCHEMA: Declaration = Declaration {
     id: NativeTypeId::Schema, module: "std:schema", name: "Schema",
     type_parameters: &["T"], representation: Representation::Opaque,
@@ -246,6 +255,7 @@ static HEAP: Declaration = Declaration {
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
         NativeTypeId::Schema => &SCHEMA,
+        NativeTypeId::ValidationContext => &VALIDATION_CONTEXT,
         NativeTypeId::ValidationError => &VALIDATION_ERROR,
         NativeTypeId::SchemaConstructionError => &SCHEMA_CONSTRUCTION_ERROR,
         NativeTypeId::SchemaIssue => &SCHEMA_ISSUE,
@@ -282,13 +292,25 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::native_return_borrows::BorrowAccess;
+
+    #[test]
+    fn validation_context_is_opaque_nonclonable_and_not_transferable() {
+        let context=declaration(NativeTypeId::ValidationContext);
+        assert_eq!(context.type_parameters, &["T"]);
+        assert!(!context.source_constructible());
+        assert!(!context.independent_clone);
+        assert!(!context.collection_key);
+        assert!(!context.thread_transfer);
+        assert!(context.fields.is_empty());
+        assert_eq!(lookup("std:schema","ValidationContext").unwrap().id,context.id);
+    }
 
     #[test]
     fn byte_view_identities_are_nonconstructible_borrowed_storage() {

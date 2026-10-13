@@ -3008,3 +3008,18 @@ fn schema_namespace_hover_explains_builders_options_and_results() {
         assert!(hover.to_string().contains(expected), "Missing {expected}: {hover}");
     }
 }
+
+#[test]
+fn super_refine_context_completion_and_paths_use_checked_output() {
+    let entry = "import {s} from 'std:schema';function main(){const account=s.object({password:s.string(),confirm:s.string()}).superRefine((value,ctx)=>{ctx.addIssue({path:['confirm'],message:'Mismatch'});});}";
+    let uri = "file:///tsrust-intelligence/main.tsr";
+    let mut workspace = Workspace::default();
+    workspace.open(source_id(uri).unwrap(), 1, entry.into());
+    let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
+    let index = ProjectIndex::checked(&checked);
+    let items = ask(&index, entry, "addIssue({", "textDocument/completion");
+    assert!(items.as_array().unwrap().iter().any(|item| item["label"] == "addIssue"), "{items}");
+    let items = ask(&index, entry, "confirm']", "textDocument/completion");
+    assert!(items.as_array().unwrap().iter().any(|item| item["label"] == "confirm"), "{items}");
+    assert!(items.as_array().unwrap().iter().all(|item| item["label"] == "confirm" || item["label"] == "password"), "{items}");
+}

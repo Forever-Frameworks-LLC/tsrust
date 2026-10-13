@@ -2670,3 +2670,60 @@ the reported standalone recursive-schema member case, not S11 acceptance.
 The existing guarded JSON-string incomplete-member witness also passes
 (`tsrust-recursive-editor-json-recovery.log`). Whole-project formatting changed
 no files or fingerprints (`tsrust-recursive-editor-recovery-format.log`).
+
+### Multiple-issue integration started (unverified)
+
+Added callback-local issue merging to the bounded runtime collector. It moves
+messages, prefixes enclosing field/index paths, reapplies the parent budgets and
+preserves failure when no issue can be retained. Regression witnesses cover
+relative paths, order, UTF-8 truncation, zero retention and speculative rollback.
+Public witnesses specify nested typed output, multiple issue paths and the
+existing 64-issue limit. They are intentionally not run while the section is
+incomplete.
+
+The public API is not implemented yet. Next integrate an unconstructible
+validation context with a mutable callback borrow, typed `addIssue` path checking,
+readonly first-parameter enforcement and escape rejection. Preserve reusable
+callback storage and ordinary exception propagation. Then wire both owned trials
+and fused JSON decoding, editor signatures/completion, executable examples and
+matched workload support before running the section checks. Do not present the
+runtime helper or unrun witnesses as public feature acceptance.
+
+### Multiple-issue context identity (integration in progress)
+
+Added `ValidationContext<T>` native declaration metadata: opaque, no independent
+clone, no collection-key use, no thread transfer, and no source fields. T carries
+the validated output shape for path checking. This metadata alone does not expose
+a working public method. Its ownership invariant witness is added but unrun.
+
+Implementation continuation: infer the second callback parameter as this context
+and require mutable borrowed access, while preserving read-only first-parameter
+access. Lower `ctx.addIssue` through a dedicated checked call target that stores
+the already-validated relative path and accepts the message once. The callback
+returns void; native validation creates one local collector and merges it with
+the enclosing collector after a normal return. Exceptions propagate without
+being turned into validation issues. Update owned trials, fused decoding and
+rollback behavior together before validation. No tests were run for this partial
+integration, in accordance with section-batched validation.
+
+### Checked issue-call lowering (unfinished)
+
+`addIssue` now has dedicated checked-call metadata: context identity, validated
+output type and statically checked relative path. Analysis requires exactly one
+options record, rejects duplicate/unknown keys, requires a string message and
+borrows the receiver mutably. Lowering evaluates the message once and retains it
+only when the local issue budget admits the issue. The call itself introduces no
+validation exception; ordinary argument evaluation effects remain intact.
+
+The context native record owns its temporary Issues collector. Fixed-storage
+analysis follows mutable-context/consumed-message access. Runtime inclusion also
+handles programs mentioning the opaque context without validating a schema.
+Public `.superRefine` callback construction/invocation and escape enforcement
+remain unfinished. Added invalid-path and input-mutation witnesses are unrun.
+Keep this work marked unverified until the complete section checks pass.
+
+### Multi-issue refinement integration evidence (2026-10-12)
+
+`.superRefine` now checks two callback parameters, readonly validated input, void output, and temporary context access. Owned and fused JSON validation collect relative issues with bounded retention; union rollback preserves input before consuming stages. Native witnesses passed for nested paths, limits, invalid paths/input mutation, union fallback, exceptions, and context clone/capture rejection (4 + 1 tests). Editor completion/path witness passed; the catalog example executed with expected output. Original failed runs and repaired results are preserved under `tsrust-super-refine-*.log` in SQLite.
+
+The earlier unfinished integration notes above are superseded by this section. Runtime issue tests pass (10); affected editor regression tests pass (6). The matched `native_schema_super_refine` workload, compiled TypeScript counterpart, independent checksum, source guards and mutation witness are registered. Ten native/compiled-Node cells agree; 32 benchmark contract tests and the additional guard mutation test pass. Whole-project formatting completed with token preservation, idempotence and source behavior checks. Evidence is in SQLite under `tsrust-super-refine-*`. Implementation section is ready for checkpoint. S11 family regressions and timing remain pending; this workload is unmeasured.

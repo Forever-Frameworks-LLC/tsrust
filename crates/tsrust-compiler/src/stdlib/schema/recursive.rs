@@ -200,7 +200,7 @@ fn source_shape(definition: &mut Definition, expression: &crate::syntax::Expr, s
                     let absent = definition.push(Shape::Leaf);
                     Shape::Choice(vec![child, absent])
                 },
-                "min" | "max" | "gt" | "lt" | "refine" | "strip" | "retain" => Shape::Adapter(child),
+                "min" | "max" | "gt" | "lt" | "refine" | "superRefine" | "strip" | "retain" => Shape::Adapter(child),
                 _ => return None,
             }
         },

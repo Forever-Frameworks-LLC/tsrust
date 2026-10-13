@@ -22,7 +22,10 @@ impl Emitter<'_> {
                 Mode::Copy | Mode::Consume => "value",
             },
         };
-        let call = format!("{receiver}.call({argument})");
+        let context = self.program.callback_contracts[declaration].params.get(1).map(|parameter| {
+            if parameter.mode == Mode::Mutate { ",&mut issue_context" } else { ",&issue_context" }
+        }).unwrap_or("");
+        let call = format!("{receiver}.call({argument}{context})");
         if let Some((source_name, source)) = self.result_storage.borrow().get(&family).cloned() {
             let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
             let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError"
@@ -31,6 +34,12 @@ impl Emitter<'_> {
             let conversion = super::exception_emit::error_conversion("error", &source_name, "SchemaFactoryError", &mapping);
             format!("{call}.map_err(|error|{conversion})")
         } else { format!("Ok({call})") }
+    }
+
+    pub(super) fn schema_issue_context_setup(&self, family: usize) -> String {
+        let declaration = self.program.stored_contracts.declaration(family).expect("checked refinement callback");
+        let Type::Record(context) = self.program.callback_contracts[declaration].params[1].ty else { unreachable!() };
+        format!("let mut issue_context=Record{}{{issues:tsrust_schema_issues::Issues::new(64,32,1024)}};", self.native_record_declaration(context))
     }
 
     pub(super) fn schema_pipeline_validator(

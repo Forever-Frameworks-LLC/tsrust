@@ -111,8 +111,17 @@ pub(crate) struct RecursiveReference {
     pub json_input: bool,
 }
 
+/// A checked addIssue call carries no dynamic path or input value.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct IssueCall {
+    pub context: usize,
+    pub output: Type,
+    pub path: Vec<DiagnosticSegment>,
+}
+
 #[derive(Default)]
 pub(crate) struct Pipelines {
+    issue_calls: Vec<IssueCall>,
     // Records preserve exact chain identity through variables and record fields.
     // Never index this registry by output: unrelated input contracts can produce
     // the same output, and must not become interchangeable.
@@ -127,6 +136,12 @@ pub(crate) struct Pipelines {
 }
 
 impl Pipelines {
+    pub(crate) fn issue_call(&self,id:usize)->&IssueCall { &self.issue_calls[id] }
+    pub(crate) fn intern_issue_call(&mut self,call:IssueCall)->usize {
+        if let Some(id)=self.issue_calls.iter().position(|existing|*existing==call){return id;}
+        let id=self.issue_calls.len();self.issue_calls.push(call);id
+    }
+
     pub(crate) fn has_recursive(&self)->bool { !self.recursive.is_empty() }
     pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
     pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| matches!(plan.kind,WrapperKind::Message|WrapperKind::Constraint(_))) }

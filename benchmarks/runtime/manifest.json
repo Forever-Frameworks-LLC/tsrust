@@ -9,6 +9,30 @@
   "compileSamples": 3,
   "workloads": [
 {
+  "id": "native_schema_super_refine",
+  "category": "schema",
+  "description": "Multiple callback validation issues",
+  "source": "workloads/native_schema_super_refine.tsr",
+  "counterpart": "workloads/native_schema_super_refine.ts",
+  "iterations": 2000,
+  "operationsPerIteration": 2,
+  "operationUnit": "One JSON parse, schema validation and result observation",
+  "result": "int",
+  "parameters": [
+    "int",
+    "int",
+    "string"
+  ],
+  "family": "native-schema",
+  "inputText": "5",
+  "measured": false,
+  "measurementStatus": "unmeasured-schema-family",
+  "specification": "Validate 5, then reject 0 with two ordered root issues. Observe all issue fields and messages. Checksum is seed + 7*n.",
+  "notes": "Plan outside loop; both engines parse JSON then validate. Exact integer corpus. Handwritten TypeScript counterpart, not Zod. Unmeasured.",
+  "sourceSha256": "0a1a2a783e5372bbd0d24d844456af3e756ac3682987adfd43b5746e129dc211",
+  "counterpartSha256": "bca348463d492ac1a6b57f3fd368a010e9cbb782051d322cb9850f7c6cd16b1e"
+},
+{
   "id": "native_schema_recursive",
   "category": "schema",
   "description": "Recursive tree validation with nested issue paths",
