@@ -87,3 +87,42 @@ fn imported_function_chain_uses_project_identity_and_native_execution() {
     support::success(&output);
     assert_eq!(output.stdout, b"7\n");
 }
+
+fn recursive_chain(length: usize, owned: bool) -> String {
+    let mut source = String::new();
+    let ty = if owned { "string" } else { "int" };
+    for index in 0..length {
+        let next = (index + 1) % length;
+        let result = if index + 1 == length { "if (remaining === 0) { return value; }" } else { "" };
+        let remaining = if index + 1 == length { "remaining - 1" } else { "remaining" };
+        source.push_str(&format!("function cycle{index}(value: {ty}, remaining: int): {ty} {{ {result} return cycle{next}(value, {remaining}); }}\n"));
+    }
+    source
+}
+
+#[test]
+fn large_recursive_group_uses_normal_stack_for_check_emit_and_disposal() {
+    let mut source = recursive_chain(2048, false);
+    source.push_str("function main() { console.log(cycle0(7, 0)); }");
+    let source = support::format_round_trip(&source);
+    let checked = check(&source).unwrap();
+    assert_eq!(checked.contracts()["cycle0.value"], Mode::Copy);
+    assert!(checked.emit_rust().contains("fn function2047"));
+    drop(checked);
+}
+
+#[test]
+fn recursive_group_propagates_owned_access_without_changing_runtime_order() {
+    let mut source = recursive_chain(256, true);
+    source.push_str("function main() { const text = cycle0(\"kept\", 1); console.log(text); }");
+    support::execute(&source, "kept\n", None);
+    let contracts = check(&source).unwrap().contracts();
+    for index in 0..256 { assert_eq!(contracts[&format!("cycle{index}.value")], Mode::Consume); }
+    let mut source = recursive_chain(256, true);
+    source.push_str("function main() { const text = \"moved\"; const result = cycle0(text, 0); console.log(text); }");
+    let source = support::format_round_trip(&source);
+    let error = check(&source).err().expect("recursive ownership must propagate");
+    assert_eq!(error.code, "transferred");
+    assert_eq!(&source[error.span.start..error.span.end], "text");
+    assert!(error.span.start > source.find("cycle0(text").unwrap());
+}

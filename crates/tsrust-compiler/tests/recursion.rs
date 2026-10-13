@@ -359,7 +359,7 @@ fn unsupported_recursive_environment_cycles_and_invalid_calls_have_source_diagno
 }
 
 #[test]
-fn recursive_call_cycles_retain_compiler_depth_guards() {
+fn recursive_call_cycles_use_worklists_and_preserve_nested_literal_behavior() {
     let mut source = String::new();
     for i in 0..25 {
         source.push_str(&format!(
@@ -384,7 +384,7 @@ fn recursive_call_cycles_retain_compiler_depth_guards() {
         ));
     }
     source.push_str("function main() {}");
-    reject(&source, "unsupported");
+    assert!(check(&source).is_ok());
     // Recursive inference clones its source tree. Exercise the deep literal
     // path through those passes as well as through parsing and final checking.
     let mut types = "type R0 = { n: int; };".to_owned();

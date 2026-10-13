@@ -2,16 +2,23 @@
 use super::*;
 mod dependencies;
 
+struct DependencyGroup {
+    members: Vec<usize>,
+    recursive: bool,
+}
+
 impl Analyzer {
     /// Schedule source dependencies with heap continuations. Runtime syntax and
     /// source function identities remain unchanged. Capturing declarations wait
     /// for a real defining context, and active recursive edges retain inference.
     pub(super) fn function(&mut self, index: usize) -> Result<(), Diagnostic> {
         if self.discovering_results || self.checked[index].is_some() { return Ok(()); }
+        if self.active_recursive_functions.contains(&index) { return Ok(()); }
         if self.visiting[index] { return self.check_function_body(index).map(|_| ()); }
-        enum Work { Schedule(usize), Check(usize), Release(Vec<usize>) }
+        enum Work { Schedule(usize), Group(DependencyGroup), Check(usize), ReleaseGroup(Vec<usize>), Release(Vec<usize>) }
         let mut pending = vec![Work::Schedule(index)];
         let mut inserted = Vec::new();
+        let mut recursive_inserted = Vec::new();
         let result = (|| {
             while let Some(work) = pending.pop() {
                 match work {
@@ -21,12 +28,36 @@ impl Analyzer {
                             pending.push(Work::Check(index));
                             continue;
                         }
-                        let order = self.function_dependency_order(index);
+                        let groups = self.function_dependency_order(index);
+                        let order = groups.iter().flat_map(|group| group.members.iter().copied()).collect::<Vec<_>>();
                         for &id in &order {
                             if self.scheduled_functions.insert(id) { inserted.push(id); }
                         }
-                        pending.push(Work::Release(order.clone()));
-                        pending.extend(order.into_iter().rev().map(Work::Check));
+                        pending.push(Work::Release(order));
+                        pending.extend(groups.into_iter().rev().map(Work::Group));
+                    }
+                    Work::Group(group) => {
+                        if group.recursive && group.members.iter().all(|&id| self.recursive_summary_is_complete(id)) {
+                            if self.assumed_modes.is_none() {
+                                return Err(Diagnostic::new("recursion-inference", "Recursive access inference is required.", self.program.functions[group.members[0]].name.span));
+                            }
+                            for &id in &group.members {
+                                if self.active_recursive_functions.insert(id) { recursive_inserted.push(id); }
+                                if self.signatures[id].params.iter().any(|ty| matches!(ty, Type::Callback(_))) {
+                                    self.recursive_callbacks.insert(id);
+                                }
+                            }
+                            pending.push(Work::ReleaseGroup(group.members.clone()));
+                            // Callees later in the traversal publish their access
+                            // first. Forwarding cycles then converge without one
+                            // whole-program pass for every edge in the cycle.
+                            pending.extend(group.members.into_iter().map(Work::Check));
+                        } else {
+                            pending.extend(group.members.into_iter().rev().map(Work::Check));
+                        }
+                    }
+                    Work::ReleaseGroup(ids) => {
+                        for id in ids { self.active_recursive_functions.remove(&id); }
                     }
                     Work::Check(index) => {
                         let uncalled = self.check_function_body(index)?;
@@ -41,10 +72,21 @@ impl Analyzer {
         })();
         // Errors can interrupt a schedule before its release continuation.
         for id in inserted { self.scheduled_functions.remove(&id); }
+        for id in recursive_inserted { self.active_recursive_functions.remove(&id); }
         result
     }
 
-    fn function_dependency_order(&self, root: usize) -> Vec<usize> {
+    fn recursive_summary_is_complete(&self, index: usize) -> bool {
+        let signature = &self.signatures[index];
+        !signature.inferred_result && matches!(signature.result,
+            Type::Void | Type::Int | Type::Number | Type::Boolean | Type::String
+            | Type::Null | Type::Undefined | Type::Enum(..) | Type::Literal(..)
+            | Type::Array(ArrayElement::Int(_) | ArrayElement::Number(_) | ArrayElement::Boolean(_)
+                | ArrayElement::String(_) | ArrayElement::Null(_) | ArrayElement::Undefined(_)
+                | ArrayElement::Enum(..) | ArrayElement::Literal(..)))
+    }
+
+    fn function_dependency_order(&self, root: usize) -> Vec<DependencyGroup> {
         enum Work { Enter(usize), Finish(usize) }
         let mut pending = vec![Work::Enter(root)];
         let mut discovery = HashMap::new();
@@ -88,9 +130,10 @@ impl Analyzer {
                 }
             }
             group.sort_unstable_by_key(|index| discovery[index]);
-            groups.push(group);
+            let recursive = group.len() > 1 || parents.get(&root).is_some_and(|parents| parents.contains(&root));
+            groups.push(DependencyGroup { members: group, recursive });
         }
-        groups.into_iter().rev().flatten().collect()
+        groups.into_iter().rev().collect()
     }
 
     /// Resolve lexical owners before installing an unused-body placeholder.

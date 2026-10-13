@@ -17,6 +17,13 @@ throughput, general recursive inference, arbitrary syntax nesting or native
 backend compilation. TypeScript numbers and native integers differ semantically.
 Registration alone is not measured acceptance.
 
+`--recursive` selects `recursive-manifest.json`: an annotated cycle of the same
+sizes forwards a value and counter, with the last function returning the value
+at zero or starting another traversal. The entry counter is zero, so the independent
+oracle remains `7`. This exercises recursive access analysis without measuring
+runtime recursion. Its fixed protocol matches the acyclic workload, but its
+implementation validation and measurements are recorded separately.
+
 The first scoped release-compiler run retains 132 durations in SQLite as
 `tsrust-nesting-dependency-scaling.json`, with verified protocol and review in
 `tsrust-nesting-dependency-scaling-proof.json`. All four counts and three phases

@@ -13,12 +13,18 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main):
+def source(count, scalar, call_main, recursive=False):
     functions = []
     for index in range(count):
+        if recursive:
+            terminal = 'if (remaining === 0) { return value; } ' if index + 1 == count else ''
+            next_count = 'remaining - 1' if index + 1 == count else 'remaining'
+            functions.append(f'function step{index}(value: {scalar}, remaining: {scalar}): {scalar} {{ {terminal}return step{(index + 1) % count}(value, {next_count}); }}')
+            continue
         result = 'value' if index + 1 == count else f'step{index + 1}(value)'
         functions.append(f'function step{index}(value: {scalar}): {scalar} {{ return {result}; }}')
-    return '\n'.join([*functions, 'function main() { console.log(step0(7)); }',
+    entry = 'function main() { console.log(step0(7, 0)); }' if recursive else 'function main() { console.log(step0(7)); }'
+    return '\n'.join([*functions, entry,
                       *(['main();'] if call_main else []), ''])
 
 
@@ -30,14 +36,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--recursive', action='store_true', help='Use the annotated recursive-group manifest')
     parser.add_argument('--only', type=int, nargs='+', choices=MANIFEST['functionCounts'])
     parser.add_argument('--phases', nargs='+', choices=list(MANIFEST['phases']))
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.output.exists():
+        parser.error('Output already exists; preserve the original record and choose a new path')
+    manifest_path = MANIFEST_PATH.with_name('recursive-manifest.json') if args.recursive else MANIFEST_PATH
+    manifest = json.loads(manifest_path.read_text())
     compiler = args.compiler.resolve(strict=True)
     tsc = ROOT / 'benchmarks/runtime/node_modules/typescript/bin/tsc'
     record = {
-        'schemaVersion': 1, 'manifest': MANIFEST, 'manifestSha256': digest(MANIFEST_PATH.read_bytes()),
+        'schemaVersion': 1, 'manifest': manifest, 'manifestSha256': digest(manifest_path.read_bytes()),
         'generatorSha256': digest(Path(__file__).read_bytes()),
         'compiler': str(compiler), 'compilerSha256': digest(compiler.read_bytes()),
         'gitHead': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
@@ -58,11 +69,11 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix='tsrust-function-dependencies-') as directory:
             directory = Path(directory)
-            for count in args.only or MANIFEST['functionCounts']:
+            for count in args.only or manifest['functionCounts']:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False))
-                reference.write_text(source(count, 'number', True))
+                native.write_text(source(count, 'int', False, args.recursive))
+                reference.write_text(source(count, 'number', True, args.recursive))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
@@ -75,7 +86,7 @@ def main():
                     'native-emit': [str(compiler), 'emit', str(native)],
                     'node-tsc-check': ['node', str(tsc), '--noEmit', '--strict', '--target', 'ES2022', str(reference)],
                 }
-                for phase in args.phases or MANIFEST['phases']:
+                for phase in args.phases or manifest['phases']:
                     command = commands[phase]
                     result = {'command': command, 'validated': False, 'warmupsCompleted': 0, 'nanoseconds': []}
                     group['phases'][phase] = result
@@ -88,11 +99,11 @@ def main():
                         raise RuntimeError(f'{count} {phase} failed: {result["stderr"]}')
                     result['validated'] = True
                     if args.measure:
-                        for _ in range(MANIFEST['warmups']):
+                        for _ in range(manifest['warmups']):
                             subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
                             result['warmupsCompleted'] += 1
                             save()
-                        for _ in range(MANIFEST['samples']):
+                        for _ in range(manifest['samples']):
                             start = time.perf_counter_ns()
                             subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
                             result['nanoseconds'].append(time.perf_counter_ns() - start)

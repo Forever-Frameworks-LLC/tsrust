@@ -165,3 +165,37 @@ formatting changes zero files/fingerprints. SQLite retains the diagnostic probe
 and repair outputs as `tsrust-nesting-callback-order-probe.log`,
 `tsrust-nesting-callback-order-repair.log` and
 `tsrust-nesting-callback-order-format.log`.
+
+## Recursive dependency groups in progress
+
+Annotated recursive groups with concrete data results now use explicit group
+entry, body and release work items. Calls within an active group read the finite
+access summaries already maintained by recursive inference. Bodies are checked
+in reverse dependency discovery order, so a forwarding cycle does not need a
+whole-program inference round for each edge. Recursive callback membership and
+the borrowed-wrapper rejection remain explicit while group members are active.
+The scheduler cleans group membership on errors as well as normal completion.
+
+This removes body-call recursion for those groups without increasing any depth
+guard or worker stack. A 2,048-function cycle witnesses normal-stack checking,
+emission and disposal. A 256-function owned-string cycle witnesses native
+execution, consuming access propagation and the original transferred-value
+diagnostic span. Editor coverage includes a 512-function cycle. Existing recursive
+scalar and borrowed-callback depth-rejection witnesses now expect success.
+
+Inferred results, concrete callable result environments, context-dependent record
+parameters and dynamically selected specializations still need further work.
+Deep syntax, type operations and production tree disposal remain separate
+pending sections. The new `recursive-manifest.json` registers matched generated
+native/TypeScript compilation workloads with the existing two-warmup/eleven-sample
+protocol; registration and untimed validation are not measurements.
+
+Focused verification passes 94 compiler checks across the retained batches
+(`fallible_record_callbacks`, `function_dependencies`, `exception_handling`,
+`recursion`, `recursive_callable_results`, `recursive_callbacks` and
+`recursive_owned_callbacks`) and 16 editor intelligence checks. Two original
+runs stopped at obsolete scalar/callback depth-rejection assertions; those
+original outputs are preserved and the affected/unrun suites subsequently pass.
+The 32- and 2,048-function recursive sources pass all three untimed benchmark
+phases. SQLite records use the `tsrust-nesting-recursive-groups` prefix, including
+the exact generated sources and six validated groups in `-untimed.json`.

@@ -288,7 +288,7 @@ fn recursive_callback_type_errors_and_callable_result_deferrals_are_precise() {
 }
 
 #[test]
-fn recursive_callback_cycles_retain_source_depth_guards() {
+fn recursive_callback_cycles_use_dependency_worklists() {
     let mut source = String::new();
     for i in 0..20 {
         source.push_str(&format!("function f{i}(c: Mutable<Function<int>>, n: int): int {{ if (n === 0) {{ return c(); }} return f{}(c, n - 1); }}", (i+1)%20));
@@ -303,7 +303,7 @@ fn recursive_callback_cycles_retain_source_depth_guards() {
         ));
     }
     source.push_str("function main() {}");
-    reject(&source, "unsupported");
+    assert!(check(&source).is_ok());
 }
 
 #[test]

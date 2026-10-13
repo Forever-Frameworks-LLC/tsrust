@@ -9986,3 +9986,17 @@ fn long_function_dependencies_keep_inferred_hover_signature_and_definition() {
     let definition = request("textDocument/definition", "step0(7)");
     assert_eq!(definition["range"]["start"], json!(at(&source, "step0(value", 0)));
 }
+
+#[test]
+fn large_recursive_function_group_keeps_hover_and_diagnostics() {
+    let mut source = String::new();
+    for index in 0..512 {
+        source.push_str(&format!("function cycle{index}(value:int):int{{if(value===0){{return 7;}}return cycle{}(value-1);}}\n", (index + 1) % 512));
+    }
+    source.push_str("function main(){const result=cycle0(1);console.log(result);}");
+    let source = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let hover = ask(&source, "textDocument/hover", "result =", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
+}

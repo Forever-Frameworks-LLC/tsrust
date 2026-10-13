@@ -719,6 +719,7 @@ struct Analyzer {
     checked: Vec<Option<CheckedFunction>>,
     visiting: Vec<bool>,
     function_stack: Vec<usize>,
+    active_recursive_functions: HashSet<usize>,
     scheduled_functions: HashSet<usize>,
     assumed_modes: Option<Vec<Vec<Mode>>>,
     effects_only: bool,
@@ -1658,6 +1659,7 @@ impl Analyzer {
             checked: (0..count).map(|_| None).collect(),
             visiting: vec![false; count],
             function_stack: Vec::new(),
+            active_recursive_functions: HashSet::new(),
             scheduled_functions: HashSet::new(),
             assumed_modes: None,
             effects_only: false,
@@ -14872,7 +14874,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         // around a borrowed callback would give every level a larger callback
         // type, which has no finite native instantiation. Owned callbacks have
         // their own specialization limit check.
-        if self.visiting.get(index).copied().unwrap_or(false) {
+        if self.visiting.get(index).copied().unwrap_or(false) || self.active_recursive_functions.contains(&index) {
             for argument in args.iter() {
                 let mut value = argument;
                 while let ExprKind::Unary { value: inner, .. } | ExprKind::Inject { value: inner, .. } = &value.kind { value = inner; }
