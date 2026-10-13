@@ -69,3 +69,8 @@ concatenates the same source fragments without emitting include paths into user
 programs. Typed/raw/source cursor modules are compiled directly only for backend
 tests and otherwise embedded into generated programs. This boundary avoids
 compiling unused native operations into the compiler binary.
+
+Function scheduling lives in `analysis/function_scheduling.rs`. Keep function
+completion queues and lexical owner continuations there; body checking and its
+ownership contracts remain analysis responsibilities. The nesting architecture
+plan tracks the remaining recursive dependency paths.

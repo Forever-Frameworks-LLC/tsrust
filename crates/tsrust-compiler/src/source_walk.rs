@@ -3,39 +3,60 @@ use crate::syntax::*;
 use crate::type_syntax::ValueAnnotation;
 use crate::Diagnostic;
 
+enum AnnotationWork<'a> {
+    Parameter(&'a mut CallableParameter),
+    Callback(&'a mut CallbackAnnotation),
+    Result(&'a mut ResultAnnotation),
+}
+
+/// Visit callable parameters left to right, then their result. The worklist
+/// holds the continuation instead of retaining one Rust frame per signature.
+fn annotations(
+    root: AnnotationWork<'_>,
+    visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
+) -> Result<(), Diagnostic> {
+    let mut pending = vec![root];
+    while let Some(next) = pending.pop() {
+        match next {
+            AnnotationWork::Parameter(parameter) => match &mut parameter.ty {
+                ParameterAnnotation::Named(value) => visit(value)?,
+                ParameterAnnotation::Callback(callback) => pending.push(AnnotationWork::Callback(callback)),
+                ParameterAnnotation::Inferred(_) => {}
+            },
+            AnnotationWork::Callback(callback) => {
+                pending.push(AnnotationWork::Result(&mut callback.result));
+                pending.extend(callback.params.iter_mut().rev().map(AnnotationWork::Parameter));
+            }
+            AnnotationWork::Result(result) => match result {
+                ResultAnnotation::Inferred(_) => {}
+                ResultAnnotation::Named(value) => visit(value)?,
+                ResultAnnotation::Callable { params, result, .. } => {
+                    pending.push(AnnotationWork::Result(result));
+                    pending.extend(params.iter_mut().rev().map(AnnotationWork::Parameter));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn visit_parameter(
     value: &mut CallableParameter,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    match &mut value.ty {
-        ParameterAnnotation::Named(value) => visit(value),
-        ParameterAnnotation::Callback(callback) => callback_annotation(callback, visit),
-        ParameterAnnotation::Inferred(_) => Ok(()),
-    }
+    annotations(AnnotationWork::Parameter(value), visit)
 }
 pub(crate) fn callback_annotation(
     value: &mut CallbackAnnotation,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    for parameter_value in &mut value.params {
-        visit_parameter(parameter_value, visit)?;
-    }
-    result_annotation(&mut value.result, visit)
+    annotations(AnnotationWork::Callback(value), visit)
 }
 pub(crate) fn result_annotation(
     value: &mut ResultAnnotation,
     visit: &mut impl FnMut(&mut ValueAnnotation) -> Result<(), Diagnostic>,
 ) -> Result<(), Diagnostic> {
-    match value {
-        ResultAnnotation::Inferred(_) => Ok(()),
-        ResultAnnotation::Named(value) => visit(value),
-        ResultAnnotation::Callable { params, result, .. } => {
-            for value in params {
-                visit_parameter(value, visit)?;
-            }
-            result_annotation(result, visit)
-        }
-    }
+    annotations(AnnotationWork::Result(value), visit)
 }
 pub(crate) fn function_annotations(
     function: &mut Function,
@@ -272,4 +293,81 @@ pub(crate) fn body_end(body: &[Stmt]) -> usize {
         }
     }
     end
+}
+
+#[cfg(test)]
+mod annotation_worklist_tests {
+    use super::*;
+    use crate::Span;
+
+    fn named(name: &str, start: usize) -> ResultAnnotation {
+        ResultAnnotation::Named(Box::new(ValueAnnotation {
+            kind: crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName {
+                text: name.into(), span: Span { start, end: start + 1 },
+            }),
+            span: Span { start, end: start + 1 },
+        }))
+    }
+
+    fn parameter(name: &str, ty: ParameterAnnotation) -> CallableParameter {
+        CallableParameter {
+            rest: false,
+            name: Token { kind: TokenKind::Name, text: name.into(), span: Span::default() },
+            ty, access: None, initializer: ParameterInitializer::Required,
+        }
+    }
+
+    #[test]
+    fn deep_callable_results_use_worklist_on_normal_worker_stack() {
+        let mut result = named("leaf", 7);
+        for _ in 0..16_384 {
+            result = ResultAnnotation::Callable {
+                kind: None, params: Vec::new(), result: Box::new(result), span: Span::default(),
+            };
+        }
+        let mut visited = Vec::new();
+        let outcome = result_annotation(&mut result, &mut |value| {
+            visited.push(value.span);
+            Ok(())
+        });
+        // This witness isolates traversal. Recursive syntax disposal is a
+        // separate, still-open architecture requirement.
+        while let ResultAnnotation::Callable { result: inner, .. } = result {
+            result = *inner;
+        }
+        outcome.unwrap();
+        assert_eq!(visited, vec![Span { start: 7, end: 8 }]);
+    }
+
+    #[test]
+    fn annotation_order_and_first_error_preserve_parameter_then_result_spans() {
+        let ResultAnnotation::Named(first) = named("first", 1) else { unreachable!() };
+        let ResultAnnotation::Named(second) = named("second", 2) else { unreachable!() };
+        let mut result = ResultAnnotation::Callable {
+            kind: None,
+            params: vec![
+                parameter("callback", ParameterAnnotation::Callback(Box::new(CallbackAnnotation {
+                    kind: CallbackKind::Read,
+                    params: vec![parameter("first", ParameterAnnotation::Named(first))],
+                    result: Box::new(named("nested_result", 3)), span: Span::default(),
+                }))),
+                parameter("second", ParameterAnnotation::Named(second)),
+            ],
+            result: Box::new(named("outer_result", 4)), span: Span::default(),
+        };
+        let mut visited = Vec::new();
+        result_annotation(&mut result, &mut |value| {
+            visited.push(value.span.start);
+            Ok(())
+        }).unwrap();
+        assert_eq!(visited, [1, 3, 2, 4]);
+        let mut visited = Vec::new();
+        let error = result_annotation(&mut result, &mut |value| {
+            visited.push(value.span.start);
+            if value.span.start == 3 { return Err(Diagnostic::new("witness", "stop", value.span)); }
+            Ok(())
+        }).unwrap_err();
+        assert_eq!(visited, [1, 3]);
+        assert_eq!(error.span, Span { start: 3, end: 4 });
+    }
 }

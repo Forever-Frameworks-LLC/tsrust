@@ -192,3 +192,37 @@ fn function_values_keep_their_captures_across_modules() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn uncalled_capture_worklist_preserves_depth_first_diagnostic_order() {
+    let source = support::format_round_trip(r#"
+function main() {
+    const value = [1];
+    function first(): int {
+        function nested(): int { return value[0] + missing_nested; }
+        return value[0];
+    }
+    function second(): int { return value[0] + missing_sibling; }
+}
+"#);
+    let error = tsrust_compiler::check(&source).err().expect("nested body must be checked first");
+    assert_eq!(error.code, "name");
+    assert_eq!(&source[error.span.start..error.span.end], "missing_nested");
+}
+
+#[test]
+fn uncalled_capture_worklist_keeps_lexical_generic_scopes() {
+    let source = support::format_round_trip(r#"
+function main() {
+    const value = [7];
+    function first<T>(item: T): T {
+        function second<U>(other: U): U {
+            function read(): int { return value[0]; }
+            return other;
+        }
+        return second(item);
+    }
+}
+"#);
+    tsrust_compiler::check(&source).unwrap();
+}

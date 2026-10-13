@@ -194,6 +194,10 @@ Do not treat earlier proposed pool APIs or mandatory global pools as approved.
 
 ## Compiler traversal depth follow-up
 
+Active work and remaining acceptance are tracked in the
+[compiler nesting architecture plan](plans/compiler-nesting-architecture.md).
+
+
 The current 128-level source/combined-analysis limits are implementation resource
 guards, not a language requirement for arrays or functions. S11 regression repairs
 reduce retained stack frames; they do not provide arbitrary-depth compilation.
