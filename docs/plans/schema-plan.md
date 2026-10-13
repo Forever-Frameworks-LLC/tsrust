@@ -3015,3 +3015,40 @@ measurements, installed consumers and requested cleanup remain pending.
 Whole-project checkpoint formatting passes: zero changed files and zero refreshed
 fingerprints. Token-preservation/idempotence checks and source diff whitespace
 checks pass. Evidence: `tsrust-s11-regression-format.log` in SQLite.
+
+Checkpoint `60062e81` completes compiler/editor regression repairs and whole-project
+formatting. The first scalar timing command stopped before measurement: the runner
+prebuilds the whole release workspace, exceeding its 120-second child timeout.
+Compiler-only release build had passed. Complete the identical workspace build
+separately in the shared target, then resume unchanged runner options. Original
+preparation failure is in SQLite as `tsrust-s11-timing-scalars.log`; no timing
+results are claimed. Current build: `/private/tmp/tsrust-s11-release-workspace-build.log`.
+
+### S11 measured baseline (2026-10-13)
+
+All 31 registered native-schema workloads passed the existing five correctness
+cells per engine and completed execution-only timing against Node after tsc.
+Protocol remains three fresh processes, eight warmups and 31 samples per engine: 
+5,766 retained durations. All groups capture identical compiler source inputs at
+checkpoint `60062e81`. Raw results, measurement proof/review and normalized
+workload/sample rows are preserved in SQLite. Proof:
+`tsrust-s11-measurement-proof.json`; review: `tsrust-s11-measurement-review.json`.
+
+Median-of-process-medians Node/native time ratios range from 0.196 (collections;
+native about 5.1x slower) to 10.013 (throwing parse; native faster). Native is
+slower in 28 of 31 cases. This is the first complete S11 baseline; it does not
+establish a regression against prior comparable S11 measurements. References are
+handwritten corpus validators, not Zod measurements. They can return existing
+JavaScript objects and use simpler error representations; native validation
+maintains typed ownership, bounded issues and generated result transport. Export
+includes tree construction, serialization and complete output observation.
+
+Existing reusable array/object/union allocation evidence remains accepted within
+its documented scope; it does not profile every new collection or callback path.
+Source review found no safe basis for removing ownership transport, collision
+checks or bounded error construction to match simpler references. Record collection,
+recursive, pipeline and export hotspots for targeted profiling; retain these
+original samples before any optimization. A universal runtime win is not acceptance.
+Installed consumers, final requirement audit and requested source cleanup remain
+required before the S11 handoff. Compiler nesting redesign remains the next
+agent's first priority before S12.
