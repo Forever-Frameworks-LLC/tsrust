@@ -6,6 +6,7 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    Logical { plan: super::logical_values_emit::LogicalPlan, temporary: Option<usize> },
     Selected,
     Coalesce { plan: super::coalesce_work::Plan, temporary: Option<usize>, pattern_slot: Option<usize> },
     Conditional { infer: bool, temporary: Option<usize> },
@@ -102,6 +103,10 @@ impl<'p> Emitter<'p> {
                     let declarations = self.conditional_temporaries.borrow_mut().drain(*first_temporary..).collect::<Vec<_>>().join(" ");
                     code = format!("{{{declarations} let _={code};}}");
                 }
+                if let CallState::Logical { temporary, .. } = &call.state {
+                    let (child, mode) = call.children[call.rendered.len()];
+                    code = self.finish_conditional_arm_work(child, mode, *temporary, code);
+                }
                 if let CallState::Coalesce { plan, temporary, pattern_slot } = &call.state {
                     let index = call.rendered.len();
                     let child = call.children[index].0;
@@ -150,6 +155,14 @@ impl<'p> Emitter<'p> {
                         *first_temporary = self.conditional_temporaries.borrow().len();
                     }
                     let mut child_frame = Frame::new(child, mode);
+                    if let CallState::Logical { temporary, .. } = &mut call.state {
+                        *temporary = None;
+                        if !child.ty.unwrap().is_copy() {
+                            let (access, pending) = self.prepare_conditional_arm_work(fun, child, mode);
+                            child_frame.mode = access;
+                            *temporary = pending;
+                        }
+                    }
                     if let CallState::Coalesce { plan, temporary, pattern_slot } = &mut call.state {
                         let index = call.rendered.len();
                         *temporary = None;
@@ -209,6 +222,14 @@ impl<'p> Emitter<'p> {
         mode: Mode,
         force_carrier: bool,
     ) -> Option<CallFrame<'a, 'p>> {
+        if let ExprKind::Binary { op, left, right, .. } = &expr.kind
+            && matches!(op, BinaryOp::And | BinaryOp::Or)
+            && !(left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)) {
+            let plan = self.prepare_logical_emission(fun, expr, *op, left, right, mode);
+            let mut children = vec![(left.as_ref(), plan.left_mode)];
+            if !plan.skip_right { children.push((right.as_ref(), plan.right_mode)); }
+            return Some(CallFrame { children, rendered: Vec::new(), invocation: None, state: CallState::Logical { plan, temporary: None } });
+        }
         if let ExprKind::Unary { op: UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::RestPack, value, .. } = &expr.kind {
             return Some(CallFrame { children: vec![(value, mode)], rendered: Vec::new(), invocation: None, state: CallState::Selected });
         }
@@ -489,7 +510,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -498,7 +519,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -745,6 +766,10 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
+            CallState::Logical { plan, .. } => {
+                let mut values = rendered.into_iter();
+                return self.finish_logical_emission(plan, values.next().expect("logical left"), values.next());
+            }
             CallState::Selected => return rendered.into_iter().next().expect("selected child"),
             CallState::Coalesce { plan, .. } => {
                 let ExprKind::Binary { right, .. } = &expr.kind else { unreachable!("coalescing operands"); };
@@ -1217,6 +1242,35 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn logical_operands_share_the_emission_stack() {
+        for source in [
+            "function probe():int{return null||987654321;} function main(){console.log(probe());}",
+            "function probe():int{return 0||987654321;} function main(){console.log(probe());}",
+            "function probe(value:boolean):boolean{return true&&value;} function main(){console.log(probe(false));}",
+        ] {
+            let checked = crate::check(source).unwrap();
+            let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+            let StmtKind::Return(Some(template)) = &fun.body[0].kind else { panic!("return"); };
+            let ExprKind::Binary { right, .. } = &template.kind else { panic!("logical expression"); };
+            let emitter = super::super::emitter_for(&checked.program, "");
+            let mut nested = right.as_ref().clone();
+            let leaf = emitter.expr(fun, &nested, Mode::Copy);
+            let shallow = emitter.expr(fun, template, Mode::Copy);
+            let (prefix, suffix) = shallow.split_once(&leaf).expect("logical operand emission");
+            // Phase-isolated witness, not a source-language depth policy.
+            for _ in 0..4096 {
+                let mut parent = template.clone();
+                let ExprKind::Binary { right, .. } = &mut parent.kind else { unreachable!() };
+                **right = nested;
+                nested = parent;
+            }
+            assert!(emitter.expr(fun, &nested, Mode::Copy) == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+            assert_eq!(emitter.expression_depth.get(), 0);
+            assert!(emitter.conditional_temporaries.borrow().is_empty());
+        }
+    }
 
     #[test]
     fn coalescing_fallbacks_and_selected_values_share_the_emission_stack() {

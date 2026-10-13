@@ -532,3 +532,44 @@ loans and separate contexts for unreachable-right validation. These are next
 connected branch paths, followed by assignment/control-flow and auxiliary
 consumers. The full architecture, optimization and S12–S21 remain unaccepted;
 installed consumers are unchanged.
+
+
+### Logical branch continuation checkpoint
+
+Boolean logical guards and value-returning logical selection now schedule both
+operands on the checker work stack. Boolean frames preserve selected/skipped
+condition outcomes and availability joins. Value frames preserve selected-left
+loans, contextual right types, unreachable-right child contexts, borrowed-result
+restrictions and capture-owner joins. Original helpers for type hints and union
+selection remain shared with their existing consumers.
+
+Logical value emission separates access planning from final branch construction.
+Reachable operands use the emission work stack with their original conditional
+temporary policy; statically unreachable right operands are not emitted. Boolean
+logical emission already uses the binary operand work path. This change does not
+claim auxiliary type-hint or union-payload traversals are fully migrated.
+
+Two focused unit tests pass: exact emission through 4,096-layer boolean and value
+logical chains, and diagnostic/tree/depth restoration for boolean, value and
+unreachable-right checker failures. All 18 integration tests across logical
+values, logical assignment, nullable narrowing and truthiness pass, including
+native short-circuit behavior and ownership checks.
+
+Full-pipeline discovery completes value and boolean logical samples 8/16/32 and
+a mixed logical/coalescing/conditional/call/record/array/access sample at eight
+layers. The next samples encounter existing parser nesting guards. These are
+observations, not support ceilings or formal scaling measurements. Whole-project
+formatting changes zero files/fingerprints. SQLite records under
+`tsrust-nesting-logical-*` retain checks, discovery and source/executable identity.
+
+The next assignment section must cover target selection, mutation bookkeeping,
+scalar/compound/logical/nullish assignment, update operations and statement
+reassignment together. `mutation_target` temporarily modifies mutation_place,
+keep_flow and suppressed_flow around its synchronous expression call; scalar
+assignment also restores replacement state before checking its right operand.
+The continuation must retain and restore these boundaries on errors. Shared
+assignment discovery currently calls scalar_assignment directly, so migrating
+only expression dispatch would leave a recursive path. Assignment emission,
+control statements, synthesized wrappers and auxiliary traversals remain pending.
+No full architecture acceptance, formal timing or installed consumer refresh is
+claimed. Optimization and S12–S21 remain required.

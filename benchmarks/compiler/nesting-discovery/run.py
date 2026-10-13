@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical')
 
 
 def source(family, size):
@@ -26,6 +26,13 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family in ('logical-values', 'logical-booleans', 'mixed-logical'):
+        value = 'true' if family == 'logical-booleans' else '7'
+        for _ in range(size):
+            value = ('(true&&' if family == 'logical-booleans' else '(0||') + value + ')'
+            if family == 'mixed-logical':
+                value = 'identity(({value:[true?(null??' + value + '):0]}).value[0])'
+        return 'function identity(value:int):int{return value;}function main(){console.log(' + value + ');}'
     elif family in ('coalescing', 'mixed-coalescing'):
         value = '7'
         for _ in range(size):

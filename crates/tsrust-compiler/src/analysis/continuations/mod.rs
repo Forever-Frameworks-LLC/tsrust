@@ -18,3 +18,4 @@ pub(super) use access::FieldDispatch;
 mod operators;
 
 mod coalesce;
+mod logical;

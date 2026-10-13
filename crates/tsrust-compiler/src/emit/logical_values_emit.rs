@@ -1,6 +1,21 @@
 //! Native selection returns operand values and evaluates the RHS only when needed.
 use super::*;
 
+pub(super) struct LogicalPlan {
+    pub(super) left_mode: Mode,
+    pub(super) right_mode: Mode,
+    pub(super) skip_right: bool,
+    lhs: Type,
+    rhs: Type,
+    result: Type,
+    result_view: bool,
+    left_read: bool,
+    op: BinaryOp,
+    can_truthy: bool,
+    can_falsy: bool,
+}
+
+
 impl Emitter<'_> {
     fn logical_truthy(&self, value: &str, ty: Type, reference: bool) -> String {
         let scalar = if reference { format!("*({value})") } else { value.to_owned() };
@@ -61,7 +76,7 @@ impl Emitter<'_> {
         format!("{{let logical_left={source}; !({test})}}")
     }
 
-    pub(super) fn logical_value(&self, fun: &CheckedFunction, expr: &Expr, op: BinaryOp, left: &Expr, right: &Expr, mode: Mode) -> String {
+    pub(super) fn prepare_logical_emission(&self, fun: &CheckedFunction, expr: &Expr, op: BinaryOp, left: &Expr, right: &Expr, mode: Mode) -> LogicalPlan {
         let lhs = left.ty.expect("logical left");
         let rhs = right.ty.expect("logical right");
         let result = expr.ty.expect("logical result");
@@ -73,16 +88,23 @@ impl Emitter<'_> {
             !ty.is_copy() && if op == BinaryOp::Or { !matches!(ty, Type::Null | Type::Undefined) } else { *ty == Type::String }
         });
         let left_read = matches!(lhs, Type::BorrowedUnion(_)) || result_view || !selected_owned;
-        let source = if lhs.is_copy() { self.expr(fun, left, Mode::Copy) } else { self.conditional_arm(fun, left, if left_read { Mode::Read } else { mode }) };
+        let can_truthy = alternatives.iter().any(|ty| !matches!(ty, Type::Null | Type::Undefined));
+        let can_falsy = alternatives.iter().any(|ty| matches!(ty, Type::Null | Type::Undefined | Type::Boolean | Type::Int | Type::Number | Type::String));
+        LogicalPlan {
+            left_mode: if lhs.is_copy() { Mode::Copy } else if left_read { Mode::Read } else { mode },
+            right_mode: if rhs.is_copy() { Mode::Copy } else if result_view { Mode::Read } else { mode },
+            skip_right: (op == BinaryOp::Or && !can_falsy) || (op == BinaryOp::And && !can_truthy),
+            lhs, rhs, result, result_view, left_read, op, can_truthy, can_falsy,
+        }
+    }
+
+    pub(super) fn finish_logical_emission(&self, plan: LogicalPlan, source: String, fallback: Option<String>) -> String {
+        let LogicalPlan { lhs, rhs, result, result_view, left_read, op, can_truthy, can_falsy, skip_right, .. } = plan;
         let source_view = matches!(lhs, Type::BorrowedUnion(_)) || (lhs.union().is_some_and(|id| !id.copy) && left_read);
         let test = self.logical_truthy("logical_left", if source_view { Type::BorrowedUnion(lhs.union().unwrap()) } else { lhs }, !lhs.is_copy() && left_read);
         let selected = self.logical_selected_value("logical_left", lhs, result, source_view, result_view && result.union().is_some_and(|id| !id.copy));
-        let can_truthy = alternatives.iter().any(|ty| !matches!(ty, Type::Null | Type::Undefined));
-        let can_falsy = alternatives.iter().any(|ty| matches!(ty, Type::Null | Type::Undefined | Type::Boolean | Type::Int | Type::Number | Type::String));
-        if (op == BinaryOp::Or && !can_falsy) || (op == BinaryOp::And && !can_truthy) {
-            return format!("{{let logical_left={source}; {selected}}}");
-        }
-        let fallback = if rhs.is_copy() { self.expr(fun, right, Mode::Copy) } else { self.conditional_arm(fun, right, if result_view { Mode::Read } else { mode }) };
+        if skip_right { return format!("{{let logical_left={source}; {selected}}}"); }
+        let fallback = fallback.expect("reachable logical fallback");
         let fallback_view = matches!(rhs, Type::BorrowedUnion(_)) || (rhs.union().is_some_and(|id| !id.copy) && result_view);
         let fallback = self.logical_selected_value(&fallback, rhs, result, fallback_view, result_view && result.union().is_some_and(|id| !id.copy));
         if (op == BinaryOp::Or && !can_truthy) || (op == BinaryOp::And && !can_falsy) {
@@ -90,5 +112,14 @@ impl Emitter<'_> {
         }
         let (yes, no) = if op == BinaryOp::Or { (selected, fallback) } else { (fallback, selected) };
         format!("{{let logical_left={source}; if {test} {{ {yes} }} else {{ {no} }} }}")
+    }
+
+    pub(super) fn logical_value(&self, fun: &CheckedFunction, expr: &Expr, op: BinaryOp, left: &Expr, right: &Expr, mode: Mode) -> String {
+        let plan = self.prepare_logical_emission(fun, expr, op, left, right, mode);
+        let source = if left.ty.unwrap().is_copy() { self.expr(fun, left, plan.left_mode) }
+            else { self.conditional_arm(fun, left, plan.left_mode) };
+        let fallback = if plan.skip_right { None } else { Some(if right.ty.unwrap().is_copy() { self.expr(fun, right, plan.right_mode) }
+            else { self.conditional_arm(fun, right, plan.right_mode) }) };
+        self.finish_logical_emission(plan, source, fallback)
     }
 }

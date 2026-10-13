@@ -6991,17 +6991,8 @@ impl Analyzer {
                 op: BinaryOp::Coalesce | BinaryOp::PatternDefault,
                 ..
             } => unreachable!("coalescing is scheduled before expression dispatch"),
-            ExprKind::Binary {
-                op,
-                operator,
-                left,
-                right,
-            } if matches!(op, BinaryOp::And | BinaryOp::Or) => {
-                if self.expression_type_hint(context, left) == Some(Type::Boolean)
-                    && self.expression_type_hint(context, right).is_none_or(|ty| ty == Type::Boolean) {
-                    self.logical_expression(context, (expr.span, *operator), *op, left, right, loans)
-                } else { self.logical_value_expression(context, expr, mode, loans, expected) }
-            }
+            ExprKind::Binary { op: BinaryOp::And | BinaryOp::Or, .. } =>
+                unreachable!("logical operands are scheduled before expression dispatch"),
             ExprKind::Conditional {
                 predicate,
                 consequent,
@@ -7569,54 +7560,6 @@ impl Analyzer {
                 if op == BinaryOp::Equal { (equal, other) } else { (other, equal) });
         }
         if stable && self.record_discriminator_guard(context,left,right).is_some(){self.remember_guard(context,expr_span,op,left,right);}
-        Ok(Type::Boolean)
-    }
-
-    fn logical_expression(
-        &mut self,
-        context: &mut Context,
-        spans: (Span, Span),
-        op: BinaryOp,
-        left: &mut Expr,
-        right: &mut Expr,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
-        let (expr_span, operator) = spans;
-        let actual = self.expression(context, left, Mode::Copy, loans, Some(Type::Boolean))?;
-        self.require(actual, Some(Type::Boolean), operator)?;
-        let (left_true, left_false) = Self::condition_outcomes(context, left);
-        let before = context
-            .names
-            .values()
-            .map(|&id| (id, Availability::of(&context.bindings[id])))
-            .collect::<Vec<_>>();
-        let skipped = if op == BinaryOp::And {
-            left_false.clone()
-        } else {
-            left_true.clone()
-        };
-        context.flow = if op == BinaryOp::And {
-            left_true
-        } else {
-            left_false
-        };
-        let actual = self.expression(context, right, Mode::Copy, loans, Some(Type::Boolean))?;
-        self.require(actual, Some(Type::Boolean), operator)?;
-        let (right_true, right_false) = Self::condition_outcomes(context, right);
-        for (id, state) in before {
-            state
-                .join(Availability::of(&context.bindings[id]))
-                .restore(&mut context.bindings[id]);
-        }
-        let outcomes = if op == BinaryOp::And {
-            (right_true, crate::flow::join(&skipped, &right_false))
-        } else {
-            (crate::flow::join(&skipped, &right_true), right_false)
-        };
-        context.flow = crate::flow::join(&outcomes.0, &outcomes.1);
-        context
-            .condition_flows
-            .insert((expr_span.start, expr_span.end), outcomes);
         Ok(Type::Boolean)
     }
 
