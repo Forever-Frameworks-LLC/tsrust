@@ -297,6 +297,7 @@ impl SourceIndex {
         self.checked_views = finish(views);
         self.checked_optional_receivers = finish(optional);
         self.checked_method_results = finish(results);
+        self.refresh_destructured_names();
         self.refresh_result_match_bindings();
         self.refresh_checked_initializers();
         self.apply_module_value_facts(graph, current, facts, dependencies);

@@ -1,6 +1,44 @@
 //! Schema method lowering preserves ordinary native argument ownership checks.
 use super::*;
 impl Analyzer {
+    /// Keep input consumption, callback effects and validation identical to safeParse.
+    pub(super) fn schema_parse_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
+        let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
+        if method != "parse" { return Ok(None); }
+        let known = matches!(self.expression_type_hint(context, base), Some(Type::Record(id))
+            if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
+                || self.schema_pipelines.types(id).is_some());
+        let mut root = &**base;
+        while let ExprKind::Call(callee, _) = &root.kind {
+            match &callee.kind {
+                ExprKind::Field(receiver, _) => root = receiver,
+                _ => { root = callee; break; }
+            }
+        }
+        let constructing = matches!(&root.kind, ExprKind::Name(name)
+            if name.starts_with("@schema:") || name.starts_with("@native:std:schema#"));
+        if !known && !constructing { return Ok(None); }
+        let mut validation = expr.clone();
+        let ExprKind::Call(callee, args) = &mut validation.kind else { unreachable!() };
+        if args.len() != 1 { return Err(Diagnostic::new("arity", "parse expects one input value.", expr.span)); }
+        let ExprKind::Field(_, method) = &mut callee.kind else { unreachable!() };
+        *method = "safeParse".into();
+        // Check the original receiver and input exactly once, including effects.
+        let result = self.expression(context, &mut validation, Mode::Consume, loans, None)?;
+        let arguments = vec![self.checked_value_annotation(result, expr.span)?];
+        let name = self.generic_functions.request_explicit_value("@schema:parseResult", arguments, Vec::new(), expr.span, self.function_stack.len())?;
+        let name = self.publish_generic_call(context, name)?;
+        expr.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name(name), expr.span)), vec![validation]);
+        let (index, captures, params) = self.declared_call_contract(context, expr)?;
+        // The one argument is an already checked owned Result. Rechecking its
+        // source would consume input twice and duplicate callback access effects.
+        self.require(result, Some(params[0].ty), expr.span)?;
+        let output = self.finish_declared_call(context, expr, index, &captures, &params, loans)?;
+        self.require(output, expected, expr.span)?;
+        Ok(Some(output))
+    }
+
     // A normalized scalar union can reuse an existing scalar schema identity.
     // Establish this hint without analyzing (and therefore consuming) any branch.
     // Callback pipelines retain separate identities and must not enter this path.

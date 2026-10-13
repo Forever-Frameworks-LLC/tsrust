@@ -331,7 +331,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn publish_generic_call(&mut self, context: &Context, concrete: String) -> Result<String, Diagnostic> {
+    pub(super) fn publish_generic_call(&mut self, context: &Context, concrete: String) -> Result<String, Diagnostic> {
         if let Some(&index) = self.function_names.get(&concrete) {
             self.prepare_named_result_hint(context, index)?;
             return Ok(concrete);

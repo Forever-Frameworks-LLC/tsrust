@@ -22384,6 +22384,30 @@
       "notes": "Initialization excluded on both sides. Native driver retains the verified scalar owner across warmups/samples; authored workload body unchanged. Untimed parity pending.",
       "sourceSha256": "e001907ca710bf72cf61072300cef0558dd4f10547ad7a6a44152429f9d0484d",
       "counterpartSha256": "954b2bdd5cddfd8037837dc8867fd16120c5f393a6a4441bbba6ca6f8056acd8"
+    },
+    {
+      "id": "native_schema_parse",
+      "category": "schema",
+      "description": "Throwing schema validation success and caught rejection",
+      "source": "workloads/native_schema_parse.tsr",
+      "counterpart": "workloads/native_schema_parse.ts",
+      "iterations": 2000,
+      "operationsPerIteration": 2,
+      "operationUnit": "One string validation and result or caught issue observation",
+      "result": "int",
+      "parameters": [
+        "int",
+        "int",
+        "string"
+      ],
+      "family": "native-schema",
+      "inputText": "hello",
+      "measured": false,
+      "measurementStatus": "unmeasured-schema-family",
+      "specification": "Success contributes length five; caught too-small issue contributes one. Explicit native input clone preserves the reusable input. Checksum is seed + 6*n.",
+      "notes": "Handwritten TypeScript reference for throwing validation. Unmeasured.",
+      "sourceSha256": "41501fb5551809d42afba45390c514a0fb9f9539ef2b58cff8d111c7a2b9161d",
+      "counterpartSha256": "60c3687ff1694bff0965748b90497c93e0f8a8c6b3975675f340575005526cde"
     }
   ],
   "semanticEpoch": "rust-native-utf8-v1",

@@ -173,11 +173,13 @@ pub(crate) const LT_NUMBER: NativeBinding = NativeBinding {name:"__ltNumber",bac
 pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
     let mut spans = Vec::new();
     let mut uses_safe_parse = false;
+    let mut uses_parse = false;
     let mut uses_bounds = false;
     for function in &mut program.functions {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             let ExprKind::Field(base, member) = &expression.kind else { return Ok(()); };
-            uses_safe_parse |= member == "safeParse";
+            uses_safe_parse |= matches!(member.as_str(), "safeParse" | "parse");
+            uses_parse |= member == "parse";
             uses_bounds |= matches!(member.as_str(),"min"|"max"|"gt"|"lt");
             if !matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Schema.symbol()) { return Ok(()); }
             if matches!(member.as_str(),"array"|"object"|"record"|"map"|"set"|"literal"|"enum"|"union"|"discriminatedUnion") {if matches!(member.as_str(),"literal"|"enum"){spans.push((&STRING,expression.span));spans.push((&NULL,expression.span));}expression.kind=ExprKind::Name(format!("@schema:{member}"));return Ok(());}
@@ -194,6 +196,7 @@ pub(crate) fn prepare(program: &mut Program) -> Result<(), Diagnostic> {
             Ok(())
         })?;
     }
+    if uses_parse { program.functions.push(super::builders::parse_adapter(program)?); }
     for (binding, span) in spans { crate::native_binding_types::prepare(&mut program.records, binding, span)?; }
     if uses_safe_parse && program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Schema)) {
         crate::native_binding_types::prepare(&mut program.records, &SAFE_PARSE_OWNED, crate::Span::default())?;

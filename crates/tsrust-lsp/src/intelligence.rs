@@ -1881,6 +1881,7 @@ impl SourceIndex {
     }
     fn primitive_method_type(&self, method: &str, receiver: String) -> String {
         if let Some((_, output, _, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
+            if method == "parse" { return output.clone(); }
             if method == "refine" { return receiver; }
             if method == "safeParseJson" { return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
             if method == "safeParse" {
@@ -1888,6 +1889,7 @@ impl SourceIndex {
                     .map(|(name, _)| format!("Result<{output}, {name}>")).unwrap_or_default();
             }
         }
+        if method=="parse" && let Some(output)=self.schema_element(&receiver) {return output.to_owned();}
         if method=="safeParseJson" && let Some(output)=self.schema_element(&receiver) {return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>");}
         let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
@@ -1952,7 +1954,7 @@ impl SourceIndex {
         let receiver = literal_scalar_family(receiver).unwrap_or(receiver);
         if receiver=="@namespace:std:schema#s" && matches!(method,"string"|"boolean"|"int"|"number"|"null"|"literal"|"enum"|"union"|"discriminatedUnion") {return true;}
         if matches!((self.schema_element(receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return true;}
-        if self.schema_element(receiver).is_some() { return matches!(method,"safeParse"|"safeParseJson"); }
+        if self.schema_element(receiver).is_some() { return matches!(method,"parse"|"safeParse"|"safeParseJson"); }
         if self.ordered_map_types(receiver).is_some(){return matches!(method,"set"|"get"|"has"|"delete"|"forEach");}
         if self.ordered_set_element(receiver).is_some(){return matches!(method,"add"|"has"|"delete");}
         if self.heap_element(receiver).is_some() { return method=="push"; }

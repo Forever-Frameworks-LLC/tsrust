@@ -26,6 +26,7 @@ executing differential cases; current web documentation alone is not a version p
 | Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing pending |
 | Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing pending |
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
+| parse | Return inferred output directly; throw the existing ValidationError on validation failure | Focused compiler/native/editor and untimed parity accepted; family timing pending |
 | Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; richer cross-field issue APIs remain required |
 | Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Second tranche, still required |
@@ -56,6 +57,19 @@ Callback exceptions propagate. Typed JSON imports continue to report compile-tim
 diagnostics. The public runtime rename is checked across scalar/pipeline results,
 explicit type imports and editor aliases; `SchemaConstructionError` is unchanged. The fused decoder checkpoint below records implementation and focused acceptance;
 S11 family acceptance and timing remain pending.
+
+## Throwing validation counterpart
+
+The owner requested `schema.parse(input)` alongside `safeParse`. Implement it
+before S11 acceptance: return the same inferred output directly and throw the
+existing `ValidationError` on validation failure. Preserve `issues`, structured
+paths and truncation metadata instead of introducing a second competing error
+shape. Borrow the reusable schema and preserve the same input ownership contract
+as `safeParse`. Callback exceptions propagate unchanged; construction failures
+remain `SchemaConstructionError`. Checker exception inference, catch payload
+IntelliSense, chained receiver completion and executable success/failure examples
+must be included. This API is currently missing; this entry records pending work,
+not implementation acceptance.
 
 ## Approved contracts
 
@@ -2171,3 +2185,30 @@ progress states. The graph is currently test-only groundwork in
 `stdlib/schema/recursive.rs`; source lowering and runtime validation do not use it
 yet. It is not public recursive-schema acceptance. Validation remains deferred
 until the recursive section is integrated.
+
+### Throwing parse integration in progress
+
+The adapter now passes the schema and input to an ordinary checked generic
+function, calls safeParse once, returns Ok's payload and throws Err's payload.
+Input access is inferred so scalars copy while owned values transfer. Named
+schema receivers use contextual input annotations for inline object arguments.
+Four compiler/native checks and six editor checks pass; the new throwing-string
+workload agrees across ten native/compiled-Node correctness cells with no timing
+samples. Evidence uses `tsrust-schema-parse-*`.
+
+Acceptance remains open: an inline `s.object(...).parse(...)` receiver still lacks
+its generic schema argument hint. A regression witness records that boundary.
+Do not refresh consumers or describe the entire parse API as accepted until this
+chain and affected checks pass. Recursive schemas remain a separate unfinished
+S11 requirement.
+
+
+The inline receiver boundary is repaired. The final implementation first checks
+safeParse exactly once, then specializes a normal throwing adapter for its checked
+Result type. It uses the declared-call completion path without repeating argument
+access checks. Five native/compiler witnesses, seven editor witnesses, 28 schema
+benchmark contract checks and ten untimed native/compiled-Node cells pass. The
+editor checks also exposed and repaired missing catch-binding refresh after
+project facts were installed. Evidence is stored under `tsrust-schema-parse-*`.
+This accepts the scoped parse implementation; S11 family acceptance, timings and
+the installed-consumer refresh remain pending.

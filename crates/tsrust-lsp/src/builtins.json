@@ -77,6 +77,23 @@
     ]
   },
   {
+  "name": "parse",
+  "signature": "parse(input: Input): Output",
+  "parameters": [
+    {
+      "label": "input: Input",
+      "documentation": "Owned input accepted by this chain. Earlier conversions determine its type; later transformations determine the successful output."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Input): Result<Output, ValidationError>",
     "parameters": [
@@ -7430,6 +7447,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "A matching owned array or dynamic JSON value. Both transfer on success and failure. JSON arrays are checked recursively without coercing strings, booleans or null. Number schemas also accept int arrays with matching nesting; every integer must convert exactly."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -7498,6 +7532,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<string | JsonValue>): string",
+  "parameters": [
+    {
+      "label": "input: Owned<string | JsonValue>",
+      "documentation": "Owned string or dynamic JSON value. Consumed on success and failure; use clone(input) beforehand to retain it."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<string | JsonValue>): Result<string, ValidationError>",
     "parameters": [
@@ -7596,6 +7647,23 @@
   ]
 },
     {
+  "name": "parse",
+  "signature": "parse(input: boolean | Owned<JsonValue>): boolean",
+  "parameters": [
+    {
+      "label": "input: boolean | Owned<JsonValue>",
+      "documentation": "A concrete boolean or owned JsonValue. Primitive booleans copy; JSON input is consumed on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
       "name": "safeParse",
       "signature": "safeParse(input: boolean | Owned<JsonValue>): Result<boolean, ValidationError>",
       "parameters": [
@@ -7656,6 +7724,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: int | Owned<JsonValue>): int",
+  "parameters": [
+    {
+      "label": "input: int | Owned<JsonValue>",
+      "documentation": "Concrete int or owned JsonValue. Integers copy; JSON input is consumed on both success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: int | Owned<JsonValue>): Result<int, ValidationError>",
     "parameters": [
@@ -7784,6 +7869,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: number | int | Owned<JsonValue>): number",
+  "parameters": [
+    {
+      "label": "input: number | int | Owned<JsonValue>",
+      "documentation": "Concrete number, int or owned JsonValue. Primitive numbers and integers copy; JSON input is consumed on both outcomes."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: number | int | Owned<JsonValue>): Result<number, ValidationError>",
     "parameters": [
@@ -7916,6 +8018,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: null | Owned<JsonValue>): null",
+  "parameters": [
+    {
+      "label": "input: null | Owned<JsonValue>",
+      "documentation": "Concrete null or owned JsonValue. JSON input is consumed on both outcomes; null is a copyable scalar."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: null | Owned<JsonValue>): Result<null, ValidationError>",
     "parameters": [
@@ -7976,6 +8095,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned matching record or JsonValue. Input transfers on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8060,6 +8196,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "A matching owned record or owned JsonValue. Input transfers on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8120,6 +8273,23 @@
   ]
 },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned value matching the output alternatives, or JsonValue. Input transfers on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8204,6 +8374,23 @@
     ]
   },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned value of the underlying scalar type or JsonValue. Number literals also accept exact integer conversion. Input transfers on every outcome."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8264,6 +8451,23 @@
     ]
   },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned string or JsonValue. Returns the exact string alternative on success; consumes input on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8324,6 +8528,23 @@
     ]
   },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An enum member, matching underlying scalar or JsonValue. Numeric enums also accept checked int input. Input transfers on every outcome."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [
@@ -8360,6 +8581,23 @@
     ]
   },
   {
+  "name": "parse",
+  "signature": "parse(input: Owned<Input>): Output",
+  "parameters": [
+    {
+      "label": "input: Owned<Input>",
+      "documentation": "An owned value matching the output alternatives, or JsonValue. Input transfers on success and failure."
+    }
+  ],
+  "documentation": "Validates input and returns the inferred output directly. Throws ValidationError on invalid input; inspect its issues array for code, message, expected, observed and field/index path segments. The truncated flag reports omitted issues. Callback exceptions propagate unchanged. Uses the same accepted inputs, conversion rules and validation limits as safeParse. The reusable schema is unchanged.\n\nOwnership: borrows the schema; owned input is consumed on success and failure, exactly as with safeParse. No implicit cloning.\n\n```tsrust\nimport {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}\n```\n\nExpected output: Hello, then 1.",
+  "examples": [
+    {
+      "source": "import {s} from 'std:schema';function main(){const schema=s.string().min(1);console.log(schema.parse('Hello'));try{schema.parse('');}catch(error){console.log(error.issues.length);}}",
+      "output": "Hello\n1\n"
+    }
+  ]
+},
+{
     "name": "safeParse",
     "signature": "safeParse(input: Owned<Input>): Result<Output, ValidationError>",
     "parameters": [

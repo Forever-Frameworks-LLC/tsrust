@@ -1,0 +1,44 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.string().min(1);
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    const value = schema.parse(clone(input));
+    if (value !== 'hello') {
+      throw 'Wrong parsed value';
+    }
+
+    checksum += value.length;
+    let rejected = false;
+    try {
+      schema.parse('');
+    } catch (error) {
+      if (error.truncated || error.issues.length !== 1) {
+        throw 'Wrong issue count';
+      }
+
+      for (const issue of error.issues) {
+        if (issue.code !== 'too-small' || issue.path.length !== 0 || issue.pathTruncated) {
+          throw 'Wrong issue';
+        }
+      }
+
+      rejected = true;
+      checksum += 1;
+    }
+
+    if (!rejected) {
+      throw 'Expected rejection';
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(0, 0, 'hello'), workload(1, 0, 'hello'), workload(17, 7, 'hello'), workload(2000, 1, 'hello'));
+}

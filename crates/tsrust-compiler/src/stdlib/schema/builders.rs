@@ -40,3 +40,19 @@ mod tests {
         assert_eq!(name.text,"number");
     }
 }
+
+/// Unwrap a checked validation Result through normal typed exception machinery.
+pub(crate) fn parse_adapter(program: &Program) -> Result<Function, Diagnostic> {
+    let mut function = crate::syntax::parse("function adapter<R>(result:R){match(result){Ok(value)=>{return value;},Err(error)=>{throw error;}}}")?.functions.remove(0);
+    let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
+    let shift = |span: &mut Span| { span.start += offset; span.end += offset; };
+    function.name.text = "@schema:parseResult".into();
+    shift(&mut function.name.span);
+    shift(&mut function.scope_span);
+    for (name, _, _) in &mut function.params { shift(&mut name.span); }
+    crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
+        shift(&mut expression.span);
+        Ok(())
+    })?;
+    Ok(function)
+}

@@ -14397,6 +14397,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected); }
         if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(ty);}
+        if let Some(ty)=self.schema_parse_call(context, expr, loans, expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_message_constraint(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_constructor_options(context,expr,loans,expected)? {return Ok(ty);}
         if let Some(ty)=self.schema_pipeline_constructor(context,expr,loans,expected)? {return Ok(ty);}
