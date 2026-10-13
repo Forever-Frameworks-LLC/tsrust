@@ -860,3 +860,31 @@ These changes do not retire the remaining compiler guards or establish a depth
 ceiling. Recursive carrier conversion, carrier retargeting and record type joins
 remain connected migration work. No new formal scaling measurement or consumer
 refresh is claimed, and full architecture acceptance remains open.
+
+### Carrier compatibility and nested field replacement
+
+Carrier compatibility now uses continuation tasks for array elements, record
+field conjunctions and union member/alternative searches. Failed union candidates
+continue to later candidates; a failed required field or member short-circuits
+the enclosing conjunction. Existing callable compatibility rules are unchanged.
+Nested record field replacement retains parent fields explicitly and materializes
+from the replaced leaf outward, preserving sibling types and original records.
+
+The analysis batch passes 279 tests. New witnesses exercise matching and
+mismatching record pairs at 16,384 layers on normal stacks, union alternatives,
+and nested field replacement with a missing-field failure that materializes
+nothing. Native integration suites pass 257 tests: scoped callable records 42,
+nullable caller callback stores 13, and scoped record composition 202. The last
+suite includes ownership rejection, native output, exception cleanup, map storage
+and formatting checks and took 549.79 seconds. This is test execution evidence,
+not a compilation scaling measurement. Whole-project formatting changed zero
+files or fingerprints.
+
+SQLite records use `tsrust-nesting-carrier-compatibility.log` and
+`tsrust-nesting-carrier-path-*`. The earlier compatibility-only test run predates
+the field replacement change; the 279-test analysis run and all three native
+suites cover the final implementation. No public contract or IntelliSense change
+is introduced, and consumers have not been refreshed. Full nesting acceptance
+and formal scaling remain open. Remaining connected paths include carrier
+retargeting, record type joins, recursive record-value carrier inference in
+`record_value_carriers.rs`, result discovery and statement emission.

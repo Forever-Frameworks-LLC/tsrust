@@ -188,16 +188,27 @@ impl Analyzer {
         }
         ty.union().is_some_and(|union|self.unions.members(union).into_iter().any(|member|matches!(member,Type::Callback(callback) if !self.callables.callbacks[callback].kind.is_owned())))
     }
-    pub(super) fn record_type_with_field(&mut self,record:usize,path:&[String],ty:Type)->Option<usize>{
-        let name=path.first()?;let index=self.program.records[record].fields.iter().position(|field|&field.name.text==name)?;
-        let mut fields=self.program.records[record].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
-        fields[index]=if path.len()==1{ty}else{let Type::Record(child)=fields[index]else{return None;};Type::Record(self.record_type_with_field(child,&path[1..],ty)?)};
-        let recursive=self.native_borrow_types && fields.iter().any(|ty| self.native_shape_contains_view(*ty))
-            && crate::recursive_view_shapes::Index::new(&self.program.records,&|id|self.unions.members(id)).recursive(self.scoped_records.declaration(record));
-        let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions).ok()?}
-            else {self.scoped_records.materialize(record,fields,&mut self.program.records)};
-        while self.fields.len()<self.program.records.len(){let id=self.fields.len();self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
-        Some(id)
+    pub(super) fn record_type_with_field(&mut self,mut record:usize,path:&[String],mut ty:Type)->Option<usize>{
+        if path.is_empty(){return None;}
+        let mut parents=Vec::new();
+        for (offset,name) in path.iter().enumerate(){
+            let index=self.program.records[record].fields.iter().position(|field|&field.name.text==name)?;
+            let fields=self.program.records[record].fields.iter().map(|field|field.ty.unwrap()).collect::<Vec<_>>();
+            let child=fields[index];
+            parents.push((record,index,fields));
+            if offset+1<path.len(){let Type::Record(child)=child else{return None;};record=child;}
+        }
+        // Materialize from the replaced leaf outward, preserving parent order.
+        for (record,index,mut fields) in parents.into_iter().rev(){
+            fields[index]=ty;
+            let recursive=self.native_borrow_types && fields.iter().any(|ty| self.native_shape_contains_view(*ty))
+                && crate::recursive_view_shapes::Index::new(&self.program.records,&|id|self.unions.members(id)).recursive(self.scoped_records.declaration(record));
+            let id=if recursive {self.scoped_records.materialize_recursive(record,fields,&mut self.program.records,&self.unions).ok()?}
+                else {self.scoped_records.materialize(record,fields,&mut self.program.records)};
+            while self.fields.len()<self.program.records.len(){let id=self.fields.len();self.fields.push(self.program.records[id].fields.iter().map(|field|(field.name.text.clone(),field.ty.unwrap())).collect());}
+            ty=Type::Record(id);
+        }
+        let Type::Record(id)=ty else{unreachable!()};Some(id)
     }
     pub(super) fn update_local_record_field_type(&mut self,context:&mut Context,target:&Expr,ty:Type)->Result<(),Diagnostic>{
         if self.local_record_field_contract(context,target).is_none(){return Ok(());}
@@ -243,25 +254,65 @@ impl Analyzer {
     /// and record literals are retyped in place; other values are converted.
     /// Whether generated code can convert a stored value into its carrier.
     fn carrier_convertible(&self,source:Type,target:Type)->bool{
-        if source==target{return true;}
-        match(source,target){
-            (Type::StoredCallable(source),Type::StoredCallable(target))=>{
-                match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
-                    (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
-                    _=>false,
+        enum Task {
+            Check(Type,Type),
+            Pairs(std::vec::IntoIter<(Type,Type)>,bool),
+            AfterPair(std::vec::IntoIter<(Type,Type)>,bool),
+            Members(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
+            AfterMember(std::vec::IntoIter<Type>,std::rc::Rc<Vec<Type>>),
+        }
+        let mut work=vec![Task::Check(source,target)];
+        let mut result=true;
+        while let Some(task)=work.pop() {
+            match task {
+                Task::Pairs(mut pairs,all)=>{
+                    if let Some((source,target))=pairs.next(){
+                        work.push(Task::AfterPair(pairs,all));
+                        work.push(Task::Check(source,target));
+                    }else{result=all;}
+                }
+                Task::AfterPair(pairs,all)=>{
+                    if result==all{work.push(Task::Pairs(pairs,all));}
+                }
+                Task::Members(mut members,targets)=>{
+                    if let Some(member)=members.next(){
+                        // Union alternatives only admit identity or record conversion.
+                        let pairs=targets.iter().copied().filter(|&candidate|candidate==member || matches!((member,candidate),(Type::Record(_),Type::Record(_)))).map(|candidate|(member,candidate)).collect::<Vec<_>>();
+                        work.push(Task::AfterMember(members,targets));
+                        work.push(Task::Pairs(pairs.into_iter(),false));
+                    }else{result=true;}
+                }
+                Task::AfterMember(members,targets)=>{
+                    if result{work.push(Task::Members(members,targets));}
+                }
+                Task::Check(source,target)=>{
+                    if source==target{result=true;continue;}
+                    result=match(source,target){
+                        (Type::StoredCallable(source),Type::StoredCallable(target))=>{
+                            match (self.callables.storage.scoped_native_family(source),self.callables.storage.scoped_native_family(target)) {
+                                (Some(source),Some(target))=>source.signature==target.signature && source.alternatives.iter().all(|alternative|target.alternatives.contains(alternative)),
+                                _=>false,
+                            }
+                        }
+                        (Type::Array(source),Type::Array(target))=>{
+                            work.push(Task::Check(source.ty(),target.ty()));continue;
+                        }
+                        (Type::Record(source),Type::Record(target))=>{
+                            let pairs=self.program.records[source].fields.iter().zip(&self.program.records[target].fields).map(|(source,target)|(source.ty.unwrap(),target.ty.unwrap())).collect::<Vec<_>>();
+                            work.push(Task::Pairs(pairs.into_iter(),true));continue;
+                        }
+                        (Type::Closure(origin),Type::BorrowedCallable(family))=>self.callables.storage.origins(family).is_some_and(|origins|origins.contains(&origin)),
+                        (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>match(self.callables.storage.origins(source),self.callables.storage.origins(target)){(Some(source),Some(target))=>source.iter().all(|origin|target.contains(origin)),_=>false},
+                        (Type::Callback(id),_)=>self.absent_callback_payloads.values().any(|&empty|empty==id),
+                        (Type::Union(source),Type::Union(target))=>{
+                            work.push(Task::Members(self.unions.members(source).into_iter(),std::rc::Rc::new(self.unions.members(target))));continue;
+                        }
+                        _=>false,
+                    };
                 }
             }
-            (Type::Array(source),Type::Array(target))=>self.carrier_convertible(source.ty(),target.ty()),
-            (Type::Record(source),Type::Record(target))=>self.program.records[source].fields.iter().zip(&self.program.records[target].fields).all(|(source,target)|self.carrier_convertible(source.ty.unwrap(),target.ty.unwrap())),
-            (Type::Closure(origin),Type::BorrowedCallable(family))=>self.callables.storage.origins(family).is_some_and(|origins|origins.contains(&origin)),
-            (Type::BorrowedCallable(source),Type::BorrowedCallable(target))=>match(self.callables.storage.origins(source),self.callables.storage.origins(target)){(Some(source),Some(target))=>source.iter().all(|origin|target.contains(origin)),_=>false},
-            (Type::Callback(id),_)=>self.absent_callback_payloads.values().any(|&empty|empty==id),
-            (Type::Union(source),Type::Union(target))=>{
-                let targets=self.unions.members(target);
-                self.unions.members(source).into_iter().all(|member|targets.iter().any(|&candidate|candidate==member || matches!((candidate,member),(Type::Record(_),Type::Record(_))) && self.carrier_convertible(member,candidate)))
-            }
-            _=>false,
         }
+        result
     }
     /// A conversion that would turn one concrete closure into another.
     fn distinct_owned_closures(&self,source:Type,target:Type)->bool{
@@ -370,6 +421,55 @@ impl Analyzer {
 #[cfg(test)]
 mod traversal_tests {
     use super::*;
+
+    fn nested_record_pair(analyzer:&mut Analyzer,depth:usize,right_leaf:Type)->(Type,Type) {
+        let template=analyzer.program.records[0].clone();
+        let (mut left,mut right)=(Type::Int,right_leaf);
+        for _ in 0..depth {
+            let mut record=template.clone();record.fields[0].ty=Some(left);
+            left=Type::Record(analyzer.program.records.len());analyzer.program.records.push(record);
+            let mut record=template.clone();record.fields[0].ty=Some(right);
+            right=Type::Record(analyzer.program.records.len());analyzer.program.records.push(record);
+        }
+        (left,right)
+    }
+
+    #[test]
+    fn carrier_compatibility_checks_deep_record_pairs_without_recursion() {
+        let mut analyzer=Analyzer::new(crate::syntax::parse("type Item={value:int;};function main(){}").unwrap()).unwrap();
+        let (left,right)=nested_record_pair(&mut analyzer,16384,Type::Int);
+        assert!(analyzer.carrier_convertible(left,right));
+        let (left,right)=nested_record_pair(&mut analyzer,16384,Type::Boolean);
+        assert!(!analyzer.carrier_convertible(left,right));
+    }
+
+    #[test]
+    fn carrier_union_alternatives_preserve_existential_and_universal_results() {
+        let mut analyzer=Analyzer::new(crate::syntax::parse("type Item={value:int;};function main(){}").unwrap()).unwrap();
+        let (source,good)=nested_record_pair(&mut analyzer,2,Type::Int);
+        let (_,bad)=nested_record_pair(&mut analyzer,2,Type::Boolean);
+        let from=analyzer.unions.intern(vec![source,Type::Undefined],Span::default()).unwrap();
+        let to=analyzer.unions.intern(vec![bad,good,Type::Undefined],Span::default()).unwrap();
+        assert!(analyzer.carrier_convertible(from,to));
+        let missing=analyzer.unions.intern(vec![bad,good,Type::Null],Span::default()).unwrap();
+        assert!(!analyzer.carrier_convertible(from,missing));
+        let wrong=analyzer.unions.intern(vec![bad,Type::Undefined],Span::default()).unwrap();
+        assert!(!analyzer.carrier_convertible(from,wrong));
+    }
+
+    #[test]
+    fn record_field_replacement_materializes_parents_after_children() {
+        let mut analyzer=Analyzer::new(crate::syntax::parse("type Leaf={value:int;};type Outer={child:Leaf;keep:int;};function main(){}").unwrap()).unwrap();
+        let outer=analyzer.program.records.iter().position(|record|record.name.text=="Outer").unwrap();
+        let path=vec!["child".to_owned(),"value".to_owned()];
+        let updated=analyzer.record_type_with_field(outer,&path,Type::Boolean).unwrap();
+        assert_eq!(analyzer.record_field_type(Type::Record(updated),&path),Some(Type::Boolean));
+        assert_eq!(analyzer.record_field_type(Type::Record(outer),&path),Some(Type::Int));
+        assert_eq!(analyzer.record_field_type(Type::Record(updated),&["keep".to_owned()]),Some(Type::Int));
+        let count=analyzer.program.records.len();
+        assert!(analyzer.record_type_with_field(outer,&["child".to_owned(),"missing".to_owned()],Type::Boolean).is_none());
+        assert_eq!(analyzer.program.records.len(),count);
+    }
 
     #[test]
     fn carrier_assignments_keep_lexical_branch_and_exception_order() {
