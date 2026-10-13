@@ -17,12 +17,16 @@ pub(crate) struct Types<'a> {
     pub unions: &'a crate::unions::UnionArena,
 }
 fn may_defer(pattern: &ValueAnnotation) -> bool {
-    match &pattern.kind {
-        Kind::Union(_) => true,
-        Kind::Group(inner) | Kind::Array(inner) => may_defer(inner),
-        Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => arguments.iter().any(may_defer),
-        Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => false,
+    let mut pending = vec![pattern];
+    while let Some(pattern) = pending.pop() {
+        match &pattern.kind {
+            Kind::Union(_) => return true,
+            Kind::Group(inner) | Kind::Array(inner) => pending.push(inner),
+            Kind::Applied { arguments, .. } | Kind::Tuple(arguments) => pending.extend(arguments.iter().rev()),
+            Kind::Literal(_) | Kind::Named(_) | Kind::Callable { .. } | Kind::Polymorphic { .. } => {},
+        }
     }
+    false
 }
 
 pub(crate) struct Constraints<'a> {
@@ -392,12 +396,86 @@ impl Types<'_> {
     }
 
     fn materialize_names(&self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
-        match &mut value.kind {
-            Kind::Applied { name, arguments } => {
-                for argument in arguments.iter_mut() {
-                    self.materialize_names(argument)?;
+        // Owned parent frames allow postorder replacement without recursive borrows.
+        // On failure, restore every suspended parent around the partially visited child.
+        enum Child { Inner, Member(usize) }
+        fn child<'a>(value: &'a mut ValueAnnotation, path: &Child) -> &'a mut ValueAnnotation {
+            match (&mut value.kind, path) {
+                (Kind::Array(inner) | Kind::Group(inner), Child::Inner) => inner,
+                (Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments), Child::Member(index)) => &mut arguments[*index],
+                _ => unreachable!("constraint child address"),
+            }
+        }
+        fn next(value: &ValueAnnotation, previous: Option<&Child>) -> Option<Child> {
+            match (&value.kind, previous) {
+                (Kind::Array(_) | Kind::Group(_), None) => Some(Child::Inner),
+                (Kind::Applied { arguments, .. } | Kind::Union(arguments) | Kind::Tuple(arguments), previous) => {
+                    let index = match previous { None => 0, Some(Child::Member(index)) => index + 1, _ => unreachable!() };
+                    (index < arguments.len()).then_some(Child::Member(index))
                 }
-                let types = arguments
+                // Callable contracts remain opaque here, as in the original visitor.
+                _ => None,
+            }
+        }
+        fn take(value: &mut ValueAnnotation) -> ValueAnnotation {
+            let span = value.span;
+            std::mem::replace(value, ValueAnnotation { kind: Kind::Tuple(Vec::new()), span })
+        }
+        let mut current = take(value);
+        let mut frames = Vec::new();
+        let mut entering = true;
+        let outcome = loop {
+            if entering && let Some(path) = next(&current, None) {
+                let nested = take(child(&mut current, &path));
+                frames.push((current, path));
+                current = nested;
+                continue;
+            }
+            if let Err(error) = self.materialize_application_name(&mut current) { break Err(error); }
+            let Some((mut parent, path)) = frames.pop() else { break Ok(()); };
+            *child(&mut parent, &path) = current;
+            if let Some(path) = next(&parent, Some(&path)) {
+                current = take(child(&mut parent, &path));
+                frames.push((parent, path));
+                entering = true;
+            } else {
+                current = parent;
+                entering = false;
+            }
+        };
+        while let Some((mut parent, path)) = frames.pop() {
+            *child(&mut parent, &path) = current;
+            current = parent;
+        }
+        *value = current;
+        outcome
+    }
+
+    fn materialize_application_name(&self, value: &mut ValueAnnotation) -> Result<(), Diagnostic> {
+        if let Kind::Applied { name, arguments } = &value.kind {
+            let types = arguments
+                .iter()
+                .map(|argument| {
+                    crate::analysis::resolve_value_type(
+                        argument,
+                        false,
+                        self.names,
+                        self.unions,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut found = None;
+            for record in self.records {
+                let Some(application) = &record.application else {
+                    continue;
+                };
+                if application.declaration.text != name.text
+                    || application.arguments.len() != types.len()
+                {
+                    continue;
+                }
+                let actual = application
+                    .arguments
                     .iter()
                     .map(|argument| {
                         crate::analysis::resolve_value_type(
@@ -408,52 +486,22 @@ impl Types<'_> {
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
-                let mut found = None;
-                for record in self.records {
-                    let Some(application) = &record.application else {
-                        continue;
-                    };
-                    if application.declaration.text != name.text
-                        || application.arguments.len() != types.len()
-                    {
-                        continue;
-                    }
-                    let actual = application
-                        .arguments
-                        .iter()
-                        .map(|argument| {
-                            crate::analysis::resolve_value_type(
-                                argument,
-                                false,
-                                self.names,
-                                self.unions,
-                            )
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
-                    if actual == types {
-                        found = Some(record.name.text.clone());
-                        break;
-                    }
-                }
-                let Some(text) = found else {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Generic constraint has no matching concrete record identity.",
-                        value.span,
-                    ));
-                };
-                value.kind = Kind::Named(crate::type_syntax::TypeName {
-                    text,
-                    span: value.span,
-                });
-            }
-            Kind::Array(inner) | Kind::Group(inner) => self.materialize_names(inner)?,
-            Kind::Union(members) | Kind::Tuple(members) => {
-                for member in members {
-                    self.materialize_names(member)?;
+                if actual == types {
+                    found = Some(record.name.text.clone());
+                    break;
                 }
             }
-            Kind::Callable { .. } | Kind::Literal(_) | Kind::Named(_) | Kind::Polymorphic { .. } => {}
+            let Some(text) = found else {
+                return Err(Diagnostic::new(
+                    "type",
+                    "Generic constraint has no matching concrete record identity.",
+                    value.span,
+                ));
+            };
+            value.kind = Kind::Named(crate::type_syntax::TypeName {
+                text,
+                span: value.span,
+            });
         }
         Ok(())
     }
@@ -520,6 +568,64 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn deep_constraint_names_materialize_and_drop_on_normal_stack() {
+        let mut program = crate::syntax::parse("type Box<T>={value:T;};function observe(value:Box<int>){}function main(){}").unwrap();
+        crate::generic_records::specialize(&mut program).unwrap();
+        let names = program.records.iter().enumerate().map(|(id, record)| (record.name.text.clone(), id)).collect();
+        let unions = crate::unions::UnionArena::default();
+        let types = Types { callable_annotations: None, inline_shapes: None, callable_shapes: None, records: &program.records, names: &names, unions: &unions };
+        let mut value = parse("Box<int>").unwrap();
+        let expected = crate::analysis::resolve_value_type(&program.functions[0].params[0].1, false, &names, &unions).unwrap();
+        for _ in 0..16_384 {
+            let span = value.span;
+            value = ValueAnnotation { kind: Kind::Group(Box::new(value)), span };
+        }
+        assert!(!may_defer(&value));
+        types.materialize_names(&mut value).unwrap();
+        let mut current = &value;
+        let mut levels = 0;
+        while let Kind::Group(inner) = &current.kind { current = inner; levels += 1; }
+        assert_eq!(levels, 16_384);
+        assert!(matches!(current.kind, Kind::Named(_)));
+        assert_eq!(crate::analysis::resolve_value_type(current, false, &names, &unions).unwrap(), expected);
+        drop(value);
+        let mut nullable = parse("T|null").unwrap();
+        for _ in 0..16_384 {
+            let span = nullable.span;
+            nullable = ValueAnnotation { kind: Kind::Group(Box::new(nullable)), span };
+        }
+        assert!(may_defer(&nullable));
+        drop(nullable);
+        // The defer classifier deliberately leaves callable constraints to callback checking.
+        assert!(!may_defer(&parse("(value: T|null) => int").unwrap()));
+    }
+
+    #[test]
+    fn materialization_failure_restores_parents_and_keeps_first_error_order() {
+        let mut program = crate::syntax::parse("type Box<T>={value:T;};function observe(value:Box<int>){}function main(){}").unwrap();
+        crate::generic_records::specialize(&mut program).unwrap();
+        let names = program.records.iter().enumerate().map(|(id, record)| (record.name.text.clone(), id)).collect();
+        let unions = crate::unions::UnionArena::default();
+        let types = Types { callable_annotations: None, inline_shapes: None, callable_shapes: None, records: &program.records, names: &names, unions: &unions };
+        let mut value = parse("[Box<int>, Missing<Box<int>>, Box<int>]").unwrap();
+        let mut expected = value.clone();
+        let Kind::Tuple(members) = &mut expected.kind else { unreachable!() };
+        types.materialize_names(&mut members[0]).unwrap();
+        let error_span = members[1].span;
+        let Kind::Applied { arguments, .. } = &mut members[1].kind else { unreachable!() };
+        types.materialize_names(&mut arguments[0]).unwrap();
+        for _ in 0..16_384 {
+            let span = value.span;
+            value = ValueAnnotation { kind: Kind::Group(Box::new(value)), span };
+            expected = ValueAnnotation { kind: Kind::Group(Box::new(expected)), span };
+        }
+        let error = types.materialize_names(&mut value).unwrap_err();
+        assert_eq!(error.code, "type");
+        assert_eq!(error.span, error_span);
+        assert_eq!(value, expected);
+    }
+
     #[test]
     fn deep_union_array_reconstruction_uses_normal_stack_and_production_drop() {
         let unions = crate::unions::UnionArena::default();

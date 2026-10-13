@@ -623,3 +623,31 @@ records under `tsrust-nesting-contract-keys` preserve exact outputs and source
 identity with restoration verification. Installed consumers remain on `36093d5b`,
 the last accepted public behavior checkpoint; this section changes private key
 storage without changing admitted programs or public signatures.
+
+## Generic constraint name materialization
+
+Constraint name materialization now suspends parent annotations in explicit frames,
+visits children in source order and resolves each applied nominal identity after
+its arguments. Failed resolution restores the partially visited tree: completed
+siblings and child materializations remain, the failing constructor remains
+unresolved, and later siblings remain untouched. Callable contracts retain their
+existing opaque treatment in this visitor. The nullable deferral classifier also
+uses a worklist and preserves its callable boundary.
+
+Normal-stack witnesses exercise 16,384 enclosing groups for successful nominal
+materialization, nullable classification and first-error restoration. They use the
+production annotation clone, equality and disposal paths. Existing generic adapter
+and function-value fixtures cover contextual inference, ownership and native
+execution. This internal conversion does not lift admission guards, add public
+methods or change benchmark protocols. Generic unification itself, source wrapper
+storage and the broader parser/checker/emitter conversion remain pending. No timing
+or allocation measurements are claimed for this section.
+
+Verification passes eight inference unit checks and 105 native integration checks
+(17 generic function values and 88 generic adapters). Whole-project formatting
+changes zero files and fingerprints. SQLite records under
+`tsrust-nesting-constraint-names` retain both unit runs, final native outputs,
+formatting and source hashes with byte-exact restoration verification. The first
+unit run predates the additional deep failure-unwind wrapper; the final unit run
+covers that wrapper. Installed consumers remain on `36093d5b`, since admitted
+programs and public signatures are unchanged.

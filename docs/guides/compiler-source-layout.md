@@ -130,3 +130,9 @@ arena canonicalizes contract nodes; only a flat prefix-token sequence survives i
 the cache. Keep construction, cloning, hashing, equality and disposal independent
 of source nesting. Group removal, stable absent-member ordering, adjacent-only
 union deduplication and callable metadata normalization preserve existing identity.
+
+Constraint name materialization in `generics/inference.rs` uses owned parent
+frames for postorder nominal resolution and exact partial-tree restoration on
+failure. Its nullable deferral classifier uses a read-only worklist. Callable
+contracts remain opaque to these two visitors; recursive constraint unification
+is a separate remaining conversion.
