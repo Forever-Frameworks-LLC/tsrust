@@ -2650,3 +2650,23 @@ existing array/union roots, nullable links, builder-once reuse, transforms and
 rejection cases. Whole-project formatting changed no files or fingerprints
 (`tsrust-recursive-owned-collection-format.log`). Measurements and remaining
 editor recovery work are not covered by this result.
+
+### Incomplete recursive schema completion
+
+Project recovery now reuses checked module values and expression facts that
+precede an unfinished member expression. A temporary `typeof` probe permits
+checking without consuming the receiver. Only unchanged preceding source ranges
+are reused; the probe never changes published diagnostics or source buffers.
+Standalone `tree.` before another statement now recovers alongside the existing
+trailing-member probe. No speculative output type is invented.
+
+All 13 schema-editor witnesses pass, including recursive methods before another
+statement and at the end of a block. Initial test-source format-string failure is
+preserved in `tsrust-recursive-editor-recovery.log`; passing evidence is
+`tsrust-recursive-editor-recovery-repair.log`. More complex incomplete expressions
+remain subject to conservative recovery rather than guessed types. This closes
+the reported standalone recursive-schema member case, not S11 acceptance.
+
+The existing guarded JSON-string incomplete-member witness also passes
+(`tsrust-recursive-editor-json-recovery.log`). Whole-project formatting changed
+no files or fingerprints (`tsrust-recursive-editor-recovery-format.log`).

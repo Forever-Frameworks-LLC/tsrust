@@ -29,7 +29,7 @@ impl ProjectIndex {
     }
     pub fn new(graph: &ProjectGraph) -> Self {
         let mut index = Self::build(graph);
-        for (id,source) in &mut index.indices {source.recover_project_json_string_receivers(graph,id);}
+        for (id,source) in &mut index.indices {source.recover_project_member_receivers(graph,id);}
         index.refresh_references();
         index
     }

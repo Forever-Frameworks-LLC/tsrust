@@ -148,3 +148,19 @@ fn recursive_named_and_array_outputs_keep_member_completion() {
         assert!(!hover.contains("__tsrust_private_")&&hover.len()<12000,"{hover}");
     }
 }
+
+#[test]
+fn recursive_schema_completion_recovers_before_following_statement() {
+    use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
+    for suffix in ["\nconsole.log('next');}","}"] {
+        let source=format!("import {{s}} from 'std:schema';const tree=s.recursive(self=>s.object({{value:s.int(),children:s.array(self)}}));function main(){{tree.{suffix}");
+        let uri="file:///recursive-unfinished.tsr";
+        let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.clone());
+        let graph=tsrust_compiler::project::load_project_headers(&workspace.snapshot(),&source_id(uri).unwrap().0).unwrap();
+        let offset=source.find("tree.").unwrap()+"tree.".len();
+        let items=ProjectIndex::new(&graph).request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        for method in ["parse","safeParse","safeParseJson"] {
+            assert!(items.as_array().unwrap().iter().any(|item|item["label"]==method),"{method}: {items}");
+        }
+    }
+}

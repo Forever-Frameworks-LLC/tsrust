@@ -1,6 +1,25 @@
 //! Native import identity survives incomplete editing, before project checking finishes.
 use super::*;
 impl SourceIndex {
+    /// Repair only a standalone unfinished member for completion metadata.
+    /// Keep the following source intact; diagnostics never use this probe.
+    pub(super) fn unfinished_member_probe(&self) -> Option<(String,usize,usize,usize)> {
+        for dot in 1..self.tokens.len() {
+            if self.text(dot)!="." || !name(self.text(dot-1)) {continue;}
+            let begin=dot-1;
+            if begin>0 && !matches!(self.text(begin-1),"{"|";"|"}") {continue;}
+            let next=self.tokens.get(dot+1);
+            if next.is_some_and(|next| !matches!(next.text.as_str(),"}"|";")
+                && !self.source[self.tokens[dot].span.end..next.span.start].contains('\n')) {continue;}
+            let start=self.tokens[begin].span.start;
+            let end=self.tokens[dot].span.end;
+            let receiver_end=self.tokens[begin].span.end;
+            let probe=format!("{}typeof {};{}",&self.source[..start],&self.source[start..receiver_end],&self.source[end..]);
+            return Some((probe,start,7,receiver_end));
+        }
+        None
+    }
+
     pub(super) fn recover_native_imports(&mut self) {
         for start in 0..self.tokens.len() {
             if self.text(start)!="import" || self.tokens[start].scope!=0 || self.text(start+1)!="{" {continue;}

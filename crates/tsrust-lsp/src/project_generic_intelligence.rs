@@ -438,15 +438,26 @@ fn project_callable_value(ty: &ProjectType) -> bool {
 
 
 impl SourceIndex {
-    pub(crate) fn recover_project_json_string_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
-        let Some((probe,start,added,original_end))=self.receiver_probe() else{return};
+    pub(crate) fn recover_project_member_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
+        let Some((probe,start,added,original_end))=self.receiver_probe().or_else(||self.unfinished_member_probe()) else{return};
         let mut graph=graph.clone();let Some(module)=graph.modules.get_mut(id) else{return};
-        // The probe changes only a trailing expression; retain validated header
+        // The probe changes only an unfinished expression; retain validated header
         // masking and import identities from the same source snapshot.
         module.declaration_source=format!("{}{}",&module.declaration_source[..start],&probe[start..]);
         module.source.text=probe;
         let Ok(analysis)=tsrust_compiler::project::check_graph(graph) else{return};
-        self.json_string_receivers=analysis.checked_type_facts().json_string_receivers.into_iter().filter_map(|location|{
+        let facts=analysis.checked_type_facts();
+        // Only use facts preceding the edit: their source positions and complete
+        // declarations are unchanged. Do not expose invented probe expressions.
+        let mut preceding=tsrust_compiler::project::ProjectCheckedTypeFacts::default();
+        let before=|fact:&&tsrust_compiler::project::ProjectExpressionTypeInfo|fact.location.source==*id && fact.location.span.end<=start;
+        preceding.module_values=facts.module_values.iter().filter(before).cloned().collect();
+        preceding.method_results=facts.method_results.iter().filter(before).cloned().collect();
+        preceding.parameter_types=facts.parameter_types.iter().filter(before).cloned().collect();
+        preceding.projections=facts.projections.iter().filter(before).cloned().collect();
+        self.apply_project_checked_facts(&analysis.graph,id,&preceding,&Default::default());
+        self.recover_result_payloads();
+        self.json_string_receivers=facts.json_string_receivers.into_iter().filter_map(|location|{
             if location.source!=*id{return None;}let mut span=location.span;
             if span.end<=start{}else if span.start>=start+added && span.end<=original_end+added{span.start-=added;span.end-=added;}else{return None;}
             Some(span)
