@@ -8,6 +8,8 @@
 use crate::Diagnostic;
 use crate::completion::CompletionKind;
 mod exception_assignment;
+mod mentions;
+mod flow_work;
 use crate::syntax::{ControlTarget, Expr, ExprKind, Stmt, StmtKind};
 
 /// Function values of the program: source span and the enclosing-function
@@ -53,7 +55,9 @@ pub(crate) fn check_named_capture(
     flow(body, Variable { name: &capture.name, binding: None, captures: &[], named: Some(NamedCapture { capture, functions, uses }) }, initialized).map(|_| ())
 }
 
+#[derive(Clone)]
 struct Exit { kind:CompletionKind, assigned:bool }
+#[derive(Clone)]
 struct Flow {
     normal: Option<bool>,
     exits: Vec<Exit>,
@@ -69,49 +73,8 @@ fn unassigned(name: &str, span: crate::Span) -> Diagnostic {
     )
 }
 
-/// Span of the first mention of the variable anywhere inside the statements,
-/// function values that capture it included.
-fn mention(statements: &mut [Stmt], variable: Variable) -> Option<crate::Span> {
-    let mut found = None;
-    let _ = crate::source_walk::body(statements, &mut |_| Ok(()), &mut |value: &mut Expr| {
-        let named = match (&variable.named, &value.kind) {
-            (Some(required), ExprKind::Name(text)) => required.functions.contains(text),
-            (None, ExprKind::Name(text)) => text == variable.name && variable.binding.is_none_or(|binding| value.binding == Some(binding)),
-            _ => false,
-        };
-        let captured = matches!(value.kind, ExprKind::Closure { .. })
-            && variable.binding.is_some_and(|binding| {
-                variable.captures.iter().any(|(span, outer)| {
-                    span.start >= value.span.start
-                        && span.end <= value.span.end
-                        && outer.contains(&binding)
-                })
-            });
-        if (named || captured)
-            && found.is_none_or(|span: crate::Span| value.span.start < span.start)
-        {
-            found = Some(value.span);
-        }
-        Ok(())
-    });
-    found
-}
-
-fn expression_mention(value: &mut Expr, variable: Variable) -> Option<crate::Span> {
-    let span = value.span;
-    let original = std::mem::replace(value, Expr::new(ExprKind::Null, span));
-    let mut holder = [Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Expr(original), span }];
-    let found = mention(&mut holder, variable);
-    let [holder] = holder;
-    let StmtKind::Expr(restored) = holder.into_kind() else {
-        unreachable!("expression holder");
-    };
-    *value = restored;
-    found
-}
-
-fn require_clear(value: &mut Expr, variable: Variable) -> Result<(), Diagnostic> {
-    expression_mention(value, variable).map_or(Ok(()), |span| {
+fn require_clear(value: &Expr, variable: Variable) -> Result<(), Diagnostic> {
+    mentions::expression_mention(value, variable).map_or(Ok(()), |span| {
         let mut error = unassigned(variable.name, span);
         if let Some(named) = variable.named {
             error.message = format!("This function use requires captured binding {:?} to be initialized on every reaching path. Initialize it before calling or retaining the function.", variable.name);
@@ -121,119 +84,29 @@ fn require_clear(value: &mut Expr, variable: Variable) -> Result<(), Diagnostic>
     })
 }
 
-/// Keep targeted exits until their enclosing statement consumes them. A
-/// labeled break leaves its block, not the function's remaining statements.
-#[inline(never)]
-fn flow(statements: &mut [Stmt], variable: Variable, assigned: bool) -> Result<Flow, Diagnostic> {
-    let mut result=Flow{normal:Some(assigned),exits:Vec::new()};
-    for statement in statements {
-        let Some(before)=result.normal else {break;};
-        let failed_entry=crate::error_effects::statement_entry_may_fail(statement);
-        let mut next=Flow{normal:Some(before),exits:Vec::new()};
-        match &mut statement.kind {
-            StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-            StmtKind::Try(region) => next=exception_assignment::region_flow(region,variable,before)?,
-            StmtKind::Throw(value) => {
-                if !before {require_clear(value,variable)?;}
-                next.normal=None;next.exits.push(Exit{kind:CompletionKind::Throw,assigned:before});
-            }
-            StmtKind::Assign {target,value,operator:None}
-                if variable.matches(target) => {
-                if !before {require_clear(value,variable)?;}
-                next.normal=Some(true);
-            }
-            StmtKind::Assign{target,value,..}=>{if !before {require_clear(target,variable)?;require_clear(value,variable)?;}}
-            StmtKind::Let{name,value,..} if variable.initialized_by(name) => {
-                if !before { require_clear(value,variable)?; }
-                next.normal=Some(!value.is_deferred());
-            }
-            StmtKind::Let{value,..}|StmtKind::Expr(value)=>{if !before {require_clear(value,variable)?;}}
-            StmtKind::Block(body)=>{
-                next=flow(body,variable,before)?;
-                if !statement.labels.is_empty(){
-                    let target=ControlTarget::Block(statement.span.start);
-                    let mut escaped=Vec::new();
-                    for exit in next.exits {
-                        if exit.kind.targets(target) {next.normal=Some(next.normal.map_or(exit.assigned,|normal|normal&&exit.assigned));}
-                        else {escaped.push(exit);}
-                    }
-                    next.exits=escaped;
-                }
-            }
-            StmtKind::If{condition,then_body,else_body}=>{
-                if !before {require_clear(condition,variable)?;}
-                let mut yes=flow(then_body,variable,before)?;let no=flow(else_body,variable,before)?;
-                next.normal=match(yes.normal,no.normal){(Some(a),Some(b))=>Some(a&&b),(Some(a),None)|(None,Some(a))=>Some(a),(None,None)=>None};
-                yes.exits.extend(no.exits);next.exits=yes.exits;
-            }
-            StmtKind::While{condition,body}=>{
-                if !before {require_clear(condition,variable)?;}
-                let inner=flow(body,variable,before)?;
-                next.exits=inner.exits.into_iter().filter(|exit|!exit.kind.targets(ControlTarget::Loop(statement.span.start))).collect();
-            }
-            StmtKind::ForOf{name,iterable,body,..}=>{
-                if !before {require_clear(iterable,variable)?;}
-                let inner=flow(body,variable,before || variable.initialized_by(name))?;
-                next.exits=inner.exits.into_iter().filter(|exit|!exit.kind.targets(ControlTarget::Loop(statement.span.start))).collect();
-            }
-            StmtKind::Loop{condition,body,update,post_test,..}=>{
-                if !before && !*post_test {if let Some(condition)=condition {require_clear(condition,variable)?;}}
-                let inner=flow(body,variable,before)?;
-                let target=ControlTarget::Tail(statement.span.start);
-                let mut continuing=inner.normal;
-                for exit in inner.exits {
-                    if exit.kind.targets(target) {
-                        if exit.kind.is_continue() {continuing=Some(continuing.map_or(exit.assigned,|normal|normal&&exit.assigned));}
-                    }else{next.exits.push(exit);}
-                }
-                if let Some(assigned)=continuing {
-                    let tail=flow(update,variable,assigned)?;
-                    if !tail.normal.unwrap_or(true) && *post_test {if let Some(condition)=condition {require_clear(condition,variable)?;}}
-                    if *post_test && condition.as_ref().is_some_and(|value|value.may_fail) {
-                        if let Some(assigned)=tail.normal {next.exits.push(Exit{kind:CompletionKind::Throw,assigned});}
-                    }
-                    next.exits.extend(tail.exits);
-                }
-            }
-            StmtKind::Return(value)=>{
-                if !before {if let Some(value)=value {require_clear(value,variable)?;}}
-                next.normal=None;next.exits.push(Exit{kind:CompletionKind::Return,assigned:before});
-            }
-            StmtKind::Break|StmtKind::Continue=>{next.normal=None;next.exits.push(Exit{kind:if matches!(statement.kind,StmtKind::Continue){CompletionKind::Continue(statement.control_target)}else{CompletionKind::Break(statement.control_target)},assigned:before});}
-        }
-        if failed_entry {next.exits.push(Exit{kind:CompletionKind::Throw,assigned:before});}
-        result.normal=next.normal;result.exits.extend(next.exits);
-    }
-    Ok(result)
+fn flow(statements: &[Stmt], variable: Variable, assigned: bool) -> Result<Flow, Diagnostic> {
+    flow_work::run(statements, variable, assigned)
 }
 
 /// Checks every deferred declaration in the statements and in nested blocks.
 pub(crate) fn check(statements: &mut [Stmt], captures: &Captures) -> Result<(), Diagnostic> {
-    for index in 0..statements.len() {
-        let (before, after) = statements.split_at_mut(index + 1);
-        match &mut before[index].kind {
+    let mut work: Vec<&[Stmt]> = vec![statements];
+    while let Some(body) = work.pop() {
+        let Some((statement, after)) = body.split_first() else { continue };
+        work.push(after);
+        match &statement.kind {
             StmtKind::Try(region) => {
-                check(&mut region.body,captures)?;
-                if let Some(handler)=&mut region.catch {check(&mut handler.body,captures)?;}
-                if let Some(body)=&mut region.finally {check(body,captures)?;}
-            }
-
+                if let Some(body) = &region.finally { work.push(body); }
+                if let Some(handler) = &region.catch { work.push(&handler.body); }
+                work.push(&region.body);
+            },
             StmtKind::Let { name, value, binding, .. } if value.is_deferred() => {
-                let name = name.text.clone();
-                flow(after, Variable { name: &name, binding: *binding, captures, named: None }, false)?;
-            }
-            StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => {
-                check(body, captures)?
-            }
-            StmtKind::Loop { body, update, .. } => {
-                check(body, captures)?;
-                check(update, captures)?;
-            }
-            StmtKind::If { then_body, else_body, .. } => {
-                check(then_body, captures)?;
-                check(else_body, captures)?;
-            }
-            _ => {}
+                flow(after, Variable { name: &name.text, binding: *binding, captures, named: None }, false)?;
+            },
+            StmtKind::Block(body) | StmtKind::While { body, .. } | StmtKind::ForOf { body, .. } => work.push(body),
+            StmtKind::Loop { body, update, .. } => { work.push(update); work.push(body); },
+            StmtKind::If { then_body, else_body, .. } => { work.push(else_body); work.push(then_body); },
+            _ => {},
         }
     }
     Ok(())

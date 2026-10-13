@@ -1435,3 +1435,33 @@ Whole-project formatting changes zero files. Records use
 `tsrust-nesting-broad-*` in SQLite. Compiler source
 remains at `06deeecf`; this audit changes discovery support only. Public admission
 and formal performance acceptance remain pending.
+
+
+### Definite-assignment completion scheduler
+
+Deferred-declaration discovery and its connected `flow`/exception-assignment
+cycle now use heap worklists. Branches, loops, labeled exits, catch merging and
+finally replay retain their original order and assignment rules. Mention scanning
+is read-only, including closure defaults, source bodies and checked captures;
+earliest diagnostic spans and named-capture declaration identities are retained.
+
+Successful cleanup results are cached by immutable body identity and boolean
+assignment input for one variable query. This avoids repeated descendant work
+across both sibling exits and parent cleanup replay, without caching errors or
+changing the first diagnostic. The cache cannot cross variable/source changes.
+
+Eight unit tests pass, including 16,384 nested block/branch/cleanup structures,
+exact unassigned spans, distinct return/throw exits, abrupt-finally replacement
+and repeated cleanup with both assignment states. All 96 native tests across six
+affected suites and six editor exception/ownership tests pass. Whole-project
+formatting changes zero files and fingerprints.
+
+The three unbounded pipeline probes previously aborting during analysis (blocks,
+if statements and mixed loops at 1,024 layers) now complete analysis. All three
+still abort during emission. The new block backtrace shows repeated
+`map_clear_block_epoch` traversal; ordinary `control_block_epochs` recursion and
+its cloned visible declaration trees also remain. These are explicit remaining
+emitter dependencies, not accepted nesting behavior. No stack/depth constant or
+public admission policy changed. Formal scaling and full architecture acceptance
+remain open. SQLite evidence uses `tsrust-nesting-assignment-flow-*`; consumers
+remain at `79295194`.

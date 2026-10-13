@@ -285,3 +285,13 @@ before their scope runs; binding changes use rollback entries. Record local
 function completion order during resolution, then extract declarations iteratively
 and assemble the lifted list in that order. This preserves declaration/capture
 identities without retaining Rust frames or cloning outer environments.
+
+
+`definite_assignment/flow_work.rs` schedules branch, loop, catch and finally
+completion flow. Deferred-declaration discovery uses its own statement worklist.
+`mentions.rs` scans expressions, closure defaults and bodies without mutation,
+retaining earliest source spans and checked/named capture identity. Successful
+cleanup results are memoized per immutable body and boolean assignment input
+within one variable query; the cache cannot cross variable or source changes.
+Exception joins retain targeted exits until their enclosing construct consumes
+them, and abrupt cleanup replaces pending completions in their original order.
