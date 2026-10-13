@@ -9,6 +9,30 @@
   "compileSamples": 3,
   "workloads": [
 {
+  "id": "native_schema_recursive",
+  "category": "schema",
+  "description": "Recursive tree validation with nested issue paths",
+  "source": "workloads/native_schema_recursive.tsr",
+  "counterpart": "workloads/native_schema_recursive.ts",
+  "iterations": 2000,
+  "operationsPerIteration": 2,
+  "operationUnit": "One JSON parse, schema validation and result observation",
+  "result": "int",
+  "parameters": [
+    "int",
+    "int",
+    "string"
+  ],
+  "family": "native-schema",
+  "inputText": "{\"value\":1,\"children\":[{\"value\":2,\"children\":[]}]}",
+  "measured": false,
+  "measurementStatus": "unmeasured-schema-family",
+  "specification": "Validate a root with one child, then reject a nested string value. Observe both successful integer fields and the full three-segment rejection path. Checksum is seed + 4*n.",
+  "notes": "Plan constructed outside loop. Both engines parse JSON then validate. Fixed two-node corpus uses exact small integers; TypeScript reference is handwritten, not Zod. No timing yet.",
+  "sourceSha256": "9678bb4d03e6afe99380bb0faa6ca30e2eda639b6656a3c49ce73688cc5c4769",
+  "counterpartSha256": "9bda1376785443477c90bbe532750c1f75c7109624b66c9f820e8c5f0e4ed915"
+},
+{
   "id": "native_schema_constraint_messages",
   "category": "schema",
   "description": "String constraints with per-bound validation messages",

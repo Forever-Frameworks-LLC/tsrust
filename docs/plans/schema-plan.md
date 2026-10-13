@@ -2556,3 +2556,27 @@ No full S11 acceptance, timing or installed-consumer refresh is claimed.
 The recursive catalog example also executed successfully with the verified native
 CLI (`tsrust-recursive-catalog-example.log`). Whole-project checkpoint formatting
 changed no files or source fingerprints (`tsrust-recursive-editor-checkpoint-format.log`).
+
+### Recursive matched workload support
+
+`native_schema_recursive` now compares native validation with a handwritten
+TypeScript contract compiled by tsc. Both parse a two-node JSON tree, observe both
+integer fields, then reject a nested string and observe the complete three-part
+issue path. The schema is constructed outside the loop. There are two validation
+operations per iteration; the independent checksum is `seed + 4*n`. This is a
+small exact-integer corpus, not a Zod or general JavaScript-number comparison.
+
+Manifest fingerprints, schema/report registration, independent oracle, source
+contracts, ABI driver support and a path-observer mutation control are present.
+Thirty existing/new schema contract tests pass. Ten native/compiled-Node cells
+pass across zero, one, two, seventeen and 2,000 iterations. The additional
+mutation control checks that removing the nested index observer is rejected even
+with refreshed hashes. No timing samples were collected; measured acceptance
+remains pending at the S11 milestone.
+
+Evidence: `tsrust-recursive-benchmark-contract.log`,
+`tsrust-recursive-benchmark-mutation.log`,
+`tsrust-recursive-benchmark-check.log`,
+`tsrust-recursive-benchmark-check.json`, and
+`tsrust-recursive-benchmark-format.log`. Recursive editor edge coverage and the
+remaining S11 requirements are still open.

@@ -1,0 +1,46 @@
+import { s } from 'std:schema';
+
+function workload(n: int, seed: int, input: string): int {
+  const schema = s.recursive(self => s.object({
+    value: s.int(), children: s.array(self)
+  }));
+  let checksum = seed;
+  let i = 0;
+  while (i < n) {
+    match (schema.safeParse(JSON.parse(input))) {
+      Ok(value) => {
+        checksum += value.value + value.children[0].value;
+      },
+      Err(error) => {
+        throw 'Expected tree success';
+      }
+    }
+
+    match (schema.safeParse(JSON.parse('{"value":1,"children":[{"value":"bad","children":[]}]}'))) {
+      Ok(value) => {
+        throw 'Expected nested rejection';
+      },
+      Err(error) => {
+        if (error.truncated || error.issues.length !== 1) {
+          throw 'Invalid error count';
+        }
+
+        for (const issue of error.issues) {
+          if (issue.code !== 'type-mismatch' || issue.pathTruncated || issue.path.length !== 3 || issue.path[0].field !== 'children' || issue.path[1].index !== 0 || issue.path[2].field !== 'value') {
+            throw 'Invalid recursive path';
+          }
+
+          checksum += 1;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return checksum;
+}
+
+function main() {
+  console.log(workload(1, 0, '{"value":1,"children":[{"value":2,"children":[]}]}'));
+}
