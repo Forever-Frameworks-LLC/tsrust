@@ -623,3 +623,51 @@ temporaries. These paths must migrate together with owned store completion,
 followed by control statements and auxiliary consumers. Full architecture,
 optimization, S12–S21, formal measurements and installed consumer refresh remain
 pending.
+
+
+### Sequence and owned-store continuation checkpoint
+
+Sequences, discarded operands and owned stores now have tasks on the shared
+checker scheduler. Sequence prefixes retain per-operand capture boundaries,
+projection state and precise array-removal snapshots. Final operands retain
+binding, callable-origin and condition-outcome propagation. Snapshot completion
+distinguishes an unreached final operand from a reached operand with no removal,
+so failure does not overwrite a caller's earlier snapshot prematurely.
+
+Discarded named/field stores and string compound assignments schedule their
+replacement operands. Named replacement and precise sequence reassignment use
+the same store task as nested sequence prefixes. Field replacement suspends
+mutation selection, stored-callable contextual conversion and ownership/native
+view commit separately. Obsolete recursive mutation/discard helpers are removed.
+Remaining semantic helper calls are not assumed stack-safe merely because these
+primary operands now use the scheduler.
+
+Emission schedules sequence prefixes/final values, preserving the sequence's
+original expression-boundary policy and per-prefix conditional temporary drains.
+Owned void assignments now queue their RHS and named-storage operands too;
+shared render helpers preserve capture restoration and field replacement order.
+The obsolete recursive sequence emitter is removed.
+
+Three focused unit tests pass, including direct checker and exact emission
+witnesses at 4,096 sequence layers on normal stacks and error restoration for
+named stores, indexed stores and string compound prefixes. The initial test build
+failed on an orphaned attribute left when deleting an obsolete helper; its log
+is preserved and the corrected run passes. All 65 integration tests across comma
+expressions/contexts, owned assignment values, assignment callees, array removal,
+pop/shift, scoped record parameter replacement and caller-borrowed record stores
+pass. These include removal snapshots, capture release, allocation/pointer and
+native disposal assertions.
+
+Discovery completes sequence and owned-store sequence samples 8/16/32/64 through
+disposal. Sample 128 reaches the existing parser guard for both families. These
+are observations, not nesting ceilings or formal timing acceptance. Whole-project
+formatting changes zero files/fingerprints. SQLite records under
+`tsrust-nesting-sequence-*` preserve interface output, original failure, repaired
+unit run, integrations, discovery and source/executable identity.
+
+The block scheduler still directly handles only nested blocks and returns;
+other statements enter compatibility checking. Declaration initializers,
+conditions, loop bodies, exception paths and their scope cleanup must join the
+scheduler. Block errors still require the previously recorded restoration audit.
+Parser/type-syntax work remains separate. Full compiler architecture, formal
+scaling, optimization, S12–S21 and installed consumer refresh remain pending.

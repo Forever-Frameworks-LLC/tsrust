@@ -4224,8 +4224,14 @@ impl Emitter<'_> {
     }
 
     fn storage_assignment(&self, fun: &CheckedFunction, target: &Expr, value: &Expr) -> String {
-        let selection = self.storage_selection(fun, target, true);
-        let code = self.expr(fun, value, Mode::Consume);
+        self.storage_assignment_with(fun, target, value, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn storage_assignment_with(&self, fun: &CheckedFunction, target: &Expr, value: &Expr, render: &mut impl FnMut(&Expr, Mode, bool) -> String) -> String {
+        let selection = self.storage_selection_with(fun, target, true, render);
+        let code = render(value, Mode::Consume, false);
         let value=self.record_parameter_replacement(fun,target,value,&code).unwrap_or(code);
         format!(
             "{{ {}let storage_value = {value}; {}({}) = storage_value; }}",
@@ -10103,15 +10109,6 @@ impl Emitter<'_> {
 }
 
 impl Emitter<'_>{
-    #[inline(never)]
-    fn sequence_expression(&self,function:&CheckedFunction,values:&[Expr],mode:Mode,discarded:bool)->String{
-        let (last,prefixes)=values.split_last().expect("nonempty sequence");
-        let mut code=String::from("{");
-        for prefix in prefixes{code.push_str(&self.comma_discard_code(function,prefix));}
-        if discarded{code.push_str(&self.comma_discard_code(function,last));code.push('}');}
-        else{let _=write!(code,"{} }}",self.expr(function,last,mode));}
-        code
-    }
     #[inline(never)]
     fn comma_discard_code(&self,function:&CheckedFunction,operand:&Expr)->String{
         let first=self.conditional_temporaries.borrow().len();

@@ -33,6 +33,12 @@ impl Analyzer {
         if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if !matches!(value.kind, ExprKind::SpreadValue(_))) {
             return self.rest_pack_expression(context, expr, mode, loans, expected).map(super::checked_expression::PreparedExpression::Ready);
         }
+        if matches!(expr.kind, ExprKind::LogicalAssign { .. }) { self.truthy_logical_assignment(context, expr); }
+        if matches!(expr.kind, ExprKind::Field(..)) { self.owned_assignment_projection(context, expr); }
+        self.owned_assignment_value(context, expr);
+        if matches!(expr.kind, ExprKind::Sequence(_)) {
+            return Ok(super::checked_expression::PreparedExpression::Sequence { mode, expected });
+        }
         if let Some(ty) = self.prepare_other_expression(context, expr, mode, loans, expected)? {
             return Ok(super::checked_expression::PreparedExpression::Ready(ty));
         }

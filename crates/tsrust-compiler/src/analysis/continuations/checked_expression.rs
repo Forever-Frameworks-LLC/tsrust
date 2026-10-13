@@ -8,7 +8,7 @@ pub(super) struct CheckedExpressionFrame {
     pub(super) mode: Mode,
     pub(super) expected: Option<Type>,
 }
-pub(super) enum PreparedExpression { Ready(Type), Evaluate(CheckedExpressionFrame) }
+pub(super) enum PreparedExpression { Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame) }
 
 impl Analyzer {
     pub(super) fn prepare_checked_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<PreparedExpression, Diagnostic> {

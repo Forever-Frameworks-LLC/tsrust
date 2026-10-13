@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments')
+FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences')
 
 
 def source(family, size):
@@ -26,6 +26,11 @@ def source(family, size):
         for _ in range(size):
             value = '(():int=>{return ' + value + ';})()'
         body = 'console.log(' + value + ');'
+    elif family in ('sequences', 'owned-store-sequences'):
+        value = '7'
+        for _ in range(size):
+            value = ('(text="next",' if family == 'owned-store-sequences' else '(0,') + value + ')'
+        return 'function main(){let text="old";console.log(' + value + ');}'
     elif family in ('assignment-values', 'compound-values', 'mixed-assignments'):
         value = '7'
         for _ in range(size):
