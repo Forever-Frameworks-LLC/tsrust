@@ -843,3 +843,32 @@ protocols are unchanged. SQLite records under `tsrust-nesting-proof-scheduling`
 retain the failed queue attempt, final validation, bounded traces and source
 identity, verified by exact-byte restoration. No public admission changes or new
 built-ins land here; installed consumers remain on `36093d5b`.
+
+## Queued explicit generic function chains
+
+Pending materialization no longer carries or increments a dependency-depth value.
+Each explicit call publishes its identity and schedules its body on the existing
+worklist. Lexical child scheduling also carries only the function and its type
+bindings. Per-declaration (128) and program (1,024) instance budgets remain exact;
+checked requests from active analyzer frames retain their depth guard until that
+context-dependent analysis has explicit continuations. This accepts finite queued
+chains beyond 32 functions, not arbitrary inferred generic recursion.
+
+Normal-stack witnesses check, emit and dispose a 128-function generic chain, and
+execute 64-function owned-string and throw chains. The moved-value diagnostic
+retains its exact source span. A 64-function editor witness verifies concrete
+hover and original declaration navigation. The executable example under
+`examples/generic-function-dependencies.tsr` asserts the result through 40 calls.
+
+Focused validation passes both new compiler witnesses, all 43 generic project
+checks (including exact instance budgets and expanding-recursion diagnostics),
+and 68 generic editor checks. The example executes successfully. Whole-project
+formatting updates the new example and no benchmark fingerprints. Matched native
+and Node-after-tsc check/emission groups at 32 and 128 pass untimed validation;
+both execution oracles return `7`. The shared driver registers a 512-function group
+for remaining scaling work, without claiming it is accepted or measured. The
+original two-warmup/eleven-sample protocol is retained. SQLite records under
+`tsrust-nesting-generic-queue` preserve exact sources, hashes and validation.
+
+Caller-state and source-root proof scaling, inferred/dynamic generic scheduling,
+parser, main checker and emission nesting remain pending before S12.

@@ -17,7 +17,6 @@ pub(crate) fn same_annotation_contract(left: &ValueAnnotation, right: &ValueAnno
 struct Pending {
     function: Function,
     bindings: HashMap<String, ValueAnnotation>,
-    depth: usize,
 }
 #[derive(Default)]
 pub(crate) struct Cache {
@@ -269,7 +268,6 @@ impl Cache {
         self.pending.push(Pending {
             function,
             bindings,
-            depth,
         });
         Ok(concrete)
     }
@@ -281,10 +279,9 @@ impl Cache {
     while let Some(Pending {
         mut function,
         bindings,
-        depth,
     }) = self.pending.pop()
     {
-        self.contextualize(&mut function, &bindings, depth)?;
+        self.contextualize(&mut function, &bindings)?;
         let mut substitute =
             |value: &mut ValueAnnotation| crate::type_substitution::apply(value, &bindings);
         crate::source_walk::function_annotations(&mut function, &mut substitute)?;
@@ -383,7 +380,10 @@ impl Cache {
                 self.value_calls.insert((enclosing_name.clone(),expression.span.start,expression.span.end),arguments);
                 return Ok(());
             }
-            *name = self.instance(name, arguments, expression.span, depth + 1)?;
+            // Materialization runs on this worklist, so an edge does not add
+            // an analyzer stack frame. Checked requests still guard active frames
+            // until context-dependent body analysis has explicit continuations.
+            *name = self.instance(name, arguments, expression.span, 0)?;
             Ok(())
         })?;
         output.push(function);
@@ -528,7 +528,6 @@ pub(crate) fn specialize(program: &mut Program) -> Result<Cache, Diagnostic> {
             cache.pending.push(Pending {
                 function,
                 bindings: HashMap::new(),
-                depth: 0,
             });
         } else {
             if matches!(

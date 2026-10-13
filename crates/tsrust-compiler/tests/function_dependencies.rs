@@ -228,3 +228,39 @@ fn recursive_data_records_preserve_transfer_mutation_and_callsite_diagnostics() 
     assert_eq!(&source[error.span.start..error.span.end], "item");
     assert!(error.span.start > source.find("step0(item").unwrap());
 }
+
+fn generic_chain(length: usize, scalar: &str, leaf: &str) -> String {
+    let mut source = String::new();
+    for index in 0..length {
+        let body = if index + 1 == length { leaf.to_owned() }
+            else { format!("return step{}<T>(value);", index + 1) };
+        source.push_str(&format!("function step{index}<T>(value:T):T{{{body}}}\n"));
+    }
+    source.push_str(&format!("function main(){{console.log(step0<{scalar}>({}));}}", if scalar == "string" { "\"kept\"" } else { "7" }));
+    source
+}
+
+#[test]
+fn generic_materialization_chain_uses_pending_work_instead_of_depth() {
+    let source = support::format_round_trip(&generic_chain(128, "int", "return value;"));
+    let checked = check(&source).unwrap();
+    let emitted = checked.emit_rust();
+    assert!(emitted.contains("fn function128"));
+    drop(emitted);
+    drop(checked);
+}
+
+#[test]
+fn generic_materialization_chain_preserves_native_transfer_and_failure() {
+    support::execute(&generic_chain(64, "string", "return value;"), "kept\n", None);
+    let source = generic_chain(64, "int", "throw value;")
+        .replace("console.log(step0<int>(7));", "try{step0<int>(7);}catch(error){console.log(error);}");
+    support::execute(&source, "7\n", None);
+    let source = generic_chain(64, "string", "return value;")
+        .replace("console.log(step0<string>(\"kept\"));", "const value=\"kept\";step0<string>(value);console.log(value);");
+    let source = support::format_round_trip(&source);
+    let error = check(&source).err().expect("transferred string remains unavailable");
+    assert_eq!(error.code, "transferred");
+    assert_eq!(&source[error.span.start..error.span.end], "value");
+    assert!(error.span.start > source.find("step0<string>(value)").unwrap());
+}

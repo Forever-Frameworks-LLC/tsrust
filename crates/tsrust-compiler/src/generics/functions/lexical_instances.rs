@@ -64,7 +64,6 @@ impl Cache {
         &mut self,
         function: &mut Function,
         bindings: &HashMap<String, ValueAnnotation>,
-        depth: usize,
     ) -> Result<(), Diagnostic> {
         let original = function
             .application
@@ -128,7 +127,6 @@ impl Cache {
                 self.pending.push(Pending {
                     function: child,
                     bindings: replacements,
-                    depth,
                 });
             } else {
                 self.templates.insert(child.name.text.clone(), child);

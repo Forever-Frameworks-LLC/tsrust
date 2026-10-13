@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-unmeasured",
+  "evidence": null,
+  "scope": "Explicit generic function dependency chains, one specialization per declaration. Includes source proofs and queued materialization. Excludes backend compilation and runtime throughput.",
+  "functionCounts": [
+    32,
+    64,
+    128,
+    512
+  ],
+  "samples": 11,
+  "warmups": 2,
+  "generator": "../function-dependencies/run.py:source(..., generic_functions=True)",
+  "expectedOutput": "7\n",
+  "phases": {
+    "native-check": "Fresh tsrust check process wall time, including startup and source reads; no backend execution.",
+    "native-emit": "Fresh tsrust emit process wall time, including startup and generated source transport; excludes rustc and execution.",
+    "node-tsc-check": "Fresh Node/TypeScript tsc --noEmit --strict process wall time, including startup and source reads. TypeScript number and native int have different checking contracts. This is frontend cost, not equal language coverage or runtime throughput."
+  },
+  "acceptance": "Validate every selected source before timing. Preserve exact sources, hashes, tool versions, compiler hash, source identity, commands and each duration in SQLite. Preserve completed groups and original failures. Do not label partial counts as complete architecture scaling."
+}

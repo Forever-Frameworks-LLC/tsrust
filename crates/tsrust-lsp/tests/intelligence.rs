@@ -10044,3 +10044,23 @@ fn large_record_dependency_cycle_keeps_result_hover() {
     let hover = ask(&source, "textDocument/hover", "result =", 0);
     assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("Item"), "{hover}");
 }
+
+#[test]
+fn generic_materialization_chain_keeps_checked_hover_and_source_definition() {
+    let mut source = String::new();
+    for step in 0..64 {
+        let value = if step == 63 { "value".to_owned() } else { format!("step{}<T>(value)", step + 1) };
+        source.push_str(&format!("function step{step}<T>(value:T):T{{return {value};}}\n"));
+    }
+    source.push_str("function main(){const result=step0<int>(7);console.log(result);}");
+    let source = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let index = SourceIndex::new(&source);
+    let request = |method: &str, needle: &str| index.request(method,
+        &json!({"position":at(&source,needle,0),"context":{"includeDeclaration":true}}), "file:///test.tsr").unwrap();
+    let hover = request("textDocument/hover", "result =");
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
+    let definition = request("textDocument/definition", "step0<int>(7)");
+    assert_eq!(definition["range"]["start"], json!(at(&source, "step0<T>", 0)));
+}

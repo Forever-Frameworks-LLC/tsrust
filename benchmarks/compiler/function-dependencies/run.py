@@ -13,8 +13,14 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False):
     functions = []
+    if generic_functions:
+        for index in range(count):
+            result = "value" if index + 1 == count else f"step{index + 1}<T>(value)"
+            functions.append(f"function step{index}<T>(value:T):T {{ return {result}; }}")
+        functions.append(f"function main() {{ console.log(step0<{scalar}>(7)); }}")
+        return "\n".join([*functions, *(["main();"] if call_main else []), ""])
     if generic_records:
         for index in range(count):
             field = 'value: T' if index + 1 == count else f'next: Layer{index + 1}<T>[]'
@@ -57,6 +63,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--generic-functions', action='store_true', help='Use explicit generic function dependency chains')
     parser.add_argument('--generic-records', action='store_true', help='Use the generic materialization workload; incompatible with recursive function variants')
     parser.add_argument('--record', action='store_true', help='Return data records through a recursive group; requires --recursive')
     parser.add_argument('--callable', action='store_true', help='Resolve recursive callable environments; requires --recursive')
@@ -79,6 +86,10 @@ def main():
         if args.recursive or variants:
             parser.error('Generic materialization is separate from recursive function variants')
         manifest_path = MANIFEST_PATH.parent.parent / 'generic-materialization/manifest.json'
+    if args.generic_functions:
+        if args.recursive or args.generic_records or variants:
+            parser.error('Generic function chains are separate from other variants')
+        manifest_path = MANIFEST_PATH.parent.parent / 'generic-function-dependencies/manifest.json'
     manifest = json.loads(manifest_path.read_text())
     counts = manifest.get('declarationCounts', manifest.get('functionCounts'))
     if args.only and any(count not in counts for count in args.only):
@@ -110,8 +121,8 @@ def main():
             for count in args.only or counts:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
