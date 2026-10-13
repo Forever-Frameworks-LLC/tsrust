@@ -99,6 +99,7 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    Prelude(super::prelude::Frame),
     Assignment,
     Sequence,
     NullishAssignmentTarget(Box<super::assignment::NullishTarget>),
@@ -867,6 +868,13 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Prelude(frame)=>{
+            let Completion::Expression(value,result)=completion.expect("contextual child completed") else{unreachable!("contextual child result")};
+            let context=contexts.get(task.context);
+            let expr=task.expression.value();*expr=*value.into_child();
+            let result=analyzer.finish_prelude_work(context,expr,frame,result);
+            finish_expression(analyzer,context,task,result)
+        },
         ExpressionState::ClosureDefault{frame,child,work}=>closure_parameters::resume_default(analyzer,contexts,task,frame,child,work,completion.expect("default completed")),
         ExpressionState::ClosurePattern{frame,child,start}=>closure_parameters::resume_pattern(analyzer,contexts,task,frame,child,start,completion.expect("pattern completed")),
         ExpressionState::Closure { frame, child } => {
@@ -1167,6 +1175,13 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let prepared = analyzer.prepare_expression_work(context, expr, task.mode, &task.loans, task.expected, &mut task.completion);
             let frame = match prepared {
                 Ok(PreparedExpression::Evaluate(frame)) => frame,
+                Ok(PreparedExpression::Prelude{mode,expected,frame})=>{
+                    let span=expr.span;
+                    let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
+                    let child=Task::Expression(ExpressionTask::new(Expression::Child(value),task.context,mode,task.loans.clone(),expected));
+                    task.state=ExpressionState::Prelude(frame);
+                    return Step::Push(Task::Expression(task),child);
+                },
                 Ok(PreparedExpression::Sequence { mode, expected }) => {
                     let span = expr.span;
                     let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));

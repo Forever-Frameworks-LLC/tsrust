@@ -213,3 +213,10 @@ finish; restore extracted pattern statements on diagnostic exits.
 `analysis/continuations/defaults.rs` retains supplied/default availability and
 flow joins, including nullable callback access contracts. Scheduled expression
 and block frames do not participate in recursive-entry depth accounting.
+
+Contextual expression preparation uses `analysis/continuations/prelude.rs`.
+Mutation footprints, flow projections, borrowed expectations, nullable injection
+and contextual stored-callable conversions yield child work to the driver.
+Projection frames retain flow suppression and mutation frames retain access state
+until completion; both restore their boundaries on diagnostic paths. Keep these
+transitions on the existing driver rather than starting nested expression checks.

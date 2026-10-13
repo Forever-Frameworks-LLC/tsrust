@@ -62,7 +62,10 @@ pub(super) fn next<'a>(analyzer:&mut Analyzer,contexts:&mut Contexts<'_>,mut tas
 mod tests{
     use super::*;
     fn chain(layers:usize,fail:bool)->Expr{
-        let mut parsed=crate::syntax::parse("function main(){const f=(value:int=1):int=>value;}").unwrap();
+        typed_chain(layers,fail,"int")
+    }
+    pub(super) fn typed_chain(layers:usize,fail:bool,ty:&str)->Expr{
+        let mut parsed=crate::syntax::parse(&format!("function main(){{const f=(value:{ty}=1):{ty}=>value;}}")).unwrap();
         let StmtKind::Let{value,..}=&mut parsed.functions[0].body[0].kind else{unreachable!()};
         let template=value.clone();let mut current=template.clone();
         let ExprKind::Closure{id,params,..}=&mut current.kind else{unreachable!()};*id=0;
@@ -94,5 +97,24 @@ mod tests{
         let error=analyzer.expression(&mut context,&mut value,Mode::Consume,&Loans::new(),None).unwrap_err();
         assert_eq!(error.span,Span::new(100,107));assert!(context.names.is_empty());assert!(context.bindings.is_empty());
         assert!(matches!(value.kind,ExprKind::Closure{..}));assert!(analyzer.closures.is_empty());assert_eq!(analyzer.depth,0);drop(value);
+    }
+}
+
+#[cfg(test)]
+mod contextual_tests{
+    use super::*;
+    #[test]
+    fn nullable_defaults_and_closure_bodies_share_the_driver(){
+        for fail in [false,true]{
+            let mut analyzer=Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap();
+            let mut context=Context::new("main".into());
+            let mut value=super::tests::typed_chain(256,fail,"int|undefined");
+            let checked=analyzer.expression(&mut context,&mut value,Mode::Consume,&Loans::new(),None);
+            if fail{assert_eq!(checked.unwrap_err().span,Span::new(100,107));}
+            else{assert!(matches!(checked.unwrap(),Type::Closure(_)));assert_eq!(analyzer.closures.len(),257);}
+            assert!(context.mutation_place.is_none());assert!(context.suppressed_flow.is_empty());
+            assert!(context.keep_flow.is_empty());assert!(context.names.is_empty());assert_eq!(analyzer.depth,0);
+            drop(value);
+        }
     }
 }

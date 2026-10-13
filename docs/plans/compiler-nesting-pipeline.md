@@ -1070,3 +1070,30 @@ S12–S21 completion. No stack size or depth constant is increased. Evidence use
 Three editor tests also pass, including executable default-parameter examples,
 signature/help contracts and visibility of earlier initialized parameters.
 Whole-project formatting changes zero files or benchmark fingerprints.
+
+### Contextual expression preparation
+
+The checker driver now suspends mutation-footprint access, flow projection,
+borrowed-union expectations, nullable injection and contextual stored-callable
+conversion. The frame owns completion metadata while its child owns the entire
+expression, restoring that expression before success or error completion.
+Projection suppression and retained-flow boundaries unwind even when the child
+fails. Conversion completion preserves physical tags, scoped record identities,
+read-only callback environments, once wrappers and absent callable results.
+
+The mixed witness connects nullable parameter expectations, default calls and
+closure bodies through the same worklist. Optional-chain lowering, JSON-specific
+preparation, generic staging and other synchronous helper entry points remain
+open; this change does not establish complete expression preparation safety.
+Full compiler architecture and formal compilation scaling acceptance remain
+pending, as do optimization and S12–S21. No new cap or stack increase is used.
+
+All 301 analysis tests pass on normal stacks. The affected compiler integration
+batch passes 45 tests: nullable callables 24, nullable caller callback stores 13,
+nullable narrowing four and nullable unions four. These include native ownership,
+physical storage, allocation and disposal assertions; they are correctness checks,
+not formal timing measurements. Evidence uses `tsrust-nesting-contextual-prelude-*`
+in SQLite. Installed consumers remain unchanged while architecture acceptance is
+incomplete.
+The nullable-callable editor contract/example test passes. Whole-project
+formatting changes zero files or benchmark fingerprints.

@@ -8,13 +8,18 @@ pub(super) struct CheckedExpressionFrame {
     pub(super) mode: Mode,
     pub(super) expected: Option<Type>,
 }
-pub(super) enum PreparedExpression { Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame) }
+pub(super) enum PreparedExpression { Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame), Prelude { mode:Mode, expected:Option<Type>, frame:super::prelude::Frame } }
 
 impl Analyzer {
     pub(super) fn prepare_checked_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<PreparedExpression, Diagnostic> {
-        if let Some(ty) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
-            expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
-            return Ok(PreparedExpression::Ready(ty));
+        if let Some(prelude) = self.checked_expression_prelude(context, expr, mode, loans, expected)? {
+            return Ok(match prelude{
+                super::prelude::Prelude::Ready(ty)=>{
+                    expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
+                    PreparedExpression::Ready(ty)
+                },
+                super::prelude::Prelude::Child{mode,expected,frame}=>PreparedExpression::Prelude{mode,expected,frame},
+            });
         }
         // The driver owns suspended frames; source nesting consumes no host frames.
         let invocation=matches!(expr.kind,ExprKind::Call(_, _));
