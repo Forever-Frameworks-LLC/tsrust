@@ -1273,3 +1273,13 @@ The native batch and retained/resumed tails account for 214 distinct passing
 tests and two unresolved stack-overflow witnesses. The repaired analysis suite
 passes nine tests. Whole-project formatting changes zero files and fingerprints.
 Both consumer binaries build explicitly from the combined source.
+
+Parser integration is checkpointed at `79295194`. Installed CLI and LSP plus
+the configured `target/editor/debug/tsrust-lsp` are atomically refreshed and
+hash-verified from that source. The active tsrust editor server is restarted;
+open Tsrust documents report no diagnostics (39 existing Rust warnings remain).
+The installed CLI's recursive `check . --color=never` passes. Refresh and cleanup
+records are `tsrust-parser-consumer-refresh.json`, `tsrust-parser-cleanup.json`
+and `tsrust-parser-installed-project-check.log` in SQLite. After exact-byte
+evidence verification, both parser worktrees and their private targets are
+removed; the parser branch and all original commits remain in Git.
