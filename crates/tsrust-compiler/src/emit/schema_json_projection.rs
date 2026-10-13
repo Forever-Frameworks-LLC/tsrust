@@ -16,6 +16,9 @@ impl Emitter<'_> {
         if source == target { return value.into(); }
         let Type::Union(target) = target else { return value.into(); };
         let members = &self.program.unions[target.index()].members;
+        if let Some(tag)=members.iter().position(|member|*member==source) {
+            return format!("match {value}{{Union{}::V{tag}(value)=>{},_=>unreachable!(\"readonly projection changed alternative\")}}",target.index(),self.union_move_payload(target,source,"value"));
+        }
         let arms = if let Type::Union(source) = source {
             self.program.unions[source.index()].members.iter().enumerate().map(|(tag, ty)| {
                 let from = members.iter().position(|member| member == ty).expect("selected schema output");

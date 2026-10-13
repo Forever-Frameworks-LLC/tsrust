@@ -127,6 +127,7 @@ pub(crate) struct Pipelines {
 }
 
 impl Pipelines {
+    pub(crate) fn has_recursive(&self)->bool { !self.recursive.is_empty() }
     pub(crate) fn has_collections(&self)->bool { !self.collections.is_empty() }
     pub(crate) fn has_messages(&self)->bool { self.wrappers.values().any(|plan| matches!(plan.kind,WrapperKind::Message|WrapperKind::Constraint(_))) }
     pub(crate) fn types(&self, record: usize) -> Option<(Type, Type, bool)> {

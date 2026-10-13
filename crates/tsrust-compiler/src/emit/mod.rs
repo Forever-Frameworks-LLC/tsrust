@@ -3060,7 +3060,7 @@ impl Emitter<'_> {
         output.push_str(&issue_bridge);
         // Constructing a plan without validating it need not materialize public
         // validation error records or their dependent trial runtime.
-        if !issue_bridge.is_empty() && (!self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some()){
+        if !issue_bridge.is_empty() && (!self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_recursive()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some()){
             output.push_str("mod tsrust_schema_union {\n");
             output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
             output.push_str("\n}\n");

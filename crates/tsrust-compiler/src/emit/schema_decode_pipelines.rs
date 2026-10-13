@@ -23,7 +23,8 @@ impl Emitter<'_> {
             let root=reference.root;
             let child=self.schema_text_validator(root,generated,owned,errors);
             let roots=self.schema_root_arguments(root);
-            return format!("{child}({roots}schema_root{root},input,path,issues,failure,policy,remaining,committed)");
+            let inject=self.schema_output_injection(self.schema_pipeline_output(root),reference.output,"value");
+            return format!("{child}({roots}schema_root{root},input,path,issues,failure,policy,remaining,committed).map(|value|{inject})");
         }
         if let Some(plan)=self.program.schema_pipelines.wrapper(id){
             let child=self.schema_text_validator(plan.source,generated,owned,errors);

@@ -88,7 +88,7 @@ impl Analyzer {
             match ty {
                 Type::Void => Kind::Named(TypeName { text: "void".into(), span }),
                 Type::Array(element) => Kind::Array(Box::new(self.checked_value_annotation_at(element.ty(), span, depth + 1)?)),
-                Type::Union(id) => Kind::Union(self.unions.members(id).into_iter().map(|ty| self.checked_value_annotation_at(ty, span, depth + 1)).collect::<Result<Vec<_>, _>>()?),
+                Type::Union(id) if !self.unions.is_recursive(id) => Kind::Union(self.unions.members(id).into_iter().map(|ty| self.checked_value_annotation_at(ty, span, depth + 1)).collect::<Result<Vec<_>, _>>()?),
                 _ => {
                     let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
                     return types.annotation(ty, span);

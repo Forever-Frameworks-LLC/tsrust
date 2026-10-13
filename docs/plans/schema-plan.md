@@ -2370,3 +2370,64 @@ The readonly-refinement/default construction witness now passes. Evidence:
 implementation has focused native, editor, catalog and untimed parity evidence;
 recursive lowering remains unfinished and must not be marked accepted with this
 source checkpoint. Consumer refresh and S11 milestone measurements remain open.
+
+### Installed constraint-message consumers
+
+Release consumers rebuilt from `d3c8fb9f` with CARGO_INCREMENTAL=0 and one job.
+CLI SHA256: `983f62bd5f6ece3507ce81e378314cdc2f257424d01cc11e541d30ce2146aea0`.
+LSP SHA256: `514f5beec382605e4754429f6f7617379756df45f114c363aa9d1e0985feaa91`.
+Both cargo-bin and the configured target/editor/debug LSP were atomically refreshed.
+Installed checks passed custom constraint messages through parse, corrected module
+return-consumption location, Result hover, message completion and immediate schema
+member completion. SQLite retains build and installed evidence under
+`tsrust-constraint-consumers-build.log`, `tsrust-constraint-lsp-build.log`, and
+`tsrust-constraint-installed-smoke-repair.log`. The first build's `--bin tsrust`
+filter skipped LSP; that stale-server smoke failure is preserved separately.
+Build named binaries separately or use --bins when selecting both packages.
+The already-running editor process may need restarting to load the replaced binary.
+Recursive schemas remain unfinished despite sharing this source checkpoint.
+
+### Recursive native integration probe
+
+The inferred tree witness now passes native execution, nested member access and
+nested JSON validation paths. Its first probe exposed missing trial-runtime
+inclusion and a public output mismatch. Recursive roots now expose their unfolded
+body types; self edges alone wrap/unwrap the reserved recursive type. Original
+probe and repair are retained as `tsrust-recursive-integration-probe.log` and
+`tsrust-recursive-integration-repair.log` in SQLite.
+
+The array/union-root probe reached checked annotation reconstruction, which was
+still expanding a recursive union until the ordinary nesting limit. That path now
+delegates recursive identities to the existing named annotation mechanism rather
+than expanding them. The next probe confirmed annotation reconstruction now
+terminates, then exposed indexing through the singleton recursive array carrier.
+The checker now inserts a real payload projection for recursive array indexing and
+length access. Its type-guaranteed payload is recorded separately from conditional
+flow facts, so storage access retains the owner without requiring a nullable guard.
+The first projection probe exposed the old stable-place assertion; both failures
+are retained in SQLite. The repaired projection passed those checks but the process timed out. A bounded
+process sample located an infinite union/array walk in clone eligibility. Both
+cloneability traversals now track visited types; a regression witness covers a
+cloneable recursive array and a cycle containing a noncloneable callable. Native
+verification is still pending. Timeout and sample evidence are stored as
+`tsrust-recursive-array-projection-repair.log` and
+`tsrust-recursive-check-sample.txt`.
+Explicit generic checking, complete recursive acceptance/editor/examples/workloads
+remain open.
+
+
+### Recursive array and union carrier integration
+
+The focused array/union-root witness now passes analysis and reaches native Rust
+compilation. Cycle-aware cloneability removed the checker timeout. Schema output
+injection/restoration now treats a nested union that is itself a destination
+member as one complete payload, using the existing owned storage helpers.
+
+Native acceptance remains blocked by generated recursive generic defaults, such
+as `enum Union1<P = Vec<Union1>>`, which Rust rejects with E0391. The next repair
+must preserve real owned/borrowed representations while breaking those default
+parameter cycles; do not erase lifetimes or replace the public inferred type.
+Evidence: `tsrust-recursive-cycle-traversal.log` (emitter alternative panic) and
+`tsrust-recursive-union-carrier.log` (native default cycle), retained in SQLite.
+The added cloneability unit witness still awaits the next section check. No full
+regression, timing, source checkpoint, or consumer refresh was performed here.

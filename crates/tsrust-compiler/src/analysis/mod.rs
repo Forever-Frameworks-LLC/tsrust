@@ -455,6 +455,8 @@ struct Context {
     flow: crate::flow::Facts,
     constant_absence: HashMap<usize,Type>,
     keep_flow: Vec<crate::flow::Place>,
+    /// Singleton recursive payloads are guaranteed by type, not a flow guard.
+    unconditional_projections: HashSet<(UnionId, Type)>,
     mutation_place: Option<crate::flow::Place>,
     suppressed_flow: HashSet<crate::flow::Place>,
     observer_places: HashSet<crate::flow::Place>,
@@ -519,6 +521,7 @@ impl Context {
             flow: HashMap::new(),
             constant_absence: HashMap::new(),
             keep_flow: Vec::new(),
+            unconditional_projections: HashSet::new(),
             mutation_place: None,
             suppressed_flow: HashSet::new(),
             observer_places: HashSet::new(),
@@ -7245,7 +7248,8 @@ impl Analyzer {
                     union,
                     narrowed,
                 } => {
-                    if current.ty != Some(Type::Union(*union)) {
+                    if current.ty != Some(Type::Union(*union))
+                        && !context.unconditional_projections.contains(&(*union, *narrowed)) {
                         let place =
                             crate::flow::place(value, &context.names).expect("stable projection");
                         let fact=context.flow.get(&place).ok_or_else(||Diagnostic::new("narrowing-invalidated","The nullable guard no longer holds after the preceding effects; guard the value again.",span))?;
@@ -11095,6 +11099,7 @@ impl Analyzer {
             context.projection = None;
         }
         let base_type = base_type?;
+        let base_type = self.recursive_array_receiver(context, base, base_type);
         if (matches!(base_type.scalar_base(), Type::Array(_) | Type::String) || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple())) && name == "length" {
             if mode == Mode::Mutate {
                 return Err(Diagnostic::new(
@@ -11309,6 +11314,7 @@ impl Analyzer {
             loans,
             array_context,
         )?;
+        let ty = self.recursive_array_receiver(context, base, ty);
         if let Some((_,field))=self.checked_tuple_index(ty,index)? {
             if borrowed && (mode==Mode::Mutate || mode==Mode::Consume && !field.is_copy()) {return Err(Diagnostic::new("borrowed-place","An owned tuple position of an assignment result is borrowed; use clone().",base.span));}
             return Ok(field);
@@ -11417,6 +11423,7 @@ impl Analyzer {
             ));
         }
         let ty = self.expression(context, base, Mode::Read, loans, None)?;
+        let ty = self.recursive_array_receiver(context, base, ty);
         if let Some((_,field))=self.checked_tuple_index(ty,index)? {
             if mode==Mode::Consume && !field.is_copy() {return Err(Diagnostic::new("borrowed-element","Indexed tuple positions stay borrowed; bind the owner before transferring a position, or use clone().",span));}
             Self::storage_access(context,base,if mode==Mode::Mutate {Mode::Mutate}else{Mode::Read},span,loans)?;

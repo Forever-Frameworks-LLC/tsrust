@@ -3,6 +3,25 @@ use super::*;
 use crate::stdlib::schema::pipelines::{RecursivePlan,RecursiveReference};
 
 impl Analyzer {
+    /// Unfold a checked recursive array receiver through its real enum payload.
+    /// Keep the projection in the tree so storage access and native borrowing
+    /// retain the original owner; changing only the type would erase the tag.
+    pub(super) fn recursive_array_receiver(&self, context: &mut Context, base: &mut Expr, ty: Type) -> Type {
+        let Type::Union(union) = ty else { return ty; };
+        if !self.unions.is_recursive(union) { return ty; }
+        let members = self.unions.members(union);
+        let [payload @ Type::Array(_)] = members.as_slice() else { return ty; };
+        let payload = *payload;
+        context.unconditional_projections.insert((union, payload));
+        let span = base.span;
+        let binding = base.binding;
+        let source = std::mem::replace(base, Expr::new(ExprKind::Undefined, span));
+        *base = Expr::new(ExprKind::Project { value: Box::new(source), union, narrowed: payload }, span);
+        base.ty = Some(payload);
+        base.binding = binding;
+        payload
+    }
+
     fn recursive_record(&mut self,name:&str,span:Span)->usize {
         let id=self.program.records.len();
         let name=format!("@schema:{name}:{id}");
@@ -62,7 +81,7 @@ impl Analyzer {
         // each node's shape without changing the next node's accepted input.
         self.unions.bind_recursive(input_knot,vec![body_input],expr.span)?;
         self.unions.bind_recursive(knot,vec![body_output],expr.span)?;
-        self.schema_pipelines.insert_recursive(root,RecursivePlan{body:body_id,input,output,json_input});
+        self.schema_pipelines.insert_recursive(root,RecursivePlan{body:body_id,input:body_input,output:body_output,json_input});
         let field=RecordField{name:Token{text:"@schema".into(),kind:TokenKind::Name,span:expr.span},annotation:self.checked_value_annotation(body_type,expr.span)?,ty:Some(body_type),callable_declaration:None,optional:false};
         self.fields[root].insert(field.name.text.clone(),body_type);
         self.program.records[root].fields.push(field.clone());

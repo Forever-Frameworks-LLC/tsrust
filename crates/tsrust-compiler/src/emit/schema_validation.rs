@@ -311,6 +311,9 @@ impl Emitter<'_> {
 
     pub(super) fn schema_widen_value(&self,source:Type,target:UnionId,value:&str)->String {
         let destination=&self.program.unions[target.index()].members;
+        if let Some(tag)=destination.iter().position(|member|*member==source) {
+            return format!("Union{}::V{tag}({})",target.index(),self.union_store_payload(target,source,value));
+        }
         if let Type::Union(source)=source {
             let arms=self.program.unions[source.index()].members.iter().enumerate().map(|(tag,ty)|{let to=destination.iter().position(|member|member==ty).expect("schema output alternative");format!("Union{}::V{tag}(value)=>Union{}::V{to}(value)",source.index(),target.index())}).collect::<Vec<_>>().join(",");
             format!("match {value}{{{arms}}}")

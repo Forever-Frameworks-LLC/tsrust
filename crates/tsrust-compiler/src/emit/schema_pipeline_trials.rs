@@ -50,7 +50,10 @@ impl Emitter<'_> {
             let root=reference.root;
             let child=self.schema_pipeline_trial_impl(root,input,missing,generated,seen,errors);
             let child_roots=self.schema_root_arguments(root);
-            format!("{child}({child_roots}schema_root{root},input,path,issues,failure)")
+            let source=self.schema_pipeline_output(root);
+            let inject=self.schema_output_injection(source,output,"value");
+            let inverse=self.schema_selected_output(source,output,"value");
+            format!("{child}({child_roots}schema_root{root},input,path,issues,failure).inject(|value|{inject},|value|{inverse})")
         } else if self.program.schema_pipelines.wrapper(id).is_some() {
             self.schema_pipeline_wrapper_trial_body(id,input,missing,generated,seen,errors)
         } else if let Some(plan) = self.program.schema_pipelines.union(id) {

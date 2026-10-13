@@ -54,7 +54,9 @@ impl Cloneability {
                 .collect::<Vec<_>>();
             if let Some(map) = &record.map_definition { pending.extend([map.key, map.value]); }
             pending.extend(record.native_element());
+            let mut visited = std::collections::HashSet::new();
             while let Some(ty) = pending.pop() {
+                if !visited.insert(ty) { continue; }
                 match ty {
                     Type::Record(child) | Type::Set(child) | Type::Map(child) => reverse[child].push(parent),
                     Type::Array(element) => pending.push(element.ty()),
@@ -115,7 +117,9 @@ impl Cloneability {
             Type::Array(_) => unreachable!("array dimensions removed"),
         }
         let mut pending = vec![leaf];
+        let mut visited = std::collections::HashSet::new();
         while let Some(ty) = pending.pop() {
+            if !visited.insert(ty) { continue; }
             match ty {
                 Type::Record(id) | Type::Set(id) | Type::Map(id) => {
                     if !self.record(id) {
@@ -225,6 +229,23 @@ pub(crate) mod tests {
             Type::Void,
         ] {
             assert!(!eligibility.allows(ty, |id| unions.members(id)));
+        }
+    }
+
+    #[test]
+    fn recursive_union_arrays_terminate_and_retain_noncloneable_members() {
+        let unions = crate::unions::UnionArena::default();
+        let span = Span::new(0, 1);
+        for forbidden in [false, true] {
+            let recursive = unions.reserve_recursive(span).unwrap();
+            let id = recursive.union().unwrap();
+            let mut members = vec![Type::Array(ArrayElement::Union(id, 0))];
+            if forbidden { members.push(Type::StoredCallable(0)); }
+            unions.bind_recursive(id, members, span).unwrap();
+            let records = [record(&[recursive])];
+            let eligibility = Cloneability::new(&records, |id| unions.members(id));
+            assert_eq!(eligibility.record(0), !forbidden);
+            assert_eq!(eligibility.allows(recursive, |id| unions.members(id)), !forbidden);
         }
     }
 
