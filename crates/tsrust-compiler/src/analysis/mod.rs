@@ -5022,86 +5022,12 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn type_assertion_expression(
-        &mut self, context: &mut Context, expr: &mut Expr, mode: Mode,
-        loans: &Loans, expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        let ExprKind::TypeAssertion { value, annotation, satisfies } = &mut expr.kind else { unreachable!() };
-        let target = self.callable_resolver().resolve_value_annotation(annotation, false)?;
-        let numeric_widening = target == Type::Number
-            && self.expression_type_hint(context, value) == Some(Type::Int);
-        let needs_context = matches!(&value.kind, ExprKind::Record(_) | ExprKind::Closure { .. })
-            || matches!(&value.kind, ExprKind::Array(items) if items.is_empty());
-        let contextual = ((!*satisfies || needs_context) && !numeric_widening).then_some(target);
-        let borrowed_injection = !*satisfies && mode == Mode::Read
-            && matches!(target, Type::Union(id) if !id.copy)
-            && self.expression_type_hint(context, value).is_some_and(|ty| ty.union().is_none())
-            && (self.borrowed_place_hint(context, value) || self.indexed_element_hint(context, value));
-        let actual = if borrowed_injection {
-            let actual = self.expression(context, value, mode, loans, None)?;
-            self.require(actual, Some(target), annotation.span)?;
-            let union = target.union().expect("borrowed union target");
-            value.inject(union);
-            value.ty = Some(Type::BorrowedUnion(union));
-            Type::BorrowedUnion(union)
-        } else {
-            self.expression(context, value, mode, loans, contextual)?
-        };
-        if !(actual == Type::Int && target == Type::Number) {
-            self.require(actual, Some(target), annotation.span).map_err(|mut error| {
-                error.message.push_str(" Type assertions cannot narrow an incompatible value; use typeof to narrow a union.");
-                error
-            })?;
-        }
-        let result = if *satisfies || matches!(actual, Type::BorrowedUnion(_)) || matches!((actual, target), (Type::Closure(_), Type::Callback(_))) { actual } else { target };
-        self.require(result, expected, expr.span)?;
-        expr.binding = value.binding;
-        expr.callable_origin = value.callable_origin;
-        expr.ty = Some(result);
-        if let Some(Type::Union(id)) = expected {
-            if result != Type::Union(id) {
-                expr.inject(id);
-                expr.ty = Some(Type::Union(id));
-                return Ok(Type::Union(id));
-            }
-        }
-        Ok(result)
-    }
-
-    #[inline(never)]
     fn lower_scalar_unary_plus(&self, context: &Context, expr: &mut Expr) {
         let ExprKind::Unary { op: UnaryOp::Positive, value, .. } = &mut expr.kind else { return; };
         if self.expression_type_hint(context, value).is_none_or(|ty| matches!(ty, Type::Int | Type::Number)) { return; }
         let span = expr.span;
         let operand = std::mem::replace(value, Box::new(Expr::new(ExprKind::Undefined, span)));
         expr.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name("Number".to_owned()), span)), vec![*operand]);
-    }
-
-    #[inline(never)]
-    fn rest_pack_expression(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        if let ExprKind::Unary {
-            op: UnaryOp::RestPack,
-            value,
-            ..
-        } = &mut expr.kind
-        {
-            let ty = if let ExprKind::Array(values) = &mut value.kind {
-                self.array_literal(context, values, loans, expected, expr.span)?
-            } else {
-                self.expression(context, value, mode, loans, expected)?
-            };
-            value.ty = Some(ty);
-            expr.ty = Some(ty);
-            return Ok(ty);
-        }
-        unreachable!("rest pack dispatch");
     }
 
     // Generic/spread staging is finished before ordinary recursive checking begins.
@@ -5121,7 +5047,6 @@ impl Analyzer {
             return self.stage_generic_expression(context, expr, expected, mode, loans).map(Some);
         }
         self.lower_enum_member(context, expr, mode)?;
-        if matches!(&expr.kind,ExprKind::TypeAssertion{..}) {return self.type_assertion_expression(context,expr,mode,loans,expected).map(Some);}
         if matches!(&expr.kind, ExprKind::SpreadValue(_) | ExprKind::SpreadCall(_))
             || matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if matches!(value.kind, ExprKind::SpreadValue(_)))
         {
@@ -5485,14 +5410,12 @@ impl Analyzer {
             ExprKind::Record(fields) => {
                 self.record_literal(context, fields, loans, expected, expr.span)
             }
-            ExprKind::ArrayOf(_, _) => self.array_constructor(context, expr, loans, expected),
+            ExprKind::ArrayOf(_, _) => self.spread_array_construction(context, expr, loans, expected),
             ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
             ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
             ExprKind::NativeConstructor(_, _) => self.native_collection_constructor(expr,expected),
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
-            ExprKind::Array(values) => {
-                self.array_literal(context, values, loans, expected, expr.span)
-            }
+            ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),
             ExprKind::Template(parts) => self.template_literal(context, parts, loans),
             // Synthesized wrappers and other unary forms keep their
             // temporaries out of this recursively retained dispatcher.
@@ -6823,41 +6746,6 @@ impl Analyzer {
         }
     }
 
-    fn array_constructor(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        if matches!(&expr.kind,ExprKind::ArrayOf(args,_) if args.iter().any(|arg|matches!(arg.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))) {return self.spread_array_construction(context,expr,loans,expected);}
-        let ExprKind::ArrayOf(values, element) = &mut expr.kind else {
-            unreachable!()
-        };
-        let annotated = element
-            .as_ref()
-            .map(|element| self.resolve_value_annotation(element, false))
-            .transpose()?;
-        let array = annotated
-            .map(|ty| self.constructor_array_type(ty, expr.span))
-            .transpose()?;
-        if let Some(array) = array {
-            self.require(array, expected, expr.span)?;
-        }
-        if values.is_empty() && !matches!(array.or(expected), Some(Type::Array(_))) {
-            return Err(Diagnostic::new(
-                "array-type",
-                "An empty Array.of needs an explicit element type or array context.",
-                expr.span,
-            ));
-        }
-        let result = self.array_literal(context, values, loans, array.or(expected), expr.span)?;
-        let values = std::mem::take(values);
-        expr.kind = ExprKind::Array(values);
-        expr.target = Some(CallTarget::ArrayOf);
-        Ok(result)
-    }
-
     fn constructor_array_type(&self, element: Type, span: Span) -> Result<Type, Diagnostic> {
         let element = ArrayElement::from_value_type(element).ok_or_else(|| {
             if matches!(element, Type::Array(_)) {
@@ -6875,37 +6763,6 @@ impl Analyzer {
             }
         })?;
         Ok(Type::Array(element))
-    }
-
-    /// Nested literals recurse through this function, so the work around each element
-    /// lives in separate functions and this frame stays small.
-    fn array_literal(
-        &mut self,
-        context: &mut Context,
-        values: &mut [Expr],
-        loans: &Loans,
-        expected: Option<Type>,
-        span: Span,
-    ) -> Result<Type, Diagnostic> {
-        let mut element = self.array_literal_element_hint(context, values, expected, span)?;
-        for value in values.iter_mut() {
-            if element.is_none() && let ExprKind::Closure { id, .. } = value.kind { self.escaping.insert(id); }
-            let actual = if let Some(ArrayElement::StoredCallable(family, 0)) = element {
-                let family = self.native_view_literal_family(family, value);
-                self.stored_callable_value(context, value, family, loans)?
-            } else {
-                self.expression(
-                    context,
-                    value,
-                    Mode::Consume,
-                    loans,
-                    element.map(ArrayElement::ty),
-                )?
-            };
-            self.finish_array_literal_element(context, value, actual, &mut element)?;
-        }
-        self.join_native_view_literal(values, element);
-        self.finish_array_literal(values, element, span)
     }
 
     #[inline(never)]

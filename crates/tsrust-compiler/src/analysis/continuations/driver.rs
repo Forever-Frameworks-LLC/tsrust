@@ -99,6 +99,7 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    Wrapper(super::wrappers::Frame),
     Start,
     Prelude(super::prelude::Frame),
     Optional,
@@ -871,6 +872,14 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Wrapper(frame) => {
+            let Completion::Expression(value, result) = completion.expect("wrapper operand completed") else { unreachable!("wrapper result") };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            *frame.child(expr) = value.into_child();
+            let result = analyzer.finish_wrapper_work(expr, frame, result);
+            finish_expression(analyzer, context, task, result)
+        },
         ExpressionState::Optional=>{
             let Completion::Expression(value,result)=completion.expect("optional chain completed") else{unreachable!("optional result")};
             *task.expression.value()=*value.into_child();
@@ -1187,6 +1196,15 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let prepared = analyzer.prepare_expression_work(context, expr, task.mode, &task.loans, task.expected, &mut task.completion);
             let frame = match prepared {
                 Ok(PreparedExpression::Evaluate(frame)) => frame,
+                Ok(PreparedExpression::Wrapper { frame, mode, expected }) => {
+                    let destination = frame.child(expr);
+                    let span = destination.span;
+                    let value = std::mem::replace(destination, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, mode, task.loans.clone(), expected));
+                    task.state = ExpressionState::Wrapper(frame);
+                    return Step::Push(Task::Expression(task), child);
+                },
+                Ok(PreparedExpression::Literal(frame)) => return schedule_literal(analyzer, context, task, Box::new(frame)),
                 Ok(PreparedExpression::Optional{mode,expected})=>return schedule_optional(task,mode,expected),
                 Ok(PreparedExpression::Prelude{mode,expected,frame})=>{
                     let span=expr.span;

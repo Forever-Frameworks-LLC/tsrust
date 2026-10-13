@@ -7,12 +7,44 @@ pub(in crate::analysis) struct StoredValueFrame {
     pub(in crate::analysis) convert: bool,
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum ArraySource { Literal, Rest, Constructor }
+
+impl ArraySource {
+    fn values(self, expr: &mut Expr) -> &mut Vec<Expr> {
+        match (self, &mut expr.kind) {
+            (Self::Literal, ExprKind::Array(values)) | (Self::Constructor, ExprKind::ArrayOf(values, _)) => values,
+            (Self::Rest, ExprKind::Unary { op: UnaryOp::RestPack, value, .. }) => {
+                let ExprKind::Array(values) = &mut value.kind else { unreachable!("rest array") };
+                values
+            },
+            _ => unreachable!("array source"),
+        }
+    }
+    fn finish(self, expr: &mut Expr, ty: Type) {
+        match self {
+            Self::Literal => {},
+            Self::Rest => {
+                let ExprKind::Unary { value, .. } = &mut expr.kind else { unreachable!("rest array") };
+                value.ty = Some(ty);
+                expr.ty = Some(ty);
+            },
+            Self::Constructor => {
+                let values = std::mem::take(self.values(expr));
+                expr.kind = ExprKind::Array(values);
+                expr.target = Some(CallTarget::ArrayOf);
+            },
+        }
+    }
+}
+
 pub(super) enum LiteralFrame {
     Record {
         frame: Box<super::records::RecordFrame>,
         next: usize,
     },
     Array {
+        source: ArraySource,
         element: Option<ArrayElement>,
         next: usize,
     },
@@ -36,8 +68,9 @@ pub(super) enum Advance {
 
 impl LiteralFrame {
     pub(super) fn child<'a>(&self, expr: &'a mut Expr, index: usize) -> &'a mut Expr {
+        if let Self::Array { source, .. } = self { return &mut source.values(expr)[index]; }
         match &mut expr.kind {
-            ExprKind::Array(values) | ExprKind::Template(values) => &mut values[index],
+            ExprKind::Template(values) => &mut values[index],
             ExprKind::Record(fields) => &mut fields[index].1,
             _ => unreachable!("literal child slot"),
         }
@@ -45,6 +78,13 @@ impl LiteralFrame {
 }
 
 impl Analyzer {
+    pub(super) fn prepare_rest_literal_work(&mut self, context: &mut Context, expr: &mut Expr, expected: Option<Type>) -> Result<Option<LiteralFrame>, Diagnostic> {
+        let ExprKind::Unary { value, .. } = &mut expr.kind else { unreachable!("rest wrapper") };
+        let ExprKind::Array(values) = &mut value.kind else { return Ok(None) };
+        let element = self.array_literal_element_hint(context, values, expected, expr.span)?;
+        Ok(Some(LiteralFrame::Array { source: ArraySource::Rest, element, next: 0 }))
+    }
+
     pub(super) fn prepare_literal_work(
         &mut self,
         context: &mut Context,
@@ -74,8 +114,18 @@ impl Analyzer {
             {
                 let element =
                     self.array_literal_element_hint(context, values, expected, expr.span)?;
-                Ok(Some(LiteralFrame::Array { element, next: 0 }))
+                Ok(Some(LiteralFrame::Array { source: ArraySource::Literal, element, next: 0 }))
             }
+            ExprKind::ArrayOf(values, annotation) if !values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => {
+                let annotated = annotation.as_ref().map(|value| self.resolve_value_annotation(value, false)).transpose()?;
+                let array = annotated.map(|ty| self.constructor_array_type(ty, expr.span)).transpose()?;
+                if let Some(array) = array { self.require(array, expected, expr.span)?; }
+                if values.is_empty() && !matches!(array.or(expected), Some(Type::Array(_))) {
+                    return Err(Diagnostic::new("array-type", "An empty Array.of needs an explicit element type or array context.", expr.span));
+                }
+                let element = self.array_literal_element_hint(context, values, array.or(expected), expr.span)?;
+                Ok(Some(LiteralFrame::Array { source: ArraySource::Constructor, element, next: 0 }))
+            },
             ExprKind::Template(_) => Ok(Some(LiteralFrame::Template { next: 0 })),
             _ => Ok(None),
         }
@@ -106,15 +156,14 @@ impl Analyzer {
                     field: Some(field),
                 }))
             }
-            LiteralFrame::Array { element, next } => {
-                let ExprKind::Array(values) = &mut expr.kind else {
-                    unreachable!("array frame");
-                };
+            LiteralFrame::Array { source, element, next } => {
+                let span = expr.span;
+                let values = source.values(expr);
                 let Some(value) = values.get_mut(*next) else {
                     self.join_native_view_literal(values, *element);
-                    return self
-                        .finish_array_literal(values, *element, expr.span)
-                        .map(Advance::Done);
+                    let ty = self.finish_array_literal(values, *element, span)?;
+                    source.finish(expr, ty);
+                    return Ok(Advance::Done(ty));
                 };
                 if element.is_none()
                     && let ExprKind::Closure { id, .. } = value.kind
@@ -188,7 +237,7 @@ impl Analyzer {
         };
         match frame {
             LiteralFrame::Record { .. } => unreachable!("record completion handled above"),
-            LiteralFrame::Array { element, next } => {
+            LiteralFrame::Array { element, next, .. } => {
                 self.finish_array_literal_element(context, value, actual, element)?;
                 *next += 1;
             }

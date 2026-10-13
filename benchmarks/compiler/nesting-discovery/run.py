@@ -9,10 +9,24 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+
+
+def repeated(seed, size, opening, closing):
+    return opening * size + seed + closing * size
 
 
 def source(family, size):
+    if family in ('assertions', 'satisfies'):
+        operator = 'as' if family == 'assertions' else 'satisfies'
+        return 'function main(){console.log(7' + (' ' + operator + ' int') * size + ');}'
+    if family in ('rest-arguments', 'array-of', 'mixed-wrappers'):
+        opening, closing = {
+            'rest-arguments': ('head(', ')'),
+            'array-of': ('Array.of<int>(', ')[0]'),
+            'mixed-wrappers': ('head(Array.of<int>((', ' as int))[0])'),
+        }[family]
+        return 'function head(...values:int[]):int{return values[0];}function main(){console.log(' + repeated('7', size, opening, closing) + ');}'
     if family == 'parentheses':
         body = 'console.log(' + '(' * size + '7' + ')' * size + ');'
     elif family == 'blocks':
@@ -118,6 +132,7 @@ def main():
     parser.add_argument('--probe', type=Path, required=True, help='Built compiler unit-test executable')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--families', nargs='+', choices=FAMILIES, default=list(FAMILIES))
+    parser.add_argument('--unbounded-parser', action='store_true', help='Bypass parser admission only; retain normal lowering, checking, emission and disposal')
     parser.add_argument('--start', type=int, default=8)
     parser.add_argument('--factor', type=int, default=2)
     parser.add_argument('--seconds-per-case', type=float, required=True)
@@ -130,6 +145,7 @@ def main():
     probe = args.probe.resolve(strict=True)
     record = {'scope': 'diagnostic discovery, not formal timing or a support ceiling',
               'machine': platform.uname()._asdict(), 'cpu_count': os.cpu_count(),
+              'parser_policy': 'unbounded' if args.unbounded_parser else 'public',
               'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
               'source_diff': subprocess.check_output(['git', 'diff', '--', 'crates/tsrust-compiler'], text=True),
               'probe_sha256': hashlib.sha256(probe.read_bytes()).hexdigest(),
@@ -157,6 +173,7 @@ def main():
                 env = os.environ.copy()
                 env.pop('RUST_MIN_STACK', None)
                 env['TSRUST_NESTING_PROBE_SOURCE'] = str(path)
+                env['TSRUST_NESTING_PROBE_POLICY'] = 'unbounded' if args.unbounded_parser else 'public'
                 command = [str(probe), 'nesting_probe::observe_pipeline_stages', '--exact', '--ignored', '--nocapture', '--test-threads=1']
                 started = time.monotonic()
                 case_deadline = min(deadline, started + args.seconds_per_case)

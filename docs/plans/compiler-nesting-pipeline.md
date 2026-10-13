@@ -1283,3 +1283,59 @@ records are `tsrust-parser-consumer-refresh.json`, `tsrust-parser-cleanup.json`
 and `tsrust-parser-installed-project-check.log` in SQLite. After exact-byte
 evidence verification, both parser worktrees and their private targets are
 removed; the parser branch and all original commits remain in Git.
+
+
+### Checker assertion and dense-array continuations
+
+The two checker re-entry traces from parser integration are addressed by shared
+continuations. Assertion frames retain the resolved target, contextual operand
+type, borrowed-union injection decision and outer expected type. Completion
+restores the operand before propagating errors, preserves annotation diagnostics,
+retains the actual callable/borrowed type where required and publishes binding
+and callable-origin metadata in the original order.
+
+Rest wrappers queue non-array operands directly. Dense rest arrays, ordinary
+array literals and non-spread `Array.of` constructors now share the existing
+literal scheduler, including stored-callable preparation, element conversion,
+view-family joining and final array construction. The recursive `array_literal`,
+`array_constructor`, `rest_pack_expression` and `type_assertion_expression`
+helpers are removed. Spread construction retains its separate existing path.
+
+New normal-stack witnesses traverse 16,384 mixed assertion/rest wrappers on
+success and failure, verify every restored operand and preserve the exact leaf
+error span. A separate witness checks the annotation error span and narrowing
+explanation. These input sizes are correctness witnesses, not support ceilings.
+No parser guard, array-rank bound or stack size is increased. The remaining
+local-function lowering, generic staging, proof helpers, emission and auxiliary
+consumer audit is still required before public caps can be retired and formal
+pipeline scaling accepted.
+
+The analysis batch passes 311 tests, including both new wrapper witnesses. The
+two original parser-integration overflow witnesses now pass in their complete
+rest-parameter and type-assertion suites. Pipeline discovery gains an explicit
+`--unbounded-parser` mode: it bypasses admission only, then executes the same
+module-state and local-function lowering before checking, emission and disposal.
+This differs from parser-only probes, which intentionally omit lowering. The
+selected policy is recorded in every run; public behavior remains unchanged.
+New assertion, satisfies, rest-call, fixed-rank Array.of and mixed-wrapper
+generators construct their source in linear time.
+
+Validation passes 108 native integration tests across ten affected suites and
+11 editor tests across four suites. Whole-project formatting changes zero files
+and fingerprints. The initial unit build failure (missing Box wrappers in two
+new test annotations) and its repaired run are both retained in SQLite.
+
+Unbounded-parser pipeline discovery completes parse/lowering/check/emission/drop
+for 1,024 nested rest calls and 1,024 fixed-rank Array.of/index layers. Larger
+observations expose additional connected work: `Analyzer::expression_escapes`
+recurses during analysis of both families at 4,096 layers; mixed wrappers reach
+recursive `fixed_storage::visit_expression` at 1,024 layers. Assertion and
+satisfies chains finish analysis at 1,024 layers but re-enter the emitter through
+`expr_dispatch`. Debugger traces identify these exact paths. These are observed
+failures, not newly imposed limits, and no end-to-end architecture acceptance is
+claimed. The next section must replace these connected walks and emission
+continuations, retaining closure/parameter scope and pre-order traversal.
+
+Evidence uses `tsrust-nesting-wrapper-*` in SQLite. No formal timing run is
+claimed. Installed consumers stay at parser integration `79295194`; this section
+preserves public contracts and leaves the architecture goal active.

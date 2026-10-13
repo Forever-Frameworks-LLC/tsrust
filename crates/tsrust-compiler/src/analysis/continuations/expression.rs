@@ -31,7 +31,11 @@ impl Analyzer {
             expected = Some(kind.base());
         }
         if matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if !matches!(value.kind, ExprKind::SpreadValue(_))) {
-            return self.rest_pack_expression(context, expr, mode, loans, expected).map(super::checked_expression::PreparedExpression::Ready);
+            return Ok(if let Some(frame) = self.prepare_rest_literal_work(context, expr, expected)? {
+                super::checked_expression::PreparedExpression::Literal(frame)
+            } else {
+                super::checked_expression::PreparedExpression::Wrapper { frame: super::wrappers::Frame::Rest, mode, expected }
+            });
         }
         if matches!(expr.kind, ExprKind::LogicalAssign { .. }) { self.truthy_logical_assignment(context, expr); }
         if matches!(expr.kind, ExprKind::Field(..)) { self.owned_assignment_projection(context, expr); }
@@ -41,6 +45,10 @@ impl Analyzer {
         }
         if let Some(ty) = self.prepare_other_expression(context, expr, mode, loans, expected)? {
             return Ok(super::checked_expression::PreparedExpression::Ready(ty));
+        }
+        if matches!(expr.kind, ExprKind::TypeAssertion { .. }) {
+            let (frame, expected) = self.prepare_assertion_work(context, expr, mode, expected)?;
+            return Ok(super::checked_expression::PreparedExpression::Wrapper { frame, mode, expected });
         }
         // A declared nongeneric call already returns its exact tagged type.
         let expected = if matches!(expected, Some(Type::Union(_)))

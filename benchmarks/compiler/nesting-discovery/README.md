@@ -21,3 +21,16 @@ mixed-shape, project, editor, native-backend or resource-policy acceptance. Exac
 sources, compiler-test binary hash, machine memory, stage events and original
 output are retained in the JSON. Import closed records into SQLite and verify
 byte-exact restoration. Existing formal benchmark protocols are unaffected.
+
+
+Use `--unbounded-parser` to observe the downstream pipeline beyond the inherited
+parser admission bound. This opt-in test mode still runs module-state lowering
+and local-function resolution, then analysis, emission and disposal. It does not
+change public compiler behavior. The selected parser policy is recorded in the
+JSON record and probe events. Parser-only discovery in `parser.py` is different:
+its core stage intentionally skips these lowering consumers.
+
+The `assertions`, `satisfies`, `rest-arguments`, `array-of` and `mixed-wrappers`
+families generate source in linear time. Array.of/index layers keep array rank
+fixed while increasing expression depth. Use the existing geometric progression
+and operational process budgets; last passing sizes are not supported ceilings.

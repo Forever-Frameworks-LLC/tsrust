@@ -259,3 +259,11 @@ grammar driver. `syntax/nesting_policy.rs` retains the public admission bounds
 while downstream consumers remain recursive; those bounds are migration debt,
 not compiler architecture acceptance. Unbounded parser probes bypass local
 function lowering and therefore do not establish end-to-end support.
+
+
+`analysis/continuations/wrappers.rs` separates assertion/rest operand preparation
+from completion. The shared expression driver restores the operand before either
+success or error propagation. `literals.rs` selects ordinary array, rest-pack and
+`Array.of` storage through `ArraySource`, so all dense array elements use the
+same scheduler and conversion rules. Constructor lowering and rest type metadata
+are published only after every element completes.
