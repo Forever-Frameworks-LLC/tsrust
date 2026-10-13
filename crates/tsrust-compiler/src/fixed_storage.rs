@@ -1333,35 +1333,19 @@ fn affected(expr: &Expr, id: usize) -> bool {
 }
 
 pub(crate) fn visit_statements(body: &[Stmt], visit: &mut impl FnMut(&Stmt)) {
-    for stmt in body {
+    let mut work: Vec<&Stmt> = body.iter().rev().collect();
+    while let Some(stmt) = work.pop() {
         visit(stmt);
         match &stmt.kind {
-            StmtKind::ForOf { body, .. } | StmtKind::While { body, .. } | StmtKind::Block(body) => {
-                visit_statements(body, visit)
-            }
-            StmtKind::Loop { body, update, .. } => {
-                visit_statements(body, visit);
-                visit_statements(update, visit);
-            }
-            StmtKind::If {
-                then_body,
-                else_body,
-                ..
-            } => {
-                visit_statements(then_body, visit);
-                visit_statements(else_body, visit);
-            }
-            // Exception regions hold ordinary statements too.
+            StmtKind::ForOf { body, .. } | StmtKind::While { body, .. } | StmtKind::Block(body) => work.extend(body.iter().rev()),
+            StmtKind::Loop { body, update, .. } => { work.extend(update.iter().rev()); work.extend(body.iter().rev()); },
+            StmtKind::If { then_body, else_body, .. } => { work.extend(else_body.iter().rev()); work.extend(then_body.iter().rev()); },
             StmtKind::Try(region) => {
-                visit_statements(&region.body, visit);
-                if let Some(catch) = &region.catch {
-                    visit_statements(&catch.body, visit);
-                }
-                if let Some(finally) = &region.finally {
-                    visit_statements(finally, visit);
-                }
-            }
-            _ => {}
+                if let Some(finally) = &region.finally { work.extend(finally.iter().rev()); }
+                if let Some(catch) = &region.catch { work.extend(catch.body.iter().rev()); }
+                work.extend(region.body.iter().rev());
+            },
+            _ => {},
         }
     }
 }
@@ -1376,81 +1360,28 @@ pub(crate) fn visit_function_expressions(function: &CheckedFunction, visit: &mut
 }
 
 fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
+    let mut work = vec![expr];
+    while let Some(expr) = work.pop() {
         visit(expr);
         match &expr.kind {
-            ExprKind::SpreadCall(plan) => { for value in plan.expressions() { visit_expression(value, visit); } }
+            ExprKind::SpreadCall(plan) => work.extend(plan.expressions().collect::<Vec<_>>().into_iter().rev()),
             ExprKind::SpreadValue(_) => (),
-            ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value)
-            | ExprKind::Project { value, .. }
-            | ExprKind::Inject { value, .. }
-            | ExprKind::Unary { value, .. }
-            | ExprKind::Update { target: value, .. }
-            | ExprKind::Field(value, _) => visit_expression(value, visit),
-            ExprKind::Conditional {
-                predicate,
-                consequent,
-                alternate,
-            } => {
-                visit_expression(predicate, visit);
-                visit_expression(consequent, visit);
-                visit_expression(alternate, visit);
-            }
-            ExprKind::Optional {
-                base: left,
-                body: right,
-                ..
-            }
-            | ExprKind::Binary { left, right, .. }
-            | ExprKind::CompoundAssign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::Assign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::CoalesceAssign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::LogicalAssign {
-                target: left,
-                value: right,
-                ..
-            }
-            | ExprKind::Index(left, right) => {
-                visit_expression(left, visit);
-                visit_expression(right, visit);
-            }
-            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => {
-                for value in values {
-                    visit_expression(value, visit);
-                }
-            }
-            ExprKind::Record(fields) => {
-                for (_, value) in fields {
-                    visit_expression(value, visit);
-                }
-            }
-            ExprKind::Call(callee, args) => {
-                visit_expression(callee, visit);
-                for arg in args {
-                    visit_expression(arg, visit);
-                }
-            }
-            ExprKind::Selected { .. }
-            | ExprKind::Closure { .. }
-            | ExprKind::Name(_)
-            | ExprKind::String(_)
-            | ExprKind::Integer(_)
-            | ExprKind::EnumMember { .. } | ExprKind::Number(_)
-            | ExprKind::Boolean(_)
-            | ExprKind::Null
-            | ExprKind::Undefined => {}
+            ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value)
+            | ExprKind::Project { value, .. } | ExprKind::Inject { value, .. }
+            | ExprKind::Unary { value, .. } | ExprKind::Update { target: value, .. }
+            | ExprKind::Field(value, _) => work.push(value),
+            ExprKind::Conditional { predicate, consequent, alternate } => { work.push(alternate); work.push(consequent); work.push(predicate); },
+            ExprKind::Optional { base: left, body: right, .. } | ExprKind::Binary { left, right, .. }
+            | ExprKind::CompoundAssign { target: left, value: right, .. } | ExprKind::Assign { target: left, value: right, .. }
+            | ExprKind::CoalesceAssign { target: left, value: right, .. } | ExprKind::LogicalAssign { target: left, value: right, .. }
+            | ExprKind::Index(left, right) => { work.push(right); work.push(left); },
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => work.extend(values.iter().rev()),
+            ExprKind::Record(fields) => work.extend(fields.iter().rev().map(|(_, value)| value)),
+            ExprKind::Call(callee, args) => { work.extend(args.iter().rev()); work.push(callee); },
+            ExprKind::Selected { .. } | ExprKind::Closure { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_)
+            | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {},
         }
+    }
 }
 
 fn visit_expressions(body: &[Stmt], visit: &mut impl FnMut(&Expr)) {
@@ -1485,5 +1416,37 @@ mod native_layout_tests {
         let runtime = RecordRuntime::new(&checked.records, &checked.unions);
         for id in native { assert_eq!(layout_bound(&checked, &runtime, Type::Record(id), 0), None); }
         assert_eq!(layout_bound(&checked, &runtime, Type::Record(0), 0), Some(8));
+    }
+}
+
+#[cfg(test)]
+mod traversal_tests {
+    use super::*;
+    #[test]
+    fn deep_storage_visits_preserve_preorder_and_closure_boundaries() {
+        let span = crate::Span::new(0, 1);
+        let mut value = Expr::new(ExprKind::Integer("0".into()), span);
+        for index in 1..=16_384 {
+            value = Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(index.to_string()), span)), vec![value]), span);
+        }
+        let mut names = Vec::new();
+        visit_expression(&value, &mut |expr| if let ExprKind::Name(name) = &expr.kind { names.push(name.parse::<usize>().unwrap()); });
+        assert_eq!(names, (1..=16_384).rev().collect::<Vec<_>>());
+        let mut body = vec![Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Expr(value), span }];
+        for index in 1..=16_384 {
+            body = vec![Stmt { labels: Vec::new(), control_target: None, kind: StmtKind::Block(body), span: crate::Span::new(index, index + 1) }];
+        }
+        let mut order = Vec::new();
+        visit_statements(&body, &mut |stmt| order.push(stmt.span.start));
+        assert_eq!(order, (0..=16_384).rev().collect::<Vec<_>>());
+        let mut calls = 0;
+        visit_expressions(&body, &mut |expr| if matches!(expr.kind, ExprKind::Call(..)) { calls += 1; });
+        assert_eq!(calls, 16_384);
+        drop(body);
+        let program = crate::syntax::parse("function main(){const f=()=>hidden();}").unwrap();
+        let StmtKind::Let { value, .. } = &program.functions[0].body[0].kind else { panic!("closure") };
+        let mut visits = 0;
+        visit_expression(value, &mut |_| visits += 1);
+        assert_eq!(visits, 1);
     }
 }

@@ -267,3 +267,13 @@ success or error propagation. `literals.rs` selects ordinary array, rest-pack an
 `Array.of` storage through `ArraySource`, so all dense array elements use the
 same scheduler and conversion rules. Constructor lowering and rest type metadata
 are published only after every element completes.
+
+
+`analysis/escape_work.rs` owns escape-origin discovery across statement bodies,
+closure defaults and expressions. One lexical map uses rollback markers for
+scopes; origin-query memos never outlive that map's current version. Preserve
+source traversal order and the existing distinction between origin lookup and
+escape marking. `fixed_storage.rs` uses preorder worklists for statement and
+expression visitors, with closure bodies remaining separate roots. Assertion
+emission joins the shared expression scheduler, retaining integer widening and
+`satisfies` behavior at completion.

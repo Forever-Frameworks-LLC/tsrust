@@ -10,6 +10,7 @@ enum CallState<'p> {
     Assignment { discards: Vec<bool>, first_temporary: usize },
     Logical { plan: super::logical_values_emit::LogicalPlan, temporary: Option<usize> },
     Selected,
+    Assertion { widen: bool },
     Coalesce { plan: super::coalesce_work::Plan, temporary: Option<usize>, pattern_slot: Option<usize> },
     Conditional { infer: bool, temporary: Option<usize> },
     BorrowedInjection { union: UnionId, infer: bool, temporary: Option<usize> },
@@ -277,6 +278,10 @@ impl<'p> Emitter<'p> {
                 state: CallState::NullableParameterField { method },
             });
         }
+        if let ExprKind::TypeAssertion { value, satisfies, .. } = &expr.kind {
+            return Some(CallFrame { children: vec![(value, mode)], rendered: Vec::new(), invocation: None,
+                state: CallState::Assertion { widen: !satisfies && value.ty == Some(Type::Int) && expr.ty == Some(Type::Number) } });
+        }
         if let Some(access) = self.prepare_storage_access_work(fun, expr) {
             return Some(access);
         }
@@ -528,7 +533,7 @@ impl<'p> Emitter<'p> {
     ) -> String {
         if matches!(
             state,
-            CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+            CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
         ) {
             return self.finish_structural_work(fun, expr, mode, state, rendered);
         }
@@ -537,7 +542,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+            CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
             CallState::Ready(code) => return code,
@@ -821,6 +826,10 @@ impl<'p> Emitter<'p> {
                 return self.finish_logical_emission(plan, values.next().expect("logical left"), values.next());
             }
             CallState::Selected => return rendered.into_iter().next().expect("selected child"),
+            CallState::Assertion { widen } => {
+                let code = rendered.into_iter().next().expect("assertion operand");
+                return if widen { format!("({code}) as f64") } else { code };
+            },
             CallState::Coalesce { plan, .. } => {
                 let ExprKind::Binary { right, .. } = &expr.kind else { unreachable!("coalescing operands"); };
                 let mut values = rendered.into_iter();
@@ -1292,6 +1301,33 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn deep_assertions_preserve_casts_and_release_emission_boundaries() {
+        let checked = crate::check("function probe():number{return 987654321 as number;}function main(){console.log(probe());}").unwrap();
+        let fun = checked.program.functions.iter().find(|fun| fun.name == "probe").unwrap();
+        let template = fun.body.iter().find_map(|stmt| if let StmtKind::Return(Some(expr)) = &stmt.kind { Some(expr) } else { None }).unwrap();
+        let ExprKind::TypeAssertion { value, .. } = &template.kind else { panic!("assertion") };
+        let emitter = super::super::emitter_for(&checked.program, "");
+        let mut nested = (**value).clone();
+        let leaf = emitter.expr(fun, &nested, Mode::Copy);
+        for layer in 0..16_384 {
+            let mut parent = template.clone();
+            parent.ty = Some(Type::Int);
+            let ExprKind::TypeAssertion { value, satisfies, .. } = &mut parent.kind else { unreachable!() };
+            *satisfies = layer % 2 == 0;
+            *value = Box::new(nested);
+            nested = parent;
+        }
+        assert_eq!(emitter.expr(fun, &nested, Mode::Copy), leaf);
+        let mut outer = template.clone();
+        let ExprKind::TypeAssertion { value, .. } = &mut outer.kind else { unreachable!() };
+        *value = Box::new(nested);
+        assert_eq!(emitter.expr(fun, &outer, Mode::Copy), format!("({leaf}) as f64"));
+        assert_eq!(emitter.expression_depth.get(), 0);
+        assert!(emitter.conditional_temporaries.borrow().is_empty());
+        drop(outer);
+    }
 
     #[test]
     fn sequence_operands_share_the_emission_stack() {

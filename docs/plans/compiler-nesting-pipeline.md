@@ -1339,3 +1339,38 @@ continuations, retaining closure/parameter scope and pre-order traversal.
 Evidence uses `tsrust-nesting-wrapper-*` in SQLite. No formal timing run is
 claimed. Installed consumers stay at parser integration `79295194`; this section
 preserves public contracts and leaves the architecture goal active.
+
+
+### Escape discovery, storage visitors and assertion emission
+
+The connected escape-discovery cycle now uses `analysis/escape_work.rs`.
+Statement bodies, closure parameters/defaults and expression traversal share one
+work stack. A single lexical map records rollback entries instead of cloning the
+whole map at each nested scope. Origin lookup and escape marking use heap frames;
+query-local memoization avoids rescanning coalescing branches and never survives
+a lexical-map change. Existing traversal coverage, default-before-binding order,
+catch/loop shadowing and independent sibling scopes remain unchanged.
+
+Storage statement/expression visitors use preorder worklists, preserving operand
+and region order and closure boundaries. Assertion emission now suspends on the
+shared expression worklist, preserving `satisfies`, integer-to-number conversion,
+expression boundaries and temporary cleanup.
+
+The coherent section passes 325 analysis/storage/emission unit tests and 93 native
+tests across eight affected suites, plus nine editor tests across three suites.
+New witnesses exercise 16,384 nested closures,
+origin wrappers, storage expressions/statements and emitted assertions, including
+normal disposal, lexical rollback and cast output. Whole-project formatting changes
+zero files or fingerprints. These sizes are witnesses, not admission limits.
+
+Unbounded-parser pipeline discovery records 26 cases: 21 complete and five reach
+execution budgets, with no crashes or stack overflows. Assertions and satisfies
+complete through 1,048,576 layers; rest calls through 65,536; Array.of/index through
+16,384; mixed wrappers through 4,096. The next geometric cases time out, mostly
+during emission; the final mixed case also exhausts the overall 180-second budget.
+This is exploratory evidence under concurrent checks, not formal timing or a
+scaling acceptance claim. Emission string construction still needs scaling review.
+
+SQLite evidence uses `tsrust-nesting-escape-storage-*`. Public admission remains
+unchanged; local-function resolution, other recursive consumers and formal scaling
+remain open. Installed consumers remain at `79295194`; no public contract changed.
