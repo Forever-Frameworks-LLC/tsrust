@@ -6,6 +6,17 @@ struct Boundary {
 }
 
 enum CallState<'p> {
+    NullableParameterField { method: String },
+    NamedAccess { discards: Vec<bool>, first_temporary: usize },
+    TemporaryAccess {
+        borrowed: bool,
+        fixed: Option<crate::fixed_storage::Shape>,
+    },
+    Array,
+    Record,
+    Template {
+        first_temporary: usize,
+    },
     Callable,
     Declared {
         index: usize,
@@ -60,16 +71,28 @@ impl<'p> Emitter<'p> {
         mode: Mode,
     ) -> String {
         let mut work = vec![Frame::new(expr, mode)];
-        let mut completed = None;
+        let mut completed: Option<String> = None;
         loop {
             let frame = work.last_mut().expect("active expression");
-            if let Some(code) = completed.take() {
-                frame
-                    .call
-                    .as_mut()
-                    .expect("suspended call")
-                    .rendered
-                    .push(code);
+            if let Some(mut code) = completed.take() {
+                let call = frame.call.as_mut().expect("suspended expression");
+                if let CallState::Template { first_temporary } = &call.state {
+                    let declarations = self
+                        .conditional_temporaries
+                        .borrow_mut()
+                        .drain(*first_temporary..)
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    let part = call.children[call.rendered.len()].0;
+                    code = self.finish_template_append(part, &code, &declarations);
+                }
+                if let CallState::NamedAccess { discards, first_temporary } = &call.state
+                    && discards[call.rendered.len()]
+                {
+                    let declarations = self.conditional_temporaries.borrow_mut().drain(*first_temporary..).collect::<Vec<_>>().join(" ");
+                    code = format!("{{{declarations} let _={code};}}");
+                }
+                call.rendered.push(code);
             }
             if frame.boundary.is_none() {
                 // Sequence has its own temporary policy and precedes copy adaptation.
@@ -100,6 +123,12 @@ impl<'p> Emitter<'p> {
             }
             let code = if let Some(call) = &mut frame.call {
                 if let Some(&(child, mode)) = call.children.get(call.rendered.len()) {
+                    if let CallState::Template { first_temporary } = &mut call.state {
+                        *first_temporary = self.conditional_temporaries.borrow().len();
+                    }
+                    if let CallState::NamedAccess { first_temporary, .. } = &mut call.state {
+                        *first_temporary = self.conditional_temporaries.borrow().len();
+                    }
                     work.push(Frame::new(child, mode));
                     continue;
                 }
@@ -137,6 +166,48 @@ impl<'p> Emitter<'p> {
         expr: &'a Expr,
         mode: Mode,
     ) -> Option<CallFrame<'a, 'p>> {
+        if let Some((root, method)) = self.nullable_record_parameter_field_work(fun, expr, mode) {
+            return Some(CallFrame {
+                children: vec![(root, Mode::Read)],
+                rendered: Vec::new(),
+                invocation: None,
+                state: CallState::NullableParameterField { method },
+            });
+        }
+        if let Some(access) = self.prepare_storage_access_work(fun, expr) {
+            return Some(access);
+        }
+        let structural = match &expr.kind {
+            ExprKind::Array(values) | ExprKind::ArrayOf(values, _) => Some((
+                CallState::Array,
+                values.iter().map(|value| (value, Mode::Consume)).collect(),
+            )),
+            ExprKind::Record(fields) => Some((
+                CallState::Record,
+                fields
+                    .iter()
+                    .map(|(_, value)| (value, Mode::Consume))
+                    .collect(),
+            )),
+            ExprKind::Template(parts) => Some((
+                CallState::Template { first_temporary: 0 },
+                parts
+                    .iter()
+                    .skip(1)
+                    .step_by(2)
+                    .map(|part| (part, Mode::Read))
+                    .collect(),
+            )),
+            _ => None,
+        };
+        if let Some((state, children)) = structural {
+            return Some(CallFrame {
+                children,
+                rendered: Vec::new(),
+                invocation: None,
+                state,
+            });
+        }
         let ExprKind::Call(callee, args) = &expr.kind else {
             return None;
         };
@@ -328,11 +399,20 @@ impl<'p> Emitter<'p> {
         state: CallState<'_>,
         rendered: Vec<String>,
     ) -> String {
+        if matches!(
+            state,
+            CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. }
+        ) {
+            return self.finish_structural_work(fun, expr, mode, state, rendered);
+        }
         let ExprKind::Call(callee, args) = &expr.kind else {
             unreachable!("scheduled call");
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
+            CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
+                unreachable!("structural completion handled above")
+            }
             CallState::Ready(code) => return code,
             CallState::Declared {
                 index,
@@ -480,6 +560,199 @@ impl<'p> Emitter<'p> {
         };
         debug_assert!(rendered.next().is_none());
         Self::access_wrapped(expr, mode, code)
+    }
+
+    fn prepare_storage_access_work<'a>(
+        &self,
+        fun: &CheckedFunction,
+        expr: &'a Expr,
+    ) -> Option<CallFrame<'a, 'p>> {
+        let (base, index) = match &expr.kind {
+            ExprKind::Field(base, name) => {
+                // These property forms precede storage selection in dispatch.
+                if matches!(&base.kind, ExprKind::Name(namespace) if NumericConstant::lookup(namespace, name).is_some())
+                    || matches!(base.ty, Some(Type::Union(_)))
+                    || (name == "size" && (matches!(base.ty, Some(Type::Set(_) | Type::Map(_)))
+                        || matches!(base.ty, Some(Type::Record(id)) if self.program.records[id].native_element().is_some())))
+                    || (name == "length" && (base.ty.map(Type::scalar_base) == Some(Type::String)
+                        || matches!(base.ty, Some(Type::Array(_)))
+                        || matches!(base.ty, Some(Type::Record(id)) if self.program.records[id].is_tuple())))
+                {
+                    return None;
+                }
+                (base.as_ref(), None)
+            }
+            ExprKind::Index(base, index) => {
+                if base.ty.map(Type::scalar_base) == Some(Type::String)
+                    || self.expression_shape(base) == Some(crate::fixed_storage::Shape::LiteralStrings)
+                {
+                    return None;
+                }
+                (base.as_ref(), Some(index.as_ref()))
+            }
+            _ => return None,
+        };
+        if !Self::temporary_storage(expr) {
+            let (_, steps) = self.storage_steps(expr);
+            let mut children = Vec::new();
+            let mut discards = Vec::new();
+            for step in steps {
+                match step {
+                    StorageStep::Index(index, _) => {
+                        children.push((index, Mode::Copy));
+                        discards.push(false);
+                    }
+                    StorageStep::Discard(prefix) => {
+                        children.push((prefix, Mode::Read));
+                        discards.push(true);
+                    }
+                    _ => (),
+                }
+            }
+            return Some(CallFrame {
+                children,
+                rendered: Vec::new(),
+                invocation: None,
+                state: CallState::NamedAccess { discards, first_temporary: 0 },
+            });
+        }
+        let borrowed = Self::borrowed_place_expression(fun, base);
+        let fixed = if index.is_some() && !borrowed {
+            self.fixed.temporary_shape(self.program, fun, base).cloned()
+        } else {
+            None
+        };
+        let mut children = Vec::new();
+        if fixed.is_some() {
+            // Temporary fixed storage is proved only for scalar array literals.
+            // Its elements have expression boundaries; the literal itself does not.
+            let mut literal = base;
+            while let ExprKind::Unary { op: UnaryOp::OptionalSelected, value, .. } = &literal.kind {
+                literal = value;
+            }
+            let ExprKind::Array(items) = &literal.kind else {
+                unreachable!("proved temporary scalar literal");
+            };
+            children.extend(items.iter().map(|item| (item, Mode::Consume)));
+        } else {
+            children.push((base, if borrowed { Mode::Read } else { Mode::Consume }));
+        }
+        if let Some(index) = index {
+            children.push((index, Mode::Copy));
+        }
+        Some(CallFrame {
+            children,
+            rendered: Vec::new(),
+            invocation: None,
+            state: CallState::TemporaryAccess { borrowed, fixed },
+        })
+    }
+
+    fn finish_structural_work(
+        &self,
+        fun: &CheckedFunction,
+        expr: &Expr,
+        mode: Mode,
+        state: CallState<'_>,
+        rendered: Vec<String>,
+    ) -> String {
+        let code = match state {
+            CallState::NullableParameterField { method } => {
+                return Self::finish_nullable_record_parameter_field(expr, &method, rendered.into_iter().next().expect("completed nullable receiver"));
+            }
+
+            CallState::NamedAccess { .. } => {
+                let mut rendered = rendered.into_iter();
+                let code = self.storage_access_with(fun, expr, mode, &mut |_, _, _| rendered.next().expect("completed storage operand"));
+                debug_assert!(rendered.next().is_none());
+                return code;
+            }
+
+            CallState::TemporaryAccess { borrowed, fixed } => {
+                let mut rendered = rendered;
+                let index = if matches!(expr.kind, ExprKind::Index(..)) {
+                    rendered.pop().expect("completed index")
+                } else {
+                    String::new()
+                };
+                let array = if fixed.is_some() {
+                    format!("[{}]", rendered.join(", "))
+                } else {
+                    rendered.pop().expect("completed receiver")
+                };
+                return self.finish_temporary_storage_access(expr, mode, borrowed, fixed.as_ref(), array, index);
+            }
+
+            CallState::Array => {
+                let (ExprKind::Array(values) | ExprKind::ArrayOf(values, _)) = &expr.kind else {
+                    unreachable!("array expression");
+                };
+                return self.finish_array_literal_expression(
+                    expr,
+                    values,
+                    mode,
+                    rendered.join(", "),
+                );
+            }
+            CallState::Record => {
+                let ExprKind::Record(fields) = &expr.kind else {
+                    unreachable!("record expression");
+                };
+                let Type::Record(index) = expr.ty.expect("checked record type") else {
+                    unreachable!("record literal");
+                };
+                let values = fields
+                    .iter()
+                    .zip(rendered)
+                    .map(|((key, _), value)| {
+                        format!("field{}: {}", self.fields[index][key.text.as_str()], value)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                let values = self.order_values(index, fields, values);
+                format!(
+                    "Record{} {{ {values} }}",
+                    self.native_record_declaration(index)
+                )
+            }
+            CallState::Template { .. } => {
+                let ExprKind::Template(parts) = &expr.kind else {
+                    unreachable!("template expression");
+                };
+                let capacity: usize = parts
+                    .iter()
+                    .step_by(2)
+                    .map(|part| {
+                        let ExprKind::String(chunk) = &part.kind else {
+                            unreachable!("template chunk");
+                        };
+                        chunk.len()
+                    })
+                    .sum();
+                let mut code = format!(
+                    "{{ use std::fmt::Write as _; let mut template_output = std::string::String::with_capacity({capacity}); "
+                );
+                let mut rendered = rendered.into_iter();
+                for (index, part) in parts.iter().enumerate() {
+                    if index % 2 == 0 {
+                        let ExprKind::String(chunk) = &part.kind else {
+                            unreachable!("template chunk");
+                        };
+                        code.push_str(&format!("template_output.push_str({chunk:?}); "));
+                    } else {
+                        code.push_str(&rendered.next().expect("completed interpolation"));
+                    }
+                }
+                code.push_str("String::Owned(template_output) }");
+                code
+            }
+            _ => unreachable!("structural emission frame"),
+        };
+        match mode {
+            Mode::Read => format!("&({code})"),
+            Mode::Mutate => format!("&mut ({code})"),
+            Mode::Consume | Mode::Copy => code,
+        }
     }
 
     fn finish_bound_callable_work(
@@ -806,6 +1079,66 @@ impl<'p> Emitter<'p> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn named_index_operands_share_the_emission_stack() {
+        let checked = crate::check("function main(){const a=[0];console.log(a[987654321]);}").unwrap();
+        let fun = checked.program.functions.iter().find(|fun| fun.name == "main").unwrap();
+        let StmtKind::Expr(console) = &fun.body[1].kind else { panic!("console statement"); };
+        let ExprKind::Call(_, args) = &console.kind else { panic!("console call"); };
+        let template = &args[0];
+        let ExprKind::Index(_, index) = &template.kind else { panic!("indexed expression"); };
+        let emitter = super::super::emitter_for(&checked.program, "");
+        let leaf = emitter.expr(fun, index, Mode::Copy);
+        let shallow = emitter.expr(fun, template, Mode::Copy);
+        let (prefix, suffix) = shallow.split_once(&leaf).expect("index emission");
+        let mut nested = index.as_ref().clone();
+        // A phase-isolated structural witness, not a language depth limit.
+        for _ in 0..4096 {
+            let mut parent = template.clone();
+            let ExprKind::Index(_, index) = &mut parent.kind else { unreachable!() };
+            **index = nested;
+            nested = parent;
+        }
+        let emitted = emitter.expr(fun, &nested, Mode::Copy);
+        assert!(emitted == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+        assert_eq!(emitter.expression_depth.get(), 0);
+        assert!(emitter.conditional_temporaries.borrow().is_empty());
+    }
+
+    #[test]
+    fn mixed_aggregate_access_and_calls_share_the_emission_stack() {
+        fn payload(expr: &mut Expr) -> &mut Expr {
+            let ExprKind::Call(_, args) = &mut expr.kind else { panic!("call"); };
+            let ExprKind::Index(base, _) = &mut args[0].kind else { panic!("index"); };
+            let ExprKind::Field(base, _) = &mut base.kind else { panic!("field"); };
+            let ExprKind::Record(fields) = &mut base.kind else { panic!("record"); };
+            let ExprKind::Array(items) = &mut fields[0].1.kind else { panic!("array"); };
+            &mut items[0]
+        }
+        let checked = crate::check("function identity(value:int):int{return value;} function main(){console.log(identity(({value:[987654321]}).value[0]));}").unwrap();
+        let fun = checked.program.functions.iter().find(|fun| fun.name == "main").unwrap();
+        let StmtKind::Expr(console) = &fun.body[0].kind else { panic!("console statement"); };
+        let ExprKind::Call(_, args) = &console.kind else { panic!("console call"); };
+        let template = &args[0];
+        let emitter = super::super::emitter_for(&checked.program, "");
+        let mut parent = template.clone();
+        let mut nested = payload(&mut parent).clone();
+        let leaf = emitter.expr(fun, &nested, Mode::Copy);
+        let shallow = emitter.expr(fun, template, Mode::Copy);
+        let (prefix, suffix) = shallow.split_once(&leaf).expect("leaf emission");
+        // This isolates emission from remaining parser/checker migrations.
+        // The witness size is not a source-language support ceiling.
+        for _ in 0..4096 {
+            let mut parent = template.clone();
+            *payload(&mut parent) = nested;
+            nested = parent;
+        }
+        let emitted = emitter.expr(fun, &nested, Mode::Copy);
+        assert!(emitted == format!("{}{leaf}{}", prefix.repeat(4096), suffix.repeat(4096)));
+        assert_eq!(emitter.expression_depth.get(), 0);
+        assert!(emitter.conditional_temporaries.borrow().is_empty());
+    }
 
     #[test]
     fn deep_checked_call_arguments_use_one_emission_stack() {

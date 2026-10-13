@@ -7848,14 +7848,15 @@ impl Analyzer {
 
     // Appending ends each operand borrow before the next interpolation runs.
     // Incoming consumer loans remain active throughout the template.
-    fn template_literal(
-        &mut self,
-        context: &mut Context,
-        parts: &mut [Expr],
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
+    fn template_literal(&mut self, context: &mut Context, parts: &mut [Expr], loans: &Loans) -> Result<Type, Diagnostic> {
         for part in parts {
             let actual = self.expression(context, part, Mode::Read, loans, None)?;
+            self.finish_template_part(part, actual)?;
+        }
+        Ok(Type::String)
+    }
+
+    fn finish_template_part(&self, part: &Expr, actual: Type) -> Result<(), Diagnostic> {
             self.require_native_capability(actual, crate::native_types::Capability::StringConversion, part.span, true)?;
             if !matches!(
                 actual,
@@ -7872,8 +7873,7 @@ impl Analyzer {
                     part.span,
                 ));
             }
-        }
-        Ok(Type::String)
+        Ok(())
     }
 
     fn finalize_nullable_returns(&self, body: &mut [Stmt], result: Type) -> Result<(), Diagnostic> {
@@ -8824,202 +8824,26 @@ impl Analyzer {
         }
     }
 
-    fn record_literal(
-        &mut self,
-        context: &mut Context,
-        fields: &mut Vec<(Token, Expr)>,
-        loans: &Loans,
-        expected: Option<Type>,
-        span: Span,
-    ) -> Result<Type, Diagnostic> {
-        let module_literal = self.module_literal_scope.is_some_and(|scope| scope.start <= span.start && span.end <= scope.end);
-        if expected.is_none() && (self.builtin_literals || module_literal) {
-            let mut inferred = Vec::new();
-            let mut types = HashMap::new();
-            for (key, value) in fields.iter_mut() {
-                if types.contains_key(&key.text) {
-                    return Err(Diagnostic::new(
-                        "duplicate",
-                        format!("Duplicate field {:?}.", key.text),
-                        key.span,
-                    ));
-                }
-                let actual = self.expression(context, value, Mode::Consume, loans, None)?;
-                if !module_literal && !matches!(
-                    actual,
-                    Type::Int
-                        | Type::Number
-                        | Type::Boolean
-                        | Type::Null
-                        | Type::Undefined
-                        | Type::String
-                        | Type::Array(_)
-                        | Type::Record(_)
-                ) {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Builtin object fields must be printable values.",
-                        value.span,
-                    ));
-                }
-                types.insert(key.text.clone(), actual);
-                inferred.push(RecordField {
-                    name: key.clone(),
-                    annotation: crate::type_syntax::ValueAnnotation {
-                        kind: crate::type_syntax::ValueAnnotationKind::Named(
-                            crate::type_syntax::TypeName {
-                                text: key.text.clone(),
-                                span: key.span,
-                            },
-                        ),
-                        span: key.span,
-                    },
-                    ty: Some(actual),
-                    callable_declaration: None, optional: false,
-                });
-            }
-            let id = self.program.records.len();
-            let name = if module_literal { format!("@module:object:{id}") } else { format!("BuiltinObject{id}") };
-            self.record_names.insert(name.clone(), id);
-            self.program.records.push(Record {
-            native_type: None, map_definition: None, set_definition: None,                enum_definition: None,literal_definition:None,
-                application: None,
-                name: Token {
-                    text: name,
-                    span,
-                    kind: TokenKind::Name,
-                },
-                type_parameters: Vec::new(),
-                fields: inferred,
-            });
-            self.fields.push(types);
-            return Ok(Type::Record(id));
-        }
-        let index = match expected {
-            Some(Type::Record(index)) => index,
-            _ => {
-                return Err(Diagnostic::new(
-                    "type",
-                    "A record literal needs a named record type from its annotation or call/return context.",
-                    span,
-                ));
-            }
-        };
-        let Type::Record(index) = self.scoped_records.recursive_parameter(Type::Record(index)) else { unreachable!() };
-        if let Some(id) = self.program.records[index].native_type
-            && !crate::native_types::declaration(id).source_constructible() {
-            return Err(Diagnostic::new("native-opaque", "Opaque native values cannot be constructed with record literals; use their module's constructors.", span));
-        }
-        self.fill_omitted_optional_fields(index, fields, span);
-        let mut seen = HashSet::new();
-        let mut concrete = self.program.records[index].fields.iter().map(|field| field.ty.expect("checked field")).collect::<Vec<_>>();
-        let mut specialized = false;
+    fn record_literal(&mut self, context: &mut Context, fields: &mut Vec<(Token, Expr)>, loans: &Loans, expected: Option<Type>, span: Span) -> Result<Type, Diagnostic> {
+        let mut frame = self.prepare_record_work(fields, expected, span)?;
         for (key, value) in fields.iter_mut() {
-            if !seen.insert(key.text.clone()) {
-                return Err(Diagnostic::new(
-                    "duplicate",
-                    format!("Duplicate field {:?}.", key.text),
-                    key.span,
-                ));
-            }
-            let field_type = self.fields[index].get(&key.text).copied().ok_or_else(|| {
-                Diagnostic::new(
-                    "type",
-                    format!(
-                        "Unknown field {:?} on {}.",
-                        key.text,
-                        self.type_name(Type::Record(index))
-                    ),
-                    key.span,
-                )
-            })?;
-            let nominal=self.scoped_records.declaration(index);
-            let scoped_value = matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::StoredCallable(family) if self.callables.storage.scoped_native_family(family).is_some())
-                && !matches!(self.expression_type_hint(context, value), Some(Type::Null | Type::Undefined));
-            let field_type=if scoped_value || matches!(field_type,Type::Closure(_) | Type::BorrowedCallable(_)) {
-                self.program.records[nominal].fields.iter().find(|field|field.name.text==key.text).and_then(|field|field.ty).unwrap_or(field_type)
-            }else{field_type};
-            let actual = if let Type::StoredCallable(family) = field_type {
-                self.stored_callable_value(context, value, family, loans)?
-            } else {
-                let concrete_expected=self.absent_nullable_record_annotation(context,Some(field_type),value)?.unwrap_or(field_type);
-                self.scoped_record_field_value(context, value, concrete_expected, loans)?
-            };
-            let scoped_native = self.native_borrow_types && actual != field_type && self.native_shape_contains_view(actual);
-            let contract_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else if scoped_native && let Type::StoredCallable(family)=field_type {Type::Callback(self.callables.storage.declaration(family).expect("owned field declaration"))}else{field_type};
-            self.require(actual, Some(contract_type), value.span)?;
-            let nested_instance = matches!((actual, field_type), (Type::Record(actual), Type::Record(expected))
-                if actual != expected && self.scoped_records.declaration(actual) == expected);
-            let nested_array_instance = matches!((actual, field_type), (Type::Array(ArrayElement::Record(actual, depth)), Type::Array(ArrayElement::Record(expected, expected_depth)))
-                if depth == expected_depth && actual != expected && self.scoped_records.declaration(actual) == expected);
-            if scoped_native || nested_instance || nested_array_instance || self.scoped_record_nullable_contract(actual,field_type) || self.scoped_map_contract(actual, field_type) || matches!(self.unions.payload(field_type).unwrap_or(field_type), Type::Callback(_) | Type::BorrowedCallable(_)) {
-                let position = self.program.records[index].fields.iter().position(|field| field.name.text == key.text).expect("checked field name");
-                concrete[position] = self.recursive_native_field_type(actual, nominal, position, value.span)?;
-                specialized = true;
-            }
+            let (expected, child) = self.prepare_record_child(context, key, value, &mut frame)?;
+            let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
+            self.finish_record_child(context, key, value, &mut frame, child, actual)?;
         }
-        let mut missing = self.fields[index]
-            .keys()
-            .filter(|name| !seen.contains(*name))
-            .cloned()
-            .collect::<Vec<_>>();
-        if !missing.is_empty() {
-            missing.sort();
-            return Err(Diagnostic::new(
-                "type",
-                format!("Missing fields: {}.", missing.join(", ")),
-                span,
-            ));
-        }
-        if specialized {
-            let recursive = self.native_borrow_types && concrete.iter().any(|ty| self.native_shape_contains_view(*ty)) && crate::recursive_view_shapes::Index::new(
-                &self.program.records, &|id| self.unions.members(id),
-            ).recursive(self.scoped_records.declaration(index));
-            let instance = if recursive {
-                self.scoped_records.materialize_recursive(index, concrete, &mut self.program.records, &self.unions)?
-            } else { self.scoped_records.materialize(index, concrete, &mut self.program.records) };
-            while self.fields.len() < self.program.records.len() {
-                let id = self.fields.len();
-                self.fields.push(self.program.records[id].fields.iter().map(|field| (field.name.text.clone(), field.ty.expect("concrete field"))).collect());
-            }
-            if recursive {
-                for (name, value) in fields.iter_mut() {
-                    let target = self.fields[instance][&name.text];
-                    if value.ty != Some(target) {
-                        if matches!(&value.kind, ExprKind::Array(values) | ExprKind::ArrayOf(values, _) if values.is_empty())
-                            && matches!(target, Type::Array(_)) {
-                            value.ty = Some(target);
-                        } else if let ExprKind::Inject { value: payload, union } = &mut value.kind
-                            && matches!(payload.ty, Some(Type::Null | Type::Undefined))
-                            && let Type::Union(destination) = target {
-                            *union = destination;
-                            value.ty = Some(target);
-                        } else { value.wrap_record_carrier(target); }
-                    }
-                }
-                self.refresh_native_recursive_shapes(context);
-            }
-            return Ok(Type::Record(instance));
-        }
-        Ok(Type::Record(index))
+        self.finish_record_work(context, fields, &mut frame, span)
     }
 
     /// Convert a concrete owned environment once, after checking its contract.
-    fn stored_callable_value(
-        &mut self,
-        context: &mut Context,
-        value: &mut Expr,
-        family: usize,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
+    fn stored_callable_value(&mut self, context: &mut Context, value: &mut Expr, family: usize, loans: &Loans) -> Result<Type, Diagnostic> {
+        let frame = self.prepare_stored_value(context, value, family)?;
+        let actual = self.expression(context, value, Mode::Consume, loans, frame.expected)?;
+        self.finish_stored_value(context, value, frame, actual)
+    }
+
+    fn prepare_stored_value(&mut self, context: &Context, value: &Expr, family: usize) -> Result<continuations::StoredValueFrame, Diagnostic> {
         if matches!(value.kind, ExprKind::Conditional { .. }) {
-            return self.expression(
-                context,
-                value,
-                Mode::Consume,
-                loans,
-                Some(Type::StoredCallable(family)),
-            );
+            return Ok(continuations::StoredValueFrame { family, expected: Some(Type::StoredCallable(family)), convert: false });
         }
         let declaration = self.callables.storage.declaration(family).ok_or_else(|| {
             Diagnostic::new(
@@ -9036,14 +8860,15 @@ impl Analyzer {
         // fresh environment is checked against the declared signature.
         let stored = matches!(self.expression_type_hint(context, value), Some(Type::StoredCallable(_)));
         let inferred_generic_factory=matches!(&value.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Name(name) if !context.names.contains_key(name) && self.generic_functions.template(name).is_some_and(|template|template.result.is_none())));
-        let actual = self.expression(
-            context,
-            value,
-            Mode::Consume,
-            loans,
-            if inferred_generic_factory {None} else {Some(if stored { Type::StoredCallable(family) } else { expected })},
-        )?;
-        self.checked_stored_callable_value(context,value,family,actual)
+        Ok(continuations::StoredValueFrame {
+            family,
+            expected: if inferred_generic_factory { None } else { Some(if stored { Type::StoredCallable(family) } else { expected }) },
+            convert: true,
+        })
+    }
+
+    fn finish_stored_value(&mut self, context: &mut Context, value: &mut Expr, frame: continuations::StoredValueFrame, actual: Type) -> Result<Type, Diagnostic> {
+        if frame.convert { self.checked_stored_callable_value(context, value, frame.family, actual) } else { Ok(actual) }
     }
 
     // Integer literals are contextual; names and typed storage/call results are
@@ -9782,14 +9607,12 @@ impl Analyzer {
     ) -> Result<Option<ArrayElement>, Diagnostic> {
         // An empty array literal has no element type of its own; it takes the
         // type of its neighbours under the plain rules.
-        fn has_empty_literal(value: &Expr) -> bool {
-            match &value.kind {
-                ExprKind::Array(values) => values.is_empty() || values.iter().any(has_empty_literal),
-                _ => false,
+        let mut pending = values.iter().collect::<Vec<_>>();
+        while let Some(value) = pending.pop() {
+            if let ExprKind::Array(values) = &value.kind {
+                if values.is_empty() { return Ok(None); }
+                pending.extend(values);
             }
-        }
-        if values.iter().any(has_empty_literal) {
-            return Ok(None);
         }
         let mut types = Vec::new();
         for value in values {
@@ -9834,245 +9657,14 @@ impl Analyzer {
         }
     }
 
-    fn field_access(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        name: &str,
-        mode: Mode,
-        loans: &Loans,
-        span: Span,
-    ) -> Result<Type, Diagnostic> {
-        if matches!(&base.kind, ExprKind::Name(namespace) if NumericConstant::lookup(namespace, name).is_some())
-        {
-            return Self::numeric_constant_access(mode, span);
-        }
-        if self.ordered_set_receiver(context,base).is_some(){return self.ordered_set_size(context,base,name,mode,loans,span);}
-        if self.heap_receiver(context, base).is_some() { return self.heap_size(context, base, name, mode, loans, span); }
-        if self.deque_receiver(context, base).is_some() { return self.deque_size(context, base, name, mode, loans, span); }
-        if self.map_receiver_hint(context, base) { return self.map_size(context, base, name, mode, loans, span); }
-        if self.set_receiver_hint(context, base) {
-            return self.set_size(context, base, name, mode, loans, span);
-        }
-        if name == "length"
-            && !matches!(
-                base.kind,
-                ExprKind::Name(_)
-                    | ExprKind::Selected { .. }
-                    | ExprKind::Index(_, _)
-                    | ExprKind::Field(_, _)
-                    | ExprKind::Project { .. }
-            )
-        {
-            let actual = self.expression(context, base, Mode::Read, loans, None)?;
-            if !matches!(actual, Type::String | Type::Array(_)) && !matches!(actual,Type::Record(id) if self.program.records[id].is_tuple()) {
-                return Err(Diagnostic::new(
-                    "type",
-                    "Length requires a string or array.",
-                    base.span,
-                ));
+    fn field_access(&mut self, context: &mut Context, base: &mut Expr, name: &str, mode: Mode, loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
+        match self.prepare_field_work(context, base, name, mode, loans, span)? {
+            continuations::FieldDispatch::Ready(ty) => Ok(ty),
+            continuations::FieldDispatch::Receiver { mode: base_mode, frame } => {
+                let result = self.expression(context, base, base_mode, loans, None);
+                self.finish_field_work(context, base, name, mode, loans, span, frame, result)
             }
-            if mode == Mode::Mutate {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "String and array length are read-only; use push() to append an array element.",
-                    span,
-                ));
-            }
-            return Ok(Type::Int);
         }
-        if !Self::named_storage(base) {
-            return self.temporary_field(context, base, name, mode, loans, span);
-        }
-        if !matches!(
-            base.kind,
-            ExprKind::Name(_)
-                | ExprKind::Sequence(_)
-                | ExprKind::Selected { .. }
-                | ExprKind::Index(_, _)
-                | ExprKind::Field(_, _)
-                | ExprKind::Project { .. }
-        ) && !matches!(&base.kind,ExprKind::SpreadValue(selected) if selected.stable && selected.selection==SpreadSelection::Receiver)
-            && !(matches!(base.kind, ExprKind::Sequence(_) | ExprKind::Unary { op: UnaryOp::NonNull, .. }) && Self::named_storage(base)) {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Field access requires named, indexed, or field storage.",
-                span,
-            ));
-        }
-        let top_projection = context.projection.is_none();
-        // Ordinary fully available field reads need no owned path allocation.
-        let partial = if top_projection && context.has_field_moves {
-            let mut root: &Expr = base;
-            loop {
-                match &root.kind {
-                    ExprKind::Field(parent, _) => root=parent,
-                    ExprKind::Sequence(values) => root=values.last().expect("nonempty sequence"),
-                    _ => break,
-                }
-            }
-            matches!(&root.kind, ExprKind::Name(root) if context.names.get(root).is_some_and(|&id| !context.bindings[id].moved_fields.is_empty()))
-        } else {
-            false
-        };
-        let mut direct = if top_projection && (partial || !loans.is_empty() || context.native_view_calls) {
-            Self::direct_fields(base)
-        } else {
-            None
-        };
-        if let Some((_, path)) = &mut direct {
-            path.push(name.to_owned());
-        }
-        if top_projection && let Some((root, path)) = &direct {
-            context.projection = Some(Projection {
-                root: root.clone(),
-                path: path.clone(),
-                replacing: context.replacement == Some(span),
-                span,
-            });
-        }
-        let base_mode = if mode == Mode::Mutate {
-            Mode::Mutate
-        } else {
-            Mode::Read
-        };
-        let base_type = self.expression(context, base, base_mode, loans, None);
-        if top_projection {
-            context.projection = None;
-        }
-        let base_type = base_type?;
-        let base_type = self.recursive_array_receiver(context, base, base_type);
-        if (matches!(base_type.scalar_base(), Type::Array(_) | Type::String) || matches!(base_type, Type::Record(id) if self.program.records[id].is_tuple())) && name == "length" {
-            if mode == Mode::Mutate {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "String and array length are read-only; use push() to append an array element.",
-                    span,
-                ));
-            }
-            return Ok(Type::Int);
-        }
-        let field_type = match base_type {
-            Type::Record(index) => self.fields[index].get(name).copied(),
-            Type::Union(union) => self.record_union_field(union,name),
-            _ => None,
-        }
-        .ok_or_else(|| {
-            Diagnostic::new(
-                "type",
-                format!(
-                    "Type {:?} has no field {name:?}.",
-                    self.type_name(base_type)
-                ),
-                span,
-            )
-        })?;
-        if matches!(base_type,Type::Union(_)) && (mode==Mode::Mutate || mode==Mode::Consume&&!field_type.is_copy()){
-            return Err(Diagnostic::new("union-field-ownership","Narrow the record alternative before mutating or moving an owned field.",span));
-        }
-        if mode == Mode::Consume && !field_type.is_copy() {
-            let mut parent: &Expr = base;
-            loop {
-                match &parent.kind {
-                    ExprKind::Sequence(values)=>parent=values.last().expect("nonempty sequence"),
-                    ExprKind::Field(value,_) if matches!(value.ty,Some(Type::Union(_)))=>{
-                        return Err(Diagnostic::new("union-field-ownership","Narrow and move the whole record before consuming a nested owned field.",span));
-                    }
-                    ExprKind::Project {
-                        narrowed: Type::Record(_),
-                        ..
-                    } => {
-                        return Err(Diagnostic::new(
-                            "unsupported",
-                            "Move the whole narrowed record payload to a local before consuming its owned fields.",
-                            span,
-                        ));
-                    }
-                    ExprKind::Project { value, .. }
-                    | ExprKind::Field(value, _)
-                    | ExprKind::Index(value, _) => parent = value,
-                    _ => break,
-                }
-            }
-            let Some((root, mut path)) = Self::direct_fields(base) else {
-                return Err(Diagnostic::new(
-                    "borrowed-element",
-                    "Moving a field through indexed storage is not allowed; remove the element first or clone its field.",
-                    span,
-                ));
-            };
-            path.push(name.to_owned());
-            context.projection = Some(Projection {
-                root,
-                path,
-                replacing: false,
-                span,
-            });
-            let checked = Self::access(
-                context,
-                Self::root_binding(base).expect("direct field root"),
-                Mode::Consume,
-                span,
-                loans,
-            );
-            context.projection = None;
-            checked?;
-        }
-        Ok(field_type)
-    }
-
-    fn temporary_field(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        name: &str,
-        mode: Mode,
-        loans: &Loans,
-        span: Span,
-    ) -> Result<Type, Diagnostic> {
-        let borrowed = self.borrowed_place_hint(context, base) || self.borrowed_query_projection_hint(context,base);
-        if borrowed && mode == Mode::Mutate {
-            return Err(Diagnostic::new(
-                "borrowed-place",
-                "An assignment result is readonly.",
-                span,
-            ));
-        }
-        let ty = self.expression(
-            context,
-            base,
-            if borrowed { Mode::Read } else { Mode::Consume },
-            loans,
-            None,
-        )?;
-        if matches!(ty.scalar_base(), Type::String | Type::Array(_)) && name == "length" {
-            if mode == Mode::Mutate {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "String and array length are read-only; use push() to append an array element.",
-                    span,
-                ));
-            }
-            return Ok(Type::Int);
-        }
-        let field = match ty {
-            Type::Record(record) => self.fields[record].get(name).copied(),
-            _ => None,
-        };
-        if borrowed && mode == Mode::Consume && field.is_some_and(|ty| !ty.is_copy()) {
-            return Err(Diagnostic::new(
-                "borrowed-place",
-                "An owned field of an assignment result is borrowed; use clone().",
-                span,
-            ));
-        }
-        field.ok_or_else(|| {
-            Diagnostic::new(
-                "type",
-                format!("Type {:?} has no field {name:?}.", self.type_name(ty)),
-                span,
-            )
-        })
     }
 
     fn checked_tuple_index(&self, ty:Type, index:&Expr) -> Result<Option<(String,Type)>,Diagnostic> {
@@ -10134,32 +9726,27 @@ impl Analyzer {
         Ok(result)
     }
 
-    fn temporary_array_index(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        index: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        // Lift the selected value's context through each temporary index. An
-        // inner index then lifts it again before checking its literal receiver.
-        let array_context = expected
-            .and_then(ArrayElement::from_value_type)
-            .map(Type::Array);
-        let borrowed = self.borrowed_place_hint(context, base) || self.borrowed_query_projection_hint(context,base);
-        let ty = self.expression(
-            context,
-            base,
-            if borrowed { Mode::Read } else { Mode::Consume },
-            loans,
-            array_context,
-        )?;
+    fn temporary_array_index(&mut self, context: &mut Context, base: &mut Expr, index: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
+        let array_context = expected.and_then(ArrayElement::from_value_type).map(Type::Array);
+        let borrowed = self.borrowed_place_hint(context, base) || self.borrowed_query_projection_hint(context, base);
+        let ty = self.expression(context, base, if borrowed { Mode::Read } else { Mode::Consume }, loans, array_context)?;
+        let element = match self.finish_temporary_index_receiver(context, base, index, mode, borrowed, ty)? {
+            Ok(field) => return Ok(field), Err(element) => element,
+        };
+        let mut active = loans.clone();
+        if borrowed {
+            for root in Self::loan_roots(base, Mode::Read) { active.entry(root).or_default().push((Mode::Read, base.span)); }
+        }
+        let actual = self.expression(context, index, Mode::Copy, &active, Some(Type::Int))?;
+        self.require(actual, Some(Type::Int), index.span)?;
+        Ok(element)
+    }
+
+    fn finish_temporary_index_receiver(&mut self, context: &mut Context, base: &mut Expr, index: &Expr, mode: Mode, borrowed: bool, ty: Type) -> Result<Result<Type, Type>, Diagnostic> {
         let ty = self.recursive_array_receiver(context, base, ty);
         if let Some((_,field))=self.checked_tuple_index(ty,index)? {
             if borrowed && (mode==Mode::Mutate || mode==Mode::Consume && !field.is_copy()) {return Err(Diagnostic::new("borrowed-place","An owned tuple position of an assignment result is borrowed; use clone().",base.span));}
-            return Ok(field);
+            return Ok(Ok(field));
         }
         let Type::Array(element) = ty else {
             return Err(Diagnostic::new(
@@ -10175,18 +9762,7 @@ impl Analyzer {
                 base.span,
             ));
         }
-        let mut active = loans.clone();
-        if borrowed {
-            for root in Self::loan_roots(base, Mode::Read) {
-                active
-                    .entry(root)
-                    .or_default()
-                    .push((Mode::Read, base.span));
-            }
-        }
-        let actual = self.expression(context, index, Mode::Copy, &active, Some(Type::Int))?;
-        self.require(actual, Some(Type::Int), index.span)?;
-        Ok(element.ty())
+        Ok(Err(element.ty()))
     }
 
     fn selection_loans(base: &Expr, loans: &Loans) -> Loans {
@@ -10240,15 +9816,13 @@ impl Analyzer {
     /// Checks the receiver. `Ok` is a tuple position, which is complete;
     /// `Err` is the element type of an array whose index is checked next.
     #[inline(never)]
-    fn array_index_receiver(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        index: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        span: Span,
-    ) -> Result<Result<Type, Type>, Diagnostic> {
+    fn array_index_receiver(&mut self, context: &mut Context, base: &mut Expr, index: &mut Expr, mode: Mode, loans: &Loans, span: Span) -> Result<Result<Type, Type>, Diagnostic> {
+        Self::prepare_named_index(base)?;
+        let ty = self.expression(context, base, Mode::Read, loans, None)?;
+        self.finish_named_index_receiver(context, base, index, mode, loans, span, ty)
+    }
+
+    fn prepare_named_index(base: &Expr) -> Result<(), Diagnostic> {
         if !matches!(
             base.kind,
             ExprKind::Name(_)
@@ -10264,7 +9838,10 @@ impl Analyzer {
                 base.span,
             ));
         }
-        let ty = self.expression(context, base, Mode::Read, loans, None)?;
+        Ok(())
+    }
+
+    fn finish_named_index_receiver(&mut self, context: &mut Context, base: &mut Expr, index: &mut Expr, mode: Mode, loans: &Loans, span: Span, ty: Type) -> Result<Result<Type, Type>, Diagnostic> {
         let ty = self.recursive_array_receiver(context, base, ty);
         if let Some((_,field))=self.checked_tuple_index(ty,index)? {
             if mode==Mode::Consume && !field.is_copy() {return Err(Diagnostic::new("borrowed-element","Indexed tuple positions stay borrowed; bind the owner before transferring a position, or use clone().",span));}

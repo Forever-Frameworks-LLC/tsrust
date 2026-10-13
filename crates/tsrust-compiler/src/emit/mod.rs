@@ -3928,29 +3928,43 @@ impl Emitter<'_> {
     }
 
     fn temporary_storage_access(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        let (base, index) = match &expr.kind {
+            ExprKind::Field(base, _) => (base.as_ref(), None),
+            ExprKind::Index(base, index) => (base.as_ref(), Some(index.as_ref())),
+            _ => unreachable!("temporary selection"),
+        };
+        let borrowed = Self::borrowed_place_expression(fun, base);
+        let fixed = if index.is_some() && !borrowed {
+            self.fixed.temporary_shape(self.program, fun, base)
+        } else {
+            None
+        };
+        let array = fixed.map_or_else(
+            || self.expr(fun, base, if borrowed { Mode::Read } else { Mode::Consume }),
+            |shape| self.fixed_literal(fun, base, shape),
+        );
+        let index = index.map_or_else(String::new, |index| self.expr(fun, index, Mode::Copy));
+        self.finish_temporary_storage_access(expr, mode, borrowed, fixed, array, index)
+    }
+
+    fn finish_temporary_storage_access(
+        &self,
+        expr: &Expr,
+        mode: Mode,
+        borrowed: bool,
+        fixed: Option<&crate::fixed_storage::Shape>,
+        array: String,
+        index: String,
+    ) -> String {
         let owned = match &expr.kind {
             ExprKind::Field(base, name) => {
                 let Type::Record(record) = base.ty.expect("checked temporary record") else {
                     unreachable!()
                 };
-                format!(
-                    "({}).field{}",
-                    self.expr(
-                        fun,
-                        base,
-                        if Self::borrowed_place_expression(fun, base) {
-                            Mode::Read
-                        } else {
-                            Mode::Consume
-                        }
-                    ),
-                    self.fields[record][name.as_str()]
-                )
+                format!("({array}).field{}", self.fields[record][name.as_str()])
             }
-            ExprKind::Index(base, index) => {
-                if Self::borrowed_place_expression(fun, base) {
-                    let array = self.expr(fun, base, Mode::Read);
-                    let index = self.expr(fun, index, Mode::Copy);
+            ExprKind::Index(base, _) => {
+                if borrowed {
                     let failure = Self::array_failure(expr.span);
                     let failed = self.runtime_failure_exit("RangeError", "bounds", &failure, expr.span)
                         .unwrap_or_else(|| format!("panic!({failure:?})"));
@@ -3963,14 +3977,7 @@ impl Emitter<'_> {
                         "{{ let temporary_array = {array}; let temporary_index: i64 = {index}; let temporary_index = match usize::try_from(temporary_index) {{ Ok(index) => index, Err(_) => {failed} }}; {selected}(match temporary_array.get(temporary_index) {{ Some(value) => value, None => {failed} }}) }}"
                     );
                 }
-                let fixed = self.fixed.temporary_shape(self.program, fun, base);
-                let array = fixed.map_or_else(
-                    || self.expr(fun, base, Mode::Consume),
-                    |shape| self.fixed_literal(fun, base, shape),
-                );
-                let annotation =
-                    fixed.map_or_else(String::new, |shape| format!(": {}", self.shape_type(shape)));
-                let index = self.expr(fun, index, Mode::Copy);
+                let annotation = fixed.map_or_else(String::new, |shape| format!(": {}", self.shape_type(shape)));
                 let failure = Self::array_failure(expr.span);
                 let failed = self.runtime_failure_exit("RangeError", "bounds", &failure, expr.span)
                     .unwrap_or_else(|| format!("panic!({failure:?})"));
@@ -4006,17 +4013,16 @@ impl Emitter<'_> {
 
     fn storage_steps<'a>(&self, expr: &'a Expr) -> (&'a Expr, Vec<StorageStep<'a>>) {
         let mut steps = Vec::new();
+        let mut prefixes = Vec::new();
         let mut root = expr;
         let mut assertion = None;
         loop {
             match &root.kind {
                 ExprKind::Sequence(values) => {
-                    let (last,prefixes)=values.split_last().expect("nonempty sequence");
-                    let (root,inner)=self.storage_steps(last);
-                    let mut ordered=prefixes.iter().map(StorageStep::Discard).collect::<Vec<_>>();
-                    ordered.extend(inner);
-                    ordered.extend(steps.into_iter().rev());
-                    return (root,ordered);
+                    let (last, leading) = values.split_last().expect("nonempty sequence");
+                    prefixes.extend(leading.iter().map(StorageStep::Discard));
+                    root = last;
+                    assertion = None;
                 }
                 ExprKind::Unary { op: UnaryOp::NonNull, value, operator } => {
                     assertion = Some(*operator);
@@ -4051,8 +4057,8 @@ impl Emitter<'_> {
                 _ => break,
             }
         }
-        steps.reverse();
-        (root, steps)
+        prefixes.extend(steps.into_iter().rev());
+        (root, prefixes)
     }
 
     /// Shared selections keep each parent stable through later operands. The
@@ -4062,6 +4068,18 @@ impl Emitter<'_> {
         fun: &CheckedFunction,
         expr: &Expr,
         assignment: bool,
+    ) -> StorageSelection {
+        self.storage_selection_with(fun, expr, assignment, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn storage_selection_with(
+        &self,
+        fun: &CheckedFunction,
+        expr: &Expr,
+        assignment: bool,
+        render: &mut impl FnMut(&Expr, Mode, bool) -> String,
     ) -> StorageSelection {
         let (root, steps) = self.storage_steps(expr);
         if let ExprKind::SpreadValue(selected)=&root.kind && steps.is_empty() && selected.selection==SpreadSelection::Receiver {
@@ -4124,7 +4142,7 @@ impl Emitter<'_> {
         for (position, step) in steps.iter().enumerate().skip(skipped) {
             match step {
                 StorageStep::Discard(prefix) => {
-                    let code=self.comma_discard_code(fun,prefix);
+                    let code=render(prefix, Mode::Read, true);
                     result.setup.push_str(&code);
                 }
                 StorageStep::Field(field) => {
@@ -4168,7 +4186,7 @@ impl Emitter<'_> {
                     let _ = write!(
                         result.setup,
                         "let storage_index{position} = {}; ",
-                        self.expr(fun, index, Mode::Copy)
+                        render(index, Mode::Copy, false)
                     );
                     let conversion = format!(
                         "let storage_index{position} = match usize::try_from(storage_index{position}) {{ Ok(index) => index, Err(_) => {failed} }}; "
@@ -4483,6 +4501,18 @@ impl Emitter<'_> {
     }
 
     fn storage_access(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        self.storage_access_with(fun, expr, mode, &mut |operand, mode, discard| {
+            if discard { self.comma_discard_code(fun, operand) } else { self.expr(fun, operand, mode) }
+        })
+    }
+
+    fn storage_access_with(
+        &self,
+        fun: &CheckedFunction,
+        expr: &Expr,
+        mode: Mode,
+        render: &mut impl FnMut(&Expr, Mode, bool) -> String,
+    ) -> String {
         let(root,steps)=self.storage_steps(expr);
         let path=steps.iter().map(|step|if let StorageStep::Field(field)=step{Some(*field)}else{None}).collect::<Option<Vec<_>>>();
         if let (Some(id),Some(path))=(root.binding,path) && let Some(value)=self.owned_record_value(fun,id,&path,mode){return value;}
@@ -4507,7 +4537,7 @@ impl Emitter<'_> {
                         place = leaf.unwrap_or_else(|| format!("({place}).field{field}"));
                     },
                     StorageStep::Discard(prefix) => {
-                        let code=self.comma_discard_code(fun,prefix);
+                        let code=render(prefix, Mode::Read, true);
                         setup.push_str(&code);
                     }
                     StorageStep::Union(union,variant,assertion) => {
@@ -4523,7 +4553,7 @@ impl Emitter<'_> {
             }
             return if setup.is_empty(){place}else{format!("{{{setup}{place}}}")};
         }
-        let selection = self.storage_selection(fun, expr, false);
+        let selection = self.storage_selection_with(fun, expr, false, render);
         let value = if mode == Mode::Mutate {
             selection.exclusive
         } else if matches!(expr.ty, Some(Type::BorrowedUnion(_))) {
@@ -7426,6 +7456,10 @@ impl Emitter<'_> {
             .map(|value| self.expr(fun, value, Mode::Consume))
             .collect::<Vec<_>>()
             .join(", ");
+        self.finish_array_literal_expression(expr, values, mode, items)
+    }
+
+    fn finish_array_literal_expression(&self, expr: &Expr, values: &[Expr], mode: Mode, items: String) -> String {
         // An empty literal still has a checked element/container type.
         // Bind its constructor before borrowing, without changing fixed named arrays.
         let code = if values.is_empty() {
@@ -7981,6 +8015,18 @@ impl Emitter<'_> {
                 .drain(first_temporary..)
                 .collect::<Vec<_>>()
                 .join(" ");
+            code.push_str(&self.finish_template_append(part, &value, &declarations));
+        }
+        code.push_str("String::Owned(template_output) }");
+        match mode {
+            Mode::Read => format!("&({code})"),
+            Mode::Mutate => format!("&mut ({code})"),
+            Mode::Consume | Mode::Copy => code,
+        }
+    }
+
+    fn finish_template_append(&self, part: &Expr, value: &str, declarations: &str) -> String {
+        let mut code = String::new();
             code.push_str(&format!("{{ {declarations} "));
             if part.ty == Some(Type::String) {
                 code.push_str(&format!(
@@ -7998,13 +8044,7 @@ impl Emitter<'_> {
                 ));
             }
             code.push_str("} ");
-        }
-        code.push_str("String::Owned(template_output) }");
-        match mode {
-            Mode::Read => format!("&({code})"),
-            Mode::Mutate => format!("&mut ({code})"),
-            Mode::Consume | Mode::Copy => code,
-        }
+        code
     }
 
     // Operator nesting recurses through these frames, not the general

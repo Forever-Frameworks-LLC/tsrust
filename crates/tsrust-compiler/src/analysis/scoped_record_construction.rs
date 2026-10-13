@@ -1,15 +1,14 @@
 //! Check field values before preserving concrete callable payload layout.
 use super::*;
 
+pub(super) struct ScopedFieldFrame {
+    pub(super) field_type: Type,
+    pub(super) payload: Type,
+    pub(super) expected: Option<Type>,
+}
+
 impl Analyzer {
-    #[inline(never)]
-    pub(super) fn scoped_record_field_value(
-        &mut self,
-        context: &mut Context,
-        value: &mut Expr,
-        field_type: Type,
-        loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
+    pub(super) fn prepare_scoped_record_field(&self, value: &Expr, field_type: Type) -> ScopedFieldFrame {
         let field_type=if let Type::BorrowedCallable(family)=field_type{Type::Callback(self.callables.storage.declaration(family).expect("borrowed field declaration"))}else{field_type};
         let payload = self.unions.payload(field_type).unwrap_or(field_type);
         let expected = if matches!(payload, Type::Callback(_))
@@ -23,13 +22,11 @@ impl Analyzer {
                 field_type
             })
         };
-        let actual = self.expression(context, value, Mode::Consume, loans, expected)?;
-        self.finish_scoped_record_field(value, field_type, payload, actual)
+        ScopedFieldFrame { field_type, payload, expected }
     }
-
     // Nullable callback construction does not belong on nested record-check frames.
     #[inline(never)]
-    fn finish_scoped_record_field(&mut self, value: &mut Expr, field_type: Type, payload: Type, actual: Type) -> Result<Type, Diagnostic> {
+    pub(super) fn finish_scoped_record_field(&mut self, value: &mut Expr, field_type: Type, payload: Type, actual: Type) -> Result<Type, Diagnostic> {
         let Type::Callback(declaration) = payload else {
             return Ok(actual);
         };

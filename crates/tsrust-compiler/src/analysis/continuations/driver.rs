@@ -84,6 +84,10 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Start,
+    IndexBase(super::access::IndexFrame),
+    IndexOperand(super::access::IndexOperand),
+    Field { frame: super::access::FieldFrame, mode: Mode, rewrite: Option<String> },
+    Literal { frame: Box<super::literals::LiteralFrame>, child: super::literals::Child },
     Closure { frame: Box<super::closure::Frame>, child: ContextId },
     Callee { frame: super::call::CalleeFrame, publish_type: bool },
     InvocationCallee { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
@@ -333,6 +337,65 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
             }
         }
+        ExpressionState::IndexBase(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("index receiver completed") else { unreachable!("index receiver result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Index(base, index) = &mut expr.kind else { unreachable!("index receiver slot"); };
+            *base = value.into_child();
+            let next = checked.and_then(|ty| analyzer.finish_index_base_work(context, base, index, expr.span, frame, ty, &task.loans));
+            match next {
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                Ok(super::access::IndexAdvance::Done(ty)) => {
+                    let result = analyzer.finish_index_work(expr, ty);
+                    finish_expression(analyzer, context, task, result)
+                }
+                Ok(super::access::IndexAdvance::Operand { frame, loans }) => {
+                    let span = index.span;
+                    let index = std::mem::replace(index, Box::new(Expr::new(ExprKind::Undefined, span)));
+                    let request = Task::Expression(ExpressionTask::new(Expression::Child(index), task.context, Mode::Copy, ActiveLoans::Shared(std::rc::Rc::new(loans)), Some(Type::Int)));
+                    task.state = ExpressionState::IndexOperand(frame);
+                    Step::Push(Task::Expression(task), request)
+                }
+            }
+        }
+        ExpressionState::IndexOperand(frame) => {
+            let Completion::Expression(value, checked) = completion.expect("index operand completed") else { unreachable!("index operand result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let ExprKind::Index(_, index) = &mut expr.kind else { unreachable!("index operand slot"); };
+            *index = value.into_child();
+            let result = checked.and_then(|actual| analyzer.finish_index_operand_work(context, expr, frame, actual, &task.loans));
+            finish_expression(analyzer, context, task, result)
+        }
+        ExpressionState::Field { frame, mode, rewrite } => {
+            let Completion::Expression(value, checked) = completion.expect("field receiver completed") else { unreachable!("field receiver result"); };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let (base, name) = match &mut expr.kind {
+                ExprKind::Field(base, name) => (base, name.as_str()),
+                ExprKind::Index(base, _) => (base, rewrite.as_deref().expect("indexed field name")),
+                _ => unreachable!("field receiver slot"),
+            };
+            *base = value.into_child();
+            let result = analyzer.finish_field_work(context, base, name, mode, &task.loans, expr.span, frame, checked);
+            if result.is_ok() && let Some(name) = rewrite {
+                let span = base.span;
+                let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
+                expr.kind = ExprKind::Field(base, name);
+            }
+            finish_expression(analyzer, context, task, result)
+        }
+        ExpressionState::Literal { mut frame, child } => {
+            let Completion::Expression(value, checked) = completion.expect("literal child completed") else { unreachable!("literal child result"); };
+            let context = contexts.get(task.context);
+            *frame.child(task.expression.value(), child.index) = *value.into_child();
+            let checked = checked.and_then(|actual| analyzer.finish_literal_child(context, task.expression.value(), &mut frame, child, actual));
+            match checked {
+                Ok(()) => schedule_literal(analyzer, context, task, frame),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
+        }
         ExpressionState::Start => {
             debug_assert!(completion.is_none());
             let context = contexts.get(task.context);
@@ -347,6 +410,31 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            match analyzer.prepare_literal_work(context, expr, expected) {
+                Ok(Some(frame)) => return schedule_literal(analyzer, context, task, Box::new(frame)),
+                Ok(None) => {},
+                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+            }
+            let indexed_field = if let ExprKind::Index(base, index) = &expr.kind {
+                if let ExprKind::String(name) = &index.kind
+                    && matches!(analyzer.expression_type_hint(context, base), Some(Type::Record(record)) if !analyzer.program.records[record].is_tuple()) {
+                    Some(name.clone())
+                } else { None }
+            } else { None };
+            if matches!(expr.kind, ExprKind::Field(_, _)) || indexed_field.is_some() {
+                return schedule_field(analyzer, context, task, mode, indexed_field);
+            }
+            if let ExprKind::Index(base, _) = &mut expr.kind {
+                let (frame, base_mode, expected) = match analyzer.prepare_index_work(context, base, mode, expected) {
+                    Ok(prepared) => prepared,
+                    Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+                };
+                let span = base.span;
+                let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
+                let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), expected));
+                task.state = ExpressionState::IndexBase(frame);
+                return Step::Push(Task::Expression(task), child);
+            }
             if let ExprKind::Closure { id, params, result, body } = &mut expr.kind {
                 let prepared = analyzer.prepare_closure(context, (*id, params, result), expected, body, expr.span, &task.loans);
                 let (frame, mut child_context) = match prepared {
@@ -428,6 +516,48 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     finish_expression(analyzer, context, task, result)
                 }
             }
+        }
+    }
+}
+
+fn schedule_field<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, mode: Mode, rewrite: Option<String>) -> Step<'a> {
+    let expr = task.expression.value();
+    let (base, name) = match &mut expr.kind {
+        ExprKind::Field(base, name) => (base, name.as_str()),
+        ExprKind::Index(base, _) => (base, rewrite.as_deref().expect("indexed field name")),
+        _ => unreachable!("field receiver slot"),
+    };
+    match analyzer.prepare_field_work(context, base, name, mode, &task.loans, expr.span) {
+        Ok(super::access::FieldDispatch::Ready(ty)) => {
+            if let Some(name) = rewrite {
+                let span = base.span;
+                let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
+                expr.kind = ExprKind::Field(base, name);
+            }
+            finish_expression(analyzer, context, task, Ok(ty))
+        }
+        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+        Ok(super::access::FieldDispatch::Receiver { mode: base_mode, frame }) => {
+            let span = base.span;
+            let base = std::mem::replace(base, Box::new(Expr::new(ExprKind::Undefined, span)));
+            let child = Task::Expression(ExpressionTask::new(Expression::Child(base), task.context, base_mode, task.loans.clone(), None));
+            task.state = ExpressionState::Field { frame, mode, rewrite };
+            Step::Push(Task::Expression(task), child)
+        }
+    }
+}
+
+fn schedule_literal<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, mut frame: Box<super::literals::LiteralFrame>) -> Step<'a> {
+    match analyzer.advance_literal_work(context, task.expression.value(), &mut frame) {
+        Ok(super::literals::Advance::Done(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
+        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+        Ok(super::literals::Advance::Child(child)) => {
+            let destination = frame.child(task.expression.value(), child.index);
+            let span = destination.span;
+            let value = std::mem::replace(destination, Expr::new(ExprKind::Undefined, span));
+            let request = Task::Expression(ExpressionTask::new(Expression::Child(Box::new(value)), task.context, child.mode, task.loans.clone(), child.expected));
+            task.state = ExpressionState::Literal { frame, child };
+            Step::Push(Task::Expression(task), request)
         }
     }
 }
@@ -547,6 +677,42 @@ mod tests {
 
     fn analyzer() -> Analyzer {
         Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn failed_literal_and_projection_children_restore_the_tree_and_access_scope() {
+        for source in [
+            "function main(){const values:int[]=[1,true];}",
+            "type Row={values:int[];};function main(){const row:Row={values:[1]};row.values[true];}",
+            "type Row={value:int;};function main(){const row:Row={value:1};row.missing.length;}",
+        ] {
+            let source = formatted(source);
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let body = &mut parsed.functions[0].body;
+            let error = check_block(&mut analyzer, &mut context, body, Type::Void, false).unwrap_err();
+            assert_eq!(error.code, "type");
+            assert!(context.projection.is_none(), "failed receiver must release projection context");
+            if source.contains("missing") {
+                let StmtKind::Expr(expr) = &body[1].kind else { panic!("restored field expression"); };
+                let ExprKind::Field(base, name) = &expr.kind else { panic!("outer field"); };
+                assert_eq!(name, "length");
+                assert!(matches!(&base.kind, ExprKind::Field(_, name) if name == "missing"));
+            } else {
+                assert_eq!(&source[error.span.start..error.span.end], "true");
+                if let StmtKind::Let { value, .. } = &body[0].kind
+                    && let ExprKind::Array(values) = &value.kind {
+                    assert_eq!(values[0].ty, Some(Type::Int));
+                    assert!(matches!(values[1].kind, ExprKind::Boolean(true)));
+                } else {
+                    let StmtKind::Expr(expr) = &body[1].kind else { panic!("restored index expression"); };
+                    let ExprKind::Index(base, index) = &expr.kind else { panic!("index"); };
+                    assert!(matches!(base.kind, ExprKind::Field(_, _)));
+                    assert!(matches!(index.kind, ExprKind::Boolean(true)));
+                }
+            }
+        }
     }
 
     #[test]

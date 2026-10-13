@@ -25,6 +25,12 @@ impl Emitter<'_> {
     }
 
     pub(super) fn nullable_record_parameter_field(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> Option<String> {
+        let (root, method) = self.nullable_record_parameter_field_work(fun, expr, mode)?;
+        let receiver = self.expr(fun, root, Mode::Read);
+        Some(Self::finish_nullable_record_parameter_field(expr, &method, receiver))
+    }
+
+    pub(super) fn nullable_record_parameter_field_work<'a>(&self, fun: &CheckedFunction, expr: &'a Expr, mode: Mode) -> Option<(&'a Expr, String)> {
         if mode == Mode::Mutate || !matches!(expr.kind, ExprKind::Field(_, _)) { return None; }
         let mut root = expr;
         let mut path = Vec::new();
@@ -39,8 +45,12 @@ impl Emitter<'_> {
         let layout = self.record_borrow_layout(record)?;
         if !layout.leaves.iter().any(|leaf| leaf.path == path) { return None; }
         let method = path.iter().map(|field| format!("field{field}")).collect::<Vec<_>>().join("_");
-        let receiver = self.expr(fun, root, Mode::Read);
+        expr.ty?;
+        Some((root, method))
+    }
+
+    pub(super) fn finish_nullable_record_parameter_field(expr: &Expr, method: &str, receiver: String) -> String {
         let selected = format!("({receiver}).tsr_{method}()");
-        Some(if expr.ty?.is_copy() { format!("*({selected})") } else { selected })
+        if expr.ty.expect("checked field").is_copy() { format!("*({selected})") } else { selected }
     }
 }

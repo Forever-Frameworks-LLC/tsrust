@@ -344,3 +344,63 @@ retain the original failures, phase observations, backtraces, corrected unit che
 partial integration runs, output comparison and untimed benchmark validation.
 This source checkpoint preserves unfinished migration; it does not accept the
 parser or checker, refresh public consumers, or close the architecture requirement.
+
+## Aggregate and access continuation source checkpoint
+
+The checker now schedules ordinary array, record and template children, field
+receivers and index operands on the existing expression work stack. Record
+completion retains contextual callable conversion and native/scoped field
+specialization. Field completion clears a parent projection on failure before
+propagating the diagnostic. Index completion retains receiver loans and restores
+partially checked child nodes before reporting errors. Spread construction,
+collection properties and other compatibility dispatch remain migration debt.
+
+The emitter now schedules aggregate children, temporary receivers, named-storage
+index operands and comma-prefix effects on its expression work stack. Template
+interpolations and discarded prefixes retain their individual temporary cleanup
+boundaries. Temporary scalar-array specialization schedules literal elements
+without adding an expression boundary to the fixed-storage literal. Storage path
+collection handles sequence prefixes iteratively.
+
+Three phase-isolated emitter tests pass on normal test-worker stacks, including
+4,096 nested mixed call/record/array/access layers and 4,096 named index operands.
+These sizes are witnesses, not supported maxima. Full-source discovery now passes
+array sizes 8, 16, 32 and 64 and mixed-literal sizes 8 and 16. Larger sampled inputs
+still encounter the old parser guard. That guard is unfinished migration, not a
+resource policy or an accepted language limit.
+
+The first affected integration batch exposed an emission overflow in the existing
+100-level named-index witness. A phase probe confirmed that parsing and analysis
+finished before emission overflowed. Named-storage operand scheduling repairs that
+witness; its original regression now passes. All 26 tests in the arrays, comma-contexts and temporary-array-index suites now
+pass after that repair, including the previously failing comma depth witness.
+All four template tests also pass, including the formerly overflowing depth
+witness. Earlier operator, assignment and nullish depth failures remain unresolved.
+No architecture acceptance, consumer refresh or new formal scaling measurements
+are claimed.
+
+SQLite preserves the original interface failures, invalid-fixture test failure,
+corrected tests, discovery results and named-index crash under
+`tsrust-nesting-literal-*` and `tsrust-nesting-aggregate-*`. Closed records are imported with byte-exact restoration verification and a SQLite
+integrity check before loose copies are removed. Source hashes distinguish the
+aggregate/temporary access implementation from the subsequent named-storage repair. The invalid test
+fixture used an untyped record outside its allowed context; correcting that
+fixture did not change the language contract.
+
+The resumed integration batch completed 12 nested-array, 14 nested-record and 42
+scoped-callable-record tests. Its longer scoped-record-composition run reported
+197 passes and five nullable-record parity failures. That run straddled the
+named-storage CLI rebuild, so it is retained as mixed-version diagnostic evidence,
+not a clean final-source acceptance run. The parity difference exposed a real
+scheduling error: named field emission bypassed the nullable record parameter
+bridge and accessed a concrete field instead of its readonly accessor. The bridge
+now has its own receiver continuation, preserving accessor dispatch precedence
+without recursively emitting its receiver. All 26 nullable-filtered composition
+tests pass against matching final-source CLI/library builds, including all five
+failed tests. Passing unrelated cases were not restarted.
+
+Whole-project formatting changes zero files/fingerprints. This checkpoint remains
+an unfinished architecture migration. Parser/type-syntax work is assigned through
+`docs/handoffs/2026-10-13-claude-parser-context.md`; Codex retains checker and emitter
+work and the integration/evidence writer role. No parser changes are included in
+this aggregate/access section.
