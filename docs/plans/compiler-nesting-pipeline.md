@@ -888,3 +888,24 @@ is introduced, and consumers have not been refreshed. Full nesting acceptance
 and formal scaling remain open. Remaining connected paths include carrier
 retargeting, record type joins, recursive record-value carrier inference in
 `record_value_carriers.rs`, result discovery and statement emission.
+
+### Record-value carrier inference continuations
+
+`record_value_carriers.rs` now uses explicit expression, record-field and wrapper
+continuations. Each field completes before its parent layout is materialized;
+wrappers retain their checked type and diagnostic span across child inference.
+The original local-storage plan lookup, parameter/capture exclusions, unchecked
+value result and last-sequence-value rules remain in place.
+
+Three focused tests pass, including 16,384 checked carrier wrappers and ordinary
+disposal on a normal test stack, concrete field replacement without source AST
+mutation, and unchecked/sequence behavior. All 42 scoped callable record native
+integration tests pass, including normalized storage propagation and field moves.
+Whole-project formatting changed zero files or fingerprints. SQLite evidence is
+stored under `tsrust-nesting-carrier-inference-*`.
+
+This removes this helper's recursive expression traversal, not the remaining
+record type joins that wrapper completion may invoke. Carrier retargeting, joins,
+result discovery and statement emission remain open. There is no new public
+contract, consumer refresh, formal scaling acceptance or compiler-wide nesting
+acceptance in this checkpoint.
