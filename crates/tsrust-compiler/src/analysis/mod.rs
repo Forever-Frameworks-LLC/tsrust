@@ -4175,91 +4175,11 @@ impl Analyzer {
         self.assignment_work(context, target, &mut unused, continuations::AssignmentKind::Update, operator, loans)
     }
 
-    /// A const taken from an owned element of a named array, or from a field
-    /// of such an element, borrows it for reading; indexing never moves.
-    #[inline(never)]
-    fn indexed_element_hint(&mut self, context: &Context, expr: &Expr) -> bool {
-        if let ExprKind::Sequence(values)=&expr.kind{return values.last().is_some_and(|last|self.indexed_element_hint(context,last));}
-        if let ExprKind::TypeAssertion { value, .. } = &expr.kind {
-            return self.indexed_element_hint(context, value);
-        }
-        let mut place = expr;
-        if let ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=&place.kind {place=value;}
-        while let ExprKind::Field(base, _) = &place.kind {
-            place = base;
-        }
-        let ExprKind::Index(base, _) = &place.kind else { return false };
-        Self::named_storage(base)
-            && matches!(self.expression_type_hint(context, base), Some(Type::Array(_)))
-            && self.expression_type_hint(context, expr).is_some_and(|ty| !ty.is_copy())
-    }
-
     /// `text[position]`: a new string, never a view of the text.
     #[inline(never)]
     pub(crate) fn string_position(&self, context: &Context, expr: &Expr) -> bool {
         matches!(&expr.kind, ExprKind::Index(base, _)
             if self.expression_type_hint(context, base).is_some_and(|ty| self.unions.payload(ty).unwrap_or(ty) == Type::String))
-    }
-
-    fn borrowed_query_projection_hint(&self, context:&Context, expr:&Expr)->bool {
-        let mut receiver=expr;
-        while let ExprKind::Unary{op:UnaryOp::NonNull,value,..}=&receiver.kind {receiver=value;}
-        matches!(self.expression_type_hint(context,receiver),Some(Type::BorrowedUnion(_)))
-    }
-
-    fn borrowed_place_hint(&mut self, context: &Context, expr: &Expr) -> bool {
-        if self.string_position(context, expr) {
-            return false;
-        }
-        match &expr.kind {
-            ExprKind::Sequence(values)=>values.last().is_some_and(|last|self.borrowed_place_hint(context,last) || self.indexed_element_hint(context,last)),
-            ExprKind::TypeAssertion { value, .. } | ExprKind::Project { value, .. } => self.borrowed_place_hint(context, value) || self.indexed_element_hint(context, value),
-            ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => {
-                arguments.first().is_some_and(|value| self.expression_type_hint(context, value).is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_))) || self.borrowed_place_hint(context, value))
-            }
-            ExprKind::Unary{op:UnaryOp::PatternSelection,value,..}=>self.borrowed_place_hint(context,value) || self.indexed_element_hint(context,value),
-            ExprKind::Optional { body, .. } => self.borrowed_place_hint(context, body),
-            ExprKind::OptionalChain(value) => self.optional_borrowed_hint(context, value),
-            ExprKind::Selected { owned, .. } => !owned && !expr.ty.is_some_and(Type::is_copy),
-            // A loop variable over owned elements is itself a readonly borrow.
-            ExprKind::Name(name) => context.names.get(name).is_some_and(|id| {
-                context.bindings[*id].borrowed_place.is_some()
-                    || context.bindings[*id].borrowed_element.is_some()
-                    || context.readonly_parameters.contains(id)
-            }),
-            ExprKind::CoalesceAssign { target, value, .. } => self
-                .coalesce_hint(context, target, value, expr.span, false)
-                .or_else(|| self.expression_type_hint(context, target))
-                .is_some_and(|ty| !ty.is_copy()),
-            ExprKind::Conditional {
-                consequent,
-                alternate,
-                ..
-            } => {
-                self.borrowed_place_hint(context, consequent)
-                    || self.borrowed_place_hint(context, alternate)
-            }
-            ExprKind::Field(value, _) | ExprKind::Index(value, _) => {
-                self.expression_type_hint(context, expr)
-                    .is_none_or(|ty| !ty.is_copy())
-                    && (self.borrowed_place_hint(context, value)
-                        || self.borrowed_query_projection_hint(context,value))
-            }
-            ExprKind::Unary {
-                op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull,
-                value,
-                ..
-            } => self.borrowed_place_hint(context, value),
-            ExprKind::Binary {
-                op: BinaryOp::Coalesce | BinaryOp::PatternDefault | BinaryOp::And | BinaryOp::Or,
-                left,
-                right,
-                ..
-            } => {
-                self.borrowed_place_hint(context, left) || self.borrowed_place_hint(context, right)
-            }
-            _ => false,
-        }
     }
 
     fn scalar_assignment(&mut self, context: &mut Context, target: &mut Expr, value: &mut Expr, loans: &Loans, operator: Span) -> Result<Type, Diagnostic> {
@@ -13575,3 +13495,5 @@ mod ownership_walk_tests {
         drop(value);
     }
 }
+
+mod borrow_hints;

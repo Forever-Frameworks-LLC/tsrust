@@ -1137,3 +1137,27 @@ unchanged while overall architecture acceptance is incomplete.
 Whole-project formatting changes zero files and benchmark fingerprints. The deep
 witnesses verify checking and disposal on normal stacks, not parser admission or
 backend emission of arbitrary optional depth.
+
+### Borrow-source predicate worklist
+
+`analysis/borrow_hints.rs` removes recursive source descent from borrowed-place
+classification. Borrowed, indexed-element and query predicates use explicit work
+items, retaining left-to-right short-circuit behavior and the existing precedence
+of string-copy, scalar-copy, readonly binding and optional-view rules. The indexed
+predicate also unwraps sequences and assertions iteratively. Neither helper
+changes ownership contracts or broadens which expressions count as borrows.
+
+General type-hint recursion, optional hint/type-hint cross-calls and contextual
+coalescing hints remain unfinished. This source walk does not establish complete
+hint-system or compiler architecture acceptance. Formal scaling, optimization,
+parser/emitter integration and S12–S21 remain pending.
+
+Two focused normal-stack tests pass at 16,384 layers. They cover positive and
+negative mixed source walks, short-circuit preservation, owned array elements,
+scalar array copies and string indexing. The affected compiler integration batch
+passes 28 tests: borrowed optional fallback two, comma contexts ten, comma
+expressions four and destructuring twelve. These are correctness witnesses, not
+measured support ceilings or formal compilation scaling evidence. Evidence uses
+`tsrust-nesting-borrow-hints-*` in SQLite; installed consumers remain unchanged.
+Both affected editor tests pass. Whole-project formatting changes zero files or
+benchmark fingerprints. No full compiler/LSP matrix or timing run is claimed.

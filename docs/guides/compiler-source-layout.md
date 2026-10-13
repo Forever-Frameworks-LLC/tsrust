@@ -228,3 +228,10 @@ availability and flow in reverse selection order. Diagnostic unwinding releases
 capture-loan boundaries and selected-access state. Receiver-spine normalization,
 selection and named-source traversal remain in `analysis/optional_chain.rs` and
 use explicit cursors or parent/work frames.
+
+Borrow-source predicates live in `analysis/borrow_hints.rs`. The borrowed-place
+worklist preserves left-to-right disjunction and defers indexed/query fallbacks
+until the earlier predicate fails. Indexed-element hints unwrap sequence and
+assertion sources with a cursor before inspecting the field/index path. General
+type-hint dependencies remain separate and must not be described as stack-safe
+merely because these source walks are iterative.
