@@ -35,6 +35,12 @@ returns one finite closure environment from an independent branch. Both language
 declare the returned function type, and invoking the result yields `7`. This
 isolates result discovery and recursive body scheduling from runtime recursion.
 
+`--recursive --record` selects `record-recursive-manifest.json`. Every function
+forwards an ordinary record and the last returns it when the counter is zero.
+Native ownership inference transfers the record; TypeScript forwards a reference.
+Both return the same record field value, `7`. Context-dependent callback records
+and opaque native records are outside this workload.
+
 The first scoped release-compiler run retains 132 durations in SQLite as
 `tsrust-nesting-dependency-scaling.json`, with verified protocol and review in
 `tsrust-nesting-dependency-scaling-proof.json`. All four counts and three phases

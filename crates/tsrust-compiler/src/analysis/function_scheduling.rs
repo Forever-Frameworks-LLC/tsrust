@@ -54,7 +54,8 @@ impl Analyzer {
                         pending.extend(groups.into_iter().rev().map(Work::Group));
                     }
                     Work::Group(group) => {
-                        if group.recursive && group.members.iter().all(|&id| self.recursive_summary_is_complete(id)) {
+                        let mut data_types = HashMap::new();
+                        if group.recursive && group.members.iter().all(|&id| self.recursive_summary_is_complete(id, &mut data_types)) {
                             if self.assumed_modes.is_none() {
                                 return Err(Diagnostic::new("recursion-inference", "Recursive access inference is required.", self.program.functions[group.members[0]].name.span));
                             }
@@ -94,7 +95,7 @@ impl Analyzer {
         result
     }
 
-    fn recursive_summary_is_complete(&self, index: usize) -> bool {
+    fn recursive_summary_is_complete(&self, index: usize, data_types: &mut HashMap<Type, bool>) -> bool {
         let signature = &self.signatures[index];
         if self.callable_result_type(signature.result) {
             // The initial pass requests recursive inference. Its discovery
@@ -109,12 +110,43 @@ impl Analyzer {
                 && self.program.functions[index].parameter_initializers.iter().all(|initializer| matches!(initializer, ParameterInitializer::Required))
                 && signature.body_params.iter().all(|ty| matches!(ty, Type::Int | Type::Number | Type::Boolean | Type::String));
         }
-        matches!(signature.result,
-            Type::Void | Type::Int | Type::Number | Type::Boolean | Type::String
-            | Type::Null | Type::Undefined | Type::Enum(..) | Type::Literal(..)
-            | Type::Array(ArrayElement::Int(_) | ArrayElement::Number(_) | ArrayElement::Boolean(_)
-                | ArrayElement::String(_) | ArrayElement::Null(_) | ArrayElement::Undefined(_)
-                | ArrayElement::Enum(..) | ArrayElement::Literal(..)))
+        self.dependency_data_type(signature.result, data_types)
+    }
+
+    /// Closed data graphs need no caller-created callback environment. Traverse
+    /// recursive record/union graphs on the heap; cache only within one unchanged
+    /// graph inspection, since checking can publish new scoped record fields.
+    fn dependency_data_type(&self, root: Type, cache: &mut HashMap<Type, bool>) -> bool {
+        let mut pending = vec![root];
+        let mut seen = HashSet::new();
+        let valid = loop {
+            let Some(ty) = pending.pop() else { break true; };
+            if !seen.insert(ty) { continue; }
+            if let Some(&valid) = cache.get(&ty) {
+                if !valid { break false; }
+                continue;
+            }
+            match ty {
+                Type::Void | Type::String | Type::Int | Type::Number | Type::Boolean
+                | Type::Null | Type::Undefined | Type::Enum(..) | Type::Literal(..) => {},
+                Type::Array(element) => pending.push(element.ty()),
+                Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(self.unions.members(id)),
+                Type::Set(id) => pending.push(self.program.records[id].set_definition.as_ref().expect("set type").key),
+                Type::Map(id) => {
+                    let map = self.program.records[id].map_definition.as_ref().expect("map type");
+                    pending.extend([map.key, map.value]);
+                }
+                Type::Record(id) => {
+                    let record = &self.program.records[id];
+                    if record.native_type.is_some() || record.fields.iter().any(|field| field.ty.is_none()) { break false; }
+                    pending.extend(record.fields.iter().map(|field| field.ty.expect("resolved data field")));
+                }
+                _ => break false,
+            }
+        };
+        if valid { cache.extend(seen.into_iter().map(|ty| (ty, true))); }
+        else { cache.insert(root, false); }
+        valid
     }
 
     fn seed_recursive_results(&mut self, members: &[usize]) -> Result<(), Diagnostic> {
@@ -143,6 +175,7 @@ impl Analyzer {
         let mut discovery = HashMap::new();
         let mut finish = Vec::new();
         let mut parents = HashMap::<usize, Vec<usize>>::new();
+        let mut data_types = HashMap::new();
         while let Some(work) = pending.pop() {
             match work {
                 Work::Enter(index) => {
@@ -156,7 +189,8 @@ impl Analyzer {
                                 // Record callback contracts depend on environments
                                 // constructed by the caller. Keep their original
                                 // checking point until context suspension is explicit.
-                                && !self.signatures[dependency].params.iter().any(|ty| matches!(ty, Type::Record(_)))
+                                && self.signatures[dependency].params.iter().all(|&ty|
+                                    !matches!(ty, Type::Record(_)) || self.dependency_data_type(ty, &mut data_types))
                                 && (!self.named_captures.needs_context(dependency) || self.named_captures.ready(dependency))
                         }).collect::<Vec<_>>();
                     for &dependency in &dependencies { parents.entry(dependency).or_default().push(index); }

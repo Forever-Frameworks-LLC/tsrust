@@ -181,3 +181,50 @@ fn callable_result_dependencies_resolve_deep_cycles_and_native_environments() {
     source.push_str("function main() { const action = cycle0(1); console.log(action()); }");
     support::execute(&source, "7\n", None);
 }
+
+fn record_chain(length: usize, recursive: bool, mutate: bool) -> String {
+    let mut source = "type Item = { value: int; };\n".to_owned();
+    let result = if mutate { "int" } else { "Item" };
+    let terminal = if mutate { "value.value += 1; return value.value;" } else { "return value;" };
+    for index in 0..length {
+        let next = (index + 1) % length;
+        let body = if index + 1 == length {
+            if recursive { format!("if (remaining === 0) {{ {terminal} }} return step0(value, remaining - 1);") }
+            else { terminal.to_owned() }
+        } else { format!("return step{next}(value, remaining);") };
+        source.push_str(&format!("function step{index}(value: Item, remaining: int): {result} {{ {body} }}\n"));
+    }
+    source
+}
+
+#[test]
+fn data_record_dependencies_check_emit_and_drop_long_chains_and_cycles() {
+    for recursive in [false, true] {
+        let mut source = record_chain(2048, recursive, false);
+        source.push_str("function main() { const result = step0({ value: 7 }, 0); console.log(result.value); }");
+        let source = support::format_round_trip(&source);
+        let checked = check(&source).unwrap();
+        assert_eq!(checked.contracts()["step0.value"], Mode::Consume);
+        assert!(checked.emit_rust().contains("fn function2047"));
+        drop(checked);
+    }
+}
+
+#[test]
+fn recursive_data_records_preserve_transfer_mutation_and_callsite_diagnostics() {
+    let mut source = record_chain(256, true, false);
+    source.push_str("function main() { const item: Item = { value: 7 }; const result = step0(item, 1); console.log(result.value); }");
+    let rust = support::execute(&source, "7\n", None);
+    assert!(!rust.contains("Clone::clone("));
+    let mut source = record_chain(256, true, true);
+    source.push_str("function main() { const item: Item = { value: 7 }; console.log(step0(item, 1)); console.log(item.value); }");
+    support::execute(&source, "8\n8\n", None);
+    assert_eq!(check(&source).unwrap().contracts()["step0.value"], Mode::Mutate);
+    let mut source = record_chain(256, true, false);
+    source.push_str("function main() { const item: Item = { value: 7 }; const result = step0(item, 0); console.log(item.value); }");
+    let source = support::format_round_trip(&source);
+    let error = check(&source).err().expect("record moved through cycle");
+    assert_eq!(error.code, "transferred");
+    assert_eq!(&source[error.span.start..error.span.end], "item");
+    assert!(error.span.start > source.find("step0(item").unwrap());
+}

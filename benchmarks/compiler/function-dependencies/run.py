@@ -13,8 +13,15 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False):
     functions = []
+    if record_result:
+        functions.append(f'type Item = {{ value: {scalar}; }};')
+        for index in range(count):
+            seed = 'if (remaining === 0) { return value; } ' if index + 1 == count else ''
+            remaining = 'remaining - 1' if index + 1 == count else 'remaining'
+            functions.append(f'function step{index}(value: Item, remaining: {scalar}): Item {{ {seed}return step{(index + 1) % count}(value, {remaining}); }}')
+        return '\n'.join([*functions, 'function main() { const result = step0({ value: 7 }, 0); console.log(result.value); }', *(['main();'] if call_main else []), ''])
     if callable_result:
         for index in range(count):
             seed = f'if (remaining === 0) {{ return (): {scalar} => {{ return 7; }}; }} ' if index == 0 else ''
@@ -44,6 +51,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--record', action='store_true', help='Return data records through a recursive group; requires --recursive')
     parser.add_argument('--callable', action='store_true', help='Resolve recursive callable environments; requires --recursive')
     parser.add_argument('--inferred', action='store_true', help='Infer native recursive results; requires --recursive')
     parser.add_argument('--recursive', action='store_true', help='Use the annotated recursive-group manifest')
@@ -53,11 +61,13 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Output already exists; preserve the original record and choose a new path')
-    if (args.inferred or args.callable) and not args.recursive:
-        parser.error('--inferred and --callable require --recursive')
-    if args.inferred and args.callable:
-        parser.error('--inferred and --callable select different workloads')
-    manifest_path = MANIFEST_PATH.with_name('callable-recursive-manifest.json' if args.callable else 'inferred-recursive-manifest.json' if args.inferred else 'recursive-manifest.json') if args.recursive else MANIFEST_PATH
+    variants = [name for name in ('inferred', 'callable', 'record') if getattr(args, name)]
+    if variants and not args.recursive:
+        parser.error('Recursive variants require --recursive')
+    if len(variants) > 1:
+        parser.error('Select only one recursive variant')
+    manifest_name = (variants[0] + '-' if variants else '') + 'recursive-manifest.json'
+    manifest_path = MANIFEST_PATH.with_name(manifest_name) if args.recursive else MANIFEST_PATH
     manifest = json.loads(manifest_path.read_text())
     compiler = args.compiler.resolve(strict=True)
     tsc = ROOT / 'benchmarks/runtime/node_modules/typescript/bin/tsc'
@@ -86,8 +96,8 @@ def main():
             for count in args.only or manifest['functionCounts']:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)

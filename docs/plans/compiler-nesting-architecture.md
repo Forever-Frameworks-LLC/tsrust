@@ -279,3 +279,34 @@ untimed phases at 32 and 2,048 functions pass. Whole-project formatting changes
 zero files/fingerprints. SQLite retains outputs, exact generated sources and
 source identity under the `tsrust-nesting-callable-groups` prefix, with ordinary
 callable checks in `tsrust-nesting-callable-results.log`.
+
+## Ordinary record dependencies in progress
+
+The scheduler distinguishes closed data graphs from record contracts that need
+caller-created environments. A heap worklist follows record fields, union
+members, arrays and collection element types, with cycle detection and a cache
+limited to an unchanged graph inspection. Callback-bearing and opaque native
+records retain their contextual path. Ordinary data-record parameters no longer
+force recursive dependency checking, and closed data results can use recursive
+group summaries.
+
+Normal-stack witnesses check, emit and dispose both a 2,048-function record chain
+and a cycle. Native 256-function witnesses preserve transfer without cloning,
+inferred mutation, post-call field values and transferred-value source spans.
+Editor coverage includes a 512-function record cycle. The matched record
+compilation manifest distinguishes native moves from TypeScript references and
+uses the independent field-value oracle `7`; timing remains pending.
+
+Caller-dependent callback records, opaque native records, inferred results that
+need full record/default/capture contexts and dynamic specializations still need
+conversion. Preserve the handoff's known lifetime boundaries; this change does
+not erase borrows or add clones to make rejected programs pass.
+
+Focused verification passes 274 compiler integration checks, including all 202
+scoped-record composition cases, the borrowed-store and replacement suites,
+recursive storage, recursion, fallible record callbacks and function dependencies.
+Four editor witnesses and all six untimed compilation phases at 32 and 2,048
+functions pass. Whole-project formatting changes zero files/fingerprints. SQLite
+preserves exact outputs, generated sources and source identity under the
+`tsrust-nesting-record-groups` prefix. These checks do not establish acceptance
+of the remaining contextual dependency or deep-syntax paths.

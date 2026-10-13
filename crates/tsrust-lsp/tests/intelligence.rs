@@ -10030,3 +10030,17 @@ fn large_callable_result_cycle_keeps_result_hover() {
     let hover = ask(&source, "textDocument/hover", "result =", 0);
     assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"), "{hover}");
 }
+
+#[test]
+fn large_record_dependency_cycle_keeps_result_hover() {
+    let mut source = "type Item={value:int;};".to_owned();
+    for index in 0..512 {
+        source.push_str(&format!("function step{index}(item:Item,n:int):Item{{if(n===0){{return item;}}return step{}(item,n-1);}}\n", (index + 1) % 512));
+    }
+    source.push_str("function main(){const result=step0({value:7},0);console.log(result.value);}");
+    let source = tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let hover = ask(&source, "textDocument/hover", "result =", 0);
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("Item"), "{hover}");
+}
