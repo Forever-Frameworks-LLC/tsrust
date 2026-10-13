@@ -1,0 +1,82 @@
+import { strictEqual } from "std:testing";
+
+function apply(value: int, action: Function<int, [int]>): int {
+  return action(value);
+}
+
+function main() {
+  let total = 0;
+  // A named function expression in a statement header is declared beside
+  // that statement, not inside its body.
+  if ((function yes(): boolean {
+    return true;
+  })()) {
+    total += 1;
+    total += 1;
+  }
+
+  if ((function no(): boolean {
+    return false;
+  })()) total += 100;
+  else total += 2;
+  while ((function more(limit: int): boolean {
+    return total < limit;
+  })(6)) {
+    total += 1;
+  }
+
+  strictEqual(total, 6);
+  for (const item of (function items(): int[] {
+    return [1, 2];
+  })()) {
+    total += item;
+  }
+
+  strictEqual(total, 9);
+  for (let i = (function start(): int {
+    return 0;
+  })(); (function below(value: int): boolean {
+    return value < 2;
+  })(i); i += (function step(): int {
+    return 1;
+  })()) {
+    total += 10;
+  }
+
+  strictEqual(total, 29);
+  switch ((function pick(): int {
+    return 2;
+  })()) {
+    case 1:
+      total += 1000;
+      break;
+    case(function two(): int {
+        return 2;
+      })():
+      total += 1;
+      break;
+    default:
+      total += 2000;
+  }
+
+  strictEqual(total, 30);
+  // The declaration of an earlier argument does not move into a later callback.
+  strictEqual(apply((function seven(): int {
+    return 7;
+  })(), (value: int): int => {
+    const next = value + 1; return next;
+  }), 8);
+  // Patterns of an outer parameter list stay with that list.
+  const pick = function ([a, b]: int[], g: Function<int, [ReadOnly<int[]>]> = function ([c]: int[]): int {
+    return c;
+  }): int {
+    return a + b + g([5]);
+  };
+  strictEqual(pick([1, 2]), 8);
+  const nested = ([a]: int[], h: int = ((): int => {
+    const inner = function ([x]: int[]): int {
+      return x;
+    }; return inner([4]);
+  })()): int => a + h;
+  strictEqual(nested([1]), 5);
+}

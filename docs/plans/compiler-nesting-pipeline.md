@@ -1223,3 +1223,53 @@ The affected native batch passes 42 tests across array reduce/transform, schema
 export/literals/unions and Set algebra. The affected editor batch passes 16 tests
 across schema editing and Set algebra. Whole-project formatting changes zero
 files and zero benchmark fingerprints.
+
+
+### Parser branch integration
+
+The parser branch at `cf94c533` is integrated over the call-hint checkpoint
+`e6075b67`. Its original report is retained in
+`docs/handoffs/claude-parser-continuations.md`. The manifest hash matches the
+report. Actual inventory is 200 manifest entries plus the manifest itself
+(201 files); the report's 199-file count is stale. All 201 files are imported
+under `benchmarks/runtime/results/claude-parser-evidence/` in SQLite, with
+byte-exact readback and a successful database integrity check. The unfinished
+discovery record remains unfinished, and exploratory durations are not formal
+compilation scaling acceptance.
+
+Integration review found two remaining input-sized grammar call cycles:
+`declarator` / `declarator_finish` for consecutive uninitialized declarations,
+and `parameter` / `parameter_named` / `parameter_finish` for consecutive
+parameters without defaults. Both now queue requests on the existing machine.
+A required parameter request preserves the existing trailing-comma rejection.
+Switch clause continuation also queues on that machine, retaining pending
+declaration restoration. New witnesses cover 10,000 declarations and parameters
+in named functions, arrows and anonymous functions; discovery support includes
+the corresponding width families. Input sizes are witnesses, not support limits.
+
+The inherited public nesting policy is temporary migration debt. The parser's
+unbounded entry skips local-function resolution, so parser evidence does not
+prove stack-safe public compilation. Local-function lowering, remaining checker
+and emitter re-entry, formatter scaling, compact generic-token insertion, alias
+expansion and complete pipeline scaling remain open. Public caps are not accepted
+as a final design. S12–S21 and runtime optimization remain pending.
+
+Combined parser/type-syntax/analysis validation passes 346 tests (two opt-in
+tools ignored). All 15 added width probes complete through 1,048,576 items,
+including clone, recovery and disposal, on normal stacks. The ten affected editor
+suites pass 41 tests. Full compiler/LSP regressions and formal timing remain
+deferred to the complete architecture milestone.
+
+The native integration batch reproduces two previously reported failures on the
+combined tree. Debugger traces identify checker re-entry through
+`rest_pack_expression` / `array_literal` and `type_assertion_expression`; neither
+is a parser frame. These failures remain open and are not counted as passes.
+The old `analysis` assertion requiring a 201-function chain to fail is stale: the
+chain checks successfully. It is replaced with a success witness while inherited
+public parser rejection checks remain separately named. Original failed records
+and resumed checks are retained under `tsrust-parser-integration-*` in SQLite.
+
+The native batch and retained/resumed tails account for 214 distinct passing
+tests and two unresolved stack-overflow witnesses. The repaired analysis suite
+passes nine tests. Whole-project formatting changes zero files and fingerprints.
+Both consumer binaries build explicitly from the combined source.

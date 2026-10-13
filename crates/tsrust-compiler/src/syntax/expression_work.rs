@@ -1,794 +1,338 @@
-//! Expression grammar continuations. Token position and grammar scopes stay in Parser.
+//! Expression grammar steps of the parser scheduler.
+use super::scheduler::{BinaryFrame, CallFrame, Callee, ClosureFrame, Machine, RightFrame, Work};
 use super::*;
 
-struct BinaryFrame {
-    minimum: u8,
-    left_start: usize,
-    unary_base: bool,
-}
-
-struct CallFrame {
-    callee: Expr,
-    arguments: Vec<Expr>,
-    types: Option<Vec<crate::type_syntax::ValueAnnotation>>,
-    optional: bool,
-}
-
-struct ClosureFrame {
-    id: usize,
-    start: Span,
-    header: Box<(Vec<CallableParameter>, ResultAnnotation)>,
-    patterns: Vec<Stmt>,
-}
-
-struct Recovery {
-    start: usize,
-    depth: usize,
-    pending: usize,
-    arguments: usize,
-    patterns: usize,
-    expressions: usize,
-    statements: usize,
-    bodies: usize,
-}
-
-enum StatementExpression {
-    Return,
-    Throw,
-    Discard,
-}
-
-enum Work {
-    Block,
-    BlockNext(Vec<Stmt>),
-    BlockAfter {
-        body: Vec<Stmt>,
-        recovery: Recovery,
-    },
-    Statement,
-    StatementBlock(Span),
-    StatementExpression {
-        span: Span,
-        kind: StatementExpression,
-    },
-    ClosureBlock(ClosureFrame),
-    ClosureValue {
-        frame: ClosureFrame,
-        outer: Vec<Stmt>,
-    },
-    Parse(u8),
-    LeaveDepth,
-    Primary,
-    Array {
-        start: usize,
-        items: Vec<Expr>,
-        spread: Option<Span>,
-    },
-    RecordNext {
-        start: usize,
-        fields: Vec<(Token, Expr)>,
-    },
-    RecordField {
-        start: usize,
-        fields: Vec<(Token, Expr)>,
-        key: Token,
-    },
-    Template {
-        start: usize,
-        parts: Vec<Expr>,
-    },
-    Unary(Vec<Token>),
-    Binary(BinaryFrame),
-    Right {
-        frame: BinaryFrame,
-        left: Expr,
-        op: BinaryOp,
-        operator: Span,
-        assignment: bool,
-        right_start: usize,
-    },
-    In {
-        frame: BinaryFrame,
-        left: Expr,
-    },
-    Consequent(Expr),
-    Alternate {
-        predicate: Expr,
-        consequent: Expr,
-    },
-    Comma(Vec<Expr>),
-    Group,
-    Postfix {
-        optional: bool,
-    },
-    Index {
-        base: Expr,
-        optional: bool,
-    },
-    Argument {
-        call: CallFrame,
-        spread: Option<Span>,
-    },
-}
-
 impl Parser<'_> {
-    pub(super) fn expression_work(&mut self, minimum: u8) -> Result<Expr, Diagnostic> {
-        let depth = self.depth;
-        let result = self.run_expression_work(minimum);
-        // Recovery owns token synchronization. No abandoned expression keeps an
-        // active grammar-depth contribution after its work stack is dropped.
-        self.depth = depth;
-        result
-    }
-
-    fn run_expression_work(&mut self, minimum: u8) -> Result<Expr, Diagnostic> {
-        let mut work = vec![Work::Parse(minimum)];
-        let mut values = Vec::new();
-        let mut statements = Vec::new();
-        let mut bodies = Vec::new();
-        while let Some(task) = work.pop() {
-            let step = (|| -> Result<(), Diagnostic> {
-                match task {
-                    Work::ClosureBlock(frame) => {
-                        let mut body = bodies.pop().expect("closure body");
-                        Self::open_with_patterns(frame.patterns, &mut body);
-                        let span = Span::new(frame.start.start, self.tokens[self.i - 1].span.end);
-                        values.push(Self::closure_expression(frame.id, frame.header, body, span));
-                        work.push(Work::Postfix { optional: false });
-                    }
-                    Work::ClosureValue { frame, outer } => {
-                        let value = values.pop().expect("closure expression body");
-                        let mut body = std::mem::replace(&mut self.pending, outer);
-                        body.append(&mut Self::returned(Box::new(value)));
-                        Self::open_with_patterns(frame.patterns, &mut body);
-                        let span = Span::new(frame.start.start, self.tokens[self.i - 1].span.end);
-                        values.push(Self::closure_expression(frame.id, frame.header, body, span));
-                        work.push(Work::Postfix { optional: false });
-                    }
-                    Work::Block => {
-                        if self.depth >= 128 {
-                            return Err(Diagnostic::new(
-                                "unsupported",
-                                "Block nesting exceeds the prototype limit of 128.",
-                                self.peek().span,
-                            ));
-                        }
-                        self.expect("{")?;
-                        self.depth += 1;
-                        work.push(Work::BlockNext(Vec::new()));
-                    }
-                    Work::BlockNext(body) => {
-                        if self.accept("}") {
-                            self.depth -= 1;
-                            bodies.push(body);
-                        } else {
-                            if self.peek().kind == TokenKind::End {
-                                self.expect("}")?;
-                            }
-                            let recovery = Recovery {
-                                start: self.i,
-                                depth: self.depth,
-                                pending: self.pending.len(),
-                                arguments: self.call_type_arguments.len(),
-                                patterns: self.parameter_patterns.len(),
-                                expressions: values.len(),
-                                statements: statements.len(),
-                                bodies: bodies.len(),
-                            };
-                            work.push(Work::BlockAfter { body, recovery });
-                            work.push(Work::Statement);
-                        }
-                    }
-                    Work::BlockAfter { mut body, .. } => {
-                        body.push(statements.pop().expect("block statement"));
-                        body.append(&mut self.pending);
-                        work.push(Work::BlockNext(body));
-                    }
-                    Work::Statement => {
-                        let span = self.peek().span;
-                        if self.is("{") {
-                            work.push(Work::StatementBlock(span));
-                            work.push(Work::Block);
-                        } else if self.accept("return") {
-                            if self.accept(";") {
-                                statements.push(Stmt {
-                                    labels: Vec::new(),
-                                    control_target: None,
-                                    kind: StmtKind::Return(None),
-                                    span,
-                                });
-                            } else {
-                                work.push(Work::StatementExpression {
-                                    span,
-                                    kind: StatementExpression::Return,
-                                });
-                                work.push(Work::Comma(Vec::new()));
-                                work.push(Work::Parse(0));
-                            }
-                        } else if self.accept("throw") {
-                            if self.source[span.end..self.peek().span.start].contains(['\n', '\r'])
-                            {
-                                return Err(Diagnostic::new(
-                                    "syntax",
-                                    "A thrown value must begin on the same line as throw.",
-                                    span,
-                                ));
-                            }
-                            work.push(Work::StatementExpression {
-                                span,
-                                kind: StatementExpression::Throw,
-                            });
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        } else if matches!(
-                            self.peek().text.as_str(),
-                            "function"
-                                | "try"
-                                | "for"
-                                | "if"
-                                | "while"
-                                | "do"
-                                | "switch"
-                                | "const"
-                                | "let"
-                                | "break"
-                                | "continue"
-                        ) || self.match_statement_header()
-                            || (self.peek().kind == TokenKind::Name
-                                && self
-                                    .tokens
-                                    .get(self.i + 1)
-                                    .is_some_and(|token| token.text == ":"))
-                        {
-                            statements.push(self.block_statement()?);
-                        } else {
-                            work.push(Work::StatementExpression {
-                                span,
-                                kind: StatementExpression::Discard,
-                            });
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        }
-                    }
-                    Work::StatementBlock(span) => {
-                        statements.push(Stmt {
-                            labels: Vec::new(),
-                            control_target: None,
-                            kind: StmtKind::Block(bodies.pop().expect("nested block")),
-                            span,
-                        });
-                    }
-                    Work::StatementExpression { span, kind } => {
-                        let expression = values.pop().expect("statement expression");
-                        let kind = match kind {
-                            StatementExpression::Return => StmtKind::Return(Some(expression)),
-                            StatementExpression::Throw => StmtKind::Throw(expression),
-                            StatementExpression::Discard => {
-                                if matches!(&expression.kind, ExprKind::Assign { target, .. } if matches!(target.kind, ExprKind::Array(_) | ExprKind::Record(_)))
-                                {
-                                    self.destructuring_assignment(expression)?
-                                } else {
-                                    Self::expression_statement(expression)
-                                }
-                            }
-                        };
-                        self.expect(";")?;
-                        statements.push(Stmt {
-                            labels: Vec::new(),
-                            control_target: None,
-                            kind,
-                            span,
-                        });
-                    }
-                    Work::Parse(minimum) => {
-                        // Retained during migration: legacy primary/body/type paths
-                        // still re-enter this driver. This is not a resource policy.
-                        if self.depth >= 128 {
-                            return Err(Diagnostic::new(
-                                "unsupported",
-                                "Expression nesting exceeds the prototype limit of 128.",
-                                self.peek().span,
-                            ));
-                        }
-                        self.depth += 1;
-                        let frame = BinaryFrame {
-                            minimum,
-                            left_start: self.i,
-                            unary_base: matches!(self.peek().text.as_str(), "-" | "+" | "!" | "~"),
-                        };
-                        let operators = self.unary_operators()?;
-                        work.push(Work::LeaveDepth);
-                        work.push(Work::Binary(frame));
-                        work.push(Work::Unary(operators));
-                        work.push(Work::Primary);
-                    }
-                    Work::LeaveDepth => self.depth -= 1,
-                    Work::Unary(operators) => {
-                        let value = values.pop().expect("primary expression");
-                        values.push(Self::apply_unary_operators(value, operators)?);
-                    }
-                    Work::Primary => {
-                        self.typed_arrow_without_parentheses()?;
-                        if self.is("(") && !self.closure_header() {
-                            self.take();
-                            work.push(Work::Postfix { optional: false });
-                            work.push(Work::Group);
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        } else if self.peek().kind == TokenKind::TemplateHead {
-                            let head = self.take();
-                            let start = head.span.start;
-                            let parts = vec![Expr::new(ExprKind::String(head.text), head.span)];
-                            work.push(Work::Template { start, parts });
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        } else if self.is("[") {
-                            let start = self.take().span.start;
-                            if self.is("]") {
-                                let end = self.take().span.end;
-                                values.push(Expr::new(
-                                    ExprKind::Array(Vec::new()),
-                                    Span::new(start, end),
-                                ));
-                                work.push(Work::Postfix { optional: false });
-                            } else {
-                                let spread =
-                                    self.accept("...").then(|| self.tokens[self.i - 1].span);
-                                work.push(Work::Array {
-                                    start,
-                                    items: Vec::new(),
-                                    spread,
-                                });
-                                work.push(Work::Parse(0));
-                            }
-                        } else if self.is("{") {
-                            let start = self.take().span.start;
-                            work.push(Work::RecordNext {
-                                start,
-                                fields: Vec::new(),
-                            });
-                        } else if self.is("function") {
-                            values.push(self.function_primary()?);
-                        } else if self.is("(")
-                            || (self.peek().kind == TokenKind::Name
-                                && self
-                                    .tokens
-                                    .get(self.i + 1)
-                                    .is_some_and(|token| token.text == "=>"))
-                        {
-                            let outer_patterns = std::mem::take(&mut self.parameter_patterns);
-                            let start = self.peek().span;
-                            let header = self.closure_signature(start)?;
-                            let id = self.next_closure;
-                            self.next_closure += 1;
-                            let patterns =
-                                std::mem::replace(&mut self.parameter_patterns, outer_patterns);
-                            let frame = ClosureFrame {
-                                id,
-                                start,
-                                header,
-                                patterns,
-                            };
-                            if self.is("{") {
-                                work.push(Work::ClosureBlock(frame));
-                                work.push(Work::Block);
-                            } else {
-                                let outer = std::mem::take(&mut self.pending);
-                                work.push(Work::ClosureValue { frame, outer });
-                                work.push(Work::Parse(0));
-                            }
-                        } else {
-                            values.push(self.atom()?);
-                            work.push(Work::Postfix { optional: false });
-                        }
-                    }
-                    Work::Array {
-                        start,
-                        mut items,
-                        spread,
-                    } => {
-                        let mut value = values.pop().expect("array element");
-                        if let Some(operator) = spread {
-                            let span = Span::new(operator.start, value.span.end);
-                            value = Expr::new(
-                                ExprKind::Unary {
-                                    op: UnaryOp::Spread,
-                                    operator,
-                                    value: Box::new(value),
-                                },
-                                span,
-                            );
-                        }
-                        items.push(value);
-                        if self.accept(",") && !self.is("]") {
-                            let spread = self.accept("...").then(|| self.tokens[self.i - 1].span);
-                            work.push(Work::Array {
-                                start,
-                                items,
-                                spread,
-                            });
-                            work.push(Work::Parse(0));
-                        } else {
-                            let end = self.expect("]")?.span.end;
-                            values.push(Expr::new(ExprKind::Array(items), Span::new(start, end)));
-                            work.push(Work::Postfix { optional: false });
-                        }
-                    }
-                    Work::RecordNext { start, mut fields } => loop {
-                        if self.is("}") {
-                            let end = self.take().span.end;
-                            values.push(Expr::new(ExprKind::Record(fields), Span::new(start, end)));
-                            work.push(Work::Postfix { optional: false });
-                            break;
-                        }
-                        let spread = self.is("...");
-                        let key = if spread {
-                            let mut key = self.take();
-                            key.text = "record#spread".into();
-                            key
-                        } else {
-                            self.name()?
-                        };
-                        if !spread && (self.is(",") || self.is("}")) {
-                            let value = Expr::new(ExprKind::Name(key.text.clone()), key.span);
-                            fields.push((key, value));
-                            if !self.accept(",") {
-                                self.expect_record_close_work(
-                                    start,
-                                    fields,
-                                    &mut work,
-                                    &mut values,
-                                )?;
-                                break;
-                            }
-                        } else {
-                            if !spread {
-                                self.expect(":")?;
-                            }
-                            work.push(Work::RecordField { start, fields, key });
-                            work.push(Work::Parse(0));
-                            break;
-                        }
-                    },
-                    Work::RecordField {
-                        start,
-                        mut fields,
-                        key,
-                    } => {
-                        fields.push((key, values.pop().expect("record field")));
-                        if self.accept(",") {
-                            work.push(Work::RecordNext { start, fields });
-                        } else {
-                            self.expect_record_close_work(start, fields, &mut work, &mut values)?;
-                        }
-                    }
-                    Work::Template { start, mut parts } => {
-                        parts.push(values.pop().expect("template interpolation"));
-                        let chunk = self.take();
-                        if !matches!(
-                            chunk.kind,
-                            TokenKind::TemplateMiddle | TokenKind::TemplateTail
-                        ) {
-                            return Err(Diagnostic::new(
-                                "syntax",
-                                "Expected a template interpolation boundary.",
-                                chunk.span,
-                            ));
-                        }
-                        let tail = chunk.kind == TokenKind::TemplateTail;
-                        let end = chunk.span.end;
-                        parts.push(Expr::new(ExprKind::String(chunk.text), chunk.span));
-                        if tail {
-                            let value = Expr::new(ExprKind::Template(parts), Span::new(start, end));
-                            Self::postfix_depth(&value)?;
-                            values.push(value);
-                            work.push(Work::Postfix { optional: false });
-                        } else {
-                            work.push(Work::Template { start, parts });
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        }
-                    }
-                    Work::Group => {
-                        self.expect(")")?;
-                    }
-                    Work::Comma(mut operands) => {
-                        operands.push(values.pop().expect("comma operand"));
-                        if self.accept(",") {
-                            if matches!(self.peek().text.as_str(), "let" | "const" | "var") {
-                                return Err(Diagnostic::new(
-                                    "syntax",
-                                    "A declaration cannot be a comma operand.",
-                                    self.peek().span,
-                                ));
-                            }
-                            work.push(Work::Comma(operands));
-                            work.push(Work::Parse(0));
-                        } else if operands.len() == 1 {
-                            values.push(operands.pop().unwrap());
-                        } else {
-                            values.push(Self::finish_sequence(operands)?);
-                        }
-                    }
-                    Work::Binary(mut frame) => {
-                        let mut left = values.pop().expect("left operand");
-                        loop {
-                            if frame.minimum <= 8 && (self.is("as") || self.is("satisfies")) {
-                                left = self.type_assertion_tail(left)?;
-                                frame.unary_base = false;
-                                continue;
-                            }
-                            if frame.minimum == 0 && self.accept("?") {
-                                work.push(Work::Consequent(left));
-                                work.push(Work::Parse(0));
-                                break;
-                            }
-                            if self.is("in") && frame.minimum <= 8 {
-                                self.take();
-                                work.push(Work::In { frame, left });
-                                work.push(Work::Parse(9));
-                                break;
-                            }
-                            let operator = (self.peek().kind == TokenKind::Symbol)
-                                .then(|| match self.peek().text.as_str() {
-                                    "=" => Some((BinaryOp::Equal, 0)),
-                                    "&&=" => Some((BinaryOp::And, 0)),
-                                    "||=" => Some((BinaryOp::Or, 0)),
-                                    _ => BinaryOp::assignment(&self.peek().text)
-                                        .map(|op| (op, 0))
-                                        .or_else(|| BinaryOp::parse(&self.peek().text)),
-                                })
-                                .flatten();
-                            let Some((op, precedence)) =
-                                operator.filter(|(_, precedence)| *precedence >= frame.minimum)
-                            else {
-                                values.push(left);
-                                break;
-                            };
-                            let assignment = precedence == 0;
-                            let operator = self.take().span;
-                            if op == BinaryOp::Exponent && frame.unary_base {
-                                return Err(Diagnostic::new(
-                                    "syntax",
-                                    "Parenthesize a unary expression used as an exponentiation base.",
-                                    operator,
-                                ));
-                            }
-                            let right_start = self.i;
-                            work.push(Work::Right {
-                                frame,
-                                left,
-                                op,
-                                operator,
-                                assignment,
-                                right_start,
-                            });
-                            work.push(Work::Parse(if assignment || op == BinaryOp::Exponent {
-                                precedence
-                            } else {
-                                precedence + 1
-                            }));
-                            break;
-                        }
-                    }
-                    Work::Right {
-                        mut frame,
-                        left,
-                        op,
-                        operator,
-                        assignment,
-                        right_start,
-                    } => {
-                        let right = values.pop().expect("right operand");
-                        if !assignment {
-                            self.nullish_mixing(
-                                &left,
-                                &right,
-                                op,
-                                operator,
-                                frame.left_start,
-                                right_start,
-                            )?;
-                        }
-                        let mut value =
-                            Self::binary_expression(left, right, op, operator, assignment);
-                        if op == BinaryOp::Coalesce {
-                            value.span = Span::new(
-                                self.tokens[frame.left_start].span.start,
-                                self.tokens[self.i - 1].span.end,
-                            );
-                        }
-                        Self::postfix_depth(&value)?;
-                        frame.unary_base = false;
-                        values.push(value);
-                        work.push(Work::Binary(frame));
-                    }
-                    Work::In { mut frame, left } => {
-                        let right = values.pop().expect("in operand");
-                        let span = Span::new(
-                            self.tokens[frame.left_start].span.start,
-                            self.tokens[self.i - 1].span.end,
-                        );
-                        let value = Self::object_key_call("hasOwn#in", vec![right, left], span);
-                        Self::postfix_depth(&value)?;
-                        frame.unary_base = false;
-                        values.push(value);
-                        work.push(Work::Binary(frame));
-                    }
-                    Work::Consequent(predicate) => {
-                        let consequent = values.pop().expect("consequent");
-                        self.expect(":")?;
-                        work.push(Work::Alternate {
-                            predicate,
-                            consequent,
-                        });
-                        work.push(Work::Parse(0));
-                    }
-                    Work::Alternate {
-                        predicate,
-                        consequent,
-                    } => {
-                        let alternate = values.pop().expect("alternate");
-                        let value = Self::conditional_expression(predicate, consequent, alternate);
-                        Self::postfix_depth(&value)?;
-                        values.push(value);
-                    }
-                    Work::Postfix { mut optional } => {
-                        let mut value = values.pop().expect("postfix operand");
-                        Self::postfix_depth(&value)?;
-                        if self.is_tagged_template() {
-                            return self.reject_tagged_template().map(|_| ());
-                        }
-                        if self.accept("?.") {
-                            optional = true;
-                            let operator = self.tokens[self.i - 1].span;
-                            let span = value.span;
-                            value = Expr::new(
-                                ExprKind::Unary {
-                                    op: UnaryOp::OptionalBoundary,
-                                    operator,
-                                    value: Box::new(value),
-                                },
-                                span,
-                            );
-                            if self.accept("[") {
-                                work.push(Work::Index {
-                                    base: value,
-                                    optional,
-                                });
-                                work.push(Work::Comma(Vec::new()));
-                                work.push(Work::Parse(0));
-                            } else if self.is("(") || self.has_explicit_call_arguments() {
-                                self.schedule_call_work(value, optional, &mut work, &mut values)?;
-                            } else {
-                                values.push(self.field_expression(value)?);
-                                work.push(Work::Postfix { optional });
-                            }
-                        } else if self.accept("!") {
-                            values.push(self.non_null_postfix(value, optional));
-                            work.push(Work::Postfix { optional: false });
-                        } else if self.accept(".") {
-                            values.push(self.field_expression(value)?);
-                            work.push(Work::Postfix { optional });
-                        } else if self.accept("[") {
-                            work.push(Work::Index {
-                                base: value,
-                                optional,
-                            });
-                            work.push(Work::Comma(Vec::new()));
-                            work.push(Work::Parse(0));
-                        } else if self.is("(")
-                            || (matches!(
-                                value.kind,
-                                ExprKind::Name(_)
-                                    | ExprKind::Field(_, _)
-                                    | ExprKind::Sequence(_)
-                                    | ExprKind::Assign { .. }
-                                    | ExprKind::Conditional { .. }
-                                    | ExprKind::Call(..)
-                                    | ExprKind::Index(..)
-                                    | ExprKind::Unary {
-                                        op: UnaryOp::OptionalBoundary
-                                            | UnaryOp::OptionalSelected
-                                            | UnaryOp::NonNull,
-                                        ..
-                                    }
-                            ) && self.has_explicit_call_arguments())
-                        {
-                            self.schedule_call_work(value, optional, &mut work, &mut values)?;
-                        } else {
-                            values.push(self.finish_postfix(value, optional)?);
-                        }
-                    }
-                    Work::Index { base, optional } => {
-                        let index = values.pop().expect("index expression");
-                        let end = self.expect("]")?;
-                        let span = Span::new(base.span.start, end.span.end);
-                        values.push(Expr::new(
-                            ExprKind::Index(Box::new(base), Box::new(index)),
-                            span,
-                        ));
-                        work.push(Work::Postfix { optional });
-                    }
-                    Work::Argument { mut call, spread } => {
-                        let mut argument = values.pop().expect("call argument");
-                        if let Some(operator) = spread {
-                            let span = Span::new(operator.start, argument.span.end);
-                            argument = Expr::new(
-                                ExprKind::Unary {
-                                    op: UnaryOp::Spread,
-                                    operator,
-                                    value: Box::new(argument),
-                                },
-                                span,
-                            );
-                        }
-                        call.arguments.push(argument);
-                        if self.accept(",") {
-                            self.schedule_argument_work(call, &mut work);
-                        } else {
-                            self.finish_call_work(call, &mut work, &mut values)?;
-                        }
-                    }
+    pub(super) fn expression_step(&mut self, task: Work, machine: &mut Machine) -> Result<(), Diagnostic> {
+        match task {
+            Work::Parse(minimum) => {
+                if self.policy.reached(self.depth) {
+                    return Err(Diagnostic::new(
+                        "unsupported",
+                        "Expression nesting exceeds the prototype limit of 128.",
+                        self.peek().span,
+                    ));
                 }
-                Ok(())
-            })();
-            if let Err(error) = step {
-                let mut recovered = false;
-                while let Some(abandoned) = work.pop() {
-                    match abandoned {
-                        Work::ClosureValue { outer, .. } => self.pending = outer,
-                        Work::BlockAfter { body, recovery }
-                            if error.code == "syntax"
-                                && self
-                                    .diagnostics
-                                    .is_some_and(|errors| errors.borrow().len() < 63) =>
-                        {
-                            self.diagnostics.unwrap().borrow_mut().push(error.clone());
-                            self.depth = recovery.depth;
-                            self.pending.truncate(recovery.pending);
-                            self.call_type_arguments.truncate(recovery.arguments);
-                            self.parameter_patterns.truncate(recovery.patterns);
-                            values.truncate(recovery.expressions);
-                            statements.truncate(recovery.statements);
-                            bodies.truncate(recovery.bodies);
-                            self.recover_statement(recovery.start);
-                            work.push(Work::BlockNext(body));
-                            recovered = true;
-                            break;
-                        }
-                        _ => {}
-                    }
+                self.depth += 1;
+                let frame = BinaryFrame {
+                    minimum,
+                    left_start: self.i,
+                    unary_base: matches!(self.peek().text.as_str(), "-" | "+" | "!" | "~"),
+                };
+                let operators = self.unary_operators()?;
+                machine.work.push(Work::LeaveDepth);
+                machine.work.push(Work::Binary(frame));
+                machine.work.push(Work::Unary(operators));
+                machine.work.push(Work::Primary);
+            }
+            Work::LeaveDepth => self.depth -= 1,
+            Work::Unary(operators) => {
+                let value = machine.value();
+                machine.values.push(self.apply_unary_operators(value, operators)?);
+            }
+            Work::Primary => self.primary(machine)?,
+            Work::Array { start, mut items, spread } => {
+                let mut value = machine.value();
+                if let Some(operator) = spread {
+                    value = Self::spread_expression(operator, value);
                 }
-                if !recovered {
-                    return Err(error);
+                items.push(value);
+                if self.accept(",") && !self.is("]") {
+                    let spread = self.accept("...").then(|| self.tokens[self.i - 1].span);
+                    machine.request(Work::Array { start, items, spread }, Work::Parse(0));
+                } else {
+                    let end = self.expect("]")?.span.end;
+                    machine.values.push(Expr::new(ExprKind::Array(items), Span::new(start, end)));
+                    machine.work.push(Work::Postfix { optional: false });
                 }
             }
+            Work::RecordNext { start, mut fields } => loop {
+                if self.is("}") {
+                    let end = self.take().span.end;
+                    machine.values.push(Expr::new(ExprKind::Record(fields), Span::new(start, end)));
+                    machine.work.push(Work::Postfix { optional: false });
+                    break;
+                }
+                let spread = self.is("...");
+                let key = if spread {
+                    let mut key = self.take();
+                    key.text = "record#spread".into();
+                    key
+                } else {
+                    self.name()?
+                };
+                if !spread && (self.is(",") || self.is("}")) {
+                    let value = Expr::new(ExprKind::Name(key.text.clone()), key.span);
+                    fields.push((key, value));
+                    if !self.accept(",") {
+                        self.record_close(start, fields, machine)?;
+                        break;
+                    }
+                } else {
+                    if !spread {
+                        self.expect(":")?;
+                    }
+                    machine.request(Work::RecordField { start, fields, key: Box::new(key) }, Work::Parse(0));
+                    break;
+                }
+            },
+            Work::RecordField { start, mut fields, key } => {
+                fields.push((*key, machine.value()));
+                if self.accept(",") {
+                    machine.work.push(Work::RecordNext { start, fields });
+                } else {
+                    self.record_close(start, fields, machine)?;
+                }
+            }
+            Work::Template { start, mut parts } => {
+                parts.push(machine.value());
+                let chunk = self.take();
+                if !matches!(chunk.kind, TokenKind::TemplateMiddle | TokenKind::TemplateTail) {
+                    return Err(Diagnostic::new(
+                        "syntax",
+                        "Expected a template interpolation boundary.",
+                        chunk.span,
+                    ));
+                }
+                let tail = chunk.kind == TokenKind::TemplateTail;
+                let end = chunk.span.end;
+                parts.push(Expr::new(ExprKind::String(chunk.text), chunk.span));
+                if tail {
+                    let value = Expr::new(ExprKind::Template(parts), Span::new(start, end));
+                    self.postfix_depth(&value)?;
+                    machine.values.push(value);
+                    machine.work.push(Work::Postfix { optional: false });
+                } else {
+                    machine.request_comma(Work::Template { start, parts });
+                }
+            }
+            Work::Group => {
+                self.expect(")")?;
+            }
+            Work::Comma(mut operands) => {
+                operands.push(machine.value());
+                if self.accept(",") {
+                    if matches!(self.peek().text.as_str(), "let" | "const" | "var") {
+                        return Err(Diagnostic::new(
+                            "syntax",
+                            "A declaration cannot be a comma operand.",
+                            self.peek().span,
+                        ));
+                    }
+                    machine.request(Work::Comma(operands), Work::Parse(0));
+                } else if operands.len() == 1 {
+                    machine.values.push(operands.pop().unwrap());
+                } else {
+                    machine.values.push(Self::finish_sequence(operands)?);
+                }
+            }
+            Work::Binary(mut frame) => {
+                let mut left = machine.value();
+                loop {
+                    if frame.minimum <= 8 && (self.is("as") || self.is("satisfies")) {
+                        left = self.type_assertion_tail(left)?;
+                        frame.unary_base = false;
+                        continue;
+                    }
+                    if frame.minimum == 0 && self.accept("?") {
+                        machine.request(Work::Consequent(Box::new(left)), Work::Parse(0));
+                        break;
+                    }
+                    if self.is("in") && frame.minimum <= 8 {
+                        self.take();
+                        machine.request(Work::In { frame, left: Box::new(left) }, Work::Parse(9));
+                        break;
+                    }
+                    let operator = (self.peek().kind == TokenKind::Symbol)
+                        .then(|| match self.peek().text.as_str() {
+                            "=" => Some((BinaryOp::Equal, 0)),
+                            "&&=" => Some((BinaryOp::And, 0)),
+                            "||=" => Some((BinaryOp::Or, 0)),
+                            _ => BinaryOp::assignment(&self.peek().text)
+                                .map(|op| (op, 0))
+                                .or_else(|| BinaryOp::parse(&self.peek().text)),
+                        })
+                        .flatten();
+                    let Some((op, precedence)) = operator.filter(|(_, precedence)| *precedence >= frame.minimum) else {
+                        machine.values.push(left);
+                        break;
+                    };
+                    let assignment = precedence == 0;
+                    let operator = self.take().span;
+                    if op == BinaryOp::Exponent && frame.unary_base {
+                        return Err(Diagnostic::new(
+                            "syntax",
+                            "Parenthesize a unary expression used as an exponentiation base.",
+                            operator,
+                        ));
+                    }
+                    let right_start = self.i;
+                    machine.request(
+                        Work::Right(Box::new(RightFrame { frame, left, op, operator, assignment, right_start })),
+                        Work::Parse(if assignment || op == BinaryOp::Exponent { precedence } else { precedence + 1 }),
+                    );
+                    break;
+                }
+            }
+            Work::Right(suspended) => {
+                let RightFrame { mut frame, left, op, operator, assignment, right_start } = *suspended;
+                let right = machine.value();
+                if !assignment {
+                    self.nullish_mixing(&left, &right, op, operator, frame.left_start, right_start)?;
+                }
+                let mut value = Self::binary_expression(left, right, op, operator, assignment);
+                if op == BinaryOp::Coalesce {
+                    value.span = Span::new(self.tokens[frame.left_start].span.start, self.tokens[self.i - 1].span.end);
+                }
+                self.postfix_depth(&value)?;
+                frame.unary_base = false;
+                machine.values.push(value);
+                machine.work.push(Work::Binary(frame));
+            }
+            Work::In { mut frame, left } => {
+                let right = machine.value();
+                let span = Span::new(self.tokens[frame.left_start].span.start, self.tokens[self.i - 1].span.end);
+                let value = Self::object_key_call("hasOwn#in", vec![right, *left], span);
+                self.postfix_depth(&value)?;
+                frame.unary_base = false;
+                machine.values.push(value);
+                machine.work.push(Work::Binary(frame));
+            }
+            Work::Consequent(predicate) => {
+                let consequent = machine.value();
+                self.expect(":")?;
+                machine.request(Work::Alternate(Box::new((*predicate, consequent))), Work::Parse(0));
+            }
+            Work::Alternate(arms) => {
+                let (predicate, consequent) = *arms;
+                let alternate = machine.value();
+                let value = Self::conditional_expression(predicate, consequent, alternate);
+                self.postfix_depth(&value)?;
+                machine.values.push(value);
+            }
+            Work::Postfix { optional } => self.postfix(optional, machine)?,
+            Work::Index { base, optional } => {
+                let index = machine.value();
+                let end = self.expect("]")?;
+                let span = Span::new(base.span.start, end.span.end);
+                machine.values.push(Expr::new(ExprKind::Index(base, Box::new(index)), span));
+                machine.work.push(Work::Postfix { optional });
+            }
+            Work::Argument { mut call, spread } => {
+                let mut argument = machine.value();
+                if let Some(operator) = spread {
+                    argument = Self::spread_expression(operator, argument);
+                }
+                call.arguments.push(argument);
+                if self.accept(",") {
+                    self.schedule_argument(call, machine);
+                } else {
+                    self.finish_call(call, machine)?;
+                }
+            }
+            _ => unreachable!("expression work"),
         }
-        assert_eq!(values.len(), 1, "one completed expression");
-        Ok(values.pop().unwrap())
-    }
-
-    fn expect_record_close_work(
-        &mut self,
-        start: usize,
-        fields: Vec<(Token, Expr)>,
-        work: &mut Vec<Work>,
-        values: &mut Vec<Expr>,
-    ) -> Result<(), Diagnostic> {
-        let end = self.expect("}")?.span.end;
-        values.push(Expr::new(ExprKind::Record(fields), Span::new(start, end)));
-        work.push(Work::Postfix { optional: false });
         Ok(())
     }
 
-    fn schedule_call_work(
-        &mut self,
-        callee: Expr,
-        optional: bool,
-        work: &mut Vec<Work>,
-        values: &mut Vec<Expr>,
-    ) -> Result<(), Diagnostic> {
+    fn spread_expression(operator: Span, value: Expr) -> Expr {
+        let span = Span::new(operator.start, value.span.end);
+        Expr::new(ExprKind::Unary { op: UnaryOp::Spread, operator, value: Box::new(value) }, span)
+    }
+
+    fn primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
+        self.typed_arrow_without_parentheses()?;
+        if self.is("(") && !self.closure_header() {
+            self.take();
+            machine.work.push(Work::Postfix { optional: false });
+            machine.request_comma(Work::Group);
+        } else if self.peek().kind == TokenKind::TemplateHead {
+            let head = self.take();
+            let start = head.span.start;
+            let parts = vec![Expr::new(ExprKind::String(head.text), head.span)];
+            machine.request_comma(Work::Template { start, parts });
+        } else if self.is("[") {
+            let start = self.take().span.start;
+            if self.is("]") {
+                let end = self.take().span.end;
+                machine.values.push(Expr::new(ExprKind::Array(Vec::new()), Span::new(start, end)));
+                machine.work.push(Work::Postfix { optional: false });
+            } else {
+                let spread = self.accept("...").then(|| self.tokens[self.i - 1].span);
+                machine.request(Work::Array { start, items: Vec::new(), spread }, Work::Parse(0));
+            }
+        } else if self.is("{") {
+            let start = self.take().span.start;
+            machine.work.push(Work::RecordNext { start, fields: Vec::new() });
+        } else if self.is("function") {
+            self.function_primary(machine)?;
+        } else if self.is("(") || (self.peek().kind == TokenKind::Name && self.tokens.get(self.i + 1).is_some_and(|token| token.text == "=>")) {
+            self.closure_primary(machine)?;
+        } else if self.peek().kind == TokenKind::Name && self.peek().text == "new" {
+            let start = self.take();
+            self.constructor(start, machine)?;
+        } else {
+            machine.values.push(self.atom()?);
+            machine.work.push(Work::Postfix { optional: false });
+        }
+        Ok(())
+    }
+
+    fn postfix(&mut self, mut optional: bool, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let mut value = machine.value();
+        self.postfix_depth(&value)?;
+        if self.is_tagged_template() {
+            return self.reject_tagged_template().map(|_| ());
+        }
+        if self.accept("?.") {
+            optional = true;
+            let operator = self.tokens[self.i - 1].span;
+            let span = value.span;
+            value = Expr::new(ExprKind::Unary { op: UnaryOp::OptionalBoundary, operator, value: Box::new(value) }, span);
+            if self.accept("[") {
+                machine.request_comma(Work::Index { base: Box::new(value), optional });
+            } else if self.is("(") || self.has_explicit_call_arguments() {
+                self.schedule_call(value, optional, machine)?;
+            } else {
+                machine.values.push(self.field_expression(value)?);
+                machine.work.push(Work::Postfix { optional });
+            }
+        } else if self.accept("!") {
+            machine.values.push(self.non_null_postfix(value, optional));
+            machine.work.push(Work::Postfix { optional: false });
+        } else if self.accept(".") {
+            machine.values.push(self.field_expression(value)?);
+            machine.work.push(Work::Postfix { optional });
+        } else if self.accept("[") {
+            machine.request_comma(Work::Index { base: Box::new(value), optional });
+        } else if self.is("(")
+            || (matches!(
+                value.kind,
+                ExprKind::Name(_)
+                    | ExprKind::Field(_, _)
+                    | ExprKind::Sequence(_)
+                    | ExprKind::Assign { .. }
+                    | ExprKind::Conditional { .. }
+                    | ExprKind::Call(..)
+                    | ExprKind::Index(..)
+                    | ExprKind::Unary { op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. }
+            ) && self.has_explicit_call_arguments())
+        {
+            self.schedule_call(value, optional, machine)?;
+        } else {
+            machine.values.push(self.finish_postfix(value, optional)?);
+        }
+        Ok(())
+    }
+
+    fn record_close(&mut self, start: usize, fields: Vec<(Token, Expr)>, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let end = self.expect("}")?.span.end;
+        machine.values.push(Expr::new(ExprKind::Record(fields), Span::new(start, end)));
+        machine.work.push(Work::Postfix { optional: false });
+        Ok(())
+    }
+
+    fn schedule_call(&mut self, callee: Expr, optional: bool, machine: &mut Machine) -> Result<(), Diagnostic> {
         let types = if self.accept("(") {
             None
         } else {
@@ -796,43 +340,132 @@ impl Parser<'_> {
             self.expect("(")?;
             Some(types)
         };
-        let call = CallFrame {
-            callee,
-            arguments: Vec::new(),
-            types,
-            optional,
-        };
+        self.schedule_arguments(CallFrame { target: Callee::Value { callee, types, optional }, arguments: Vec::new() }, machine)
+    }
+
+    /// The opening parenthesis is consumed. Arguments are requested one at a time.
+    pub(super) fn schedule_arguments(&mut self, call: CallFrame, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let call = Box::new(call);
         if self.is(")") {
-            self.finish_call_work(call, work, values)
+            self.finish_call(call, machine)
         } else {
-            self.schedule_argument_work(call, work);
+            self.schedule_argument(call, machine);
             Ok(())
         }
     }
 
-    fn schedule_argument_work(&mut self, call: CallFrame, work: &mut Vec<Work>) {
+    fn schedule_argument(&mut self, call: Box<CallFrame>, machine: &mut Machine) {
         let spread = self.accept("...").then(|| self.tokens[self.i - 1].span);
-        work.push(Work::Argument { call, spread });
-        work.push(Work::Parse(0));
+        machine.request(Work::Argument { call, spread }, Work::Parse(0));
     }
 
-    fn finish_call_work(
-        &mut self,
-        call: CallFrame,
-        work: &mut Vec<Work>,
-        values: &mut Vec<Expr>,
-    ) -> Result<(), Diagnostic> {
+    fn finish_call(&mut self, call: Box<CallFrame>, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let call = *call;
         let end = self.expect(")")?;
-        let value = if let Some(types) = call.types {
-            self.finish_explicit_call(call.callee, types, call.arguments, end)?
-        } else {
-            Self::finish_call_expression(Box::new(call.callee), call.arguments, end)?
+        let (value, optional) = match call.target {
+            Callee::Value { callee, types: Some(types), optional } => (self.finish_explicit_call(callee, types, call.arguments, end)?, optional),
+            Callee::Value { callee, types: None, optional } => (Self::finish_call_expression(Box::new(callee), call.arguments, end)?, optional),
+            Callee::Constructor { start, native, map, annotation } => {
+                let kind = if native {
+                    ExprKind::NativeConstructor(call.arguments, annotation)
+                } else if map {
+                    ExprKind::MapConstructor(call.arguments, annotation)
+                } else {
+                    ExprKind::SetConstructor(call.arguments, annotation)
+                };
+                (Expr::new(kind, Span::new(start.start, end.span.end)), false)
+            }
         };
-        values.push(value);
-        work.push(Work::Postfix {
-            optional: call.optional,
-        });
+        machine.values.push(value);
+        machine.work.push(Work::Postfix { optional });
         Ok(())
+    }
+
+    /// Arrow function parameters, then its result annotation and body.
+    fn closure_primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let outer_patterns = std::mem::take(&mut self.parameter_patterns);
+        let start = self.peek().span;
+        if self.accept("(") {
+            machine.request(
+                Work::ClosureParameters { start, outer_patterns },
+                Work::Parameters(Box::new(scheduler::ParametersFrame { params: Vec::new(), declared: false })),
+            );
+            return Ok(());
+        }
+        let name = self.name()?;
+        let params = vec![CallableParameter {
+            rest: false,
+            ty: ParameterAnnotation::Inferred(name.clone()),
+            name,
+            access: None,
+            initializer: ParameterInitializer::Required,
+        }];
+        self.closure_body(start, outer_patterns, params, machine)
+    }
+
+    pub(super) fn closure_body(&mut self, start: Span, outer_patterns: Vec<Stmt>, params: Vec<CallableParameter>, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let result = if self.accept(":") { self.result_annotation()? } else { ResultAnnotation::Inferred(start) };
+        self.expect("=>")?;
+        let id = self.next_closure;
+        self.next_closure += 1;
+        let patterns = std::mem::take(&mut self.parameter_patterns);
+        let frame = Box::new(ClosureFrame { id, start, header: Box::new((params, result)), patterns, outer_patterns });
+        if self.is("{") {
+            machine.request(Work::ClosureBlock(frame), Work::Block);
+        } else {
+            let outer = std::mem::take(&mut self.pending);
+            machine.request(Work::ClosureValue { frame, outer }, Work::Parse(0));
+        }
+        Ok(())
+    }
+
+    /// `function (a: int): int { ... }` as a value: an anonymous function
+    /// with the parameters, result and block body of an arrow function. A
+    /// named function expression is declared in the enclosing block instead.
+    fn function_primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
+        if self.tokens.get(self.i + 1).is_some_and(|token| token.kind == TokenKind::Name && token.text != "(") {
+            // Statements pending for the enclosing block must not land in this body.
+            let outer = std::mem::take(&mut self.pending);
+            machine.work.push(Work::NamedFunctionExpression { outer });
+            return self.local_function(machine);
+        }
+        let token = self.take();
+        self.expect("(")?;
+        let outer_patterns = std::mem::take(&mut self.parameter_patterns);
+        machine.request(
+            Work::FunctionParameters { start: token.span, outer_patterns },
+            Work::Parameters(Box::new(scheduler::ParametersFrame { params: Vec::new(), declared: false })),
+        );
+        Ok(())
+    }
+
+    /// `new Set<int>(...)`, `new Map<K, V>(...)` or a native constructor.
+    fn constructor(&mut self, start: Token, machine: &mut Machine) -> Result<(), Diagnostic> {
+        let name = self.name()?;
+        let native = !matches!(name.text.as_str(), "Set" | "Map");
+        let map = name.text == "Map";
+        let annotation = if self.is("<") {
+            let arguments = self.explicit_call_arguments()?;
+            if !native && arguments.len() != if map { 2 } else { 1 } {
+                return Err(Diagnostic::new("arity", "Set requires one key type; Map requires key and value types.", name.span));
+            }
+            Some(Box::new(crate::type_syntax::ValueAnnotation {
+                kind: crate::type_syntax::ValueAnnotationKind::Applied {
+                    name: crate::type_syntax::TypeName { text: name.text, span: name.span },
+                    arguments,
+                },
+                span: name.span,
+            }))
+        } else if native {
+            Some(Box::new(crate::type_syntax::ValueAnnotation {
+                kind: crate::type_syntax::ValueAnnotationKind::Named(crate::type_syntax::TypeName { text: name.text, span: name.span }),
+                span: name.span,
+            }))
+        } else {
+            None
+        };
+        self.expect("(")?;
+        self.schedule_arguments(CallFrame { target: Callee::Constructor { start: start.span, native, map, annotation }, arguments: Vec::new() }, machine)
     }
 }
 

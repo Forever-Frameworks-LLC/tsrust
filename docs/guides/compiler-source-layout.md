@@ -249,3 +249,13 @@ hint worklist and query memo. Schema receiver/union hints run before checked
 metadata, preserving existing precedence. Keep named, wrapped, general, record
 field and array-callback result contracts distinct. Set-algebra operand hints and
 schema branch hints suspend there rather than opening another hint driver.
+
+
+The grammar shares `syntax/scheduler.rs`: statement, declaration, parameter,
+pattern and expression requests suspend on one work stack. `statement_work.rs`,
+`declaration_work.rs` and `expression_work.rs` implement the steps. Annotation
+parsing in `types/syntax.rs` uses a separate leaf machine that never re-enters the
+grammar driver. `syntax/nesting_policy.rs` retains the public admission bounds
+while downstream consumers remain recursive; those bounds are migration debt,
+not compiler architecture acceptance. Unbounded parser probes bypass local
+function lowering and therefore do not establish end-to-end support.

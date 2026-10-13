@@ -68,7 +68,7 @@ fn unicode_escapes_are_validated_and_decoded() {
 }
 
 #[test]
-fn explicit_limits_reject_deep_source_without_panicking() {
+fn pending_public_nesting_limits_return_diagnostics_without_panicking() {
     let source = format!(
         "function main() {{ {}\"x\"{}; }}",
         "(".repeat(200),
@@ -83,12 +83,17 @@ fn explicit_limits_reject_deep_source_without_panicking() {
     assert_eq!(check(&source).err().unwrap().code, "unsupported");
     let source = format!("function main() {{ \"x\"{}; }}", ".trim()".repeat(200));
     assert_eq!(check(&source).err().unwrap().code, "unsupported");
-    let mut source = String::from("function main() {}\n");
+}
+
+#[test]
+fn finite_function_dependency_chains_are_not_limited_by_call_stack_depth() {
+    let mut source = String::from("function main() { f0(); }\n");
     for i in 0..200 {
         source.push_str(&format!("function f{i}() {{ f{}(); }}\n", i + 1));
     }
     source.push_str("function f200() {}\n");
-    assert_eq!(check(&source).err().unwrap().code, "unsupported");
+    let checked = check(&source).expect("finite function dependencies use a worklist");
+    assert!(!checked.emit_rust().is_empty());
 }
 
 #[test]
