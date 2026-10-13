@@ -60,6 +60,10 @@ impl Analyzer {
                     let dependencies = dependencies::references(&self.program.functions[index], &self.function_names)
                         .into_iter().filter(|&dependency| {
                             self.checked[dependency].is_none() && !self.scheduled_functions.contains(&dependency)
+                                // Record callback contracts depend on environments
+                                // constructed by the caller. Keep their original
+                                // checking point until context suspension is explicit.
+                                && !self.signatures[dependency].params.iter().any(|ty| matches!(ty, Type::Record(_)))
                                 && (!self.named_captures.needs_context(dependency) || self.named_captures.ready(dependency))
                         }).collect::<Vec<_>>();
                     for &dependency in &dependencies { parents.entry(dependency).or_default().push(index); }

@@ -1,7 +1,8 @@
 # Compiler nesting architecture
 
-Status: active, required before S12. No nesting acceptance or new scaling
-measurement is claimed. Baseline source is `6fe878c2`; `f26712cf` tracks the
+Status: active, required before S12. Full nesting acceptance remains pending;
+ordinary acyclic dependency measurements are recorded below. Baseline source is
+`6fe878c2`; `f26712cf` tracks the
 owner's later UI plans without changing compiler behavior.
 
 ## Acceptance boundary
@@ -139,3 +140,28 @@ Whole-project formatting changes zero files/fingerprints. Remaining recursive
 checking inside components, capture-dependent/dynamically selected calls, parser,
 block/expression analysis, types and syntax disposal are not accepted by this
 section. Keep the full architecture priority active before S12.
+
+## Consumer validation and record-context repair
+
+Refreshing consumers from `3f7a38e9` exposed a regression in the existing
+`fallible-record-callbacks/values.tsr` fixture. Both the installed CLI's project
+check and the live editor reported `Expected int, found #RuntimeError.` at
+21:89. The original failed refresh, installed hashes and CLI output are retained
+in SQLite as `tsrust-nesting-consumer-refresh.json`,
+`tsrust-nesting-consumer-build.log` and `tsrust-nesting-installed-check.log`.
+
+Eager scheduling of record-parameter functions ran before their callers had
+constructed the callback environments that determine field error contracts.
+Such dependencies now retain their original checking point. This is a semantic
+ordering constraint, not stackless acceptance for record-parameter call chains;
+explicit suspension with the caller's context remains required. All four
+existing fallible-record-callback tests pass with this repair. The scalar-chain
+measurements retain their original source identity and are not relabeled as
+measurements of the repair.
+
+The affected repair batch passes 28 integration checks: four fallible record
+callbacks, six function dependencies and eighteen schema pipelines. Whole-project
+formatting changes zero files/fingerprints. SQLite retains the diagnostic probe
+and repair outputs as `tsrust-nesting-callback-order-probe.log`,
+`tsrust-nesting-callback-order-repair.log` and
+`tsrust-nesting-callback-order-format.log`.
