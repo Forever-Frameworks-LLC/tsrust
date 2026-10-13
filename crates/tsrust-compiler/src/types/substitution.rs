@@ -6,8 +6,8 @@ use std::collections::HashMap;
 /// Arguments are already concrete. A replacement is not substituted again.
 /// Replacement coordinates remain those of the argument that supplied it.
 pub(crate) fn apply(value: &mut ValueAnnotation, bindings: &HashMap<String, ValueAnnotation>) -> Result<(), Diagnostic> {
-    // Resolution still has recursive consumers. Preserve its current admission
-    // boundary until those consumers are converted, independently of this stack.
+    // Generic materialization and source wrapper storage still have recursive
+    // consumers. Preserve admission until those consumers are converted.
     apply_with_limit(value, bindings, Some(128))
 }
 
@@ -199,8 +199,8 @@ mod tests {
         let argument = parse("/* actual */ int").unwrap();
         let expected = argument.clone();
         let bindings = HashMap::from([("T".into(), argument)]);
-        // Public admission remains bounded until recursive type resolution is
-        // converted. The same worklist engine has no call-stack depth dependency.
+        // Public admission remains bounded until the remaining materialization
+        // and source storage consumers are converted. This engine is stack independent.
         apply_with_limit(&mut value, &bindings, None).unwrap();
         let mut leaf = &value;
         let mut depth = 0;

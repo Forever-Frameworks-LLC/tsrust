@@ -1,4 +1,5 @@
 //! Source callable resolution independent of function bodies and environment origins.
+mod traversal;
 use crate::analysis::{ArgumentContract, CallbackContract, resolve_value_type};
 use crate::syntax::{
     CallableParameter, CallbackAnnotation, CallbackKind, ParameterAnnotation, ResultAnnotation,
@@ -66,58 +67,7 @@ impl Resolver<'_> {
         annotation: &crate::type_syntax::ValueAnnotation,
         allow_void: bool,
     ) -> Result<Type, Diagnostic> {
-        if let Some((ty, _, _)) = self.array_storage_declaration(annotation)? {
-            return Ok(ty);
-        }
-        use crate::type_syntax::ValueAnnotationKind as Kind;
-        match &annotation.kind {
-            Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
-            Kind::Group(inner) => self.resolve_value_annotation(inner, allow_void),
-            Kind::Union(members) => {
-                let mut types = Vec::with_capacity(members.len());
-                for member in members {
-                    let ty = if let Some(callback) = crate::callable_annotations::callback(member) {
-                        let Type::Callback(id) = self.resolve_callback(&callback)? else {
-                            unreachable!()
-                        };
-                        let contextual =
-                            (matches!(self.callback_contracts[id].result, Type::Callable(_))
-                                || self.callback_contracts[id].params.iter().any(|parameter| {
-                                    matches!(
-                                        self.unions.payload(parameter.ty).unwrap_or(parameter.ty),
-                                        Type::Callback(_)
-                                    )
-                                }));
-                        if callback.kind.is_owned() && !contextual {
-                            self.storage
-                                .intern(self.callable_shapes, &self.callback_contracts[id], id)
-                                .expect("owned callback storage")
-                        } else {
-                            types
-                                .iter()
-                                .find_map(|previous| match previous {
-                                    Type::Callback(previous)
-                                        if self.callback_contracts[*previous].structural
-                                            == self.callback_contracts[id].structural =>
-                                    {
-                                        Some(Type::Callback(*previous))
-                                    }
-                                    _ => None,
-                                })
-                                .unwrap_or(Type::Callback(id))
-                        }
-                    } else {
-                        self.resolve_value_annotation(member, true)?
-                    };
-                    types.push(ty);
-                }
-                self.unions.intern(types, annotation.span)
-            }
-            Kind::Callable { .. } => self.resolve_callback(
-                &crate::callable_annotations::callback(annotation).expect("callable annotation"),
-            ),
-            _ => resolve_value_type(annotation, allow_void, self.record_names, self.unions),
-        }
+        traversal::value(self, annotation, allow_void)
     }
     fn callable_shape_type(&self, ty: Type) -> crate::callable_contracts::ContractType {
         use crate::callable_contracts::ContractType;
@@ -164,174 +114,28 @@ impl Resolver<'_> {
         &mut self,
         annotation: &crate::type_syntax::ValueAnnotation,
     ) -> Result<Option<(Type, usize, usize)>, Diagnostic> {
-        let (leaf, dimensions) = crate::callable_annotations::storage_leaf(annotation);
-        if dimensions == 0 {
-            return Ok(None);
-        }
-        if dimensions > 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Array type nesting exceeds the prototype limit of 128.",
-                annotation.span,
-            ));
-        }
-        let Some((ty, declaration)) = self.storage_declaration(leaf)? else {
-            return Ok(None);
-        };
-        let Type::StoredCallable(family) = ty else {
-            unreachable!("stored callable leaf");
-        };
-        let ty = Type::Array(crate::syntax::ArrayElement::StoredCallable(
-            family,
-            (dimensions - 1) as u8,
-        ));
-        Ok(Some((ty, declaration, dimensions)))
+        traversal::array_storage(self, annotation)
     }
 
     pub(crate) fn storage_declaration(
         &mut self,
         annotation: &crate::type_syntax::ValueAnnotation,
     ) -> Result<Option<(Type, usize)>, Diagnostic> {
-        if crate::callable_annotations::storage_leaf(annotation).1 != 0 {
-            return self
-                .array_storage_declaration(annotation)
-                .map(|resolved| resolved.map(|(ty, declaration, _)| (ty, declaration)));
-        }
-        use crate::type_syntax::ValueAnnotationKind as Kind;
-        match &annotation.kind {
-            // Report a rejected signature at the whole written annotation.
-            Kind::Group(inner) => {
-                return self.storage_declaration(inner).map_err(|mut error| {
-                    if error.span == inner.span {
-                        error.span = annotation.span;
-                    }
-                    error
-                });
-            }
-            Kind::Union(members) => {
-                let mut types = Vec::with_capacity(members.len());
-                let mut declaration = None;
-                for member in members {
-                    if let Some((ty, id)) = self.storage_declaration(member)? {
-                        types.push(ty);
-                        declaration = Some(id);
-                    } else {
-                        types.push(self.resolve_value_annotation(member, false)?);
-                    }
-                }
-                return declaration
-                    .map(|id| {
-                        self.unions
-                            .intern(types, annotation.span)
-                            .map(|ty| Some((ty, id)))
-                    })
-                    .unwrap_or(Ok(None));
-            }
-            _ => {}
-        }
-        let Some(callback) = crate::callable_annotations::callback(annotation) else {
-            return Ok(None);
-        };
-        if !callback.kind.is_owned() {
-            return Err(Diagnostic::new(
-                "callback-escape",
-                "A field stores a Function<...> or Once<Function<...>>; ReadOnly and Mutable functions are borrowed and belong in local bindings or parameters.",
-                annotation.span,
-            ));
-        }
-        let Type::Callback(id) = self.resolve_callback(&callback)? else {
-            unreachable!("resolved callback signature");
-        };
-        // Validate signature layout even when no environment is constructed.
-        crate::callable_dispatch::Family::checked(
-            &self.callback_contracts[id],
-            self.callable_shapes,
-            [],
-            &[],
-            annotation.span,
-        )?;
-        Ok(self
-            .storage
-            .intern(self.callable_shapes, &self.callback_contracts[id], id)
-            .map(|ty| (ty, id)))
+        traversal::storage(self, annotation)
     }
 
     pub(crate) fn resolve_callback(
         &mut self,
         annotation: &CallbackAnnotation,
     ) -> Result<Type, Diagnostic> {
-        let params = self.parameter_contracts(&annotation.params, true)?;
-        let result = self.resolve_result(&annotation.result)?;
-        let key = CallableSourceKey {
-            span: (annotation.span.start, annotation.span.end),
-            contract: self.intern_callable_shape(&params, result, Some(annotation.kind)),
-        };
-        if let Some(&id) = self.callback_source_types.get(&key) {
-            return Ok(Type::Callback(id));
-        }
-        // Allocate after children. Equal signatures keep distinct path IDs:
-        // IDs identify parameter ownership paths, not merely structural shapes.
-        let id = self.callback_contracts.len();
-        self.callback_contracts.push(CallbackContract {
-            structural: key.contract,
-            parameter_names: annotation
-                .params
-                .iter()
-                .map(|parameter| parameter.name.text.clone())
-                .collect(),
-            params,
-            result,
-            kind: annotation.kind,
-        });
-        self.storage
-            .intern(self.callable_shapes, &self.callback_contracts[id], id);
-        self.callback_source_types.insert(key, id);
-        Ok(Type::Callback(id))
+        traversal::callback(self, annotation)
     }
 
     pub(crate) fn resolve_result(
         &mut self,
         annotation: &ResultAnnotation,
     ) -> Result<Type, Diagnostic> {
-        match annotation {
-            ResultAnnotation::Inferred(_) => Ok(Type::Void),
-            ResultAnnotation::Named(token) => {
-                let kind = crate::callable_annotations::ownership(token)
-                    .or_else(|| crate::callable_annotations::nullable_kind(token));
-                if kind.is_some_and(|kind| !kind.is_owned()) {
-                    return Err(Diagnostic::new(
-                        "callback-escape",
-                        "A factory result must own its callable environment; borrowed callable results cannot escape.",
-                        token.span,
-                    ));
-                }
-                self.resolve_value_annotation(token, true)
-            }
-            ResultAnnotation::Callable {
-                kind,
-                params,
-                result,
-                span,
-            } => {
-                let params = self.parameter_contracts(params, true)?;
-                let result = self.resolve_result(result)?;
-                let key = CallableSourceKey {
-                    span: (span.start, span.end),
-                    contract: self.intern_callable_shape(&params, result, *kind),
-                };
-                if let Some(&id) = self.result_source_types.get(&key) {
-                    return Ok(Type::Callable(id));
-                }
-                let id = self.result_contracts.len();
-                self.result_contracts.push(ResultContract {
-                    structural: key.contract,
-                    params,
-                    result,
-                });
-                self.result_source_types.insert(key, id);
-                Ok(Type::Callable(id))
-            }
-        }
+        traversal::result(self, annotation)
     }
 
     pub(crate) fn parameter_contracts(
@@ -339,57 +143,7 @@ impl Resolver<'_> {
         params: &[CallableParameter],
         explicit: bool,
     ) -> Result<Vec<ArgumentContract>, Diagnostic> {
-        let mut names = HashSet::new();
-        params
-            .iter()
-            .map(|param| {
-                crate::callable_contracts::parameter_name(
-                    &param.name.text,
-                    param.name.span,
-                    &mut names,
-                )?;
-                let ty = match &param.ty {
-                    ParameterAnnotation::Named(token) => {
-                        self.resolve_value_annotation(token, true)?
-                    }
-                    ParameterAnnotation::Callback(annotation) => {
-                        self.resolve_callback(annotation)?
-                    }
-                    ParameterAnnotation::Inferred(token) => return Err(Diagnostic::new("parameter-inference", "Parameter type must be inferred from its initializer or callback context.", token.span)),
-                };
-                let access =
-                    param
-                        .access
-                        .as_ref()
-                        .map(|access| crate::type_syntax::ParameterAccess {
-                            mode: match access.text.as_str() {
-                                "read" => Mode::Read,
-                                "mutate" => Mode::Mutate,
-                                "consume" => Mode::Consume,
-                                _ => unreachable!("parsed access modifier"),
-                            },
-                            span: access.span,
-                        });
-                let callback = match self.unions.payload(ty).unwrap_or(ty) {
-                    Type::Callback(id) => Some(self.callback_contracts[id].kind),
-                    _ => None,
-                };
-                let mode = if param.rest {
-                    if !matches!(ty,Type::Array(_)) { return Err(Diagnostic::new("rest-type", "A rest parameter requires a supported homogeneous array type.", param.ty.span())); }
-                    if access.as_ref().is_some_and(|access|access.mode!=Mode::Consume) { return Err(Diagnostic::new("rest-access", "A rest parameter owns its pack; only explicit consume access is supported.", param.name.span)); }
-                    Mode::Consume
-                } else {crate::callable_contracts::parameter_mode(
-                    ty,
-                    callback,
-                    explicit,
-                    access.as_ref(),
-                    param.ty.span(),
-                )?};
-                let omission = param.initializer.omission();
-                let ty = if omission.is_omittable() { self.unions.intern([ty, Type::Undefined], param.name.span)? } else { ty };
-                Ok(ArgumentContract { ty, mode, omission, rest: param.rest })
-            })
-            .collect()
+        traversal::parameters(self, params, explicit)
     }
 }
 

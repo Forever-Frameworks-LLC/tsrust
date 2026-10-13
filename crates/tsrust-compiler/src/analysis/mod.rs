@@ -1,3 +1,4 @@
+mod value_type_resolution;
 mod function_scheduling;
 mod result_discovery;
 mod schema;
@@ -868,122 +869,9 @@ pub(crate) fn resolve_value_type(
     record_names: &HashMap<String, usize>,
     unions: &crate::unions::UnionArena,
 ) -> Result<Type, Diagnostic> {
-    use crate::type_syntax::ValueAnnotationKind as Kind;
-    match &annotation.kind {
-        Kind::Literal(value) => {
-            let literal=crate::literal_types::LiteralValue::checked(value,annotation.span)?;
-            record_names.get(&literal.key()).map(|&id|Type::Literal(id,literal.kind())).ok_or_else(||Diagnostic::new("literal-type","Literal type identity has not been materialized.",annotation.span))
-        },
-        Kind::Polymorphic { origin, .. } => Ok(Type::Closure(*origin)),
-        Kind::Group(inner) => resolve_value_type(inner, allow_void, record_names, unions),
-        Kind::Union(members) => {
-            let members = members
-                .iter()
-                .map(|member| resolve_value_type(member, true, record_names, unions))
-                .collect::<Result<Vec<_>, _>>()?;
-            unions.intern(members, annotation.span)
-        }
-        Kind::Array(_) => resolve_array_annotation(annotation, record_names, unions),
-        Kind::Tuple(_) => Err(Diagnostic::new("type", "Tuple annotation has not been materialized.", annotation.span)),
-        Kind::Applied { .. } => Err(Diagnostic::new(
-            "unsupported",
-            "Generic type applications are not yet supported by the type checker.",
-            annotation.span,
-        )),
-        Kind::Callable { .. } => Err(Diagnostic::new(
-            "unsupported",
-            "Callable value annotations are not yet supported in this position.",
-            annotation.span,
-        )),
-        Kind::Named(name) => match name.text.as_str() {
-            "int" => Ok(Type::Int),
-            "number" => Ok(Type::Number),
-            "boolean" => Ok(Type::Boolean),
-            "string" => Ok(Type::String),
-            "null" => Ok(Type::Null),
-            "undefined" => Ok(Type::Undefined),
-            "void" if allow_void => Ok(Type::Void),
-            _ => record_names
-                .get(&name.text)
-                .copied()
-                .map(|id| unions.named_type(id))
-                .ok_or_else(|| {
-                    Diagnostic::new(
-                        "type",
-                        match name.text.as_str() {
-                            "Function" => "Function needs a result type, such as Function<int> or Function<int, [string]>.".to_owned(),
-                            "Mutable" | "ReadOnly" | "Once" | "Owned" => format!("{} wraps one type, such as {}<Function<int>>.", name.text, name.text),
-                            _ => format!("Unknown or unsupported type {:?}.", name.text),
-                        },
-                        name.span,
-                    )
-                }),
-        },
-    }
+    value_type_resolution::resolve(annotation, allow_void, record_names, unions)
 }
 
-fn resolve_array_annotation(
-    annotation: &crate::type_syntax::ValueAnnotation,
-    record_names: &HashMap<String, usize>,
-    unions: &crate::unions::UnionArena,
-) -> Result<Type, Diagnostic> {
-    use crate::type_syntax::ValueAnnotationKind as Kind;
-    let mut inner = annotation;
-    let mut dimensions = 0;
-    loop {
-        match &inner.kind {
-            Kind::Group(value) => inner = value,
-            Kind::Array(value) => {
-                dimensions += 1;
-                inner = value;
-            }
-            _ => break,
-        }
-    }
-    if dimensions > 128 {
-        return Err(Diagnostic::new(
-            "unsupported",
-            "Array type nesting exceeds the prototype limit of 128.",
-            annotation.span,
-        ));
-    }
-    let depth = (dimensions - 1) as u8;
-    let element = match &inner.kind {
-        Kind::Literal(_) => ArrayElement::from_value_type(resolve_value_type(inner,false,record_names,unions)?).map(|leaf|leaf.with_depth(depth)),
-        Kind::Named(name) => match name.text.as_str() {
-            "int" => Some(ArrayElement::Int(depth)),
-            "number" => Some(ArrayElement::Number(depth)),
-            "boolean" => Some(ArrayElement::Boolean(depth)),
-            "string" => Some(ArrayElement::String(depth)),
-            "null" => Some(ArrayElement::Null(depth)),
-            "undefined" => Some(ArrayElement::Undefined(depth)),
-            _ => record_names
-                .get(&name.text)
-                .copied()
-                .and_then(|id| ArrayElement::from_value_type(unions.named_type(id))).map(|leaf| leaf.with_depth(depth)),
-        },
-        Kind::Union(_) => match resolve_value_type(inner, false, record_names, unions)? {
-            Type::Union(id) => Some(ArrayElement::Union(id, depth)),
-            // Duplicate alternatives collapse to one ordinary leaf.
-            single => ArrayElement::from_value_type(single).map(|leaf| leaf.with_depth(depth)),
-        },
-        Kind::Applied { .. } => {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Generic type applications are not yet supported by the type checker.",
-                inner.span,
-            ));
-        }
-        _ => None,
-    };
-    element.map(Type::Array).ok_or_else(|| {
-        Diagnostic::new(
-            "array-element",
-            "Array leaves must be int, number, boolean, string, or a named record.",
-            annotation.span,
-        )
-    })
-}
 
 pub(crate) use crate::record_layout::append_checked_record_fields;
 

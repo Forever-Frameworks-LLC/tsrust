@@ -103,3 +103,9 @@ temporarily holds the parent while one child is visited, then restores that chil
 before proceeding. Error unwinding reconstructs the partially substituted tree;
 do not replace this with a whole-tree clone or discard earlier valid substitutions.
 Containment projection and copy-mode classification also use worklists.
+
+Data annotation resolution lives in `analysis/value_type_resolution.rs`.
+`callables/resolution/traversal.rs` owns the shared worklist for callable results,
+parameters, unions and storage declarations. Its caches are limited to one run
+over immutable annotations. Contract IDs are still published after children;
+grouped storage errors retain their enclosing-range remapping.

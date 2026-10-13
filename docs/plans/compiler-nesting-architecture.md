@@ -451,3 +451,41 @@ files and fingerprints. SQLite records under `tsrust-nesting-substitution` prese
 outputs and source identity with exact restoration verification. No timings or
 allocation measurements were collected, and no public admission boundary changed.
 Installed consumers remain on the last accepted public behavior checkpoint.
+
+## Shared type-resolution continuations in progress
+
+Data annotations resolve through postorder frames for groups, unions and array
+leaves. Callable resolution has one worklist for value annotations, source and
+structured callbacks/results, parameter contracts, unions and storage declarations.
+Structured signatures resolve directly without repeatedly constructing recursive
+source wrappers. Parameter names are checked in source order; contract identities
+are published only after their children, preserving distinct source ownership paths.
+
+Per-run caches retain successful value/storage/array resolutions for immutable
+annotation nodes. They distinguish node identity and the allow-void context rather
+than conflating equal source spans. This prevents repeated data-union fallback
+traversal; errors are not cached. Active grouped-storage frames remap error spans
+in the same inner-to-outer order as the former recursion. Omitted structured
+parameters retain the previous Optional adaptation, while executable source
+defaults retain their own omission metadata.
+
+Normal-stack witnesses cover 16,384-level mixed callable parameters/results,
+nested data unions through array-storage fallback, grouped storage diagnostics,
+stable repeated contract identities and source result wrappers. Structured trees
+use production disposal; the source-wrapper witness still disposes its input
+iteratively. The shared resolvers are now iterative, but generic materialization
+and source wrapper storage still need conversion before removing substitution’s
+production admission boundary. Array rank representation limits are unchanged.
+No public Tsrust contract or benchmark protocol changes in this section.
+
+Verification passes 12 resolver unit checks across the repaired initial batch and
+the additional deep source-wrapper witness, 265 compiler integration checks and
+133 distinct editor checks. Compiler coverage includes callable fields/results,
+nullable and recursive callables, generic value adapters, literals, aliases, type
+syntax and native declarations, including executable schema catalog examples.
+Editor coverage includes callable navigation/help and schema types. Original
+compile diagnostics (module documentation placement and borrowed name-set types)
+and successful repairs are retained in SQLite under `tsrust-nesting-resolution`.
+Whole-project formatting changes zero files and fingerprints. This section has
+no new timing/allocation samples or public admission-boundary changes; installed
+consumers remain on the last accepted public behavior checkpoint.
