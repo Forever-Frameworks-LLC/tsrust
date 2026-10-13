@@ -25,7 +25,7 @@ pub(crate) fn path_module()->String {
 pub fn json_module()->String {json_module_with_writer(false)}
 pub fn json_module_with_writer(writer:bool)->String {
     let writer=if writer {format!("pub mod writer {{\n{}\n}}\n",include_str!("../stdlib/json/writer.rs").replace("crate::stdlib::fs::runtime","crate::tsrust_native_files"))}else{String::new()};
-    format!("mod tsrust_native_json {{\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\npub mod raw {{\n{}\n}}\npub mod source {{\n{}\n}}\n{writer}}}\n", include_str!("../stdlib/json/runtime.rs"),include_str!("../stdlib/json/lines.rs"),include_str!("../stdlib/json/typed.rs"),include_str!("../stdlib/json/raw.rs"),include_str!("../stdlib/json/source.rs"))
+    format!("mod tsrust_native_json {{\npub use serde_json::Map;\n{}\npub mod lines {{\n{}\n}}\npub mod typed {{\n{}\n}}\npub mod raw {{\n{}\n}}\npub mod source {{\n{}\n}}\n{writer}}}\n", concat!(include_str!("../stdlib/json/runtime/parser.rs"), "\n", include_str!("../stdlib/json/runtime/operations.rs")),include_str!("../stdlib/json/lines.rs"),include_str!("../stdlib/json/typed.rs"),include_str!("../stdlib/json/raw.rs"),include_str!("../stdlib/json/source.rs"))
 }
 
 /// Keep application record/union types, borrow adapters and generic ownership code

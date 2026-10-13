@@ -47,3 +47,25 @@ Source moves must preserve public APIs, runtime contents, diagnostics, ownership
 and evaluation order. Batch structural verification after coherent moves; do not
 rerun tests for each directory. Follow the development workflow for formatting,
 regression evidence, and checkpoints.
+
+## Schema feature boundaries
+
+Schema checking lives in `analysis/schema`; schema emission lives in `emit/schema`.
+Each feature owns a module tree, with explicit ancestor visibility for methods
+that extend `Analyzer` or `Emitter`. Editor schema completion, typed paths and
+constructor options live in `tsrust-lsp/src/schema`, under source intelligence.
+
+`stdlib/schema/compiler` owns plan metadata, native namespaces and bridges.
+`stdlib/schema/runtime` owns embedded validators, bounded issues, rollback trials
+and JSON Schema assembly. Explicit module paths preserve their existing logical
+context where shared runtime code must compile both as a backend witness and as
+generated program support.
+
+JSON's `runtime/parser.rs` is shared by compiler-time data imports and generated
+programs. `runtime/operations.rs` contains dynamic runtime operations; compiler
+library tests include it, while production compiler builds only the parser.
+`runtime.rs` is the complete standalone backend-witness facade. Runtime assembly
+concatenates the same source fragments without emitting include paths into user
+programs. Typed/raw/source cursor modules are compiled directly only for backend
+tests and otherwise embedded into generated programs. This boundary avoids
+compiling unused native operations into the compiler binary.

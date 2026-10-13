@@ -10,7 +10,7 @@ compiler/native/editor acceptance, including nested union rollback and defaults.
 Fused JSON text decoding has focused public/compiler/editor acceptance.
 Recursive schemas and multi-issue refinements now have focused implementation evidence.
 JSON Schema export has focused native/editor/example and matched untimed evidence.
-Family acceptance remains pending.
+Family measurements and compiler regressions are complete. Final cleanup LSP verification and consumer refresh remain pending.
 
 ## Required surface and coverage
 
@@ -23,15 +23,15 @@ executing differential cases; current web documentation alone is not a version p
 | Scalar constructors | string, number, int, boolean, null; literal and enum checks | String/boolean/int/number/null, exact literals, string-list enums and declared string/numeric enums checked |
 | Scalar constraints | explicit string-length units; numeric inclusive/exclusive bounds; no implicit coercion | String min/max and integer/number min/max/gt/lt integrated |
 | Objects | inferred typed fields, explicit unknown-key policies, required/missing distinction | Required typed fields, inferred output, named output annotations, nested objects/arrays and default rejection integrated; explicit strip/retain integrated |
-| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object, transformed, collection and recursive elements have focused witnesses; checked int-to-number arrays integrated; full family regression pending |
-| Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable and reusable default factories integrated for owned/JSON object fields; S11 family acceptance pending |
-| Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing pending |
-| Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing pending |
+| Arrays | inferred element output, indexed error paths, bounded partial construction | Scalar/nested/object, transformed, collection and recursive elements have focused witnesses; checked int-to-number arrays integrated; compiler family regression complete |
+| Optional/nullable/default | distinct missing/null behavior, documented default evaluation and ownership | Optional/nullable and reusable default factories integrated for owned/JSON object fields; final cleanup acceptance pending |
+| Unions | ordered matching, bounded branch errors, correct rollback and output ownership | Public ordered plans, borrowed preparation, single commitment, defaults/presence and common-field access checked; family timing complete |
+| Discriminated unions | checked discriminator selection, inferred alternatives and useful errors | Public literal/enum selection, exact integers, mixed field types and branch narrowing checked; family timing complete |
 | safeParse | typed Result, reusable immutable schema receiver, bounded redacted errors | Approved: consume owned input on success and failure |
-| parse | Return inferred output directly; throw the existing ValidationError on validation failure | Focused compiler/native/editor and untimed parity accepted; family timing pending |
-| Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements pending |
+| parse | Return inferred output directly; throw the existing ValidationError on validation failure | Focused compiler/native/editor and untimed parity accepted; family timing complete |
+| Refinements and transforms | explicit input/output types, validation order, callback ownership and failure cleanup | Public readonly refine and owned transform pipelines have focused acceptance; family measurements complete |
 | Preprocessing and cross-field checks | declared order, explicit coercion, structured issue paths | Callback-based coerce and object predicates have focused acceptance; superRefine with bounded typed-path ctx.addIssue is integrated |
-| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and nested composition have focused witnesses; final family audit remains pending |
+| Recursive/lazy and composition | finite plan construction, guarded recursion, no per-request plan rebuilding | Public inferred/explicit recursion has focused native coverage and matched untimed workload support; recursive editor integration and nested composition have focused witnesses; final cleanup acceptance remains pending |
 | Record/map/set schemas | collection ownership, key semantics, inferred output and bounded errors | Public record/map/set constructors, reversible validation, collision rejection, editor types and matched workload checked; family acceptance pending |
 | JSON Schema export | explicitly reject unrepresentable checks/transforms rather than silently omit them | Draft 2020-12 export integrated with explicit unsupported-rule errors; focused checks pass, family acceptance pending |
 | Async refinements | approved task semantics and cancellation/ownership checks | Follows S14 |
@@ -3052,3 +3052,36 @@ original samples before any optimization. A universal runtime win is not accepta
 Installed consumers, final requirement audit and requested source cleanup remain
 required before the S11 handoff. Compiler nesting redesign remains the next
 agent's first priority before S12.
+
+### Source cleanup batch
+
+Schema analysis and emission now have feature module trees, editor schema files
+have a dedicated directory, and standard-library schema internals separate
+compiler metadata/bridges from embedded runtime validators. Public imports and
+logical runtime contexts are preserved. JSON compiler-time parsing now compiles
+only shared parser code; native runtime operations are assembled from separate
+fragments and retained in the standalone backend facade. Both irrefutable backend
+patterns are simplified. The coercion reachability helper remains available only
+to its backend unit witnesses. No blanket warning suppression was added.
+
+All-target check passes after repairing move-related module attributes and retaining
+the test-only helper. Production compiler/LSP builds no longer emit the original
+50 runtime/dead-code warnings. Test builds still expose generated-only entry points
+and partial native-bundle imports as unused; those operations remain necessary for
+generated programs. Cleanup regression follows the complete move batch.
+
+Cleanup regression reached native declarations with 63 passing tests and one
+failed catalog example. Runtime separation removed the `tsrust_native_json::Map`
+alias still used by emitted prepared-JSON validation. Restored the alias in native
+runtime assembly and the standalone runtime facade, leaving production compiler
+parsing free of the unused alias. The affected catalog test is running in
+`tsrust-s11-cleanup-map-alias-repair.log`; original cleanup evidence is in SQLite.
+Resume unrun suites after native declarations once the repair passes.
+
+Cleanup continuation: generated prepared-JSON validators require the JSON module’s `Map` re-export. The runtime split omitted that export; restoring it repairs the sole interrupted `native_declarations` example failure. The focused original-source execution passes, with evidence in SQLite as `tsrust-s11-cleanup-map-alias-repair.log`. The other 63 tests in that suite remain passed; resume subsequent suites instead of restarting them.
+
+The resumed cleanup run preserves 610 further passes and one expected ignored worker across 79 suites, then stops at eight JSON Schema export failures. All share one import error: the moved runtime must retain `super::tsrust_native_json::{Map, Value}` because generated code links a backend alias. Restoring that original import is the cleanup repair; the original failed run is retained as `tsrust-s11-cleanup-compiler-resume.log` in SQLite.
+
+Post-cleanup compiler acceptance accounts for all 321 integration suites and library targets: 3,727 passed, three expected ignored; doctests pass with zero cases. `tsrust-s11-cleanup-regression-index.json` in SQLite indexes both interrupted runs and successful affected repairs. The 63 final suites pass 631 tests. LSP cleanup verification and installed refresh are the remaining finishing steps.
+
+Cleanup LSP regression passes all 645 tests; evidence is `tsrust-s11-cleanup-lsp.log` in SQLite. Whole-project formatting changes zero files and zero benchmark fingerprints (`tsrust-s11-cleanup-format.log`). Both CLI and LSP binaries are explicitly rebuilt from the reorganized source. Representative untimed adapter checks and installed refresh remain in progress.

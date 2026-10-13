@@ -1,5 +1,7 @@
 //! Tolerant source declarations for editing incomplete programs. This is not a
 //! second type checker: unknown types stay unknown and diagnostics use `check`.
+#[path = "schema/mod.rs"]
+mod schema;
 #[path="statement_extent.rs"]
 mod statement_extent;
 #[path="local_function_intelligence.rs"]
@@ -15,12 +17,6 @@ mod result_intelligence;
 mod native_type_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
-#[path = "schema_path_intelligence.rs"]
-mod schema_path_intelligence;
-#[path = "schema_options_intelligence.rs"]
-mod schema_options_intelligence;
-#[path = "schema_editing.rs"]
-mod schema_editing;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};

@@ -1,0 +1,143 @@
+//! Native scalar validation preserves ownership and checked numeric conversion.
+use crate::{analysis::CheckedProgram, native_bindings::NativeType, native_signatures::NativeTypeId, syntax::Type};
+pub(crate) fn safe_parse(program: &CheckedProgram, schema: usize, binding: &crate::native_bindings::NativeBinding) -> String {
+    let NativeType::Structured(signature) = binding.result else { unreachable!() };
+    let Type::Union(result) = crate::native_binding_types::resolve(&program.records, signature).unwrap() else { unreachable!() };
+    let members = &program.unions[result.index()].members;
+    let [ok, err] = crate::result_identity::variants(&program.records, members).unwrap();
+    let tag = |id| members.iter().position(|ty| *ty == Type::Record(id)).unwrap();
+    let record = |id| program.records.iter().position(|record| record.native_type == Some(id)).unwrap();
+    let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend;
+    let boolean = matches!(binding.name, "__safeParseBoolean" | "__safeParseBooleanValue");
+    let integer = matches!(binding.name, "__safeParseInt" | "__safeParseIntValue");
+    let number = matches!(binding.name, "__safeParseNumber" | "__safeParseNumberValue" | "__safeParseNumberInt");
+    let null = matches!(binding.name, "__safeParseNull" | "__safeParseNullValue");
+    let owned = binding.name == "__safeParseNullValue" || !matches!(binding.parameters[1].ty, NativeType::Structured(_));
+    let native = if null { "TsrNull" } else if number { "f64" } else if integer { "i64" } else if boolean { "bool" } else { "String" };
+    let expected = if null { "null" } else if number { "number" } else if integer { "integer" } else if boolean { "boolean" } else { "string" };
+    let pattern = if null { "Null" } else if boolean { "Bool(text)" } else { "String(text)" };
+    let payload = if null { "TsrNull" } else if boolean { "text" } else { "String::Owned(text)" };
+    let bounds_guard = |input: &str, expected: &str, observed: &str| {
+        let error = record(NativeTypeId::ValidationError);
+        let issue = record(NativeTypeId::SchemaIssue);
+        let path = record(NativeTypeId::SchemaPath);
+        format!("if let Some(code)=_schema.bounds.check({input}) {{
+            let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(\"{observed}\"),field5:String::Borrowed(code)}};
+            return Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}});
+        }}",result=result.index(),err_tag=tag(err))
+    };
+    if owned && number {
+        let error = record(NativeTypeId::ValidationError);
+        let issue = record(NativeTypeId::SchemaIssue);
+        let path = record(NativeTypeId::SchemaPath);
+        let int_input = binding.name == "__safeParseNumberInt";
+        let input_type = if int_input { "i64" } else { "f64" };
+        let conversion = if int_input { "let value=input as f64;" } else { "let value=input;" };
+        // Compare in i128 so saturating casts cannot accept rounded i64::MAX.
+        let valid = if int_input { "value as i128 == input as i128" } else { "value.is_finite()" };
+        let code = if int_input { "number-precision" } else { "number-nonfinite" };
+        let observed = if int_input { "integer" } else { "number" };
+        let guard=bounds_guard("value","number",observed);
+        return format!("fn {symbol}(_schema:&Record{schema},input:{input_type})->Union{result} {{
+            {conversion}
+            if {valid} {{ {guard} return Union{result}::V{ok_tag}(Record{ok}{{field0:value}}); }}
+            let issue=Record{issue}{{field0:String::Borrowed(\"{code}\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"number\"),field4:String::Borrowed(\"{observed}\"),field5:String::Borrowed(\"{code}\")}};
+            Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
+        }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err));
+    }
+    if owned {
+        let guard=if binding.name=="__safeParseOwnedString" {bounds_guard("input.as_ref()","string","string")}else if integer {bounds_guard("input","integer","integer")}else{String::new()};
+        return format!("fn {symbol}(_schema:&Record{schema},input:{native})->Union{result} {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:input}}) }}\n",result=result.index(),ok_tag=tag(ok));
+    }
+    let value = record(NativeTypeId::JsonValue);
+    let error = record(NativeTypeId::ValidationError);
+    let issue = record(NativeTypeId::SchemaIssue);
+    let path = record(NativeTypeId::SchemaPath);
+    if integer || number {
+        let reader = if integer { "read_i64" } else { "read_f64" };
+        let guard=bounds_guard("value",expected,"number");
+        return format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
+            match tsrust_native_json::{reader}(&input.value) {{
+                Ok(value) => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:value}}) }},
+                Err(failure) => {{
+                    let code=if failure.code==\"expected-number\" {{ \"type-mismatch\" }} else {{ failure.code }};
+                    let issue=Record{issue}{{field0:String::Borrowed(code),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(tsrust_native_json::kind(&input.value)),field5:String::Borrowed(code)}};
+                    Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
+                }}
+            }}
+        }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err));
+    }
+    let guard=if binding.name=="__safeParseString" {bounds_guard("&text","string","string")}else{String::new()};
+    format!("fn {symbol}(_schema:&Record{schema},input:Record{value})->Union{result} {{
+        match input.value {{
+            tsrust_native_json::Value::{pattern} => {{ {guard} Union{result}::V{ok_tag}(Record{ok}{{field0:{payload}}}) }},
+            other => {{
+                let observed=tsrust_native_json::kind(&other);
+                let issue=Record{issue}{{field0:String::Borrowed(\"type-mismatch\"),field1:RecordArray{path}::from([]),field2:false,field3:String::Borrowed(\"{expected}\"),field4:String::Borrowed(observed),field5:String::Borrowed(\"type-mismatch\")}};
+                Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:RecordArray{issue}::from([issue]),field1:false}}}})
+            }}
+        }}
+    }}", result=result.index(), ok_tag=tag(ok), err_tag=tag(err))
+}
+
+pub(crate) fn constraint(program:&CheckedProgram,schema:usize,binding:&crate::native_bindings::NativeBinding)->String{
+    let NativeType::Structured(signature)=binding.result else{unreachable!()};
+    let Type::Union(result)=crate::native_binding_types::resolve(&program.records,signature).unwrap() else{unreachable!()};
+    let members=&program.unions[result.index()].members;
+    let [ok,err]=crate::result_identity::variants(&program.records,members).unwrap();
+    let tag=|id|members.iter().position(|ty|*ty==Type::Record(id)).unwrap();
+    let error=program.records.iter().position(|record|record.native_type==Some(NativeTypeId::SchemaConstructionError)).unwrap();
+    let Type::Union(limit_union)=program.records[error].fields[2].ty.unwrap() else{unreachable!("numeric limit union")};
+    let floating=matches!(binding.parameters[1].ty,NativeType::Number);
+    let limit_type=if floating {Type::Number}else{Type::Int};
+    let rust_type=if floating {"f64"}else{"i64"};
+    let limit_tag=program.unions[limit_union.index()].members.iter().position(|ty|*ty==limit_type).unwrap();
+    let limit=format!("Union{}::V{limit_tag}(error.limit)",limit_union.index());
+    let crate::native_bindings::NativeBackend::Bundled{symbol}=binding.backend;
+    let operation=match binding.name {"__minString"|"__minInt"|"__minNumber"=>"min","__maxString"|"__maxInt"|"__maxNumber"=>"max","__gtInt"|"__gtNumber"=>"gt","__ltInt"|"__ltNumber"=>"lt",_=>unreachable!("unknown schema constraint")};
+    let output=program.records[schema].application.as_ref().unwrap().resolved_arguments[0];
+    let mut factory=if program.schema_factories.contains_key(&output){String::from("factory:schema.factory,")}else{String::new()};
+    if program.schema_choices.for_output(output).next().is_some(){factory.push_str("choice:schema.choice,");}
+    format!("fn {symbol}(schema:Record{schema},limit:{rust_type})->Union{result}{{
+        match schema.bounds.{operation}(limit){{
+            Ok(bounds)=>Union{result}::V{ok_tag}(Record{ok}{{field0:Record{schema}{{{factory}bounds}}}}),
+            Err(error)=>Union{result}::V{err_tag}(Record{err}{{field0:Record{error}{{field0:String::Borrowed(error.code),field1:String::Borrowed(error.operation),field2:{limit}}}}})
+        }}
+    }}",result=result.index(),ok_tag=tag(ok),err_tag=tag(err))
+}
+
+
+pub(crate) fn issue_bridge(program:&CheckedProgram, ordered:&std::collections::HashSet<usize>)->String {
+    let record=|kind|program.records.iter().position(|record|record.native_type==Some(kind));
+    let Some(error)=record(NativeTypeId::ValidationError) else{
+        return if record(NativeTypeId::ValidationContext).is_some() {
+            format!("mod tsrust_schema_issues {{\n{}\n}}\n",include_str!("../runtime/issues.rs").trim_start_matches("//! Bounded validation errors containing type summaries, never input values.\n"))
+        }else{String::new()};
+    };
+    let issue=record(NativeTypeId::SchemaIssue).unwrap();
+    let path=record(NativeTypeId::SchemaPath).unwrap();
+    let optional=|field:usize,payload:Type|{
+        let Type::Union(id)=program.records[path].fields[field].ty.unwrap() else{unreachable!()};
+        let members=&program.unions[id.index()].members;
+        (id.index(),members.iter().position(|ty|*ty==payload).unwrap(),members.iter().position(|ty|*ty==Type::Undefined).unwrap())
+    };
+    let (field_union,field_tag,field_absent)=optional(0,Type::String);
+    let (index_union,index_tag,index_absent)=optional(1,Type::Int);
+    let path_order=crate::records::runtime::declaration_order_suffix(program,ordered,path);
+    let issue_order=crate::records::runtime::declaration_order_suffix(program,ordered,issue);
+    let error_order=crate::records::runtime::declaration_order_suffix(program,ordered,error);
+    let mut output=String::from("mod tsrust_schema_issues {\n");
+    output.push_str(include_str!("../runtime/issues.rs").trim_start_matches("//! Bounded validation errors containing type summaries, never input values.\n"));
+    output.push_str("\n}\n");
+    output.push_str(&format!("fn tsrust_schema_error(errors:tsrust_schema_issues::Issues)->Record{error} {{
+        let issues=errors.items.into_iter().map(|issue|{{
+            let path=issue.path.into_iter().map(|segment|match segment {{
+                tsrust_schema_issues::OwnedSegment::Field(name)=>Record{path}{{field0:Union{field_union}::V{field_tag}(String::Owned(name)),field1:Union{index_union}::V{index_absent}(TsrUndefined){path_order}}},
+                tsrust_schema_issues::OwnedSegment::Index(index)=>Record{path}{{field0:Union{field_union}::V{field_absent}(TsrUndefined),field1:Union{index_union}::V{index_tag}(i64::try_from(index).expect(\"schema index range\")){path_order}}}
+            }}).collect();
+            Record{issue}{{field0:String::Borrowed(issue.code.as_str()),field1:path,field2:issue.path_truncated,field3:String::Borrowed(issue.expected.as_str()),field4:String::Borrowed(issue.observed.as_str()),field5:issue.message.map(String::Owned).unwrap_or_else(||String::Borrowed(issue.code.as_str())){issue_order}}}
+        }}).collect();
+        Record{error}{{field0:issues,field1:errors.truncated{error_order}}}
+    }}\n"));
+    output
+}

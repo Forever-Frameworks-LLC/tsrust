@@ -1,9 +1,9 @@
+mod schema;
 mod json_encoding;
 mod json_typed;
 mod json_refinement;
 mod nullable_link_emit;
 mod recursive_union_payload_emit;
-mod schema_recursive_output;
 mod native_view_record_parameters;
 mod native_view_family_emit;
 mod native_view_lifetime_emit;
@@ -58,25 +58,6 @@ use crate::analysis::{ArgumentContract, CheckedFunction, CheckedProgram, Closure
 use crate::storage::{inline_array, numeric_array};
 use crate::syntax::*;
 mod native_view_emit;
-mod schema_validation;
-mod schema_decode;
-mod schema_decode_call;
-mod schema_export;
-mod schema_decode_input;
-mod schema_decode_pipelines;
-mod schema_pipelines;
-mod schema_json_projection;
-mod schema_owned_projection;
-mod schema_pipeline_trials;
-mod schema_diagnostic_options;
-mod schema_pipeline_wrappers;
-mod schema_pipeline_array_trials;
-mod schema_collection_trials;
-mod schema_pipeline_object_trials;
-mod schema_plans;
-mod schema_prepare_json;
-mod schema_prepare_owned;
-mod schema_prepare_composite;
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -2405,13 +2386,13 @@ impl Emitter<'_> {
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
             output.push_str("mod tsrust_schema_plan {\n");
-            output.push_str(include_str!("../stdlib/schema/runtime.rs").trim_start_matches("//! Scalar schema plan storage shared by generated programs and backend tests.\n"));
+            output.push_str(include_str!("../stdlib/schema/runtime/plan.rs").trim_start_matches("//! Scalar schema plan storage shared by generated programs and backend tests.\n"));
             output.push_str("\n}\n");
         }
         output.push_str(self.schema_choice_storage());
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::SchemaExportError)) {
             output.push_str("mod tsrust_schema_export {\n");
-            output.push_str(include_str!("../stdlib/schema/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
+            output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
@@ -3078,10 +3059,10 @@ impl Emitter<'_> {
         // validation error records or their dependent trial runtime.
         if !issue_bridge.is_empty() && (!self.program.schema_choices.is_empty()||self.program.schema_pipelines.has_recursive()||self.program.schema_pipelines.has_collections()||self.program.schema_pipelines.has_messages()||self.program.schema_pipelines.callbacks().next().is_some()){
             output.push_str("mod tsrust_schema_union {\n");
-            output.push_str(&include_str!("../stdlib/schema/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
+            output.push_str(&include_str!("../stdlib/schema/runtime/union.rs").trim_start_matches("//! Borrowed branch preparation precedes a single consuming commitment.\n").replace("use super::issues::{Code, Issues, Kind, Segment};","use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};"));
             output.push_str("\n}\n");
             output.push_str("mod tsrust_schema_trial {\n");
-            output.push_str(&include_str!("../stdlib/schema/trial.rs")
+            output.push_str(&include_str!("../stdlib/schema/runtime/trial.rs")
                 .lines().filter(|line| !line.starts_with("//!")).collect::<Vec<_>>().join("\n")
                 .replace("use super::issues::{Code, Issues, Kind, Segment};", "use super::tsrust_schema_issues::{Code, Issues, Kind, Segment};")
                 .replace("use super::union::Preparation;", "use super::tsrust_schema_union::Preparation;"));
@@ -3095,7 +3076,7 @@ impl Emitter<'_> {
             let Some(Type::Record(id)) = crate::native_binding_types::resolve(&self.program.records, signature) else { unreachable!("checked schema type") };
             let id = self.native_record_declaration(id);
             if constructor {
-                let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend else { unreachable!() };
+                let crate::native_bindings::NativeBackend::Bundled { symbol } = binding.backend;
                 let fields=if binding.name=="__string" { "bounds: tsrust_schema_plan::StringBounds::default()" } else if binding.name=="__int" {"bounds: tsrust_schema_plan::IntBounds::default()"} else if binding.name=="__number" {"bounds: tsrust_schema_plan::NumberBounds::default()"} else { "" };
                 let factory=self.schema_factory_initializer(id);
                 let _ = writeln!(output, "fn {symbol}() -> Record{id} {{ Record{id} {{{factory}{fields}}} }}");
