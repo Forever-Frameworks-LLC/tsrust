@@ -493,6 +493,11 @@ impl Types<'_> {
                 span,
             }),
             Type::Array(element) => Kind::Array(Box::new(self.annotation(element.ty(), span)?)),
+            Type::Union(id) if self.unions.is_recursive(id) => {
+                let declaration=self.unions.recursive_declaration(id).and_then(|id|self.records.get(id))
+                    .ok_or_else(||Diagnostic::new("schema-recursion","Recursive type annotation has no resolved declaration.",span))?;
+                Kind::Named(crate::type_syntax::TypeName{text:declaration.name.text.clone(),span})
+            },
             Type::Union(id) => Kind::Union(
                 self.unions
                     .members(id)
@@ -516,6 +521,28 @@ impl Types<'_> {
 mod tests {
     use super::*;
     use crate::type_syntax::parse;
+    #[test]
+    fn recursive_annotations_use_the_reserved_declaration_without_expansion() {
+        let program=crate::syntax::parse("type RecursiveValue={};function main(){}").unwrap();
+        let names=HashMap::from([("RecursiveValue".into(),0)]);
+        let unions=crate::unions::UnionArena::default();
+        let root=unions.reserve_recursive(Span::default()).unwrap();
+        let Type::Union(id)=root else {unreachable!()};
+        let array=Type::Array(crate::syntax::ArrayElement::from_value_type(root).unwrap());
+        unions.bind_recursive(id,vec![array],Span::default()).unwrap();
+        let types=Types{callable_annotations:None,inline_shapes:None,callable_shapes:None,records:&program.records,names:&names,unions:&unions};
+        assert!(types.annotation(root,Span::default()).is_err());
+        unions.name_recursive(id,0,Span::default()).unwrap();
+        let annotation=types.annotation(array,Span::default()).unwrap();
+        let Kind::Array(child)=annotation.kind else {panic!("array annotation")};
+        let Kind::Named(name)=child.kind else {panic!("named recursive element")};
+        assert_eq!(name.text,"RecursiveValue");
+        assert_eq!(unions.named_type(0),root);
+        let resumed=crate::unions::UnionArena::from_snapshot_with_records(unions.snapshot(),&program.records);
+        assert_eq!(resumed.named_type(0),root);
+        assert!(resumed.name_recursive(id,1,Span::default()).is_err());
+    }
+
     #[test]
     fn checked_nominal_record_and_array_constraints_bind_without_display_parsing() {
         let mut program=crate::syntax::parse("type Box<T>={value:T;};type Other<T>={value:T;};function observe(value:Box<Box<int[]>>,other:Other<int>){}function main(){}").unwrap();

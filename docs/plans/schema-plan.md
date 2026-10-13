@@ -2248,3 +2248,11 @@ own definition. The identity remains owning and does not imply runtime handles o
 shared ownership. New witnesses cover an array root, optional wrapping, snapshot
 stability and invalid rebinding. Source inference has not begun using these slots;
 layout, rendering and recursive validation integration still require completion.
+
+Recursive type slots now retain a synthetic declaration identity across arena
+snapshots. Checked generic annotations refer to that declaration rather than
+expanding the recursive definition. An unnamed recursive slot produces a checked
+diagnostic instead of unbounded annotation recursion. A witness covers recursive
+array annotation, named lookup, snapshot restoration and renaming rejection.
+User-facing recursive shape rendering remains pending with source integration;
+this internal declaration is not a completed hover representation.

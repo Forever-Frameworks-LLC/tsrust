@@ -8,6 +8,8 @@ use std::collections::{HashMap, HashSet};
 pub struct UnionType {
     /// A nominal recursive slot is never flattened into its own definition.
     pub recursive: bool,
+    /// Synthetic declaration used by checked annotations to close the type knot.
+    pub recursive_declaration: Option<usize>,
     pub members: Vec<Type>,
 }
 
@@ -50,10 +52,29 @@ impl UnionArena {
     pub(crate) fn register_map_type(&self, id: usize) { self.0.borrow_mut().named_types.insert(id, Type::Map(id)); }
     pub(crate) fn register_set_type(&self, id: usize) { self.0.borrow_mut().named_types.insert(id, Type::Set(id)); }
     pub(crate) fn named_type(&self, id: usize) -> Type {
-        self.0.borrow().named_types.get(&id).copied().unwrap_or(Type::Record(id))
+        let arena=self.0.borrow();
+        arena.named_types.get(&id).copied().or_else(||arena.types.iter().enumerate().find_map(|(index,union)|
+            (union.recursive_declaration==Some(id)).then_some(Type::Union(UnionId{index:index as u32,copy:false}))))
+            .unwrap_or(Type::Record(id))
     }
     pub(crate) fn is_recursive(&self,id:UnionId)->bool {
         self.0.borrow().types[id.index()].recursive
+    }
+
+    pub(crate) fn recursive_declaration(&self,id:UnionId)->Option<usize> {
+        self.0.borrow().types[id.index()].recursive_declaration
+    }
+    pub(crate) fn name_recursive(&self,id:UnionId,declaration:usize,span:Span)->Result<(),Diagnostic> {
+        let mut arena=self.0.borrow_mut();
+        if arena.types.iter().any(|union|union.recursive_declaration==Some(declaration)) {
+            return Err(Diagnostic::new("schema-recursion","Recursive declaration already names a type.",span));
+        }
+        let slot=arena.types.get_mut(id.index()).ok_or_else(||Diagnostic::new("schema-recursion","Unknown recursive type slot.",span))?;
+        if !slot.recursive || slot.recursive_declaration.is_some() {
+            return Err(Diagnostic::new("schema-recursion","Recursive type names resolve exactly once.",span));
+        }
+        slot.recursive_declaration=Some(declaration);
+        Ok(())
     }
 
     /// Reserve one stable, owning identity before inferring its definition.
@@ -61,7 +82,7 @@ impl UnionArena {
     pub(crate) fn reserve_recursive(&self,span:Span)->Result<Type,Diagnostic> {
         let mut arena=self.0.borrow_mut();
         let index=u32::try_from(arena.types.len()).map_err(|_|Diagnostic::new("unsupported","Program union type limit exceeded.",span))?;
-        arena.types.push(UnionType{recursive:true,members:Vec::new()});
+        arena.types.push(UnionType{recursive:true,recursive_declaration:None,members:Vec::new()});
         Ok(Type::Union(UnionId{index,copy:false}))
     }
 
@@ -178,6 +199,7 @@ impl UnionArena {
         };
         arena.types.push(UnionType {
             recursive: false,
+            recursive_declaration: None,
             members: members.clone(),
         });
         arena.identities.insert(members, id);
