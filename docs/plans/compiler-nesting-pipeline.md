@@ -1041,3 +1041,32 @@ re-entry must be audited together with the wider checker before removing it.
 Parser integration, statement emission, full normal-stack/scaling acceptance,
 optimization and S12–S21 remain unfinished. No new cap, stack increase, formal
 scaling measurement or consumer refresh is claimed.
+
+### Closure default and parameter-pattern suspension
+
+Closure preparation now yields a child context before checking initializers.
+The shared checker driver queues each initializer and lowered parameter pattern
+in declaration order before entering the closure body. Parameter metadata,
+nullable callback access, default availability/flow joins, capture restoration
+and diagnostic spans retain their existing completion boundaries. Pattern tasks
+restore extracted statements before propagating errors.
+
+Scheduled expression and block frames no longer increment or reject the legacy
+combined analysis depth. Those frames live on the explicit worklist, so their
+nesting does not represent recursive checker entry. The initial analysis batch
+passed 298 tests but two new witnesses hit that obsolete guard; the repaired
+batch passes all 300, including 257 nested closures connected through defaults
+and the corresponding deep error/unwind witness on normal stacks. Witness sizes
+are not support ceilings. The affected compiler integration batch passes 53 tests
+covering optional/default parameters, captured defaults, destructuring, callable
+ownership, initializer facts and generic default scope.
+
+Compatibility closure preparation and named-function context setup still have
+synchronous adapters. Result discovery, pending region functions, emission and
+parser integration require further connected work. This checkpoint does not
+claim full architecture acceptance, formal scaling acceptance, optimization or
+S12–S21 completion. No stack size or depth constant is increased. Evidence uses
+`tsrust-nesting-closure-parameters-*` in SQLite; consumers remain unchanged.
+Three editor tests also pass, including executable default-parameter examples,
+signature/help contracts and visibility of earlier initialized parameters.
+Whole-project formatting changes zero files or benchmark fingerprints.

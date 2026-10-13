@@ -3493,25 +3493,9 @@ impl Analyzer {
     ) -> Result<Option<Box<Expr>>, Diagnostic> {
         let ParameterInitializer::Default { value, .. } = initializer else { return Ok(None); };
         let mut value = value.clone();
-        let prior = context.bindings.iter().map(Availability::of).collect::<Vec<_>>();
-        let supplied_flow = context.flow.clone();
-        let kind = match self.unions.payload(expected).unwrap_or(expected) { Type::Callback(id) => Some(self.callables.callbacks[id].kind), _ => None };
-        let mode = if kind == Some(CallbackKind::Read) { Mode::Read } else if kind == Some(CallbackKind::Reusable) { Mode::Mutate } else if kind.is_some() {Mode::Consume} else {data_mode};
-        let mode = if self.expression_type_hint(context,&value).is_some_and(|ty|matches!(ty,Type::Null|Type::Undefined)) {Mode::Copy} else {mode};
-        let actual = if mode==Mode::Mutate && expected.union().is_some() {
-            if matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(..)|ExprKind::Index(..)) {
-                self.parameter_argument(context,&mut value,ArgumentContract{ rest: false,ty:expected,mode,omission:crate::ParameterOmission::Defaulted},&Loans::new())?
-            } else {self.expression(context,&mut value,Mode::Consume,&Loans::new(),Some(expected))?}
-        } else if mode==Mode::Read && expected.union().is_some() {
-            if matches!(value.kind,ExprKind::Name(_)|ExprKind::Field(..)|ExprKind::Index(..)) {
-                self.parameter_argument(context,&mut value,ArgumentContract{ rest: false,ty:expected,mode,omission:crate::ParameterOmission::Defaulted},&Loans::new())?
-            } else {self.expression(context,&mut value,Mode::Consume,&Loans::new(),Some(expected))?}
-        } else {self.expression(context, &mut value, mode, &Loans::new(), Some(expected))?};
-        self.require(actual, Some(expected), value.span)?;
-        for (binding, supplied) in context.bindings.iter_mut().zip(prior) {
-            supplied.join(Availability::of(binding)).restore(binding);
-        }
-        context.flow = crate::flow::join(&supplied_flow, &context.flow);
+        let frame=self.prepare_default_work(context,&value,expected,data_mode);
+        let actual=self.expression(context,&mut value,frame.mode,&Loans::new(),frame.expected)?;
+        self.finish_default_work(context,&mut value,frame,actual)?;
         Ok(Some(value))
     }
 
@@ -3557,15 +3541,19 @@ impl Analyzer {
     /// Pattern declarations remain in the checked body for all source walkers,
     /// but are initialized alongside their parameter rather than with the body.
     #[inline(never)]
-    fn initialize_parameter_pattern(&mut self, context: &mut Context, parameter: &Token, body: &mut [Stmt], owned: bool) -> Result<(), Diagnostic> {
-        if !parameter.text.starts_with("pattern#") { return Ok(()); }
+    fn prepare_parameter_pattern(&mut self, context: &mut Context, parameter: &Token, body: &mut [Stmt], owned: bool) -> Option<std::ops::Range<usize>> {
+        if !parameter.text.starts_with("pattern#") { return None; }
         let start=body.iter().position(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end);
-        let Some(start)=start else { return Ok(()); };
+        let start=start?;
         let count=body[start..].iter().take_while(|stmt| stmt.span.start>=parameter.span.start && stmt.span.end<=parameter.span.end).count();
         if owned && context.names.get(&parameter.text).is_some_and(|&binding| matches!(context.bindings[binding].ty, Type::Array(_) | Type::Record(_))) {
             owned_array_patterns::lower(&mut body[start..start+count], &parameter.text, context.bindings[context.names[&parameter.text]].ty, &self.fields);
         }
-        self.block_with_scope(context, &mut body[start..start+count], Type::Void, true)?;
+        Some(start..start+count)
+    }
+
+    fn initialize_parameter_pattern(&mut self,context:&mut Context,parameter:&Token,body:&mut[Stmt],owned:bool)->Result<(),Diagnostic>{
+        if let Some(range)=self.prepare_parameter_pattern(context,parameter,body,owned){self.block_with_scope(context,&mut body[range],Type::Void,true)?;}
         Ok(())
     }
 

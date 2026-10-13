@@ -8,6 +8,7 @@ mod call;
 mod driver;
 pub(super) use call::CallDispatch;
 mod arguments;
+mod defaults;
 
 mod literals;
 pub(super) use literals::StoredValueFrame;

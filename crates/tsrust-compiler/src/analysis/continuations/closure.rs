@@ -1,5 +1,5 @@
 //! Saved closure state across body checking. The shared driver will own suspension.
-//! Preparation still checks defaults synchronously until expression tasks are wired.
+//! Parameter defaults and patterns can suspend before the body starts.
 use super::super::*;
 
 pub(super) struct Frame {
@@ -17,6 +17,19 @@ pub(super) struct Frame {
     restoration: capture_restoration::Tracker,
     access_checks: Vec<(usize, String, Mode, Span)>,
 }
+pub(super) struct Parameters {
+    origin:usize,span:Span,result:Type,inferred_result:bool,escapes:bool,
+    visible:Vec<usize>,parameters:Vec<usize>,declared:Vec<Type>,
+    pub(super) next:usize,
+}
+pub(super) struct ParameterWork {
+    pub(super) value:Option<Box<Expr>>,
+    pub(super) mode:Mode,
+    pub(super) expected:Option<Type>,
+    default:Option<super::defaults::DefaultFrame>,
+    inferred:bool,body_ty:Type,default_mode:Mode,
+}
+pub(super) enum Started { Ready(Type), Parameters(Box<Parameters>,Box<Context>) }
 pub(super) enum Prepared { Ready(Type), Body(Box<Frame>, Box<Context>) }
 
 impl Analyzer {
@@ -37,7 +50,7 @@ impl Analyzer {
         self.finish_closure(outer, frame, context, body, loans, returned)
     }
 
-    pub(super) fn prepare_closure(
+    pub(super) fn start_closure(
         &mut self,
         outer: &mut Context,
         syntax: (usize, &[CallableParameter], &ResultAnnotation),
@@ -45,7 +58,7 @@ impl Analyzer {
         body: &mut Vec<Stmt>,
         span: Span,
         loans: &Loans,
-    ) -> Result<Prepared, Diagnostic> {
+    ) -> Result<Started, Diagnostic> {
         let (origin, params, result) = syntax;
         let generic_wrapper = if let [statement] = body.as_slice()
             && let StmtKind::Return(Some(call)) = &statement.kind
@@ -57,7 +70,7 @@ impl Analyzer {
             && (contextual.is_none() || matches!(contextual, Some(Type::Closure(id)) if self.deferred_generic_values.contains_key(&id)))
             && (params.iter().any(|parameter| matches!(parameter.ty, ParameterAnnotation::Inferred(_)))
                 || (params.is_empty() && matches!(result, ResultAnnotation::Inferred(_)))) {
-            return self.deferred_captured_generic_value(outer, name, origin, span, loans).map(Prepared::Ready);
+            return self.deferred_captured_generic_value(outer, name, origin, span, loans).map(Started::Ready);
         }
         let contextual_result = generic_wrapper.and_then(|_| contextual)
             .and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty)))
@@ -115,52 +128,82 @@ impl Analyzer {
             declared.push(ty);
         }
         context.names = inherited_names;
-        for (position, (param,&binding)) in params.iter().zip(&parameters).enumerate() {
-            let mut body_ty=declared[position];
-            let default_mode=if body_ty.is_copy(){Mode::Copy}else{match param.access.as_ref().map(|access|access.text.as_str()){Some("read")=>Mode::Read,Some("mutate")=>Mode::Mutate,_=>Mode::Consume}};
-            let checked_initializer = if body_ty == Type::Void && matches!(param.ty,ParameterAnnotation::Inferred(_)) {
-                let ParameterInitializer::Default{value,..}=&param.initializer else {return Err(Diagnostic::new("parameter-inference",format!("Cannot infer the type of arrow parameter `{}`. Add a type annotation, such as `({}: string) => ...`, or pass this arrow where a callback parameter type is known.", param.name.text, param.name.text),param.name.span));};
-                let mut value=value.clone();
-                let expected=self.expression_type_hint(&context,&value);
-                body_ty=self.expression(&mut context,&mut value,Mode::Consume,&Loans::new(),expected)?;
-                Some(value)
-            } else {self.check_parameter_default(&mut context,&param.initializer,body_ty,default_mode)?};
-            let input_ty=if param.initializer.omission().is_omittable() {self.unions.intern([body_ty,Type::Undefined],param.name.span)?} else {body_ty};
-            if matches!(param.initializer,ParameterInitializer::Optional(_)) {body_ty=input_ty;}
-            context.bindings[binding].ty=body_ty;
-            context.bindings[binding].input_ty=Some(input_ty);
-            context.bindings[binding].omission=param.initializer.omission();
-            context.bindings[binding].rest=param.rest;
-            if param.rest {
-                if !matches!(body_ty,Type::Array(_)) {return Err(Diagnostic::new("rest-type","A rest parameter requires a supported homogeneous array type.",param.name.span));}
-                if param.access.as_ref().is_some_and(|access|access.text!="consume") {return Err(Diagnostic::new("rest-access","A rest parameter owns its pack; only explicit consume access is supported.",param.name.span));}
-                context.bindings[binding].mode=Mode::Consume;
-            }
-            context.bindings[binding].declaration_span=Some(param.name.span);
-            context.bindings[binding].initializer=checked_initializer;
-            if matches!(default_mode,Mode::Read|Mode::Mutate)
-                && let Some(value)=context.bindings[binding].initializer.as_deref()
-                && Self::root_binding(value).is_some() {
-                context.bindings[binding].view_roots=Self::view_sources(&context,value);
-            }
-            context.names.insert(param.name.text.clone(),binding);
-            self.initialized_parameter_fact(&mut context,binding);
-            if body_ty.is_copy() {context.bindings[binding].mode=Mode::Copy;}
-            if let Type::Callback(id)=self.unions.payload(body_ty).unwrap_or(body_ty) {
-                let kind=self.callables.callbacks[id].kind;
-                context.bindings[binding].callback_kind=Some(kind);
-                context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
-                context.bindings[binding].callback_invocation=Some(kind.invocation());
-                if kind.is_owned()||kind.is_once() {context.bindings[binding].mode=Mode::Consume;}
-            }
-            if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
-                context.readonly_parameters.insert(binding);
-            }
-            if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
-                context.mutable_parameters.insert(binding);
-            }
+        Ok(Started::Parameters(Box::new(Parameters{origin,span,result,inferred_result,escapes,visible,parameters,declared,next:0}),Box::new(context)))
+    }
+
+    pub(super) fn prepare_closure(&mut self,outer:&mut Context,syntax:(usize,&[CallableParameter],&ResultAnnotation),contextual:Option<Type>,body:&mut Vec<Stmt>,span:Span,loans:&Loans)->Result<Prepared,Diagnostic>{
+        let (mut frame,mut context)=match self.start_closure(outer,syntax,contextual,body,span,loans)?{
+            Started::Ready(ty)=>return Ok(Prepared::Ready(ty)),Started::Parameters(frame,context)=>(frame,context),
+        };
+        while frame.next<syntax.1.len(){
+            let param=&syntax.1[frame.next];
+            let mut work=self.prepare_closure_default(&context,&frame,param)?;
+            let actual=if let Some(value)=work.value.as_mut(){Some(self.expression(&mut context,value,work.mode,&Loans::new(),work.expected)?)}else{None};
+            self.finish_closure_parameter(&mut context,&mut frame,param,work,actual)?;
             self.initialize_parameter_pattern(&mut context,&param.name,body,param.access.as_ref().is_some_and(|access|access.text=="consume"))?;
         }
+        let prepared=self.complete_closure_parameters(frame,&mut context,syntax.1,body)?;
+        Ok(Prepared::Body(prepared,context))
+    }
+
+    pub(super) fn prepare_closure_default(&self,context:&Context,frame:&Parameters,param:&CallableParameter)->Result<ParameterWork,Diagnostic>{
+        let body_ty=frame.declared[frame.next];
+        let default_mode=if body_ty.is_copy(){Mode::Copy}else{match param.access.as_ref().map(|access|access.text.as_str()){Some("read")=>Mode::Read,Some("mutate")=>Mode::Mutate,_=>Mode::Consume}};
+        let inferred=body_ty==Type::Void && matches!(param.ty,ParameterAnnotation::Inferred(_));
+        let value=match &param.initializer{ParameterInitializer::Default{value,..}=>Some(value.clone()),_=>None};
+        if inferred && value.is_none(){return Err(Diagnostic::new("parameter-inference",format!("Cannot infer the type of arrow parameter `{}`. Add a type annotation, such as `({}: string) => ...`, or pass this arrow where a callback parameter type is known.",param.name.text,param.name.text),param.name.span));}
+        let default=if inferred{None}else{value.as_ref().map(|value|self.prepare_default_work(context,value,body_ty,default_mode))};
+        let(mode,expected)=if let Some(default)=&default{(default.mode,default.expected)}else{(Mode::Consume,value.as_ref().and_then(|value|self.expression_type_hint(context,value)))};
+        Ok(ParameterWork{value,mode,expected,default,inferred,body_ty,default_mode})
+    }
+
+    pub(super) fn finish_closure_parameter(&mut self,context:&mut Context,frame:&mut Parameters,param:&CallableParameter,mut work:ParameterWork,actual:Option<Type>)->Result<(),Diagnostic>{
+        if let Some(actual)=actual{
+            if work.inferred{work.body_ty=actual;}
+            else if let Some(default)=work.default.take(){self.finish_default_work(context,work.value.as_mut().expect("default value"),default,actual)?;}
+        }
+        let binding=frame.parameters[frame.next];
+        let mut body_ty=work.body_ty;let default_mode=work.default_mode;let checked_initializer=work.value;
+        let input_ty=if param.initializer.omission().is_omittable() {self.unions.intern([body_ty,Type::Undefined],param.name.span)?} else {body_ty};
+        if matches!(param.initializer,ParameterInitializer::Optional(_)) {body_ty=input_ty;}
+        context.bindings[binding].ty=body_ty;
+        context.bindings[binding].input_ty=Some(input_ty);
+        context.bindings[binding].omission=param.initializer.omission();
+        context.bindings[binding].rest=param.rest;
+        if param.rest {
+            if !matches!(body_ty,Type::Array(_)) {return Err(Diagnostic::new("rest-type","A rest parameter requires a supported homogeneous array type.",param.name.span));}
+            if param.access.as_ref().is_some_and(|access|access.text!="consume") {return Err(Diagnostic::new("rest-access","A rest parameter owns its pack; only explicit consume access is supported.",param.name.span));}
+            context.bindings[binding].mode=Mode::Consume;
+        }
+        context.bindings[binding].declaration_span=Some(param.name.span);
+        context.bindings[binding].initializer=checked_initializer;
+        if matches!(default_mode,Mode::Read|Mode::Mutate)
+            && let Some(value)=context.bindings[binding].initializer.as_deref()
+            && Self::root_binding(value).is_some() {
+            context.bindings[binding].view_roots=Self::view_sources(&context,value);
+        }
+        context.names.insert(param.name.text.clone(),binding);
+        self.initialized_parameter_fact(context,binding);
+        if body_ty.is_copy() {context.bindings[binding].mode=Mode::Copy;}
+        if let Type::Callback(id)=self.unions.payload(body_ty).unwrap_or(body_ty) {
+            let kind=self.callables.callbacks[id].kind;
+            context.bindings[binding].callback_kind=Some(kind);
+            context.bindings[binding].callback_reference=matches!(kind,CallbackKind::Reusable|CallbackKind::Read);
+            context.bindings[binding].callback_invocation=Some(kind.invocation());
+            if kind.is_owned()||kind.is_once() {context.bindings[binding].mode=Mode::Consume;}
+        }
+        if param.access.as_ref().is_some_and(|access|access.text=="read") && !body_ty.is_copy() {
+            context.readonly_parameters.insert(binding);
+        }
+        if param.access.as_ref().is_some_and(|access|access.text=="mutate") && !body_ty.is_copy() {
+            context.mutable_parameters.insert(binding);
+        }
+        frame.next+=1;
+        Ok(())
+    }
+
+    pub(super) fn complete_closure_parameters(&mut self,frame:Box<Parameters>,context:&mut Context,params:&[CallableParameter],body:&mut Vec<Stmt>)->Result<Box<Frame>,Diagnostic>{
+        let Parameters{origin,span,result,inferred_result,escapes,visible,parameters,..}=*frame;
         let method_template = parameters.iter().any(|&parameter| matches!(self.unions.payload(context.bindings[parameter].ty).unwrap_or(context.bindings[parameter].ty),Type::Callback(_)));
         let source_body=method_template.then(||body.clone());
         let declared_result=result;
@@ -180,10 +223,10 @@ impl Analyzer {
             let mode = match access.text.as_str() { "read" => Mode::Read, "mutate" => Mode::Mutate, _ => Mode::Consume };
             Some((binding, param.name.text.clone(), mode, access.span))
         }).collect();
-        Ok(Prepared::Body(Box::new(Frame {
+        Ok(Box::new(Frame {
             origin, span, result, inferred_result, escapes, visible, parameters,
             method_template, declared_result, method_context, source_body, restoration, access_checks,
-        }), Box::new(context)))
+        }))
     }
 
     pub(super) fn finish_closure(&mut self, outer: &mut Context, frame: Box<Frame>, mut context: Box<Context>, body: &mut Vec<Stmt>, loans: &Loans, returned: Result<bool, Diagnostic>) -> Result<Type, Diagnostic> {

@@ -204,3 +204,12 @@ Body, branch and exception tasks preserve cloned nested contexts and the mutable
 root context. Keep cleanup-first discovery and catch refinement/restart order
 there; expression and region checks still enter the checker through existing
 interfaces and require a separate re-entry audit.
+
+Closure parameter preparation lives in `analysis/continuations/closure.rs` and
+`analysis/continuations/driver/closure_parameters.rs`. Defaults and lowered
+parameter patterns suspend on the same driver as closure bodies. Retain the
+child context until parameter metadata, pattern bindings and body completion
+finish; restore extracted pattern statements on diagnostic exits.
+`analysis/continuations/defaults.rs` retains supplied/default availability and
+flow joins, including nullable callback access contracts. Scheduled expression
+and block frames do not participate in recursive-entry depth accounting.

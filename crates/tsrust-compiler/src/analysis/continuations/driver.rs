@@ -6,6 +6,7 @@
 use super::super::*;
 mod tail;
 mod region;
+mod closure_parameters;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -116,6 +117,8 @@ enum ExpressionState {
     Field { frame: super::access::FieldFrame, mode: Mode, rewrite: Option<String> },
     Literal { frame: Box<super::literals::LiteralFrame>, child: super::literals::Child },
     Closure { frame: Box<super::closure::Frame>, child: ContextId },
+    ClosureDefault { frame:Box<super::closure::Parameters>,child:ContextId,work:Box<super::closure::ParameterWork> },
+    ClosurePattern { frame:Box<super::closure::Parameters>,child:ContextId,start:usize },
     Callee { frame: super::call::CalleeFrame, publish_type: bool },
     InvocationCallee { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
     StoredFieldCallee { params: Vec<ArgumentContract>, result: Type, invocation: Mode, family: usize },
@@ -864,6 +867,8 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::ClosureDefault{frame,child,work}=>closure_parameters::resume_default(analyzer,contexts,task,frame,child,work,completion.expect("default completed")),
+        ExpressionState::ClosurePattern{frame,child,start}=>closure_parameters::resume_pattern(analyzer,contexts,task,frame,child,start,completion.expect("pattern completed")),
         ExpressionState::Closure { frame, child } => {
             let Completion::Block(body, returned) = completion.expect("closure body completed") else { unreachable!("closure body result") };
             let mut child_context = contexts.take(child);
@@ -1283,34 +1288,15 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 return Step::Push(Task::Expression(task), child);
             }
             if let ExprKind::Closure { id, params, result, body } = &mut expr.kind {
-                let prepared = analyzer.prepare_closure(context, (*id, params, result), expected, body, expr.span, &task.loans);
-                let (frame, mut child_context) = match prepared {
-                    Ok(super::closure::Prepared::Ready(ty)) => {
-                        expr.ty = Some(ty);
-                        return finish_expression(analyzer, context, task, Ok(ty));
+                let prepared=analyzer.start_closure(context,(*id,params,result),expected,body,expr.span,&task.loans);
+                match prepared{
+                    Ok(super::closure::Started::Ready(ty))=>{expr.ty=Some(ty);finish_expression(analyzer,context,task,Ok(ty))}
+                    Ok(super::closure::Started::Parameters(frame,child_context))=>{
+                        let child=contexts.push(child_context);
+                        closure_parameters::next(analyzer,contexts,task,frame,child,false)
                     }
-                    Ok(super::closure::Prepared::Body(frame, context)) => (frame, context),
-                    Err(error) => return finish_expression(analyzer, context, task, Err(error)),
-                };
-                let entered = analyzer.enter_source_callable_body(&mut child_context);
-                if let Err(error) = entered {
-                    let result = analyzer.finish_closure(context, frame, child_context, body, &task.loans, Err(error));
-                    return finish_expression(analyzer, context, task, result);
+                    Err(error)=>finish_expression(analyzer,context,task,Err(error)),
                 }
-                let exceptions = has_exception_syntax(Analyzer::uninitialized_body(body));
-                let start = body.len() - Analyzer::uninitialized_body(body).len();
-                let body = std::mem::take(body);
-                let result_type = frame.result;
-                let child = contexts.push(child_context);
-                task.state = ExpressionState::Closure { frame, child };
-                let body = Body::Child { body, start };
-                let child = if exceptions {
-                    Task::Callable(Box::new(CallableTask { body: Some(body), context: child, result_type, boundary: None }))
-                } else { Task::Block(BlockTask {
-                    body, context: child, frame: None, pending: None,
-                    result_type, keep_names: false, label_span: None,
-                }) };
-                Step::Push(Task::Expression(task), child)
             } else {
                 if invocation {
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);

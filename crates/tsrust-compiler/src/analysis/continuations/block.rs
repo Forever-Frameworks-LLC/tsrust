@@ -87,13 +87,7 @@ impl Analyzer {
 
     #[inline(never)]
     pub(super) fn enter_block(&mut self, context: &mut Context, body: &mut [Stmt], result_type: Type, keep_names: bool) -> Result<Box<BlockFrame>, Diagnostic> {
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Combined analysis nesting exceeds the prototype limit of 128.",
-                body.first().map_or(Span::default(), |stmt| stmt.span),
-            ));
-        }
+        // The driver owns suspended frames; source nesting consumes no host frames.
         context.lexical_scopes.push(
             body.iter()
                 .filter_map(|stmt| match &stmt.kind {
@@ -117,7 +111,6 @@ impl Analyzer {
                 .extend(shadowed.iter().map(|(_, slot)| *slot));
         }
         for (name, _) in &shadowed { context.names.remove(name); }
-        self.depth += 1;
         let control_boundary = context.loops.len();
         let first_local = context.bindings.len();
         let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
@@ -168,7 +161,6 @@ impl Analyzer {
         if let Some(slots) = context.native_shadowed_bindings.as_mut() {
             slots.truncate(native_shadow_boundary);
         }
-        self.depth -= 1;
     }
 
 }

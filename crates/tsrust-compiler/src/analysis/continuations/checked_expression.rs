@@ -16,14 +16,7 @@ impl Analyzer {
             expr.json_string_view=self.json_string_proof(context,expr).is_some() || self.is_string_view(context,expr);
             return Ok(PreparedExpression::Ready(ty));
         }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Combined analysis nesting exceeds the prototype limit of 128.",
-                expr.span,
-            ));
-        }
-        self.depth += 1;
+        // The driver owns suspended frames; source nesting consumes no host frames.
         let invocation=matches!(expr.kind,ExprKind::Call(_, _));
         let bounds_or_nonnull=matches!(expr.kind,ExprKind::Index(_,_)|ExprKind::Unary{op:UnaryOp::NonNull,..});
         let integer_operation=matches!(&expr.kind,ExprKind::Unary{op:UnaryOp::Negate,..}) || matches!(&expr.kind,ExprKind::Binary{op,..} if crate::error_effects::integer_operation(*op));
@@ -34,7 +27,6 @@ impl Analyzer {
         let CheckedExpressionFrame { invocation, bounds_or_nonnull, integer_operation, mode, expected } = frame;
         if result.is_ok() && (invocation || bounds_or_nonnull || (integer_operation && result.as_ref().is_ok_and(|ty|*ty==Type::Int))) {exception_state::record_point(context,expr.span);}
         let result = self.checked_expression_result(context, expr, mode, expected, result);
-        self.depth -= 1;
         result
     }
 
