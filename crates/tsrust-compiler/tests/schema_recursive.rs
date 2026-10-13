@@ -49,10 +49,11 @@ function main(){
 }
 
 #[test]
-fn recursive_builder_runs_once_and_owned_validation_reuses_the_plan() {
+fn recursive_owned_builder_runs_once_and_validation_reuses_the_plan() {
     let source=r#"
 import {s} from 'std:schema';
 import {strictEqual} from 'std:testing';
+type OwnedTree={value:int;children:OwnedTree[];};
 let builds:int=0;
 const tree=s.recursive(self=>{
   builds+=1;
@@ -60,7 +61,7 @@ const tree=s.recursive(self=>{
 });
 function main(){
   strictEqual(builds,1);
-  const first={value:3,children:[{value:4,children:[]}]};
+  const first:OwnedTree={value:3,children:[{value:4,children:[]}]};
   match(tree.safeParse(first)){
     Ok(value)=>{strictEqual(value.children[0].value,4);},
     Err(error)=>{throw 'Owned recursive input rejected';}
@@ -129,16 +130,17 @@ fn recursive_placeholders_reject_unproductive_definitions_and_escape() {
 }
 
 #[test]
-fn recursive_transforms_preserve_distinct_input_and_output_shapes() {
+fn recursive_owned_transforms_preserve_distinct_input_and_output_shapes() {
     let source=r#"
 import {s} from 'std:schema';
 import {strictEqual} from 'std:testing';
+type InputTree={value:string;children:InputTree[];};
 const tree=s.recursive(self=>s.object({
   value:s.string().transform(value=>value.length),
   children:s.array(self)
 }));
 function main(){
-  const input={value:'root',children:[{value:'kid',children:[]}]};
+  const input:InputTree={value:'root',children:[{value:'kid',children:[]}]};
   match(tree.safeParse(input)){
     Ok(value)=>{strictEqual(value.value,4);strictEqual(value.children[0].value,3);},
     Err(error)=>{throw 'Recursive transform rejected owned input';}
@@ -152,4 +154,23 @@ function main(){
     let directory=support::TempDirectory::new();
     let file=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(file),60));
+}
+
+#[test]
+fn recursive_owned_input_rejects_mismatch_after_recursive_edge() {
+    let source=r#"
+import {s} from 'std:schema';
+type Wrong={children:Wrong[];value:string;};
+const tree=s.recursive(self=>s.object({children:s.array(self),value:s.int()}));
+function main(){
+  const input:Wrong={children:[],value:'wrong'};
+  tree.safeParse(input);
+}
+"#;
+    let directory=support::TempDirectory::new();
+    let file=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("check").arg(file).arg("--json"),10);
+    assert_eq!(output.status.code(),Some(1));
+    let diagnostics=String::from_utf8(output.stdout).unwrap();
+    assert!(diagnostics.contains("\"code\":\"type\""),"{diagnostics}");
 }

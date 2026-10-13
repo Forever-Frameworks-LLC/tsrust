@@ -2451,3 +2451,26 @@ it passed with formatted-source execution (`tsrust-recursive-array-clone-section
 Recursive schemas remain implementation-in-progress:
 explicit named-type checking, owned input integration, full editor/examples and
 matched benchmark acceptance still need completion before S11 acceptance.
+
+
+### Owned recursive input integration
+
+Recursive roots now delegate input-shape checking to their body plan. Structural
+compatibility compares recursive type pairs with branch-local cycle tracking,
+retaining rejection of mismatched fields after a recursive edge. Scalar widening
+preserves recursive identities rather than expanding them indefinitely. Input is
+still consumed; native trial restoration retains the existing move-only contract.
+
+Focused native witnesses pass builder-once execution, plan reuse across owned and
+JSON input, and recursive string-to-integer transforms with distinct input/output
+shapes. An incompatible recursive input is rejected through the project CLI.
+Owned fixture records now carry named annotations, as required by current record
+literal syntax. The first negative harness used the single-source checker, which
+does not process module globals; the repaired witness uses the project CLI.
+
+SQLite evidence: `tsrust-recursive-owned-probe.log`,
+`tsrust-recursive-owned-integration.log`, `tsrust-recursive-owned-section.log`, and
+`tsrust-recursive-owned-rejection-repair.log`. Original failures are preserved;
+only the affected rejection witness was rerun. Named recursive type checking,
+complete editor/examples/benchmark support and S11 milestone acceptance remain
+open. No timing or installed-consumer refresh was performed for this section.

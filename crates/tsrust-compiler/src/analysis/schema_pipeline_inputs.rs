@@ -22,6 +22,9 @@ impl Analyzer {
     }
 
     pub(super) fn schema_pipeline_input_type(&mut self,context:&Context,id:usize,value:&Expr)->Result<Type,Diagnostic> {
+        if let Some(plan)=self.schema_pipelines.recursive(id) {
+            return self.schema_pipeline_input_type(context,plan.body,value);
+        }
         if let Some(plan)=self.schema_pipelines.wrapper(id).cloned() {
             if let WrapperKind::Presence(added)=plan.kind
                 && self.expression_type_hint(context,value)==Some(added){return Ok(added);}
