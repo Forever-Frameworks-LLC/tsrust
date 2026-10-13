@@ -2491,3 +2491,29 @@ uniquely owned indirection for nullable cycles. Evidence records are
 `tsrust-recursive-explicit-integration.log` (parser rejection) and
 `tsrust-recursive-explicit-parser-repair.log` (layout panic). No native acceptance,
 editor acceptance, benchmark measurement or consumer refresh is claimed.
+
+
+### Named recursive contracts and nested-union layout repair
+
+Checkpoint `8c92d9ae` preserved explicit output integration before the layout
+repair. Layout and recursive-link discovery now traverse nested union layers,
+retaining nullable ancestry and placing indirection on the union that physically
+stores the record. Arrays remain independent layout boundaries. Runtime component
+discovery uses the same leaves, so synthesized records receive the existing
+iterative link clone/drop support rather than missing wrappers.
+
+All seven public recursive-schema witnesses now pass. The explicit witness uses
+an aliased schema namespace, assigns the result to its declared `Tree` type,
+checks a nested child, and verifies field order when declaration order differs
+from schema order. Rejection witnesses cover mismatched explicit outputs,
+unproductive definitions, escaped self references and incompatible owned input.
+All 39 affected record tests pass, including nested-union layout, borrowed views,
+move-only storage and existing recursive ownership behavior.
+
+SQLite records: `tsrust-recursive-explicit-runtime-repair.log`,
+`tsrust-recursive-public-section.log`, and
+`tsrust-recursive-record-layout-section.log`. The preceding missing-wrapper
+failure remains in `tsrust-recursive-explicit-layout-repair.log`. This is focused
+compiler/native evidence, not complete recursive or S11 acceptance. Recursive
+IntelliSense, executable catalog examples, matched benchmark support and milestone
+regressions/measurements remain open. Installed consumers are unchanged.

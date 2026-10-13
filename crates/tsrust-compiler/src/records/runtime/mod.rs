@@ -22,7 +22,8 @@ impl RecordRuntime {
                     .iter()
                     .flat_map(|field| {
                         let actual = field.ty.expect("checked field");
-                        if let Type::Union(id) = actual { unions[id.index()].members.clone() } else { vec![actual] }
+                        crate::recursive_links::inline_payloads(actual,|id|unions[id.index()].members.clone())
+                            .into_iter().map(|payload|payload.ty).collect::<Vec<_>>()
                     })
                     .filter_map(|payload| match payload {
                         Type::Record(index) | Type::Array(ArrayElement::Record(index, _)) => Some(index),

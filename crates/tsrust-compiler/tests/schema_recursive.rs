@@ -32,14 +32,25 @@ function main(){
 #[test]
 fn explicit_recursive_schema_supports_nullable_links_and_multiple_self_uses() {
     let source=r#"
-import {s} from 'std:schema';
+import {s as builders} from 'std:schema';
 import {strictEqual} from 'std:testing';
-type Tree={value:int;left:Tree|null;right:Tree|null;};
-const tree=s.recursive<Tree>(self=>s.object({value:s.int(),left:self.nullable(),right:self.nullable()}));
+type Tree={right:Tree|null;value:int;left:Tree|null;};
+const tree=builders.recursive<Tree>(self=>builders.object({value:builders.int(),left:self.nullable(),right:self.nullable()}));
 function main(){
   match(tree.safeParseJson('{"value":7,"left":null,"right":null}')){
-    Ok(value)=>{strictEqual(value.value,7);strictEqual(value.left,null);strictEqual(value.right,null);},
+    Ok(value)=>{
+      const named:Tree=value;
+      strictEqual(named.value,7);strictEqual(named.left,null);strictEqual(named.right,null);
+      strictEqual(Object.keys(named).join(','),'value,left,right');
+    },
     Err(error)=>{throw 'Valid explicit recursive data rejected';}
+  }
+  match(tree.safeParseJson('{"value":7,"left":{"value":9,"left":null,"right":null},"right":null}')){
+    Ok(value)=>{
+      const named:Tree=value;
+      if(named.left!==null){strictEqual(named.left.value,9);}else{throw 'Lost recursive child';}
+    },
+    Err(error)=>{throw 'Explicit recursive child rejected';}
   }
 }
 "#;

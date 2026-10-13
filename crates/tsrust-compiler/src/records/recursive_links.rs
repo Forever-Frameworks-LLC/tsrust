@@ -2,6 +2,31 @@
 use crate::syntax::{Record, Type, UnionId};
 use std::collections::HashSet;
 
+/// A leaf reached through inline union tags. Arrays terminate this traversal.
+pub(crate) struct InlinePayload {
+    pub ty: Type,
+    pub union: Option<UnionId>,
+    pub nullable: bool,
+    pub tags: usize,
+}
+
+pub(crate) fn inline_payloads(ty:Type,members:impl Fn(UnionId)->Vec<Type>)->Vec<InlinePayload> {
+    let mut pending=vec![(ty,None,false,Vec::<UnionId>::new())];
+    let mut result=Vec::new();
+    while let Some((ty,parent,nullable,path))=pending.pop() {
+        if let Type::Union(id)=ty {
+            if path.contains(&id) { continue; }
+            let alternatives=members(id);
+            let nullable=nullable||alternatives.iter().any(|ty|matches!(ty,Type::Null|Type::Undefined));
+            let mut path=path;path.push(id);
+            pending.extend(alternatives.into_iter().map(|ty|(ty,Some(id),nullable,path.clone())));
+        }else{
+            result.push(InlinePayload{ty,union:parent,nullable,tags:path.len()});
+        }
+    }
+    result
+}
+
 #[derive(Default)]
 pub(crate) struct Index {
     boxed: HashSet<(usize, usize)>,
@@ -14,17 +39,14 @@ impl Index {
         for (parent, record) in records.iter().enumerate() {
             for field in &record.fields {
                 let Some(ty) = field.ty else { continue; };
-                let (alternatives, union) = if let Type::Union(id) = ty {
-                    let alternatives = members(id);
-                    let nullable = alternatives.iter().any(|ty| matches!(ty, Type::Null | Type::Undefined));
-                    (alternatives, nullable.then_some(id))
-                } else { (vec![ty], None) };
-                for ty in alternatives {
-                    // Arrays already terminate inline layout; their descendants
-                    // must not turn otherwise inline nullable fields into links.
-                    if let Type::Record(child) = ty && child < records.len() {
+                for payload in inline_payloads(ty,&members) {
+                    // Arrays already terminate inline layout. A nullable ancestor
+                    // permits indirection at the union that stores this record.
+                    if let Type::Record(child)=payload.ty && child<records.len() {
                         edges[parent].push(child);
-                        if let Some(union) = union { candidates.push((parent, union, child)); }
+                        if payload.nullable && let Some(union)=payload.union {
+                            candidates.push((parent,union,child));
+                        }
                     }
                 }
             }

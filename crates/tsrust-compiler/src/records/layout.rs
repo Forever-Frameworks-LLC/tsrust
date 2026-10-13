@@ -195,11 +195,11 @@ fn validate_inline_layout_with_indirection(
     unions: &crate::unions::UnionArena,
     indirect: &impl Fn(crate::syntax::UnionId, usize) -> bool,
 ) -> Result<(), Diagnostic> {
-    let alternatives = |ty: Type| if let Type::Union(id) = ty { unions.members(id) } else { vec![ty] };
+    let alternatives = |ty: Type| crate::recursive_links::inline_payloads(ty,|id|unions.members(id));
     let edges = records.iter().map(|record| record.fields.iter().flat_map(|field| {
-        alternatives(field.ty.expect("resolved record field")).into_iter().filter_map(|ty| {
-            if let Type::Record(child) = ty {
-                if field.ty.and_then(Type::union).is_some_and(|id| indirect(id, child)) { None }
+        alternatives(field.ty.expect("resolved record field")).into_iter().filter_map(|payload| {
+            if let Type::Record(child) = payload.ty {
+                if payload.union.is_some_and(|id| indirect(id, child)) { None }
                 else { Some((child,field.annotation.span)) }
             } else { None }
         }).collect::<Vec<_>>()
@@ -229,12 +229,7 @@ fn validate_inline_layout_with_indirection(
             let mut size = 0usize;
             for field in &records[id].fields {
                 let field_type = field.ty.expect("resolved record field");
-                let tag = if matches!(field_type, Type::Union(_)) {
-                    alignment
-                } else {
-                    0
-                };
-                let payload_bytes = alternatives(field_type).into_iter().map(|ty| match ty.scalar_base() {
+                let bytes = alternatives(field_type).into_iter().map(|payload| payload.tags * alignment + match payload.ty.scalar_base() {
                     Type::Int => std::mem::size_of::<i64>(),
                     Type::Number => std::mem::size_of::<f64>(),
                     Type::Boolean => std::mem::size_of::<bool>(),
@@ -243,12 +238,11 @@ fn validate_inline_layout_with_indirection(
                     Type::String => crate::storage::string_storage_bound(),
                     Type::Set(_) | Type::Map(_) => std::mem::size_of::<Vec<()>>() + std::mem::size_of::<std::collections::HashMap<u64, Vec<usize>>>() + std::mem::size_of::<usize>(),
                     Type::Array(element) => crate::storage::array_storage_bound(element),
-                    Type::Record(child) if field_type.union().is_some_and(|id| indirect(id, child)) => std::mem::size_of::<usize>(),
+                    Type::Record(child) if payload.union.is_some_and(|id| indirect(id, child)) => std::mem::size_of::<usize>(),
                     Type::Record(child) => { depth = depth.max(depths[child] + 1); sizes[child] }
                     Type::StoredCallable(_) | Type::BorrowedCallable(_) | Type::Callback(_) | Type::Closure(_) => 0,
                     _ => unreachable!("record field type"),
                 }).max().unwrap_or(0);
-                let bytes = tag + payload_bytes;
                 // Rounding every field to the largest primitive alignment is a
                 // conservative upper bound independent of native field ordering.
                 let padded = (bytes + alignment - 1) & !(alignment - 1);
@@ -302,4 +296,24 @@ fn nullable_link_layout_terminates_only_at_planned_indirection() {
     let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
     assert!(!links.boxed(next.union().unwrap(),0));
     validate_inline_layout_with_indirection(&records,&unions,&|id,child|links.boxed(id,child)).unwrap();
+}
+
+#[cfg(test)]
+#[test]
+fn nested_recursive_union_layout_keeps_nullable_indirection() {
+    use crate::{cloneability::tests::record,syntax::ArrayElement,Span};
+    let unions=crate::unions::UnionArena::default();
+    let span=Span::new(0,1);
+    let knot=unions.reserve_recursive(span).unwrap();
+    unions.bind_recursive(knot.union().unwrap(),vec![Type::Record(0)],span).unwrap();
+    let nullable=unions.intern([knot,Type::Null],span).unwrap();
+    let records=[record(&[nullable])];
+    let links=crate::recursive_links::Index::new(&records,|id|unions.members(id));
+    assert!(links.boxed(knot.union().unwrap(),0));
+    validate_inline_layout(&records,&unions).unwrap();
+    assert_eq!(validate_inline_layout(&[record(&[knot])],&unions).unwrap_err().code,"recursive-layout");
+    let arrays=[record(&[Type::Array(ArrayElement::Union(nullable.union().unwrap(),0))])];
+    let links=crate::recursive_links::Index::new(&arrays,|id|unions.members(id));
+    assert!(!links.boxed(knot.union().unwrap(),0));
+    validate_inline_layout(&arrays,&unions).unwrap();
 }
