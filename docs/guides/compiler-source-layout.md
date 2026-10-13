@@ -173,3 +173,11 @@ separate context on that same scheduler; dispose it before joining reachable exi
 Keep iterator-loan cleanup and control-target cleanup active on diagnostic paths.
 Statement assignments dispatch into the existing assignment/store tasks rather
 than starting a nested checker driver.
+
+
+Exception suspension lives in `analysis/continuations/driver/region.rs`, with
+exit-frame boundaries in `analysis/continuations/exceptions.rs`. Try/catch bodies
+and canonical/per-destination finally replay use the same checker worklist.
+Preserve replay order, declaration prefixes, catch shadow restoration and delayed
+publication of successful handler bookkeeping. Exception-bearing closure bodies
+use the callable task in the driver instead of opening another checker driver.

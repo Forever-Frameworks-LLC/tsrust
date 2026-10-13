@@ -3967,27 +3967,10 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_exception_callable_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<bool,Diagnostic> {
-        let initial=self.discovery_error_effects();
-        self.with_exception_environment_mode(context,&initial,None,true,true,|analyzer,context| {
-            let (normal,completions,_errors)=analyzer.check_with_exit_frames(context,|analyzer,context|analyzer.block(context,body,result))?;
-            if let Some((_,span,_))=completions.exits.iter().find(|(kind,_,_)|matches!(kind,crate::completion::CompletionKind::Break(_)|crate::completion::CompletionKind::Continue(_))) {
-                return Err(Diagnostic::new("loop-control","Completion cannot leave its callable's control boundary.",*span));
-            }
-            Ok(normal.is_none())
-        })
+        self.exception_callable_work(context,body,result)
     }
 
-    #[inline(never)]
-    fn check_nested_exception_region(&mut self,context:&mut Context,region:&mut ExceptionRegion,result:Type,span:Span)->Result<bool,Diagnostic> {
-        let environment=context.exception_environment.clone().expect("typed region environment");
-        let (completed,_)=if environment.partial_contracts {
-            self.check_partial_exception_region(context,region,result,environment.runtime,&mut |_,_|{})?
-        }else if environment.refresh_contracts {
-            self.check_current_exception_region(context,region,result,environment.runtime,&mut |_,_|{})?
-        }else{self.check_typed_exception_region(context,region,result,&environment.effects,environment.runtime,&mut |_,_|{})?};
-        completed.forward_exits(self,context,span)
-    }
-
+    #[cfg(test)]
     #[inline(never)]
     fn with_exception_environment<T>(&mut self,context:&mut Context,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>,check:impl FnOnce(&mut Self,&mut Context)->Result<T,Diagnostic>)->Result<T,Diagnostic> {
         self.with_exception_environment_mode(context,effects,runtime,false,false,check)
@@ -4001,21 +3984,16 @@ impl Analyzer {
         result
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_typed_exception_region(&mut self,context:&mut Context,region:&mut ExceptionRegion,result:Type,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>,unwind:&mut impl FnMut(Span,&mut exception_state::ExitState))->Result<(exception_state::CompletionStates,crate::error_effects::FailureSet),Diagnostic> {
-        self.with_exception_environment(context,effects,runtime,|analyzer,context|{
-            let checked=analyzer.check_typed_region_body(context,&mut region.body,result,effects)?;
-            analyzer.finish_checked_exception_region(context,region,result,effects,runtime,unwind,checked,false)
-        })
+        self.region_work(context,region,result,continuations::RegionMode::Fixed(effects.clone()),runtime,unwind)
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_current_exception_region(&mut self,context:&mut Context,region:&mut ExceptionRegion,result:Type,runtime:Option<Type>,unwind:&mut impl FnMut(Span,&mut exception_state::ExitState))->Result<(exception_state::CompletionStates,crate::error_effects::FailureSet),Diagnostic> {
-        let initial=self.checked_error_effects()?;
-        self.with_exception_environment_mode(context,&initial,runtime,true,false,|analyzer,context|{
-            let (normal,frame,errors,incoming,effects)=analyzer.check_current_region_body(context,&mut region.body,result)?;
-            analyzer.finish_checked_exception_region(context,region,result,&effects,runtime,unwind,(normal,frame,errors,incoming),true)
-        })
+        self.region_work(context,region,result,continuations::RegionMode::Current,runtime,unwind)
     }
 
     #[inline(never)]
@@ -4025,98 +4003,13 @@ impl Analyzer {
         }else{self.checked_error_effects()}
     }
 
-    #[inline(never)]
-    fn check_partial_exception_region(&mut self,context:&mut Context,region:&mut ExceptionRegion,result:Type,runtime:Option<Type>,unwind:&mut impl FnMut(Span,&mut exception_state::ExitState))->Result<(exception_state::CompletionStates,crate::error_effects::FailureSet),Diagnostic> {
-        let initial=self.discovery_error_effects();
-        self.with_exception_environment_mode(context,&initial,runtime,true,true,|analyzer,context|{
-            let (normal,frame,errors,incoming,effects)=analyzer.check_current_region_body(context,&mut region.body,result)?;
-            analyzer.finish_checked_exception_region(context,region,result,&effects,runtime,unwind,(normal,frame,errors,incoming),true)
-        })
-    }
-
-    #[inline(never)]
-    fn canonical_cleanup_body(&mut self,entry:&Context,state:exception_state::ExitState,source:&[Stmt],result:Type,effects:&crate::error_effects::ErrorEffects,refresh:bool)->Result<(Vec<Stmt>,Vec<Binding>),Diagnostic> {
-        let mut context=entry.clone();
-        let mut body=source.to_vec();
-        self.check_region_body_at_state(entry,&mut context,state,source,&mut body,result)?;
-        let refreshed=if refresh {Some(self.region_error_effects(&context)?)}else{None};
-        crate::error_effects::annotate_region_body(&mut body,refreshed.as_ref().unwrap_or(effects));
-        Ok((body,context.bindings))
-    }
-
-    #[inline(never)]
-    fn finish_checked_exception_region(&mut self,context:&mut Context,region:&mut ExceptionRegion,result:Type,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>,unwind:&mut impl FnMut(Span,&mut exception_state::ExitState),checked:(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),refresh_contracts:bool)->Result<(exception_state::CompletionStates,crate::error_effects::FailureSet),Diagnostic> {
-        let (normal,frame,errors,incoming)=checked;
-        let runtime=if runtime.is_none() && incoming.runtime && !incoming.opaque
-            && region.catch.as_ref().is_some_and(|handler|handler.name.is_some())
-        {Some(self.materialize_discovery_runtime_error())}else{runtime};
-        let outer=frame.outer;
-        let mut pending=exception_state::CompletionStates::from_completions(normal,frame,unwind);
-        pending.record_failures(errors,unwind);
-        let map_boundary=region.body.first().or_else(||region.finally.as_ref().and_then(|body|body.first())).map(|statement|statement.span.start);
-        if let Some(boundary)=map_boundary {pending.record_completion_storage(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Body);}
-        let mut outgoing=incoming.clone();
-        if let Some(handler)=&mut region.catch {
-            handler.binding=None;
-            handler.error_type=None;
-            handler.error_contract=Some(Box::new(incoming.clone()));
-            outgoing=crate::error_effects::FailureSet::default();
-            let mut reached=false;
-            pending=pending.catch(&mut |state| {
-                reached=true;
-                state.restore(context);
-                let (normal,frame,errors,contract)=self.check_catch_contract_exits(context,handler,result,&incoming,(!refresh_contracts).then_some(effects),runtime)?;
-                outgoing|=contract;
-                let mut handled=exception_state::CompletionStates::from_completions(normal,frame,unwind);
-                handled.record_failures(errors,unwind);
-                handled.project_outer(outer);
-                Ok(handled)
-            })?;
-            if let Some(key)=handler.body.first().map(|statement|statement.span.start) {
-                if reached {
-                    self.dead_handlers.remove(&key);
-                } else if !self.effects_only && !self.discovering_results {
-                    self.dead_handlers.insert(key,Box::new((context.clone(),handler.clone(),result)));
-                }
-            }
-        }
-        if let Some(boundary)=map_boundary {pending.record_completion_storage(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Handled);}
-        if let Some(cleanup)=&mut region.finally {
-            let entry=context.clone();
-            let source=cleanup.clone();
-            let canonical=pending.joined_entry().map(|state|self.canonical_cleanup_body(&entry,state,&source,result,effects,refresh_contracts)).transpose()?;
-            let mut cleanup_contract=crate::error_effects::FailureSet::default();
-            pending=pending.finally(&mut |state| {
-                let (normal,frame,mut errors)=self.check_region_body_at_state(&entry,context,state,&source,cleanup,result)?;
-                let refreshed=if refresh_contracts {Some(self.region_error_effects(context)?)}else{None};
-                let current=refreshed.as_ref().unwrap_or(effects);
-                cleanup_contract|=crate::error_effects::annotate_region_body(cleanup,current);
-                let points=crate::error_effects::OperationEffects::for_body(cleanup);
-                errors.refine(&mut |span|points.get(span));
-                let mut cleaned=exception_state::CompletionStates::from_completions(normal,frame,unwind);
-                cleaned.record_failures(errors,unwind);
-                cleaned.project_outer(outer);
-                Ok(cleaned)
-            })?;
-            if let Some((canonical,bindings))=canonical {
-                *cleanup=canonical;
-                context.bindings.truncate(entry.bindings.len());
-                context.bindings.extend(bindings.into_iter().skip(entry.bindings.len()));
-            }
-            if crate::completion::definitely_abrupt(&source) {outgoing=cleanup_contract;}else{outgoing|=cleanup_contract;}
-        }
-        if let Some(boundary)=map_boundary {pending.record_completion_storage(&mut context.storage_exits,boundary,map_completion_payloads::Phase::Cleaned);}
-        if let Some(boundary)=map_boundary {self.plan_map_completion_layouts(context,boundary)?;}
-        pending.restore_normal(context);
-        Ok((pending,outgoing))
-    }
-
     #[cfg(test)]
     #[inline(never)]
     fn check_typed_catch_exits(&mut self,context:&mut Context,handler:&mut CatchClause,result:Type,incoming:&crate::error_effects::FailureSet,effects:&crate::error_effects::ErrorEffects,runtime:Option<Type>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),Diagnostic> {
         self.check_catch_contract_exits(context,handler,result,incoming,Some(effects),runtime)
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_catch_contract_exits(&mut self,context:&mut Context,handler:&mut CatchClause,result:Type,incoming:&crate::error_effects::FailureSet,effects:Option<&crate::error_effects::ErrorEffects>,runtime:Option<Type>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),Diagnostic> {
         handler.binding=None;
@@ -4216,6 +4109,7 @@ impl Analyzer {
         self.check_with_exit_frames(context,|analyzer,context|analyzer.check_catch_body(context,handler,result))
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_current_region_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet,crate::error_effects::ErrorEffects),Diagnostic> {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
@@ -4249,6 +4143,7 @@ impl Analyzer {
         Ok(())
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_typed_region_body(&mut self,context:&mut Context,body:&mut [Stmt],result:Type,effects:&crate::error_effects::ErrorEffects)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame,crate::error_effects::FailureSet),Diagnostic> {
         let (normal,completions,mut errors)=self.check_region_body(context,body,result)?;
@@ -4258,6 +4153,7 @@ impl Analyzer {
         Ok((normal,completions,errors,contract))
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_region_body_at_state(&mut self,entry:&Context,context:&mut Context,state:exception_state::ExitState,source:&[Stmt],body:&mut Vec<Stmt>,result:Type)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame),Diagnostic> {
         // Every ownership replay starts at the same declaration prefix. Retaining
@@ -4275,27 +4171,9 @@ impl Analyzer {
 
     #[inline(never)]
     fn check_with_exit_frames(&mut self,context:&mut Context,check:impl FnOnce(&mut Self,&mut Context)->Result<bool,Diagnostic>)->Result<(Option<exception_state::ExitState>,exception_state::CompletionFrame,exception_state::ErrorFrame),Diagnostic> {
-        let outer=context.bindings.len();
-        let entry_loans=std::rc::Rc::new(crate::capture_loan_identity::Boundary::capture(&context.capture_loans));
-        let previous_entry_loans=context.region_entry_loans.replace(entry_loans.clone());
-        let previous_loop_depth=context.region_loop_depth.replace(context.loops.len());
-        let previous_completions=context.completion_frame.replace(Box::new(exception_state::CompletionFrame{outer,exits:vec![]}));
-        let previous_errors=context.error_frame.replace(Box::new(exception_state::ErrorFrame{outer,points:vec![]}));
+        let boundary=Self::prepare_exit_frames(context);
         let checked=check(self,context);
-        let mut completions=*std::mem::replace(&mut context.completion_frame,previous_completions).expect("region completion frame");
-        let mut errors=*std::mem::replace(&mut context.error_frame,previous_errors).expect("region error frame");
-        context.region_loop_depth=previous_loop_depth;
-        context.region_entry_loans=previous_entry_loans;
-        let exited=checked?;
-        // These exits carry no borrowed payload; region-local loans end here.
-        for (kind,_,state) in &mut completions.exits {
-            if matches!(kind,crate::completion::CompletionKind::Break(_)|crate::completion::CompletionKind::Continue(_)) {
-                state.unwind_capture_loans(&entry_loans,&[]);
-            }
-        }
-        for (_,state) in &mut errors.points {state.unwind_capture_loans(&entry_loans,&[]);}
-        let normal=(!exited).then(||exception_state::ExitState::capture(context,outer));
-        Ok((normal,completions,errors))
+        Self::finish_exit_frames(context,boundary,checked)
     }
 
     #[inline(never)]
@@ -4313,25 +4191,12 @@ impl Analyzer {
         {state.unwind_capture_loans(entry,&[]);}
     }
 
+    #[cfg(test)]
     #[inline(never)]
     fn check_throw_value(&mut self,context:&mut Context,value:&mut Expr)->Result<Type,Diagnostic> {
-        if matches!(self.expression_type_hint(context,value),Some(Type::BorrowedCallable(_))) {
-            return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span));
-        }
-        let expected=self.expression_type_hint(context,value).filter(|ty|matches!(ty,Type::Closure(_)));
-        if let Some(Type::Closure(origin))=expected
-            && self.closures[origin].borrowed
-        {
-            return Err(Diagnostic::new("closure-escape","A thrown callable must own its captured storage.",value.span)
-                .related(self.closures[origin].span,"Borrowed callable is created here."));
-        }
+        let expected=self.prepare_throw_value(context,value)?;
         let ty=self.expression(context,value,Mode::Consume,&Loans::new(),expected)?;
-        let facts = self.aggregate_callable_facts(ty);
-        if facts.scoped || facts.unknown {return Err(Diagnostic::new("closure-escape","A thrown value must own any callable storage it contains.",value.span));}
-        if ty==Type::Void {return Err(Diagnostic::new("type","A thrown expression must produce a value.",value.span));}
-        capture_restoration::record(context);
-        self.record_typed_completion(context,crate::completion::CompletionKind::Throw,ty,value.span);
-        Ok(ty)
+        self.finish_throw_value(context,value,ty)
     }
 
     #[inline(never)]

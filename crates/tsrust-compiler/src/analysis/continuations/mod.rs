@@ -27,3 +27,6 @@ mod store;
 mod branches;
 mod declarations;
 mod loops;
+mod exceptions;
+#[cfg(test)]
+pub(super) use exceptions::RegionMode;

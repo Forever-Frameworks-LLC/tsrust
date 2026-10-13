@@ -768,3 +768,53 @@ a new architectural question. Resume broad deep-input and scaling measurements
 once the relevant connected paths and obsolete guards have been removed, or when
 new evidence warrants a specific probe. A successful fixed-depth witness never
 establishes a product ceiling or completes architecture acceptance.
+
+
+### Exception region and callable continuations
+
+Exception regions now suspend their try body, catch body, canonical cleanup and
+per-destination cleanup replay on the shared checker scheduler. Exit-frame setup
+and completion are separate operations. Enclosing completion/error frames,
+region-entry loans, loop depth, exception environment and catch-name visibility
+are restored on diagnostic paths. Child source slots are restored before errors
+propagate. Catch bookkeeping is published only after successful completion,
+matching the previous speculative-check behavior.
+
+Cleanup replay retains the original normal-first/destination ordering. Normal
+cleanup preserves an incoming completion destination; abrupt cleanup replaces it.
+Canonical cleanup uses an isolated context, while each ownership replay resets
+the declaration prefix and source body. The canonical typed body/bindings are
+published after replay, preserving existing closure identities and storage plans.
+The callback-based completion helpers retained for tests share the same merge
+operations as the production scheduler.
+
+Exception-bearing closure bodies now suspend through a callable task, removing
+the former compatibility call from the expression scheduler. Root callable
+checking uses the same task. Thrown values schedule their expression evaluation
+between the existing ownership checks and typed-completion recording.
+
+The initial region implementation passes all 272 analysis tests. After integrating
+exception-bearing closures and verifying handler bookkeeping order, all 158
+affected exception unit tests pass. New witnesses cover failure in try/catch/
+finally, nested regions, cleanup after control flow and exception-bearing closures;
+they verify original diagnostic spans, restored source children, enclosing frames,
+catch shadowing and analysis depth. All 65 native compiler integration tests and 22 editor tests pass. Whole-project
+formatting changes zero files and fingerprints.
+The interface-check log predates the final callable integration. These are
+implementation checks, not full architecture or performance acceptance.
+
+Result discovery, closure preparation/defaults and semantic effect helpers still
+need their own connected audit. In particular, `check_pending_region_functions`
+can invoke function checking while refining region contracts, and
+`discover_checked_exception_result` enters checking from result discovery.
+Statement emission and recursive auxiliary owner/type visitors remain pending.
+No depth constants changed and no repeated known-guard discovery ran.
+
+SQLite records under `tsrust-nesting-exception-*` preserve the intermediate
+interface/analysis pass, final affected exception pass, native/editor runs,
+formatting and source/executable identities. The 272-test initial pass predates
+the callable integration; the 158-test affected pass covers that integration and
+handler-bookkeeping restoration. A production-used region-body adapter remains
+available outside test builds; retaining its availability does not change its
+code under `cfg(test)`. Installed consumers remain at the last accepted public
+checkpoint; full nesting architecture and measurements remain unaccepted.

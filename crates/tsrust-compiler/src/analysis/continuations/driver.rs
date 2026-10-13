@@ -5,6 +5,7 @@
 //! are migrated; recursive compatibility entry is not stackless acceptance.
 use super::super::*;
 mod tail;
+mod region;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -69,6 +70,8 @@ impl Expression<'_> {
 }
 
 enum BlockPending {
+    Region(usize),
+    Throw(usize),
     Assignment(usize),
     Tail(usize),
     WhileCondition { index: usize, frame: Box<super::loops::Condition> },
@@ -200,8 +203,16 @@ struct DiscardTask<'a> { expression: Box<Expr>, context: ContextId, loans: Activ
 enum StoreState { Start, Target(super::store::FieldTarget), Value(super::store::Value) }
 struct StoreTask<'a> { expression: Box<Expr>, context: ContextId, loans: ActiveLoans<'a>, state: StoreState, precise: bool }
 
-enum Task<'a> { Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+struct CallableTask<'a> {
+    body: Option<Body<'a>>,
+    context: ContextId,
+    result_type: Type,
+    boundary: Option<super::exceptions::CallableBoundary>,
+}
+
+enum Task<'a> { Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Region(region::Region<'a>, region::ResultStates),
     Tail(Box<Stmt>, Result<bool, Diagnostic>),
     Sequence(Box<Expr>, Result<Type, Diagnostic>, Option<Option<Box<crate::capture_loan_owners::Owners>>>),
     Assignment(AssignmentTask<'a>, Result<Type, Diagnostic>),
@@ -212,6 +223,34 @@ enum Step<'a> {
     Push(Task<'a>, Task<'a>),
     Continue(Task<'a>),
     Complete(Completion<'a>),
+}
+
+pub(super) fn check_exception_callable(analyzer: &mut Analyzer, context: &mut Context, body: &mut [Stmt], result: Type) -> Result<bool, Diagnostic> {
+    let task = Task::Callable(Box::new(CallableTask { body: Some(Body::Root(body)), context: ContextId(0), result_type: result, boundary: None }));
+    let Completion::Block(_, result) = drive(analyzer, context, task) else { unreachable!("exception callable result") };
+    result
+}
+
+fn step_callable<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Box<CallableTask<'a>>, completion: Option<Completion<'a>>) -> Step<'a> {
+    if let Some(boundary) = task.boundary.take() {
+        let Completion::Block(body, checked) = completion.expect("exception callable body") else { unreachable!("exception callable child") };
+        let result = Analyzer::finish_exception_callable(context, boundary, checked);
+        Step::Complete(Completion::Block(body, result))
+    } else {
+        task.boundary = Some(analyzer.prepare_exception_callable(context));
+        let body = task.body.take().expect("callable source");
+        let child = Task::Block(BlockTask { body, context: task.context, result_type: task.result_type,
+            frame: None, pending: None, keep_names: false, label_span: None });
+        Step::Push(Task::Callable(task), child)
+    }
+}
+
+#[cfg(test)]
+pub(super) fn check_region(analyzer: &mut Analyzer, context: &mut Context, region: &mut ExceptionRegion, result: Type, mode: super::exceptions::RegionMode, runtime: Option<Type>, unwind: &mut dyn FnMut(Span, &mut exception_state::ExitState)) -> region::ResultStates {
+    let environment = region::environment(analyzer, mode, runtime)?;
+    let task = region::RegionTask::new(region::Region::Root(region), ContextId(0), result, environment, Some(unwind));
+    let Completion::Region(_, result) = drive(analyzer, context, Task::Region(task)) else { unreachable!("root exception region") };
+    result
 }
 
 pub(super) fn check_block(analyzer: &mut Analyzer, context: &mut Context, body: &mut [Stmt], result_type: Type, keep_names: bool) -> Result<bool, Diagnostic> {
@@ -456,6 +495,8 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Callable(task) => step_callable(analyzer, contexts.get(task.context), task, completion.take()),
+            Task::Region(task) => region::step(analyzer, &mut contexts, task, completion.take()),
             Task::Tail(task) => tail::step(analyzer, &mut contexts, task, completion.take()),
             Task::Store(task) => step_store(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Sequence(task) => step_sequence(analyzer, contexts.get(task.context), task, completion.take()),
@@ -478,6 +519,19 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
     let action = (|| -> Result<BlockAction<'a>, Diagnostic> {
         if let Some(pending) = task.pending.take() {
             match (pending, completion.expect("block child completed")) {
+                (BlockPending::Region(index), Completion::Region(region, result)) => {
+                    let statement = &mut task.body.statements()[index];
+                    let StmtKind::Try(destination) = &mut statement.kind else { unreachable!("exception region slot") };
+                    *destination = region.into_child();
+                    let (completed, _) = result?;
+                    task.frame.as_mut().expect("region scope").exited = completed.forward_exits(analyzer, context, statement.span)?;
+                }
+                (BlockPending::Throw(index), Completion::Expression(expression, result)) => {
+                    let StmtKind::Throw(value) = &mut task.body.statements()[index].kind else { unreachable!("throw value slot") };
+                    *value = *expression.into_child();
+                    analyzer.finish_throw_value(context, value, result?)?;
+                    task.frame.as_mut().expect("throw scope").exited = true;
+                }
                 (BlockPending::Assignment(index), completion) => {
                     let (target, value, result) = match completion {
                         Completion::Assignment(assignment, result) => (assignment.target, assignment.value, result),
@@ -622,6 +676,24 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
         };
         let stmt = &mut task.body.statements()[index];
         match &mut stmt.kind {
+            StmtKind::Try(region) if context.exception_environment.is_some() && context.completion_frame.is_some() => {
+                let active = context.exception_environment.as_ref().expect("exception environment");
+                let mode = if active.partial_contracts { super::exceptions::RegionMode::Partial }
+                    else if active.refresh_contracts { super::exceptions::RegionMode::Current }
+                    else { super::exceptions::RegionMode::Fixed(active.effects.clone()) };
+                let environment = region::environment(analyzer, mode, active.runtime)?;
+                let region = std::mem::replace(region, Box::new(ExceptionRegion { body: Vec::new(), catch: None, finally: None }));
+                let child = region::RegionTask::new(region::Region::Child(region), task.context, task.result_type, environment, None);
+                task.pending = Some(BlockPending::Region(index));
+                Ok(BlockAction::Push(Task::Region(child)))
+            }
+            StmtKind::Throw(value) if context.completion_frame.is_some() => {
+                let expected = analyzer.prepare_throw_value(context, value)?;
+                let value = Box::new(std::mem::replace(value, Expr::new(ExprKind::Undefined, value.span)));
+                task.pending = Some(BlockPending::Throw(index));
+                Ok(BlockAction::Push(Task::Expression(ExpressionTask::new(Expression::Child(value), task.context,
+                    Mode::Consume, ActiveLoans::Shared(std::rc::Rc::new(Loans::new())), expected))))
+            }
             StmtKind::Assign { target, value, operator } => {
                 let precise = operator.is_none() && matches!(target.kind, ExprKind::Name(_))
                     && analyzer.expression_type_hint(context, target).is_some_and(|ty| analyzer.aggregate_callable_facts(ty).scoped || analyzer.nullable_scoped_record_declaration(ty).is_some())
@@ -1221,24 +1293,23 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     Err(error) => return finish_expression(analyzer, context, task, Err(error)),
                 };
                 let entered = analyzer.enter_source_callable_body(&mut child_context);
-                if entered.is_err() || has_exception_syntax(Analyzer::uninitialized_body(body)) {
-                    // Exception environment/exit frames still use compatibility
-                    // dispatch until their continuations join this same driver.
-                    let returned = entered.and_then(|()| analyzer.check_exception_callable_body(&mut child_context, Analyzer::uninitialized_body(body), frame.result))
-                        .and_then(|returned| { analyzer.validate_native_returns(&mut child_context)?; Ok(returned) });
-                    let result = analyzer.finish_closure(context, frame, child_context, body, &task.loans, returned);
-                    if let Ok(ty) = result { expr.ty = Some(ty); }
+                if let Err(error) = entered {
+                    let result = analyzer.finish_closure(context, frame, child_context, body, &task.loans, Err(error));
                     return finish_expression(analyzer, context, task, result);
                 }
+                let exceptions = has_exception_syntax(Analyzer::uninitialized_body(body));
                 let start = body.len() - Analyzer::uninitialized_body(body).len();
                 let body = std::mem::take(body);
                 let result_type = frame.result;
                 let child = contexts.push(child_context);
                 task.state = ExpressionState::Closure { frame, child };
-                let child = Task::Block(BlockTask {
-                    body: Body::Child { body, start }, context: child, frame: None, pending: None,
+                let body = Body::Child { body, start };
+                let child = if exceptions {
+                    Task::Callable(Box::new(CallableTask { body: Some(body), context: child, result_type, boundary: None }))
+                } else { Task::Block(BlockTask {
+                    body, context: child, frame: None, pending: None,
                     result_type, keep_names: false, label_span: None,
-                });
+                }) };
                 Step::Push(Task::Expression(task), child)
             } else {
                 if invocation {
@@ -1452,6 +1523,43 @@ mod tests {
 
     fn analyzer() -> Analyzer {
         Analyzer::new(crate::syntax::parse("function main(){}").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn scheduled_exception_failures_restore_region_frames_and_catch_names() {
+        for source in [
+            "function main(){try{throw missing;}catch(error){}}",
+            "function main(){try{throw 1;}catch(error){missing;}}",
+            "function main(){try{throw 1;}finally{missing;}}",
+            "function main(){try{throw 1;}catch(error){try{throw error;}finally{missing;}}}",
+            "function main(){try{for(;;){break;}}finally{missing;}}",
+            "function main(){try{const run=():int=>{try{return 1;}finally{missing;}};run();}catch(error){}}",
+        ] {
+            let source = formatted(source);
+            let mut parsed = crate::syntax::parse(&source).unwrap();
+            let mut analyzer = Analyzer::new(parsed.clone()).unwrap();
+            let mut context = Context::new("main".into());
+            let outer = Analyzer::bind(&mut context, &Token { text: "error".into(), kind: TokenKind::Name, span: Span::new(0, 1) }, Type::String, false).unwrap();
+            let StmtKind::Try(region) = &mut parsed.functions[0].body[0].kind else { panic!("exception region"); };
+            let dead_key = region.catch.as_ref().and_then(|handler| handler.body.first()).map(|statement| statement.span.start);
+            if let Some(key) = dead_key {
+                analyzer.dead_handlers.insert(key, Box::new((context.clone(), region.catch.as_ref().unwrap().clone(), Type::Void)));
+            }
+            let error = analyzer.check_typed_exception_region(&mut context, region, Type::Void, &crate::error_effects::ErrorEffects::default(), None, &mut |_,_|{}).err().expect("invalid child");
+            assert_eq!(&source[error.span.start..error.span.end], "missing");
+            if let Some(key) = dead_key { assert!(analyzer.dead_handlers.contains_key(&key), "failed catch must not publish successful handler bookkeeping"); }
+            assert_eq!(context.names.len(), 1);
+            assert_eq!(context.names["error"], outer);
+            assert!(context.lexical_scopes.is_empty());
+            assert!(context.loops.is_empty());
+            assert!(context.completion_frame.is_none());
+            assert!(context.error_frame.is_none());
+            assert!(context.region_entry_loans.is_none());
+            assert!(context.region_loop_depth.is_none());
+            assert!(context.exception_environment.is_none());
+            assert_eq!(analyzer.depth, 0);
+            assert!(format!("{region:?}").contains("missing"));
+        }
     }
 
     #[test]

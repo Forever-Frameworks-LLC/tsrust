@@ -59,13 +59,6 @@ impl Analyzer {
     pub(super) fn check_block_statement(&mut self, context: &mut Context, stmt: &mut Stmt, frame: &mut BlockFrame) -> Result<(), Diagnostic> {
             match &mut stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                StmtKind::Throw(value) if context.completion_frame.is_some() => {
-                    self.check_throw_value(context,value)?;
-                    frame.exited=true;
-                }
-                StmtKind::Try(region) if context.exception_environment.is_some() && context.completion_frame.is_some() => {
-                    frame.exited=self.check_nested_exception_region(context,region,frame.result_type,stmt.span)?;
-                }
                 StmtKind::Try(_) | StmtKind::Throw(_) => return Err(Diagnostic::new("unsupported","Exception syntax is parsed; error propagation and completion analysis are not implemented yet.",stmt.span)),
                 StmtKind::ForOf { .. } | StmtKind::While { .. } => unreachable!("loop children are scheduled by the driver"),
                 StmtKind::Block(_) => unreachable!("block children are scheduled by the driver"),

@@ -113,11 +113,11 @@ impl CompletionStates {
             self.record(CompletionKind::Throw,state);
         }
     }
+    #[cfg(test)]
     pub(super) fn catch(mut self,handler:&mut impl FnMut(ExitState)->Result<Self,Diagnostic>)->Result<Self,Diagnostic> {
         let Some(state)=self.take_throw() else {return Ok(self);};
         let handled=handler(state)?;
-        if let Some(state)=handled.normal {self.normal=Some(match self.normal.take(){Some(previous)=>previous.join(state),None=>state});}
-        for (kind,state) in handled.exits {self.record(kind,state);}
+        self.merge_cleanup(None, handled);
         Ok(self)
     }
     pub(super) fn take_throw(&mut self)->Option<ExitState> {
@@ -127,17 +127,24 @@ impl CompletionStates {
     pub(super) fn record(&mut self,kind:CompletionKind,state:ExitState) {
         if let Some((_,previous))=self.exits.iter_mut().find(|(existing,_)|*existing==kind) {*previous=previous.clone().join(state);}else{self.exits.push((kind,state));}
     }
+    /// Ordered replay inputs: normal fallthrough first, then abrupt destinations.
+    pub(super) fn into_paths(self)->Vec<(Option<CompletionKind>,ExitState)> {
+        self.normal.into_iter().map(|state|(None,state)).chain(self.exits.into_iter().map(|(kind,state)|(Some(kind),state))).collect()
+    }
+    /// Normal cleanup preserves the incoming destination; abrupt cleanup replaces it.
+    pub(super) fn merge_cleanup(&mut self,kind:Option<CompletionKind>,cleaned:Self) {
+        if let Some(state)=cleaned.normal {
+            if let Some(kind)=kind {self.record(kind,state);}
+            else {self.normal=Some(match self.normal.take(){Some(previous)=>previous.join(state),None=>state});}
+        }
+        for (kind,state) in cleaned.exits {self.record(kind,state);}
+    }
+    #[cfg(test)]
     #[inline(never)]
     pub(super) fn finally(self,cleanup:&mut impl FnMut(ExitState)->Result<Self,Diagnostic>)->Result<Self,Diagnostic> {
         let mut output=Self::default();
-        let pending=self.normal.into_iter().map(|state|(None,state)).chain(self.exits.into_iter().map(|(kind,state)|(Some(kind),state)));
-        for (kind,state) in pending {
-            let cleaned=cleanup(state)?;
-            if let Some(state)=cleaned.normal {
-                if let Some(kind)=kind {output.record(kind,state);}
-                else {output.normal=Some(match output.normal.take(){Some(previous)=>previous.join(state),None=>state});}
-            }
-            for (kind,state) in cleaned.exits {output.record(kind,state);}
+        for (kind,state) in self.into_paths() {
+            output.merge_cleanup(kind, cleanup(state)?);
         }
         Ok(output)
     }
