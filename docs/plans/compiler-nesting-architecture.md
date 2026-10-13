@@ -801,3 +801,45 @@ Whole-project formatting changes zero files and fingerprints. SQLite records und
 and source identity with byte-exact restoration verification. No runtime or
 compilation performance measurement is claimed. Installed consumers remain on
 `36093d5b`, since this internal storage change does not alter public admission.
+
+## Generic dependency proof scheduling
+
+The specialization audit exposed a source-proof bottleneck before materialization:
+a 256-function explicit generic chain exceeded both the initial 60-second bound
+and a separately sampled 90-second bound. The sample places repeated work in the
+invocation proof engine, including request hashing, caller-state cloning and fact
+merging. Baseline diagnostic source is checkpoint `997ccd6e`; original trace,
+profile, source and timeout evidence use the `tsrust-nesting-specialization`
+prefix in SQLite. The first probe's full stderr was not retained; its summary
+explicitly records that limitation.
+
+Pending proof requests now use a heap ordered by call-context length, with request
+identity breaking ties. Deeper callees finish before subscribers replay partial
+facts. Recursive context truncation, request identity, reverse dependencies,
+point-sensitive environments and opaque propagation remain unchanged. Scheduling
+priority neither invokes arbitrary bodies recursively nor increases depth limits.
+A regression checks complete call facts, return completion and cached reuse for
+8-, 32- and 128-function chains, requiring at most two evaluations per request.
+
+The first deque-based attempt failed that evaluation bound and is preserved in
+the evidence. The heap passes the bound. For the same 32-function generic source,
+all 33 source roots require 1,026 evaluations instead of 5,521, with the same 561
+requests. Bounded debug diagnostics also complete 128- and 256-function source
+proofs, requiring 16,386 and 65,538 evaluations respectively. These are diagnostic
+operation counts, not formal compilation timing samples or end-to-end acceptance.
+
+Substantial scaling work remains: each source root still analyzes its downstream
+chain with a growing caller state. The 256-function diagnostic takes about 37
+seconds in this run. The specialization depth-32 guard remains until explicit and
+inferred materialization and analyzer scheduling are accepted. Instance budgets,
+parser/checker/emitter limits and public admission remain unchanged.
+
+Focused validation passes 103 proof-engine unit checks (two opt-in diagnostics
+ignored), 171 native integration checks and 67 generic editor checks across both
+intelligence suites. Native witnesses cover captures, ownership, default/rest
+arguments, generic adapters, loops and exception paths. Whole-project formatting
+changes zero files and fingerprints. Existing matched benchmark support and
+protocols are unchanged. SQLite records under `tsrust-nesting-proof-scheduling`
+retain the failed queue attempt, final validation, bounded traces and source
+identity, verified by exact-byte restoration. No public admission changes or new
+built-ins land here; installed consumers remain on `36093d5b`.

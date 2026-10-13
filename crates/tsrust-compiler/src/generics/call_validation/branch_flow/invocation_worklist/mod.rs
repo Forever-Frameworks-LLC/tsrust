@@ -1,5 +1,6 @@
 //! Inter-call dependencies converge on an explicit finite worklist.
 use super::*;
+use std::collections::BinaryHeap;
 mod array_transfer;
 mod recursive_inputs;
 mod terminal_returns;
@@ -33,7 +34,7 @@ pub(super) struct Engine<'a> {
     entries: Vec<Entry<'a>>,
     active_nodes:Vec<(usize,usize)>,
     eager_wrapper_active:bool,
-    work: Vec<usize>,
+    work: BinaryHeap<(usize, usize)>,
     current: Option<usize>,
     environments: environment_store::Store,
     #[cfg(test)]
@@ -65,7 +66,7 @@ fn merge_facts(current: &mut HashMap<(usize, usize), Option<Vec<Contract>>>, inc
 }
 impl<'a> Engine<'a> {
     pub(super) fn new(declarations: &'a HashMap<String, Contract>, effects: &'a effect_bodies::Index) -> Self {
-        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), active_nodes:Vec::new(), eager_wrapper_active:false, work: Vec::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] visits_by_site:HashMap::new(), #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
+        Self { declarations, effects, lookup: HashMap::new(), entries: Vec::new(), active_nodes:Vec::new(), eager_wrapper_active:false, work: BinaryHeap::new(), current: None, environments: environment_store::Store::default(), #[cfg(test)] evaluations: 0, #[cfg(test)] invocations: 0, #[cfg(test)] visits_by_site:HashMap::new(), #[cfg(test)] trace:std::env::var_os("TSRUST_TRACE_WORKLIST").is_some() }
     }
     // Keep a simple declaration path. Recursive edges reuse the earlier frame,
     // so allocation identity cannot grow with runtime recursion depth.
@@ -84,7 +85,7 @@ impl<'a> Engine<'a> {
             let index = self.entries.len();
             self.lookup.insert(request.clone(), index);
             self.entries.push(Entry { request, outcome: summary_flow::Outcome::default(), opaque: false, queued: true, dependents: HashSet::new(),session:None,session_input:None,pending_nodes:HashSet::new(),pending_entry:false,epoch:0 });
-            self.work.push(index);
+            self.work.push((self.entries[index].request.context.len(), index));
             index
         };
         if let Some(parent) = self.current { let node=self.active_nodes.last().filter(|(owner,_)|*owner==parent).map(|(_,node)|*node);self.entries[index].dependents.insert(Dependency {parent,node}); }
@@ -126,8 +127,11 @@ impl<'a> Engine<'a> {
         if let Some(current) = self.current { self.entries[current].opaque = true; }
         None
     }
+    // Finish deeper call contexts before resuming subscribers to partial facts.
+    // This is scheduling priority, not recursive evaluation or a depth limit.
+    // Recursive contexts retain the existing finite abstraction and notifications.
     fn enqueue(&mut self, index: usize) {
-        if !self.entries[index].queued { self.entries[index].queued = true; self.work.push(index); }
+        if !self.entries[index].queued { self.entries[index].queued = true; self.work.push((self.entries[index].request.context.len(), index)); }
     }
     pub(super) fn solve(&mut self, declaration: Span, caller: &[Binding], arguments: &[expression_flow::Value]) -> Option<summary_flow::Outcome> {
         #[cfg(test)]
@@ -135,7 +139,7 @@ impl<'a> Engine<'a> {
         #[cfg(test)]
         if trace {eprintln!("worklist-start span={}..{} bindings={}",declaration.start,declaration.end,caller.len());}
         let root = self.request(Request { declaration, producer: declaration, context: vec![(declaration, declaration)], environment: None, caller: caller.to_vec().into(), arguments: arguments.to_vec() });
-        while let Some(index) = self.work.pop() {
+        while let Some((_, index)) = self.work.pop() {
             self.evaluate(index);
         }
         #[cfg(test)]
@@ -323,7 +327,7 @@ impl expression_flow::Dispatch for Engine<'_> {
             let leaf=self.terminal_leaf_return(declaration);
             let wrapper=!self.eager_wrapper_active && terminal_returns::wrapper(declaration,self.declarations,self.effects);
             if environment.is_none() && self.entries[index].queued && (leaf || wrapper) {
-                self.work.retain(|pending| *pending != index);
+                self.work.retain(|(_, pending)| *pending != index);
                 let previous=self.eager_wrapper_active;
                 self.eager_wrapper_active|=wrapper;
                 self.evaluate(index);
@@ -357,6 +361,34 @@ mod tests {
         let root=program.functions.iter().find(|function|function.name.text=="root").unwrap();let mut bindings=Vec::new();collect(&root.body,&mut bindings,&effects);
         let mut engine=Engine::new(&declarations,&effects);assert!(engine.solve(root.name.span,&bindings,&[]).is_some());
         assert!(engine.entries.len()<=128,"{} requests",engine.entries.len());assert!(engine.evaluations<=2048,"{} evaluations",engine.evaluations);
+    }
+    #[test]
+    fn dependency_chains_finish_callees_before_propagating_partial_facts() {
+        for count in [8, 32, 128] {
+            let mut source = String::new();
+            for index in 0..count {
+                let value = if index + 1 == count { "7".to_owned() } else { format!("step{}()", index + 1) };
+                source.push_str(&format!("function step{index}():int{{return {value};}}"));
+            }
+            source.push_str("function root():int{return step0();}function main(){}");
+            let source = crate::format(&source).unwrap();
+            assert_eq!(crate::format(&source).unwrap(), source);
+            let program = crate::syntax::parse(&source).unwrap();
+            let effects = effect_bodies::Index::new(&program).unwrap();
+            let declarations = program.functions.iter().map(|function| (function.name.text.clone(), contract(function.type_parameters.len(), &function.parameter_initializers, function.rest_parameter, function.name.span))).collect::<HashMap<_, _>>();
+            let root = program.functions.iter().find(|function| function.name.text == "root").unwrap();
+            let mut engine = Engine::new(&declarations, &effects);
+            let outcome = engine.solve(root.name.span, &[], &[]).unwrap();
+            assert!(outcome.returning.is_some());
+            assert_eq!(outcome.facts.len(), count);
+            assert!(outcome.facts.values().all(|contracts| contracts.as_ref().is_some_and(|contracts| contracts.len() == 1 && contracts[0].required == 0)));
+            assert_eq!(engine.entries.len(), count + 1);
+            assert!(engine.evaluations <= 2 * (count + 1), "{} evaluations for {count} callees", engine.evaluations);
+            println!("chain={count} requests={} evaluations={} invocationVisits={}", engine.entries.len(), engine.evaluations, engine.invocations);
+            let evaluations = engine.evaluations;
+            assert!(engine.solve(root.name.span, &[], &[]).unwrap() == outcome);
+            assert_eq!(engine.evaluations, evaluations);
+        }
     }
     #[test]
     fn pending_callees_finish_before_revisiting_their_common_caller() {
