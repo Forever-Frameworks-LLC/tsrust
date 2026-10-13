@@ -160,3 +160,24 @@ fn inferred_cycle_cannot_take_its_entry_seed_from_another_function() {
     assert_eq!(error.code, "result-inference");
     assert_eq!(&source[error.span.start..error.span.end], "first");
 }
+
+fn callable_cycle(length: usize) -> String {
+    (0..length).map(|index| {
+        let seed = if index == 0 { "if (remaining === 0) { return (): int => { return 7; }; }" } else { "" };
+        let remaining = if index == 0 { "remaining - 1" } else { "remaining" };
+        format!("function cycle{index}(remaining: int): () => int {{ {seed} return cycle{}({remaining}); }}\n", (index + 1) % length)
+    }).collect()
+}
+
+#[test]
+fn callable_result_dependencies_resolve_deep_cycles_and_native_environments() {
+    let mut source = callable_cycle(2048);
+    source.push_str("function main() { const action = cycle0(1); console.log(action()); }");
+    let source = support::format_round_trip(&source);
+    let checked = check(&source).unwrap();
+    assert!(checked.emit_rust().contains("fn function2047"));
+    drop(checked);
+    let mut source = callable_cycle(256);
+    source.push_str("function main() { const action = cycle0(1); console.log(action()); }");
+    support::execute(&source, "7\n", None);
+}

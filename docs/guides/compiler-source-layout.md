@@ -74,3 +74,8 @@ Function scheduling lives in `analysis/function_scheduling.rs`. Keep function
 completion queues and lexical owner continuations there; body checking and its
 ownership contracts remain analysis responsibilities. The nesting architecture
 plan tracks the remaining recursive dependency paths.
+
+Callable result discovery lives in `analysis/result_discovery.rs`. Its queue
+records actual unresolved function-result dependencies and wakes their consumers
+when a concrete environment becomes known. Keep discovery flags, source spans
+and newly instantiated function admission aligned with this queue.

@@ -96,6 +96,11 @@ impl Analyzer {
 
     fn recursive_summary_is_complete(&self, index: usize) -> bool {
         let signature = &self.signatures[index];
+        if self.callable_result_type(signature.result) {
+            // The initial pass requests recursive inference. Its discovery
+            // worklist resolves concrete environments before body scheduling.
+            return self.assumed_modes.is_none() || self.known_results.contains_key(&index);
+        }
         if signature.inferred_result {
             // These contexts contain only the declared scalar parameters.
             // Defaults, destructuring, captures and concrete environments still

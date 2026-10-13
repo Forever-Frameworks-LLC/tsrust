@@ -248,3 +248,34 @@ TypeScript checking pass at 32 and 2,048 functions; the native phases are repeat
 after the dispatch repair. SQLite retains the original failure and all subsequent
 records under `tsrust-nesting-inferred-groups`, including exact generated sources,
 source hashes and separate untimed evidence. No timing samples were collected.
+
+## Callable result environments in progress
+
+Callable result discovery now has a dependency queue in
+`analysis/result_discovery.rs`. An unresolved named result records the function
+currently discovering its body as a dependent. Publishing a concrete result
+wakes only waiting bodies, in stable order; newly instantiated functions join
+through a monotonic admission frontier. This replaces repeated scans of all
+unresolved functions. Discovery state is restored on both success and error.
+
+Recursive groups whose callable result environments have been resolved now use
+the body worklist. The initial pass requests the existing recursive inference
+phase rather than descending through the cycle to find its first back edge.
+Unknown or infinitely growing environments retain their existing diagnostic.
+The former 200-function callable-result rejection now executes successfully.
+A 2,048-function cycle checks, emits and disposes on the normal worker stack,
+with native execution at 256 functions and editor coverage at 512 functions.
+
+`callable-recursive-manifest.json` registers native and TypeScript cycles with
+declared function results and the independent result oracle `7`. This is separate
+from scalar result inference and remains unmeasured. Context-dependent record
+calls, dynamic specializations and deep syntax/type operations are still pending;
+the full nesting architecture is not yet accepted.
+
+Focused verification passes 68 compiler checks across function dependencies,
+named result inference, generic defaults, ordinary callable results and the
+three recursive callback/result suites, plus three editor witnesses. All six
+untimed phases at 32 and 2,048 functions pass. Whole-project formatting changes
+zero files/fingerprints. SQLite retains outputs, exact generated sources and
+source identity under the `tsrust-nesting-callable-groups` prefix, with ordinary
+callable checks in `tsrust-nesting-callable-results.log`.

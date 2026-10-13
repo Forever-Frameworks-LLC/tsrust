@@ -243,7 +243,7 @@ fn recursive_factory_capture_transfers_preserve_caller_loans() {
 }
 
 #[test]
-fn recursive_result_cycles_keep_compiler_source_depth_guards() {
+fn recursive_result_cycles_use_dependency_worklists() {
     for length in [20, 200] {
         let mut source = "function f0(n: int): () => int { if (n === 0) { return (): int => { return 7; }; } return f1(n - 1); }".to_owned();
         for i in 1..length {
@@ -253,11 +253,7 @@ fn recursive_result_cycles_keep_compiler_source_depth_guards() {
             ));
         }
         source.push_str("function main() { const action = f0(2); console.log(action()); }");
-        if length == 20 {
-            execute(&source, "7\n", None);
-        } else {
-            assert!(reject(&source, "unsupported").message.contains("128"));
-        }
+        execute(&source, "7\n", None);
     }
 }
 

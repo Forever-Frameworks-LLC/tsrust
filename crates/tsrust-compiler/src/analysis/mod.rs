@@ -1,4 +1,5 @@
 mod function_scheduling;
+mod result_discovery;
 mod schema;
 mod thread_transfer;
 mod json_typed;
@@ -751,6 +752,8 @@ struct Analyzer {
     scoped_records: crate::scoped_record_layout::Registry,
     escaping: HashSet<usize>,
     discovering_results: bool,
+    discovering_function: Option<usize>,
+    result_dependents: HashMap<usize, HashSet<usize>>,
     known_results: HashMap<usize, Type>,
     /// Result types of recursive functions without a result annotation,
     /// taken from a return that does not depend on the recursive call.
@@ -1687,6 +1690,8 @@ impl Analyzer {
             scoped_records: Default::default(),
             escaping,
             discovering_results: false,
+            discovering_function: None,
+            result_dependents: HashMap::new(),
             known_results: HashMap::new(),
             provisional_results: HashMap::new(),
             dead_handlers: BTreeMap::new(),
@@ -2716,7 +2721,7 @@ impl Analyzer {
             && self.callable_result_type(self.signatures[index].result)
         {
             if !self.known_results.contains_key(&index) {
-                self.result_waits.insert(index, span);
+                self.note_result_wait(index, span);
                 return Err(Self::pending_result(span));
             }
         } else {
@@ -4071,56 +4076,6 @@ impl Analyzer {
             }
         }
         Ok(absent)
-    }
-
-    fn discover_results(&mut self) -> Result<(), Diagnostic> {
-        let effects = self.effects_only;
-        self.effects_only = true;
-        self.discovering_results = true;
-        loop {
-            let mut changed = false;
-            let mut index = 0;
-            while index < self.program.functions.len() {
-                if self.callable_result_type(self.signatures[index].result)
-                    && !self.known_results.contains_key(&index)
-                {
-                    let mut body = self.program.functions[index].body.clone();
-                    let mut context = self.function_context(index, &mut body)?;
-                    if let Some(ty) =
-                        self.discover_body(&mut context, Self::uninitialized_body(&mut body), self.signatures[index].result)?
-                    {
-                        self.known_results.insert(index, ty);
-                        changed = true;
-                    }
-                }
-                index += 1;
-            }
-            if !changed {
-                break;
-            }
-        }
-        self.discovering_results = false;
-        self.effects_only = effects;
-        for (index, signature) in self.signatures.iter().enumerate() {
-            if self.callable_result_type(signature.result)
-                && !self.known_results.contains_key(&index)
-                && !self.templates.contains_key(&index)
-            {
-                let mut error = Diagnostic::new(
-                    "unsupported",
-                    "Recursive callable results need one resolvable environment origin; recursive environment storage is unsupported.",
-                    self.program.functions[index].name.span,
-                );
-                if let Some(&span) = self.result_waits.get(&index) {
-                    error = error.related(
-                        span,
-                        "This callable result has no resolved concrete return origin.",
-                    );
-                }
-                return Err(error);
-            }
-        }
-        Ok(())
     }
 
     fn check_parameter_default(
@@ -13591,7 +13546,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             result
         } else if self.callable_result_type(self.signatures[index].result) {
             if self.discovering_results {
-                self.result_waits.insert(index, span);
+                self.note_result_wait(index, span);
                 self.callable_result_shape(self.signatures[index].result)
             } else if context.template {
                 self.callable_result_shape(self.signatures[index].result)

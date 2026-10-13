@@ -13,8 +13,14 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False):
     functions = []
+    if callable_result:
+        for index in range(count):
+            seed = f'if (remaining === 0) {{ return (): {scalar} => {{ return 7; }}; }} ' if index == 0 else ''
+            remaining = 'remaining - 1' if index == 0 else 'remaining'
+            functions.append(f'function step{index}(remaining: {scalar}): () => {scalar} {{ {seed}return step{(index + 1) % count}({remaining}); }}')
+        return '\n'.join([*functions, 'function main() { const action = step0(0); console.log(action()); }', *(['main();'] if call_main else []), ''])
     for index in range(count):
         if recursive:
             seed = index == 0 if inferred else index + 1 == count
@@ -38,6 +44,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
+    parser.add_argument('--callable', action='store_true', help='Resolve recursive callable environments; requires --recursive')
     parser.add_argument('--inferred', action='store_true', help='Infer native recursive results; requires --recursive')
     parser.add_argument('--recursive', action='store_true', help='Use the annotated recursive-group manifest')
     parser.add_argument('--only', type=int, nargs='+', choices=MANIFEST['functionCounts'])
@@ -46,9 +53,11 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Output already exists; preserve the original record and choose a new path')
-    if args.inferred and not args.recursive:
-        parser.error('--inferred requires --recursive')
-    manifest_path = MANIFEST_PATH.with_name('inferred-recursive-manifest.json' if args.inferred else 'recursive-manifest.json') if args.recursive else MANIFEST_PATH
+    if (args.inferred or args.callable) and not args.recursive:
+        parser.error('--inferred and --callable require --recursive')
+    if args.inferred and args.callable:
+        parser.error('--inferred and --callable select different workloads')
+    manifest_path = MANIFEST_PATH.with_name('callable-recursive-manifest.json' if args.callable else 'inferred-recursive-manifest.json' if args.inferred else 'recursive-manifest.json') if args.recursive else MANIFEST_PATH
     manifest = json.loads(manifest_path.read_text())
     compiler = args.compiler.resolve(strict=True)
     tsc = ROOT / 'benchmarks/runtime/node_modules/typescript/bin/tsc'
@@ -77,8 +86,8 @@ def main():
             for count in args.only or manifest['functionCounts']:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)

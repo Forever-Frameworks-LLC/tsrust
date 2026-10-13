@@ -30,6 +30,11 @@ result; other functions forward it. The TypeScript counterpart retains explicit
 result annotations because TypeScript does not infer these recursive results.
 Control flow and the result oracle match; inference coverage does not.
 
+`--recursive --callable` selects `callable-recursive-manifest.json`. A cycle
+returns one finite closure environment from an independent branch. Both languages
+declare the returned function type, and invoking the result yields `7`. This
+isolates result discovery and recursive body scheduling from runtime recursion.
+
 The first scoped release-compiler run retains 132 durations in SQLite as
 `tsrust-nesting-dependency-scaling.json`, with verified protocol and review in
 `tsrust-nesting-dependency-scaling-proof.json`. All four counts and three phases
