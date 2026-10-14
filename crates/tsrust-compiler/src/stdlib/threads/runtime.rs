@@ -12,22 +12,12 @@ mod tsrust_native_threads {
     #[derive(Clone, Copy, Default)]
     pub struct Stats { pub workers: usize, pub capacity: usize, pub queued: usize, pub running: usize, pub completed: usize, pub outstanding: usize }
     struct Pool { executor: rayon::ThreadPool, state: Arc<Mutex<Stats>>, idle: Condvar, closed: AtomicBool }
-    enum Global { New, Active(Arc<Pool>), Closed(Option<Arc<Mutex<Stats>>>) }
-    static GLOBAL: Mutex<Global> = Mutex::new(Global::New);
     thread_local! { static CANCELLATION: RefCell<Option<Arc<AtomicBool>>> = const { RefCell::new(None) }; }
     fn build(workers: usize, capacity: usize) -> Result<Arc<Pool>, SpawnError> {
         let executor = rayon::ThreadPoolBuilder::new().num_threads(workers).build().map_err(|e| failure("spawn", e.to_string()))?;
         Ok(Arc::new(Pool { executor, state: Arc::new(Mutex::new(Stats { workers, capacity, ..Stats::default() })), idle: Condvar::new(), closed: AtomicBool::new(false) }))
     }
     fn default_workers() -> usize { std::thread::available_parallelism().map_or(2, |n| n.get().clamp(2, 256)) }
-    fn pool() -> Result<Arc<Pool>, SpawnError> {
-        let mut global = GLOBAL.lock().unwrap();
-        match &*global {
-            Global::Active(pool) => Ok(pool.clone()),
-            Global::Closed(_) => Err(failure("closed", "The worker pool is shut down.")),
-            Global::New => { let pool = build(default_workers(), 1024)?; *global = Global::Active(pool.clone()); Ok(pool) }
-        }
-    }
     fn validate_limits(workers: i64, capacity: i64) -> Result<(), SpawnError> {
         if !(1..=256).contains(&workers) || !(1..=1_000_000).contains(&capacity) { return Err(failure("range", "workers must be 1..256 and capacity 1..1000000.")); }
         Ok(())
@@ -37,6 +27,7 @@ mod tsrust_native_threads {
         validate_limits(workers, capacity)?;
         Ok(OwnedPool { inner: build(workers as usize, capacity as usize)? })
     }
+    pub fn create_default_pool() -> Result<OwnedPool, SpawnError> { create_pool(default_workers() as i64, 1024) }
     fn close(pool: &Pool) {
         let mut stats = pool.state.lock().unwrap();
         pool.closed.store(true, Ordering::Release);
@@ -51,33 +42,6 @@ mod tsrust_native_threads {
         }
     }
     impl Drop for OwnedPool { fn drop(&mut self) { close(&self.inner); } }
-    pub fn configure_pool(workers: i64, capacity: i64) -> Result<(), SpawnError> {
-        validate_limits(workers, capacity)?;
-        let mut global = GLOBAL.lock().unwrap();
-        if !matches!(*global, Global::New) { return Err(failure("configured", "Configure the pool before its first use; configuration is permanent.")); }
-        *global = Global::Active(build(workers as usize, capacity as usize)?); Ok(())
-    }
-    pub fn pool_stats() -> Stats {
-        match &*GLOBAL.lock().unwrap() {
-            Global::Active(pool) => *pool.state.lock().unwrap(),
-            Global::New => Stats { workers: default_workers(), capacity: 1024, ..Stats::default() },
-            Global::Closed(stats) => stats.as_ref().map_or(Stats::default(), |stats| *stats.lock().unwrap()),
-        }
-    }
-    pub fn shutdown_pool() -> Result<(), SpawnError> {
-        // A worker cannot wait for a shutdown that includes itself.
-        if CANCELLATION.with(|slot| slot.borrow().is_some()) { return Err(failure("worker", "Shut down the pool from the owning main thread.")); }
-        let pool = {
-            let mut global = GLOBAL.lock().unwrap();
-            match &*global {
-                Global::Active(pool) => { let pool = pool.clone(); *global = Global::Closed(Some(pool.state.clone())); Some(pool) },
-                Global::New => { *global = Global::Closed(None); None },
-                Global::Closed(_) => None,
-            }
-        };
-        if let Some(pool) = pool { close(&pool); }
-        Ok(())
-    }
     struct Completion<T, E> { result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<AtomicBool>, released: AtomicBool, pool: Option<Arc<Pool>> }
     impl<T, E> Drop for Completion<T, E> {
         fn drop(&mut self) { self.release(); }
@@ -147,13 +111,6 @@ mod tsrust_native_threads {
         let completion = completion(Some(pool.clone())); let worker = completion.clone();
         pool.executor.spawn(move || execute(&worker, work));
         Ok(Thread { completion, dedicated: None, settled: false })
-    }
-    pub fn spawn<T: Send + 'static, E: Send + 'static>(work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
-        // Serialize admission with shutdown so shutdown cannot miss an admitted task.
-        let selected = pool()?;
-        let global = GLOBAL.lock().unwrap();
-        if !matches!(&*global, Global::Active(active) if Arc::ptr_eq(active, &selected)) { return Err(failure("closed", "The worker pool is shut down.")); }
-        submit(selected, work)
     }
     pub fn spawn_dedicated<T: Send + 'static, E: Send + 'static>(work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
         let completion = completion(None); let worker = completion.clone();
@@ -225,16 +182,18 @@ mod tsrust_native_threads {
             assert_eq!(disposed.load(Ordering::SeqCst), 5);
         }
         #[test]
-        fn global_configuration_and_shutdown_preserve_unjoined_accounting() {
-            assert_eq!(pool_stats().capacity, 1024);
-            assert!(configure_pool(0, 2).is_err()); configure_pool(2, 4).unwrap();
-            assert_eq!((pool_stats().workers, pool_stats().capacity), (2, 4));
-            assert!(configure_pool(1, 1).is_err());
-            let worker = spawn(|| Ok::<_, ()>(8)).unwrap();
-            shutdown_pool().unwrap(); assert_eq!(pool_stats().completed, 1);
-            assert!(matches!(spawn(|| Ok::<_, ()>(())), Err(SpawnError { code: "closed", .. })));
-            assert!(matches!(join(worker), Ok(8))); assert_eq!(pool_stats().outstanding, 0);
-            shutdown_pool().unwrap();
+        fn defaults_shutdown_and_fresh_instances_are_independent() {
+            let pool = create_default_pool().unwrap();
+            assert_eq!(pool.stats().workers, default_workers());
+            assert_eq!(pool.stats().capacity, 1024);
+            assert!(create_pool(0, 2).is_err());
+            let worker = pool.task(|| Ok::<_, ()>(8)).unwrap();
+            pool.shutdown().unwrap(); assert_eq!(pool.stats().completed, 1);
+            assert!(matches!(pool.task(|| Ok::<_, ()>(())), Err(SpawnError { code: "closed", .. })));
+            assert!(matches!(join(worker), Ok(8))); assert_eq!(pool.stats().outstanding, 0);
+            pool.shutdown().unwrap();
+            let fresh = create_default_pool().unwrap();
+            assert!(matches!(join(fresh.task(|| Ok::<_, ()>(9)).unwrap()), Ok(9)));
         }
         #[test]
         fn bounded_admission_completion_accounting_and_nested_progress() {

@@ -44,9 +44,9 @@ fn thread_catalog_examples_check_and_execute() {
     let directory = Directory(path);
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:threads"].as_array().unwrap();
-    assert_eq!(entries.len(), 14);
+    assert_eq!(entries.len(), 13);
     let mut seen=std::collections::HashSet::new();
-    for entry in entries.iter().chain(catalog["workerPool"].as_array().unwrap()).chain(catalog["Pool"].as_array().unwrap()).chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
+    for entry in entries.iter().chain(catalog["ThreadPool"].as_array().unwrap()).chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
         for example in entry["examples"].as_array().unwrap() {
             if !seen.insert(example["source"].as_str().unwrap()) { continue; }
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
@@ -124,11 +124,11 @@ fn scoped_workers_and_propagation_have_checked_hover_and_signatures() {
 
 #[test]
 fn pool_and_cancellation_have_documentation_and_checked_types() {
-    let source="import {pool,join,cancel,cancellationRequested} from 'std:threads';function main(){pool.configure({workers: 2, capacity: 8});const worker=unwrap(pool.task(():int=>1));cancel(worker);unwrap(join(worker));const stats=pool.stats();console.log(stats.outstanding);unwrap(pool.shutdown());}";
+    let source="import {ThreadPool,join,cancel,cancellationRequested} from 'std:threads';function main(){const pool=new ThreadPool({workers: 2, capacity: 8});const worker=unwrap(pool.task(():int=>1));cancel(worker);unwrap(join(worker));const stats=pool.stats();console.log(stats.outstanding);unwrap(pool.shutdown());}";
     let uri="file:///pool.tsr";let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
-    for name in ["configure","task","cancel","stats","shutdown"] {
+    for name in ["task","cancel","stats","shutdown"] {
         let offset=source.rfind(&format!("{name}(")).unwrap()+2;
         let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
         assert!(hover.to_string().contains(name),"{name}: {hover}");
@@ -140,7 +140,7 @@ fn pool_and_cancellation_have_documentation_and_checked_types() {
 
 #[test]
 fn pool_statistics_completion_uses_checked_native_fields() {
-    let source="import {pool} from 'std:threads';function main(){const stats=pool.stats();stats.outstanding;}";
+    let source="import {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool();const stats=pool.stats();stats.outstanding;}";
     let uri="file:///pool-fields.tsr";let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
@@ -152,18 +152,18 @@ fn pool_statistics_completion_uses_checked_native_fields() {
 
 #[test]
 fn scoped_pool_alias_methods_have_hover_parameters_and_result_fields() {
-    let source="import {pool as workers,Pool as Jobs,join} from 'std:threads';function main(){const jobs=new Jobs({workers:2,capacity:8});const task=unwrap(jobs.task(():int=>42));console.log(unwrap(join(task)));const stats=jobs.stats();console.log(stats.outstanding);unwrap(jobs.shutdown());}";
+    let source="import {ThreadPool as Jobs,join} from 'std:threads';function main(){const jobs=new Jobs();const task=unwrap(jobs.task(():int=>42));console.log(unwrap(join(task)));const stats=jobs.stats();console.log(stats.outstanding);unwrap(jobs.shutdown());}";
     let uri="file:///scoped-pool.tsr";let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
-    for (needle,expected) in [("new Jobs","capacity"),("jobs.task","callback"),("jobs.stats","PoolStats"),("jobs.shutdown","shutdown")] {
+    for (needle,expected) in [("new Jobs","capacity"),("jobs.task","callback"),("jobs.stats","ThreadPoolStats"),("jobs.shutdown","shutdown")] {
         let offset=source.find(needle).unwrap()+needle.find('.').map_or(4, |dot| dot+2);
         let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
         assert!(hover.to_string().contains(expected),"{needle}: {hover}");
     }
     let offset=source.find("new Jobs(").unwrap()+"new Jobs(".len();
     let help=index.request("textDocument/signatureHelp",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
-    assert!(help.to_string().contains("capacity"),"{help}");
+    assert!(help.to_string().contains("capacity") && help.to_string().contains("options?") && help.to_string().contains("new Jobs("),"{help}");
     let offset=source.find("stats.outstanding").unwrap()+6;
     let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
     assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="outstanding"),"{items}");

@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {PoolOptions, Pool, PoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {ThreadPoolOptions, ThreadPool, ThreadPoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,9 +28,9 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
-    Receiver { ty: "PoolOptions", parameter: "x: ReadOnly<PoolOptions>" },
-    Receiver { ty: "Pool", parameter: "x: ReadOnly<Pool>" },
-    Receiver { ty: "PoolStats", parameter: "x: ReadOnly<PoolStats>" },
+    Receiver { ty: "ThreadPoolOptions", parameter: "x: ReadOnly<ThreadPoolOptions>" },
+    Receiver { ty: "ThreadPool", parameter: "x: ReadOnly<ThreadPool>" },
+    Receiver { ty: "ThreadPoolStats", parameter: "x: ReadOnly<ThreadPoolStats>" },
     Receiver { ty: "ScopedThread<int, undefined>", parameter: "x: Owned<ScopedThread<int, undefined>>" },
     Receiver { ty: "SpawnError", parameter: "x: ReadOnly<SpawnError>" },
     Receiver { ty: "ThreadError<string>", parameter: "x: ReadOnly<ThreadError<string>>" },

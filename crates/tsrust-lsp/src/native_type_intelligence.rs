@@ -146,8 +146,7 @@ impl SourceIndex {
             }
             return entries;
         }
-        if self.native_type_aliases.get(ty) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) { return builtins_for("Pool"); }
-        if ty == "@namespace:std:threads#pool" { return builtins_for("workerPool"); }
+        if self.native_type_aliases.get(ty) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) { return builtins_for("ThreadPool"); }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}
@@ -200,7 +199,7 @@ impl SourceIndex {
         name
     }
     pub(super) fn import_native_type(&mut self, declaration: &tsrust_compiler::native_types::Declaration, local: &str, span: Span) {
-        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::Pool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::PoolOptions); }
+        if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
         let Some(catalog) = builtins_for(declaration.module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {

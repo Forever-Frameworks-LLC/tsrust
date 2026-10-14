@@ -237,20 +237,20 @@ fn rows() -> Vec<Row> {
         includes: &["code", "error"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });
     rows.push(Row {
-        kind: Kind::CallResult, name: "pool namespace methods",
-        before: "import {pool as workers} from 'std:threads';\nfunction main(){\n".into(),
+        kind: Kind::CallResult, name: "default pool methods",
+        before: "import {ThreadPool as Workers} from 'std:threads';\nfunction main(){const workers=new Workers();\n".into(),
         typed: "workers.", after: "\n}\n",
-        includes: &["task", "configure", "stats", "shutdown"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+        includes: &["task", "stats", "shutdown"], excludes: &["configure", "create"], silent: None, needs_check: false,
     });
     rows.push(Row {
         kind: Kind::CallResult, name: "scoped pool methods",
-        before: "import {Pool} from 'std:threads';\nfunction main(){const jobs=new Pool({workers: 1, capacity: 4});\n".into(),
+        before: "import {ThreadPool} from 'std:threads';\nfunction main(){const jobs=new ThreadPool({workers: 1, capacity: 4});\n".into(),
         typed: "jobs.", after: "\n}\n",
         includes: &["task", "stats", "shutdown"], excludes: &["configure", "create"], silent: None, needs_check: true,
     });
     rows.push(Row {
         kind: Kind::RecordField, name: "pool statistics fields",
-        before: "import {pool} from 'std:threads';\nfunction main(){const stats=pool.stats();\n".into(),
+        before: "import {ThreadPool} from 'std:threads';\nfunction main(){const pool=new ThreadPool();const stats=pool.stats();\n".into(),
         typed: "stats.", after: "\n}\n",
         includes: &["workers", "capacity", "queued", "running", "completed", "outstanding"], excludes: NOT_MEMBERS, silent: None, needs_check: true,
     });

@@ -43,11 +43,15 @@ there is no earlier comparable timing or application-speedup claim. These origin
 Use `--pool --verify` for the new two-worker pool workload. Both engines reuse two
 workers across paired tasks and all batches; native uses Rayon, Node uses worker
 messages. The checksum remains 140. The original 3-process/8-warmup/31-sample
-measurement protocol applies if `--verify` is omitted. Pool setup/shutdown remains
+measurement protocol applies if `--verify` is omitted. Owned ThreadPool setup/shutdown remains
 outside batch timing. `pool-manifest.json` tracks acceptance and source hashes;
 `node --test benchmarks/threads/pool-registration.test.mjs` guards the workload.
-Accepted pooled measurement: `pool-join-2026-10-14T22-25-15-491Z.json` in SQLite.
+Current ThreadPool measurement: `pool-join-2026-10-14T23-03-02-577Z.json` in SQLite.
 All 93 samples per engine produce checksum 140. Median native/Node batch times
-are 0.014625/0.070583 ms. This measures eight tiny tasks across two reusable
+are 0.014875/0.068792 ms. This measures eight tiny tasks across two reusable
 workers; it is not an application speedup claim or a comparison with dedicated
 thread startup. Current dedicated workloads also passed untimed checks.
+
+The prior global-pool record `pool-join-2026-10-14T22-25-15-491Z.json` remains
+immutable in SQLite. The current native median is 1.7% above that record; this
+small change does not justify optimization.

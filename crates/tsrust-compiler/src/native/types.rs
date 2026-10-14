@@ -56,7 +56,7 @@ static THREAD: Declaration = Declaration {
     independent_clone: false, collection_key: false, thread_transfer: false,
     fields: &[], capabilities: &[],
 };
-static POOL: Declaration = Declaration { id: NativeTypeId::Pool, name: "Pool", type_parameters: &[], ..THREAD };
+static POOL: Declaration = Declaration { id: NativeTypeId::ThreadPool, name: "ThreadPool", type_parameters: &[], ..THREAD };
 static SCOPED_THREAD: Declaration = Declaration {
     id: NativeTypeId::ScopedThread, name: "ScopedThread", ..THREAD
 };
@@ -70,14 +70,14 @@ static SPAWN_ERROR: Declaration = Declaration {
     ], capabilities: &[],
 };
 static POOL_OPTIONS: Declaration = Declaration {
-    id: NativeTypeId::PoolOptions, name: "PoolOptions",
+    id: NativeTypeId::ThreadPoolOptions, name: "ThreadPoolOptions",
     fields: &[
         Field { name: "workers", signature: Signature::Int, optional: false },
         Field { name: "capacity", signature: Signature::Int, optional: false },
     ], ..SPAWN_ERROR
 };
 static POOL_STATS: Declaration = Declaration {
-    id: NativeTypeId::PoolStats, name: "PoolStats",
+    id: NativeTypeId::ThreadPoolStats, name: "ThreadPoolStats",
     fields: &[
         Field { name: "workers", signature: Signature::Int, optional: false },
         Field { name: "capacity", signature: Signature::Int, optional: false },
@@ -318,9 +318,9 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::ScopedThread => &SCOPED_THREAD,
         NativeTypeId::ThreadError => &THREAD_ERROR,
         NativeTypeId::SpawnError => &SPAWN_ERROR,
-        NativeTypeId::PoolStats => &POOL_STATS,
-        NativeTypeId::PoolOptions => &POOL_OPTIONS,
-        NativeTypeId::Pool => &POOL,
+        NativeTypeId::ThreadPoolStats => &POOL_STATS,
+        NativeTypeId::ThreadPoolOptions => &POOL_OPTIONS,
+        NativeTypeId::ThreadPool => &POOL,
         NativeTypeId::TestRegistry => &TEST_REGISTRY,
         NativeTypeId::Schema => &SCHEMA,
         NativeTypeId::ValidationContext => &VALIDATION_CONTEXT,

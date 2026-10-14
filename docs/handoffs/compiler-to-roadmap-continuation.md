@@ -142,20 +142,19 @@ It also makes worker cleanup the default for `spawn` and exposes global `unwrap`
 see [default cleanup](../plans/default-worker-cleanup.md). Compatibility spellings
 remain available. Family checks and all three matched workload measurements pass.
 
-Shared and independent scoped pools, cooperative cancellation and the Rayon
-callback bridge now pass focused compiler/runtime/editor and offline export
-acceptance. `spawn` remains dedicated; `pool.task` uses the shared default;
-`new Pool({ workers, capacity })` returns an independent owner with task/stats/shutdown methods.
-Scope cleanup drains independent pools, including detached work. Retained results
-stay joinable. MacOS leak inspection reports zero leaks in the cleanup corpus.
-See [pool acceptance](../plans/worker-pool-cancellation.md) for exact evidence and
-measurement limits. Module-scope `pool.configure({ workers, capacity })` returns
-void; configuration and `new Pool(...)` throw typed SpawnError without unwrap.
-Release consumers are refreshed from the accepted API checkpoint.
+Owned `ThreadPool` instances replace the global `pool` singleton and generic
+`Pool` name. `new ThreadPool()` supplies system-based defaults; explicit options
+set workers and capacity. Constructor failure throws SpawnError without unwrap.
+Task, stats, shutdown, cancellation and cleanup retain the accepted ownership
+rules. A shut-down instance cannot restart; a new instance has an independent
+lifecycle. See [pool acceptance](../plans/worker-pool-cancellation.md). Migration
+compiler/runtime/editor and offline-export acceptance passes, with zero leaks in
+the cleanup corpus and current matched benchmark measurement. Release consumers
+are being refreshed from the accepted source checkpoint.
 
 Required next S12 work: dedicated-worker channels. Preserve owned transfer and
 typed completion. Cancellation remains cooperative, with join acknowledging
-completion; there is no forced thread termination. Pool-only container storage is
+completion; there is no forced thread termination. ThreadPool container storage is
 rejected until lifecycle support exists. No async/deferred keywords or parallel
 iterator API were added. The full family regression remains separate from this
 focused pool/cancellation acceptance.

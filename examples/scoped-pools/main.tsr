@@ -1,20 +1,18 @@
-import { pool, join, Pool, Thread } from 'std:threads';
+import { join, ThreadPool, Thread } from 'std:threads';
 
-pool.configure({
-  workers: 2, capacity: 16
-});
 
-function calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {
+function calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {
   return unwrap(jobs.task((): int => 42));
 }
 
 function main() {
+  const pool = new ThreadPool();
   const shared = unwrap(pool.task((): int => 7));
   {
-    const jobs = new Pool({
+    const jobs = new ThreadPool({
       workers: 1, capacity: 4
     });
-    const background = new Pool({
+    const background = new ThreadPool({
       workers: 2, capacity: 8
     });
     const answer = calculate(jobs);

@@ -4,7 +4,7 @@ use crate::native_signatures::NativeTypeId;
 
 impl Analyzer {
     fn owned_pool_receiver(&self, context: &Context, base: &Expr) -> bool {
-        matches!(self.expression_type_hint(context, base), Some(Type::Record(id)) if self.program.records[id].native_type == Some(NativeTypeId::Pool))
+        matches!(self.expression_type_hint(context, base), Some(Type::Record(id)) if self.program.records[id].native_type == Some(NativeTypeId::ThreadPool))
     }
 
     pub(super) fn thread_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
@@ -13,7 +13,7 @@ impl Analyzer {
             if self.owned_pool_receiver(context, base) {
                 let name = match member.as_str() {
                     "task" => "__ownedPoolTask", "stats" => "__ownedPoolStats", "shutdown" => "__ownedPoolShutdown",
-                    _ => return Err(Diagnostic::new("pool-member", "Pool supports task, stats and shutdown; its limits are fixed at creation.", callee.span)),
+                    _ => return Err(Diagnostic::new("pool-member", "ThreadPool supports task, stats and shutdown; its limits are fixed at creation.", callee.span)),
                 };
                 arguments.insert(0, (**base).clone());
                 callee.kind = ExprKind::Name(format!("@native:std:threads#{name}"));
@@ -24,19 +24,19 @@ impl Analyzer {
         self.threads_enabled = true;
         let span = expression.span;
         let owned = binding.name.starts_with("__ownedPool");
-        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" | "__ownedPoolTask" => "pool.task", "__poolCreate" => "new Pool", "__poolConfigure" => "pool.configure", "__poolStats" | "__ownedPoolStats" => "pool.stats", "__poolShutdown" | "__ownedPoolShutdown" => "pool.shutdown", name => name }, binding.parameters.len() - usize::from(owned)), span)); }
+        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__ownedPoolTask" => "pool.task", "__poolCreate" => "new ThreadPool", "__ownedPoolStats" => "pool.stats", "__ownedPoolShutdown" => "pool.shutdown", name => name }, binding.parameters.len() - usize::from(owned)), span)); }
         let mut active = loans.clone();
         if owned {
             let receiver = self.expression(context, &mut arguments[0], Mode::Read, loans, None)?;
-            if !matches!(receiver, Type::Record(id) if self.program.records[id].native_type == Some(NativeTypeId::Pool)) { return Err(Diagnostic::new("pool-receiver", "Expected an owned Pool or a borrow of it.", span)); }
+            if !matches!(receiver, Type::Record(id) if self.program.records[id].native_type == Some(NativeTypeId::ThreadPool)) { return Err(Diagnostic::new("pool-receiver", "Expected an owned ThreadPool or a borrow of it.", span)); }
             for root in Self::loan_roots(&arguments[0], Mode::Read) { active.entry(root).or_default().push((Mode::Read, arguments[0].span)); }
         }
         let callback_index = usize::from(owned);
-        let result = if matches!(binding.name, "__poolStats" | "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::PoolStats, span)?)
+        let result = if matches!(binding.name, "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPoolStats, span)?)
         } else if binding.name == "cancellationRequested" { Type::Boolean
-        } else if matches!(binding.name, "__poolConfigure" | "__poolShutdown" | "__poolCreate" | "__ownedPoolShutdown") {
-            if !matches!(binding.name, "__poolShutdown" | "__ownedPoolShutdown") {
-                let options = Type::Record(self.schema_native_dependency(NativeTypeId::PoolOptions, span)?);
+        } else if matches!(binding.name, "__poolCreate" | "__ownedPoolShutdown") {
+            if binding.name == "__poolCreate" && !arguments.is_empty() {
+                let options = Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPoolOptions, span)?);
                 let actual = self.expression(context, &mut arguments[0], Mode::Read, loans, Some(options))?;
                 let valid = match actual {
                     Type::Record(id) => {
@@ -45,12 +45,12 @@ impl Analyzer {
                     },
                     _ => false,
                 };
-                if !valid { return Err(Diagnostic::new("pool-options", "Pool options must contain exactly workers: int and capacity: int.", arguments[0].span)); }
+                if !valid { return Err(Diagnostic::new("pool-options", "ThreadPool options must contain exactly workers: int and capacity: int.", arguments[0].span)); }
             }
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
-            let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::Pool, span)?) } else { Type::Void };
+            let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPool, span)?) } else { Type::Void };
             self.thread_result(output, failure, span)?
-        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask" | "__ownedPoolTask") {
+        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask") {
             if let ExprKind::Closure { id, .. } = arguments[callback_index].kind { self.escaping.insert(id); }
             let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, None)?;
             let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[callback_index].span)); };
@@ -110,7 +110,7 @@ pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(
         match ty {
             Type::Record(id) => {
                 let record = &records[id];
-                if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::Pool)) { return true; }
+                if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::ThreadPool)) { return true; }
                 pending.extend(record.fields.iter().filter_map(|field| field.ty));
                 if matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet)) {
                     if let Some(application) = &record.application { pending.extend(&application.resolved_arguments); }
@@ -136,7 +136,7 @@ impl Analyzer {
 }
 
 pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
-    if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::Pool))) { return Ok(()); }
+    if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::ThreadPool))) { return Ok(()); }
     let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
     for record in &program.records {
         if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
@@ -153,7 +153,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
     }
     for function in program.functions.iter().chain(program.closures.iter().map(|closure| &closure.function)).filter(|function| !function.template) {
         for binding in function.bindings.iter().take(function.parameter_count).filter(|binding| contains(binding.ty)) {
-            if binding.mode != Mode::Consume && !matches!(binding.ty, Type::Record(id) if program.records[id].native_type == Some(NativeTypeId::Pool)) {
+            if binding.mode != Mode::Consume && !matches!(binding.ty, Type::Record(id) if program.records[id].native_type == Some(NativeTypeId::ThreadPool)) {
                 return Err(Diagnostic::new("thread-lifecycle", format!("Thread-bearing parameter {:?} of {:?} must consume and settle or transfer its owner.",binding.name,function.name), binding.declaration_span.unwrap_or_default()));
             }
         }
@@ -161,7 +161,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];
-                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask" | "__ownedPoolTask") {
+                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask") {
                     let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
                     let Type::Closure(origin) = arguments[usize::from(binding.name == "__ownedPoolTask")].ty.unwrap() else { unreachable!() };
                     let closure = &program.closures[origin];

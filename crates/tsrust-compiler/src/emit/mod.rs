@@ -2971,7 +2971,7 @@ impl Emitter<'_> {
             output.push_str(crate::runtime::STRINGS);
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
-            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Pool))) {
+            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool))) {
             output.push_str(crate::stdlib::threads::RUNTIME);
         }
         if self.native_bindings.borrow().iter().any(|&id| {

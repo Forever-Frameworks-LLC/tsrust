@@ -10,19 +10,15 @@ const fn operation(name: &'static str) -> NativeBinding {
         backend: NativeBackend::Bundled { symbol: "thread_intrinsic" }, features: &[],
     }
 }
-pub(crate) const POOL_TASK: NativeBinding = operation("__poolTask");
 pub(crate) const CANCEL: NativeBinding = NativeBinding { parameters: &[NativeParameter { name: "worker", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false }], result: NativeType::Boolean, ..operation("cancel") };
 pub(crate) const CANCELLATION_REQUESTED: NativeBinding = NativeBinding { parameters: &[], result: NativeType::Boolean, ..operation("cancellationRequested") };
-pub(crate) const POOL_STATS: NativeBinding = NativeBinding { parameters: &[], ..operation("__poolStats") };
-pub(crate) const CONFIGURE_POOL: NativeBinding = NativeBinding {
-    parameters: &[NativeParameter { name: "options", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false }], ..operation("__poolConfigure")
+pub(crate) const CREATE_POOL: NativeBinding = NativeBinding {
+    parameters: &[NativeParameter { name: "options", ty: NativeType::ObservedValue, access: Mode::Read, optional: true, rest: false }], ..operation("__poolCreate")
 };
-pub(crate) const CREATE_POOL: NativeBinding = NativeBinding { name: "__poolCreate", ..CONFIGURE_POOL };
 const POOL_RECEIVER: NativeParameter = NativeParameter { name: "pool", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false };
 pub(crate) const OWNED_POOL_TASK: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER, NativeParameter { name: "callback", ty: NativeType::ObservedValue, access: Mode::Consume, optional: false, rest: false }], ..operation("__ownedPoolTask") };
 pub(crate) const OWNED_POOL_STATS: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolStats") };
 pub(crate) const OWNED_POOL_SHUTDOWN: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolShutdown") };
-pub(crate) const SHUTDOWN_POOL: NativeBinding = NativeBinding { parameters: &[], ..operation("__poolShutdown") };
 pub(crate) const SPAWN_SCOPED: NativeBinding = operation("spawnScoped");
 pub(crate) const SPAWN: NativeBinding = operation("spawn");
 pub(crate) const JOIN: NativeBinding = operation("join");
@@ -31,28 +27,18 @@ pub(crate) const RUNTIME: &str = include_str!("runtime.rs");
 
 pub(crate) fn prepare(program: &mut crate::syntax::Program) -> Result<(), crate::Diagnostic> {
     let mut used = false;
-    let pool_name = crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::Pool);
+    let pool_name = crate::native_type_resolution::linked_name(crate::native_signatures::NativeTypeId::ThreadPool);
     for function in &mut program.functions {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
             use crate::syntax::{Expr, ExprKind};
             let construction = matches!(&expression.kind, ExprKind::NativeConstructor(_, Some(annotation)) if matches!(&annotation.kind, crate::type_syntax::ValueAnnotationKind::Named(name) if name.text == pool_name));
-            let configuration = matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, member) if member == "configure" && matches!(&base.kind, ExprKind::Name(name) if name == crate::native_exports::Namespace::Pool.symbol())));
-            if construction || configuration {
+            if construction {
                 let original = std::mem::replace(&mut expression.kind, ExprKind::Integer("0".into()));
                 let arguments = match original { ExprKind::NativeConstructor(arguments, _) | ExprKind::Call(_, arguments) => arguments, _ => unreachable!() };
-                let binding = if construction { "__poolCreate" } else { "__poolConfigure" };
+                let binding = "__poolCreate";
                 let call = Expr::new(ExprKind::Call(Box::new(Expr::new(ExprKind::Name(format!("@native:std:threads#{binding}")), expression.span)), arguments), expression.span);
                 expression.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name("@native:std:result#unwrap".into()), expression.span)), vec![call]);
                 used = true;
-            }
-            if let crate::syntax::ExprKind::Field(base, member) = &expression.kind {
-                if matches!(&base.kind, crate::syntax::ExprKind::Name(name) if name == crate::native_exports::Namespace::Pool.symbol()) {
-                    let binding = match member.as_str() {
-                        "task" => &POOL_TASK, "configure" => &CONFIGURE_POOL, "stats" => &POOL_STATS, "shutdown" => &SHUTDOWN_POOL,
-                        _ => return Err(crate::Diagnostic::new("pool-member", format!("Unknown pool operation {member:?}."), expression.span)),
-                    };
-                    expression.kind = crate::syntax::ExprKind::Name(format!("@native:std:threads#{}", binding.name));
-                }
             }
             used |= matches!(&expression.kind, crate::syntax::ExprKind::Name(name) if name.starts_with("@native:std:threads#"));
             Ok(())

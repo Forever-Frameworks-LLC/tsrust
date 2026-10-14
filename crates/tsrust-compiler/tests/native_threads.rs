@@ -28,7 +28,7 @@ fn lifecycle_rejects_unhandled_results_and_unsupported_storage() {
         "match(spawn(():int=>1)){Ok(worker)=>{const abandoned=():void=>{detach(worker);};},Err(error)=>{}}",
     ] {
         let directory=support::TempDirectory::new();
-        let source=format!("import {{spawn,detach}} from 'std:threads';function main(){{{body}}}");
+        let source=format!("import {{spawn,detach}} from 'std:threads';function main(){{const pool=new ThreadPool();{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted: {source}");
@@ -182,7 +182,7 @@ function main(){
         "const worker=unwrap(spawn(():int=>42));const cb=():void=>{join(worker);};",
         "const text='borrowed';const cb=():int=>text.length;const worker=unwrap(spawn(cb));console.log(text);",
     ] {
-        let source=format!("import {{spawn,join}} from 'std:threads';function main(){{{body}}}");
+        let source=format!("import {{spawn,join}} from 'std:threads';function main(){{const pool=new ThreadPool();{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted {source}");
@@ -238,13 +238,12 @@ fn global_unwrap_preserves_user_defined_names() {
 fn configurable_pool_cancellation_and_shutdown_execute() {
     let directory = support::TempDirectory::new();
     let source = r#"
-import {pool,spawn,join,cancel,cancellationRequested} from 'std:threads';
+import {ThreadPool,spawn,join,cancel,cancellationRequested} from 'std:threads';
 import {strictEqual} from 'std:testing';
 function main(){
-    try{pool.configure({workers:0,capacity:1});throw 'accepted invalid workers';}catch(error){if(typeof error==='string'){throw error;}else{strictEqual(error.code,'range');}}
-    pool.configure({workers: 1, capacity: 2});
-    try{pool.configure({workers:2,capacity:4});throw 'reconfigured';}catch(error){if(typeof error==='string'){throw error;}else{strictEqual(error.code,'configured');}}
-    const parent=unwrap(pool.task(():int=>{const child=unwrap(pool.task(():int=>42));return unwrap(join(child));}));
+    try{const invalid=new ThreadPool({workers:0,capacity:1});throw 'accepted invalid workers';}catch(error){if(typeof error==='string'){throw error;}else{strictEqual(error.code,'range');}}
+    const pool=new ThreadPool({workers: 1, capacity: 2});
+    const parent=unwrap(pool.task(():int=>{const childPool=new ThreadPool({workers:1,capacity:2});const child=unwrap(childPool.task(():int=>42));return unwrap(join(child));}));
     strictEqual(unwrap(join(parent)),42);
     strictEqual(pool.stats().outstanding,0);
     const first=unwrap(pool.task(():void=>{while(!cancellationRequested()) {}}));
@@ -286,7 +285,7 @@ fn cancellation_borrows_but_does_not_duplicate_worker_ownership() {
         "spawn(():int=>1);",
     ] {
         let directory=support::TempDirectory::new();
-        let source=format!("import {{pool,spawn,join,cancel,cancellationRequested}} from 'std:threads';function main(){{{body}}}");
+        let source=format!("import {{ThreadPool,spawn,join,cancel,cancellationRequested}} from 'std:threads';function main(){{const pool=new ThreadPool();{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted {source}");
@@ -295,13 +294,13 @@ fn cancellation_borrows_but_does_not_duplicate_worker_ownership() {
 }
 
 #[test]
-fn pool_namespace_aliases_preserve_lexical_shadowing() {
+fn pool_constructor_aliases_preserve_lexical_shadowing() {
     let directory=support::TempDirectory::new();
-    let source="import {pool as workers,join} from 'std:threads';type Local={task:int;};function shadow(workers:Local):int{return workers.task;}function main(){workers.configure({workers: 1, capacity: 2});const task=unwrap(workers.task(():int=>42));console.log(unwrap(join(task)));console.log(shadow({task:7}));unwrap(workers.shutdown());}";
+    let source="import {ThreadPool as Workers,join} from 'std:threads';type Local={task:int;};function shadow(workers:Local):int{return workers.task;}function main(){const workers=new Workers({workers: 1, capacity: 2});const task=unwrap(workers.task(():int=>42));console.log(unwrap(join(task)));console.log(shadow({task:7}));unwrap(workers.shutdown());}";
     let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);
     assert_eq!(output.stdout,b"42\n7\n");
-    for name in ["__poolTask","__poolConfigure","__poolStats","__poolShutdown","configurePool","spawnDedicated"] {
+    for name in ["pool","Pool","PoolOptions","PoolStats","__poolCreate","__ownedPoolTask","__poolTask","__poolConfigure","__poolStats","__poolShutdown","configurePool","spawnDedicated"] {
         let path=directory.source(&format!("import {{{name}}} from 'std:threads';function main(){{}}"));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"exported {name}");
@@ -312,18 +311,18 @@ fn pool_namespace_aliases_preserve_lexical_shadowing() {
 fn independent_pools_preserve_scope_cleanup_and_handle_transfer() {
     let directory=support::TempDirectory::new();
     let source=r#"
-import {pool,Pool,PoolOptions,Thread,join,detach,cancel,cancellationRequested} from 'std:threads';
+import {ThreadPool,ThreadPoolOptions,Thread,join,detach,cancel,cancellationRequested} from 'std:threads';
 import {strictEqual} from 'std:testing';
-function borrowed(jobs:ReadOnly<Pool>):Thread<int,undefined>{return unwrap(jobs.task(():int=>42));}
-function escaped():Thread<int,undefined>{const jobs=new Pool({workers: 1, capacity: 2});return borrowed(jobs);}
-function early(){const jobs=new Pool({workers: 1, capacity: 2});detach(unwrap(jobs.task(():void=>{console.log('return');})));return;}
-function failing(){const jobs=new Pool({workers: 1, capacity: 2});detach(unwrap(jobs.task(():void=>{console.log('throw');})));throw 'caller';}
+function borrowed(jobs:ReadOnly<ThreadPool>):Thread<int,undefined>{return unwrap(jobs.task(():int=>42));}
+function escaped():Thread<int,undefined>{const jobs=new ThreadPool({workers: 1, capacity: 2});return borrowed(jobs);}
+function early(){const jobs=new ThreadPool({workers: 1, capacity: 2});detach(unwrap(jobs.task(():void=>{console.log('return');})));return;}
+function failing(){const jobs=new ThreadPool({workers: 1, capacity: 2});detach(unwrap(jobs.task(():void=>{console.log('throw');})));throw 'caller';}
 function main(){
-    pool.configure({workers: 1, capacity: 2});
-    try{const invalid=new Pool({workers:0,capacity:2});throw 'invalid accepted';}catch(error){if(typeof error==='string'){throw error;}else{strictEqual(error.code,'range');}}
-    const options:PoolOptions={capacity:1,workers:1};
-    {const configured=new Pool(options);strictEqual(configured.stats().workers,1);strictEqual(options.capacity,1);}
-    const jobs=new Pool({workers: 1, capacity: 1});const other=new Pool({workers: 2, capacity: 4});
+    const pool=new ThreadPool({workers: 1, capacity: 2});
+    try{const invalid=new ThreadPool({workers:0,capacity:2});throw 'invalid accepted';}catch(error){if(typeof error==='string'){throw error;}else{strictEqual(error.code,'range');}}
+    const options:ThreadPoolOptions={capacity:1,workers:1};
+    {const configured=new ThreadPool(options);strictEqual(configured.stats().workers,1);strictEqual(options.capacity,1);}
+    const jobs=new ThreadPool({workers: 1, capacity: 1});const other=new ThreadPool({workers: 2, capacity: 4});
     const answer=borrowed(jobs);unwrap(jobs.shutdown());
     strictEqual(jobs.stats().completed,1);strictEqual(pool.stats().outstanding,0);
     match(jobs.task(():int=>0)){Ok(worker)=>{detach(worker);throw 'closed admitted';},Err(error)=>strictEqual(error.code,'closed')}
@@ -331,11 +330,11 @@ function main(){
     const task=unwrap(other.task(():void=>{while(!cancellationRequested()) {}}));cancel(task);
     match(join(task)){Ok(_)=>{throw 'cancel lost';},Err(error)=>strictEqual(error.code,'cancelled')}
     strictEqual(unwrap(join(escaped())),42);
-    const nested=unwrap(other.task(():int=>{const local=new Pool({workers: 1, capacity: 2});const child=unwrap(local.task(():int=>9));unwrap(local.shutdown());return unwrap(join(child));}));
+    const nested=unwrap(other.task(():int=>{const local=new ThreadPool({workers: 1, capacity: 2});const child=unwrap(local.task(():int=>9));unwrap(local.shutdown());return unwrap(join(child));}));
     strictEqual(unwrap(join(nested)),9);
     early();console.log('after return');
     try{failing();}catch(error){console.log('after throw');}
-    for(let i=0;i<2;i+=1){const local=new Pool({workers: 1, capacity: 2});detach(unwrap(local.task(():void=>{console.log('loop');})));if(i===0){continue;}break;}
+    for(let i=0;i<2;i+=1){const local=new ThreadPool({workers: 1, capacity: 2});detach(unwrap(local.task(():void=>{console.log('loop');})));if(i===0){continue;}break;}
     console.log('after loop');
     unwrap(pool.shutdown());strictEqual(unwrap(join(unwrap(other.task(():int=>7)))),7);
 }
@@ -348,26 +347,26 @@ function main(){
 #[test]
 fn pool_owners_reject_aliasing_transfer_storage_and_invalid_operations() {
     for body in [
-        "new Pool({workers: 1, capacity: 2});",
-        "const jobs=new Pool({workers:1});",
-        "const jobs=new Pool({workers:1,capacity:2,extra:3});",
-        "const jobs=new Pool({workers:1,capacity:2.5});",
-        "const jobs=new Pool();",
+        "new ThreadPool({workers: 1, capacity: 2});",
+        "const jobs=new ThreadPool({workers:1});",
+        "const jobs=new ThreadPool({workers:1,capacity:2,extra:3});",
+        "const jobs=new ThreadPool({workers:1,capacity:2.5});",
+        "const jobs=new ThreadPool({},{});",
         "pool.configure({workers:1,capacity:2,extra:3});",
-        "const jobs=unwrap(new Pool({workers:1,capacity:2}));",
-        "const jobs=new Pool({workers: 1, capacity: 2});const other=jobs;console.log(jobs.stats().workers);",
-        "const jobs=new Pool({workers: 1, capacity: 2});const copied=clone(jobs);",
-        "const jobs=new Pool({workers: 1, capacity: 2});const callback=():int=>jobs.stats().workers;const task=unwrap(spawn(callback));",
-        "const jobs=new Pool({workers: 1, capacity: 2});const values=[jobs];",
-        "const jobs=new Pool({workers: 1, capacity: 2});unwrap(jobs.configure(2,3));",
-        "const jobs=new Pool({workers: 1, capacity: 2});const method=jobs.task;",
-        "const jobs=new Pool({workers: 1, capacity: 2});unwrap(jobs.task((value:int):int=>value));",
-        "const jobs=new Pool({workers: 1, capacity: 2});unwrap(jobs.task());",
-        "const jobs=new Pool({workers: 'one', capacity: 2});",
-        "const task=unwrap(spawn(():Pool=>new Pool({workers: 1, capacity: 2})));",
+        "const jobs=unwrap(new ThreadPool({workers:1,capacity:2}));",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});const other=jobs;console.log(jobs.stats().workers);",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});const copied=clone(jobs);",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});const callback=():int=>jobs.stats().workers;const task=unwrap(spawn(callback));",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});const values=[jobs];",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});unwrap(jobs.configure(2,3));",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});const method=jobs.task;",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});unwrap(jobs.task((value:int):int=>value));",
+        "const jobs=new ThreadPool({workers: 1, capacity: 2});unwrap(jobs.task());",
+        "const jobs=new ThreadPool({workers: 'one', capacity: 2});",
+        "const task=unwrap(spawn(():ThreadPool=>new ThreadPool({workers: 1, capacity: 2})));",
     ] {
         let directory=support::TempDirectory::new();
-        let source=format!("import {{pool,Pool,spawn}} from 'std:threads';function main(){{{body}}}");
+        let source=format!("import {{ThreadPool,spawn}} from 'std:threads';function main(){{const pool=new ThreadPool();{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted: {source}");
@@ -376,14 +375,14 @@ fn pool_owners_reject_aliasing_transfer_storage_and_invalid_operations() {
 }
 
 #[test]
-fn module_scope_configuration_runs_once_before_main_and_propagates_errors() {
+fn default_pools_and_module_owned_instances_preserve_initialization_and_cleanup() {
     let directory=support::TempDirectory::new();
     let dependency=directory.0.join("setup.tsr");
-    std::fs::write(&dependency,support::format_round_trip("import {pool} from 'std:threads';pool.configure({workers:1,capacity:4});export function configured():int{return pool.stats().capacity;}")).unwrap();
-    let source="import {configured} from './setup';import {pool,Pool as Jobs,join} from 'std:threads';import {strictEqual} from 'std:testing';const expected=4;function main(){strictEqual(configured(),expected);strictEqual(pool.stats().workers,1);const jobs=new Jobs({capacity:2,workers:1});const worker=unwrap(jobs.task(():int=>42));strictEqual(unwrap(join(worker)),42);unwrap(pool.shutdown());}";
+    std::fs::write(&dependency,support::format_round_trip("import {ThreadPool,join} from 'std:threads';const jobs=new ThreadPool({workers:1,capacity:4});export function configured():int{return jobs.stats().capacity;}export function calculate():int{return unwrap(join(unwrap(jobs.task(():int=>42))));}")).unwrap();
+    let source="import {configured,calculate} from './setup';import {ThreadPool as Jobs,join} from 'std:threads';import {strictEqual} from 'std:testing';type Pool={value:int;};function main(){strictEqual(configured(),4);strictEqual(calculate(),42);strictEqual(calculate(),42);const unrelated:Pool={value:7};strictEqual(unrelated.value,7);const jobs=new Jobs();strictEqual(jobs.stats().capacity,1024);const count=jobs.stats().workers;if(count<2 || count>256){throw 'invalid defaults';}unwrap(jobs.shutdown());const replacement=new Jobs();const worker=unwrap(replacement.task(():int=>42));strictEqual(unwrap(join(worker)),42);}";
     let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(&path),90));
-    let source="import {pool} from 'std:threads';pool.configure({workers:0,capacity:1});function main(){console.log('must not run');}";
+    let source="import {ThreadPool} from 'std:threads';const jobs=new ThreadPool({workers:0,capacity:1});function main(){console.log('must not run');}";
     let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),90);
     assert!(!output.status.success());assert!(!String::from_utf8_lossy(&output.stdout).contains("must not run"));
@@ -394,7 +393,7 @@ fn module_scope_configuration_runs_once_before_main_and_propagates_errors() {
 fn observation_only_programs_include_thread_runtime() {
     let directory = support::TempDirectory::new();
     for (source, expected) in [
-        ("import {pool} from 'std:threads';function main(){console.log(pool.stats().outstanding);}", "0\n"),
+        ("import {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool();console.log(pool.stats().outstanding);}", "0\n"),
         ("import {cancellationRequested} from 'std:threads';function main(){console.log(cancellationRequested());}", "false\n"),
     ] {
         let path = directory.source(&support::format_round_trip(source));

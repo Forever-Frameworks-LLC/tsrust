@@ -2015,7 +2015,7 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
-        if self.text(id) == "new" && self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) {
+        if self.text(id) == "new" && self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
@@ -2672,17 +2672,12 @@ impl SourceIndex {
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
         if let Ok(tsrust_compiler::native_exports::Export::Namespace(namespace)) = tsrust_compiler::native_exports::lookup(module, exported) {
             let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native namespace");
-            if namespace == tsrust_compiler::native_exports::Namespace::Schema {
-                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
-                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
-            } else {
-                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::PoolStats);
-                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Pool);
-            }
+            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
+            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
             self.symbols.push(Symbol {
                 name: local.into(), kind: 3, span, extent: span, scope: 0,
                 ty: namespace.symbol().into(),
-                signature: format!("{local}: {} namespace", if namespace == tsrust_compiler::native_exports::Namespace::Schema { "schema builder" } else { "worker pool" }),
+                signature: format!("{local}: schema builder namespace"),
                 docs: catalog["documentation"].as_str().unwrap_or("").into(),
                 parameters: vec![], owner: None,
             });
@@ -3298,9 +3293,9 @@ impl SourceIndex {
         let mut entry = self.receiver_builtins(&receiver)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
-        if matches!(receiver.as_str(), "@namespace:std:schema#s" | "@namespace:std:threads#pool") {
+        if receiver == "@namespace:std:schema#s" {
             if let Some(signature) = entry["signature"].as_str() {
-                let prefix = if receiver == "@namespace:std:schema#s" { "s." } else { "pool." };
+                let prefix = "s.";
                 entry["signature"] = json!(signature.replacen(prefix, &format!("{}.", self.text(token - 2)), 1));
             }
         }
@@ -3720,9 +3715,9 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
-            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) {
-                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "Pool").expect("documented Pool constructor");
-                let label = entry["signature"].as_str().unwrap().replace("new Pool(", &format!("new {}(", self.text(callee))).replace(": Pool", &format!(": {}", self.text(callee)));
+            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
+                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "ThreadPool").expect("documented ThreadPool constructor");
+                let label = entry["signature"].as_str().unwrap().replace("new ThreadPool(", &format!("new {}(", self.text(callee))).replace(": ThreadPool", &format!(": {}", self.text(callee)));
                 return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
             }
             if callee > 0 && self.text(callee - 1) == "new"

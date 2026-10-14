@@ -1,79 +1,63 @@
-# Shared and scoped worker pools with cooperative cancellation
+# Owned ThreadPool workers with cooperative cancellation
 
-Focused implementation acceptance passed on 2026-10-14. Channels remain the
-next section; this document does not claim their implementation or a new full
-compiler/LSP family regression.
+The active API is `ThreadPool`; the global `pool` singleton and the `Pool` name
+have been removed. This section preserves the settled ownership and lifecycle
+rules. Dedicated-worker channels remain separate work.
 
-`pool.task(callback)` submits immediately to the global Rayon pool. `spawn`
-starts an OS thread for long-lived or blocking work. Import `pool` from `std:threads`. Both return the same owned
-`Thread<T, E>` and retain scope joining, explicit join and explicit detach.
-`spawnScoped` remains a compatibility spelling of dedicated spawn.
+```tsrust
+import { ThreadPool, join } from 'std:threads';
 
-Call `pool.configure({ workers, capacity })` before the first pooled spawn. Workers range
-from 1 through 256; outstanding capacity ranges from 1 through 1,000,000. Defaults
-are available CPU parallelism clamped to 2..256 and capacity 1024. Configuration is
-permanent. Configuration may run at module scope; it returns void and throws a
-typed SpawnError for invalid limits, repeated configuration or worker creation
-failure. No unwrap is needed. Pool creation failure does not freeze an invalid
-configuration. Independent construction also returns Pool directly and throws
-SpawnError; ordinary try/catch handles both.
+function main() {
+  const jobs = new ThreadPool();
+  const task = unwrap(jobs.task((): int => 42));
+  console.log(unwrap(join(task)));
+}
+```
 
-`new Pool({ workers, capacity })` returns an independent `Pool` with the same limits
-and validation. It never initializes or changes the shared default. `jobs.task`,
-`jobs.stats` and `jobs.shutdown` operate on that pool only. Limits are fixed at
-creation. The unique owner may move between caller functions or be borrowed as
-`ReadOnly<Pool>`; it cannot be cloned, captured by callbacks, stored in containers
-or returned across a worker boundary. This prevents an owner from draining itself.
-Scope exit closes admission and drains queued/running work, including detached
-work. Explicit shutdown is idempotent. Retained task results remain joinable after
-the owner leaves scope. The executor is reclaimed after its owner and retained
-task handles release their references. The shared default intentionally lives
-until explicit shutdown or process exit.
+`new ThreadPool()` uses available CPU parallelism clamped to 2..256 workers,
+with fallback 2, and outstanding capacity 1024. Explicit options require both
+`workers: int` (1..256) and `capacity: int` (1..1000000). Construction returns the
+owner directly and throws typed SpawnError (`range` or `spawn`) on failure.
+There is no configure operation or hidden application-wide instance. Share one
+owner through caller borrows or module-owned helper functions when needed.
 
-Cleanup acceptance includes repeated independent creation/destruction with weak
-scheduler references, exactly-once captured/result/error disposal, cancelled
-queued work, backend panic, detached tasks and retained completion handles.
-These are lifetime witnesses, not a claim of universal leak-sanitizer coverage.
-`examples/scoped-pools/main.tsr` demonstrates independent pools and caller borrowing.
+`jobs.task(callback)` submits an owned zero-argument callback immediately; work
+may queue behind busy workers. Admission never blocks and returns `full` when
+capacity is exhausted or `closed` after shutdown. Completed results retain a
+capacity slot until join or handle cleanup. Detached work releases its slot after
+completion. `jobs.stats()` reports this instance only. `spawn` still starts a
+dedicated OS thread and uses the same completion/cancellation handles.
 
-Admission returns `SpawnError` with code `full` instead of waiting for capacity.
-Completed tasks free their worker but keep a slot until join or owner cleanup.
-Detached tasks keep their slot until completion. `pool.stats()` snapshots queued,
-running, completed and outstanding counts plus configured workers and capacity.
-Dedicated threads do not contribute. A nested joining worker helps execute Rayon
-jobs, allowing one-worker parent/child progress. Dependency cycles and arbitrary
-blocking callbacks can still prevent progress; use dedicated workers for blocking
-services. Running task count can exceed worker count while parents help children.
+`jobs.shutdown()` permanently closes admission and drains running and queued
+work, including detached tasks. It is idempotent; it does not cancel work or
+consume retained results. Create a fresh ThreadPool for a new lifecycle. Scope
+exit performs the drain automatically. Pool owners remain unique, non-cloneable,
+non-transferable to workers, and forbidden in containers. Caller functions may
+borrow `ReadOnly<ThreadPool>`. Retained task handles remain joinable after their
+pool owner leaves scope; scheduler references are reclaimed after all owners and
+completion handles are released.
 
-`pool.shutdown()` closes admission permanently and drains queued/running tasks.
-Handles keep their results and can still be joined. Repeated calls succeed; calls
-from workers return code `worker` instead of waiting on themselves. Dedicated
-threads remain available. There is no forced timeout or implicit cancellation.
+Cancellation is cooperative for dedicated and pooled workers. A queued cancelled
+callback is skipped when scheduled; running callbacks poll cancellationRequested.
+Join acknowledges completion with code `cancelled` if the request won the race.
+Published completion wins over later cancellation. Native calls cannot be forcibly
+interrupted, so cleanup can wait indefinitely for nonterminating callbacks.
 
-`cancel(worker)` borrows its handle. It returns true for the first request before
-published completion, otherwise false. `cancellationRequested()` reports the
-current worker's flag and is false outside a worker. Long-running code polls and
-returns promptly. Queued callbacks are skipped when scheduled and captured owners
-are disposed exactly once. A request winning the completion race discards the
-callback result/error and yields `ThreadError` code `cancelled`, with no payload.
-An already published completion wins over cancellation. Cancellation is a request,
-not proof of termination: join and cleanup still wait; native calls cannot be
-forcibly interrupted. Nested execution restores the parent's cancellation context.
+Rayon 1.11.0 remains pinned. Owned callbacks/results/errors bridge to the backend;
+there is no parallel iterator API. Nested joins yield to the same scheduler without
+holding completion locks and preserve cancellation context.
 
-Rayon 1.11.0 is pinned in compiler and bundled native dependencies. Pool submission
-bridges owned source callbacks, results, typed errors and backend panics into Rayon;
-source loans remain rejected. Offline native builds and exported packages must
-include its locked transitive source closure. No parallel iterator API is added.
-The backend uses [Rayon's pool yield operation](https://docs.rs/rayon/1.11.0/rayon/struct.ThreadPool.html#method.yield_now)
-while joining from a pool worker, without holding completion locks.
+Examples: `examples/worker-pool/main.tsr` uses defaults and cancellation;
+`examples/scoped-pools/main.tsr` shows independent owners and borrowed submission.
+The matched pool benchmark keeps construction outside timed batches and the
+original 3-process, 8-warmup, 31-sample protocol. Its checksum remains 140.
 
-`examples/worker-pool/main.tsr` demonstrates configuring, joining and cancelling.
-The existing dedicated startup benchmarks retain their semantics through dedicated `spawn`. A new `pool-join` workload compares two reusable workers
-with Node worker-message dispatch. The independent checksum is 140. Preserve three
-processes, eight warmups and 31 samples when measuring; quick acceptance uses
-`node benchmarks/threads/run.mjs --pool --verify` without timing claims.
+## Prior accepted evidence
 
-## Acceptance evidence
+The following records describe the earlier shared/scoped API and remain immutable.
+They do not establish acceptance of the ThreadPool migration; current evidence is
+recorded separately below.
+
 
 The current section passes 12 runtime tests, all 16 native thread integration
 cases (15 original passes plus the repaired Pool-only storage rejection), 64
@@ -133,3 +117,36 @@ installed with matching hashes. Both installed-CLI examples produced their
 expected output. Restarting the primary VS Code server cleared all three stale
 diagnostics; its Problems panel reports no problems. The secondary window was not
 rechecked. Final release, installation and example logs are retained in SQLite.
+
+## ThreadPool migration acceptance
+
+Compiler acceptance passes all 18 native thread cases (17 initial passes and one
+fixture repair), 64 native declaration cases, 10 module-state cases and 9
+expression-fact cases. The fixture repair reads a scalar count before a boolean
+short-circuit expression, preserving the existing ownership restriction. The
+three package-export tests pass, including relocated debug/release builds with
+an empty Cargo home.
+
+All 12 runtime tests pass. Current macOS leak inspection reports 0 leaks / 0
+leaked bytes across this corpus, including default construction, fresh independent
+lifecycles, repeated scheduler disposal, cancellation and detached work. This is
+bounded evidence, not a guarantee for nonterminating callbacks.
+
+Current source verification is recorded in
+`benchmarks/threads/pool-join-2026-10-14T22-58-41-368Z-verify.json`; native and
+Node-after-tsc both produce checksum 140. Prior timing records remain historical.
+Editor checks pass: checker agreement (2), editor consistency (5), native thread
+hover/signature/catalog tests (10), and the affected typing-speed pool rows (3
+harness tests). Catalog examples execute in debug and release after formatting.
+
+Current measurement:
+`benchmarks/threads/pool-join-2026-10-14T23-03-02-577Z.json`. Each engine retains
+93 samples, with 3 processes, 8 warmups and 31 measured samples per process.
+Every checksum is 140. Native/Node medians are 0.014875/0.068792 ms per eight-task
+batch. Native is 1.7% above the prior 0.014625 ms median; this small difference
+provides no basis for another optimization pass. These are dispatch
+microbenchmarks, not application speedup claims. Original records are retained.
+
+Exact `tsrust-threadpool-*.log` evidence and both new benchmark records are stored
+in SQLite after byte-for-byte restoration checks. Release consumer refresh follows
+the accepted source checkpoint.
