@@ -146,7 +146,11 @@ impl SourceIndex {
             }
             return entries;
         }
-        if self.native_type_aliases.get(ty) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) { return builtins_for("ThreadPool"); }
+        let (base, arguments) = ty.find('<').map_or((ty, ""), |start| (&ty[..start], &ty[start..]));
+        if let Some(identity) = self.native_type_aliases.get(base) {
+            let declaration = tsrust_compiler::native_types::declaration(*identity);
+            if declaration.module == "std:threads" { return builtins_for(&format!("{}{arguments}", declaration.name)); }
+        }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}
         if let Some((key,value))=self.ordered_map_types(ty){return builtins_for(&format!("OrderedMap<{key}, {value}>"));}

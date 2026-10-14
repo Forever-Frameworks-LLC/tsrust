@@ -9,6 +9,7 @@ mod discovery_work;
 mod schema;
 mod thread_transfer;
 mod threads;
+mod channels;
 mod results;
 mod json_typed;
 mod record_union_fields;
@@ -5159,7 +5160,9 @@ impl Analyzer {
             }
             ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
             ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructors use the shared checker stack"),
-            ExprKind::NativeConstructor(_, _) => self.native_collection_constructor(expr,expected),
+            ExprKind::NativeConstructor(_, _) => {
+                if let Some(ty) = self.channel_constructor(context, expr, loans, expected)? { Ok(ty) } else { self.native_collection_constructor(expr,expected) }
+            },
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),
             ExprKind::Template(parts) => self.template_literal(context, parts, loans),

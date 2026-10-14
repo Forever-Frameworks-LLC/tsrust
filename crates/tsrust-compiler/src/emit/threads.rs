@@ -6,12 +6,14 @@ impl Emitter<'_> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if binding.module != "std:threads" { return None; }
         self.native_bindings.borrow_mut().insert(id);
+        if let Some(code) = self.channel_native(fun, expr, binding.name, args) { return Some(code); }
         if matches!(binding.name, "__ownedPoolStats") {
             let call = format!("({}).stats()", self.expr(fun, &args[0], Mode::Read));
             let Type::Record(record) = expr.ty.unwrap() else { unreachable!() };
             let fields = ["workers", "capacity", "queued", "running", "completed", "outstanding"].iter().enumerate().map(|(index, name)| format!("field{index}:stats.{name} as i64")).collect::<Vec<_>>().join(",");
             return Some(format!("{{let stats={call};Record{}{{{fields}{}}}}}", self.native_record_declaration(record), self.schema_record_order(record)));
         }
+        if binding.name == "__taskCancelled" { return Some(format!("({}).cancellation_requested()", self.expr(fun, &args[0], Mode::Read))); }
         if binding.name == "cancellationRequested" { return Some("tsrust_native_threads::cancellation_requested()".into()); }
         if binding.name == "cancel" { return Some(format!("tsrust_native_threads::cancel({})", self.expr(fun, &args[0], Mode::Read))); }
         let callback_index = usize::from(binding.name == "__ownedPoolTask");
@@ -50,19 +52,23 @@ impl Emitter<'_> {
             let Type::Record(handle) = self.program.records[ok].fields[0].ty.unwrap() else { unreachable!() };
             let parameters = &self.program.records[handle].application.as_ref().unwrap().resolved_arguments;
             let error_type = self.native_type(parameters[1]);
+            let context_argument = self.program.closures[origin].parameters.first().map(|&id| match self.program.closures[origin].function.bindings[id].mode {
+                Mode::Read => "&task_context", Mode::Mutate => "&mut task_context", _ => "task_context",
+            }).unwrap_or("");
+            let context_setup = if context_argument.is_empty() { "" } else if context_argument == "&mut task_context" { "let mut task_context=tsrust_native_threads::TaskContext::current();" } else { "let task_context=tsrust_native_threads::TaskContext::current();" };
             let completion = if let Some(name) = self.result_closures.borrow().get(&origin) {
                 let runtime = self.program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
                 let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
                 let converted = exception_contract_emit::checked_catch_value("error", name, &self.program.error_effects.closure_errors[origin], &unions, runtime, expr.span).expect("checked worker errors");
-                format!("callback.call().map_err(|error|{converted})")
-            } else { format!("Ok::<_,{error_type}>(callback.call())") };
+                format!("callback.call({context_argument}).map_err(|error|{converted})")
+            } else { format!("Ok::<_,{error_type}>(callback.call({context_argument}))") };
             let mutable = if self.program.closures[origin].invocation == Mode::Mutate { "mut " } else { "" };
             let spawn: &str = match binding.name {
                 "__ownedPoolTask" => "pool_receiver.task",
                 _ => "tsrust_native_threads::spawn_dedicated",
             };
             let receiver = if binding.name == "__ownedPoolTask" { format!("let pool_receiver={};", self.expr(fun, &args[0], Mode::Read)) } else { String::new() };
-            format!("{{{receiver}let {mutable}callback={value};match {spawn}(move||{{{completion}}}){{Ok(value)=>{ok_value},Err(error)=>{failed}}}}}")
+            format!("{{{receiver}let {mutable}callback={value};match {spawn}(move||{{{context_setup}{completion}}}){{Ok(value)=>{ok_value},Err(error)=>{failed}}}}}")
         } else {
             let error_field = self.program.records[failure].fields[1].ty.unwrap();
             let Type::Record(handle) = args[0].ty.unwrap() else { unreachable!() };
@@ -91,6 +97,14 @@ impl Emitter<'_> {
     }
     pub(super) fn thread_record(&self, output: &mut String, id: usize) -> bool {
         let record = &self.program.records[id];
+        if matches!(record.native_type, Some(NativeTypeId::Channel | NativeTypeId::Sender)) {
+            let Some(application) = &record.application else { return true; };
+            let payload = application.resolved_arguments[0];
+            let name = if record.native_type == Some(NativeTypeId::Channel) { "Channel" } else { "Sender" };
+            writeln!(output, "type Record{id} = tsrust_native_threads::{name}<{}>;", self.native_type(payload)).unwrap();
+            return true;
+        }
+        if record.native_type == Some(NativeTypeId::TaskContext) { writeln!(output,"type Record{id} = tsrust_native_threads::TaskContext;").unwrap(); return true; }
         if record.native_type == Some(NativeTypeId::ThreadPool) { writeln!(output,"type Record{id} = tsrust_native_threads::OwnedPool;").unwrap(); return true; }
         if !matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) { return false; }
         if let Some(application) = &record.application {

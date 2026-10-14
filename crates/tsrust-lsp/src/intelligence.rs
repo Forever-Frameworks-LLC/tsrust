@@ -1811,7 +1811,7 @@ impl SourceIndex {
             && method >= 2
             && member_separator(self.text(method - 1))
             && self.text(method - 2) == "Array";
-        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
+        let set_constructor = (matches!(self.text(method), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(method)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) && method > 0 && self.text(method - 1) == "new";
         let result_constructor = matches!(self.text(method), "Ok" | "Err") && self.resolve_token(method).is_none();
         let json_decode = method >= 2 && self.text(method - 2) == "JSON" && self.resolve_token(method - 2).is_none() && matches!(self.text(method), "parse" | "tryParse");
         let native_generic=self.resolve_token(method).and_then(|symbol|self.native_origins.get(&symbol)).is_some_and(|&id|{
@@ -2019,7 +2019,7 @@ impl SourceIndex {
             let open = self.member_call_open(id + 1)?;
             return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
         }
-        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
+        if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Channel | tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
         let key = if self.text(id + 2) == "<" {
@@ -3715,6 +3715,11 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
+            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Channel) {
+                let ty = self.snippet(callee, open);
+                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "Channel").expect("documented Channel constructor");
+                return json!({"signatures":[{"label":format!("new {ty}(capacity: int): {ty}"),"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
+            }
             if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::ThreadPool) {
                 let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "ThreadPool").expect("documented ThreadPool constructor");
                 let label = entry["signature"].as_str().unwrap().replace("new ThreadPool(", &format!("new {}(", self.text(callee))).replace(": ThreadPool", &format!(": {}", self.text(callee)));
@@ -4362,8 +4367,28 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     } else {
         ty
     };
+    let native_application = tsrust_compiler::type_syntax::parse(ty).ok().and_then(|annotation| {
+        let tsrust_compiler::type_syntax::ValueAnnotationKind::Applied { name, arguments } = &annotation.kind else { return None; };
+        let declaration = tsrust_compiler::native_types::lookup("std:threads", &name.text)?;
+        let parameters = declaration.type_parameters.iter().zip(arguments.iter()).map(|(parameter, argument)| (*parameter, ty[argument.span.start..argument.span.end].to_owned())).collect::<Vec<_>>();
+        Some((declaration.name, parameters))
+    });
+    let family = native_application.as_ref().map_or(family, |(name, _)| *name);
     let data = builtin_catalog();
     let mut entries = data[family].as_array().cloned().unwrap_or_default();
+    if let Some((_, parameters)) = &native_application {
+        let substitutions = parameters.iter().map(|(name, value)| (*name, value.as_str())).collect::<Vec<_>>();
+        for entry in &mut entries {
+            for key in ["signature", "inferredSignature"] {
+                if let Some(value) = entry[key].as_str() { entry[key] = json!(builtin_type_substitution(value, &substitutions)); }
+            }
+            if let Some(parameters) = entry["parameters"].as_array_mut() {
+                for parameter in parameters {
+                    if let Some(label) = parameter["label"].as_str() { parameter["label"] = json!(builtin_type_substitution(label, &substitutions)); }
+                }
+            }
+        }
+    }
     if let Some((key,value)) = map_types {
         for entry in &mut entries {
             if let Some(signature) = entry["signature"].as_str() { entry["signature"] = json!(builtin_type_substitution(signature,&[("Key",key),("Value",value)])); }

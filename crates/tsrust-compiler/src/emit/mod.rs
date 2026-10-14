@@ -6,6 +6,7 @@ mod coalesce_work;
 mod expression_work;
 mod program_testing;
 mod threads;
+mod channels;
 mod results;
 mod schema;
 mod json_encoding;
@@ -2971,7 +2972,7 @@ impl Emitter<'_> {
             output.push_str(crate::runtime::STRINGS);
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
-            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool))) {
+            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender))) {
             output.push_str(crate::stdlib::threads::RUNTIME);
         }
         if self.native_bindings.borrow().iter().any(|&id| {
@@ -7252,6 +7253,7 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn native_collection_constructor_expression(&self,fun:&CheckedFunction,expr:&Expr,mode:Mode)->String {
+        if let Some(code) = self.channel_constructor_expression(fun, expr, mode) { return code; }
         if let Some(Type::Map(_))=expr.ty {
             let native=self.native_type(expr.ty.unwrap());let code=format!("<{native}>::new()");
             return match mode {Mode::Read=>format!("&({code})"),Mode::Mutate=>format!("&mut ({code})"),_=>code};

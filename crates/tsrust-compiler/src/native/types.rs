@@ -57,6 +57,14 @@ static THREAD: Declaration = Declaration {
     fields: &[], capabilities: &[],
 };
 static POOL: Declaration = Declaration { id: NativeTypeId::ThreadPool, name: "ThreadPool", type_parameters: &[], ..THREAD };
+static TASK_CONTEXT: Declaration = Declaration { id: NativeTypeId::TaskContext, name: "TaskContext", type_parameters: &[], ..THREAD };
+static CHANNEL: Declaration = Declaration { id: NativeTypeId::Channel, name: "Channel", type_parameters: &["T"], thread_transfer: true, ..THREAD };
+static SENDER: Declaration = Declaration { id: NativeTypeId::Sender, name: "Sender", ..CHANNEL };
+static CHANNEL_ERROR: Declaration = Declaration { id: NativeTypeId::ChannelError, name: "ChannelError", fields: &[Field { name: "code", signature: Signature::String, optional: false }], ..SPAWN_ERROR };
+static SEND_ERROR: Declaration = Declaration { id: NativeTypeId::SendError, name: "SendError", type_parameters: &["T"], fields: &[
+    Field { name: "code", signature: Signature::String, optional: false },
+    Field { name: "value", signature: Signature::Parameter(0), optional: false },
+], ..SPAWN_ERROR };
 static SCOPED_THREAD: Declaration = Declaration {
     id: NativeTypeId::ScopedThread, name: "ScopedThread", ..THREAD
 };
@@ -321,6 +329,11 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
         NativeTypeId::ThreadPoolStats => &POOL_STATS,
         NativeTypeId::ThreadPoolOptions => &POOL_OPTIONS,
         NativeTypeId::ThreadPool => &POOL,
+        NativeTypeId::TaskContext => &TASK_CONTEXT,
+        NativeTypeId::Channel => &CHANNEL,
+        NativeTypeId::Sender => &SENDER,
+        NativeTypeId::ChannelError => &CHANNEL_ERROR,
+        NativeTypeId::SendError => &SEND_ERROR,
         NativeTypeId::TestRegistry => &TEST_REGISTRY,
         NativeTypeId::Schema => &SCHEMA,
         NativeTypeId::ValidationContext => &VALIDATION_CONTEXT,
@@ -361,7 +374,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&TASK_CONTEXT, &CHANNEL, &SENDER, &CHANNEL_ERROR, &SEND_ERROR, &POOL_OPTIONS, &POOL, &POOL_STATS, &THREAD, &SCOPED_THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

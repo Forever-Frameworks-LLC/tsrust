@@ -1,0 +1,28 @@
+import { Channel, spawn } from 'std:threads';
+
+function listen(inbox: Channel<string>): void {
+  while (true) {
+    match (inbox.receive()) {
+      Ok(message) => console.log(message),
+      Err(_) => {
+        return;
+      },
+    }
+  }
+}
+
+function main() {
+  const inbox = new Channel<string>(8);
+  const messages = inbox.sender();
+  const worker = unwrap(spawn((): void => listen(inbox)));
+  try {
+    unwrap(messages.send('hello'));
+    unwrap(messages.send('goodbye'));
+  } finally {
+    messages.close();
+  }
+
+  unwrap(worker.join());
+}
+// hello
+// goodbye

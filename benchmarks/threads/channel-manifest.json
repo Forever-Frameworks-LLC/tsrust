@@ -1,0 +1,16 @@
+{
+  "id": "channel-throughput",
+  "implementationAccepted": false,
+  "measurementStatus": "pending",
+  "workerCounts": [
+    0,
+    2,
+    4
+  ],
+  "jobsPerBatch": 4,
+  "iterationsPerJob": 250000,
+  "source": "channel-throughput.tsr",
+  "counterpart": "channel-throughput.ts",
+  "sourceSha256": "8f4fd05f3f0128fdd3319eac3430ab846b425403e3b348e5c1d7e459caef8192",
+  "counterpartSha256": "f854422fc590e30d85eeb68f99ec7287c15a11f89cfcd5950c4fb3622fabaa29"
+}

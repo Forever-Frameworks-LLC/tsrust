@@ -1,17 +1,17 @@
-import { ThreadPool, spawn, join, cancel, cancellationRequested } from 'std:threads';
+import { ThreadPool, spawn } from 'std:threads';
 
 
 function main() {
   const pool = new ThreadPool();
   const first = unwrap(pool.task((): int => 20));
   const second = unwrap(pool.task((): int => 22));
-  console.log(unwrap(join(first)) + unwrap(join(second)));
+  console.log(unwrap(first.join()) + unwrap(second.join()));
 
-  const listener = unwrap(spawn((): void => {
-    while (!cancellationRequested()) {}
+  const listener = unwrap(spawn((task): void => {
+    while (!task.cancellationRequested()) {}
   }));
-  cancel(listener);
-  match (join(listener)) {
+  listener.cancel();
+  match (listener.join()) {
     Ok(_) => {},
     Err(error) => console.log(error.code),
   }

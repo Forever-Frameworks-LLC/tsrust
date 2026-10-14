@@ -20,17 +20,87 @@
   }
 ],
   "std:threads": [
+{
+  "name": "Channel",
+  "signature": "new Channel<T>(capacity: int): Channel<T>",
+  "inferredSignature": "function new Channel<T>(capacity: int): Channel<T>",
+  "parameters": [
+    {
+      "label": "capacity: int",
+      "documentation": "Maximum queued messages, 1..1000000; required."
+    }
+  ],
+  "documentation": "Creates a bounded FIFO with one receiving owner and explicitly created senders. capacity is an integer from 1 through 1000000; there is no default. Invalid capacity throws RangeError. Message types cannot contain channel endpoints, preventing queue ownership cycles. No senders exist initially. Create senders before receiving; receiving with no senders closes the channel. receiver.sender() creates each transferable sender.\n\nOwnership: the receiver owns unread messages; dropping it closes the channel and disposes them.\n\n```tsrust\nimport { Channel, spawn } from 'std:threads';\n\nfunction listen(inbox: Channel<string>): void {\n  while (true) {\n    match (inbox.receive()) {\n      Ok(message) => console.log(message),\n      Err(_) => { return; },\n    }\n  }\n}\n\nfunction main() {\n  const inbox = new Channel<string>(8);\n  const messages = inbox.sender();\n  const worker = unwrap(spawn((): void => listen(inbox)));\n  unwrap(messages.send('hello'));\n  unwrap(messages.send('goodbye'));\n  messages.close();\n  unwrap(worker.join());\n}\n// hello\n// goodbye\n\n```\nExpected output: hello, goodbye.",
+  "examples": [
+    {
+      "source": "import { Channel, spawn } from 'std:threads';\n\nfunction listen(inbox: Channel<string>): void {\n  while (true) {\n    match (inbox.receive()) {\n      Ok(message) => console.log(message),\n      Err(_) => { return; },\n    }\n  }\n}\n\nfunction main() {\n  const inbox = new Channel<string>(8);\n  const messages = inbox.sender();\n  const worker = unwrap(spawn((): void => listen(inbox)));\n  unwrap(messages.send('hello'));\n  unwrap(messages.send('goodbye'));\n  messages.close();\n  unwrap(worker.join());\n}\n// hello\n// goodbye\n",
+      "output": "hello\ngoodbye\n"
+    }
+  ]
+},
+{
+  "name": "Sender",
+  "signature": "Sender",
+  "inferredSignature": "function Sender",
+  "parameters": [],
+  "documentation": "Owned channel sending endpoint. Created by Channel.sender().\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+  "examples": [
+    {
+      "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+      "output": "false\n"
+    }
+  ]
+},
+{
+  "name": "TaskContext",
+  "signature": "TaskContext",
+  "inferredSignature": "function TaskContext",
+  "parameters": [],
+  "documentation": "Context supplied to an optional worker callback parameter. Identifies that worker cancellation state.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+  "examples": [
+    {
+      "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+      "output": "false\n"
+    }
+  ]
+},
+{
+  "name": "ChannelError",
+  "signature": "ChannelError",
+  "inferredSignature": "function ChannelError",
+  "parameters": [],
+  "documentation": "Channel receive failure with code empty, closed or cancelled.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+  "examples": [
+    {
+      "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+      "output": "false\n"
+    }
+  ]
+},
+{
+  "name": "SendError",
+  "signature": "SendError",
+  "inferredSignature": "function SendError",
+  "parameters": [],
+  "documentation": "Failed send with code full, closed or cancelled and the original owned value.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+  "examples": [
+    {
+      "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+      "output": "false\n"
+    }
+  ]
+},
   {
     "name": "spawnScoped",
-    "signature": "spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
-    "inferredSignature": "function spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
+    "signature": "spawnScoped(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<ScopedThread<T, E>, SpawnError>",
+    "inferredSignature": "function spawnScoped(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<ScopedThread<T, E>, SpawnError>",
     "parameters": [
       {
-        "label": "callback: Owned<Function<T>>",
-        "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes."
+        "label": "callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>",
+        "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The callback runs once with zero arguments or one TaskContext; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes."
       }
     ],
-    "documentation": "Starts one dedicated OS thread immediately. The owned zero-argument callback runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use a ThreadPool instance's task method for reusable workers. Compatibility spelling of spawn. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { ThreadPool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "documentation": "Starts one dedicated OS thread immediately. The owned callback with zero arguments or one TaskContext runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use a ThreadPool instance's task method for reusable workers. Compatibility spelling of spawn. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { ThreadPool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
     "examples": [
       {
         "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
@@ -51,15 +121,15 @@
   },
   {
     "name": "spawn",
-    "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-    "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "signature": "spawn(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function spawn(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<Thread<T, E>, SpawnError>",
     "parameters": [
       {
-        "label": "callback: Owned<Function<T>>",
-        "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
+        "label": "callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>",
+        "documentation": "Starts one native OS thread immediately. The callback runs once with zero arguments or one TaskContext. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
       }
     ],
-    "documentation": "Starts one dedicated OS thread immediately. The owned zero-argument callback runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use a ThreadPool instance's task method for reusable workers. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { ThreadPool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "documentation": "Starts one dedicated OS thread immediately. The owned callback with zero arguments or one TaskContext runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use a ThreadPool instance's task method for reusable workers. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { ThreadPool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
     "examples": [
       {
         "source": "import {spawn, join} from \"std:threads\";function main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}",
@@ -9137,15 +9207,15 @@
   "ThreadPool": [
   {
     "name": "task",
-    "signature": "task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-    "inferredSignature": "function task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "signature": "task(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function task(callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>): Result<Thread<T, E>, SpawnError>",
     "parameters": [
       {
-        "label": "callback: Owned<Function<T>>",
-        "documentation": "Owned zero-argument task. T is its result; E is its inferred thrown error."
+        "label": "callback: Owned<Function<T>> | Owned<Function<T, [TaskContext]>>",
+        "documentation": "Owned task with zero arguments or one TaskContext. T is its result; E is its inferred thrown error."
       }
     ],
-    "documentation": "Submits an owned zero-argument callback to this pool. T is its return type and E its inferred thrown error. Starts when a worker is available. Admission returns full when outstanding capacity is exhausted or closed after shutdown; it never waits for capacity. Completion frees the worker, but retains a capacity slot until join or handle cleanup; detached work releases its slot on completion. Changes this pool only.\n\nOwnership: borrows the ThreadPool and consumes callback captures. Caller loans and program state cannot cross workers; the returned handle owns its result.\n\n```tsrust\nimport { join, ThreadPool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = new ThreadPool({workers: 1, capacity: 4});\n    const background = new ThreadPool({workers: 2, capacity: 8});\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "documentation": "Submits an owned callback with zero arguments or one TaskContext to this pool. T is its return type and E its inferred thrown error. Starts when a worker is available. Admission returns full when outstanding capacity is exhausted or closed after shutdown; it never waits for capacity. Completion frees the worker, but retains a capacity slot until join or handle cleanup; detached work releases its slot on completion. Changes this pool only.\n\nOwnership: borrows the ThreadPool and consumes callback captures. Caller loans and program state cannot cross workers; the returned handle owns its result.\n\n```tsrust\nimport { join, ThreadPool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  const pool = new ThreadPool({workers: 2, capacity: 16});\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = new ThreadPool({workers: 1, capacity: 4});\n    const background = new ThreadPool({workers: 2, capacity: 8});\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
     "examples": [
       {
         "source": "import { join, ThreadPool, Thread } from 'std:threads';\n\nconst pool = new ThreadPool({workers: 2, capacity: 16});\n\nfunction calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = new ThreadPool({workers: 1, capacity: 4});\n    const background = new ThreadPool({workers: 2, capacity: 8});\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
@@ -9176,6 +9246,209 @@
       {
         "source": "import { join, ThreadPool, Thread } from 'std:threads';\n\nconst pool = new ThreadPool({workers: 2, capacity: 16});\n\nfunction calculate(jobs: ReadOnly<ThreadPool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = new ThreadPool({workers: 1, capacity: 4});\n    const background = new ThreadPool({workers: 2, capacity: 8});\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
         "output": "42\nindependent\n0\n7\n"
+      }
+    ]
+  }
+]
+,
+"Channel": [
+  {
+    "name": "sender",
+    "signature": "sender(): Sender<T>",
+    "inferredSignature": "function sender(): Sender<T>",
+    "parameters": [],
+    "documentation": "Creates an independently owned sender for this channel. Takes no arguments. Each sender can move into a worker. The last sender closing or leaving scope closes admission; buffered values remain readable. Calling after closure returns a closed sender. Does not copy queued messages.\n\nOwnership: borrows the receiving owner and returns a transferable sender.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  },
+  {
+    "name": "receive",
+    "signature": "receive(): Result<T, ChannelError>",
+    "inferredSignature": "function receive(): Result<T, ChannelError>",
+    "parameters": [],
+    "documentation": "Waits for and removes the oldest queued value. Takes no arguments. Returns closed after the buffer drains and admission closes, or when no senders exist; cancelled when the current worker is cancelled. Cancellation wakes the wait and does not remove a queued value. May wait indefinitely if a sender remains open without sending.\n\nOwnership: borrows the receiving endpoint; success transfers one owned payload.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  },
+  {
+    "name": "tryReceive",
+    "signature": "tryReceive(): Result<T, ChannelError>",
+    "inferredSignature": "function tryReceive(): Result<T, ChannelError>",
+    "parameters": [],
+    "documentation": "Removes the oldest queued value without waiting. Takes no arguments. Returns empty if the buffer is empty with open senders, closed if no future values can arrive, or cancelled for the current worker. Closure still permits draining queued values.\n\nOwnership: borrows the receiver and transfers one owned payload on success.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "signature": "close(): void",
+    "inferredSignature": "function close(): void",
+    "parameters": [],
+    "documentation": "Stops all new sends and wakes blocked senders and receivers. Takes no arguments. Existing queued values remain readable; receiving then reports closed. Repeated close is harmless. Dropping the receiving owner also closes admission and disposes unread values.\n\nOwnership: borrows the receiver; no message copies.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  }
+],
+"Sender": [
+  {
+    "name": "send",
+    "signature": "send(value: T): Result<void, SendError<T>>",
+    "inferredSignature": "function send(value: T): Result<void, SendError<T>>",
+    "parameters": [
+      {
+        "label": "value: T",
+        "documentation": "Owned transferable message without channel endpoints; no default. Failure returns this same owned value."
+      }
+    ],
+    "documentation": "Waits for buffer capacity, then transfers value into the channel. Returns closed if this sender or the receiver is closed, cancelled if the current worker is cancelled. Cancellation wakes a blocked send. Every failure returns the original unsent value in error.value. Successful sends preserve queue order for this sender; concurrent senders may interleave.\n\nOwnership: borrows the sender and consumes value; no cloning or serialization.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  },
+  {
+    "name": "trySend",
+    "signature": "trySend(value: T): Result<void, SendError<T>>",
+    "inferredSignature": "function trySend(value: T): Result<void, SendError<T>>",
+    "parameters": [
+      {
+        "label": "value: T",
+        "documentation": "Owned transferable message without channel endpoints; no default. Failure returns this same owned value."
+      }
+    ],
+    "documentation": "Transfers value into the channel only if capacity is immediately available; never waits. Returns closed if this sender or the receiver is closed, cancelled if the current worker is cancelled, or full if capacity is exhausted. Every failure returns the original unsent value in error.value. Successful sends preserve queue order for this sender; concurrent senders may interleave.\n\nOwnership: borrows the sender and consumes value; no cloning or serialization.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  },
+  {
+    "name": "close",
+    "signature": "close(): void",
+    "inferredSignature": "function close(): void",
+    "parameters": [],
+    "documentation": "Closes this sender and wakes channel waits. Takes no arguments. Other senders remain usable. Closing the last sender closes admission; buffered values remain readable. Repeated calls are harmless. Scope exit closes this sender automatically.\n\nOwnership: mutably borrows this sender; does not consume messages.\n\n```tsrust\nimport {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}\n```\nExpected output: empty, full, 9, 7, closed on separate lines.",
+    "examples": [
+      {
+        "source": "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(1);const sender=inbox.sender();match(inbox.tryReceive()){Ok(_)=>{},Err(error)=>console.log(error.code)}unwrap(sender.send(7));match(sender.trySend(9)){Ok(_)=>{},Err(error)=>{console.log(error.code);console.log(error.value);}}inbox.close();console.log(unwrap(inbox.receive()));match(inbox.receive()){Ok(_)=>{},Err(error)=>console.log(error.code)}sender.close();}",
+        "output": "empty\nfull\n9\n7\nclosed\n"
+      }
+    ]
+  }
+],
+"TaskContext": [
+  {
+    "name": "cancellationRequested",
+    "signature": "cancellationRequested(): boolean",
+    "inferredSignature": "function cancellationRequested(): boolean",
+    "parameters": [],
+    "documentation": "Returns whether cancellation was requested for this particular worker. Takes no arguments and does not change state. A request is cooperative; returning or throwing finishes the callback. Blocking channel operations observe this same cancellation state automatically.\n\nOwnership: borrows the context. Contexts cannot transfer to another worker.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+    "examples": [
+      {
+        "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+        "output": "false\n"
+      }
+    ]
+  }
+],
+"Thread": [
+  {
+    "name": "join",
+    "signature": "join(): Result<T, ThreadError<E>>",
+    "inferredSignature": "function join(): Result<T, ThreadError<E>>",
+    "parameters": [],
+    "documentation": "Waits for this worker and returns its value or typed error. Takes no arguments. Error codes are worker, panic and cancelled. Cancellation does not imply completion until join returns.\n\nOwnership: consumes this handle exactly once.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+    "examples": [
+      {
+        "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+        "output": "false\n"
+      }
+    ]
+  },
+  {
+    "name": "cancel",
+    "signature": "cancel(): boolean",
+    "inferredSignature": "function cancel(): boolean",
+    "parameters": [],
+    "documentation": "Requests cancellation of this worker only. Takes no arguments. Returns true for the first request before completion, false for repeated requests or published completion. Wakes supported channel waits; cannot forcibly interrupt arbitrary native code.\n\nOwnership: borrows the handle; join or scope cleanup still waits.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{while(!task.cancellationRequested()) {}}));worker.cancel();match(worker.join()){Ok(_)=>{},Err(error)=>console.log(error.code)}}\n```\nExpected output: cancelled.",
+    "examples": [
+      {
+        "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{while(!task.cancellationRequested()) {}}));worker.cancel();match(worker.join()){Ok(_)=>{},Err(error)=>console.log(error.code)}}",
+        "output": "cancelled\n"
+      }
+    ]
+  },
+  {
+    "name": "detach",
+    "signature": "detach(): void",
+    "inferredSignature": "function detach(): void",
+    "parameters": [],
+    "documentation": "Relinquishes automatic joining. Takes no arguments. Dedicated workers may outlive their caller; process exit need not wait. Pool shutdown still drains detached pool tasks.\n\nOwnership: consumes the handle and discards eventual completion.\n\n```tsrust\nimport {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool({workers:1,capacity:1});const worker=unwrap(pool.task(():void=>{}));worker.detach();unwrap(pool.shutdown());console.log('done');}\n```\nExpected output: done.",
+    "examples": [
+      {
+        "source": "import {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool({workers:1,capacity:1});const worker=unwrap(pool.task(():void=>{}));worker.detach();unwrap(pool.shutdown());console.log('done');}",
+        "output": "done\n"
+      }
+    ]
+  }
+],
+"ScopedThread": [
+  {
+    "name": "join",
+    "signature": "join(): Result<T, ThreadError<E>>",
+    "inferredSignature": "function join(): Result<T, ThreadError<E>>",
+    "parameters": [],
+    "documentation": "Waits for this worker and returns its value or typed error. Takes no arguments. Error codes are worker, panic and cancelled. Cancellation does not imply completion until join returns.\n\nOwnership: consumes this handle exactly once.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}\n```\nExpected output: false.",
+    "examples": [
+      {
+        "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):boolean=>task.cancellationRequested()));console.log(unwrap(worker.join()));}",
+        "output": "false\n"
+      }
+    ]
+  },
+  {
+    "name": "cancel",
+    "signature": "cancel(): boolean",
+    "inferredSignature": "function cancel(): boolean",
+    "parameters": [],
+    "documentation": "Requests cancellation of this worker only. Takes no arguments. Returns true for the first request before completion, false for repeated requests or published completion. Wakes supported channel waits; cannot forcibly interrupt arbitrary native code.\n\nOwnership: borrows the handle; join or scope cleanup still waits.\n\n```tsrust\nimport {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{while(!task.cancellationRequested()) {}}));worker.cancel();match(worker.join()){Ok(_)=>{},Err(error)=>console.log(error.code)}}\n```\nExpected output: cancelled.",
+    "examples": [
+      {
+        "source": "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{while(!task.cancellationRequested()) {}}));worker.cancel();match(worker.join()){Ok(_)=>{},Err(error)=>console.log(error.code)}}",
+        "output": "cancelled\n"
+      }
+    ]
+  },
+  {
+    "name": "detach",
+    "signature": "detach(): void",
+    "inferredSignature": "function detach(): void",
+    "parameters": [],
+    "documentation": "Relinquishes automatic joining. Takes no arguments. Dedicated workers may outlive their caller; process exit need not wait. Pool shutdown still drains detached pool tasks.\n\nOwnership: consumes the handle and discards eventual completion.\n\n```tsrust\nimport {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool({workers:1,capacity:1});const worker=unwrap(pool.task(():void=>{}));worker.detach();unwrap(pool.shutdown());console.log('done');}\n```\nExpected output: done.",
+    "examples": [
+      {
+        "source": "import {ThreadPool} from 'std:threads';function main(){const pool=new ThreadPool({workers:1,capacity:1});const worker=unwrap(pool.task(():void=>{}));worker.detach();unwrap(pool.shutdown());console.log('done');}",
+        "output": "done\n"
       }
     ]
   }

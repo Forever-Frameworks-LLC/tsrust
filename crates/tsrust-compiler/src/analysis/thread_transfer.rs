@@ -38,6 +38,12 @@ pub(super) fn require_owned_captures(closure:&super::CheckedClosure,records:&[Re
 /// Returns the first unsupported type without granting callable capture transfer.
 /// Cycles terminate through checked type identity; every reachable field is inspected.
 pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),Type>{
+ require_transfer(root,records,members,true)
+}
+pub(super) fn require_channel_payload(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),Type>{
+ require_transfer(root,records,members,false)
+}
+fn require_transfer(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>,allow_endpoints:bool)->Result<(),Type>{
  let mut pending=vec![root];let mut seen=std::collections::HashSet::new();
  while let Some(ty)=pending.pop(){
   if !seen.insert(ty){continue;}
@@ -48,6 +54,8 @@ pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(Un
    Type::Record(id)=>{
     let record=records.get(id).ok_or(ty)?;
     if let Some(native)=record.native_type {
+     // Endpoint-bearing messages can retain their own queue and form an ownership cycle.
+     if !allow_endpoints && matches!(native,crate::native_signatures::NativeTypeId::Channel|crate::native_signatures::NativeTypeId::Sender) {return Err(ty);}
      let declaration=crate::native_types::declaration(native);
      if declaration.borrow_access().is_some()||!declaration.thread_transfer{return Err(ty);}
     }

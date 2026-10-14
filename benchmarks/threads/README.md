@@ -55,3 +55,11 @@ thread startup. Current dedicated workloads also passed untimed checks.
 The prior global-pool record `pool-join-2026-10-14T22-25-15-491Z.json` remains
 immutable in SQLite. The current native median is 1.7% above that record; this
 small change does not justify optimization.
+
+Use `--throughput --verify` for four equal CPU jobs returning results through a
+bounded native channel. Omit `--verify` to measure serial, two-worker and
+four-worker variants using the same 3-process/8-warmup/31-sample protocol. Pool
+construction is excluded. Node uses worker messages; native uses owned channel
+transfers. A separate BigInt oracle verifies every checksum. Compare within-engine
+serial/parallel ratios to assess multicore scaling; cross-engine ratios also
+include arithmetic and message-transport implementation differences.

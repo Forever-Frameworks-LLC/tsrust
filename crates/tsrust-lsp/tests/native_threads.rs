@@ -28,7 +28,7 @@ fn checked_worker_and_completion_types_reach_hover() {
     for (needle,expected) in [("join(worker","Thread<int, undefined>"),("console.log(answer","int")] {
         let offset=source.find(needle).unwrap()+needle.len()-1;
         let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
-        assert!(hover.to_string().contains(expected),"{hover}");
+        assert!(hover.to_string().contains(expected),"{needle}: {hover}");
     }
 }
 
@@ -44,9 +44,9 @@ fn thread_catalog_examples_check_and_execute() {
     let directory = Directory(path);
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:threads"].as_array().unwrap();
-    assert_eq!(entries.len(), 13);
+    assert_eq!(entries.len(), 18);
     let mut seen=std::collections::HashSet::new();
-    for entry in entries.iter().chain(catalog["ThreadPool"].as_array().unwrap()).chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
+    for entry in entries.iter().chain(["ThreadPool", "Thread", "ScopedThread", "Channel", "Sender", "TaskContext"].into_iter().flat_map(|name| catalog[name].as_array().unwrap())).chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
         for example in entry["examples"].as_array().unwrap() {
             if !seen.insert(example["source"].as_str().unwrap()) { continue; }
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
@@ -167,4 +167,33 @@ fn scoped_pool_alias_methods_have_hover_parameters_and_result_fields() {
     let offset=source.find("stats.outstanding").unwrap()+6;
     let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
     assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="outstanding"),"{items}");
+}
+
+#[test]
+fn channel_constructor_help_and_worker_context_members() {
+    let source="import {Channel as Inbox} from 'std:threads';function main(){const inbox=new Inbox<int>(2);}";
+    let help=request(source,"new Inbox<int>(","textDocument/signatureHelp").to_string();
+    assert!(help.contains("capacity: int") && help.contains("1000000"),"{help}");
+    let source="import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{task.cancellationRequested();}));worker.cancel();unwrap(worker.join());}";
+    let uri="file:///threads.tsr"; let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("task.cancellationRequested", "cancellationRequested"),("worker.cancel", "cancel"),("worker.join", "join")] {
+        let offset=source.find(needle).unwrap()+needle.len()-1;
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        assert!(hover.to_string().contains(expected),"{needle}: {hover}");
+    }
+}
+
+#[test]
+fn generic_channel_methods_specialize_payloads_through_aliases() {
+    let source="import {Channel as Inbox} from 'std:threads';function main(){const inbox=new Inbox<int>(1);const sender=inbox.sender();unwrap(sender.send(7));console.log(unwrap(inbox.receive()));}";
+    let uri="file:///channel.tsr";let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("sender.send", "value: int"),("inbox.receive", "Result<int, ChannelError>")] {
+        let offset=source.find(needle).unwrap()+needle.len()-1;
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        assert!(hover.to_string().contains(expected),"{needle}: {hover}");
+    }
 }

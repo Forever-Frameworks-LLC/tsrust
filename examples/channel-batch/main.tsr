@@ -1,0 +1,31 @@
+import { Channel, Sender, ThreadPool } from 'std:threads';
+
+function calculate(results: Sender<int>, start: int): Function<void> {
+  return (): void => {
+    for (let value = start; value < start + 4; value += 1) {
+      unwrap(results.send(value * value));
+    }
+  };
+}
+
+function main() {
+  const pool = new ThreadPool({
+    workers: 2, capacity: 2
+  });
+  const results = new Channel<int>(2);
+  const first = unwrap(pool.task(calculate(results.sender(), 1)));
+  const second = unwrap(pool.task(calculate(results.sender(), 5)));
+  let total = 0;
+  try {
+    for (let count = 0; count < 8; count += 1) {
+      total += unwrap(results.receive());
+    }
+  } finally {
+    results.close();
+  }
+
+  unwrap(first.join());
+  unwrap(second.join());
+  console.log(total);
+}
+// 204; receive order may vary.

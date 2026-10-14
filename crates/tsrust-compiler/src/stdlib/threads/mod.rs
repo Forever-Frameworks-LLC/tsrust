@@ -19,6 +19,15 @@ const POOL_RECEIVER: NativeParameter = NativeParameter { name: "pool", ty: Nativ
 pub(crate) const OWNED_POOL_TASK: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER, NativeParameter { name: "callback", ty: NativeType::ObservedValue, access: Mode::Consume, optional: false, rest: false }], ..operation("__ownedPoolTask") };
 pub(crate) const OWNED_POOL_STATS: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolStats") };
 pub(crate) const OWNED_POOL_SHUTDOWN: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolShutdown") };
+pub(crate) const TASK_CANCELLED: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__taskCancelled") };
+pub(crate) const CHANNEL_CREATE: NativeBinding = operation("__channelCreate");
+pub(crate) const CHANNEL_SENDER: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__channelSender") };
+pub(crate) const CHANNEL_RECEIVE: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__channelReceive") };
+pub(crate) const CHANNEL_TRY_RECEIVE: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__channelTryReceive") };
+pub(crate) const CHANNEL_CLOSE: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__channelClose") };
+pub(crate) const SENDER_SEND: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER, NativeParameter { name: "value", ty: NativeType::ObservedValue, access: Mode::Consume, optional: false, rest: false }], ..operation("__senderSend") };
+pub(crate) const SENDER_TRY_SEND: NativeBinding = NativeBinding { name: "__senderTrySend", ..SENDER_SEND };
+pub(crate) const SENDER_CLOSE: NativeBinding = NativeBinding { parameters: &[NativeParameter { access: Mode::Mutate, ..POOL_RECEIVER }], ..operation("__senderClose") };
 pub(crate) const SPAWN_SCOPED: NativeBinding = operation("spawnScoped");
 pub(crate) const SPAWN: NativeBinding = operation("spawn");
 pub(crate) const JOIN: NativeBinding = operation("join");
@@ -43,6 +52,12 @@ pub(crate) fn prepare(program: &mut crate::syntax::Program) -> Result<(), crate:
             used |= matches!(&expression.kind, crate::syntax::ExprKind::Name(name) if name.starts_with("@native:std:threads#"));
             Ok(())
         })?;
+    }
+    let channels = program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender)));
+    if channels {
+        for identity in [crate::native_signatures::NativeTypeId::Channel, crate::native_signatures::NativeTypeId::Sender, crate::native_signatures::NativeTypeId::SendError, crate::native_signatures::NativeTypeId::ChannelError] {
+            crate::native_type_resolution::intern(&mut program.records, identity, crate::Span::default())?;
+        }
     }
     if used {
         for identity in [crate::native_signatures::NativeTypeId::Thread, crate::native_signatures::NativeTypeId::ScopedThread, crate::native_signatures::NativeTypeId::ThreadError, crate::native_signatures::NativeTypeId::SpawnError] {

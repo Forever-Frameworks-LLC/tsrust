@@ -237,6 +237,19 @@ fn rows() -> Vec<Row> {
         includes: &["code", "error"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });
     rows.push(Row {
+        kind: Kind::CallResult, name: "inferred worker context",
+        before: "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn((task):void=>{".into(),
+        typed: "task.", after: "\n}));}\n", includes: &["cancellationRequested"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+    });
+    for (name, before, typed, includes) in [
+        ("channel receiver methods", "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(2);", "inbox.", &["sender", "receive", "tryReceive", "close"][..]),
+        ("channel sender methods", "import {Channel} from 'std:threads';function main(){const inbox=new Channel<int>(2);const output=inbox.sender();", "output.", &["send", "trySend", "close"][..]),
+        ("worker handle methods", "import {spawn} from 'std:threads';function main(){const worker=unwrap(spawn(():int=>42));", "worker.", &["join", "cancel", "detach"][..]),
+        ("worker context methods", "import {TaskContext} from 'std:threads';function probe(task:ReadOnly<TaskContext>){", "task.", &["cancellationRequested"][..]),
+    ] {
+        rows.push(Row {kind: Kind::CallResult, name, before: before.into(), typed, after: "\n}\n", includes, excludes: NOT_MEMBERS, silent: None, needs_check: false});
+    }
+    rows.push(Row {
         kind: Kind::CallResult, name: "default pool methods",
         before: "import {ThreadPool as Workers} from 'std:threads';\nfunction main(){const workers=new Workers();\n".into(),
         typed: "workers.", after: "\n}\n",

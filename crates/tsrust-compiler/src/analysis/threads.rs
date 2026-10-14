@@ -8,9 +8,21 @@ impl Analyzer {
     }
 
     pub(super) fn thread_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        if let Some(ty) = self.channel_call(context, expression, loans, expected)? { return Ok(Some(ty)); }
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(None); };
         if let ExprKind::Field(base, member) = &callee.kind {
-            if self.owned_pool_receiver(context, base) {
+            let identity = match self.expression_type_hint(context, base) { Some(Type::Record(record)) => self.program.records[record].native_type, _ => None };
+            if matches!(identity, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::TaskContext)) {
+                let name = match (identity, member.as_str()) {
+                    (Some(NativeTypeId::TaskContext), "cancellationRequested") => "__taskCancelled",
+                    (Some(NativeTypeId::Thread | NativeTypeId::ScopedThread), "join") => "join",
+                    (Some(NativeTypeId::Thread | NativeTypeId::ScopedThread), "cancel") => "cancel",
+                    (Some(NativeTypeId::Thread | NativeTypeId::ScopedThread), "detach") => "detach",
+                    _ => return Err(Diagnostic::new("thread-member", "Unknown worker operation.", callee.span)),
+                };
+                arguments.insert(0, (**base).clone());
+                callee.kind = ExprKind::Name(format!("@native:std:threads#{name}"));
+            } else if self.owned_pool_receiver(context, base) {
                 let name = match member.as_str() {
                     "task" => "__ownedPoolTask", "stats" => "__ownedPoolStats", "shutdown" => "__ownedPoolShutdown",
                     _ => return Err(Diagnostic::new("pool-member", "ThreadPool supports task, stats and shutdown; its limits are fixed at creation.", callee.span)),
@@ -33,6 +45,10 @@ impl Analyzer {
         }
         let callback_index = usize::from(owned);
         let result = if matches!(binding.name, "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPoolStats, span)?)
+        } else if binding.name == "__taskCancelled" {
+            let ty = self.expression(context, &mut arguments[0], Mode::Read, loans, None)?;
+            if !matches!(ty, Type::Record(record) if self.program.records[record].native_type == Some(NativeTypeId::TaskContext)) { return Err(Diagnostic::new("task-context", "Expected the current worker context.", span)); }
+            Type::Boolean
         } else if binding.name == "cancellationRequested" { Type::Boolean
         } else if matches!(binding.name, "__poolCreate" | "__ownedPoolShutdown") {
             if binding.name == "__poolCreate" && !arguments.is_empty() {
@@ -51,12 +67,19 @@ impl Analyzer {
             let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::ThreadPool, span)?) } else { Type::Void };
             self.thread_result(output, failure, span)?
         } else if matches!(binding.name, "spawn" | "spawnScoped" | "__ownedPoolTask") {
-            if let ExprKind::Closure { id, .. } = arguments[callback_index].kind { self.escaping.insert(id); }
+            let context_type = Type::Record(self.schema_native_dependency(NativeTypeId::TaskContext, span)?);
+            let annotation = self.checked_value_annotation(context_type, span)?;
+            if let ExprKind::Closure { id, params, .. } = &mut arguments[callback_index].kind {
+                self.escaping.insert(*id);
+                if params.len() == 1 && matches!(params[0].ty, crate::syntax::ParameterAnnotation::Inferred(_)) {
+                    params[0].ty = crate::syntax::ParameterAnnotation::Named(Box::new(annotation));
+                }
+            }
             let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, None)?;
-            let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[callback_index].span)); };
+            let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete callback.", arguments[callback_index].span)); };
             let closure = &self.closures[origin];
-            if !closure.parameters.is_empty() || closure.program_scoped || !closure.program_captures.is_empty() {
-                return Err(Diagnostic::new("thread-callback", "A worker must take no arguments and cannot borrow program state.", arguments[callback_index].span));
+            if closure.parameters.len() > 1 || closure.parameters.first().is_some_and(|&id| closure.function.bindings[id].ty != context_type) || closure.program_scoped || !closure.program_captures.is_empty() {
+                return Err(Diagnostic::new("thread-callback", "A worker takes no arguments or one TaskContext and cannot borrow program state.", arguments[callback_index].span));
             }
             thread_transfer::require_owned_captures(closure, &self.program.records, &|id| self.unions.members(id))
                 .map_err(|_| Diagnostic::new("thread-transfer", "Worker captures must own transferable data; caller loans and stored callbacks cannot cross threads.", arguments[callback_index].span))?;
@@ -88,10 +111,10 @@ impl Analyzer {
         Ok(Some(result))
     }
 
-    fn thread_application(&mut self, identity: NativeTypeId, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {
+    pub(super) fn thread_application(&mut self, identity: NativeTypeId, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {
         self.thread_applied(&crate::native_type_resolution::linked_name(identity), arguments, span)
     }
-    fn thread_result(&mut self, output: Type, error: Type, span: Span) -> Result<Type, Diagnostic> {
+    pub(super) fn thread_result(&mut self, output: Type, error: Type, span: Span) -> Result<Type, Diagnostic> {
         self.thread_applied("Result", &[output, error], span)
     }
     fn thread_applied(&mut self, name: &str, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {

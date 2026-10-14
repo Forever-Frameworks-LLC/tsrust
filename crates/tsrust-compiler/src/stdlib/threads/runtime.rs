@@ -1,6 +1,8 @@
 mod tsrust_native_threads {
     use std::sync::{Arc, Condvar, Mutex, atomic::{AtomicBool, Ordering}};
     use std::cell::RefCell;
+    use std::collections::VecDeque;
+    use std::sync::Weak;
 
     #[derive(Debug)]
     pub struct SpawnError { pub code: &'static str, message: String }
@@ -12,7 +14,31 @@ mod tsrust_native_threads {
     #[derive(Clone, Copy, Default)]
     pub struct Stats { pub workers: usize, pub capacity: usize, pub queued: usize, pub running: usize, pub completed: usize, pub outstanding: usize }
     struct Pool { executor: rayon::ThreadPool, state: Arc<Mutex<Stats>>, idle: Condvar, closed: AtomicBool }
-    thread_local! { static CANCELLATION: RefCell<Option<Arc<AtomicBool>>> = const { RefCell::new(None) }; }
+    trait Wake: Send + Sync { fn wake(&self); }
+    #[derive(Default)]
+    struct Cancellation { requested: AtomicBool, waiters: Mutex<Vec<Weak<dyn Wake>>> }
+    impl Cancellation {
+        fn load(&self, order: Ordering) -> bool { self.requested.load(order) }
+        fn wake(&self) {
+            let waiters = self.waiters.lock().unwrap().iter().filter_map(Weak::upgrade).collect::<Vec<_>>();
+            for waiter in waiters { waiter.wake(); }
+        }
+    }
+    pub struct TaskContext { cancellation: Arc<Cancellation> }
+    impl TaskContext {
+        pub fn current() -> Self { Self { cancellation: CANCELLATION.with(|slot| slot.borrow().as_ref().expect("worker context").clone()) } }
+        pub fn cancellation_requested(&self) -> bool { self.cancellation.load(Ordering::Acquire) }
+    }
+    fn watch(waiter: Arc<dyn Wake>) {
+        CANCELLATION.with(|slot| {
+            if let Some(cancel) = slot.borrow().as_ref() {
+                let mut waiters = cancel.waiters.lock().unwrap();
+                waiters.retain(|entry| entry.strong_count() > 0);
+                if !waiters.iter().any(|entry| entry.ptr_eq(&Arc::downgrade(&waiter))) { waiters.push(Arc::downgrade(&waiter)); }
+            }
+        });
+    }
+    thread_local! { static CANCELLATION: RefCell<Option<Arc<Cancellation>>> = const { RefCell::new(None) }; }
     fn build(workers: usize, capacity: usize) -> Result<Arc<Pool>, SpawnError> {
         let executor = rayon::ThreadPoolBuilder::new().num_threads(workers).build().map_err(|e| failure("spawn", e.to_string()))?;
         Ok(Arc::new(Pool { executor, state: Arc::new(Mutex::new(Stats { workers, capacity, ..Stats::default() })), idle: Condvar::new(), closed: AtomicBool::new(false) }))
@@ -42,7 +68,7 @@ mod tsrust_native_threads {
         }
     }
     impl Drop for OwnedPool { fn drop(&mut self) { close(&self.inner); } }
-    struct Completion<T, E> { result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<AtomicBool>, released: AtomicBool, pool: Option<Arc<Pool>> }
+    struct Completion<T, E> { result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<Cancellation>, released: AtomicBool, pool: Option<Arc<Pool>> }
     impl<T, E> Drop for Completion<T, E> {
         fn drop(&mut self) { self.release(); }
     }
@@ -82,7 +108,10 @@ mod tsrust_native_threads {
     pub fn cancel<T, E>(thread: &Thread<T, E>) -> bool {
         let result = thread.completion.result.lock().unwrap();
         if result.is_some() { return false; }
-        !thread.completion.cancel.swap(true, Ordering::AcqRel)
+        let requested = !thread.completion.cancel.requested.swap(true, Ordering::AcqRel);
+        drop(result);
+        if requested { thread.completion.cancel.wake(); }
+        requested
     }
     fn execute<T, E>(completion: &Completion<T, E>, work: impl FnOnce() -> Result<T, E>) {
         if let Some(pool) = &completion.pool { let mut stats = pool.state.lock().unwrap(); stats.queued -= 1; stats.running += 1; }
@@ -99,7 +128,7 @@ mod tsrust_native_threads {
         completion.ready.notify_all();
     }
     fn completion<T, E>(pool: Option<Arc<Pool>>) -> Arc<Completion<T, E>> {
-        Arc::new(Completion { result: Mutex::new(None), ready: Condvar::new(), cancel: Arc::new(AtomicBool::new(false)), released: AtomicBool::new(false), pool })
+        Arc::new(Completion { result: Mutex::new(None), ready: Condvar::new(), cancel: Arc::new(Cancellation::default()), released: AtomicBool::new(false), pool })
     }
     fn submit<T: Send + 'static, E: Send + 'static>(pool: Arc<Pool>, work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
         {
@@ -119,6 +148,155 @@ mod tsrust_native_threads {
     }
     pub fn join<T, E>(mut thread: Thread<T, E>) -> Result<T, JoinError<E>> { thread.wait() }
     pub fn detach<T, E>(mut thread: Thread<T, E>) { thread.settled = true; drop(thread.dedicated.take()); }
+    pub struct SendError<T> { pub code: &'static str, pub value: T }
+    struct ChannelState<T> { queue: VecDeque<T>, capacity: usize, senders: usize, closed: bool, receiver: bool }
+    struct ChannelShared<T> { state: Mutex<ChannelState<T>>, changed: Condvar }
+    impl<T: Send> Wake for ChannelShared<T> {
+        fn wake(&self) {
+            // Locking the predicate prevents a cancellation notification from racing the wait.
+            let _state = self.state.lock().unwrap();
+            self.changed.notify_all();
+        }
+    }
+    pub struct Channel<T> { shared: Arc<ChannelShared<T>> }
+    pub struct Sender<T> { shared: Arc<ChannelShared<T>>, open: bool }
+    impl<T: Send + 'static> Channel<T> {
+        pub fn new(capacity: i64) -> Result<Self, &'static str> {
+            if !(1..=1_000_000).contains(&capacity) { return Err("Channel capacity must be 1..1000000."); }
+            Ok(Self { shared: Arc::new(ChannelShared { state: Mutex::new(ChannelState { queue: VecDeque::new(), capacity: capacity as usize, senders: 0, closed: false, receiver: true }), changed: Condvar::new() }) })
+        }
+        pub fn sender(&self) -> Sender<T> {
+            let mut state = self.shared.state.lock().unwrap();
+            let open = !state.closed;
+            if open { state.senders += 1; }
+            Sender { shared: self.shared.clone(), open }
+        }
+        pub fn receive(&self, blocking: bool) -> Result<T, &'static str> {
+            watch(self.shared.clone());
+            let mut state = self.shared.state.lock().unwrap();
+            loop {
+                if cancellation_requested() { return Err("cancelled"); }
+                if let Some(value) = state.queue.pop_front() { self.shared.changed.notify_all(); return Ok(value); }
+                if state.closed || state.senders == 0 { state.closed = true; return Err("closed"); }
+                if !blocking { return Err("empty"); }
+                state = self.shared.changed.wait(state).unwrap();
+            }
+        }
+        pub fn close(&self) {
+            let mut state = self.shared.state.lock().unwrap();
+            state.closed = true;
+            self.shared.changed.notify_all();
+        }
+    }
+    impl<T> Drop for Channel<T> {
+        fn drop(&mut self) {
+            let mut state = self.shared.state.lock().unwrap();
+            state.receiver = false; state.closed = true;
+            let queued = std::mem::take(&mut state.queue);
+            self.shared.changed.notify_all();
+            drop(state); drop(queued);
+        }
+    }
+    impl<T: Send + 'static> Sender<T> {
+        pub fn send(&self, value: T, blocking: bool) -> Result<(), SendError<T>> {
+            watch(self.shared.clone());
+            let mut state = self.shared.state.lock().unwrap();
+            loop {
+                let failure = if cancellation_requested() { Some("cancelled") }
+                    else if !self.open || state.closed || !state.receiver { Some("closed") }
+                    else if state.queue.len() < state.capacity { None }
+                    else if !blocking { Some("full") }
+                    else { state = self.shared.changed.wait(state).unwrap(); continue; };
+                if let Some(code) = failure { return Err(SendError { code, value }); }
+                state.queue.push_back(value); self.shared.changed.notify_all(); return Ok(());
+            }
+        }
+        pub fn close(&mut self) {
+            if !self.open { return; }
+            self.open = false;
+            let mut state = self.shared.state.lock().unwrap();
+            state.senders -= 1;
+            if state.senders == 0 { state.closed = true; }
+            self.shared.changed.notify_all();
+        }
+    }
+    impl<T> Drop for Sender<T> {
+        fn drop(&mut self) {
+            if !self.open { return; }
+            let mut state = self.shared.state.lock().unwrap();
+            state.senders -= 1;
+            if state.senders == 0 { state.closed = true; }
+            self.shared.changed.notify_all();
+        }
+    }
+    #[cfg(test)]
+    mod channel_tests {
+        use super::*;
+        use std::sync::atomic::AtomicUsize;
+        use std::time::Duration;
+        #[test]
+        fn backpressure_returns_original_payload_and_disconnect_drains() {
+            let channel = Channel::new(1).unwrap(); let sender = channel.sender();
+            let first = vec![1, 2, 3]; let pointer = first.as_ptr();
+            assert!(sender.send(first, false).is_ok());
+            let second = vec![4, 5]; let second_pointer = second.as_ptr();
+            let failure = sender.send(second, false).err().unwrap();
+            assert_eq!(failure.code, "full"); assert_eq!(failure.value.as_ptr(), second_pointer);
+            drop(sender);
+            let received = channel.receive(true).unwrap(); assert_eq!(received.as_ptr(), pointer);
+            assert_eq!(channel.receive(true).unwrap_err(), "closed");
+        }
+        #[test]
+        fn cancellation_wakes_receive_and_full_send() {
+            for sending in [false, true] {
+                let channel = Channel::new(1).unwrap(); let sender = channel.sender();
+                if sending { assert!(sender.send(1, true).is_ok()); }
+                let (started, observed) = std::sync::mpsc::channel();
+                let (done, finished) = std::sync::mpsc::channel();
+                let worker = if sending {
+                    spawn_dedicated(move || { started.send(()).unwrap(); let error = sender.send(2, true).err().unwrap(); assert_eq!(error.code,"cancelled"); assert_eq!(error.value,2); done.send(()).unwrap(); Ok::<_, ()>(()) }).unwrap()
+                } else {
+                    spawn_dedicated(move || { started.send(()).unwrap(); assert_eq!(channel.receive(true).unwrap_err(),"cancelled"); done.send(()).unwrap(); Ok::<_, ()>(()) }).unwrap()
+                };
+                observed.recv_timeout(Duration::from_secs(5)).unwrap();
+                let deadline=std::time::Instant::now()+Duration::from_secs(5);
+                while worker.completion.cancel.waiters.lock().unwrap().is_empty() {
+                    assert!(std::time::Instant::now()<deadline,"worker never registered its blocking channel wait");
+                    std::thread::yield_now();
+                }
+                assert!(cancel(&worker));
+                finished.recv_timeout(Duration::from_secs(5)).unwrap();
+                assert!(matches!(join(worker), Err(JoinError::Cancelled)));
+            }
+        }
+        #[test]
+        fn endpoint_close_and_context_are_specific_to_their_owner() {
+            let channel=Channel::<i64>::new(2).unwrap();
+            let mut first=channel.sender(); let second=channel.sender();
+            assert_eq!(channel.receive(false).unwrap_err(),"empty");
+            first.close(); first.close();
+            assert_eq!(first.send(1,false).err().unwrap().code,"closed");
+            assert!(second.send(2,false).is_ok());
+            channel.close(); channel.close();
+            assert_eq!(channel.receive(true).unwrap(),2);
+            assert_eq!(channel.receive(true).unwrap_err(),"closed");
+            let worker=spawn_dedicated(|| { let context=TaskContext::current(); assert!(!context.cancellation_requested()); Ok::<_,()>(()) }).unwrap();
+            assert!(join(worker).is_ok());
+        }
+        #[test]
+        fn queued_and_failed_payloads_drop_once() {
+            struct Payload(Arc<AtomicUsize>);
+            impl Drop for Payload { fn drop(&mut self) { self.0.fetch_add(1, Ordering::SeqCst); } }
+            let count=Arc::new(AtomicUsize::new(0));
+            let channel=Channel::new(1).unwrap(); let sender=channel.sender();
+            assert!(sender.send(Payload(count.clone()),false).is_ok());
+            drop(channel);
+            assert_eq!(count.load(Ordering::SeqCst),1);
+            let error=sender.send(Payload(count.clone()),true).err().unwrap();
+            assert_eq!(error.code,"closed"); assert_eq!(count.load(Ordering::SeqCst),1);
+            drop(error); drop(sender); assert_eq!(count.load(Ordering::SeqCst),2);
+        }
+    }
     #[cfg(test)]
     mod pool_tests {
         use super::*;
