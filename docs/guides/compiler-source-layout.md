@@ -310,8 +310,11 @@ formatting remains a separate user-facing operation.
 `map_iteration_emit.rs` resumes first iterations, body exits, updates and backedge
 conversions. Branch availability snapshots restore before the sibling branch
 starts. Empty-loop renewal and iterator bodies use the same scheduler.
-Exception completion and borrowed-map exception helpers still contain synchronous
-re-entry; statement scheduling alone does not finish emitter nesting.
+`completion_work.rs` schedules ordinary try/catch/finally bodies and captures
+child strings on the shared stack. Region guards restore before sibling handlers;
+abrupt cleanup retains its exit-replacement state until its pending body finishes.
+Map and field storage transports and borrowed-map exception helpers still contain
+synchronous re-entry; this migration does not finish emitter nesting.
 
 Map storage traversal uses `analysis/map_epoch_work.rs` for one connected body,
 branch, loop and cleanup continuation stack. `map_entry_epochs.rs` contains the

@@ -35,6 +35,7 @@ mod record_parameter_borrow_emit;
 mod nullable_record_parameter_emit;
 mod map_error_storage_emit;
 mod statement_work;
+mod completion_work;
 mod storage_statement_work;
 mod restored_capture_slots;
 mod finally_move_slots;
@@ -3397,25 +3398,9 @@ impl Emitter<'_> {
 
     #[inline(never)]
     fn nested_completion(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion)->String {
-        let (outer_name,outer_contract,runtime)=self.exception_regions.current_transport().expect("checked enclosing completion transport");
-        let first=self.completion_next.get();self.completion_next.set(first+3);
-        let mut discovery=vec![statement.clone()];
-        let outgoing=crate::error_effects::annotate_region_body(&mut discovery,&self.program.error_effects);
-        let (out_decl,out_name)=self.completion_error_layout(&format!("RegionError{first}"),&outgoing,runtime,statement.span);
-        let (in_decl,in_name)=if let Some(handler)=&region.catch {
-            self.completion_error_layout(&format!("RegionIncoming{first}"),handler.error_contract.as_deref().expect("checked catch contract"),runtime,statement.span)
-        }else{(String::new(),out_name.clone())};
-        if let Some(transport)=self.field_control_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
-            return format!("{{ {in_decl} {out_decl} {transport} }}");
-        }
-        if let Some(transport)=self.field_completion_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
-            return format!("{{ {in_decl} {out_decl} {transport} }}");
-        }
-        let pending=self.completion_handlers(fun,region,(first,first+1,first+2),(&in_name,&out_name),outgoing.clone(),runtime);
-        let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-        let widened=exception_contract_emit::checked_completion_conversion(&pending,&out_name,&outer_name,&outgoing,&outer_contract,&unions,runtime,statement.span).expect("checked enclosing error contract");
-        let dispatch=self.exception_regions.dispatch(&widened,&self.control_targets.snapshot(),statement.span).expect("checked completion destination");
-        format!("{{ {in_decl} {out_decl} {dispatch} }}")
+        let mut output=String::new();let mut pending=Vec::new();
+        self.schedule_nested_completion(&mut output,fun,statement,region,&mut pending);
+        self.run_statement_work(&mut output,fun,pending);output
     }
 
     #[inline(never)]
@@ -3431,84 +3416,20 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn completion_handlers(&self,fun:&CheckedFunction,region:&ExceptionRegion,ids:(usize,usize,usize),names:(&str,&str),outgoing:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
-        if let Some(cleanup)=&region.finally && crate::completion::definitely_abrupt(cleanup) {
-            let mut pending_region=region.clone();pending_region.finally=None;
-            let mut statements=vec![Stmt{labels:vec![],control_target:None,kind:StmtKind::Try(Box::new(pending_region.clone())),span:crate::Span::default()}];
-            let pending_contract=crate::error_effects::annotate_region_body(&mut statements,&self.program.error_effects);
-            let (declaration,pending_name)=self.completion_error_layout(&format!("PendingError{}",ids.0),&pending_contract,runtime,crate::Span::default());
-            // The abrupt cleanup replaces every pending exit, so nothing may bypass it.
-            let guarded=self.cleanup_replaces_exits.replace(true);
-            let pending=self.completion_handlers(fun,&pending_region,(ids.0,ids.1,ids.2), (names.0,&pending_name),pending_contract,runtime);
-            self.cleanup_replaces_exits.set(guarded);
-            let cleanup=self.completion_body(fun,cleanup,ids.2,names.1,outgoing,runtime);
-            return format!("{{ {declaration} let pending_completion={pending}; let cleanup_completion={cleanup}; std::mem::drop(pending_completion); cleanup_completion }}");
-        }
-        let cleanup=region.finally.as_ref().map(|body|self.completion_body(fun,body,ids.2,names.1,outgoing.clone(),runtime));
-        // Keep partial-move state visible to Rust across cleanup. Storage-carrying
-        // frames retain their dedicated transport and cannot use this direct route.
-        let partial_return=exception_contract_emit::has_partial_return(fun,&region.body)
-            || region.catch.as_ref().is_some_and(|handler|exception_contract_emit::has_partial_return(fun,&handler.body))
-            || region.finally.as_ref().is_some_and(|body|exception_contract_emit::has_partial_return(fun,body));
-        let terminal_body=crate::completion::definitely_abrupt(&region.body)
-            && region.catch.as_ref().is_none_or(|handler|crate::completion::definitely_abrupt(&handler.body))
-            && exception_contract_emit::escaping_controls(&region.body).is_empty()
-            && region.catch.as_ref().is_none_or(|handler|exception_contract_emit::escaping_controls(&handler.body).is_empty())
-            && region.finally.as_ref().is_none_or(|body|exception_contract_emit::escaping_controls(body).is_empty());
-        let inline_exit=||{
-            // Retain the lexical body boundary whenever initialized root slots
-            // suffice. Its locals must drop before cleanup executes.
-            if cleanup.is_some() && (!partial_return || terminal_body){return None;}
-            if self.cleanup_replaces_exits.get() || !self.exception_regions.plain_return_destination(){return None;}
-            let binding=format!("finally_exit{}",ids.0);
-            let pending=binding.clone();
-            let pending=cleanup.as_ref().map_or_else(||pending.clone(),|cleanup|exception_emit::finally_region(&pending,cleanup));
-            let (outer_name,outer_contract,_)=self.exception_regions.current_transport().expect("enclosing cleanup transport");
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            let widened=exception_contract_emit::checked_completion_conversion(&pending,names.1,&outer_name,&outgoing,&outer_contract,&unions,runtime,crate::Span::default()).expect("checked cleanup errors");
-            let returned=self.exception_regions.return_value("value",crate::Span::default());
-            let thrown=self.exception_regions.native_throw("error");
-            let controls=region.finally.as_ref().map_or_else(String::new,|body|exception_contract_emit::escaping_controls(body).into_iter().map(|(target,continuing,span)|{
-                let label=match target {ControlTarget::Loop(id)|ControlTarget::Tail(id)=>format!("TsrControlTarget::Loop({id})"),ControlTarget::Block(id)=>format!("TsrControlTarget::Block({id})")};
-                let kind=if continuing{"Continue"}else{"Break"};let route=self.exception_regions.control_at(target,continuing,span);
-                format!("TsrCompletion::{kind}({label})=>{{{route}}},")
-            }).collect::<String>());
-            let abrupt=self.exception_regions.inline_abrupt("completion").map_or_else(
-                ||format!("TsrCompletion::Return(value)=>{{{returned}}},TsrCompletion::Throw(error)=>{{{thrown}}}"),
-                |route|format!("completion @ (TsrCompletion::Return(_)|TsrCompletion::Throw(_))=>{{{route}}}"));
-            Some(exception_contract_emit::InlineExit{binding,ty:format!("TsrCompletion<(),{},{}>",self.native_type(fun.result),names.1),code:format!("match {widened} {{{abrupt},{controls}_=>unreachable!(\"checked abrupt cleanup exit\")}}")})
-        };
-        let inline_abrupt=inline_exit();
-        let inline=if cleanup.is_some(){inline_abrupt.clone()}else{None};
-        let direct_returns=region.finally.is_none() && !self.cleanup_replaces_exits.get();
-        let pending=if let Some(handler)=&region.catch {
-            self.completion_with_catch(fun,&region.body,handler,(ids.0,ids.1),names.0,names.1,outgoing.clone(),runtime,direct_returns,inline.clone(),inline_abrupt.clone())
-        }else{
-            *self.inline_return.borrow_mut()=inline;
-            *self.inline_abrupt.borrow_mut()=inline_abrupt;
-            self.return_passes_through.set(direct_returns);
-            self.completion_body(fun,&region.body,ids.0,names.1,outgoing.clone(),runtime)
-        };
-        if let Some(cleanup)=cleanup {exception_emit::finally_region(&pending,&cleanup)}else{pending}
+        let mut output=String::new();let mut pending=Vec::new();
+        self.schedule_completion_handlers(&mut output,fun,region,ids,(names.0.into(),names.1.into()),outgoing,runtime,true,&mut pending);
+        self.run_statement_work(&mut output,fun,pending);output
     }
 
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     fn completion_with_catch(&self,fun:&CheckedFunction,body:&[Stmt],handler:&CatchClause,ids:(usize,usize),incoming_name:&str,outgoing_name:&str,outgoing:crate::error_effects::FailureSet,runtime:Option<Type>,direct_returns:bool,inline:Option<exception_contract_emit::InlineExit>,inline_abrupt:Option<exception_contract_emit::InlineExit>)->String {
-        let incoming=handler.error_contract.as_deref().expect("checked catch contract");
-        *self.inline_return.borrow_mut()=inline.clone();
-        self.return_passes_through.set(direct_returns);
-        let pending=self.completion_body(fun,body,ids.0,incoming_name,incoming.clone(),runtime);
-        *self.inline_return.borrow_mut()=inline;
-        *self.inline_abrupt.borrow_mut()=inline_abrupt;
-        self.return_passes_through.set(direct_returns);
-        let handled=self.completion_body(fun,&handler.body,ids.1,outgoing_name,outgoing,runtime);
-        let setup=if let Some(binding)=handler.binding {
-            let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
-            let value=exception_contract_emit::checked_catch_value("caught_error",incoming_name,incoming,&unions,runtime,fun.bindings[binding].declaration_span.unwrap_or_default()).expect("checked catch payload");
-            format!("let {}value{binding}={value};",if fun.bindings[binding].mutable {"mut "}else{""})
-        }else{"std::mem::drop(caught_error);".into()};
-        exception_emit::catch_region(&pending,"caught_error",&format!("{{ {setup} {handled} }}"))
+        let mut output=String::new();let mut pending=Vec::new();
+        self.schedule_completion_catch(&mut output,fun,body,handler,ids,incoming_name.into(),outgoing_name.into(),outgoing,runtime,direct_returns,inline,inline_abrupt,&mut pending);
+        self.run_statement_work(&mut output,fun,pending);output
     }
 
     #[inline(never)]
@@ -3541,29 +3462,16 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
+    #[cfg(test)]
     fn completion_body(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>)->String {
         self.completion_body_frame(fun,body,id,error_name,contract,runtime,false)
     }
 
     #[inline(never)]
     fn completion_body_frame(&self,fun:&CheckedFunction,body:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,initialize_parameters:bool)->String {
-        self.completion_next.set(self.completion_next.get().max(id+1));
-        let locals=exception_contract_emit::local_control_targets(body);
-        let _region=self.exception_regions.enter_typed(id,locals,error_name.into(),contract,runtime);
-        if self.return_passes_through.take() {self.exception_regions.mark_return_passes_through();}
-        if let Some(route)=self.inline_return.borrow_mut().take() {self.exception_regions.set_inline_return(route);}
-        if let Some(route)=self.inline_abrupt.borrow_mut().take() {self.exception_regions.set_inline_abrupt(route);}
-        let mut statements=String::new();
-        let prefix=if initialize_parameters {
-            self.parameter_initialization(&mut statements,fun);
-            for slot in self.finally_moves.parameters(fun) {
-                if !self.restored_slots.contains(fun,slot) {let _=writeln!(statements,"let mut value{slot}=Some(value{slot});");}
-            }
-            body.iter().take_while(|stmt|fun.bindings.iter().any(|binding|binding.input_ty.is_some() && binding.name.starts_with("pattern#") && binding.declaration_span.is_some_and(|span|stmt.span.start>=span.start && stmt.span.end<=span.end))).count()
-        }else{0};
-        self.block(&mut statements,fun,&body[prefix..],1);
-        let expression=exception_emit::completion_region(id,&statements);
-        format!("{{ let completion:TsrCompletion<(),{},{}>={expression}; completion }}",self.native_type(fun.result),error_name)
+        let mut output=String::new();let mut pending=Vec::new();
+        self.schedule_completion_body(&mut output,fun,body,id,error_name.into(),contract,runtime,initialize_parameters,&mut pending);
+        self.run_statement_work(&mut output,fun,pending);output
     }
 
     fn block(&self, output: &mut String, fun: &CheckedFunction, body: &[Stmt], depth: usize) {
@@ -3588,9 +3496,11 @@ impl Emitter<'_> {
         self.run_statement_work(output, fun, vec![Work::Body(body, declarations, depth, loop_label)]);
     }
 
-    fn run_statement_work<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, mut pending: Vec<statement_work::Work<'a, 's>>) {
+    fn run_statement_work<'a, 's: 'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, mut pending: Vec<statement_work::Work<'a, 's>>) {
         use std::rc::Rc;
         use statement_work::Work;
+        let mut buffers=Vec::new();
+        let mut values=Vec::new();
         while let Some(work) = pending.pop() {
             let (stmt, body, visible, depth, loop_label) = match work {
                 Work::Body(body, declarations, depth, label) => {
@@ -3598,6 +3508,10 @@ impl Emitter<'_> {
                     continue;
                 },
                 Work::Text(code) => { output.push_str(&code); continue; },
+                Work::Capture => { buffers.push(std::mem::take(output)); continue; },
+                Work::Captured => { values.push(std::mem::replace(output,buffers.pop().expect("completion output buffer"))); continue; },
+                Work::Resume(resume) => { resume(output,&mut pending,&mut values); continue; },
+                Work::Region(scope) => { drop(scope); continue; },
                 Work::Scope(scope) => { drop(scope); continue; },
                 Work::StorageScope(scope) => { drop(scope); continue; },
                 Work::Storage(work) => { self.resume_storage_statement(output, fun, work, &mut pending); continue; },
@@ -3739,9 +3653,15 @@ impl Emitter<'_> {
                 self.map_post_entry_epochs(output, fun, stmt.span, depth);
                 continue;
             }
+            if let StmtKind::Try(region)=&stmt.kind {
+                pending.push(Work::Post(stmt,depth));
+                pending.push(Work::Text("\n".into()));
+                self.schedule_nested_completion(output,fun,stmt,region,&mut pending);
+                continue;
+            }
             let code = match &stmt.kind {
                 StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checking"),
-                StmtKind::Try(region) => self.nested_completion(fun,stmt,region),
+                StmtKind::Try(_) => unreachable!("exception region scheduled above"),
                 StmtKind::Throw(value) => {
                     let code=self.expr(fun,value,Mode::Consume);
                     let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);

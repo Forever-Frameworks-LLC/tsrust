@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,14 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('cleanup-regions', 'catch-regions', 'mixed-exception-regions'):
+        if family == 'mixed-exception-regions':
+            layers = [('try{', '}finally{}'), ('try{', '}catch(error){}'), ('try{', '}catch(error){}finally{}')]
+            body = ''.join(layers[level % 3][0] for level in range(size)) + 'console.log(7);' + ''.join(layers[level % 3][1] for level in reversed(range(size)))
+        else:
+            closing = '}finally{}' if family == 'cleanup-regions' else '}catch(error){}'
+            body = repeated('console.log(7);', size, 'try{', closing)
+        return 'function main():void{' + body + '}'
     if family in ('scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed'):
         if family == 'scoped-map-branches':
             body = repeated('handlers.clear();', size, 'if(true){', '}else{handlers.clear();}')

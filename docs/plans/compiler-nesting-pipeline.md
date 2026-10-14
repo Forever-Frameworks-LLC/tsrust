@@ -1575,3 +1575,37 @@ moves and Map iteration, and six affected editor checks. Whole-project formatter
 runs change zero files and fingerprints. The corrected witness changes only
 `cfg(test)` code; native/editor/discovery executables use identical production
 source. Full compiler/LSP matrices are not repeated for this internal section.
+
+
+### Ordinary exception emission continuations
+
+Ordinary try/catch/finally emission now schedules bodies and string assembly on
+`emit/statement_work.rs`. `emit/completion_work.rs` preserves typed region guards,
+catch setup, cleanup-first emission order, inline return routes, abrupt-cleanup
+replacement and final dispatch under the enclosing region. The scheduler captures
+child output buffers and resumes parents after child guards restore. Abrupt cleanup
+uses the borrowed original region with cleanup disabled for its pending phase;
+that scheduling edge does not clone a second region or recursively enter a driver.
+Contract discovery still clones/scans descendants and remains scaling debt.
+
+Validation passes 28 exception emitter tests (including generated native execution),
+six statement scheduler tests, and 31 other emitter tests. The new isolated witness
+emits 512 nested catch/finally regions on the normal test stack and checks leaf
+preservation, completion count, balanced output and restored transport/control
+state. Its first two failed versions exposed witness setup mistakes: missing
+runtime-error materialization and assuming console output used `println!`. Both
+failed records remain preserved; only the corrected witness is counted as passed.
+
+Discovery adds cleanup, catch and mixed exception families. All 15 observations
+through 2,048 levels complete parsing, lowering, analysis, emission and disposal.
+Cleanup at 8,192 times out during analysis under the 30-second observation budget;
+the two other families at that size remain unrun when the total budget ends.
+These observations overlap a test build and are not formal timings or supported
+nesting limits. Whole-project formatting changes zero files and fingerprints.
+Evidence is retained under `tsrust-nesting-completion-work-*` in SQLite.
+
+This is an internal source checkpoint, not complete exception architecture
+acceptance. Map/field storage completion, borrowed-map exception emission and Map
+prefix renewal still enter synchronous helpers. Their owned cleanup function
+variants also require lifetime-safe scheduling. Public admission, formal scaling,
+full milestone regressions and installed consumer refresh remain pending.

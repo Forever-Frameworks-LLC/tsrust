@@ -96,3 +96,33 @@ fn deep_clear_discovery_preserves_reset_order_and_rejects_effects() {
     body.push(function.body[2].clone());
     assert!(emitter.map_clear_block_epoch(function, declarations, &nested).is_none());
 }
+
+
+#[test]
+fn nested_exception_bodies_resume_and_restore_transport_scopes() {
+    let mut checked=crate::check("function probe():void{try{console.log(7);}catch(error){}finally{}}function main(){probe();}").unwrap();
+    let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
+    let function_id=checked.program.functions.iter().position(|function|function.name=="probe").unwrap();
+    let function=&checked.program.functions[function_id];
+    let template=&function.body[0];
+    let mut nested=template.clone();
+    let depth=512;
+    for _ in 1..depth {
+        let mut parent=template.clone();
+        let StmtKind::Try(region)=&mut parent.kind else {panic!("exception region")};
+        region.body=vec![nested];
+        nested=parent;
+    }
+    let emitter=emitter_for(&checked.program,"");
+    let contract=checked.program.error_effects.function_errors[function_id].clone();
+    let (_,name)=emitter.completion_error_layout("DeepError",&contract,Some(runtime),template.span);
+    let output=emitter.callable_result_body(function,&[nested],0,&name,contract,Some(runtime));
+    assert_eq!(output.matches("7i64").count(),1);
+    assert_eq!(output.matches("let pending_completion").count(),depth);
+    assert_eq!(output.matches('{').count(),output.matches('}').count());
+    assert_eq!(emitter.exception_regions.current_id(),None);
+    assert!(emitter.control_targets.snapshot().is_empty());
+    assert!(emitter.inline_return.borrow().is_none());
+    assert!(emitter.inline_abrupt.borrow().is_none());
+    assert!(!emitter.cleanup_replaces_exits.get());
+}
