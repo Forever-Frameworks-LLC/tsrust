@@ -129,7 +129,7 @@ obsolete test/native outputs without deleting owner editor caches.
 
 Five executable consumers are the installed CLI/LSP, the workspace override
 `target/editor/debug/tsrust-lsp`, and shared-target debug CLI/LSP. Consumer refresh
-now uses ThreadPool source checkpoints `c4013ce5` / `4b4d5e20`, with atomic installed
+now uses formatter source checkpoint `9fb8036f`, with atomic installed
 release replacements and matching SHA-256 hashes. The primary VS Code server was
 restarted and its workspace reports No Problems. The second `tsrust_test` window
 was not rechecked in this pass; reload it if it still uses an older server.
@@ -159,3 +159,15 @@ completion; there is no forced thread termination. ThreadPool container storage 
 rejected until lifecycle support exists. No async/deferred keywords or parallel
 iterator API were added. The full family regression remains separate from this
 focused pool/cancellation acceptance.
+
+## Empty-delimiter formatting acceptance
+
+Checkpoint `9fb8036f` keeps empty `{}`, `[]` and `()` inline, including gaps
+containing blank lines. Comments retain their previous formatting. Acceptance:
+29 formatter tests, 240 lexable fixtures / 84 callable contracts, 5 LSP formatting
+tests and 8 fingerprint guards pass. Whole-project formatting changed 65 files
+and refreshed 37 token-preserving fingerprints; a repeat changed zero files or
+fingerprints. Installed release formatting is idempotent and its native probe
+prints `0`. The primary editor server was restarted with checking enabled.
+Evidence is stored under `tsrust-empty-delimiters-*.log` in SQLite. Unrelated full
+regressions were not repeated.
