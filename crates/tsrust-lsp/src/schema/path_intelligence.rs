@@ -90,10 +90,10 @@ impl SourceIndex {
     }
     pub(in crate::intelligence) fn common_record_fields(&self, ty: &str, omit_absent: bool) -> std::collections::BTreeMap<String, String> {
         let mut alternatives = self.record_alternatives(ty, omit_absent).into_iter();
-        let fields = |owner: &str| self.symbols.iter()
+        let fields = |owner: &str| if let Some(fields) = super::outcome_intelligence::outcome_fields(owner) { fields } else { self.symbols.iter()
             .filter(|symbol| symbol.owner.as_deref() == Some(owner))
             .map(|symbol| (symbol.name.clone(), symbol.ty.clone()))
-            .collect::<std::collections::BTreeMap<_, _>>();
+            .collect::<std::collections::BTreeMap<_, _>>() };
         let Some(first) = alternatives.next() else { return Default::default(); };
         let mut result = fields(&first);
         for owner in alternatives {

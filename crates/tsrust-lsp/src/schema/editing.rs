@@ -71,6 +71,11 @@ impl SourceIndex {
     }
 
     pub(in crate::intelligence) fn result_value_help(&self, ty:&str, name:&str)->String {
+        let validation_help="\n\nValidationError contains `issues: SchemaIssue[]` and `truncated: boolean`. Each issue includes `code`, `message`, `path`, `pathTruncated`, `expected`, and `observed`. Path segments identify a `field` or an `index`.";
+        if ty.contains("SafeParseSuccess<") && ty.contains("SafeParseError<") {
+            let validation=if ty.contains("ValidationError") {validation_help} else {""};
+            return format!("\n\nA schema validation outcome. Check `{name}.success`: when true, `{name}.data` holds the validated output; when false, `{name}.error` explains the failure. Reading `data` or `error` needs that check first.\n\n```tsrust\nif ({name}.success) {{\n  console.log({name}.data);\n}} else {{\n  console.log({name}.error.issues);\n}}\n```{validation}");
+        }
         if !ty.starts_with("Result<") {return String::new();}
         let validation=if ty.contains("ValidationError") {
             "\n\nValidationError contains `issues: SchemaIssue[]` and `truncated: boolean`. Each issue includes `code`, `message`, `path`, `pathTruncated`, `expected`, and `observed`. Path segments identify a `field` or an `index`."

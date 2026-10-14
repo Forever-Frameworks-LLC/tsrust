@@ -13,6 +13,8 @@ mod project_generic_intelligence;
 mod generic_intelligence;
 #[path = "result_intelligence.rs"]
 mod result_intelligence;
+#[path = "outcome_intelligence.rs"]
+mod outcome_intelligence;
 #[path = "native_type_intelligence.rs"]
 mod native_type_intelligence;
 #[path = "data_intelligence.rs"]
@@ -1890,14 +1892,14 @@ impl SourceIndex {
         if let Some((_, output, _, _, _, _)) = self.schema_pipeline_types.get(&receiver) {
             if method == "parse" { return output.clone(); }
             if matches!(method, "refine" | "superRefine") { return receiver; }
-            if method == "safeParseJson" { return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
+            if method == "safeParseJson" { return format!("SafeParseSuccess<{output}> | SafeParseError<{{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>"); }
             if method == "safeParse" {
                 return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::ValidationError)
-                    .map(|(name, _)| format!("Result<{output}, {name}>")).unwrap_or_default();
+                    .map(|(name, _)| format!("SafeParseSuccess<{output}> | SafeParseError<{name}>")).unwrap_or_default();
             }
         }
         if method=="parse" && let Some(output)=self.schema_element(&receiver) {return output.to_owned();}
-        if method=="safeParseJson" && let Some(output)=self.schema_element(&receiver) {return format!("Result<{output}, {{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>");}
+        if method=="safeParseJson" && let Some(output)=self.schema_element(&receiver) {return format!("SafeParseSuccess<{output}> | SafeParseError<{{ kind: 'json'; error: JsonError }} | {{ kind: 'validation'; error: ValidationError }}>");}
         let receiver = literal_scalar_family(&receiver).map(str::to_owned).unwrap_or(receiver);
         if matches!((self.schema_element(&receiver),method),(Some("string"|"int"|"number"),"min"|"max")|(Some("int"|"number"),"gt"|"lt")) {return receiver;}
         if self.schema_element(&receiver).is_some() && method=="default" {return receiver;}
@@ -1910,7 +1912,7 @@ impl SourceIndex {
         if self.schema_element(&receiver).is_some() && method=="strip" {return receiver;}
         if let Some(element) = self.schema_element(&receiver) && method == "safeParse" {
             return self.native_type_aliases.iter().find(|(_, identity)| **identity == tsrust_compiler::native_signatures::NativeTypeId::ValidationError)
-                .map(|(name, _)| format!("Result<{element}, {name}>")).unwrap_or_default();
+                .map(|(name, _)| format!("SafeParseSuccess<{element}> | SafeParseError<{name}>")).unwrap_or_default();
         }
         if receiver == "@namespace:std:schema#s" && matches!(method, "string" | "boolean" | "int" | "number" | "null") {
             return self.native_type_aliases.iter()
@@ -2194,6 +2196,10 @@ impl SourceIndex {
                 let field = end + 1;
                 ty = self.checked_view(field).map(str::to_owned).or_else(|| {
                     if self.text(field) == "size" && (self.deque_element(&ty).is_some() || self.heap_element(&ty).is_some() || self.ordered_set_element(&ty).is_some() || self.ordered_map_types(&ty).is_some()) { return Some("int".into()); }
+                    if ty.contains("SafeParse") {
+                        let base = if end == id + 1 { self.narrow_outcome(ty.clone(), id) } else { ty.clone() };
+                        return self.common_record_fields(&base, false).remove(self.text(field));
+                    }
                     self.symbols
                         .iter()
                         .find(|symbol| {
@@ -2601,7 +2607,14 @@ impl SourceIndex {
         {
             return payload;
         }
-        self.infer(n, self.tokens[n].span.start, depth + 1)
+        if n > 1 && self.text(n - 1) == "." {
+            let base = self.receiver_type_end(n - 2, depth + 1);
+            if base.contains("SafeParse") && let Some(field) = self.common_record_fields(&base, false).remove(self.text(n)) {
+                return field;
+            }
+        }
+        let ty = self.infer(n, self.tokens[n].span.start, depth + 1);
+        if n == 0 || self.text(n - 1) != "." { self.narrow_outcome(ty, n) } else { ty }
     }
     fn resolve_token(&self, id: usize) -> Option<usize> {
         // The exported spelling in `import { name as local }` refers to the

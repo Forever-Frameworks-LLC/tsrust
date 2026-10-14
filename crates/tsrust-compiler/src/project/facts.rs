@@ -454,6 +454,12 @@ impl ProjectAnalysis {
             if let Some(name) = variant {
                 return Some(ProjectType::Variant { name: name.into(), payload: Box::new(self.project_type_inner(crate::result_identity::payload(record)?, names, active)?) });
             }
+            // Schema outcome alternatives are declared by std:schema, not a project module.
+            let outcome = application.declaration.text.as_str();
+            if outcome == crate::stdlib::schema::builders::SUCCESS || outcome == crate::stdlib::schema::builders::FAILURE {
+                let arguments = application.resolved_arguments.iter().map(|ty| self.project_type_inner(*ty, names, active)).collect::<Option<Vec<_>>>()?;
+                return Some(ProjectType::Named { name: outcome.to_owned(), declaration: None, arguments });
+            }
         }
         if record.is_tuple() {
             return Some(ProjectType::Tuple(record.fields.iter().map(|field| self.project_type_inner(field.ty?,names,active)).collect::<Option<_>>()?));

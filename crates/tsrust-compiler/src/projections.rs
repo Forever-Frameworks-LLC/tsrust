@@ -219,6 +219,7 @@ impl Analysis {
         }
         let mut views = BTreeMap::<(usize, usize), Vec<Type>>::new();
         let mut methods = BTreeMap::<(usize, usize), Vec<Type>>::new();
+        let mut adapter_spans = std::collections::HashSet::<(usize, usize)>::new();
         // Types of destructured names. The synthesized position expression of a
         // name shares its span; its index and length results must not be
         // reported as a second type of the name.
@@ -414,11 +415,16 @@ impl Analysis {
                                 || matches!(expression.kind, ExprKind::SpreadCall(_))))
                         && let Some(ty) = expression.ty
                     {
-                        let types = methods
-                            .entry((expression.span.start, expression.span.end))
-                            .or_default();
-                        if !types.contains(&ty) {
-                            types.push(ty);
+                        // A schema adapter (parse/safeParse outcome) shares its span with the
+                        // raw validation it wraps; only the adapter's public type is the result.
+                        let adapter = matches!(&expression.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name.starts_with("@schema:safeParseOutcome") || name.starts_with("@schema:parseResult")));
+                        let span = (expression.span.start, expression.span.end);
+                        if adapter { adapter_spans.insert(span); methods.insert(span, vec![ty]); }
+                        else if !adapter_spans.contains(&span) {
+                            let types = methods.entry(span).or_default();
+                            if !types.contains(&ty) {
+                                types.push(ty);
+                            }
                         }
                     }
                     if let Some(fact) = deferred_call_fact(program, expression, &mut generic_names) {

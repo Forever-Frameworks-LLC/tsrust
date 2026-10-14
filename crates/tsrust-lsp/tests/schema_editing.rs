@@ -19,14 +19,14 @@ fn result_hover_explains_safe_access() {
     let source="import {s} from 'std:schema';const schema=s.string();function main(){const parsed=schema.safeParse('hello');console.log(parsed);}";
     let result=request(source,"console.log(parsed","textDocument/hover");
     let text=result.to_string();
-    assert!(text.contains("Ok(")&&text.contains("Err(")&&text.contains("issues"),"{text}");
+    assert!(text.contains("parsed.success")&&text.contains("parsed.data")&&text.contains("parsed.error")&&text.contains("issues"),"{text}");
 }
 #[test]
-fn result_match_payloads_complete_during_incomplete_editing() {
-    for (arm,expected) in [("Ok(value)","toUpperCase"),("Err(value)","issues")] {
-        let source=format!("import {{s}} from 'std:schema';const schema=s.string();function main(){{const parsed=schema.safeParse('hello');match(parsed){{{arm}=>{{\nvalue.\nconsole.log('next');\n}}}}}}");
-        let result=request(&source,"\nvalue.","textDocument/completion");
-        assert!(result.as_array().unwrap().iter().any(|item|item["label"]==expected),"{arm}: {result}");
+fn safe_parse_branches_complete_during_incomplete_editing() {
+    for (condition,member,expected) in [("parsed.success","data","toUpperCase"),("!parsed.success","error","issues")] {
+        let source=format!("import {{s}} from 'std:schema';const schema=s.string();function main(){{const parsed=schema.safeParse('hello');if({condition}){{\nparsed.{member}.\nconsole.log('next');\n}}}}");
+        let result=request(&source,&format!("\nparsed.{member}."),"textDocument/completion");
+        assert!(result.as_array().unwrap().iter().any(|item|item["label"]==expected),"{condition}: {result}");
     }
 }
 #[test]
@@ -131,9 +131,9 @@ fn recursive_named_and_array_outputs_keep_member_completion() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
     for (definition, body, needle, expected) in [
         ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.int(),children:s.array(self)}));",
-         "{const outcome1=schema.safeParseJson('{\"value\":1,\"children\":[]}');if(outcome1.success){const value=outcome1.data;console.log(value.children[0].value);}else{const error=outcome1.error;}}", "value.children[0].", "value"),
+         "{const outcome0=schema.safeParseJson('{\"value\":1,\"children\":[]}');if(outcome0.success){const value=outcome0.data;console.log(value.children[0].value);}else{const error=outcome0.error;}}", "value.children[0].", "value"),
         ("const schema=s.recursive(self=>s.array(self));",
-         "{const outcome2=schema.safeParseJson('[[]]');if(outcome2.success){const value=outcome2.data;console.log(value[0].length);}else{const error=outcome2.error;}}", "value[0].", "length"),
+         "{const outcome0=schema.safeParseJson('[[]]');if(outcome0.success){const value=outcome0.data;console.log(value[0].length);}else{const error=outcome0.error;}}", "value[0].", "length"),
     ] {
         let source=format!("import {{s}} from 'std:schema';{definition}function main(){{{body}}}");
         let uri="file:///recursive-output-editing.tsr";
@@ -168,7 +168,7 @@ fn recursive_schema_completion_recovers_before_following_statement() {
 #[test]
 fn recursive_union_root_keeps_common_fields_and_finite_hover() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
-    let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){{const outcome3=schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}');if(outcome3.success){const value=outcome3.data;console.log(value.kind);}else{const error=outcome3.error;}}}";
+    let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){{const outcome0=schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}');if(outcome0.success){const value=outcome0.data;console.log(value.kind);}else{const error=outcome0.error;}}}";
     let uri="file:///recursive-union-editing.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();

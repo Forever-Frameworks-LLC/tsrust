@@ -42,7 +42,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
 
 #[test]
 fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
-    let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();{if(result.success){const user=result.data;console.log(user.name.toUpperCase());}else{const error=result.error;console.log(error.length);}}}").unwrap();
+    let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();match(result){Ok(user)=>{console.log(user.name.toUpperCase());},Err(error)=>{console.log(error.length);}}}").unwrap();
     let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<User,string>{return Ok({name:'Pat'});}").unwrap();
     for source in [&entry, &dependency] { assert_eq!(tsrust_compiler::format(source).unwrap(), *source); }
     let uri = "file:///tsrust-intelligence/main.tsr";
@@ -1984,7 +1984,7 @@ fn imported_documentation_preserves_multiline_tags_and_parameter_help() {
 
 #[test]
 fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
- let entry="import {openJsonl as open,JsonlReader,readJsonl,closeJsonl} from 'std:json';function main(){const result=open('records.jsonl');{if(result.success){const reader=result.data;closeJsonl(reader);}else{const error=result.error;console.log(error.line);}}}";
+ let entry="import {openJsonl as open,JsonlReader,readJsonl,closeJsonl} from 'std:json';function main(){const result=open('records.jsonl');match(result){Ok(reader)=>{closeJsonl(reader);},Err(error)=>{console.log(error.line);}}}";
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,entry,"open('records","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
@@ -2400,9 +2400,9 @@ fn schema_safe_parse_help_explains_consumption_and_result() {
     let checked = workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
     let index = ProjectIndex::checked(&checked);
     let hover = ask(&index, &entry, "safeParse(", "textDocument/hover");
-    assert!(hover.to_string().contains("Owned<string | JsonValue>") && hover.to_string().replace(' ', "").contains("Result<string,ValidationError>") && hover.to_string().contains("consumes input on every outcome"), "{hover}");
+    assert!(hover.to_string().contains("Owned<string | JsonValue>") && hover.to_string().replace(' ', "").contains("SafeParseSuccess<string>|SafeParseError<ValidationError>") && hover.to_string().contains("consumes input on every outcome"), "{hover}");
     let result = ask(&index, &entry, "result =", "textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<string,ValidationError>"), "{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<string>|SafeParseError<ValidationError>"), "{result}");
 }
 
 #[test]
@@ -2414,7 +2414,7 @@ fn schema_boolean_editor_preserves_inferred_result_and_copy_contract() {
     let constructor=ask(&index,&entry,"boolean()","textDocument/hover");
     assert!(constructor.to_string().contains("rules.boolean(options?: { message?: string }): Schema<boolean>"),"{constructor}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<boolean,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<boolean>|SafeParseError<ValidationError>"),"{result}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("Direct booleans copy")&&hover.to_string().contains("without truthiness coercion"),"{hover}");
 }
@@ -2428,7 +2428,7 @@ fn schema_integer_editor_reports_exact_contract_and_inferred_result() {
     let constructor=ask(&index,&entry,"int()","textDocument/hover");
     assert!(constructor.to_string().contains("rules.int(options?: { message?: string }): Schema<int>"),"{constructor}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<int,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<int>|SafeParseError<ValidationError>"),"{result}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("integer-fractional")&&hover.to_string().contains("integer-range"),"{hover}");
     let help=ask(&index,&entry,"42)","textDocument/signatureHelp");
@@ -2444,7 +2444,7 @@ fn schema_number_editor_reports_checked_contract_and_inferred_result() {
     let constructor=ask(&index,&entry,"number()","textDocument/hover");
     assert!(constructor.to_string().contains("rules.number(options?: { message?: string }): Schema<number>"),"{constructor}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<number,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<number>|SafeParseError<ValidationError>"),"{result}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("number-nonfinite")&&hover.to_string().contains("number-precision"),"{hover}");
     let help=ask(&index,&entry,"1.5)","textDocument/signatureHelp");
@@ -2460,7 +2460,7 @@ fn schema_null_editor_reports_presence_and_inferred_result() {
     let constructor=ask(&index,&entry,"null()","textDocument/hover");
     assert!(constructor.to_string().contains("rules.null(options?: { message?: string }): Schema<null>"),"{constructor}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<null,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<null>|SafeParseError<ValidationError>"),"{result}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("Undefined")&&hover.to_string().contains("type-mismatch"),"{hover}");
     let help=ask(&index,&entry,"null)","textDocument/signatureHelp");
@@ -2480,7 +2480,7 @@ fn schema_string_constraints_have_consuming_help_and_chain_types() {
     let value=ask(&index,&entry,"schema =","textDocument/hover");
     assert!(value.to_string().contains("Schema<string>"),"{value}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<string,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<string>|SafeParseError<ValidationError>"),"{result}");
 }
 
 #[test]
@@ -2496,7 +2496,7 @@ fn schema_integer_constraints_have_exact_help_and_chain_types() {
     let value=ask(&index,&entry,"schema =","textDocument/hover");
     assert!(value.to_string().contains("Schema<int>"),"{value}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<int,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<int>|SafeParseError<ValidationError>"),"{result}");
 }
 
 #[test]
@@ -2512,7 +2512,7 @@ fn schema_exclusive_integer_constraints_have_help_and_chain_types() {
     let value=ask(&index,&entry,"schema =","textDocument/hover");
     assert!(value.to_string().contains("Schema<int>"),"{value}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<int,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<int>|SafeParseError<ValidationError>"),"{result}");
 }
 
 #[test]
@@ -2538,7 +2538,7 @@ fn schema_floating_constraints_have_help_and_chain_types() {
     let value=ask(&index,&entry,"schema =","textDocument/hover");
     assert!(value.to_string().contains("Schema<number>"),"{value}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<number,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<number>|SafeParseError<ValidationError>"),"{result}");
 }
 
 #[test]
@@ -2558,7 +2558,7 @@ fn schema_array_validation_infers_result_and_documents_input() {
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
     let hover=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(hover.to_string().replace(' ', "").contains("Result<string[][],ValidationError>"),"{hover}");
+    assert!(hover.to_string().replace(' ', "").contains("SafeParseSuccess<string[][]>|SafeParseError<ValidationError>"),"{hover}");
     let hover=ask(&index,&entry,"safeParse(","textDocument/hover");
     assert!(hover.to_string().contains("64")&&hover.to_string().contains("Owned<string[][] | JsonValue>"),"{hover}");
 }
@@ -2574,7 +2574,7 @@ fn schema_number_array_signature_includes_checked_integer_input() {
     let help=ask(&index,&entry,"input);","textDocument/signatureHelp");
     assert!(help.to_string().contains("number[][] | int[][] | JsonValue"),"{help}");
     let hover=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(hover.to_string().replace(' ', "").contains("Result<number[][],ValidationError>"),"{hover}");
+    assert!(hover.to_string().replace(' ', "").contains("SafeParseSuccess<number[][]>|SafeParseError<ValidationError>"),"{hover}");
 }
 
 #[test]
@@ -2734,7 +2734,7 @@ fn schema_union_chains_keep_all_output_alternatives_in_editor_help() {
 
 #[test]
 fn schema_discriminator_narrowing_exposes_selected_field_types() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})]);{const outcome4=schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":4}'));if(outcome4.success){const value=outcome4.data;if(value.kind==='count'){console.log(value.count);}else{console.log(value.text);}}else{const error=outcome4.error;console.log(error.issues.length);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})]);{const outcome0=schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":4}'));if(outcome0.success){const value=outcome0.data;if(value.kind==='count'){console.log(value.count);}else{console.log(value.text);}}else{const error=outcome0.error;console.log(error.issues.length);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2745,7 +2745,7 @@ fn schema_discriminator_narrowing_exposes_selected_field_types() {
 
 #[test]
 fn schema_enum_discriminator_narrowing_keeps_nominal_field_help() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum A{First='first'}enum B{Second='second'}function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.enum(A),first:s.int()}),s.object({kind:s.enum(B),second:s.string()})]);{const outcome5=schema.safeParse(JSON.parse('{\"kind\":\"second\",\"second\":\"value\"}'));if(outcome5.success){const value=outcome5.data;if(value.kind===B.Second){console.log(value.second);}else{console.log(value.first);}}else{const error=outcome5.error;console.log(error.issues.length);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum A{First='first'}enum B{Second='second'}function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.enum(A),first:s.int()}),s.object({kind:s.enum(B),second:s.string()})]);{const outcome0=schema.safeParse(JSON.parse('{\"kind\":\"second\",\"second\":\"value\"}'));if(outcome0.success){const value=outcome0.data;if(value.kind===B.Second){console.log(value.second);}else{console.log(value.first);}}else{const error=outcome0.error;console.log(error.issues.length);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2785,7 +2785,7 @@ fn schema_pipeline_help_keeps_raw_input_distinct_from_transformed_output() {
     assert!(hover.to_string().contains("Schema<boolean>"), "{hover}");
     assert!(!hover.to_string().contains("@schema:pipeline"), "{hover}");
     let result = ask(&index, &entry, "result =", "textDocument/hover");
-    assert!(result.to_string().replace(' ', "").contains("Result<boolean,ValidationError>"), "{result}");
+    assert!(result.to_string().replace(' ', "").contains("SafeParseSuccess<boolean>|SafeParseError<ValidationError>"), "{result}");
     let help = ask(&index, &entry, "[1, 2]", "textDocument/signatureHelp");
     assert!(help.to_string().contains("input: int[]"), "{help}");
     assert!(!help.to_string().contains("input: boolean"), "{help}");
@@ -2807,7 +2807,7 @@ fn schema_pipeline_default_help_uses_raw_input_and_presence_keeps_output() {
     assert!(hover.to_string().contains("int")&&hover.to_string().contains("undefined"),"{hover}");
     assert!(!hover.to_string().contains("@schema:"),"{hover}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().contains("Result<")&&result.to_string().contains("ValidationError"),"{result}");
+    assert!(result.to_string().contains("SafeParseSuccess<")&&result.to_string().contains("ValidationError"),"{result}");
 }
 
 #[test]
@@ -2850,7 +2850,7 @@ fn schema_direct_union_constraint_chain_has_scalar_help(){
     let index=ProjectIndex::checked(&checked);
     let schema=ask(&index,&entry,"schema =","textDocument/hover");assert!(schema.to_string().contains("Schema<string>"),"{schema}");
     let method=ask(&index,&entry,"min(2)","textDocument/hover");assert!(method.to_string().contains("min("),"{method}");
-    let result=ask(&index,&entry,"result =","textDocument/hover");assert!(result.to_string().replace(' ',"").contains("Result<string,ValidationError>"),"{result}");
+    let result=ask(&index,&entry,"result =","textDocument/hover");assert!(result.to_string().replace(' ',"").contains("SafeParseSuccess<string>|SafeParseError<ValidationError>"),"{result}");
 }
 
 #[test]
@@ -2862,7 +2862,7 @@ fn collection_schema_types_and_json_completion_follow_input_contracts(){
     let hover=ask(&index,&entry,"dictionary =","textDocument/hover");
     assert!(hover.to_string().replace(' ',"").contains("Schema<Map<string,int>>"),"{hover}");
     let result=ask(&index,&entry,"result =","textDocument/hover");
-    assert!(result.to_string().replace(' ',"").contains("Result<Map<string,int>,ValidationError>"),"{result}");
+    assert!(result.to_string().replace(' ',"").contains("SafeParseSuccess<Map<string,int>>|SafeParseError<ValidationError>"),"{result}");
     let native=ask(&index,&entry,"safeParse(input)","textDocument/completion");
     assert!(!native.as_array().unwrap().iter().any(|entry|entry["label"]=="safeParseJson"),"{native}");
     let record=ask(&index,&entry,"safeParseJson(","textDocument/completion");
