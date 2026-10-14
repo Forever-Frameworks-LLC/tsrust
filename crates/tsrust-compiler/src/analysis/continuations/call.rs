@@ -2,6 +2,7 @@
 use super::super::*;
 
 pub(in crate::analysis) enum CallDispatch {
+    Spread,
     PrepareReceiver,
     Ready(Type),
     Reduction,

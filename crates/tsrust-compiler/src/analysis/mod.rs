@@ -115,6 +115,7 @@ mod polymorphic_argument_hints;
 mod optional_chain;
 mod rest_calls;
 mod spread_calls;
+mod spread_call_work;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -8839,7 +8840,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         self.string_code_point_at(context, expr)?;
         self.string_locale_case(context, expr)?;
         if matches!(&expr.kind, ExprKind::Call(_, args) if args.iter().any(|arg| matches!(arg.kind, ExprKind::Unary {op:UnaryOp::Spread,..}))) {
-            return self.spread_call(context, expr, loans, expected).map(CallDispatch::Ready);
+            return Ok(CallDispatch::Spread);
         }
         if let ExprKind::Call(callee, _) = &expr.kind
             && matches!(callee.kind, ExprKind::Field(_, _))

@@ -10115,3 +10115,19 @@ fn generic_entry_chains_keep_checked_hover_and_original_definitions() {
         assert_eq!(definition["range"]["start"],json!(at(&source,"step63<T>",0)),"{kind}");
     }
 }
+
+#[test]
+fn nested_spread_operands_keep_checked_hover_and_source_definition(){
+    let value=format!("{}7{}","identity(...[".repeat(32),"])".repeat(32));
+    let source=format!("function identity(value:int):int{{return value;}}function main(){{const result={value};console.log(result);}}");
+    let source=tsrust_compiler::format(&source).unwrap();
+    assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+    assert!(tsrust_compiler::diagnostics(&source).is_empty());
+    let index=SourceIndex::new(&source);
+    let hover=index.request("textDocument/hover",&json!({"position":at(&source,"result =",0)}),"file:///test.tsr").unwrap();
+    assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"),"{hover}");
+    let call=source.find("result =").unwrap();
+    let call=call+source[call..].find("identity").unwrap();
+    let definition=index.request("textDocument/definition",&json!({"position":at(&source,&source[call..],0),"context":{"includeDeclaration":true}}),"file:///test.tsr").unwrap();
+    assert_eq!(definition["range"]["start"],json!(at(&source,"identity(value",0)));
+}

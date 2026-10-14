@@ -116,11 +116,35 @@ impl Emitter<'_> {
         format!("match {reference}{name} {{{}}}",arms.join(","))
     }
 
-    pub(super) fn spread_call_expression(&self,fun:&CheckedFunction,plan:&CheckedSpreadCall,mode:Mode)->String {
-        if matches!(mode,Mode::Read|Mode::Mutate) && plan.call.ty.is_some_and(|ty|!ty.is_copy() && !matches!(ty,Type::BorrowedUnion(_))) {
-            let owned=self.spread_call_expression(fun,plan,Mode::Consume);
-            return format!("{}({owned})",if mode==Mode::Read {"&"}else{"&mut "});
+    pub(super) fn spread_expression_children<'a>(&self,plan:&'a CheckedSpreadCall,mode:Mode)->Vec<(&'a Expr,Mode)>{
+        let mode=if matches!(mode,Mode::Read|Mode::Mutate) && plan.call.ty.is_some_and(|ty|!ty.is_copy() && !matches!(ty,Type::BorrowedUnion(_))){Mode::Consume}else{mode};
+        let mut children=Vec::new();
+        if let Some(callee)=&plan.callee{children.push((callee.value.as_ref(),callee.access));}
+        children.extend(plan.segments.iter().map(|segment|(segment.value.as_ref(),if segment.spread && (segment.access==Mode::Copy || segment.value.ty==Some(Type::String)){Mode::Read}else{segment.access})));
+        let empty=plan.segments.iter().all(|segment|segment.spread && segment.length==Some(0));
+        match plan.builtin {
+            Some(SpreadBuiltinKind::NativeStringRest|SpreadBuiltinKind::MathVariadic|SpreadBuiltinKind::ConsoleVariadic)=>{},
+            Some(SpreadBuiltinKind::StringConcat|SpreadBuiltinKind::ArrayConcat|SpreadBuiltinKind::ArrayToSpliced|SpreadBuiltinKind::ArrayUnshift|SpreadBuiltinKind::ArraySplice)=>{
+                let ExprKind::Call(callee,_) =&plan.call.kind else{unreachable!("spread builtin call")};
+                let ExprKind::Field(base,_) =&callee.kind else{unreachable!("spread builtin receiver")};
+                match plan.builtin.unwrap(){
+                    SpreadBuiltinKind::ArrayUnshift=>children.push((base.as_ref(),if empty{Mode::Read}else{Mode::Mutate})),
+                    SpreadBuiltinKind::ArraySplice=>{children.push((base.as_ref(),Mode::Read));if !empty{children.push((base.as_ref(),Mode::Mutate));}},
+                    _=>children.push((base.as_ref(),Mode::Read)),
+                }
+            }
+            Some(SpreadBuiltinKind::ObserveVariadic)=>{
+                children.extend(plan.variants.iter().filter(|variant|matches!(variant.selection,SpreadVariantSelection::FirstSegment(_))).map(|variant|(variant.call.as_ref(),mode)));
+                if let Some(empty)=plan.variants.iter().find(|variant|variant.selection==SpreadVariantSelection::Empty){children.push((empty.call.as_ref(),mode));}
+            }
+            _=>children.extend(plan.variants.iter().map(|variant|(variant.call.as_ref(),mode))),
         }
+        children
+    }
+
+    pub(super) fn spread_call_expression_with(&self,plan:&CheckedSpreadCall,requested:Mode,emit:&mut impl FnMut(&Expr,Mode)->String)->String {
+        let borrowed=matches!(requested,Mode::Read|Mode::Mutate) && plan.call.ty.is_some_and(|ty|!ty.is_copy() && !matches!(ty,Type::BorrowedUnion(_)));
+        let mode=if borrowed{Mode::Consume}else{requested};
         // With no fixed or later arguments, the eager scalar snapshot is already
         // the complete owned rest pack. Keep its final representation and move it.
         let transferable_snapshot = if plan.maximum.is_none()
@@ -131,12 +155,12 @@ impl Emitter<'_> {
         let mut output=String::from("{ ");
         if let Some(callee)=&plan.callee {
             let name=callee.selection.native_name(plan.slot);
-            let code=self.expr(fun,&callee.value,callee.access);
+            let code=emit(&callee.value,callee.access);
             write!(output,"let mut {name} = {code}; ").unwrap();
         }
         for (index,segment) in plan.segments.iter().enumerate() {
             let name=format!("spread_segment{}_{index}",plan.slot);
-            let code=self.expr(fun,&segment.value,if segment.spread && (segment.access==Mode::Copy || segment.value.ty==Some(Type::String)) {Mode::Read}else{segment.access});
+            let code=emit(&segment.value,if segment.spread && (segment.access==Mode::Copy || segment.value.ty==Some(Type::String)) {Mode::Read}else{segment.access});
             if segment.spread {
                 let source=format!("spread_source{}_{index}",plan.slot);
                 write!(output,"let mut {source} = {code}; ").unwrap();
@@ -220,17 +244,18 @@ impl Emitter<'_> {
         let call=match plan.builtin {
             Some(SpreadBuiltinKind::NativeStringRest)=>self.spread_native_string_rest(plan),
             Some(SpreadBuiltinKind::MathVariadic)=>self.spread_builtin_math_call(plan),
-            Some(SpreadBuiltinKind::StringConcat)=>self.spread_builtin_string_concat(fun,plan),
+            Some(SpreadBuiltinKind::StringConcat)=>self.spread_builtin_string_concat(plan,emit),
             Some(SpreadBuiltinKind::ConsoleVariadic)=>self.spread_builtin_console_call(plan),
-            Some(SpreadBuiltinKind::ObserveVariadic)=>self.spread_builtin_observe_call(fun,plan,mode),
-            Some(SpreadBuiltinKind::ArrayUnshift)=>self.spread_builtin_unshift_call(fun,plan),
-            Some(SpreadBuiltinKind::ArrayConcat)=>self.spread_builtin_array_concat_call(fun,plan),
-            Some(SpreadBuiltinKind::ArraySplice)=>self.spread_builtin_splice_call(fun,plan),
-            Some(SpreadBuiltinKind::ArrayToSpliced)=>self.spread_builtin_to_spliced_call(fun,plan),
-            Some(_)=>self.spread_builtin_fixed_call(fun,plan,mode),
-            None=>self.spread_language_call(fun,plan,mode),
+            Some(SpreadBuiltinKind::ObserveVariadic)=>self.spread_builtin_observe_call(plan,mode,emit),
+            Some(SpreadBuiltinKind::ArrayUnshift)=>self.spread_builtin_unshift_call(plan,emit),
+            Some(SpreadBuiltinKind::ArrayConcat)=>self.spread_builtin_array_concat_call(plan,emit),
+            Some(SpreadBuiltinKind::ArraySplice)=>self.spread_builtin_splice_call(plan,emit),
+            Some(SpreadBuiltinKind::ArrayToSpliced)=>self.spread_builtin_to_spliced_call(plan,emit),
+            Some(_)=>self.spread_builtin_fixed_call(plan,mode,emit),
+            None=>self.spread_language_call(plan,mode,emit),
         };
-        output.push_str(&call);output.push_str(" }");output
+        output.push_str(&call);output.push_str(" }");
+        if borrowed{format!("{}({output})",if requested==Mode::Read{"&"}else{"&mut "})}else{output}
     }
 
     #[inline(never)]
@@ -244,14 +269,14 @@ impl Emitter<'_> {
         }else{format!("assert!({condition}, {message:?}); ")}
     }
 
-    fn spread_language_call(&self,fun:&CheckedFunction,plan:&CheckedSpreadCall,mode:Mode)->String {
+    fn spread_language_call(&self,plan:&CheckedSpreadCall,mode:Mode,emit:&mut impl FnMut(&Expr,Mode)->String)->String {
         let mut output=format!("match spread_count{} {{ ",plan.slot);
         let mut exhaustive=false;
         for variant in &plan.variants {
             let count=variant.count;
             if plan.maximum.is_none() && count==plan.selected_types.len() {exhaustive=true;output.push_str("_ => { ");}else{write!(output,"{count} => {{ ").unwrap();}
             for position in 0..count {let local=SpreadSelection::Argument(position).native_name(plan.slot);write!(output,"let mut {local} = {local}.take().expect(\"checked expanded slot\"); ").unwrap();}
-            output.push_str(&self.expr(fun,&variant.call,mode));output.push_str(" }, ");
+            output.push_str(&emit(&variant.call,mode));output.push_str(" }, ");
         }
         // Statically shorter sources omit the unbounded rest variant.
         if !exhaustive {output.push_str("_ => unreachable!(\"checked expanded arity\"), ");}

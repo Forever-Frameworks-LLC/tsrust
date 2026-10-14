@@ -8,10 +8,10 @@ pub(super) struct SpreadCallableContract {
 }
 
 impl Analyzer {
-    fn native_spread_source(&self, ty:Type)->bool {
+    pub(super) fn native_spread_source(&self, ty:Type)->bool {
         matches!(ty,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::Deque | crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)))
     }
-    fn immutable_spread_keys(&self, ty:Type)->bool {
+    pub(super) fn immutable_spread_keys(&self, ty:Type)->bool {
         matches!(ty,Type::Set(_) | Type::Map(_)) || matches!(ty,Type::Record(id) if matches!(self.program.records[id].native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet)))
     }
 
@@ -53,7 +53,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn array_spread_context(&mut self,value:&Expr,guessed:Option<Type>,element:Option<Type>)->Result<Option<Type>,Diagnostic>{
+    pub(super) fn array_spread_context(&mut self,value:&Expr,guessed:Option<Type>,element:Option<Type>)->Result<Option<Type>,Diagnostic>{
         if matches!(value.kind,ExprKind::SetConstructor(_,Some(_))|ExprKind::MapConstructor(_,Some(_))){return Ok(None);}
         let Some(element)=element else{return Ok(None);};
         let family=match &value.kind {ExprKind::SetConstructor(_,None)=>Some("Set"),ExprKind::MapConstructor(_,None)=>Some("Map"),_=>None};
@@ -73,7 +73,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    fn spread_source_type_hint(&mut self,context:&Context,value:&Expr)->Result<Option<Type>,Diagnostic>{
+    pub(super) fn spread_source_type_hint(&mut self,context:&Context,value:&Expr)->Result<Option<Type>,Diagnostic>{
         if let Some(ty)=self.expression_type_hint(context,value){return Ok(Some(ty));}
         let annotation=match &value.kind {ExprKind::SetConstructor(_,Some(annotation))|ExprKind::MapConstructor(_,Some(annotation))=>annotation,_=>return Ok(None)};
         let mut annotation=annotation.as_ref().clone();
@@ -104,7 +104,7 @@ impl Analyzer {
         Ok(Some(Box::new(Expr::new(ExprKind::Call(callee.clone(),normalized),expr.span))))
     }
 
-    fn spread_selected(&self, context: &Context, source: &Expr, slot: usize, selection: SpreadSelection, ty: Type, access: Mode) -> Expr {
+    pub(super) fn spread_selected(&self, context: &Context, source: &Expr, slot: usize, selection: SpreadSelection, ty: Type, access: Mode) -> Expr {
         let place=crate::flow::place(source,&context.names);
         let mut value=Expr::new(ExprKind::SpreadValue(Box::new(SpreadSelected {
             normalized_union:None,literal_integer:None, stable:matches!(source.kind,ExprKind::Name(_)|ExprKind::Selected{..}|ExprKind::Index(_,_)|ExprKind::Field(_,_)|ExprKind::Project{..}) || matches!(source.kind,ExprKind::Unary{op:UnaryOp::NonNull,..}) && Self::named_storage(source),
@@ -117,7 +117,7 @@ impl Analyzer {
         value.ty=Some(ty); value.binding=source.binding; value
     }
 
-    fn spread_argument(&self,context:&Context,segments:&[SpreadSegment],slot:usize,position:usize,ty:Type,normalized:Option<UnionId>,minimum:usize,maximum:Option<usize>)->Expr {
+    pub(super) fn spread_argument(&self,context:&Context,segments:&[SpreadSegment],slot:usize,position:usize,ty:Type,normalized:Option<UnionId>,minimum:usize,maximum:Option<usize>)->Expr {
         let candidates=segments.iter().enumerate().filter(|(index,segment)| segment.length!=Some(0) && {let(lower,upper)=spread_position_range(segments,*index,minimum,maximum);position>=lower&&upper.is_none_or(|upper|position<=upper)}).map(|(_,segment)|segment).collect::<Vec<_>>();
         let access=candidates.iter().map(|segment|segment.access).max().expect("reachable spread argument");
         let mut argument=self.spread_selected(context,&candidates[0].value,slot,SpreadSelection::Argument(position),ty,access);
@@ -128,188 +128,6 @@ impl Analyzer {
             if candidates.iter().any(|segment|crate::flow::place(&segment.value,&context.names).map(|place|(place.root,place.fields))!=selected.source.place){selected.source.place=None;}
         }
         argument
-    }
-
-    pub(super) fn spread_call(&mut self, context:&mut Context, expr:&mut Expr, loans:&Loans, expected:Option<Type>) -> Result<Type,Diagnostic> {
-        let span=expr.span; let slot=span.start;
-        let ExprKind::Call(source_callee,source_args)=&expr.kind else {unreachable!()};
-        let mut callee=source_callee.as_ref().clone();
-        let mut segments=source_args.iter().map(|arg| {
-            let (value,spread)=if let ExprKind::Unary {op:UnaryOp::Spread,value,..}=&arg.kind {(value.as_ref().clone(),true)} else {(arg.clone(),false)};
-            let length=if spread {if let ExprKind::Array(values)=&value.kind { if values.iter().any(|value|matches!(value.kind,ExprKind::Unary{op:UnaryOp::Spread,..})) {None} else {Some(values.len())} }else{None}}else{Some(1)};
-            let hint=self.spread_source_type_hint(context,&value)?;
-            let element=if spread {hint.and_then(|ty|self.iterable_element(ty)).map(ArrayElement::ty).unwrap_or(Type::Undefined)}else{hint.unwrap_or(Type::Undefined)};
-            Ok(SpreadSegment {value:Box::new(value),spread,element,access:Mode::Read,length})
-        }).collect::<Result<Vec<_>,Diagnostic>>()?;
-        // Generic inference uses checked-type hints, never evaluation of array
-        // elements in place of constructing the source array.
-        if matches!(&callee.kind,ExprKind::Name(name) if self.generic_functions.template(name).is_some() && !context.names.contains_key(name)) {
-            let mut args=Vec::new();
-            for segment in &segments {
-                let count=segment.length.unwrap_or(1);
-                for _ in 0..count { args.push(self.spread_selected(context,&segment.value,slot,SpreadSelection::Argument(args.len()),segment.element,Mode::Consume)); }
-            }
-            let mut prototype=Expr::new(ExprKind::Call(Box::new(callee.clone()),args),span);
-            self.prepare_generic_call(context,&mut prototype,expected)?;
-            let ExprKind::Call(prepared,_) = prototype.into_kind() else {unreachable!()}; callee=*prepared;
-        }
-        for segment in &mut segments {
-            if !segment.spread && let Some(ty)=self.callback_value_hint(context,&segment.value)? {segment.element=ty;}
-        }
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let fresh_callee=matches!(callee.kind,ExprKind::Closure{..}|ExprKind::Call(_, _));
-        if fresh_callee {self.contextual_spread_callee(&mut callee,&segments)?;self.expression(context,&mut callee,Mode::Consume,loans,None)?;}
-        let ordinary=self.ordinary_spread_contract(context,&callee)?;
-        let builtin=if ordinary.is_none() {self.builtin_spread_contract(context,&callee,&segments,span)?}else{None};
-        let (parameters,minimum,maximum)=if let Some(contract)=&ordinary {
-            let rest=contract.parameters.last().is_some_and(|parameter|parameter.rest);
-            let fixed=contract.parameters.len()-usize::from(rest);
-            (contract.parameters.clone(),crate::parameter_arity::minimum_arguments(&contract.parameters[..fixed],|parameter|parameter.omission.is_omittable()),if rest {None}else{Some(fixed)})
-        } else if let Some(contract)=&builtin {
-            let parameters=if matches!(contract.kind,SpreadBuiltinKind::ArraySplice|SpreadBuiltinKind::ArrayToSpliced) {
-                let mut parameters=contract.arguments.iter().map(|argument|argument.contract(Type::Int)).collect::<Vec<_>>();
-                let tail=contract.tail.expect("checked variadic array tail");
-                let mut rest=tail.contract(Type::Undefined);rest.ty=self.constructor_array_type(rest.ty,span)?;rest.rest=true;parameters.push(rest);parameters
-            }else{Vec::new()};
-            (parameters,contract.minimum,contract.maximum)
-        } else {return Err(Diagnostic::new("unsupported","Spread requires a resolved supported callable target.",callee.span));};
-        let known:usize=segments.iter().map(|segment|segment.length.unwrap_or(0)).sum();
-        let dynamic=segments.iter().any(|segment|segment.length.is_none());
-        if (!dynamic && known<minimum) || maximum.is_some_and(|maximum|known>maximum) {
-            return Err(Diagnostic::new("arity",format!("Expanded call requires at least {minimum} arguments within its accepted maximum; statically supplied {known}."),span));
-        }
-        let fixed=parameters.len()-usize::from(parameters.last().is_some_and(|parameter|parameter.rest));
-        let mut staged_callee=None; let mut active=loans.clone();
-        if ordinary.is_some() && !matches!(&callee.kind,ExprKind::Name(name) if !context.names.contains_key(name) && self.function_names.contains_key(name)) {
-            let access=ordinary.as_ref().unwrap().invocation;
-            let hint=self.expression_type_hint(context,&callee);
-            // A narrowed nullable local is checked as an ordinary expression so
-            // the staged callee is its present payload, not the tagged slot.
-            let ty=if fresh_callee {callee.ty.expect("checked expression callee")} else if let ExprKind::Name(name)=&callee.kind && let Some(&id)=context.names.get(name)
-                && !matches!(context.bindings[id].ty,Type::Union(_)|Type::BorrowedUnion(_)) {
-                if id<context.capture_boundary && context.bindings[id].callback_kind.is_some_and(|kind|!kind.is_owned()) {
-                    return Err(Diagnostic::new("callback-escape","Capturing a callback requires an owned parameter contract.",callee.span));
-                }
-                Self::access(context,id,access,callee.span,&active)?;
-                callee.binding=Some(id);callee.ty=Some(context.bindings[id].ty);context.bindings[id].ty
-            }else{self.expression(context,&mut callee,access,&active,hint)?};
-            for root in Self::loan_roots(&callee,access) {active.entry(root).or_default().push((access,callee.span));}
-            let selected=self.spread_selected(context,&callee,slot,SpreadSelection::Callee,ty,access);
-            staged_callee=Some(SpreadCallee {value:Box::new(callee),access,selection:SpreadSelection::Callee}); callee=selected;
-        } else if let Some(contract)=&builtin && let ExprKind::Field(base,_) = &mut callee.kind
-            && !matches!(&base.kind,ExprKind::Name(name) if !context.names.contains_key(name) && matches!(name.as_str(),"Math"|"Array"|"Number"|"console")) {
-            let mut access=contract.receiver_access;
-            let ty=self.expression(context,base,access,&active,None)?;
-            if let ExprKind::Field(_,method)=&source_callee.kind {
-                let checked=self.spread_builtin_traversal_access(context,ty,method,&segments)?;
-                if checked>access {Self::storage_access(context,base,checked,base.span,&active)?;access=checked;}
-            }
-            for root in Self::loan_roots(base,access) {active.entry(root).or_default().push((access,base.span));}
-            let selected=self.spread_selected(context,base,slot,SpreadSelection::Receiver,ty,access);
-            staged_callee=Some(SpreadCallee {value:base.clone(),access,selection:SpreadSelection::Receiver}); **base=selected;
-        }
-        for index in 0..segments.len() {
-            let (lower,upper)=spread_position_range(&segments,index,minimum,maximum);
-            let known_hint=self.callback_value_hint(context,&segments[index].value)?.is_some();
-            if segments[index].spread && self.expression_type_hint(context,&segments[index].value).is_some_and(|ty| !self.native_spread_source(ty) && !matches!(ty,Type::Array(_) | Type::String | Type::Set(_) | Type::Map(_) | Type::Union(_) | Type::BorrowedUnion(_))) {return Err(Diagnostic::new("spread-source","Call spread requires an array, string, Set, Map, Deque, Heap or OrderedSet.",segments[index].value.span));}
-            let mut contracts=Vec::new();
-            let last=upper.unwrap_or(fixed.max(lower));
-            for position in lower..=last {
-                let contract=if let Some(builtin)=&builtin {builtin.argument(position).map(|argument|argument.contract(segments[index].element))}
-                    else {parameters.get(position).copied().or_else(||parameters.last().copied().filter(|parameter|parameter.rest)).map(|mut parameter|{if parameter.rest {if let Type::Array(element)=parameter.ty {parameter.ty=element.ty();}} parameter})};
-                if let Some(contract)=contract {let typed=builtin.as_ref().is_none_or(|builtin|builtin.argument(position).is_some_and(|argument|argument.ty.is_some()) || known_hint);contracts.push((contract,typed));}
-            }
-            let mut access=contracts.iter().map(|(contract,_)|contract.mode).max().unwrap_or(Mode::Read);
-            let hints=contracts.iter().filter(|(_,typed)|*typed).map(|(contract,_)|if segments[index].spread {self.unions.payload(contract.ty).unwrap_or(contract.ty)}else{contract.ty}).collect::<HashSet<_>>();
-            let expected_element=if matches!(segments[index].element,Type::Null|Type::Undefined) && contracts.iter().all(|(contract,typed)|!*typed || self.require(segments[index].element,Some(contract.ty),segments[index].value.span).is_ok()) && self.expression_type_hint(context,&segments[index].value).is_some() {Some(segments[index].element)}else if hints.len()==1 {hints.iter().copied().next()}else{None};
-            if segments[index].element.is_copy() && access!=Mode::Mutate {access=Mode::Copy;}
-            let segment=&mut segments[index];
-            let guessed=self.spread_source_type_hint(context,&segment.value)?;
-            let expected_source=if segment.spread {self.array_spread_context(&segment.value,guessed,expected_element)?.or_else(|| (segment.length==Some(0) && matches!(segment.value.kind,ExprKind::Array(_))).then_some(Type::Array(ArrayElement::Undefined(0))))}else{expected_element};
-            if segment.spread && guessed.is_some_and(|ty|self.immutable_spread_keys(ty)) && access==Mode::Mutate {
-                return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys, Map entry tuples or ordered collection elements; explicitly copy to an array first.",segment.value.span));
-            }
-            let source_access=if segment.spread && (access==Mode::Copy || guessed==Some(Type::String)) {Mode::Read}else{access};
-            let actual=self.expression(context,&mut segment.value,source_access,&active,expected_source)?;
-            if segment.spread && self.immutable_spread_keys(actual) && access==Mode::Mutate {return Err(Diagnostic::new("collection-key","Call spread cannot lend mutable stored Set keys, Map entry tuples or ordered collection elements; explicitly copy to an array first.",segment.value.span));}
-            segment.element=if segment.spread {self.iterable_element(actual).ok_or_else(||Diagnostic::new("spread-source","Call spread requires an array, string, Set, Map, Deque, Heap or OrderedSet.",segment.value.span))?.ty()}else{actual};
-            // Character strings are new owners, not references into the source.
-            segment.access=if segment.spread && actual==Type::String {Mode::Consume}else if segment.element.is_copy()&&access!=Mode::Mutate {Mode::Copy}else{access};
-            if segment.access==Mode::Read && let Type::Union(id)=segment.element && !id.copy {segment.element=Type::BorrowedUnion(id);}
-            for (contract,typed) in contracts {if typed {self.require(segment.element,Some(contract.ty),segment.value.span)?;}}
-            if !segment.element.is_copy() && matches!(segment.access,Mode::Read|Mode::Mutate) {
-                for root in Self::loan_roots(&segment.value,segment.access) {active.entry(root).or_default().push((segment.access,segment.value.span));}
-            }
-        }
-        let slot_limit=maximum.unwrap_or(fixed);
-        let mut selected_types=Vec::new();let mut selected_unions=Vec::new();
-        for position in 0..slot_limit {
-            let candidates=segments.iter().enumerate().filter(|(index,segment)|{
-                if segment.length==Some(0) {return false;} let (lower,upper)=spread_position_range(&segments,*index,minimum,maximum); position>=lower&&upper.is_none_or(|upper|position<=upper)
-            }).map(|(_,segment)|segment.element).collect::<HashSet<_>>();
-            let ty=if candidates.len()==1 {*candidates.iter().next().unwrap()} else if candidates.is_empty() {Type::Undefined} else {
-                self.unions.intern(candidates.iter().copied().map(Type::owning),span)?
-            }; selected_unions.push((candidates.len()>1).then(||ty.union().expect("normalized nullable spread slot")));selected_types.push(ty);
-        }
-        let mut variants=Vec::new();
-        let prefix_variadic=builtin.as_ref().is_some_and(|contract|matches!(contract.kind,SpreadBuiltinKind::ArraySplice|SpreadBuiltinKind::ArrayToSpliced));
-        let counts=if prefix_variadic {if dynamic {(minimum..=fixed).collect::<Vec<_>>()}else{vec![known.min(fixed)]}}else if maximum.is_some() {if dynamic {(minimum..=maximum.unwrap()).collect::<Vec<_>>()}else{vec![known]}}
-            else if builtin.as_ref().is_some_and(|contract|matches!(contract.kind,SpreadBuiltinKind::MathVariadic|SpreadBuiltinKind::StringConcat|SpreadBuiltinKind::ConsoleVariadic)) {vec![segments.iter().filter(|segment|segment.length!=Some(0)).count()]}
-            else if builtin.is_some() {vec![segments.iter().filter(|segment|segment.length!=Some(0)).count()]}
-            else {if dynamic {(minimum..=fixed).collect::<Vec<_>>()}else{vec![known.min(fixed)]}};
-        let mut result=None;
-        let observe=builtin.as_ref().is_some_and(|contract|contract.kind==SpreadBuiltinKind::ObserveVariadic);
-        let counts=if observe {(0..=segments.len()).collect::<Vec<_>>()}else{counts};
-        for count in counts {
-            let mut args=Vec::new();
-            let selection=if observe {
-                if count==segments.len() {
-                    if segments.iter().any(|segment|segment.length.is_some_and(|length|length>0)) {continue;}
-                    SpreadVariantSelection::Empty
-                }else{
-                    if segments[count].length==Some(0) || segments[..count].iter().any(|segment|segment.length.is_some_and(|length|length>0)) {continue;}
-                    let segment=&segments[count];
-                    let mut argument=self.spread_selected(context,&segment.value,slot,SpreadSelection::Argument(0),segment.element,segment.access);
-                    if let ExprKind::SpreadValue(selected)=&mut argument.kind {selected.carrier=false;}
-                    args.push(argument);
-                    SpreadVariantSelection::FirstSegment(count)
-                }
-            }else{SpreadVariantSelection::Count(count)};
-            if observe {} else if prefix_variadic {
-                for position in 0..count {
-                    args.push(self.spread_argument(context,&segments,slot,position,selected_types[position],selected_unions[position],minimum,maximum));
-                }
-                if count==fixed {
-                    for (index,segment) in segments.iter().enumerate().filter(|(_,segment)|segment.length!=Some(0)) {
-                        let (_,upper)=spread_position_range(&segments,index,minimum,maximum);
-                        if upper.is_none_or(|upper|upper>=fixed) {args.push(self.spread_selected(context,&segment.value,slot,SpreadSelection::Argument(args.len()),segment.element,segment.access));}
-                    }
-                }
-            }else if maximum.is_none() && builtin.is_some() {
-                for segment in segments.iter().filter(|segment|segment.length!=Some(0)) {args.push(self.spread_selected(context,&segment.value,slot,SpreadSelection::Argument(args.len()),segment.element,segment.access));}
-            }else {
-                for position in 0..count {
-                    args.push(self.spread_argument(context,&segments,slot,position,selected_types[position],selected_unions[position],minimum,maximum));
-                }
-                if maximum.is_none() {
-                    while args.len()<fixed {args.push(Expr::new(ExprKind::Undefined,span));}
-                    let rest=parameters.last().expect("rest contract");
-                    let source=segments.last().expect("spread source");
-                    let value=self.spread_selected(context,&source.value,slot,SpreadSelection::Rest,rest.ty,Mode::Consume);
-                    args.push(Expr::new(ExprKind::Unary{op:UnaryOp::RestPack,value:Box::new(value),operator:span},span));
-                }
-            }
-            let mut call=Expr::new(ExprKind::Call(Box::new(callee.clone()),args),span);
-            let ty=self.expression(context,&mut call,Mode::Consume,loans,expected)?;
-            if result.is_some_and(|prior|prior!=ty) {return Err(Diagnostic::new("type","Reachable expanded arities must share one checked result type.",span));} result=Some(ty);
-            call.supplied_count=Some(CallArgumentCount::Runtime{slot});
-            variants.push(SpreadCallVariant{selection,count:if observe {args_count(&selection)}else{count},call:Box::new(call)});
-        }
-        let call=variants.first().expect("checked spread call variant").call.clone();
-        expr.kind=ExprKind::SpreadCall(Box::new(CheckedSpreadCall {callee:staged_callee,segments,call,parameters,selected_types,selected_unions,variants,slot,minimum,maximum,builtin:builtin.map(|contract|contract.kind)}));
-        let result=result.unwrap();
-        if fresh_callee && !self.expression_result_retains_captures(result){capture_boundary.unwind(&mut context.capture_loans);}
-        expr.ty=Some(result); Ok(result)
     }
 
     pub(super) fn spread_value_expression(
@@ -348,8 +166,6 @@ impl Analyzer {
         if let ExprKind::Name(name) = &callee.kind
             && !context.names.contains_key(name)
             && let Some(&index) = self.function_names.get(name) {
-            self.named_captures.prepare(index, context, &self.program)?;
-            self.function(index)?;
             let parameters = if let Some(function) = &self.checked[index] {
                 function.bindings[..function.parameter_count].iter().map(ArgumentContract::from).collect()
             } else {
@@ -422,7 +238,7 @@ pub(crate) fn spread_position_range(
     (lower, upper)
 }
 
-fn args_count(selection:&SpreadVariantSelection)->usize {usize::from(matches!(selection,SpreadVariantSelection::FirstSegment(_)))}
+pub(super) fn args_count(selection:&SpreadVariantSelection)->usize {usize::from(matches!(selection,SpreadVariantSelection::FirstSegment(_)))}
 
 // Literal provenance is metadata only: the source array is still constructed
 // and staged once. Dynamic positions never acquire a literal-depth proof.

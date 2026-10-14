@@ -13,7 +13,19 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False, call_arguments=None, generic_inferred=False, generic_entry=None):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False, call_arguments=None, generic_inferred=False, generic_entry=None, spread_execution=None):
+    if spread_execution:
+        if spread_execution == 'annotated':
+            functions=[]
+            for index in range(count):
+                result='value' if index+1==count else f'step{index+1}<T>(...[value])'
+                functions.append(f'function step{index}<T>(value:T):T{{return {result};}}')
+            functions.append(f'function main(){{console.log(step0<{scalar}>(7));}}')
+            return '\n'.join([*functions,*(['main();'] if call_main else []),''])
+        callee='identity' if spread_execution=='arguments' else f'((value:{scalar}):{scalar}=>value)'
+        value=callee+'(...['
+        declarations=f'function identity(value:{scalar}):{scalar}{{return value;}}' if spread_execution=='arguments' else ''
+        return declarations+'function main(){console.log('+value*count+'7'+'])'*count+');}'+('main();' if call_main else '')+'\n'
     if call_arguments:
         return argument_source(count, scalar, call_main, call_arguments)
     functions = []
@@ -101,6 +113,7 @@ def main():
     parser.add_argument('--compiler', type=Path, default=Path(os.environ.get('TSRUST', '/private/tmp/tsrust-gate100-editor-target/debug/tsrust')))
     parser.add_argument('--measure', action='store_true')
     parser.add_argument('--verify-execution', action='store_true', help='Check native and Node outputs against the manifest oracle before timing')
+    parser.add_argument('--spread-execution', choices=['arguments','annotated','fresh'], help='Use spread source evaluation and body contract workloads')
     parser.add_argument('--call-arguments', choices=['declared', 'bound', 'inline', 'field'], help='Use nested arguments through one callable form')
     parser.add_argument('--generic-entry', choices=['spread','receiver','optional'], help='Select generic entry preparation; requires --generic-functions --generic-inferred')
     parser.add_argument('--generic-inferred', action='store_true', help='Infer generic call arguments and results; requires --generic-functions')
@@ -139,6 +152,10 @@ def main():
         if args.recursive or args.generic_records or args.generic_functions or variants:
             parser.error('Nested call arguments are separate from dependency workloads')
         manifest_path = MANIFEST_PATH.parent.parent / 'call-arguments/manifest.json'
+    if args.spread_execution:
+        if args.recursive or args.generic_records or args.generic_functions or args.call_arguments or variants:
+            parser.error('Spread execution is separate from other workloads')
+        manifest_path = MANIFEST_PATH.parent.parent / 'spread-execution/manifest.json'
     manifest = json.loads(manifest_path.read_text())
     counts = manifest.get('nestingCounts', manifest.get('declarationCounts', manifest.get('functionCounts')))
     if args.only and any(count not in counts for count in args.only):
@@ -160,6 +177,8 @@ def main():
         'measurement': args.measure, 'groups': [], 'complete': False,
     }
 
+    if args.spread_execution:
+        record['spreadExecutionKind'] = args.spread_execution
     if args.generic_entry:
         record['genericEntryKind'] = args.generic_entry
     if args.call_arguments:
@@ -175,13 +194,13 @@ def main():
             for count in args.only or counts:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry, args.spread_execution))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry, args.spread_execution))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 assert native.read_bytes() == formatted, 'Formatter must be idempotent'
-                group = {('nestingCount' if args.call_arguments else 'declarationCount' if args.generic_records else 'functionCount'): count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
+                group = {('nestingCount' if args.call_arguments or args.spread_execution else 'declarationCount' if args.generic_records else 'functionCount'): count, 'nativeSource': native.read_text(), 'referenceSource': reference.read_text(),
                          'nativeSha256': digest(formatted), 'referenceSha256': digest(reference.read_bytes()), 'phases': {}}
                 record['groups'].append(group)
                 if args.verify_execution:

@@ -17,6 +17,7 @@ mod sorting;
 mod adapters;
 mod deferred;
 mod generic;
+mod spread;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -108,6 +109,7 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    Spread,
     GenericReceiver,
     GenericCall,
     Adapter,
@@ -236,8 +238,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Generic(Box<generic::GenericTask>), Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Spread(Box<spread::SpreadTask<'a>>), Generic(Box<generic::GenericTask>), Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Spread(Box<Expr>, Result<Type, Diagnostic>),
     Generic(Box<Expr>, Result<(), Diagnostic>),
     Deferred(Box<Expr>, Result<(usize, Type), Diagnostic>),
     Method(Result<(usize, Type), Diagnostic>),
@@ -526,6 +529,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Spread(task) => spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Generic(task) => generic::step(analyzer, task, completion.take()),
             Task::Deferred(task) => deferred::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Adapter(task) => adapters::step(analyzer, contexts.get(task.context), task, completion.take()),
@@ -902,6 +906,13 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Spread => {
+            let Completion::Spread(value,result)=completion.expect("spread call completion") else{unreachable!()};
+            *task.expression.value()=*value;
+            let context=contexts.get(task.context);
+            let result=result.map(|ty|{analyzer.resolve_completed_capture_invocation(context,task.expression.value(),ty);ty});
+            finish_expression(analyzer,context,task,result)
+        }
         ExpressionState::GenericReceiver => {
             let Completion::Generic(value, result) = completion.expect("receiver generic preparation") else { unreachable!() };
             *Analyzer::call_preparation_receiver(task.expression.value()) = *value;
@@ -2098,6 +2109,13 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
     }
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected, receiver_prepared);
                     match dispatch {
+                        Ok(CallDispatch::Spread) => {
+                            let span=expr.span;
+                            let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
+                            let child=Task::Spread(Box::new(spread::SpreadTask::new(value,task.context,task.loans.clone(),expected)));
+                            task.state=ExpressionState::Spread;
+                            Step::Push(Task::Expression(task),child)
+                        }
                         Ok(CallDispatch::PrepareReceiver) => {
                             let receiver = Analyzer::call_preparation_receiver(expr);
                             let span = receiver.span;

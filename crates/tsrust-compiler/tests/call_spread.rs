@@ -290,3 +290,25 @@ fn main(){
         support::success(&support::run(&mut std::process::Command::new(binary),30));
     }
 }
+
+#[test]
+fn deeply_nested_spread_operands_execute_once_in_source_order(){
+    let count=40;
+    let source=format!("function identity(value:int):int{{console.log(value);return value+1;}}function main(){{console.log({}7{});}}","identity(...[".repeat(count),"])".repeat(count));
+    let source=support::format_round_trip(&source);
+    let directory=support::TempDirectory::new();let path=directory.source(&source);
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    let expected=(7..=7+count).map(|value|format!("{value}\n")).collect::<String>();
+    assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+}
+
+#[test]
+fn annotated_generic_spread_bodies_keep_native_results(){
+    let mut source="function step0<T>(value:T):T{return value;}".to_owned();
+    for index in 1..40 {source.push_str(&format!("function step{index}<T>(value:T):T{{return step{}(...[value]);}}",index-1));}
+    source.push_str("function main(){console.log(step39(7));}");
+    let source=support::format_round_trip(&source);
+    let directory=support::TempDirectory::new();let path=directory.source(&source);
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(String::from_utf8(output.stdout).unwrap(),"7\n");
+}

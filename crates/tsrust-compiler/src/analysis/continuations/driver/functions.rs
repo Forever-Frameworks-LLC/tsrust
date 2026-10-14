@@ -8,15 +8,17 @@ enum Active { Parameters { index: usize, child: ContextId }, Body { index: usize
 pub(super) struct FunctionTask {
     schedule: Schedule,
     active: Option<Active>,
+    boundary: Option<(usize,usize)>,
 }
 
 impl FunctionTask {
     pub(super) fn new(index: usize) -> Self {
-        Self { schedule: Schedule::new(index), active: None }
+        Self { schedule: Schedule::new(index), active: None, boundary: None }
     }
 }
 
 pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts, mut task: Box<FunctionTask>, completion: Option<Completion<'a>>) -> Step<'a> {
+    let boundary=*task.boundary.get_or_insert((analyzer.depth,analyzer.function_stack.len()));
     let next = (|| {
         if let Some(active) = task.active.take() {
             match (active, completion.expect("named function child")) {
@@ -60,6 +62,10 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts, mut tas
     match next {
         Ok(Some(child)) => Step::Push(Task::Function(task), child),
         result => {
+            if result.is_err() {
+                for index in analyzer.function_stack.drain(boundary.1..) { analyzer.visiting[index]=false; }
+                analyzer.depth=boundary.0;
+            }
             task.schedule.release(analyzer);
             Step::Complete(Completion::Function(result.map(|_| ())))
         }

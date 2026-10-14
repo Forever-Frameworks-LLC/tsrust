@@ -34,8 +34,8 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_string_concat(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let ExprKind::Call(callee, _) = &plan.call.kind else {
             unreachable!("checked string concat spread call");
@@ -43,7 +43,7 @@ impl Emitter<'_> {
         let ExprKind::Field(base, _) = &callee.kind else {
             unreachable!("checked string concat receiver");
         };
-        let receiver = self.expr(fun, base, Mode::Read);
+        let receiver = emit(base, Mode::Read);
         let mut arguments = "std::iter::empty::<&String>()".to_string();
         for (index,segment) in plan.segments.iter().enumerate() {
             let copied=if segment.spread && segment.value.ty==Some(Type::String) {""}else{".copied()"};
@@ -86,9 +86,9 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_observe_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
         mode: Mode,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let mut output = String::new();
         for variant in &plan.variants {
@@ -98,7 +98,7 @@ impl Emitter<'_> {
             let first=if plan.segments[index].spread && plan.segments[index].value.ty==Some(Type::String){"spread_first"}else{"*spread_first"};
             write!(output, "if let Some(spread_first) = spread_segment{}_{index}.iter().next() {{ let {} = {first}; ",
                 plan.slot, SpreadSelection::Argument(0).native_name(plan.slot)).unwrap();
-            output.push_str(&self.expr(fun, &variant.call, mode));
+            output.push_str(&emit(&variant.call, mode));
             output.push_str(" } else ");
         }
         output.push_str("{ ");
@@ -107,7 +107,7 @@ impl Emitter<'_> {
             .iter()
             .find(|variant| variant.selection == SpreadVariantSelection::Empty)
         {
-            output.push_str(&self.expr(fun, &empty.call, mode));
+            output.push_str(&emit(&empty.call, mode));
         } else {
             output.push_str("unreachable!(\"checked spread has a first argument\")");
         }
@@ -117,8 +117,8 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_unshift_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let ExprKind::Call(callee, _) = &plan.call.kind else {
             unreachable!("checked unshift spread call");
@@ -135,13 +135,13 @@ impl Emitter<'_> {
             .iter()
             .all(|segment| segment.spread && segment.length == Some(0))
         {
-            let receiver = self.expr(fun, base, Mode::Read);
+            let receiver = emit(base, Mode::Read);
             return format!("i64::try_from(({receiver}).len()).expect({failure:?})");
         }
         let Type::Array(element) = base.ty.expect("checked unshift array") else {
             unreachable!("checked unshift array receiver");
         };
-        let receiver = self.expr(fun, base, Mode::Mutate);
+        let receiver = emit(base, Mode::Mutate);
         let mut added = format!("std::iter::empty::<{}>()", self.native_type(element.ty()));
         for index in 0..plan.segments.len() {
             write!(
@@ -159,8 +159,8 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_splice_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let ExprKind::Call(callee, _) = &plan.call.kind else {
             unreachable!("checked splice spread call");
@@ -171,7 +171,7 @@ impl Emitter<'_> {
         let array_type = base.ty.expect("checked splice array");
         let empty = format!(
             "{{ let _splice_receiver = {}; let splice_empty: {} = [].into(); splice_empty }}",
-            self.expr(fun, base, Mode::Read),
+            emit(base, Mode::Read),
             self.native_type(array_type)
         );
         if plan
@@ -181,7 +181,7 @@ impl Emitter<'_> {
         {
             return empty;
         }
-        let receiver = self.expr(fun, base, Mode::Mutate);
+        let receiver = emit(base, Mode::Mutate);
         let start = SpreadSelection::Argument(0).native_name(plan.slot);
         let delete = SpreadSelection::Argument(1).native_name(plan.slot);
         let rest = SpreadSelection::Rest.native_name(plan.slot);
@@ -204,8 +204,8 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_to_spliced_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let ExprKind::Call(callee, _) = &plan.call.kind else {
             unreachable!("checked toSpliced spread call");
@@ -217,7 +217,7 @@ impl Emitter<'_> {
         let Type::Array(element) = array_type else {
             unreachable!("checked toSpliced array receiver");
         };
-        let receiver = self.expr(fun, base, Mode::Read);
+        let receiver = emit(base, Mode::Read);
         let start = SpreadSelection::Argument(0).native_name(plan.slot);
         let delete = SpreadSelection::Argument(1).native_name(plan.slot);
         let rest = SpreadSelection::Rest.native_name(plan.slot);
@@ -247,8 +247,8 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_array_concat_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let ExprKind::Call(callee, _) = &plan.call.kind else {
             unreachable!("checked concat spread call");
@@ -260,7 +260,7 @@ impl Emitter<'_> {
         let Type::Array(element) = array_type else {
             unreachable!("checked concat array receiver");
         };
-        let receiver = self.expr(fun, base, Mode::Read);
+        let receiver = emit(base, Mode::Read);
         let failure = format!(
             "array concat capacity overflow at source bytes {}..{}",
             plan.call.span.start, plan.call.span.end
@@ -320,9 +320,9 @@ impl Emitter<'_> {
 
     pub(super) fn spread_builtin_fixed_call(
         &self,
-        fun: &CheckedFunction,
         plan: &CheckedSpreadCall,
         mode: Mode,
+        emit: &mut impl FnMut(&Expr,Mode)->String,
     ) -> String {
         let mut output = format!("match spread_count{} {{ ", plan.slot);
         for variant in &plan.variants {
@@ -342,7 +342,7 @@ impl Emitter<'_> {
                 )
                 .unwrap();
             }
-            output.push_str(&self.expr(fun, call, mode));
+            output.push_str(&emit(call, mode));
             output.push_str(" }, ");
         }
         // The wrapper rejects invalid counts after all argument evaluations and

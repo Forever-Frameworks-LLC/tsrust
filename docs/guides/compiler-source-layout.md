@@ -416,8 +416,8 @@ requests. It preserves the first deferred inference diagnostic and restores sour
 call names when a requested body fails. Preparation uses a read-only context
 snapshot shared between argument tasks; real source ownership is checked later.
 Direct named invocations and deferred generic bodies schedule these tasks on the
-same checker stack. Compatibility entry points still serve receiver factories,
-spreads and some contextual hints and remain audit targets.
+same checker stack. Compatibility entry points still serve some contextual and fresh hints and
+remain audit targets.
 
 
 Generic spread preparation returns a normalized prototype request. The generic
@@ -427,5 +427,18 @@ the same generic task before static-present lowering and branch selection. Call
 receiver preparation suspends after assignment-callee staging and global-name
 normalization, then resumes dispatch without repeating those transformations.
 `call_preparation_receiver` locates member/index receiver chains iteratively.
-Actual spread operand evaluation, ordinary spread contracts and expanded variants
-still use the synchronous spread analyzer and require their own migration.
+`analysis/spread_call_work.rs` owns spread contracts, staging, source access,
+selected-slot normalization and expanded-variant construction. Its helpers never
+check a source expression or function body. `analysis/continuations/driver/spread.rs`
+schedules static target bodies, fresh callees, receiver access, source operands and
+expanded calls on the shared checker stack. The original call remains intact on
+failure; successful completion publishes the checked spread plan. Array spread
+construction still uses a separate synchronous entry and requires migration.
+
+
+Spread emission enumerates callee, source and variant children in their existing
+order through `emit/expression_work.rs`. `spread_emit.rs` and
+`spread_builtin_emit.rs` assemble already emitted fragments, including borrowed
+results, snapshots, arity guards and builtin receiver modes. They do not start
+nested expression emitters. Named function tasks retain their entry depth and
+function-stack boundary and release owned visiting frames when child work fails.

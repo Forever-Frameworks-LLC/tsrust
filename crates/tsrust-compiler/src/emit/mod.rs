@@ -7261,7 +7261,7 @@ impl Emitter<'_> {
                     format!("({code}) as f64")
                 } else { code }
             },
-            ExprKind::SpreadCall(plan) => self.spread_call_expression(fun,plan,mode),
+            ExprKind::SpreadCall(_) => unreachable!("spread emission is scheduled by expression work"),
             ExprKind::SpreadValue(selected) => self.spread_selected_expression(expr,selected,mode),
             ExprKind::Unary { op: UnaryOp::RestPack, value, .. } => self.expr(fun, value, mode),
             ExprKind::Array(values) | ExprKind::ArrayOf(values, _) => self.array_literal_expression(fun, expr, values, mode),

@@ -2155,3 +2155,63 @@ observations and traces use `tsrust-nesting-spread-execution-audit-*`. Other fre
 hints, specialization/discovery entries, count budgets, parser admission, formal
 scaling, optimization and S12–S21 also remain required. No stack or limit constant
 is increased; full compiler/LSP regression and timing are not claimed.
+
+
+### Spread call checking and emission continuations
+
+Spread call analysis now retains one owned plan across body contracts, fresh
+callee checking, receiver staging, source operands and expanded invocation
+variants. Contract preparation precedes real source access. Source operands keep
+left-to-right checking and shared active loans; selected slots never replay source
+ownership. Synthetic expanded calls use the original enclosing loans, as before.
+The original source call is retained until successful plan publication, preserving
+its tree on failure. Static body requests run on the shared function stack.
+
+The first 512-operand witness clears analysis but overflows during spread emission.
+LLDB identifies recursive source `expr` calls inside `spread_call_expression`.
+Spread emission now enumerates its callee, sources and variants on the existing
+expression work stack. Pure assembly helpers consume completed fragments. Borrowed
+result adaptation, eager copy snapshots, rest allocation, dynamic arity guards,
+variant selection and builtin receiver access remain unchanged. Failure testing
+also exposes an existing named-function depth leak: function tasks now release
+their owned depth, stack and visiting frames when child work fails. Original
+failed build, restoration and overflow observations remain separate evidence.
+
+All 44 shared-driver tests pass. New witnesses check, emit and dispose 512 nested
+spread operands and 128 annotated generic spread bodies on ordinary worker stacks.
+Four failure witnesses preserve original call trees and leaf diagnostic spans,
+including fresh-callee failure. All 137 affected integration checks pass across
+call/iterable/root-builtin spread, array spread, copying/disposal, optional access
+and generic adapters. New formatted native witnesses verify forty nested operand
+calls execute once in source order and forty annotated generic bodies return `7`.
+All 66 distinct focused editor checks pass, including compiler agreement and a
+new nested-operand hover/navigation witness. The known `optional_main` diagnostic
+aggregation failure remains identical: one dependency error masks the independent
+entry error; four other tests in that target pass. It is not counted as accepted.
+
+Discovery completes thirteen of sixteen observations. Operand and fresh-callee
+families complete at 8, 32, 128, 512 and 2,048; annotated generic bodies complete at
+8, 32 and 128. Their next cases time out during analysis under external discovery
+budgets: 8,192 operands, 8,192 fresh callees and 512 annotated functions. There are
+no post-repair crashes or stack overflows. Memory reaches approximately 0.8 GB for
+2,048 operands and 1.6 GB for 2,048 fresh callees. These observations overlap other
+checks and are not formal measurements, acceptable-scaling evidence or language
+ceilings. Source cloning and proof/inference costs remain measurement targets.
+
+The new `spread-execution` benchmark manifest registers argument, fresh-callee and
+annotated-body variants. Each variant at 32 passes untimed check/emission and strict
+TypeScript validation; native and Node-after-tsc execution independently return
+`7`. Larger registered groups remain unaccepted and unmeasured. The original
+2-warmup/11-sample protocol is unchanged. Whole-project formatting changes only the
+new example and no benchmark fingerprints; the formatted example executes.
+Implementation evidence uses `tsrust-nesting-spread-work-*` in SQLite.
+
+A follow-up audit confirms array literal spread and `Array.of` spread construction
+are separate recursive consumers. Both complete at eight layers and overflow
+during analysis at thirty-two. The literal trace identifies
+`spread_array_construction` re-entering expression checking. Exact sources,
+observations and trace use `tsrust-nesting-array-spread-audit-*`. That constructor,
+other contextual/fresh hints, specialization and discovery, budgets, public
+admission retirement, formal scaling, optimization and S12–S21 remain required.
+No stack or limit constant is increased; full compiler/LSP regression and formal
+timing are not claimed for this section.

@@ -1,0 +1,15 @@
+import { strictEqual } from 'std:testing';
+
+function identity(value: int): int {
+  return value;
+}
+
+function forward<T>(value: T): T {
+  return value;
+}
+
+function main() {
+  strictEqual(identity(...[identity(...[7])]), 7);
+  strictEqual(forward<int>(...[9]), 9);
+  strictEqual(((value: int): int => value)(...[11]), 11);
+}
