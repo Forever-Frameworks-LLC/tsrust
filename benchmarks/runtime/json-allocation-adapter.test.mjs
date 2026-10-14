@@ -157,3 +157,10 @@ test('schema probes preserve typed output and failed-output disposal accounting'
   assert.match(directJsonAllocation(driver,mismatch),/is_err\(\) as i64/);
  }
 });
+
+test('allocation workload binding tolerates helper ordering and rejects ambiguity',()=>{
+ const declaration='fn tsr_result_function17(value0: i64, value1: i64, value2: &String) -> Result<NumericArray<i64>,TsrFunctionError17<String>> {todo!()}';
+ const source='fn tsr_result_function0(value0: &String) -> Result<Record2,TsrFunctionError0> {todo!()}\n'+declaration+'\nfn main() {}';
+ assert.match(adaptJsonAllocation(source,driver,'schema_owned'),/match tsr_result_function17\(std::hint/);
+ assert.throws(()=>adaptJsonAllocation(source+'\n'+declaration.replaceAll('17','18'),driver,'schema_owned'),/ABI drift/);
+});

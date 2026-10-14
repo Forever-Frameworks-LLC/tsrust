@@ -411,10 +411,17 @@ Completed in the 2026-10-14 continuation:
 Release consumers were rebuilt from `fc82d9db`. All five current executables
 were atomically replaced and hash-verified; both VS Code server processes were
 restarted. The owner test project has no diagnostics, and the originally open
-repository documents have no Tsrust errors. Workspace scanning exposes seven
-older allocation fixtures that still match `safeParseJson` as a Result; their
-bytes are unchanged since `2bac528b`. These need a separate schema-support
-follow-up. Rust workspace reload clears its stale concat error (39 warnings
+repository documents have no Tsrust errors. The seven allocation fixtures exposed by workspace scanning are now migrated to
+`result.success`/`result.data`, preserving owned versus fused parsing and the
+original failure behavior. Allocation adapters select unique matching signatures
+rather than fixed function indices; ambiguity and borrow drift still reject.
+All 19 adapter tests and seven formatted fixture checks pass. The seven probes
+pass three sizes and three samples across native, direct Rust, and Node after
+TypeScript compilation (189 executions), including checksum, failure, and disposal
+checks. No elapsed-time samples were collected. VS Code now reports zero errors;
+39 existing Rust warnings remain. Evidence and original failed attempts are in
+SQLite under `tsrust-allocation-syntax-acceptance-2026-10-14.json`.
+Rust workspace reload clears its stale concat error (39 warnings
 remain). Installed CLI registry/depth witnesses and LSP initialize/shutdown pass.
 Evidence: `tsrust-consumer-refresh-2026-10-14.json` in SQLite. Cleanup removes
 232 obsolete debug test/native executables and object files (1,575,517,056 bytes);

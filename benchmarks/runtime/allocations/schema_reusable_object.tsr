@@ -11,12 +11,11 @@ function createSchema(): Schema<Payload> {
 }
 
 function workload(schema: Schema<Payload>, input: string): int[] {
-  match (schema.safeParseJson(input)) {
-    Ok(value) => {
-      return value.items;
-    },
-    Err(error) => {
-      throw "validation failed";
-    }
+  const result = schema.safeParseJson(input);
+  if (result.success) {
+    const value = result.data;
+    return value.items;
+  } else {
+    throw "validation failed";
   }
 }

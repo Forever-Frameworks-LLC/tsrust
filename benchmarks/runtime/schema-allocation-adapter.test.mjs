@@ -28,3 +28,15 @@ test('reusable object reference enforces its shape and independently observes ev
  assert.match(direct,/unwrap\(\).items/);
  assert.match(direct,/value.iter\(\).sum\(\)/);
 });
+
+test('reusable schema binding pairs constructor and workload by exact borrowed type',()=>{
+ const workload='fn tsr_result_function10(value0: &Record16, value1: &String) -> Result<NumericArray<i64>,TsrFunctionError10<String>> {todo!()}';
+ for(const constructor of ['fn function11() -> Record16 {todo!()}', 'fn tsr_result_function11() -> Result<Record16,TsrFunctionError11<String>> {todo!()}']){
+  const source=workload+'\n'+constructor+'\nfn main() {}';
+  const adapted=reusableSchemaAllocation(source,driver);
+  assert.match(adapted,/let schema = (match tsr_result_)?function11\(\)/);
+  assert.match(adapted,/match tsr_result_function10\(std::hint/);
+  assert.throws(()=>reusableSchemaAllocation(source+'\n'+workload.replace('function10','function12'),driver),/ABI drift/);
+  assert.throws(()=>reusableSchemaAllocation(source.replace('value0: &Record16','value0: &Record15'),driver),/ABI drift/);
+ }
+});

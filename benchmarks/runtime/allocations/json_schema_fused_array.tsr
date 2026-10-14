@@ -2,12 +2,10 @@ import { s } from "std:schema";
 
 function workload(n: int, seed: int, input: string): int[] {
   const schema = s.array(s.int());
-  match (schema.safeParseJson(input)) {
-    Ok(value) => {
-      return value;
-    },
-    Err(error) => {
-      throw "validation failed";
-    }
+  const result = schema.safeParseJson(input);
+  if (result.success) {
+    return result.data;
+  } else {
+    throw "validation failed";
   }
 }

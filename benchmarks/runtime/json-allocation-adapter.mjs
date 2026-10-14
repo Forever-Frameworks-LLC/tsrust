@@ -43,12 +43,13 @@ export function adaptJsonAllocation(emitted,driver,kind){
  }
 
  const {dynamic,strings,nested,selective,failure}=shape(kind);
- const signature=/^fn tsr_result_function0\(value0: i64, value1: i64, value2: &String\) -> Result<(Record\d+|NumericArray<i64>|Array<String>|Array<NumericArray<i64>>),TsrFunctionError[^\n]+/m.exec(emitted);
+ const signatures=[...emitted.matchAll(/^fn (?<call>tsr_result_function\d+)\(value0: i64, value1: i64, value2: &String\) -> Result<(Record\d+|NumericArray<i64>|Array<String>|Array<NumericArray<i64>>),TsrFunctionError[^\n]+/gm)];
+ const signature=signatures.length===1?signatures[0]:null;
  const expected=nested?'Array<NumericArray<i64>>':strings?'Array<String>':'NumericArray<i64>';
- if(!signature||((dynamic||selective)?!/^Record\d+$/.test(signature[1]):signature[1]!==expected))throw Error('JSON allocation return ABI drift');
- if(selective&&!dynamic&&!emitted.includes(`struct ${signature[1]} { field0: Array<NumericArray<i64>> }`))throw Error('JSON selective record ABI drift');
+ if(!signature||((dynamic||selective)?!/^Record\d+$/.test(signature[2]):signature[2]!==expected))throw Error('JSON allocation return ABI drift');
+ if(selective&&!dynamic&&!emitted.includes(`struct ${signature[2]} { field0: Array<NumericArray<i64>> }`))throw Error('JSON selective record ABI drift');
  const body=replaceOnce(emitted,'fn main()','fn source_main()');
- if(failure)return body+'\n'+instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n), std::hint::black_box(7), &input) { Ok(_)=>0i64, Err(error)=>{drop(error);1i64} }')+'\nfn probe_checksum(value:&i64)->i64 {*value}';
+ if(failure)return body+'\n'+instrumentDriver(driver,`match ${signature.groups.call}(std::hint::black_box(n), std::hint::black_box(7), &input) { Ok(_)=>0i64, Err(error)=>{drop(error);1i64} }`)+'\nfn probe_checksum(value:&i64)->i64 {*value}';
  const checksum=kind==='dynamic_deep'
   ?'let mut leaf=&value.value;for _ in 0..31 {let rows=leaf.as_array().unwrap();assert_eq!(rows.len(),1);leaf=&rows[0];}leaf.as_array().unwrap().iter().map(|v|v.as_i64().unwrap()).sum()'
   :nested
@@ -57,7 +58,7 @@ export function adaptJsonAllocation(emitted,driver,kind){
   :dynamic
   ?`value.value.as_array().unwrap().iter().map(|v|${strings?'v.as_str().unwrap().len() as i64':'v.as_i64().unwrap()'}).sum()`
   :strings?'value.iter().map(|v|v.len() as i64).sum()':'value.iter().sum()';
- return body+'\n'+instrumentDriver(driver,'match tsr_result_function0(std::hint::black_box(n), std::hint::black_box(7), &input) { Ok(value)=>value, Err(_)=>panic!("valid JSON allocation input rejected") }')+`\nfn probe_checksum(value:&${signature[1]})->i64 {${checksum}}`;
+ return body+'\n'+instrumentDriver(driver,`match ${signature.groups.call}(std::hint::black_box(n), std::hint::black_box(7), &input) { Ok(value)=>value, Err(_)=>panic!("valid JSON allocation input rejected") }`)+`\nfn probe_checksum(value:&${signature[2]})->i64 {${checksum}}`;
 }
 function instrumentDriver(driver,call){
  let output=replaceOnce(driver,'fn main()','fn main()');
