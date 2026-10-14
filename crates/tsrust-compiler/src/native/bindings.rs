@@ -107,6 +107,8 @@ impl NativeBinding {
 }
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::threads::SPAWN,
+    crate::stdlib::threads::SPAWN_SCOPED,
+    crate::stdlib::result::UNWRAP,
     crate::stdlib::threads::JOIN,
     crate::stdlib::threads::DETACH,
     crate::stdlib::schema::namespace::STRING,

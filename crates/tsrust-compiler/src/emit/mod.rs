@@ -6,6 +6,7 @@ mod coalesce_work;
 mod expression_work;
 mod program_testing;
 mod threads;
+mod results;
 mod schema;
 mod json_encoding;
 mod json_typed;
@@ -209,7 +210,8 @@ pub(crate) fn needs_exception_transport(program:&CheckedProgram)->bool {
     program.functions.iter().chain(program.closures.iter().flat_map(|closure|
         std::iter::once(&closure.function).chain(closure.methods.iter().map(|method|&method.function))))
         .filter(|function|!function.template)
-        .any(|function|crate::analysis::has_exception_syntax(&function.body))
+        .any(|function|crate::analysis::has_exception_syntax(&function.body)
+            || crate::error_effects::checked_expressions(function).iter().any(|expression|matches!(expression.target,Some(CallTarget::ResultUnwrap(_)))))
 }
 
 pub(crate) fn validate_exception_program(program:&CheckedProgram)->Result<(),crate::Diagnostic> {
@@ -989,6 +991,7 @@ impl Emitter<'_> {
                 Type::Record(id) => {
                     let record = &self.program.records[id];
                     if let Some(id) = record.native_type
+                        && !crate::native_types::declaration(id).source_constructible()
                         && !crate::native_types::declaration(id).capabilities.contains(&crate::native_types::Capability::Inspection) {
                         return false;
                     }
@@ -2339,7 +2342,7 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
-        if self.program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::Thread)) { output.push_str(crate::stdlib::threads::RUNTIME); }
+        if self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread))) { output.push_str(crate::stdlib::threads::RUNTIME); }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.thread_record(&mut output, index) { continue; }
@@ -8469,6 +8472,7 @@ impl Emitter<'_> {
                     format!("{{let issue_context={};let issue_message={};let start=issue_context.issues.items.len();issue_context.issues.push(&[{path}],tsrust_schema_issues::Code::Refinement,tsrust_schema_issues::Kind::{kind},tsrust_schema_issues::Kind::{kind});if issue_context.issues.items.len()>start{{issue_context.issues.items[start].message=Some(issue_message.into_owned());}}}}",self.expr(fun,&args[0],Mode::Mutate),self.expr(fun,&args[1],Mode::Consume))
                 },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
+                CallTarget::ResultUnwrap(error) => self.result_unwrap(fun, expr, &args[0], error),
                 CallTarget::SchemaExport(failure) => self.schema_export_call(fun,expr,args,failure),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),

@@ -858,6 +858,7 @@ impl<'a> Proof<'a> {
                 CallTarget::SchemaStrip | CallTarget::SchemaRetain | CallTarget::SchemaPresence => self.expr(id,&args[0],Mode::Consume),
                 CallTarget::SchemaDefault | CallTarget::SchemaChoice(_) | CallTarget::SchemaConstraint(_) | CallTarget::SchemaMessagePolicy(_) => args.iter().all(|argument|self.expr(id,argument,Mode::Consume)),
                 CallTarget::SchemaAddIssue(_) => self.expr(id,&args[0],Mode::Mutate) && self.expr(id,&args[1],Mode::Consume),
+                CallTarget::ResultUnwrap(_) => self.expr(id,&args[0],Mode::Consume),
                 CallTarget::SchemaExport(_) => self.expr(id,&args[0],Mode::Read),
                 CallTarget::SchemaValidate => self.expr(id,&args[0],Mode::Read) && self.expr(id,&args[1],Mode::Consume),
                 CallTarget::JsonEncode => args.iter().all(|a| self.expr(id, a, Mode::Consume)),

@@ -1,0 +1,32 @@
+import { spawnScoped, join } from 'std:threads';
+import { unwrap } from 'std:result';
+import { monotonicNow } from 'std:time';
+
+function batch(): int {
+  let checksum = 0;
+  for (let index = 0; index < 8; index += 2) {
+    const left = index;
+    const right = index + 1;
+    const first = unwrap(spawnScoped((): int => left * left));
+    const second = unwrap(spawnScoped((): int => right * right));
+    const a = unwrap(join(first));
+    const b = unwrap(join(second));
+    checksum += a + b;
+  }
+
+  return checksum;
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    batch();
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

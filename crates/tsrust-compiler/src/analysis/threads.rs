@@ -10,7 +10,7 @@ impl Analyzer {
         self.threads_enabled = true;
         let span = expression.span;
         if arguments.len() != 1 { return Err(Diagnostic::new("arity", format!("{} expects one argument.", binding.name), span)); }
-        let result = if binding.name == "spawn" {
+        let result = if matches!(binding.name, "spawn" | "spawnScoped") {
             if let ExprKind::Closure { id, .. } = arguments[0].kind { self.escaping.insert(id); }
             let actual = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
             let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[0].span)); };
@@ -27,13 +27,13 @@ impl Analyzer {
             thread_transfer::require_owned_completion(output, failures, runtime, &self.program.records, &|id| self.unions.members(id))
                 .map_err(|_| Diagnostic::new("thread-transfer", "Worker results and thrown payloads must be resolved owned transferable data.", span))?;
             let error = failures.catch_type(&self.unions, runtime, span)?.unwrap_or(Type::Undefined);
-            let handle = self.thread_application(NativeTypeId::Thread, &[output, error], span)?;
+            let handle = self.thread_application(if binding.name == "spawnScoped" { NativeTypeId::ScopedThread } else { NativeTypeId::Thread }, &[output, error], span)?;
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
             self.thread_result(handle, failure, span)?
         } else {
             let handle = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
             let Type::Record(record) = handle else { return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span)); };
-            if self.program.records[record].native_type != Some(NativeTypeId::Thread) {
+            if !matches!(self.program.records[record].native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) {
                 return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span));
             }
             let parameters = self.program.records[record].application.as_ref().expect("applied thread").resolved_arguments.clone();
@@ -70,7 +70,7 @@ pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(
         match ty {
             Type::Record(id) => {
                 let record = &records[id];
-                if record.native_type == Some(NativeTypeId::Thread) { return true; }
+                if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) { return true; }
                 pending.extend(record.fields.iter().filter_map(|field| field.ty));
                 if matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet)) {
                     if let Some(application) = &record.application { pending.extend(&application.resolved_arguments); }
@@ -135,10 +135,10 @@ impl Analyzer {
 }
 
 pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
-    if !program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Thread)) { return Ok(()); }
+    if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread))) { return Ok(()); }
     let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
     for record in &program.records {
-        if record.native_type == Some(NativeTypeId::Thread) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
+        if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
         if record.fields.iter().filter_map(|field| field.ty).any(&contains)
             || matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet))
                 && record.application.as_ref().is_some_and(|app| app.resolved_arguments.iter().copied().any(&contains)) {
@@ -160,7 +160,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];
-                if binding.module == "std:threads" && binding.name == "spawn" {
+                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped") {
                     let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
                     let Type::Closure(origin) = arguments[0].ty.unwrap() else { unreachable!() };
                     let closure = &program.closures[origin];
@@ -177,7 +177,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                     let handle = members(result).into_iter().find_map(|ty| {
                         let Type::Record(record) = ty else { return None; };
                         program.records[record].fields.first().and_then(|field| match field.ty {
-                            Some(Type::Record(id)) if program.records[id].native_type == Some(NativeTypeId::Thread) => Some(id),
+                            Some(Type::Record(id)) if matches!(program.records[id].native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) => Some(id),
                             _ => None,
                         })
                     }).expect("checked spawn handle");

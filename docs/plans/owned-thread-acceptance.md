@@ -1,6 +1,9 @@
 # Owned native worker slice
 
-The S12 slice adds `spawn`, `join` and `detach` from `std:threads`. Channels, pools,
+The [scoped-worker ergonomics slice](scoped-worker-acceptance.md) adds opt-in
+fallback joining and concise typed error propagation to this foundation.
+
+The initial S12 slice adds `spawn`, `join` and `detach` from `std:threads`. Channels, pools,
 Rust-module imports, cancellation and async tasks remain separate work.
 
 `spawn(callback)` consumes a concrete, owned, zero-argument callable and starts

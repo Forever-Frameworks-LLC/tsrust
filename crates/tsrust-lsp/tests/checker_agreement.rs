@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {SpawnError, ThreadError} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver { ty: "ScopedThread<int, undefined>", parameter: "x: Owned<ScopedThread<int, undefined>>" },
     Receiver { ty: "SpawnError", parameter: "x: ReadOnly<SpawnError>" },
     Receiver { ty: "ThreadError<string>", parameter: "x: ReadOnly<ThreadError<string>>" },
     Receiver { ty: "int[]", parameter: "x: ReadOnly<int[]>" },

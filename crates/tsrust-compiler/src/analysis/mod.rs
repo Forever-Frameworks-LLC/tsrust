@@ -9,6 +9,7 @@ mod discovery_work;
 mod schema;
 mod thread_transfer;
 mod threads;
+mod results;
 mod json_typed;
 mod record_union_fields;
 mod json_refinement;
@@ -1881,7 +1882,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
-        if binding.module == "std:threads" { return Err(Diagnostic::new("thread-call", "Call spawn, join and detach directly; polymorphic thread operation values are not supported.", span)); }
+        if matches!(binding.module, "std:threads" | "std:result") { return Err(Diagnostic::new("thread-call", "Call thread operations and unwrap directly; polymorphic operation values are not supported.", span)); }
         let count = match expected {
             Some(Type::Callback(contract)) => self.callables.callbacks[contract].params.len(),
             Some(Type::Callable(contract)) => self.callables.results[contract].params.len(),
@@ -8770,6 +8771,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
+        if let Some(ty) = self.result_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {

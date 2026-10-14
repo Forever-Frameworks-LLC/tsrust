@@ -6,7 +6,9 @@ impl Emitter<'_> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if binding.module != "std:threads" { return None; }
         let value = self.expr(fun, &args[0], Mode::Consume);
-        if binding.name == "detach" { return Some(format!("tsrust_native_threads::detach({value})")); }
+        let scoped = matches!(args[0].ty, Some(Type::Record(id)) if self.program.records[id].native_type == Some(NativeTypeId::ScopedThread));
+        let suffix = if scoped { "_scoped" } else { "" };
+        if binding.name == "detach" { return Some(format!("tsrust_native_threads::detach{suffix}({value})")); }
         let Type::Union(union) = expr.ty.unwrap() else { unreachable!("thread Result") };
         let variants = self.program.unions[union.index()].members.iter().enumerate().map(|(tag, ty)| {
             let Type::Record(record) = ty else { unreachable!() };
@@ -19,11 +21,11 @@ impl Emitter<'_> {
             let fields = if self.program.records[record].fields.is_empty() { String::new() } else { format!("field0:{payload},") };
             format!("Union{}::V{tag}(Record{}{{{fields}{}}})", union.index(), self.native_record_declaration(record), self.schema_record_order(record).trim_start_matches(','))
         };
-        let ok_value = wrap(ok_tag, ok, "value");
+        let ok_value = wrap(ok_tag, ok, if binding.name == "spawnScoped" { "tsrust_native_threads::scoped(value)" } else { "value" });
         let Type::Record(failure) = self.program.records[err].fields[0].ty.unwrap() else { unreachable!() };
         let failure_name = self.native_record_declaration(failure);
         let order = self.schema_record_order(failure);
-        let call = if binding.name == "spawn" {
+        let call = if matches!(binding.name, "spawn" | "spawnScoped") {
             let Type::Closure(origin) = args[0].ty.unwrap() else { unreachable!() };
             let Type::Record(handle) = self.program.records[ok].fields[0].ty.unwrap() else { unreachable!() };
             let parameters = &self.program.records[handle].application.as_ref().unwrap().resolved_arguments;
@@ -58,16 +60,17 @@ impl Emitter<'_> {
             };
             let worker = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"worker\"),field1:{}{order}}}", inject(thrown,"error")));
             let panic = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"panic\"),field1:{}{order}}}", inject(Type::Undefined,"TsrUndefined")));
-            format!("match tsrust_native_threads::join({value}){{Ok(value)=>{ok_value},Err(tsrust_native_threads::JoinError::Worker(error))=>{worker},Err(tsrust_native_threads::JoinError::Panic)=>{panic}}}")
+            format!("match tsrust_native_threads::join{suffix}({value}){{Ok(value)=>{ok_value},Err(tsrust_native_threads::JoinError::Worker(error))=>{worker},Err(tsrust_native_threads::JoinError::Panic)=>{panic}}}")
         };
         Some(call)
     }
     pub(super) fn thread_record(&self, output: &mut String, id: usize) -> bool {
         let record = &self.program.records[id];
-        if record.native_type != Some(NativeTypeId::Thread) { return false; }
+        if !matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) { return false; }
         if let Some(application) = &record.application {
             let parameters = &application.resolved_arguments;
-            writeln!(output,"type Record{id} = tsrust_native_threads::Thread<{},{}>;",self.native_type(parameters[0]),self.native_type(parameters[1])).unwrap();
+            let name = if record.native_type == Some(NativeTypeId::ScopedThread) { "ScopedThread" } else { "Thread" };
+            writeln!(output,"type Record{id} = tsrust_native_threads::{name}<{},{}>;",self.native_type(parameters[0]),self.native_type(parameters[1])).unwrap();
         }
         true
     }

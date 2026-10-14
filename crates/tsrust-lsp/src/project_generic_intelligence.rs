@@ -441,12 +441,26 @@ fn project_callable_value(ty: &ProjectType) -> bool {
 impl SourceIndex {
     pub(crate) fn recover_project_member_receivers(&mut self,graph:&ProjectGraph,id:&SourceId) {
         let Some((probe,start,added,original_end))=self.receiver_probe().or_else(||self.unfinished_member_probe()) else{return};
-        let mut graph=graph.clone();let Some(module)=graph.modules.get_mut(id) else{return};
-        // The probe changes only an unfinished expression; retain validated header
-        // masking and import identities from the same source snapshot.
-        module.declaration_source=format!("{}{}",&module.declaration_source[..start],&probe[start..]);
-        module.source.text=probe;
-        let Ok(analysis)=tsrust_compiler::project::check_graph(graph) else{return};
+        let check = |probe: String| {
+            let mut graph=graph.clone();let module=graph.modules.get_mut(id)?;
+            // Keep import masking and source positions from this snapshot.
+            module.declaration_source=format!("{}{}",&module.declaration_source[..start],&probe[start..]);
+            module.source.text=probe;
+            tsrust_compiler::project::check_graph(graph).ok()
+        };
+        let analysis=check(probe.clone()).or_else(|| {
+            // An unrelated broken declaration after the cursor must not erase
+            // facts from a complete prefix. Missing dependencies still fail checking.
+            let end=original_end.checked_add(added+1)?;
+            let mut prefix=probe.get(..end)?.to_owned();
+            let mut blocks=0usize;
+            for token in self.tokens.iter().take_while(|token|token.span.end<=original_end) {
+                if token.text=="{" {blocks+=1;} else if token.text=="}" {blocks=blocks.checked_sub(1)?;}
+            }
+            prefix.extend(std::iter::repeat_n('}',blocks));
+            check(prefix)
+        });
+        let Some(analysis)=analysis else{return};
         let facts=analysis.checked_type_facts();
         // Only use facts preceding the edit: their source positions and complete
         // declarations are unchanged. Do not expose invented probe expressions.

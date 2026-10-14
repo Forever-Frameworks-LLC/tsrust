@@ -95,7 +95,7 @@ work. Do not repeat public spawn/join groundwork or treat untimed checks as timi
 
 Preserve already settled decisions:
 
-- Thread handles require explicit join or detach; abandonment errors. No hidden
+- Raw Thread handles require explicit join or detach; abandonment errors. No hidden
   clone, automatic detach, or implicit shared ownership.
 - Local Rust modules and supported wrappers belong alongside S12 before worker
   APIs harden. Automatic lazy default pooling for explicit threaded interop is
@@ -133,3 +133,12 @@ Subsequent warning cleanup has no public behavior change. Refresh installed
 consumers for the next accepted public API change using atomic sibling replacement;
 restart both editor servers and check open-document diagnostics. Request both
 `--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries explicitly.
+
+The scoped ergonomics follow-up adds opt-in fallback joining and `std:result`
+`unwrap`; see [scoped acceptance](../plans/scoped-worker-acceptance.md). Raw Thread settlement stays explicit;
+ScopedThread registers joining with its owner and transfers that duty on moves.
+
+Owner clarification: configurable default pools must also be a stdlib option.
+Evaluate Rayon; preserve dedicated OS-thread spawning. Pool sizing, admission,
+nested waits and shutdown still need implementation and acceptance after this
+scoped-cleanup slice. Do not treat the pool requirement as declined or completed.

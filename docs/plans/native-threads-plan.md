@@ -144,3 +144,16 @@ callback lowering, typed Result completion and explicit lifecycle checks. See
 [owned worker acceptance](owned-thread-acceptance.md) for current acceptance and
 storage/control-flow limits. Bounded channels and Rust/pool integration remain open.
 Direct OS-thread spawning does not select or freeze a future pool contract.
+
+The scoped ergonomics follow-up adds opt-in fallback joining and `std:result`
+`unwrap`; see [scoped acceptance](scoped-worker-acceptance.md). Raw Thread settlement stays explicit;
+ScopedThread registers joining with its owner and transfers that duty on moves.
+
+## Owner clarification (2026-10-14)
+
+Configurable default thread pools must be available as a standard-library option,
+not only as an interop implementation detail. Evaluate Rayon for CPU work and
+compatible pool reuse. Keep dedicated OS-thread spawning available. The scoped
+cleanup pass does not implement or settle pool sizing, queue admission, nested
+join scheduling or shutdown; those remain required S12 follow-up work. No measured
+pool benefit is claimed before matched workload acceptance.

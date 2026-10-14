@@ -20,3 +20,10 @@ Set `TSRUST` to the current verified compiler and `CARGO_TARGET_DIR` to the shar
 Cargo target. The harness uses the pinned runtime benchmark TypeScript install.
 Import accepted output into SQLite before removing loose evidence. Timings remain
 unmeasured until the native-thread family milestone.
+
+Use `--scoped` for paired concurrent workers with explicit fallback joining and
+`unwrap` propagation. It preserves eight workers, the independent sum-of-squares
+oracle (140), and the original timing protocol. The Node counterpart starts each
+pair before awaiting completion and waits for both in finally. Source, counterpart
+and harness fingerprints are recorded automatically. `--verify --scoped` checks
+results without recording timing samples; no speedup is claimed from that check.

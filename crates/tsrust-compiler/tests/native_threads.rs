@@ -111,3 +111,104 @@ fn void_workers_join_and_discarded_module_owners_reject() {
         assert!(String::from_utf8_lossy(&output.stderr).contains("thread-lifecycle"));
     }
 }
+
+#[test]
+fn scoped_cleanup_covers_normal_return_throw_and_loop_exits() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import {spawnScoped,join,detach} from 'std:threads';
+import {unwrap} from 'std:result';
+import {strictEqual} from 'std:testing';
+function early(){const worker=unwrap(spawnScoped(():void=>{console.log('returned');}));return;}
+function failing(){const worker=unwrap(spawnScoped(():void=>{console.log('cleaned');throw 'worker error';}));throw 'caller error';}
+function main(){
+    {const worker=unwrap(spawnScoped(():void=>{console.log('normal');}));}
+    console.log('after normal');
+    early();console.log('after return');
+    try{failing();}catch(error){if(typeof error==='string'){strictEqual(error,'caller error');console.log(error);}else{throw error;}}finally{console.log('finally');}
+    for(let i=0;i<2;i+=1){const worker=unwrap(spawnScoped(():void=>{console.log('iteration');}));if(i===0){continue;}break;}
+    console.log('after loop');
+    const done=unwrap(spawnScoped(():void=>{}));unwrap(join(done));
+    const detached=unwrap(spawnScoped(():void=>{}));detach(detached);
+    try{const worker=unwrap(spawnScoped(():int=>{throw 'original';}));unwrap(join(worker));}catch(error){console.log(error.code);}
+}
+"#;
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);
+    assert_eq!(output.stdout,b"normal\nafter normal\nreturned\nafter return\ncleaned\ncaller error\nfinally\niteration\niteration\nafter loop\nworker\n");
+}
+
+#[test]
+fn scoped_workers_overlap_before_join_without_timing_a_speedup() {
+    let directory = support::TempDirectory::new();
+    // Each worker must see the other's marker before either can complete.
+    // Sequential execution fails the deadline instead of appearing to overlap.
+    let source = r#"
+import {spawnScoped,join} from 'std:threads';
+import {unwrap} from 'std:result';
+import {writeFile,readFile} from 'std:fs';
+import {fromUtf8} from 'std:bytes';
+import {monotonicNow} from 'std:time';
+import {strictEqual} from 'std:testing';
+function rendezvous(own:string,other:string):int{
+    const bytes=unwrap(fromUtf8('ready'));unwrap(writeFile(own,bytes));
+    const start=monotonicNow();
+    while(monotonicNow()-start<10000.0){match(readFile(other)){Ok(bytes)=>{return 21;},Err(error)=>{}}}
+    throw 'workers did not overlap';
+}
+function main(){
+    const first=unwrap(spawnScoped(():int=>rendezvous('first.ready','second.ready')));
+    const second=unwrap(spawnScoped(():int=>rendezvous('second.ready','first.ready')));
+    const a=unwrap(join(first));const b=unwrap(join(second));strictEqual(a+b,42);
+}
+"#;
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path).current_dir(&directory.0),60);
+    support::success(&output);
+}
+
+#[test]
+fn unwrap_preserves_owned_and_union_errors_and_scoped_moves_remain_linear() {
+    let directory = support::TempDirectory::new();
+    let source=r#"
+import {unwrap} from 'std:result';
+import {spawnScoped,join,ScopedThread,ThreadError} from 'std:threads';
+import {strictEqual} from 'std:testing';
+function result(flag:boolean):Result<string,string|int>{if(flag){return Ok('owned');}return Err('failure');}
+function take(worker:ScopedThread<int,undefined>):int{return unwrap(join(worker));}
+function main(){
+    strictEqual(unwrap(result(true)),'owned');
+    const values=unwrap(Ok<int[],string>([1,2]));values.push(3);strictEqual(values.length,3);
+    unwrap(Ok<void,string>());
+    try{unwrap(Err<int,string>('direct'));}catch(error){strictEqual(error,'direct');}
+    try{unwrap(result(false));}catch(error){strictEqual(String(error),'failure');}
+    const worker=unwrap(spawnScoped(():int=>42));strictEqual(take(worker),42);
+}
+"#;
+    let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),60));
+    for body in [
+        "unwrap(42);",
+        "const operation=unwrap;",
+        "const worker=unwrap(spawnScoped(():int=>42));join(worker);join(worker);",
+        "const worker=unwrap(spawnScoped(():int=>42));const workers=[worker];",
+        "const worker=unwrap(spawnScoped(():int=>42));const cb=():void=>{join(worker);};",
+        "const text='borrowed';const cb=():int=>text.length;const worker=unwrap(spawnScoped(cb));console.log(text);",
+    ] {
+        let source=format!("import {{unwrap}} from 'std:result';import {{spawnScoped,join}} from 'std:threads';function main(){{{body}}}");
+        let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"accepted {source}");
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+    }
+}
+
+#[test]
+fn scoped_example_without_explicit_throw_activates_typed_transport() {
+    let directory=support::TempDirectory::new();
+    let source=include_str!("../../../examples/scoped-workers/main.tsr");
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);
+    support::success(&output);assert_eq!(output.stdout,b"25205\n");
+}

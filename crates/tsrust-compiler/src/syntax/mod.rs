@@ -669,6 +669,7 @@ pub enum CallTarget {
     SchemaValidate,
     /// Carries the structured export error record identity.
     SchemaExport(usize),
+    ResultUnwrap(Type),
     SchemaAddIssue(usize),
     /// Forward a scalar constraint through an owned diagnostic-message wrapper.
     SchemaConstraint(usize),

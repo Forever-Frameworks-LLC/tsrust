@@ -361,6 +361,7 @@ impl Analysis {
                             CallTarget::SetMethod(_) | CallTarget::MapMethod(_)
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
+                                | CallTarget::ResultUnwrap(_)
                                 | CallTarget::SchemaValidate
                                 | CallTarget::SchemaConstraint(_)
                                 | CallTarget::SchemaMessagePolicy(_)

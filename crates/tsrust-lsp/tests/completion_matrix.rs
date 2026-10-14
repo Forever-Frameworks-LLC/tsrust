@@ -225,7 +225,7 @@ fn rows() -> Vec<Row> {
         name: "thread imports",
         before: "import { ".into(), typed: "spa",
         after: " } from 'std:threads';\nfunction main() {}\n",
-        includes: &["spawn"], excludes: &[], silent: None, needs_check: false,
+        includes: &["spawn", "spawnScoped"], excludes: &[], silent: None, needs_check: false,
     });
     rows.push(Row {
         kind: Kind::RecordField,
@@ -233,6 +233,18 @@ fn rows() -> Vec<Row> {
         before: "import {ThreadError} from 'std:threads';\nfunction probe(error: ReadOnly<ThreadError<string>>) {\n  ".into(),
         typed: "error.", after: "\n}\nfunction main() {}\n",
         includes: &["code", "error"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+    });
+    rows.push(Row {
+        kind: Kind::ImportNames, name: "result propagation imports",
+        before: "import { ".into(), typed: "unw",
+        after: " } from 'std:result';\nfunction main() {}\n",
+        includes: &["unwrap"], excludes: &[], silent: None, needs_check: false,
+    });
+    rows.push(Row {
+        kind: Kind::CallResult, name: "unwrapped result members",
+        before: "import {unwrap} from 'std:result';\nfunction text():Result<string,int>{return Ok('hello');}\nfunction main(){const value=unwrap(text());\n".into(),
+        typed: "value.", after: "\n}\n",
+        includes: &["length", "slice"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });
     rows
 }
