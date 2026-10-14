@@ -1,7 +1,8 @@
-# Global worker pool and cooperative cancellation
+# Shared and scoped worker pools with cooperative cancellation
 
-Implementation in progress, following the accepted default cleanup slice. Channels
-remain the next section; this document does not claim their implementation.
+Focused implementation acceptance passed on 2026-10-14. Channels remain the
+next section; this document does not claim their implementation or a new full
+compiler/LSP family regression.
 
 `pool.task(callback)` submits immediately to the global Rayon pool. `spawn`
 starts an OS thread for long-lived or blocking work. Import `pool` from `std:threads`. Both return the same owned
@@ -12,6 +13,24 @@ Call `pool.configure(workers, capacity)` before the first pooled spawn. Workers 
 from 1 through 256; outstanding capacity ranges from 1 through 1,000,000. Defaults
 are available CPU parallelism clamped to 2..256 and capacity 1024. Configuration is
 permanent. Pool creation failure does not freeze an invalid configuration.
+
+`pool.create(workers, capacity)` returns an independent `Pool` with the same limits
+and validation. It never initializes or changes the shared default. `jobs.task`,
+`jobs.stats` and `jobs.shutdown` operate on that pool only. Limits are fixed at
+creation. The unique owner may move between caller functions or be borrowed as
+`ReadOnly<Pool>`; it cannot be cloned, captured by callbacks, stored in containers
+or returned across a worker boundary. This prevents an owner from draining itself.
+Scope exit closes admission and drains queued/running work, including detached
+work. Explicit shutdown is idempotent. Retained task results remain joinable after
+the owner leaves scope. The executor is reclaimed after its owner and retained
+task handles release their references. The shared default intentionally lives
+until explicit shutdown or process exit.
+
+Cleanup acceptance includes repeated independent creation/destruction with weak
+scheduler references, exactly-once captured/result/error disposal, cancelled
+queued work, backend panic, detached tasks and retained completion handles.
+These are lifetime witnesses, not a claim of universal leak-sanitizer coverage.
+`examples/scoped-pools/main.tsr` demonstrates independent pools and caller borrowing.
 
 Admission returns `SpawnError` with code `full` instead of waiting for capacity.
 Completed tasks free their worker but keep a slot until join or owner cleanup.
@@ -49,3 +68,37 @@ The existing dedicated startup benchmarks retain their semantics through dedicat
 with Node worker-message dispatch. The independent checksum is 140. Preserve three
 processes, eight warmups and 31 samples when measuring; quick acceptance uses
 `node benchmarks/threads/run.mjs --pool --verify` without timing claims.
+
+## Acceptance evidence
+
+The current section passes 12 runtime tests, all 16 native thread integration
+cases (15 original passes plus the repaired Pool-only storage rejection), 64
+native declaration tests, 9 expression-fact tests and 3 package export tests.
+The package test relocates JSON, shared-pool and scoped-pool examples and builds
+each offline in debug and release with an empty Cargo home.
+
+Editor acceptance passes checker agreement (2), the full typing-speed completion
+matrix (3), editor consistency (5) and worker documentation/protocol tests (10).
+The catalog examples execute after formatting in debug and release. Shared native
+call-result facts now reach the editor, including PoolStats locals. Both namespace
+aliases and independent Pool receiver methods have completion coverage.
+
+macOS `leaks --atExit` reports 0 leaks / 0 leaked bytes for the 11-test cleanup
+runtime corpus; the twelfth test independently proves two pool workers overlap
+before either is joined. Weak scheduler references expire across 32 repeated pool
+lifetimes. Captures, success values, typed errors, rejected admissions, cancellation,
+panics and detached work have explicit disposal witnesses. This is bounded evidence,
+not proof about all possible programs or nonterminating callbacks.
+
+SQLite retains exact `tsrust-scoped-*.log` evidence, including failed attempts and
+the affected repairs. The original native suite exposed missing Pool-only storage
+validation; the repaired guard rejects it without changing ownership rules.
+The initial macOS leak attempt lacked sandbox task-port access; the unrestricted
+inspection of its own spawned test process succeeded.
+
+Pooled timing is recorded in `benchmarks/threads/pool-join-2026-10-14T22-25-15-491Z.json`:
+3 processes, 8 warmups and 31 samples, with checksum 140 for every sample. Median
+native/Node-after-tsc times are 0.014625/0.070583 ms per eight-task batch. These are
+small-task dispatch costs, not an application speedup claim. Dedicated startup and
+scoped-join workloads passed current untimed checks. Their earlier timings remain
+unchanged. The registration guard passes with current source fingerprints.

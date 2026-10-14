@@ -1,0 +1,27 @@
+import { pool, join, Pool, Thread } from 'std:threads';
+
+function calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {
+  return unwrap(jobs.task((): int => 42));
+}
+
+function main() {
+  unwrap(pool.configure(2, 16));
+  const shared = unwrap(pool.task((): int => 7));
+  {
+    const jobs = unwrap(pool.create(1, 4));
+    const background = unwrap(pool.create(2, 8));
+    const answer = calculate(jobs);
+    const other = unwrap(background.task((): string => 'independent'));
+    unwrap(jobs.shutdown());
+    console.log(unwrap(join(answer)));
+    console.log(unwrap(join(other)));
+    console.log(jobs.stats().outstanding);
+  }
+
+  console.log(unwrap(join(shared)));
+  unwrap(pool.shutdown());
+}
+// 42
+// independent
+// 0
+// 7

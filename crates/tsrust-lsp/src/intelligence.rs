@@ -2673,6 +2673,7 @@ impl SourceIndex {
                 self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
             } else {
                 self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::PoolStats);
+                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Pool);
             }
             self.symbols.push(Symbol {
                 name: local.into(), kind: 3, span, extent: span, scope: 0,

@@ -11,13 +11,13 @@ mod tsrust_native_threads {
     pub enum JoinError<E> { Worker(E), Panic, Cancelled }
     #[derive(Clone, Copy, Default)]
     pub struct Stats { pub workers: usize, pub capacity: usize, pub queued: usize, pub running: usize, pub completed: usize, pub outstanding: usize }
-    struct Pool { executor: rayon::ThreadPool, state: Arc<Mutex<Stats>>, idle: Condvar }
+    struct Pool { executor: rayon::ThreadPool, state: Arc<Mutex<Stats>>, idle: Condvar, closed: AtomicBool }
     enum Global { New, Active(Arc<Pool>), Closed(Option<Arc<Mutex<Stats>>>) }
     static GLOBAL: Mutex<Global> = Mutex::new(Global::New);
     thread_local! { static CANCELLATION: RefCell<Option<Arc<AtomicBool>>> = const { RefCell::new(None) }; }
     fn build(workers: usize, capacity: usize) -> Result<Arc<Pool>, SpawnError> {
         let executor = rayon::ThreadPoolBuilder::new().num_threads(workers).build().map_err(|e| failure("spawn", e.to_string()))?;
-        Ok(Arc::new(Pool { executor, state: Arc::new(Mutex::new(Stats { workers, capacity, ..Stats::default() })), idle: Condvar::new() }))
+        Ok(Arc::new(Pool { executor, state: Arc::new(Mutex::new(Stats { workers, capacity, ..Stats::default() })), idle: Condvar::new(), closed: AtomicBool::new(false) }))
     }
     fn default_workers() -> usize { std::thread::available_parallelism().map_or(2, |n| n.get().clamp(2, 256)) }
     fn pool() -> Result<Arc<Pool>, SpawnError> {
@@ -28,8 +28,31 @@ mod tsrust_native_threads {
             Global::New => { let pool = build(default_workers(), 1024)?; *global = Global::Active(pool.clone()); Ok(pool) }
         }
     }
-    pub fn configure_pool(workers: i64, capacity: i64) -> Result<(), SpawnError> {
+    fn validate_limits(workers: i64, capacity: i64) -> Result<(), SpawnError> {
         if !(1..=256).contains(&workers) || !(1..=1_000_000).contains(&capacity) { return Err(failure("range", "workers must be 1..256 and capacity 1..1000000.")); }
+        Ok(())
+    }
+    pub struct OwnedPool { inner: Arc<Pool> }
+    pub fn create_pool(workers: i64, capacity: i64) -> Result<OwnedPool, SpawnError> {
+        validate_limits(workers, capacity)?;
+        Ok(OwnedPool { inner: build(workers as usize, capacity as usize)? })
+    }
+    fn close(pool: &Pool) {
+        let mut stats = pool.state.lock().unwrap();
+        pool.closed.store(true, Ordering::Release);
+        while stats.queued + stats.running != 0 { stats = pool.idle.wait(stats).unwrap(); }
+    }
+    impl OwnedPool {
+        pub fn task<T: Send + 'static, E: Send + 'static>(&self, work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> { submit(self.inner.clone(), work) }
+        pub fn stats(&self) -> Stats { *self.inner.state.lock().unwrap() }
+        pub fn shutdown(&self) -> Result<(), SpawnError> {
+            if self.inner.executor.current_thread_index().is_some() { return Err(failure("worker", "A worker cannot shut down its own pool.")); }
+            close(&self.inner); Ok(())
+        }
+    }
+    impl Drop for OwnedPool { fn drop(&mut self) { close(&self.inner); } }
+    pub fn configure_pool(workers: i64, capacity: i64) -> Result<(), SpawnError> {
+        validate_limits(workers, capacity)?;
         let mut global = GLOBAL.lock().unwrap();
         if !matches!(*global, Global::New) { return Err(failure("configured", "Configure the pool before its first use; configuration is permanent.")); }
         *global = Global::Active(build(workers as usize, capacity as usize)?); Ok(())
@@ -52,10 +75,7 @@ mod tsrust_native_threads {
                 Global::Closed(_) => None,
             }
         };
-        if let Some(pool) = pool {
-            let mut stats = pool.state.lock().unwrap();
-            while stats.queued + stats.running != 0 { stats = pool.idle.wait(stats).unwrap(); }
-        }
+        if let Some(pool) = pool { close(&pool); }
         Ok(())
     }
     struct Completion<T, E> { result: Mutex<Option<Result<T, JoinError<E>>>>, ready: Condvar, cancel: Arc<AtomicBool>, released: AtomicBool, pool: Option<Arc<Pool>> }
@@ -120,6 +140,7 @@ mod tsrust_native_threads {
     fn submit<T: Send + 'static, E: Send + 'static>(pool: Arc<Pool>, work: impl FnOnce() -> Result<T, E> + Send + 'static) -> Result<Thread<T, E>, SpawnError> {
         {
             let mut stats = pool.state.lock().unwrap();
+            if pool.closed.load(Ordering::Acquire) { return Err(failure("closed", "The worker pool is shut down.")); }
             if stats.outstanding == stats.capacity { return Err(failure("full", "The pool's outstanding task capacity is full. Join or release a task before submitting more.")); }
             stats.outstanding += 1; stats.queued += 1;
         }
@@ -145,6 +166,64 @@ mod tsrust_native_threads {
     mod pool_tests {
         use super::*;
         use std::sync::mpsc;
+        #[test]
+        fn two_pool_workers_overlap_before_either_is_joined() {
+            let pool = create_pool(2, 2).unwrap();
+            let release = Arc::new(AtomicBool::new(false)); let (started, observed) = mpsc::channel();
+            let callback = |signal: mpsc::Sender<std::thread::ThreadId>, release: Arc<AtomicBool>| move || {
+                signal.send(std::thread::current().id()).unwrap();
+                while !release.load(Ordering::Acquire) { std::thread::yield_now(); }
+                Ok::<_, ()>(())
+            };
+            let first = pool.task(callback(started.clone(), release.clone())).unwrap();
+            let second = pool.task(callback(started, release.clone())).unwrap();
+            let a = observed.recv_timeout(std::time::Duration::from_secs(5));
+            let b = observed.recv_timeout(std::time::Duration::from_secs(5));
+            release.store(true, Ordering::Release);
+            assert!(join(first).is_ok()); assert!(join(second).is_ok());
+            assert_ne!(a.unwrap(), b.unwrap());
+        }
+        #[test]
+        fn owned_pools_are_independent_and_release_all_scheduler_references() {
+            for _ in 0..32 {
+                let first = create_pool(1, 1).unwrap(); let second = create_pool(2, 4).unwrap();
+                let first_weak = Arc::downgrade(&first.inner); let second_weak = Arc::downgrade(&second.inner);
+                let task = first.task(|| Ok::<_, ()>(42)).unwrap();
+                first.shutdown().unwrap(); first.shutdown().unwrap();
+                assert_eq!(first.stats().completed, 1);
+                assert!(matches!(first.task(|| Ok::<_, ()>(())), Err(SpawnError { code: "closed", .. })));
+                let other = second.task(|| Ok::<_, ()>(7)).unwrap();
+                drop(first); assert!(matches!(join(task), Ok(42)));
+                drop(second); assert!(matches!(join(other), Ok(7)));
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+                while first_weak.upgrade().is_some() || second_weak.upgrade().is_some() {
+                    assert!(std::time::Instant::now() < deadline, "scheduler leaked"); std::thread::yield_now();
+                }
+            }
+        }
+        #[test]
+        fn owned_drop_drains_detached_work_and_disposes_results_errors_and_captures() {
+            use std::sync::atomic::AtomicUsize;
+            struct Payload(Arc<AtomicUsize>);
+            impl Drop for Payload { fn drop(&mut self) { self.0.fetch_add(1, Ordering::SeqCst); } }
+            let disposed = Arc::new(AtomicUsize::new(0));
+            let pool = create_pool(1, 4).unwrap(); let weak = Arc::downgrade(&pool.inner);
+            let output = Payload(disposed.clone()); let error = Payload(disposed.clone());
+            let cancelled = Payload(disposed.clone()); let panicked = Payload(disposed.clone());
+            let (release, wait) = mpsc::channel();
+            let first = pool.task(move || { wait.recv().unwrap(); Ok::<_, ()>(output) }).unwrap();
+            let failure = pool.task(move || Err::<(), _>(error)).unwrap();
+            let skip = pool.task(move || { drop(cancelled); Ok::<_, ()>(()) }).unwrap();
+            assert!(cancel(&skip));
+            let panic = pool.task(move || -> Result<(), ()> { drop(panicked); panic!("witness"); }).unwrap();
+            let rejected = Payload(disposed.clone());
+            assert!(matches!(pool.task(move || Ok::<_, ()>(rejected)), Err(SpawnError { code: "full", .. })));
+            detach(first); detach(failure); detach(skip); detach(panic);
+            release.send(()).unwrap(); drop(pool);
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            while weak.upgrade().is_some() { assert!(std::time::Instant::now() < deadline); std::thread::yield_now(); }
+            assert_eq!(disposed.load(Ordering::SeqCst), 5);
+        }
         #[test]
         fn global_configuration_and_shutdown_preserve_unjoined_accounting() {
             assert_eq!(pool_stats().capacity, 1024);

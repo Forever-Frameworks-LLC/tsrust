@@ -4,6 +4,7 @@ fn emitted_dependency_packages_build_offline_after_relocation_without_source_or_
  for (source, expected) in [
   ("import {parse,kind} from 'std:json';function main(){match(parse('null')){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}", "null\n"),
   (include_str!("../../../examples/worker-pool/main.tsr"), "42\ncancelled\n0\n"),
+  (include_str!("../../../examples/scoped-pools/main.tsr"), "42\nindependent\n0\n7\n"),
  ] {
  let dir=support::TempDirectory::new();let input=dir.0.join("main.tsr");let package=dir.0.join("package");
  std::fs::write(&input,support::format_round_trip(source)).unwrap();

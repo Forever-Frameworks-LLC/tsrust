@@ -146,6 +146,7 @@ impl SourceIndex {
             }
             return entries;
         }
+        if self.native_type_aliases.get(ty) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) { return builtins_for("Pool"); }
         if ty == "@namespace:std:threads#pool" { return builtins_for("workerPool"); }
         if ty == "@namespace:std:schema#s" { return builtins_for("schemaBuilder"); }
         if ty=="__tsrust_json_string_read" {return builtins_for("string").into_iter().filter(|entry|matches!(entry["name"].as_str(),Some("length"|"startsWith"|"endsWith"|"includes"|"indexOf"|"lastIndexOf"))).collect();}

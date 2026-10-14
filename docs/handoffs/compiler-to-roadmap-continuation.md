@@ -142,14 +142,18 @@ It also makes worker cleanup the default for `spawn` and exposes global `unwrap`
 see [default cleanup](../plans/default-worker-cleanup.md). Compatibility spellings
 remain available. Family checks and all three matched workload measurements pass.
 
-Owner clarification: configurable default pools must also be a stdlib option.
-Evaluate Rayon; preserve dedicated OS-thread spawning. Pool sizing, admission,
-nested waits and shutdown still need implementation and acceptance after this
-scoped-cleanup slice. Do not treat the pool requirement as declined or completed.
+Shared and independent scoped pools, cooperative cancellation and the Rayon
+callback bridge now pass focused compiler/runtime/editor and offline export
+acceptance. `spawn` remains dedicated; `pool.task` uses the shared default;
+`pool.create` returns an independent owner with task/stats/shutdown methods.
+Scope cleanup drains independent pools, including detached work. Retained results
+stay joinable. MacOS leak inspection reports zero leaks in the cleanup corpus.
+See [pool acceptance](../plans/worker-pool-cancellation.md) for exact evidence and
+measurement limits. Release consumer refresh follows this source checkpoint.
 
-Required next S12 work: configurable default pool, cancellation for dedicated and
-pooled workers, Rayon bridging, and dedicated-worker channels. Preserve owned
-transfer and typed completion. Pool task accounting survives completion until join;
-saturation returns an error rather than blocking admission. Cancellation requests
-need acknowledged completion and cleanup, not forced thread termination. Full
-requirements and acceptance witnesses are in the default-cleanup document.
+Required next S12 work: dedicated-worker channels. Preserve owned transfer and
+typed completion. Cancellation remains cooperative, with join acknowledging
+completion; there is no forced thread termination. Pool-only container storage is
+rejected until lifecycle support exists. No async/deferred keywords or parallel
+iterator API were added. The full family regression remains separate from this
+focused pool/cancellation acceptance.

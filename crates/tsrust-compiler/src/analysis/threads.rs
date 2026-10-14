@@ -3,29 +3,52 @@ use super::*;
 use crate::native_signatures::NativeTypeId;
 
 impl Analyzer {
+    fn owned_pool_receiver(&self, context: &Context, base: &Expr) -> bool {
+        matches!(self.expression_type_hint(context, base), Some(Type::Record(id)) if self.program.records[id].native_type == Some(NativeTypeId::Pool))
+    }
+
     pub(super) fn thread_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(None); };
+        if let ExprKind::Field(base, member) = &callee.kind {
+            if self.owned_pool_receiver(context, base) {
+                let name = match member.as_str() {
+                    "task" => "__ownedPoolTask", "stats" => "__ownedPoolStats", "shutdown" => "__ownedPoolShutdown",
+                    _ => return Err(Diagnostic::new("pool-member", "Pool supports task, stats and shutdown; its limits are fixed at creation.", callee.span)),
+                };
+                arguments.insert(0, (**base).clone());
+                callee.kind = ExprKind::Name(format!("@native:std:threads#{name}"));
+            }
+        }
         let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
         let Some((id, binding)) = crate::native_bindings::by_symbol(name).filter(|(_, binding)| binding.module == "std:threads") else { return Ok(None); };
         self.threads_enabled = true;
         let span = expression.span;
-        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" => "pool.task", "__poolConfigure" => "pool.configure", "__poolStats" => "pool.stats", "__poolShutdown" => "pool.shutdown", name => name }, binding.parameters.len()), span)); }
-        let result = if binding.name == "__poolStats" { Type::Record(self.schema_native_dependency(NativeTypeId::PoolStats, span)?)
+        let owned = binding.name.starts_with("__ownedPool");
+        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" | "__ownedPoolTask" => "pool.task", "__poolCreate" => "pool.create", "__poolConfigure" => "pool.configure", "__poolStats" | "__ownedPoolStats" => "pool.stats", "__poolShutdown" | "__ownedPoolShutdown" => "pool.shutdown", name => name }, binding.parameters.len() - usize::from(owned)), span)); }
+        let mut active = loans.clone();
+        if owned {
+            let receiver = self.expression(context, &mut arguments[0], Mode::Read, loans, None)?;
+            if !matches!(receiver, Type::Record(id) if self.program.records[id].native_type == Some(NativeTypeId::Pool)) { return Err(Diagnostic::new("pool-receiver", "Expected an owned Pool or a borrow of it.", span)); }
+            for root in Self::loan_roots(&arguments[0], Mode::Read) { active.entry(root).or_default().push((Mode::Read, arguments[0].span)); }
+        }
+        let callback_index = usize::from(owned);
+        let result = if matches!(binding.name, "__poolStats" | "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::PoolStats, span)?)
         } else if binding.name == "cancellationRequested" { Type::Boolean
-        } else if matches!(binding.name, "__poolConfigure" | "__poolShutdown") {
-            for argument in arguments.iter_mut() { let actual = self.expression(context, argument, Mode::Copy, loans, Some(Type::Int))?; self.require(actual, Some(Type::Int), argument.span)?; }
+        } else if matches!(binding.name, "__poolConfigure" | "__poolShutdown" | "__poolCreate" | "__ownedPoolShutdown") {
+            for argument in arguments.iter_mut().skip(usize::from(owned)) { let actual = self.expression(context, argument, Mode::Copy, loans, Some(Type::Int))?; self.require(actual, Some(Type::Int), argument.span)?; }
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
-            self.thread_result(Type::Void, failure, span)?
-        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask") {
-            if let ExprKind::Closure { id, .. } = arguments[0].kind { self.escaping.insert(id); }
-            let actual = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
-            let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[0].span)); };
+            let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::Pool, span)?) } else { Type::Void };
+            self.thread_result(output, failure, span)?
+        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask" | "__ownedPoolTask") {
+            if let ExprKind::Closure { id, .. } = arguments[callback_index].kind { self.escaping.insert(id); }
+            let actual = self.expression(context, &mut arguments[callback_index], Mode::Consume, &active, None)?;
+            let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[callback_index].span)); };
             let closure = &self.closures[origin];
             if !closure.parameters.is_empty() || closure.program_scoped || !closure.program_captures.is_empty() {
-                return Err(Diagnostic::new("thread-callback", "A worker must take no arguments and cannot borrow program state.", arguments[0].span));
+                return Err(Diagnostic::new("thread-callback", "A worker must take no arguments and cannot borrow program state.", arguments[callback_index].span));
             }
             thread_transfer::require_owned_captures(closure, &self.program.records, &|id| self.unions.members(id))
-                .map_err(|_| Diagnostic::new("thread-transfer", "Worker captures must own transferable data; caller loans and stored callbacks cannot cross threads.", arguments[0].span))?;
+                .map_err(|_| Diagnostic::new("thread-transfer", "Worker captures must own transferable data; caller loans and stored callbacks cannot cross threads.", arguments[callback_index].span))?;
             let output = closure.function.result;
             let effects = self.discovery_error_effects();
             let failures = &effects.closure_errors[origin];
@@ -76,7 +99,7 @@ pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(
         match ty {
             Type::Record(id) => {
                 let record = &records[id];
-                if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) { return true; }
+                if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::Pool)) { return true; }
                 pending.extend(record.fields.iter().filter_map(|field| field.ty));
                 if matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet)) {
                     if let Some(application) = &record.application { pending.extend(&application.resolved_arguments); }
@@ -95,31 +118,31 @@ pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(
 impl Analyzer {
     pub(super) fn thread_discard(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
         if self.threads_enabled && contains_handle(ty, &self.program.records, &|id| self.unions.members(id)) {
-            return Err(Diagnostic::new("thread-lifecycle", "Cannot discard a thread owner or an unhandled spawn Result. Join, detach, or transfer ownership explicitly.", span));
+            return Err(Diagnostic::new("thread-lifecycle", "Cannot discard a worker or pool owner, or an unhandled creation Result. Bind, settle, or transfer ownership explicitly.", span));
         }
         Ok(())
     }
 }
 
 pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
-    if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread))) { return Ok(()); }
+    if !program.records.iter().any(|record| matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread | NativeTypeId::Pool))) { return Ok(()); }
     let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
     for record in &program.records {
         if matches!(record.native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
         if record.fields.iter().filter_map(|field| field.ty).any(&contains)
             || matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet))
                 && record.application.as_ref().is_some_and(|app| app.resolved_arguments.iter().copied().any(&contains)) {
-            return Err(Diagnostic::new("thread-storage", "Thread handles currently transfer directly or through Result; storing them in records or collections requires lifecycle support for those containers.", record.name.span));
+            return Err(Diagnostic::new("thread-storage", "Worker and pool owners currently transfer directly or through Result; storing them in records or collections requires lifecycle support for those containers.", record.name.span));
         }
     }
     for closure in &program.closures {
         if closure.captures.iter().any(|capture| contains(closure.function.bindings[capture.inner].ty)) {
-            return Err(Diagnostic::new("thread-storage", "A callback cannot retain a thread handle. Join or detach before capturing other data.", closure.span));
+            return Err(Diagnostic::new("thread-storage", "A callback cannot retain a worker or pool owner. Settle the owner before capturing other data.", closure.span));
         }
     }
     for function in program.functions.iter().chain(program.closures.iter().map(|closure| &closure.function)).filter(|function| !function.template) {
         for binding in function.bindings.iter().take(function.parameter_count).filter(|binding| contains(binding.ty)) {
-            if binding.mode != Mode::Consume {
+            if binding.mode != Mode::Consume && !matches!(binding.ty, Type::Record(id) if program.records[id].native_type == Some(NativeTypeId::Pool)) {
                 return Err(Diagnostic::new("thread-lifecycle", format!("Thread-bearing parameter {:?} of {:?} must consume and settle or transfer its owner.",binding.name,function.name), binding.declaration_span.unwrap_or_default()));
             }
         }
@@ -127,9 +150,9 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];
-                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask") {
+                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask" | "__ownedPoolTask") {
                     let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
-                    let Type::Closure(origin) = arguments[0].ty.unwrap() else { unreachable!() };
+                    let Type::Closure(origin) = arguments[usize::from(binding.name == "__ownedPoolTask")].ty.unwrap() else { unreachable!() };
                     let closure = &program.closures[origin];
                     let runtime = program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
                     let members = |id:UnionId| program.unions[id.index()].members.clone();
@@ -165,7 +188,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
                 return Err(Diagnostic::new("thread-lifecycle", "Use explicit if branches to settle thread ownership; conditional and short-circuit owner expressions are not supported.", expression.span));
             }
             if let Some(ty @ (Type::Array(_) | Type::Map(_) | Type::Set(_))) = expression.ty {
-                if contains(ty) { return Err(Diagnostic::new("thread-storage", "Thread handles cannot be stored in collections until element lifecycle checking is supported.", expression.span)); }
+                if contains(ty) { return Err(Diagnostic::new("thread-storage", "Worker and pool owners cannot be stored in collections until element lifecycle checking is supported.", expression.span)); }
             }
             if let ExprKind::Sequence(values) = &expression.kind {
                 if values.iter().take(values.len().saturating_sub(1)).any(|value| value.ty.is_some_and(&contains)) {

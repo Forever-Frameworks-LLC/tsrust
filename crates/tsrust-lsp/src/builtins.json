@@ -92,10 +92,10 @@
     "parameters": [
       {
         "label": "worker: Thread<T, E> | ScopedThread<T, E>",
-        "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value."
+        "documentation": "Explicitly releases the caller’s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value."
       }
     ],
-    "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value. A pooled task retains its outstanding slot until completion; detaching does not bypass capacity limits.\n\nOwnership: consumes the handle. Later access, join or detach is rejected.\n\n```tsrust\nimport {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: none.",
+    "documentation": "Explicitly releases the caller’s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value. A pooled task retains its outstanding slot until completion; detaching does not bypass capacity limits.\n\nOwnership: consumes the handle. Later access, join or detach is rejected.\n\n```tsrust\nimport {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: none.",
     "examples": [
       {
         "source": "import {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}",
@@ -178,7 +178,7 @@
     "signature": "cancellationRequested(): boolean",
     "inferredSignature": "function cancellationRequested(): boolean",
     "parameters": [],
-    "documentation": "Reports whether the current worker has received a cancellation request. Takes no arguments; returns false outside workers. Poll during long loops and exit promptly when true. Checking does not interrupt execution or throw; after callback exit, join reports cancelled if the request won the completion race. Nested pool execution preserves each worker\u2019s own cancellation context.\n\nOwnership: does not access or consume caller-owned handles.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "documentation": "Reports whether the current worker has received a cancellation request. Takes no arguments; returns false outside workers. Poll during long loops and exit promptly when true. Checking does not interrupt execution or throw; after callback exit, join reports cancelled if the request won the completion race. Nested pool execution preserves each worker’s own cancellation context.\n\nOwnership: does not access or consume caller-owned handles.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
     "examples": [
       {
         "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
@@ -205,6 +205,19 @@
       {
         "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
         "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "Pool",
+    "signature": "Pool",
+    "inferredSignature": "function Pool",
+    "parameters": [],
+    "documentation": "Independent pool owner created by pool.create(workers, capacity). task submits work, stats reports this pool, shutdown closes admission and drains work. Limits never change. Scope cleanup also drains detached work and may wait indefinitely for nonterminating callbacks. Completed task handles retain their results until joined or cleaned up.\n\nOwnership: unique, nonclonable owner; borrow with ReadOnly<Pool> in caller functions. Pool owners cannot cross workers or be stored in callbacks or containers.\n\n```tsrust\nimport { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
+        "output": "42\nindependent\n0\n7\n"
       }
     ]
   }
@@ -273,6 +286,28 @@
       {
         "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
         "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "create",
+    "signature": "pool.create(workers: int, capacity: int): Result<Pool, SpawnError>",
+    "inferredSignature": "function pool.create(workers: int, capacity: int): Result<Pool, SpawnError>",
+    "parameters": [
+      {
+        "label": "workers: int",
+        "documentation": "Number of reusable workers, 1..256."
+      },
+      {
+        "label": "capacity: int",
+        "documentation": "Maximum outstanding tasks, 1..1000000."
+      }
+    ],
+    "documentation": "Creates an independent pool without reading or changing the shared default. Both arguments are required: workers is 1..256; capacity is 1..1000000 queued, running or completed uncollected tasks. Limits are fixed for this pool. Returns code range for invalid limits or spawn if workers cannot be created. Multiple pools have separate queues, capacity and statistics. Scope exit closes admission and waits for all submitted work, including detached tasks. Results remain joinable after the pool owner leaves scope.\n\nOwnership: returns one nonclonable Pool owner. It can move between caller functions or be borrowed as ReadOnly<Pool>; it cannot be captured by callbacks, stored in containers or transferred to workers.\n\n```tsrust\nimport { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
+        "output": "42\nindependent\n0\n7\n"
       }
     ]
   }
@@ -9134,6 +9169,53 @@
       {
         "source": "import {s} from 'std:schema';function main(){const schema=s.object({name:s.string().nullable()});const result=schema.safeParse(JSON.parse('{\"name\":null}'));if(result.success){const value=result.data;console.log(value.name===null);}else{const error=result.error;console.log(error.issues.length);}}",
         "output": "true\n"
+      }
+    ]
+  }
+]
+,
+  "Pool": [
+  {
+    "name": "task",
+    "signature": "task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "parameters": [
+      {
+        "label": "callback: Owned<Function<T>>",
+        "documentation": "Owned zero-argument task. T is its result; E is its inferred thrown error."
+      }
+    ],
+    "documentation": "Submits an owned zero-argument callback to this pool. T is its return type and E its inferred thrown error. Starts when a worker is available. Admission returns full when outstanding capacity is exhausted or closed after shutdown; it never waits for capacity. Completion frees the worker, but retains a capacity slot until join or handle cleanup; detached work releases its slot on completion. Changes this pool only.\n\nOwnership: borrows the Pool and consumes callback captures. Caller loans and program state cannot cross workers; the returned handle owns its result.\n\n```tsrust\nimport { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
+        "output": "42\nindependent\n0\n7\n"
+      }
+    ]
+  },
+  {
+    "name": "stats",
+    "signature": "stats(): PoolStats",
+    "inferredSignature": "function stats(): PoolStats",
+    "parameters": [],
+    "documentation": "Takes no arguments. Returns a new snapshot of this pool: workers, capacity, queued, running, completed and outstanding. outstanding equals queued + running + completed; completed counts retained uncollected results. Does not change the pool; concurrent work can change counts immediately. Remains usable after shutdown.\n\nOwnership: borrows the pool and returns an owned record.\n\n```tsrust\nimport { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
+        "output": "42\nindependent\n0\n7\n"
+      }
+    ]
+  },
+  {
+    "name": "shutdown",
+    "signature": "shutdown(): Result<void, SpawnError>",
+    "inferredSignature": "function shutdown(): Result<void, SpawnError>",
+    "parameters": [],
+    "documentation": "Takes no arguments. Closes this pool to new tasks, then waits for queued and running work, including detached tasks. Does not cancel work. Repeated calls succeed. Other pools and dedicated threads are unaffected. Retained task handles can still be joined. Scope exit performs the same drain automatically. May wait indefinitely for nonterminating callbacks.\n\nOwnership: borrows the pool; does not consume task handles or their results.\n\n```tsrust\nimport { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n```\nExpected output: 42, independent, 0, 7 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, join, Pool, Thread } from 'std:threads';\n\nfunction calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {\n  return unwrap(jobs.task((): int => 42));\n}\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const shared = unwrap(pool.task((): int => 7));\n  {\n    const jobs = unwrap(pool.create(1, 4));\n    const background = unwrap(pool.create(2, 8));\n    const answer = calculate(jobs);\n    const other = unwrap(background.task((): string => 'independent'));\n    unwrap(jobs.shutdown());\n    console.log(unwrap(join(answer)));\n    console.log(unwrap(join(other)));\n    console.log(jobs.stats().outstanding);\n  }\n  console.log(unwrap(join(shared)));\n  unwrap(pool.shutdown());\n}\n// 42\n// independent\n// 0\n// 7\n",
+        "output": "42\nindependent\n0\n7\n"
       }
     ]
   }

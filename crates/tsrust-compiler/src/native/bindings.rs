@@ -108,6 +108,10 @@ impl NativeBinding {
 pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::threads::SPAWN,
     crate::stdlib::threads::POOL_TASK,
+    crate::stdlib::threads::CREATE_POOL,
+    crate::stdlib::threads::OWNED_POOL_TASK,
+    crate::stdlib::threads::OWNED_POOL_STATS,
+    crate::stdlib::threads::OWNED_POOL_SHUTDOWN,
     crate::stdlib::threads::CONFIGURE_POOL,
     crate::stdlib::threads::POOL_STATS,
     crate::stdlib::threads::SHUTDOWN_POOL,

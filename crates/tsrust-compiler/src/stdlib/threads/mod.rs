@@ -20,6 +20,11 @@ pub(crate) const CONFIGURE_POOL: NativeBinding = NativeBinding {
         NativeParameter { name: "capacity", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
     ], ..operation("__poolConfigure")
 };
+pub(crate) const CREATE_POOL: NativeBinding = NativeBinding { name: "__poolCreate", ..CONFIGURE_POOL };
+const POOL_RECEIVER: NativeParameter = NativeParameter { name: "pool", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false };
+pub(crate) const OWNED_POOL_TASK: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER, NativeParameter { name: "callback", ty: NativeType::ObservedValue, access: Mode::Consume, optional: false, rest: false }], ..operation("__ownedPoolTask") };
+pub(crate) const OWNED_POOL_STATS: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolStats") };
+pub(crate) const OWNED_POOL_SHUTDOWN: NativeBinding = NativeBinding { parameters: &[POOL_RECEIVER], ..operation("__ownedPoolShutdown") };
 pub(crate) const SHUTDOWN_POOL: NativeBinding = NativeBinding { parameters: &[], ..operation("__poolShutdown") };
 pub(crate) const SPAWN_SCOPED: NativeBinding = operation("spawnScoped");
 pub(crate) const SPAWN: NativeBinding = operation("spawn");
@@ -34,7 +39,7 @@ pub(crate) fn prepare(program: &mut crate::syntax::Program) -> Result<(), crate:
             if let crate::syntax::ExprKind::Field(base, member) = &expression.kind {
                 if matches!(&base.kind, crate::syntax::ExprKind::Name(name) if name == crate::native_exports::Namespace::Pool.symbol()) {
                     let binding = match member.as_str() {
-                        "task" => &POOL_TASK, "configure" => &CONFIGURE_POOL, "stats" => &POOL_STATS, "shutdown" => &SHUTDOWN_POOL,
+                        "create" => &CREATE_POOL, "task" => &POOL_TASK, "configure" => &CONFIGURE_POOL, "stats" => &POOL_STATS, "shutdown" => &SHUTDOWN_POOL,
                         _ => return Err(crate::Diagnostic::new("pool-member", format!("Unknown pool operation {member:?}."), expression.span)),
                     };
                     expression.kind = crate::syntax::ExprKind::Name(format!("@native:std:threads#{}", binding.name));
