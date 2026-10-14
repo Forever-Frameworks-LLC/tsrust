@@ -664,3 +664,20 @@ fn once_higher_order_inputs_do_not_promote_borrowed_environments_to_owners() {
         "callback-escape",
     );
 }
+
+#[test]
+fn suspended_closure_methods_preserve_named_and_expression_invocation_results() {
+    let mut source = String::new();
+    for (name, conditional) in [("namedChain", false), ("expressionChain", true)] {
+        source.push_str(&format!("function {name}():int{{const step0=(f:Function<int,[x:int]>):int=>f(0);"));
+        for index in 1..8 {
+            let previous = format!("step{}", index - 1);
+            let callee = if conditional { format!("(true?{previous}:{previous})") } else { previous };
+            source.push_str(&format!("const step{index}=(f:Function<int,[x:int]>):int=>{callee}(f);"));
+        }
+        source.push_str("return step7((x:int):int=>x+7);}");
+    }
+    source.push_str("function main(){console.log(namedChain(),expressionChain());}");
+    let source = support::format_round_trip(&source);
+    native(&source, "7 7\n", "", "");
+}

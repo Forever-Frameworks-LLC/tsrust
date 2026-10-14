@@ -352,3 +352,14 @@ its default completes. Pattern statements remain in the function body, are resto
 after checking, and use a scope that retains names for later parameters. Callable
 result discovery and diagnostic replay use this same driver when constructing a
 function context. The obsolete synchronous named-default adapter is removed.
+
+
+`analysis/closure_methods.rs` separates argument witness extraction, method
+preparation and method finalization. `analysis/continuations/driver/methods.rs`
+keeps method bodies on the caller's work stack. Named polymorphic closure calls
+schedule arguments with their original capture-loan boundary and then request a
+method; expression-valued calls keep their conditional completion frame until the
+method returns. Publish native return information, callable origin and completed
+capture effects at the same completion point as before. Collection callback
+helpers still call the compatibility materialization entry and need their own
+parent continuations; method body suspension does not make those parents safe.

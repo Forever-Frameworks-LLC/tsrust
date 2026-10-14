@@ -3,6 +3,8 @@ use super::super::*;
 
 pub(in crate::analysis) enum CallDispatch {
     Ready(Type),
+    ReadyMethod { origin: usize, method: usize, result: Type },
+    Method { binding: usize, origin: usize, params: Vec<ArgumentContract>, invocation: Mode },
     Conditional { publish_type: bool },
     Declared { resolve_completed: bool },
     Bound { binding: usize, params: Vec<ArgumentContract>, result: Type, invocation: Mode, target: CallTarget },
@@ -162,7 +164,7 @@ impl Analyzer {
         Ok(super::arguments::Arguments::new(std::mem::take(&mut frame.params), active, context, true, false, false))
     }
 
-    pub(super) fn finish_callable_invocation(&mut self, context: &mut Context, args: &mut Vec<Expr>, span: Span, frame: CallableInvocation) -> Result<(CallTarget, Type), Diagnostic> {
+    pub(super) fn finish_callable_invocation(&mut self, context: &mut Context, args: &mut Vec<Expr>, span: Span, frame: CallableInvocation) -> Result<FinishedInvocation, Diagnostic> {
         let CallableInvocation { hint, result, target, .. } = frame;
         if let Type::Closure(origin) = hint {
             let (origin, _) = match self.closures[origin].forward {
@@ -171,13 +173,10 @@ impl Analyzer {
             };
             if let Some(ClosureForward::Function(function)) = self.closures[origin].forward {
                 let (function, result) = self.resolved_call(context, function, args, span)?;
-                return Ok((CallTarget::ForwardFunction(function), result));
+                return Ok(FinishedInvocation::Ready(CallTarget::ForwardFunction(function), result));
             }
             if self.closures[origin].polymorphic {
-                let (method, result) = self.materialize_closure_method(origin, args, span)?;
-                let result =
-                    self.closure_method_result(context, origin, method, result, args, span);
-                return Ok((CallTarget::ClosureMethod(method), result));
+                return Ok(FinishedInvocation::Method(origin, self.closure_method_argument_types(origin, args)));
             }
         }
         let result = if let Type::Callable(contract) = result {
@@ -189,8 +188,10 @@ impl Analyzer {
         } else {
             result
         };
-        Ok((target, result))
+        Ok(FinishedInvocation::Ready(target, result))
     }
 
 
 }
+
+pub(super) enum FinishedInvocation { Ready(CallTarget, Type), Method(usize, Vec<Type>) }

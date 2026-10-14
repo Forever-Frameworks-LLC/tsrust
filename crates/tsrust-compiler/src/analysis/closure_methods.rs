@@ -6,19 +6,13 @@ impl Analyzer {
     // frame, rather than in every recursive unary or binary expression.
     // Source replay specializes only invocation bodies. The existing environment
     // retains the same owners, capture field layout, access and invocation mode.
-    pub(super) fn materialize_closure_method(
-        &mut self,
-        origin: usize,
-        args: &[Expr],
-        span: Span,
-    ) -> Result<(usize, Type), Diagnostic> {
+    pub(super) fn closure_method_argument_types(&self, origin: usize, args: &[Expr]) -> Vec<Type> {
         let closure=&self.closures[origin];
-        let types = args.iter().zip(&closure.parameters).map(|(arg,&parameter)| {
+        args.iter().zip(&closure.parameters).map(|(arg,&parameter)| {
             if closure.function.bindings[parameter].omission.is_omittable()
                 && let ExprKind::Inject{value,..}=&arg.kind {value.ty.expect("checked supplied member")}
             else {arg.ty.expect("checked method argument")}
-        }).collect::<Vec<_>>();
-        self.materialize_closure_method_types(origin, types, span)
+        }).collect::<Vec<_>>()
     }
 
     pub(super) fn materialize_closure_method_types(
@@ -27,6 +21,10 @@ impl Analyzer {
         types: Vec<Type>,
         span: Span,
     ) -> Result<(usize, Type), Diagnostic> {
+        continuations::driver::check_closure_method(self, origin, types, span)
+    }
+
+    pub(super) fn prepare_closure_method(&mut self, origin: usize, types: Vec<Type>, span: Span) -> Result<PreparedMethod, Diagnostic> {
         let source = self.closure_method_sources.get(&origin).cloned().ok_or_else(|| Diagnostic::new("unsupported", "Callable traversal visitor requires an arrow environment with a checked specialization body.", span))?;
         let key = (
             origin,
@@ -39,7 +37,7 @@ impl Analyzer {
             if matches!(result, Type::Callable(_)) {
                 return Err(Self::pending_result(span));
             }
-            return Ok((method, result));
+            return Ok(PreparedMethod::Ready(method, result));
         }
         if self.callable_body_specialization_count()
             >= 128
@@ -47,13 +45,6 @@ impl Analyzer {
             return Err(Diagnostic::new(
                 "unsupported",
                 "Callback origin specialization count exceeds the prototype limit of 128.",
-                span,
-            ));
-        }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Call graph depth exceeds the prototype limit of 128.",
                 span,
             ));
         }
@@ -132,11 +123,14 @@ impl Analyzer {
         });
         self.closure_specializations.insert(key, method);
         self.depth += 1;
-        let mut body = source.body;
-        let checked = self.check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), source.result);
+        Ok(PreparedMethod::Body(MethodBody { origin, method, context, body: source.body, result: source.result, span }))
+    }
+
+    pub(super) fn finish_closure_method(&mut self, frame: MethodBody, checked: Result<bool, Diagnostic>) -> Result<(usize, Type), Diagnostic> {
+        let MethodBody { origin, method, mut context, mut body, result: source_result, span } = frame;
         self.depth -= 1;
         let returned = checked.map_err(|error| self.filter_ownership_fixes(&context, error))?;
-        if source.result != Type::Void && !returned {
+        if source_result != Type::Void && !returned {
             return Err(Diagnostic::new(
                 "type",
                 "Closure must return a value on every path.",
@@ -145,12 +139,12 @@ impl Analyzer {
         }
         let result = if context.inferred_body_result {
             self.inferred_body_result(&body)?
-        } else if self.callable_result_type(source.result) {
+        } else if self.callable_result_type(source_result) {
             context
                 .returned_callable
                 .ok_or_else(|| Self::pending_result(span))?
         } else {
-            source.result
+            source_result
         };
         if !context.template && self.has_pending_result(result) {
             return Err(Self::pending_result(span));
@@ -198,4 +192,15 @@ impl Analyzer {
         Ok((method, result))
     }
 
+}
+
+pub(super) enum PreparedMethod { Ready(usize, Type), Body(MethodBody) }
+
+pub(super) struct MethodBody {
+    pub(super) origin: usize,
+    pub(super) method: usize,
+    pub(super) context: Context,
+    pub(super) body: Vec<Stmt>,
+    pub(super) result: Type,
+    pub(super) span: Span,
 }

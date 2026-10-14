@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,10 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family == 'closure-method-chain':
+        declarations = ['const step0=(f:Function<int,[x:int]>):int=>f(0);']
+        declarations.extend(f'const step{index}=(f:Function<int,[x:int]>):int=>step{index-1}(f);' for index in range(1,size))
+        return 'function main(){' + ''.join(declarations) + f'console.log(step{size-1}((x:int):int=>x+7));' + '}'
     if family == 'captured-default-call-chain':
         functions = []
         for index in range(size):

@@ -10,6 +10,7 @@ mod closure_parameters;
 mod optional;
 mod functions;
 mod parameters;
+mod methods;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -125,6 +126,7 @@ enum ExpressionState {
     Closure { frame: Box<super::closure::Frame>, child: ContextId },
     ClosureDefault { frame:Box<super::closure::Parameters>,child:ContextId,work:Box<super::closure::ParameterWork> },
     ClosurePattern { frame:Box<super::closure::Parameters>,child:ContextId,start:usize },
+    Method { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
     DeclaredFunction { index: usize, resolve_completed: bool },
     Callee { frame: super::call::CalleeFrame, publish_type: bool },
     InvocationCallee { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
@@ -133,6 +135,7 @@ enum ExpressionState {
 }
 
 enum InvocationFinish {
+    Method { origin: usize },
     Conditional { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
     Declared { index: usize, captures: Vec<(usize, Mode)>, resolve_completed: bool },
     Bound { binding: usize, result: Type, target: CallTarget },
@@ -220,8 +223,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Method(Result<(usize, Type), Diagnostic>),
     Parameters(Vec<Stmt>, Result<(), Diagnostic>),
     Function(Result<(), Diagnostic>),
     Region(region::Region<'a>, region::ResultStates),
@@ -507,6 +511,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Method(task) => methods::step(analyzer, &mut contexts, task, completion.take()),
             Task::Parameters(task) => parameters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Function(task) => functions::step(analyzer, &mut contexts, task, completion.take()),
             Task::Optional(task)=>optional::step(analyzer,contexts.get(task.context),task,completion.take()),
@@ -915,6 +920,26 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let result = analyzer.finish_closure(contexts.get(task.context), frame, child_context, destination, &task.loans, returned);
             if let Ok(ty) = result { expr.ty = Some(ty); }
             finish_expression(analyzer, contexts.get(task.context), task, result)
+        }
+        ExpressionState::Method { origin, conditional } => {
+            let Completion::Method(result) = completion.expect("method completed") else { unreachable!("method completion") };
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let result = result.and_then(|(method, result)| {
+                let ExprKind::Call(_, args) = &mut expr.kind else { unreachable!("method invocation") };
+                let result = analyzer.closure_method_result(context, origin, method, result, args, expr.span);
+                if let Some((frame, publish_type)) = conditional {
+                    complete_conditional_call(analyzer, context, expr, frame, (CallTarget::ClosureMethod(method), result), publish_type)
+                } else {
+                    analyzer.remember_native_closure_returns(context, origin, Some(method), expr.span)?;
+                    if analyzer.native_borrow_types { expr.callable_origin = Some(CallableOrigin::Closure(origin)); }
+                    expr.target = Some(CallTarget::ClosureMethod(method));
+                    expr.ty = Some(result);
+                    analyzer.resolve_completed_capture_invocation(context, expr, result);
+                    Ok(result)
+                }
+            });
+            finish_expression(analyzer, context, task, result)
         }
         ExpressionState::DeclaredFunction { index, resolve_completed } => {
             let Completion::Function(result) = completion.expect("declared function completed") else { unreachable!("declared function result") };
@@ -1365,6 +1390,14 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                     match dispatch {
                         Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
                         Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
+                        Ok(CallDispatch::ReadyMethod { .. }) => unreachable!("ready method is published by dispatch"),
+                        Ok(CallDispatch::Method { binding, origin, params, invocation }) => {
+                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("method call") };
+                            let mut active = (*task.loans).clone();
+                            active.entry(binding).or_default().push((invocation, callee.span));
+                            let arguments = super::arguments::Arguments::new(params, active, context, true, false, true);
+                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Method { origin } }))
+                        }
                         Ok(CallDispatch::Bound { binding, params, result, invocation, target }) => {
                             let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("bound call") };
                             let mut active = (*task.loans).clone();
@@ -1514,6 +1547,19 @@ fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut t
     }
 }
 
+pub(in crate::analysis) fn check_closure_method(analyzer: &mut Analyzer, origin: usize, types: Vec<Type>, span: Span) -> Result<(usize, Type), Diagnostic> {
+    let mut context = Context::new(String::new());
+    let task = Task::Method(Box::new(methods::MethodTask::Start { origin, types, span }));
+    let Completion::Method(result) = drive(analyzer, &mut context, task) else { unreachable!("method schedule result") };
+    result
+}
+
+fn schedule_method<'a>(mut task: ExpressionTask<'a>, origin: usize, types: Vec<Type>, conditional: Option<(super::call::CallCompletion, bool)>) -> Step<'a> {
+    let span = task.expression.value().span;
+    task.state = ExpressionState::Method { origin, conditional };
+    Step::Push(Task::Expression(task), Task::Method(Box::new(methods::MethodTask::Start { origin, types, span })))
+}
+
 pub(in crate::analysis) fn check_function_parameters(analyzer: &mut Analyzer, context: &mut Context, body: &mut Vec<Stmt>, parameters: crate::analysis::function_parameters::FunctionParameters) -> Result<(), Diagnostic> {
     let task = Task::Parameters(Box::new(parameters::ParametersTask::new(parameters, ContextId(0), std::mem::take(body))));
     let Completion::Parameters(checked, result) = drive(analyzer, context, task) else { unreachable!("named parameter result") };
@@ -1562,9 +1608,16 @@ fn schedule_argument<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
     }
     call.arguments.finish(context);
     let result = match call.finish {
+        InvocationFinish::Method { origin } => {
+            let types = analyzer.closure_method_argument_types(origin, args);
+            return schedule_method(task, origin, types, None);
+        }
         InvocationFinish::Conditional { frame, invocation, publish_type } => {
-            analyzer.finish_callable_invocation(context, args, expr.span, invocation)
-                .and_then(|result| complete_conditional_call(analyzer, context, expr, frame, result, publish_type))
+            match analyzer.finish_callable_invocation(context, args, expr.span, invocation) {
+                Ok(super::call::FinishedInvocation::Ready(target, result)) => complete_conditional_call(analyzer, context, expr, frame, (target, result), publish_type),
+                Ok(super::call::FinishedInvocation::Method(origin, types)) => return schedule_method(task, origin, types, Some((frame, publish_type))),
+                Err(error) => Err(error),
+            }
         }
         InvocationFinish::Bound { binding, result, target } => {
             analyzer.finish_bound_call(context, expr, binding, result, target)

@@ -8990,7 +8990,7 @@ self.names_materialized_type(element.with_depth(0).ty())
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn closure_method_call(
+    fn prepare_closure_method_call(
         &mut self,
         context: &mut Context,
         binding: usize,
@@ -9000,13 +9000,15 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
         span: Span,
         expected: Option<Type>,
-    ) -> Result<(usize, Type), Diagnostic> {
+    ) -> Result<CallDispatch, Diagnostic> {
         let (origin, once) = match self.closures[origin].forward {
             Some(ClosureForward::Once(inner)) => (inner, true),
             _ => (origin, false),
         };
         if self.deferred_generic_values.contains_key(&origin) {
-            return self.deferred_generic_call(context, Some(binding), origin, callee, args, loans, span, once, expected, false);
+            let (method, result) = self.deferred_generic_call(context, Some(binding), origin, callee, args, loans, span, once, expected, false)?;
+            self.remember_native_closure_returns(context, origin, Some(method), span)?;
+            return Ok(CallDispatch::ReadyMethod { origin, method, result });
         }
         let closure = &self.closures[origin];
         let invocation = if once {
@@ -9025,35 +9027,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         Self::access(context, binding, invocation, callee.span, loans)?;
         callee.binding = Some(binding);
         callee.ty = Some(context.bindings[binding].ty);
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let mut active = loans.clone();
-        active
-            .entry(binding)
-            .or_default()
-            .push((invocation, callee.span));
-        for (arg, contract) in args.iter_mut().zip(params) {
-            if let Type::Callback(id) = contract.ty
-                && self.callables.callbacks[id].kind.is_owned()
-                && let ExprKind::Closure { id, .. } = &arg.kind
-            {
-                self.escaping.insert(*id);
-            }
-            let actual =
-                self.parameter_argument(context, arg, contract, &active)?;
-            self.require(actual, Some(contract.ty), arg.span)?;
-            if !actual.is_copy() {
-                for root in Self::loan_roots(arg, contract.mode) {
-                    active
-                        .entry(root)
-                        .or_default()
-                        .push((contract.mode, arg.span));
-                }
-            }
-        }
-        capture_boundary.unwind(&mut context.capture_loans);
-        let (method, result) = self.materialize_closure_method(origin, args, span)?;
-        let result = self.closure_method_result(context, origin, method, result, args, span);
-        Ok((method, result))
+        Ok(CallDispatch::Method { binding, origin, params, invocation })
     }
 
     fn closure_method_result(
@@ -9905,14 +9879,14 @@ self.names_materialized_type(element.with_depth(0).ty())
                 && (self.closures[origin].polymorphic
                     || matches!(self.closures[origin].forward, Some(ClosureForward::Once(inner)) if self.closures[inner].polymorphic))
             {
-                let (method, result) =
-                    self.closure_method_call(context, binding, origin, callee, args, loans, span, expected)?;
-                let native_origin=match self.closures[origin].forward {Some(ClosureForward::Once(inner))=>inner,_=>origin};
-                self.remember_native_closure_returns(context,native_origin,Some(method),span)?;
-                if self.native_borrow_types {expr.callable_origin=Some(CallableOrigin::Closure(native_origin));}
-                expr.target = Some(CallTarget::ClosureMethod(method));
-                expr.ty = Some(result);
-                return Ok(CallDispatch::Ready(result));
+                let dispatch = self.prepare_closure_method_call(context, binding, origin, callee, args, loans, span, expected)?;
+                if let CallDispatch::ReadyMethod { origin, method, result } = dispatch {
+                    if self.native_borrow_types { expr.callable_origin = Some(CallableOrigin::Closure(origin)); }
+                    expr.target = Some(CallTarget::ClosureMethod(method));
+                    expr.ty = Some(result);
+                    return Ok(CallDispatch::Ready(result));
+                }
+                return Ok(dispatch);
             }
             let (params, result, invocation, target) = match context.bindings[binding].ty {
                 Type::StoredCallable(family) | Type::BorrowedCallable(family) => {

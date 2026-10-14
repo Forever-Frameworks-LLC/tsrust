@@ -1817,3 +1817,46 @@ architecture. Closure-method specialization, result discovery and compatibility
 entry points still need audits. Public parser admission remains unchanged, and
 formal scaling remains pending. Installed consumers are unchanged because this
 internal section changes no public API contract.
+
+
+### Closure method body and invocation continuations
+
+A closure-method-chain discovery witness completes at 2, 4 and 8 on checkpoint
+`5ca42ea8` but stack-overflows during analysis at 16. LLDB identifies synchronous
+named closure invocation and method materialization entering source-body checking.
+Method preparation and finalization now surround an owned shared-driver task;
+both named polymorphic closure calls and expression-valued calls schedule method
+requests after arguments. Capture layout/access validation, callback ownership,
+conditional capture boundaries, result forwarding, native return metadata and
+capture effect completion retain their original order. The method body depth
+guard is removed without increasing stacks or constants.
+
+Collection callback parents still invoke the compatibility materializer and remain
+part of the required recursion audit. The independent 128-specialization budget
+also remains migration debt; reaching it is a diagnostic, not a finite-input or
+machine-capacity acceptance result. These chains can create many witness-specific
+method entries, so their count must not be mistaken for source nesting.
+
+Evidence uses `tsrust-nesting-closure-work-*` in SQLite. All 27 checker-driver unit
+tests pass. The new invocation witnesses check both named and expression-valued
+callees; the 16-layer witness verifies that the unchanged specialization budget
+produces its diagnostic rather than a stack overflow. This preserves the existing
+rejection during migration and is not finite-input acceptance. The initial Rust
+build exposed a borrow-scope mistake, repaired before runtime checks and retained
+in the evidence.
+
+All 71 affected compiler integration tests pass across higher-order values,
+nullable/retained callbacks, returned callbacks, owning defaults, array transforms,
+reduce and forEach. The new formatted native example validates named and
+expression-valued method chains at both native optimization levels against `7 7`.
+Geometric discovery completes 2, 4 and 8 layers; 16 returns the existing count
+budget diagnostic. No post-change observation crashes or times out. Whole-project
+formatting changes zero files and fingerprints. The nullable-callable editor
+contract test passes, including native language examples at both optimization
+levels.
+
+This accepts shared method bodies and the two ordinary invocation paths only.
+Collection callback parents, other compatibility entries and specialization
+budget retirement remain required. No full compiler/LSP regression or formal
+scaling measurement is claimed. Installed consumers remain unchanged because
+this internal section changes no public API contract.
