@@ -8,10 +8,8 @@ impl Analyzer {
         let demand=map_entry_demand::Demand::checked(body)?;
         self.scoped_map_entry_epochs_with_demand(context,body,&mut results,&demand,&std::collections::BTreeSet::new()).map(|_|())
     }
-    #[inline(never)]
-    pub(super) fn scoped_map_entry_epochs_with_demand(&mut self, context:&mut Context, body:&mut [Stmt], results:&mut HashMap<usize,Type>, demand:&map_entry_demand::Demand, inherited:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) -> Result<std::collections::BTreeSet<crate::capture_loan_owners::Place>,Diagnostic> {
-        if !context.storage_exits.has_map_entry_survivors() && !context.storage_exits.has_map_completion_layouts() {return Ok(inherited.clone());}
-        let mut local=inherited.clone();
+    pub(super) fn begin_map_epoch_body(&self,context:&Context,body:&[Stmt],results:&HashMap<usize,Type>,local:&mut std::collections::BTreeSet<crate::capture_loan_owners::Place>)->bool {
+        if !context.storage_exits.has_map_entry_survivors() && !context.storage_exits.has_map_completion_layouts() {return false;}
         for item in body.iter() {
             if let StmtKind::Let{binding:Some(binding),value,..}=&item.kind {
                 let mut pending=vec![(value,Vec::new())];
@@ -26,22 +24,11 @@ impl Analyzer {
             }
         }
         if local.is_empty() && !context.storage_exits.has_map_completion_layouts() && !results.keys().any(|binding|context.storage_exits.map_entry_epoch_root(*binding)) {
-            return Ok(local);
+            return false;
         }
-        let boundary=body.first().map(|statement|statement.span.start);
-        for statement in body {
-            if matches!(statement.kind,StmtKind::Break|StmtKind::Continue) {
-                context.storage_exits.record_map_control_inputs(statement.span,results);
-            }
-            self.move_map_entry_places(statement,&mut local);
-            if let StmtKind::Block(inner)=&mut statement.kind {
-                if statement.labels.is_empty() {
-                    local=self.scoped_map_entry_epochs_with_demand(context,inner,results,demand,&local)?;
-                } else {
-                    self.plan_map_block_storage(context,statement,results,demand,&local)?;
-                }
-                continue;
-            }
+        true
+    }
+    pub(super) fn prepare_map_epoch_statement(&mut self,context:&mut Context,statement:&mut Stmt,results:&mut HashMap<usize,Type>,local:&mut std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<usize,Diagnostic> {
             let mut writes=Vec::new();
             let mut statement_end=statement.span.end;
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
@@ -59,7 +46,7 @@ impl Analyzer {
                 {writes.push((crate::capture_loan_owners::Place{binding,fields},incoming,value.span));}
                 Ok(())
             })?;
-            self.plan_map_iteration_entry(context,statement,results,&local)?;
+            self.plan_map_iteration_entry(context,statement,results,local)?;
             // Conditional and loop storage include incoming payloads before entry,
             // retaining the untaken-arm or zero-iteration survivor.
             if !matches!(statement.kind,StmtKind::Try(_)) {
@@ -86,56 +73,16 @@ impl Analyzer {
                 }
             }
             if let StmtKind::Let{binding:Some(binding),value,..}=&statement.kind
-                && let Some(ty)=self.planned_scoped_map_result(value,&results)
+                && let Some(ty)=self.planned_scoped_map_result(value,results)
             {results.insert(*binding,ty);context.bindings[*binding].ty=ty;}
             let native_inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
             context.storage_exits.record_map_native_inputs(statement.span.start,native_inputs);
             self.empty_map_iteration_carriers(context,std::slice::from_ref(statement),results)?;
             let field_initializer=matches!(&statement.kind,StmtKind::Let{binding:Some(binding),..} if local.iter().any(|place|place.binding==*binding && !place.fields.is_empty()));
-            if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),&results,&HashMap::new())?;}
-            self.scoped_map_branch_entries(context,statement,results,demand,&local)?;
-            self.plan_map_iteration_body(context,statement,results,demand)?;
-            if let StmtKind::Try(region)=&mut statement.kind {
-                let mut inner=results.clone();
-                self.scoped_map_entry_epochs_with_demand(context,&mut region.body,&mut inner,demand,&local)?;
-                let error=region.body.first().and_then(|statement|context.storage_exits.map_completion_layout(statement.span.start,map_completion_payloads::Phase::Body,Some(crate::completion::CompletionKind::Throw))).cloned();
-                if let Some(handler)=&mut region.catch {
-                    let mut inner=results.clone();
-                    if let Some(layout)=error {
-                        for (place,leaf) in layout {
-                            if let Some(root)=inner.get(&place.binding).copied() {
-                                if let Some(output)=self.scoped_array_replace_field(root,&place.fields,leaf){inner.insert(place.binding,output);}
-                            }
-                        }
-                    }
-                    self.scoped_map_entry_epochs_with_demand(context,&mut handler.body,&mut inner,demand,&local)?;
-                }
-                if let Some(cleanup)=&mut region.finally {
-                    let mut inner=results.clone();
-                    self.scoped_map_entry_epochs_with_demand(context,cleanup,&mut inner,demand,&local)?;
-                }
-                self.plan_map_cleanup_phases(context,region,results,demand,&local)?;
-                self.plan_map_exception_storage_exit(context,region,results,&local);
-                let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
-                context.storage_exits.record_map_native_inputs(statement_end,inputs);
-            }
-            if context.storage_exits.map_iteration_epochs(statement.span).is_empty() {
-                match &mut statement.kind {
-                    StmtKind::While{body:inner,..}|StmtKind::Loop{body:inner,..}|StmtKind::ForOf{body:inner,..}=>{
-                        // A checked loop completion can own the outer Map's
-                        // narrowing conversion. Do not also move that owner
-                        // into a body-local shadow. Other outer places remain
-                        // eligible for phase entry and refill planning.
-                        let mut inherited=local.clone();
-                        for state in context.storage_exits.map_completion_survivors(statement.span) {
-                            if state.consistent && !state.released.is_empty(){inherited.remove(&state.place);}
-                        }
-                        let mut inner_results=results.clone();
-                        self.scoped_map_entry_epochs_with_demand(context,inner,&mut inner_results,demand,&inherited)?;
-                    },
-                    _=>{},
-                }
-            }
+            if !field_initializer {self.retarget_scoped_map_body(context,std::slice::from_mut(statement),results,&HashMap::new())?;}
+        Ok(statement_end)
+    }
+    pub(super) fn finish_map_epoch_statement(&mut self,context:&mut Context,statement:&mut Stmt,statement_end:usize,results:&mut HashMap<usize,Type>,local:&mut std::collections::BTreeSet<crate::capture_loan_owners::Place>,demand:&map_entry_demand::Demand)->Result<(),Diagnostic> {
             let mut snapshots=Vec::new();
             crate::source_walk::body(std::slice::from_mut(statement),&mut |_|Ok(()),&mut |value| {
                 // A callee may write entries not represented by local set sites.
@@ -159,7 +106,7 @@ impl Analyzer {
                 for state in context.storage_exits.map_completion_survivors(statement.span) {
                     if state.consistent && local.contains(&state.place) {snapshots.push((statement.span,state.clone()));}
                 }
-            } else if matches!(statement.kind,StmtKind::Try(_)) {continue;}
+            } else if matches!(statement.kind,StmtKind::Try(_)) {return Ok(());}
             snapshots.sort_by_key(|(span,_)|span.start);
             for (span,state) in snapshots {
                 if !demand.after(statement_end,&state.released) {continue;}
@@ -195,12 +142,7 @@ impl Analyzer {
             }
             let inputs=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
             context.storage_exits.record_map_native_inputs(statement_end,inputs);
-        }
-        if let Some(boundary)=boundary {
-            let types=results.iter().filter(|(_,ty)|self.contains_scoped_map_storage(**ty)).map(|(binding,ty)|(*binding,*ty)).collect();
-            context.storage_exits.record_map_native_exit(boundary,types);
-        }
-        Ok(local)
+        Ok(())
     }
     pub(super) fn absent_record_environment(&self, record:usize) -> bool {
         let mut pending=vec![Type::Record(record)];

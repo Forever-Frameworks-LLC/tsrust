@@ -45,6 +45,7 @@ mod nullable_record_fields;
 mod discarded_sequence;
 mod map_entry_capture_owners;
 mod map_entry_epochs;
+mod map_epoch_work;
 mod map_iteration_plan;
 mod map_iteration_shape;
 mod map_exception_storage_types;

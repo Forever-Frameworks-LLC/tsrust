@@ -41,3 +41,8 @@ Both construct source in linear time and exercise ownership analysis before
 storage-aware emission. Their phase events distinguish checker limitations from
 emitter failures; isolated checked-tree witnesses do not establish pipeline
 acceptance for these families.
+
+`scoped-map-cleanup` nests cleanup regions around a Map entry deletion;
+`scoped-map-mixed` alternates branches, loops and cleanup regions. Both retain
+a second callback owner until the final clear, exercising connected storage
+planning and completion emission. Their source generators build strings linearly.

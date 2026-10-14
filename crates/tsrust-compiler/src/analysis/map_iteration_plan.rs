@@ -74,27 +74,9 @@ impl Analyzer {
         if !epochs.is_empty(){context.storage_exits.record_map_iteration_epochs(statement.span,epochs);}
         Ok(())
     }
-    #[inline(never)]
-    pub(super) fn plan_map_iteration_body(&mut self,context:&mut Context,statement:&mut Stmt,results:&HashMap<usize,Type>,demand:&map_entry_demand::Demand)->Result<(),Diagnostic> {
-        let mut epochs=context.storage_exits.map_iteration_epochs(statement.span).to_vec();
-        if epochs.is_empty(){return Ok(());}
-        let body=match &mut statement.kind {StmtKind::While{body,..}|StmtKind::Loop{body,..}|StmtKind::ForOf{body,..}=>body,_=>return Ok(())};
-        let local=epochs.iter().map(|epoch|epoch.entry.place.clone()).collect();
-        let mut inner=results.clone();
-        // First and repeated bodies share the complete reaching family.
-        // The first owner can be narrower than a later backedge owner.
-        for epoch in &epochs {
-            let root=inner[&epoch.entry.place.binding];
-            let working=self.scoped_array_field_type(epoch.working,&epoch.entry.place.fields).expect("working Map path");
-            inner.insert(epoch.entry.place.binding,self.scoped_array_replace_field(root,&epoch.entry.place.fields,working).expect("working Map path"));
-        }
-        self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,&local)?;
-        self.plan_map_iteration_body_family(context,body,statement.span.start,&mut inner,&mut epochs)?;
-        if let StmtKind::Loop{update,tail_reachable:true,..}=&mut statement.kind {
-            self.scoped_map_entry_epochs_with_demand(context,update,&mut inner,demand,&local)?;
-        }
+    pub(super) fn finish_map_iteration_body(&mut self,context:&mut Context,statement:&Stmt,results:&HashMap<usize,Type>,inner:&HashMap<usize,Type>,mut epochs:Vec<storage_exit_availability::MapIterationEpoch>)->Result<(),Diagnostic> {
         self.plan_map_iteration_controls(context,statement,&epochs)?;
-        for epoch in &mut epochs{epoch.back.input=*inner.get(&epoch.entry.place.binding).expect("carried Map root");}
+        for epoch in epochs.iter_mut(){epoch.back.input=*inner.get(&epoch.entry.place.binding).expect("carried Map root");}
         if let StmtKind::Loop{condition:Some(condition),post_test:true,tail_reachable:true,..}=&statement.kind {
             // The condition runs after backedge conversion, not in the last
             // body statement's working storage representation.
@@ -105,7 +87,7 @@ impl Analyzer {
         Ok(())
     }
     #[inline(never)]
-    fn plan_map_iteration_body_family(&mut self,context:&mut Context,body:&[Stmt],target:usize,inner:&mut HashMap<usize,Type>,epochs:&mut [storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
+    pub(super) fn plan_map_iteration_body_family(&mut self,context:&mut Context,body:&[Stmt],target:usize,inner:&mut HashMap<usize,Type>,epochs:&mut [storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
         let mut controls=Vec::new();let mut pending=body.iter().collect::<Vec<_>>();
         while let Some(statement)=pending.pop(){match &statement.kind {
             StmtKind::Block(body)=>pending.extend(body),

@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('scoped-map-branches', 'scoped-map-loops', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,11 +18,16 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
-    if family in ('scoped-map-branches', 'scoped-map-loops'):
+    if family in ('scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed'):
         if family == 'scoped-map-branches':
             body = repeated('handlers.clear();', size, 'if(true){', '}else{handlers.clear();}')
-        else:
+        elif family == 'scoped-map-loops':
             body = repeated("handlers.delete('first');", size, 'while(true){', 'break;}')
+        elif family == 'scoped-map-cleanup':
+            body = repeated("handlers.delete('first');", size, 'try{', '}finally{}')
+        else:
+            layers = [('if(true){', '}else{}'), ('while(true){', 'break;}'), ('try{', '}finally{}')]
+            body = ''.join(layers[level % 3][0] for level in range(size)) + "handlers.delete('first');" + ''.join(layers[level % 3][1] for level in reversed(range(size)))
         return ("type Holder={run:ReadOnly<Function<int>>;};function main():void{"
                 "const first=[3];const second=[5];const handlers=new Map<string,Holder>();"
                 "handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});"

@@ -25,25 +25,3 @@ impl Plans {
         self.0.get(&boundary)?.iter().find(|(pending,_)|*pending==kind).map(|(_,plan)|plan)
     }
 }
-
-impl Analyzer {
-    #[inline(never)]
-    pub(super) fn plan_map_cleanup_phases(&mut self,context:&mut Context,region:&ExceptionRegion,results:&HashMap<usize,Type>,demand:&map_entry_demand::Demand,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
-        let (Some(cleanup),Some(boundary))=(&region.finally,region.body.first().map(|statement|statement.span.start)) else{return Ok(());};
-        let snapshots=context.storage_exits.map_completion_snapshots(boundary);
-        for state in snapshots.into_iter().filter(|state|state.phase==map_completion_payloads::Phase::Handled && state.kind.is_some()) {
-            let Some(layout)=context.storage_exits.map_completion_layout(boundary,state.phase,state.kind).cloned() else{continue;};
-            if layout.is_empty(){continue;}
-            let mut phase=context.clone();phase.storage_exits.reset_map_cleanup_native_plans();
-            let mut input=results.clone();
-            for (place,leaf) in layout {
-                if let Some(root)=input.get(&place.binding).copied() && let Some(output)=self.scoped_array_replace_field(root,&place.fields,leaf){input.insert(place.binding,output);}
-            }
-            let mut body=cleanup.clone();
-            self.scoped_map_entry_epochs_with_demand(&mut phase,&mut body,&mut input,demand,local)?;
-            let binding_types=phase.bindings.iter().zip(&context.bindings).enumerate().filter_map(|(binding,(phase,original))|(phase.ty!=original.ty).then_some((binding,phase.ty))).collect();
-            context.storage_exits.record_map_cleanup_plan(boundary,state.kind,Plan{body,binding_types,exits:Box::new(phase.storage_exits)});
-        }
-        Ok(())
-    }
-}

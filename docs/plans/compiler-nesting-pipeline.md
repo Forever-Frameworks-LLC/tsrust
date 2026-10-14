@@ -1531,3 +1531,47 @@ public admission remain open. No limit or stack setting changed. These are
 correctness/discovery observations, not formal performance measurements. Evidence
 uses `tsrust-nesting-storage-work-*` in SQLite. Consumer refresh is coordinated
 with the incoming Claude editor-agreement integration.
+
+### Connected Map epoch planning
+
+`analysis/map_epoch_work.rs` now owns one work stack for Map storage blocks,
+branches, iteration bodies and updates, try/catch/finally bodies and per-completion
+cleanup replay. The old mutual calls through `scoped_map_entry_epochs_with_demand`
+are removed. Statement preparation, owner-family joins and completed conversions
+remain in their dedicated modules. Ordinary child frames share the live context;
+cleanup replay swaps in a private context and restores the parent before recording
+its plan. Child bodies move into frames without descendant cloning, and every
+extracted source body is reattached before a diagnostic returns.
+
+A 16,384-level active-storage traversal witness preserves source spans, body
+structure and carried results on the normal test stack. Review caught that its
+initial empty completion layout selected the no-storage fast path. The corrected
+witness installs a nonempty layout and asserts the active condition before the
+traversal; both original and corrected records are preserved. The first unit
+compile's mutable-slice mismatch is also retained, not erased from evidence.
+
+Unbounded full-pipeline discovery completes real scoped Map loops and branches
+at 128, 512 and 2,048 layers, including emission and disposal. The old 128-loop
+checker overflow is gone. Both 8,192-layer probes reach the analysis operational
+time budget. New linearly generated `scoped-map-cleanup` and `scoped-map-mixed`
+families exercise cleanup and mixed control nesting. Cleanup completes at 8 and
+32; mixed nesting completes at 8, 32 and 128. Mixed 512 reaches its analysis time
+budget. Cleanup 128 completes analysis but still overflows during emission.
+The debugger records the remaining cycle through `nested_completion`,
+`completion_handlers`, `completion_body_frame` and `run_statement_work`.
+
+Cleanup analysis also shows substantial time and memory growth. These discovery
+runs overlap native checks/builds and are not formal timing comparisons. Exception
+emission, descendant rescans, cleanup scaling, other remaining compiler consumers,
+public admission and full architecture acceptance remain open. No parser guard,
+stack setting or nesting constant is increased. Evidence uses
+`tsrust-nesting-map-epoch-work-*` in SQLite. Installed consumers remain at the
+accepted editor integration `0039df14`; this internal section changes no public
+contract.
+
+Section validation passes the corrected deep traversal unit, all 260 native
+checks across scoped record composition, exception handling, exception return
+moves and Map iteration, and six affected editor checks. Whole-project formatter
+runs change zero files and fingerprints. The corrected witness changes only
+`cfg(test)` code; native/editor/discovery executables use identical production
+source. Full compiler/LSP matrices are not repeated for this internal section.

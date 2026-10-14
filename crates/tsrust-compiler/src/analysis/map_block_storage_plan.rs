@@ -1,14 +1,8 @@
-//! Checked owner transport for labelled lexical blocks.
+//! Checked owner transport after a labelled lexical block finishes.
 use super::*;
 impl Analyzer {
-    #[inline(never)]
-    pub(super) fn plan_map_block_storage(&mut self,context:&mut Context,statement:&mut Stmt,results:&mut HashMap<usize,Type>,demand:&map_entry_demand::Demand,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
-        let states=context.storage_exits.map_completion_survivors(statement.span).to_vec();
-        let eligible=states.iter().filter(|state|state.consistent && local.contains(&state.place) && !state.released.is_empty()).map(|state|state.place.clone()).collect::<Vec<_>>();
-        if eligible.is_empty(){return Ok(());}
-        let StmtKind::Block(body)=&mut statement.kind else{unreachable!()};
-        let mut inner=results.clone();
-        let retained=self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,local)?;
+    pub(super) fn finish_map_block_storage(&mut self,context:&mut Context,statement:&Stmt,results:&mut HashMap<usize,Type>,inner:&HashMap<usize,Type>,retained:&std::collections::BTreeSet<crate::capture_loan_owners::Place>,states:&[storage_exit_availability::MapEntrySurvivors],eligible:&[crate::capture_loan_owners::Place])->Result<(),Diagnostic> {
+        let StmtKind::Block(body)=&statement.kind else{unreachable!()};
         let mut epochs=Vec::new();
         for state in states.iter().filter(|state|eligible.contains(&state.place) && retained.contains(&state.place)) {
             let place=&state.place;

@@ -1,12 +1,7 @@
-//! Narrow arm-local storage and restore a common representation at fallthrough.
+//! Restore a common representation after an arm's scheduled storage analysis.
 use super::*;
 impl Analyzer {
-    #[inline(never)]
-    pub(super) fn scoped_map_branch_entries(&mut self,context:&mut Context,statement:&mut Stmt,results:&HashMap<usize,Type>,demand:&map_entry_demand::Demand,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>)->Result<(),Diagnostic> {
-        let StmtKind::If{then_body,else_body,..}=&mut statement.kind else{return Ok(());};
-        for (right,body) in [(false,then_body),(true,else_body)] {
-            let mut arm_results=results.clone();
-            self.scoped_map_entry_epochs_with_demand(context,body,&mut arm_results,demand,local)?;
+    pub(super) fn finish_map_branch_entries(&mut self,context:&mut Context,span:Span,right:bool,body:&[Stmt],results:&HashMap<usize,Type>,arm_results:&HashMap<usize,Type>,local:&std::collections::BTreeSet<crate::capture_loan_owners::Place>) {
             let mut restore=Vec::new();
             if !crate::completion::definitely_abrupt(body) {
                 for place in local {
@@ -15,8 +10,6 @@ impl Analyzer {
                     restore.push(storage_exit_availability::MapEntryEpoch{place:place.clone(),input:*input,output:*output,empty:false,before:false});
                 }
             }
-            context.storage_exits.record_map_branch_restore(statement.span,right,restore);
-        }
-        Ok(())
+            context.storage_exits.record_map_branch_restore(span,right,restore);
     }
 }

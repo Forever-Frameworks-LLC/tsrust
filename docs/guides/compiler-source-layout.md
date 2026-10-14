@@ -312,3 +312,9 @@ conversions. Branch availability snapshots restore before the sibling branch
 starts. Empty-loop renewal and iterator bodies use the same scheduler.
 Exception completion and borrowed-map exception helpers still contain synchronous
 re-entry; statement scheduling alone does not finish emitter nesting.
+
+Map storage traversal uses `analysis/map_epoch_work.rs` for one connected body,
+branch, loop and cleanup continuation stack. `map_entry_epochs.rs` contains the
+non-recursive statement preparation and completion operations; branch/block/loop
+plan modules retain their owner joins and conversion rules. Cleanup replay
+contexts are scoped to their frames, and extracted bodies restore on errors.
