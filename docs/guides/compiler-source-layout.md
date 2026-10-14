@@ -330,3 +330,15 @@ branch, loop and cleanup continuation stack. `map_entry_epochs.rs` contains the
 non-recursive statement preparation and completion operations; branch/block/loop
 plan modules retain their owner joins and conversion rules. Cleanup replay
 contexts are scoped to their frames, and extracted bodies restore on errors.
+
+
+`analysis/function_scheduling.rs` owns dependency ordering, recursive summaries,
+function preparation and finalization. Its `Schedule` yields a body request rather
+than entering another block driver. `analysis/continuations/driver/functions.rs`
+keeps that schedule on the shared checker stack while the body runs with its real
+capture context. Declared calls prepare capture readiness, suspend for the callee,
+then obtain access contracts and evaluate written arguments. Uncalled nested
+functions enter the same schedule after their owner's finalization. Parameter
+context preparation, closure-method specialization and compatibility dispatch
+still require separate re-entry audits; a suspended body alone does not establish
+that every function-related path is stack independent.

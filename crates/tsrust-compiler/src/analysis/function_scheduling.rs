@@ -13,86 +13,20 @@ impl Analyzer {
     /// source function identities remain unchanged. Capturing declarations wait
     /// for a real defining context, and active recursive edges retain inference.
     pub(super) fn function(&mut self, index: usize) -> Result<(), Diagnostic> {
-        if self.discovering_results || self.checked[index].is_some() { return Ok(()); }
+        if self.function_request_ready(index)? { return Ok(()); }
+        continuations::driver::check_function(self, index)
+    }
+
+    pub(super) fn function_request_ready(&mut self, index: usize) -> Result<bool, Diagnostic> {
+        if self.discovering_results || self.checked[index].is_some() { return Ok(true); }
         if self.active_recursive_functions.contains(&index) {
             if self.signatures[index].inferred_result && !self.provisional_results.contains_key(&index) {
                 return Err(self.missing_recursive_result(index));
             }
-            return Ok(());
+            return Ok(true);
         }
-        if self.visiting[index] { return self.check_function_body(index).map(|_| ()); }
-        if self.scheduled_functions.contains(&index) {
-            let uncalled = self.check_function_body(index)?;
-            return if uncalled.is_empty() { Ok(()) } else { self.run_function_schedule(uncalled) };
-        }
-        self.run_function_schedule(vec![index])
-    }
-
-    // A suspended body that requests an already scheduled dependency needs only
-    // dispatch, not another copy of the worklist interpreter's stack frame.
-    #[inline(never)]
-    fn run_function_schedule(&mut self, roots: Vec<usize>) -> Result<(), Diagnostic> {
-        enum Work { Schedule(usize), Group(DependencyGroup), Check(usize), ReleaseGroup(Vec<usize>), Release(Vec<usize>) }
-        let mut pending = roots.into_iter().rev().map(Work::Schedule).collect::<Vec<_>>();
-        let mut inserted = Vec::new();
-        let mut recursive_inserted = Vec::new();
-        let result = (|| {
-            while let Some(work) = pending.pop() {
-                match work {
-                    Work::Schedule(index) => {
-                        if self.checked[index].is_some() { continue; }
-                        if self.scheduled_functions.contains(&index) {
-                            pending.push(Work::Check(index));
-                            continue;
-                        }
-                        let groups = self.function_dependency_order(index);
-                        let order = groups.iter().flat_map(|group| group.members.iter().copied()).collect::<Vec<_>>();
-                        for &id in &order {
-                            if self.scheduled_functions.insert(id) { inserted.push(id); }
-                        }
-                        pending.push(Work::Release(order));
-                        pending.extend(groups.into_iter().rev().map(Work::Group));
-                    }
-                    Work::Group(group) => {
-                        let mut data_types = HashMap::new();
-                        if group.recursive && group.members.iter().all(|&id| self.recursive_summary_is_complete(id, &mut data_types)) {
-                            if self.assumed_modes.is_none() {
-                                return Err(Diagnostic::new("recursion-inference", "Recursive access inference is required.", self.program.functions[group.members[0]].name.span));
-                            }
-                            self.seed_recursive_results(&group.members)?;
-                            for &id in &group.members {
-                                if self.active_recursive_functions.insert(id) { recursive_inserted.push(id); }
-                                if self.signatures[id].params.iter().any(|ty| matches!(ty, Type::Callback(_))) {
-                                    self.recursive_callbacks.insert(id);
-                                }
-                            }
-                            pending.push(Work::ReleaseGroup(group.members.clone()));
-                            // Actual DFS completion order also handles shared
-                            // callees: reversing discovery alone can put a sibling
-                            // before the inferred result that it depends on.
-                            pending.extend(group.completion.into_iter().rev().map(Work::Check));
-                        } else {
-                            pending.extend(group.members.into_iter().rev().map(Work::Check));
-                        }
-                    }
-                    Work::ReleaseGroup(ids) => {
-                        for id in ids { self.active_recursive_functions.remove(&id); }
-                    }
-                    Work::Check(index) => {
-                        let uncalled = self.check_function_body(index)?;
-                        pending.extend(uncalled.into_iter().rev().map(Work::Schedule));
-                    }
-                    Work::Release(ids) => {
-                        for id in ids { self.scheduled_functions.remove(&id); }
-                    }
-                }
-            }
-            Ok(())
-        })();
-        // Errors can interrupt a schedule before its release continuation.
-        for id in inserted { self.scheduled_functions.remove(&id); }
-        for id in recursive_inserted { self.active_recursive_functions.remove(&id); }
-        result
+        if self.visiting[index] { return self.prepare_function_body(index).map(|_| true); }
+        Ok(false)
     }
 
     fn recursive_summary_is_complete(&self, index: usize, data_types: &mut HashMap<Type, bool>) -> bool {
@@ -271,12 +205,12 @@ impl Analyzer {
         true
     }
 
-    fn check_function_body(&mut self, index: usize) -> Result<Vec<usize>, Diagnostic> {
+    pub(super) fn prepare_function_body(&mut self, index: usize) -> Result<Option<PreparedFunction>, Diagnostic> {
         if self.discovering_results {
-            return Ok(Vec::new());
+            return Ok(None);
         }
         if self.checked[index].is_some() {
-            return Ok(Vec::new());
+            return Ok(None);
         }
         if self.named_captures.needs_context(index) && !self.named_captures.ready(index) {
             return Err(self.program.local_capture_plans.iter().find_map(crate::local_capture_plan::Plan::pending_diagnostic).expect("pending named capture"));
@@ -306,7 +240,7 @@ impl Analyzer {
                 }
             }
             return if self.assumed_modes.is_some() {
-                Ok(Vec::new())
+                Ok(None)
             } else {
                 Err(Diagnostic::new(
                     "recursion-inference",
@@ -314,13 +248,6 @@ impl Analyzer {
                     name.span,
                 ))
             };
-        }
-        if self.depth >= 128 {
-            return Err(Diagnostic::new(
-                "unsupported",
-                "Call graph depth exceeds the prototype limit of 128.",
-                name.span,
-            ));
         }
         if self.callable_result_type(self.signatures[index].result)
             && self.assumed_modes.is_some()
@@ -347,11 +274,15 @@ impl Analyzer {
             self.signatures[index].result = provisional;
         }
         // Move the body into analysis rather than clone the syntax tree.
-        let mut result_type = self.signatures[index].result;
+        let result_type = self.signatures[index].result;
         context.inferred_body_result = self.signatures[index].inferred_result;
-        let returned = self
-            .check_source_callable_body(&mut context, Self::uninitialized_body(&mut body), result_type)
-            .map_err(|error| self.filter_ownership_fixes(&context, error))?;
+        Ok(Some(PreparedFunction { index, body, context, result_type }))
+    }
+
+    pub(super) fn finish_function_body(&mut self, prepared: PreparedFunction, returned: Result<bool, Diagnostic>) -> Result<Vec<usize>, Diagnostic> {
+        let PreparedFunction { index, mut body, mut context, mut result_type } = prepared;
+        let name = self.program.functions[index].name.clone();
+        let returned = returned.map_err(|error| self.filter_ownership_fixes(&context, error))?;
         if context.inferred_body_result {
             result_type = self.inferred_body_result(&body)?;
             self.signatures[index].result = result_type;
@@ -421,4 +352,86 @@ impl Analyzer {
         Ok(uncalled)
     }
 
+}
+
+pub(super) struct PreparedFunction {
+    pub(super) index: usize,
+    pub(super) body: Vec<Stmt>,
+    pub(super) context: Context,
+    pub(super) result_type: Type,
+}
+
+enum Work { Schedule(usize), Group(DependencyGroup), Check(usize), ReleaseGroup(Vec<usize>), Release(Vec<usize>) }
+
+/// Dependency work survives while a function body runs on the checker stack.
+pub(super) struct Schedule {
+    pending: Vec<Work>,
+    inserted: Vec<usize>,
+    recursive_inserted: Vec<usize>,
+}
+
+impl Schedule {
+    pub(super) fn new(index: usize) -> Self {
+        Self { pending: vec![Work::Schedule(index)], inserted: Vec::new(), recursive_inserted: Vec::new() }
+    }
+
+    pub(super) fn extend(&mut self, uncalled: Vec<usize>) {
+        self.pending.extend(uncalled.into_iter().rev().map(Work::Schedule));
+    }
+
+    pub(super) fn next(&mut self, analyzer: &mut Analyzer) -> Result<Option<usize>, Diagnostic> {
+        while let Some(work) = self.pending.pop() {
+            match work {
+                Work::Schedule(index) => {
+                    if analyzer.checked[index].is_some() { continue; }
+                    if analyzer.scheduled_functions.contains(&index) {
+                        self.pending.push(Work::Check(index));
+                        continue;
+                    }
+                    let groups = analyzer.function_dependency_order(index);
+                    let order = groups.iter().flat_map(|group| group.members.iter().copied()).collect::<Vec<_>>();
+                    for &id in &order {
+                        if analyzer.scheduled_functions.insert(id) { self.inserted.push(id); }
+                    }
+                    self.pending.push(Work::Release(order));
+                    self.pending.extend(groups.into_iter().rev().map(Work::Group));
+                }
+                Work::Group(group) => {
+                    let mut data_types = HashMap::new();
+                    if group.recursive && group.members.iter().all(|&id| analyzer.recursive_summary_is_complete(id, &mut data_types)) {
+                        if analyzer.assumed_modes.is_none() {
+                            return Err(Diagnostic::new("recursion-inference", "Recursive access inference is required.", analyzer.program.functions[group.members[0]].name.span));
+                        }
+                        analyzer.seed_recursive_results(&group.members)?;
+                        for &id in &group.members {
+                            if analyzer.active_recursive_functions.insert(id) { self.recursive_inserted.push(id); }
+                            if analyzer.signatures[id].params.iter().any(|ty| matches!(ty, Type::Callback(_))) {
+                                analyzer.recursive_callbacks.insert(id);
+                            }
+                        }
+                        self.pending.push(Work::ReleaseGroup(group.members.clone()));
+                        // Actual DFS completion order also handles shared
+                        // callees: reversing discovery alone can put a sibling
+                        // before the inferred result that it depends on.
+                        self.pending.extend(group.completion.into_iter().rev().map(Work::Check));
+                    } else {
+                        self.pending.extend(group.members.into_iter().rev().map(Work::Check));
+                    }
+                }
+                Work::ReleaseGroup(ids) => {
+                    for id in ids { analyzer.active_recursive_functions.remove(&id); }
+                }
+                Work::Check(index) => return Ok(Some(index)),
+                Work::Release(ids) => {
+                    for id in ids { analyzer.scheduled_functions.remove(&id); }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    pub(super) fn release(self, analyzer: &mut Analyzer) {
+        for id in self.inserted { analyzer.scheduled_functions.remove(&id); }
+        for id in self.recursive_inserted { analyzer.active_recursive_functions.remove(&id); }
+    }
 }

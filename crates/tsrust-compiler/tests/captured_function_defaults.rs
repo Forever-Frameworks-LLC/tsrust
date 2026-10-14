@@ -50,3 +50,19 @@ fn returned_defaulted_values_keep_independent_owned_factory_state() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn nested_captured_call_chains_preserve_native_values_and_defaults() {
+    let mut source = String::from("import {strictEqual} from 'std:testing';");
+    for (name, parameters, leaf) in [("plain", "", "captured"), ("defaults", "value:int=captured", "value")] {
+        source.push_str(&format!("function {name}():int{{const captured=7;{}return {leaf};{}}}",
+            format!("function nested({parameters}):int{{").repeat(64), "}return nested();".repeat(64)));
+    }
+    source.push_str("function main(){strictEqual(plain(),7);strictEqual(defaults(),7);}");
+    let source = support::format_round_trip(&source);
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}

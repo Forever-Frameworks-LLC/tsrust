@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,17 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('captured-local-functions', 'captured-default-functions'):
+        parameters = 'value:int=captured' if family == 'captured-default-functions' else ''
+        leaf = 'value' if parameters else 'captured'
+        return ('function probe():int{const captured=7;' + ('function nested(' + parameters + '):int{') * size
+                + 'return ' + leaf + ';' + '}return nested();' * size + '}function main(){console.log(probe());}')
+    if family == 'returned-callback-chain':
+        functions = []
+        for index in range(size):
+            body = 'return ():int=>7;' if index + 1 == size else f'const previous=step{index+1}();return ():int=>previous();'
+            functions.append(f'function step{index}():Function<int>{{{body}}}')
+        return '\n'.join(functions + ['function main(){const result=step0();console.log(result());}'])
     if family in ('field-return-cleanup', 'field-control-cleanup'):
         seed = 'if(early){return row.name;}'
         if family == 'field-control-cleanup':

@@ -8,6 +8,7 @@ mod tail;
 mod region;
 mod closure_parameters;
 mod optional;
+mod functions;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -123,6 +124,7 @@ enum ExpressionState {
     Closure { frame: Box<super::closure::Frame>, child: ContextId },
     ClosureDefault { frame:Box<super::closure::Parameters>,child:ContextId,work:Box<super::closure::ParameterWork> },
     ClosurePattern { frame:Box<super::closure::Parameters>,child:ContextId,start:usize },
+    DeclaredFunction { index: usize, resolve_completed: bool },
     Callee { frame: super::call::CalleeFrame, publish_type: bool },
     InvocationCallee { frame: super::call::CallCompletion, invocation: super::call::CallableInvocation, publish_type: bool },
     StoredFieldCallee { params: Vec<ArgumentContract>, result: Type, invocation: Mode, family: usize },
@@ -217,8 +219,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Function(Result<(), Diagnostic>),
     Region(region::Region<'a>, region::ResultStates),
     Tail(Box<Stmt>, Result<bool, Diagnostic>),
     Sequence(Box<Expr>, Result<Type, Diagnostic>, Option<Option<Box<crate::capture_loan_owners::Owners>>>),
@@ -502,6 +505,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Function(task) => functions::step(analyzer, &mut contexts, task, completion.take()),
             Task::Optional(task)=>optional::step(analyzer,contexts.get(task.context),task,completion.take()),
             Task::Callable(task) => step_callable(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Region(task) => region::step(analyzer, &mut contexts, task, completion.take()),
@@ -908,6 +912,14 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let result = analyzer.finish_closure(contexts.get(task.context), frame, child_context, destination, &task.loans, returned);
             if let Ok(ty) = result { expr.ty = Some(ty); }
             finish_expression(analyzer, contexts.get(task.context), task, result)
+        }
+        ExpressionState::DeclaredFunction { index, resolve_completed } => {
+            let Completion::Function(result) = completion.expect("declared function completed") else { unreachable!("declared function result") };
+            let context = contexts.get(task.context);
+            match result {
+                Ok(()) => resume_declared_call(analyzer, context, task, index, resolve_completed),
+                Err(error) => finish_expression(analyzer, context, task, Err(error)),
+            }
         }
         ExpressionState::Callee { frame, publish_type } => {
             let Completion::Expression(callee, result) = completion.expect("callee completed") else { unreachable!("callee result") };
@@ -1487,9 +1499,29 @@ fn start_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Expr
 }
 
 fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, resolve_completed: bool) -> Step<'a> {
+    let prepared = analyzer.prepare_declared_call(context, task.expression.value())
+        .and_then(|index| analyzer.function_request_ready(index).map(|ready| (index, ready)));
+    match prepared {
+        Ok((index, true)) => resume_declared_call(analyzer, context, task, index, resolve_completed),
+        Ok((index, false)) => {
+            task.state = ExpressionState::DeclaredFunction { index, resolve_completed };
+            Step::Push(Task::Expression(task), Task::Function(Box::new(functions::FunctionTask::new(index))))
+        }
+        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+    }
+}
+
+pub(in crate::analysis) fn check_function(analyzer: &mut Analyzer, index: usize) -> Result<(), Diagnostic> {
+    let mut root = Context::new(String::new());
+    let task = Task::Function(Box::new(functions::FunctionTask::new(index)));
+    let Completion::Function(result) = drive(analyzer, &mut root, task) else { unreachable!("function schedule result") };
+    result
+}
+
+fn resume_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, index: usize, resolve_completed: bool) -> Step<'a> {
     let expr = task.expression.value();
     let prepared = (|| {
-        let (index, captures, params) = analyzer.declared_call_contract(context, expr)?;
+        let (index, captures, params) = analyzer.completed_declared_call_contract(context, expr, index)?;
         let ExprKind::Call(_, args) = &mut expr.kind else { unreachable!("declared call") };
         Analyzer::prepare_arguments(args, &params, expr.span)?;
         Ok::<_, Diagnostic>((index, captures, params))

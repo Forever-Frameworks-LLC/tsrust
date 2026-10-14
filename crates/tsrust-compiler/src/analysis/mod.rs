@@ -10196,11 +10196,11 @@ self.names_materialized_type(element.with_depth(0).ty())
 
     #[inline(never)]
     #[allow(clippy::type_complexity)]
-    fn declared_call_contract(
+    fn prepare_declared_call(
         &mut self,
         context: &mut Context,
         expr: &mut Expr,
-    ) -> Result<(usize, Vec<(usize, Mode)>, Vec<ArgumentContract>), Diagnostic> {
+    ) -> Result<usize, Diagnostic> {
         let ExprKind::Call(callee, _) = &mut expr.kind else {
             unreachable!("declared call dispatch");
         };
@@ -10218,7 +10218,17 @@ self.names_materialized_type(element.with_depth(0).ty())
             ));
         }
         self.named_captures.prepare(index, context, &self.program)?;
+        Ok(index)
+    }
+
+    fn declared_call_contract(&mut self, context: &mut Context, expr: &mut Expr) -> Result<(usize, Vec<(usize, Mode)>, Vec<ArgumentContract>), Diagnostic> {
+        let index = self.prepare_declared_call(context, expr)?;
         self.function(index)?;
+        self.completed_declared_call_contract(context, expr, index)
+    }
+
+    fn completed_declared_call_contract(&mut self, context: &mut Context, expr: &mut Expr, index: usize) -> Result<(usize, Vec<(usize, Mode)>, Vec<ArgumentContract>), Diagnostic> {
+        let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("declared call dispatch") };
         // Propagate body access through static named edges. Runtime loan formation
         // remains the separate environment-lowering stage behind the public guard.
         // A direct call passes each captured binding as a hidden argument:

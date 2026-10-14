@@ -1728,3 +1728,51 @@ checking, fallback function checking and callable-result discovery still have
 scaling remain pending. No guard, stack size or language limit was raised. Full
 compiler/LSP matrices and formal measurements are not claimed for this internal
 section. Installed consumers remain unchanged because no public contract changes.
+
+
+### Shared named-function body scheduling
+
+Callable discovery found an analysis stack overflow at 32 nested captured named
+functions, both with scalar defaults and without defaults. The ordinary returned
+callback chain completed through 32,768; 131,072 timed out under its observation
+budget. The capture failures occurred below the old 128 check. LLDB identified
+re-entry from `declared_call_contract` through function scheduling and body checking.
+
+Function dependency schedules now yield owned body requests to the shared checker
+continuation stack. Callee contexts remain live until finalization; callers resume
+capture access propagation and written arguments afterward. Recursive component
+seeding, source completion order, uncalled functions, nullable result finalization,
+error ownership fixes and callable exception boundaries retain their original
+order. The named-function body depth check is removed, not increased. Other guards
+and the public parser admission policy remain unchanged while their consumers
+are audited. Parameter context preparation can still enter checking synchronously;
+this section does not claim that path, closure methods or the whole pipeline safe.
+
+Validation and discovery records for this section use
+`tsrust-nesting-function-work-*`; the original discovery and trace use
+`tsrust-nesting-callable-audit-*`. Implementation acceptance and formal measurements
+remain separate.
+
+Section validation passes 23 checker-driver unit tests, including 512-level
+captured bodies with and without scalar defaults and an original diagnostic span.
+The original diagnostic witness incorrectly expected `true`; the language reports
+`return`. Its failed assertion and corrected run are both preserved. The first
+build also exposed module visibility mistakes, which were repaired before tests.
+All 64 native tests pass across captures, defaults, declarations, inferred results,
+recursion and returned callbacks. The new formatted native witness checks both
+64-level captured chains with independent expected values. Both LSP checker
+agreement tests pass. Whole-project formatting changes zero files or fingerprints.
+
+The post-change discovery completes 17 of 20 full-pipeline observations: captured
+chains, with and without defaults, through 2,048, and returned callbacks through
+32,768. Both captured families at 8,192 and returned callbacks at 131,072 time out
+during analysis under the 30-second per-case observation budget. None crashes or
+stack-overflows. These observations overlap builds and native tests, are not formal
+timing samples, and establish no supported-depth ceiling. Capture memory growth
+and analysis scaling still need measurement and optimization.
+
+This accepts shared named-function body scheduling only. Parameter preparation,
+closure-method specialization, result discovery, other compatibility entries and
+public admission retirement remain required. Installed consumers are unchanged;
+no public API contract changes in this internal section. Full compiler/LSP
+regressions and formal scaling measurements are not claimed.
