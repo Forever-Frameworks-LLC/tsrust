@@ -46,7 +46,7 @@ impl Emitter<'_> {
         (map_error_storage_emit::extend_tuple(pattern,&names),restore)
     }
     #[inline(never)]
-    pub(super) fn map_precise_return_cleanup(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations:&[Stmt],first:usize,_carrier:&Carrier<'_>,cleanup_name:&str,cleanup_contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->String {
+    pub(super) fn map_precise_return_cleanup(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations: Declarations<'_, '_>,first:usize,_carrier:&Carrier<'_>,cleanup_name:&str,cleanup_contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->String {
         let cleanup=region.finally.as_ref().expect("return cleanup");
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
         let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Return)).map(|plan|plan.function(fun));

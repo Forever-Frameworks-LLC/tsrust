@@ -3,7 +3,7 @@ use super::*;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_try_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: &[Stmt], depth: usize) -> bool {
+    pub(super) fn map_try_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: Declarations<'_, '_>, depth: usize) -> bool {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
         let Some(handler) = &region.catch else { return self.map_finally_storage_epoch(output,fun,statement,region,declarations,depth); };
@@ -43,8 +43,8 @@ impl Emitter<'_> {
         let throw_arm=if handler_throws{format!("TsrCompletion::Throw((pending_error,{pattern}))=>{{{thrown_finish}}}")}else{"TsrCompletion::Throw(error)=>match error {}".into()};
         let return_arm=format!("TsrCompletion::Return((pending_exit,{pattern}))=>{{{returned_finish}}}");
         let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage))),TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler completion\")}}}}");
-        let indent="    ".repeat(depth);
-        let _=writeln!(output,"{indent}{in_decl} {out_decl} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let storage=normal_owner.unwrap();drop(error_owner);drop(control_owner);storage}}else{{drop(normal_owner);if error_owner.is_some(){{let (caught_error,{pattern})=error_owner.unwrap();drop(control_owner);{setup}match {handled}{{TsrCompletion::Normal(storage)=>storage,{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\")}}}}else{{drop(error_owner);if control_owner.is_some(){{let (pending_exit,{pattern})=control_owner.unwrap();{returned_finish}}}else{{unreachable!(\"exactly one pending handler owner\")}}}}}}}};");
+
+        let _=writeln!(output,"{in_decl} {out_decl} let {pattern}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let storage=normal_owner.unwrap();drop(error_owner);drop(control_owner);storage}}else{{drop(normal_owner);if error_owner.is_some(){{let (caught_error,{pattern})=error_owner.unwrap();drop(control_owner);{setup}match {handled}{{TsrCompletion::Normal(storage)=>storage,{throw_arm},{return_arm},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried handler control\")}}}}else{{drop(error_owner);if control_owner.is_some(){{let (pending_exit,{pattern})=control_owner.unwrap();{returned_finish}}}else{{unreachable!(\"exactly one pending handler owner\")}}}}}}}};");
         let boundary=places.iter().flat_map(|place|[
             self.map_storage_transfer_at_exit(fun,&region.body,place),
             self.map_storage_transfer_at_exit(fun,&handler.body,place),
@@ -71,15 +71,15 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    pub(super) fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
+    pub(super) fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
         self.map_return_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,error_layout,None)
     }
     #[inline(never)]
-    pub(super) fn map_return_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>)->String {
+    pub(super) fn map_return_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>)->String {
         self.map_field_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,error_layout,returned,None,&[])
     }
     #[inline(never)]
-    pub(super) fn map_field_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>,normal_fields:Option<&str>,error_fields:&[(String,Type)])->String {
+    pub(super) fn map_field_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>,normal_fields:Option<&str>,error_fields:&[(String,Type)])->String {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);

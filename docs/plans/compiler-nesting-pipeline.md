@@ -1465,3 +1465,38 @@ emitter dependencies, not accepted nesting behavior. No stack/depth constant or
 public admission policy changed. Formal scaling and full architecture acceptance
 remain open. SQLite evidence uses `tsrust-nesting-assignment-flow-*`; consumers
 remain at `79295194`.
+
+### Ordinary statement emission and output growth
+
+Ordinary blocks, branches, while/counting/do loops and for-of bodies now run on
+heap frames. Frames retain control scopes through body completion, loop updates,
+post-tests and storage bookkeeping in the original order. Iterator setup is
+separate from body emission. Visible declarations borrow the original source
+statements instead of cloning descendant trees. Map reset and branch-result
+discovery use worklists.
+
+Generated Rust no longer adds indentation proportional to source depth. This
+removes quadratic whitespace output while preserving token separation and literal
+contents; source formatting is unchanged. At 4,096 layers, block output changes
+from 67,191,682 to 50,046 bytes and branch output from 100,823,938 to 119,678 bytes.
+Mixed-loop output is 327,245 bytes. All three unbounded normal-stack pipeline
+probes complete at both 1,024 and 4,096 layers. The next 16,384-layer cases stop at
+operational budgets during analysis. Those stops are not language limits.
+
+The output-size comparison is deterministic discovery evidence, not the formal
+timing protocol. Discovery overlaps correctness checks; elapsed times cannot be
+used as isolated benchmark comparisons. Storage-specific and exception emission
+still contain synchronous re-entry. Repeated descendant scans also remain. Public
+admission, complete nesting acceptance and formal scaling remain pending.
+
+Statement scheduling passes 168 existing emitter units, three new witnesses,
+368 native checks across 13 suites and eight editor checks. After removing
+padding, all four focused witnesses pass, including output equality at different
+initial indentation depths. Four representative exception/storage programs retain
+identical Rust token streams, including literal contents and punctuation spacing;
+all eight before/after native compilations and executions agree. Rustfmt output
+was not a sufficient token oracle because it leaves some long expressions
+unformatted; the original failed formatting comparison is retained as evidence.
+Both whole-project formatter runs change zero files or fingerprints. Evidence
+uses `tsrust-nesting-statement-work-*` in SQLite. Installed editor consumers remain
+at `79295194` pending coordinated integration.

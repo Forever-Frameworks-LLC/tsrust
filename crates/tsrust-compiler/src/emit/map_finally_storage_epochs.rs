@@ -9,8 +9,8 @@ impl Emitter<'_> {
         fun: &CheckedFunction,
         statement: &Stmt,
         region: &ExceptionRegion,
-        declarations: &[Stmt],
-        depth: usize,
+        declarations: Declarations<'_, '_>,
+        _depth: usize,
     ) -> bool {
         let Some(cleanup) = &region.finally else {
             return false;
@@ -110,7 +110,7 @@ impl Emitter<'_> {
         };
         let normal=format!("let {pattern}=storage;{resume_control}");
         let return_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+3,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,None,&normal,"drop(pending_exit);");
-        let indent = "    ".repeat(depth);
+
         // Finish the completion enum's scope before cleanup borrows captures.
         // Each optional owner keeps its own native type; exactly one is live.
         let carrier_declaration=return_carrier.as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
@@ -152,7 +152,7 @@ impl Emitter<'_> {
             format!(":{}",fields.map_or_else(||storage_type.clone(),|fields|format!("({storage_type},{fields})")))
         }else{String::new()};
         let split=format!("{{let completed={pending};match completed{{TsrCompletion::Normal(storage)=>(Some(storage),None,None),TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{carried},TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried finally completion\")}}}}");
-        let _=writeln!(output,"{indent}{incoming_decl} {cleanup_decl} {carrier_declaration} let {output_pattern}{output_annotation}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{error_pattern})=error_owner.unwrap();{error_restore}drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};{output_restore}");
+        let _=writeln!(output,"{incoming_decl} {cleanup_decl} {carrier_declaration} let {output_pattern}{output_annotation}={{let (normal_owner,error_owner,control_owner)={{let {pattern}={values};{split}}};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{error_pattern})=error_owner.unwrap();{error_restore}drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending finally owner\")}}}}}}}};{output_restore}");
         let boundary = places
             .iter()
             .flat_map(|place| {

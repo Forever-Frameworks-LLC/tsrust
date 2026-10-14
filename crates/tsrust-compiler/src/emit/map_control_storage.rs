@@ -87,7 +87,7 @@ impl Emitter<'_> {
         self.exception_regions.dispatch_control(target,kind.is_continue(),span,owner.as_deref())
     }
     #[inline(never)]
-    pub(super) fn map_precise_control_cleanups(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations:&[Stmt],carrier:&Carrier<'_>,cleanup_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->Vec<String> {
+    pub(super) fn map_precise_control_cleanups(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations: Declarations<'_, '_>,carrier:&Carrier<'_>,cleanup_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->Vec<String> {
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
         let cleanup=region.finally.as_ref().expect("control cleanup");
         let mut arms=Vec::new();for (_index,(kind,_)) in carrier.controls.iter().enumerate(){

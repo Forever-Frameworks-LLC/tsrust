@@ -3,7 +3,7 @@ use super::*;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_catch_finally_storage_epoch(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,declarations:&[Stmt],depth:usize)->bool {
+    pub(super) fn map_catch_finally_storage_epoch(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,declarations: Declarations<'_, '_>,_depth:usize)->bool {
         let (Some(handler),Some(cleanup))=(&region.catch,&region.finally) else{return false;};
         let statements=region.body.iter().chain(&handler.body).chain(cleanup).collect();
         let Some((places,native_places))=self.map_exception_storage_plan(fun,statements,declarations) else{return false;};
@@ -119,8 +119,8 @@ impl Emitter<'_> {
             format!("let {body_pattern}=body_normal.unwrap();{body_restore}drop(body_error);drop(body_control);(Some({body_normal}),None,None)")
         }else{"unreachable!(\"no normal Map body completion\")".into()};
         let joined=format!("{{let (body_normal,body_error,body_control)={{let {pattern}={values};{body_split}}};let owners:(Option<_>,Option<({out_name},{error_storage})>,Option<{control_type}>)=if body_normal.is_some(){{{body_normal_select}}}else{{drop(body_normal);if body_error.is_some(){{let (caught_error,{caught_pattern})=body_error.unwrap();{caught_restore}drop(body_control);{setup}{handler_split}}}else{{drop(body_error);(None,None,body_control)}}}};owners}}");
-        let indent="    ".repeat(depth);
-        let _=writeln!(output,"{indent}{in_decl}{out_decl}{cleanup_decl}{carrier_declaration}let {output_pattern}={{let (normal_owner,error_owner,control_owner)={joined};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending cleanup owner\")}}}}}}}};{output_restore}");
+
+        let _=writeln!(output,"{in_decl}{out_decl}{cleanup_decl}{carrier_declaration}let {output_pattern}={{let (normal_owner,error_owner,control_owner)={joined};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending cleanup owner\")}}}}}}}};{output_restore}");
         let boundary=places.iter().flat_map(|place|[self.map_storage_transfer_at_exit(fun,&region.body,place),self.map_storage_transfer_at_exit(fun,&handler.body,place),self.map_storage_transfer_at_exit(fun,cleanup,place)]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
         self.exception_regions.renew_storage(&places,boundary);
         true

@@ -1,3 +1,7 @@
+mod declaration_scope;
+#[cfg(test)]
+mod statement_work_tests;
+use declaration_scope::Declarations;
 mod coalesce_work;
 mod expression_work;
 mod schema;
@@ -879,7 +883,7 @@ impl Emitter<'_> {
             let body=self.pure_callable_completion_body(&checked.function);
             let _=writeln!(output,"        {body}");
         }else{
-            self.parameter_initialization(output, &checked.function, 2);
+            self.parameter_initialization(output, &checked.function);
             self.initialized_function_body(output, &checked.function, 2);
         }
         if matches!(closure.forward, Some(ClosureForward::RestAdapter { counted: true, .. })) {
@@ -1658,33 +1662,33 @@ impl Emitter<'_> {
         code.push('}');
         code
     }
-    fn parameter_initialization(&self, output: &mut String, fun: &CheckedFunction, indent: usize) {
+    fn parameter_initialization(&self, output: &mut String, fun: &CheckedFunction) {
         for (slot, binding) in fun.bindings.iter().enumerate() {
             if let Some(owner) = binding.name.strip_prefix(crate::data_lowering::ACCESS) {
                 let index = self.program.functions.iter().position(|function| function.name == owner).expect("checked data owner");
-                let _ = writeln!(output, "{}let value{slot} = &*TSR_DATA{index};", "    ".repeat(indent));
+                let _ = writeln!(output, "let value{slot} = &*TSR_DATA{index};");
             }
         }
 
         for id in 0..fun.parameter_count {
             if self.finally_moves.partial_root(fun,id) && !self.restored_capture(fun,id)
                 && fun.bindings[id].mode==Mode::Consume && self.owned_record_layout(fun,id).is_none() {
-                let _=writeln!(output,"{}let mut value{id}=value{id};","    ".repeat(indent));
+                let _=writeln!(output,"let mut value{id}=value{id};");
             }
         }
         for id in 0..fun.parameter_count {
-            if fun.bindings[id].input_ty.is_none(){if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
+            if fun.bindings[id].input_ty.is_none(){if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{entry}");}}
         }
         for id in 0..fun.bindings.len() {
-            if fun.bindings[id].borrowed_element.is_none() && let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}
+            if fun.bindings[id].borrowed_element.is_none() && let Some(entry)=self.record_parameter_entry_view(fun,id){let _=writeln!(output,"{entry}");}
         }
         for (id,binding) in fun.bindings.iter().enumerate().filter(|(_,binding)|binding.input_ty.is_some()) {
-            self.parameter_default_initialization(output,fun,id,indent);
-            if id<fun.parameter_count{if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{}{entry}","    ".repeat(indent));}}
+            self.parameter_default_initialization(output,fun,id);
+            if id<fun.parameter_count{if let Some(entry)=self.owned_record_declaration(fun,id,&format!("value{id}")){let _=writeln!(output,"{entry}");}}
             if !binding.name.starts_with("pattern#") { continue; }
             let Some(span)=binding.declaration_span else {continue;};
             let patterns=fun.body.iter().take_while(|stmt| matches!(stmt.kind,StmtKind::Let{..})).filter(|stmt|stmt.span.start>=span.start && stmt.span.end<=span.end).cloned().collect::<Vec<_>>();
-            self.block(output,fun,&patterns,indent);
+            self.block(output,fun,&patterns,0);
         }
     }
 
@@ -1695,7 +1699,7 @@ impl Emitter<'_> {
         self.block(output,fun,&fun.body[count..],indent);
     }
 
-    fn parameter_default_initialization(&self, output: &mut String, fun: &CheckedFunction, id: usize, indent: usize) {
+    fn parameter_default_initialization(&self, output: &mut String, fun: &CheckedFunction, id: usize) {
             let binding=&fun.bindings[id];
             let Some(value) = &binding.initializer else { return; };
             let Some(Type::Union(input)) = binding.input_ty else { return; };
@@ -1732,12 +1736,12 @@ impl Emitter<'_> {
                         format!("{source_name}{}::V{variant}(payload)=>Union{}::V{to}({payload})",input.index(),body.index())
                     }
                 }).collect::<Vec<_>>().join(",");
-                let _=writeln!(output,"{}let mut value{id}=match {source} {{{arms}}};","    ".repeat(indent));
-                if binding.mode==Mode::Read {let _=writeln!(output,"{}let value{id}=value{id}.tsr_view();","    ".repeat(indent));}
+                let _=writeln!(output,"let mut value{id}=match {source} {{{arms}}};");
+                if binding.mode==Mode::Read {let _=writeln!(output,"let value{id}=value{id}.tsr_view();");}
                 return;
             }
             let fresh_borrow = borrowed && !borrowed_default && !binding.ty.is_copy() && absent_body.is_none();
-            if fresh_borrow { let _ = writeln!(output,"{}let mut default_owner{id};", "    ".repeat(indent)); }
+            if fresh_borrow { let _ = writeln!(output,"let mut default_owner{id};"); }
             let default = if let Some((absent,body))=absent_body {
                     let to=self.program.unions[body.index()].members.iter().position(|ty|*ty==absent).expect("default absence belongs to body");
                     let tag=if borrowed && binding.mode==Mode::Read {"ViewUnion"}else{"Union"};
@@ -1776,7 +1780,7 @@ impl Emitter<'_> {
                     } else if borrowed && binding.ty.is_copy() {"*payload".into()} else {"payload".into()};
                 format!("{source_name}{}::V{variant}(payload)=>{result}", input.index())
             }).collect::<Vec<_>>().join(",");
-            let _ = writeln!(output,"{}let mut value{id}=match {source} {{{arms}}};", "    ".repeat(indent));
+            let _ = writeln!(output,"let mut value{id}=match {source} {{{arms}}};");
     }
 
     fn counted_invocation(
@@ -2613,7 +2617,7 @@ impl Emitter<'_> {
                     let body=self.pure_callable_completion_body(&closure.function);
                     let _=writeln!(output,"        {body}");
                 } else {
-                    self.parameter_initialization(&mut output, &closure.function, 2);
+                    self.parameter_initialization(&mut output, &closure.function);
                     self.initialized_function_body(&mut output, &closure.function, 2);
                 }
             }
@@ -2825,7 +2829,7 @@ impl Emitter<'_> {
                 let body=self.pure_callable_completion_body(fun);
                 let _=writeln!(output,"    {body}");
             } else {
-                self.parameter_initialization(&mut output, fun, 1);
+                self.parameter_initialization(&mut output, fun);
                 self.initialized_function_body(&mut output, fun, 1);
             }
             output.push_str("}\n\n");
@@ -3550,7 +3554,7 @@ impl Emitter<'_> {
         if let Some(route)=self.inline_abrupt.borrow_mut().take() {self.exception_regions.set_inline_abrupt(route);}
         let mut statements=String::new();
         let prefix=if initialize_parameters {
-            self.parameter_initialization(&mut statements,fun,1);
+            self.parameter_initialization(&mut statements,fun);
             for slot in self.finally_moves.parameters(fun) {
                 if !self.restored_slots.contains(fun,slot) {let _=writeln!(statements,"let mut value{slot}=Some(value{slot});");}
             }
@@ -3576,19 +3580,69 @@ impl Emitter<'_> {
         self.control_block_epochs(output, fun, body, depth, loop_label, None);
     }
 
-    fn control_block_epochs(&self, output: &mut String, fun: &CheckedFunction, body: &[Stmt], depth: usize, loop_label: Option<usize>, declaring_body: Option<&[Stmt]>) {
-        let indent = "    ".repeat(depth);
-        let declarations = declaring_body.unwrap_or(body);
-        for stmt in body {
+    fn control_block_epochs(&self, output: &mut String, fun: &CheckedFunction, body: &[Stmt], depth: usize, loop_label: Option<usize>, declaring_body: Option<Declarations<'_, '_>>) {
+        use std::rc::Rc;
+        enum Work<'a, 's> {
+            Body(&'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
+            Statement(&'a Stmt, &'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
+            Text(String),
+            Scope(exception_contract_emit::ControlScope<'s>),
+            Post(&'a Stmt, usize),
+            BlockReturn(&'a Stmt, Vec<String>),
+            LoopTail(&'a Stmt, usize),
+            LoopTest(&'a Expr, usize),
+        }
+        let declarations = Rc::new(declaring_body.unwrap_or(Declarations::Body(body)).iter().collect::<Vec<_>>());
+        let mut pending = vec![Work::Body(body, declarations, depth, loop_label)];
+        while let Some(work) = pending.pop() {
+            let (stmt, body, visible, depth, loop_label) = match work {
+                Work::Body(body, declarations, depth, label) => {
+                    pending.extend(body.iter().rev().map(|stmt| Work::Statement(stmt, body, declarations.clone(), depth, label)));
+                    continue;
+                },
+                Work::Text(code) => { output.push_str(&code); continue; },
+                Work::Scope(scope) => { drop(scope); continue; },
+                Work::Post(stmt, depth) => { self.map_post_entry_epochs(output, fun, stmt.span, depth); continue; },
+                Work::BlockReturn(stmt, places) => {
+                    let StmtKind::Block(inner) = &stmt.kind else { unreachable!() };
+
+                    let values = places.iter().map(|place| self.map_branch_exit_value(fun, inner, place)).collect::<Vec<_>>().join(",");
+                    let comma = if places.is_empty() { "" } else { "," };
+                    let _ = writeln!(output, "    ({values}{comma})\n}};");
+                    let boundary = places.iter().filter_map(|place| self.map_storage_transfer_at_exit(fun, inner, place)).map(|span| span.end).max().unwrap_or(stmt.span.end).max(stmt.span.end);
+                    self.exception_regions.renew_storage(&places, boundary);
+                    continue;
+                },
+                Work::LoopTail(stmt, depth) => {
+                    let StmtKind::Loop { condition, update, post_test, tail_reachable, .. } = &stmt.kind else { unreachable!() };
+
+                    let _ = writeln!(output, "    }}");
+                    pending.push(Work::Post(stmt, depth));
+                    pending.push(Work::Text(format!("}}\n")));
+                    if *tail_reachable {
+                        if *post_test && let Some(condition) = condition { pending.push(Work::LoopTest(condition, stmt.span.start)); }
+                        pending.push(Work::Body(update, Rc::new(update.iter().collect()), depth + 1, None));
+                    }
+                    continue;
+                },
+                Work::LoopTest(condition, label) => {
+
+                    let _ = writeln!(output, "    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
+                    continue;
+                },
+                Work::Statement(stmt, body, visible, depth, label) => (stmt, body, visible, depth, label),
+            };
+            let declarations = Declarations::Visible(&visible);
+
             for epoch in fun.storage_exits.array_epochs(stmt.span).iter().filter(|epoch| epoch.before) {
-                let _ = writeln!(output, "{indent}{}", self.array_storage_epoch_code(fun, epoch));
+                let _ = writeln!(output, "{}", self.array_storage_epoch_code(fun, epoch));
             }
             let shared_block_span=matches!(&stmt.kind,StmtKind::Block(inner) if inner.iter().any(|item|item.span==stmt.span));
             for epoch in fun.storage_exits.map_entry_epochs(stmt.span).iter().filter(|epoch|epoch.before && !shared_block_span) {
-                let _=writeln!(output,"{indent}{}",self.map_entry_epoch_code(fun,epoch));
+                let _=writeln!(output,"{}",self.map_entry_epoch_code(fun,epoch));
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
-            if let Some(code)=self.map_iteration_control_code(fun,stmt){let _=writeln!(output,"{indent}{code}");continue;}
+            if let Some(code)=self.map_iteration_control_code(fun,stmt){let _=writeln!(output,"{code}");continue;}
             if self.array_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
             if self.map_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
             if self.map_iteration_epoch(output,fun,stmt,declarations,depth){continue;}
@@ -3598,10 +3652,10 @@ impl Emitter<'_> {
             }
             if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
-            if let Some(reset) = self.local_map_clear_epoch(fun, body, stmt)
+            if let Some(reset) = self.local_map_clear_epoch(fun, Declarations::Body(body), stmt)
                 .or_else(|| self.local_map_clear_epoch(fun, declarations, stmt))
                 .or_else(|| self.map_clear_block_epoch(fun, declarations, stmt)) {
-                let _ = writeln!(output, "{indent}{reset}");
+                let _ = writeln!(output, "{reset}");
                 continue;
             }
             if let StmtKind::Block(inner) = &stmt.kind {
@@ -3609,77 +3663,66 @@ impl Emitter<'_> {
                 if !places.is_empty() {
                     let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
                     let comma = if places.is_empty() { "" } else { "," };
-                    let _ = writeln!(output, "{indent}let ({pattern}{comma}) = {{");
-                    self.control_block_epochs(output, fun, inner, depth + 1, loop_label, Some(declarations));
-                    let values=places.iter().map(|place|self.map_branch_exit_value(fun,inner,place)).collect::<Vec<_>>().join(",");
-                    let _ = writeln!(output, "{indent}    ({values}{comma})
-{indent}}};");
-                    let boundary=places.iter().filter_map(|place|self.map_storage_transfer_at_exit(fun,inner,place)).map(|span|span.end).max().unwrap_or(stmt.span.end).max(stmt.span.end);
-                    self.exception_regions.renew_storage(&places,boundary);
+                    let _ = writeln!(output, "let ({pattern}{comma}) = {{");
+                    pending.push(Work::BlockReturn(stmt, places));
+                    pending.push(Work::Body(inner, visible.clone(), depth + 1, loop_label));
                     continue;
                 }
                 let body = inner;
-                let _control_scope=(!stmt.labels.is_empty()).then(||self.control_targets.enter(ControlTarget::Block(stmt.span.start)));
-                if stmt.labels.is_empty() {let _ = writeln!(output, "{indent}{{");}
-                else {let _ = writeln!(output,"{indent}'block_{}: {{",stmt.span.start); }
+                if !stmt.labels.is_empty() { pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Block(stmt.span.start)))); }
+                if stmt.labels.is_empty() {let _ = writeln!(output, "{{");}
+                else {let _ = writeln!(output,"'block_{}: {{",stmt.span.start); }
                 // A counted for loop is represented by a lexical block. Keep
                 // visible declarations available to its storage-epoch proof.
-                let mut visible = declarations.iter().take_while(|item| item.span != stmt.span).cloned().collect::<Vec<_>>();
-                visible.extend(body.iter().cloned());
-                self.control_block_epochs(output, fun, body, depth + 1, loop_label, Some(&visible));
-                let _ = writeln!(output, "{indent}}}");
+                let mut visible = declarations.iter().take_while(|item| item.span != stmt.span).collect::<Vec<_>>();
+                visible.extend(body.iter());
+                pending.push(Work::Text(format!("}}\n")));
+                pending.push(Work::Body(body, Rc::new(visible), depth + 1, loop_label));
                 continue;
             }
             if let StmtKind::Loop {
                 condition,
                 body,
-                update,
                 post_test,
-                tail_reachable,
+                ..
             } = &stmt.kind
             {
                 let label = stmt.span.start;
-                let _control_scope=self.control_targets.enter(ControlTarget::Tail(label));
-                let _ = writeln!(output, "{indent}'loop_{label}: loop {{");
+                pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Tail(label))));
+                let _ = writeln!(output, "'loop_{label}: loop {{");
                 if !post_test && let Some(condition) = condition {
                     let _ = writeln!(
                         output,
-                        "{indent}    if !({}) {{ break 'loop_{label}; }}",
+                        "    if !({}) {{ break 'loop_{label}; }}",
                         self.expr(fun, condition, Mode::Copy)
                     );
                 }
-                let _ = writeln!(output, "{indent}    'body_{label}: {{");
-                self.control_block(output, fun, body, depth + 2, Some(label));
-                let _ = writeln!(output, "{indent}    }}");
-                if *tail_reachable {
-                    self.block(output, fun, update, depth + 1);
-                    if *post_test && let Some(condition) = condition {
-                        let _ = writeln!(
-                            output,
-                            "{indent}    if !({}) {{ break 'loop_{label}; }}",
-                            self.expr(fun, condition, Mode::Copy)
-                        );
-                    }
-                }
-                let _ = writeln!(output, "{indent}}}");
-                self.map_post_entry_epochs(output,fun,stmt.span,depth);
+                let _ = writeln!(output, "    'body_{label}: {{");
+                pending.push(Work::LoopTail(stmt, depth));
+                pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 2, Some(label)));
                 continue;
             }
-            if matches!(stmt.kind, StmtKind::ForOf { .. }) {
-                self.for_of_loop(output,fun,stmt,depth,None,&[]);
-                self.map_post_entry_epochs(output,fun,stmt.span,depth);
+            if let StmtKind::ForOf { body, .. } = &stmt.kind {
+                if let Some(frame) = self.prepare_for_of_loop(output, fun, stmt, depth, None, &[]) {
+                    pending.push(Work::Post(stmt, depth));
+                    pending.push(Work::Scope(frame.scope));
+                    pending.push(Work::Text(frame.suffix));
+                    if !self.map_for_of_iteration_body(output, fun, stmt, depth + 1, None) {
+                        pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 1, None));
+                    }
+                } else { self.map_post_entry_epochs(output, fun, stmt.span, depth); }
                 continue;
             }
             if let StmtKind::While { condition, body } = &stmt.kind {
-                let _control_scope=self.control_targets.enter(ControlTarget::Loop(stmt.span.start));
+                pending.push(Work::Scope(self.control_targets.enter(ControlTarget::Loop(stmt.span.start))));
                 let _ = writeln!(
                     output,
-                    "{indent}'loop_{}: while {} {{",
+                    "'loop_{}: while {} {{",
                     stmt.span.start, self.expr(fun, condition, Mode::Copy)
                 );
-                self.block(output, fun, body, depth + 1);
-                let _ = writeln!(output, "{indent}}}");
-                self.map_post_entry_epochs(output,fun,stmt.span,depth);
+                pending.push(Work::Post(stmt, depth));
+                pending.push(Work::Text(format!("}}\n")));
+                pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 1, None));
                 continue;
             }
             if let StmtKind::If {
@@ -3694,18 +3737,18 @@ impl Emitter<'_> {
                 }
                 let _ = writeln!(
                     output,
-                    "{indent}if {} {{",
+                    "if {} {{",
                     self.expr(fun, condition, Mode::Copy)
                 );
-                self.control_block(output, fun, then_body, depth + 1, loop_label);
-                let _ = writeln!(output, "{indent}}} else {{");
-                self.control_block(output, fun, else_body, depth + 1, loop_label);
-                let _ = writeln!(output, "{indent}}}");
-                self.map_post_entry_epochs(output,fun,stmt.span,depth);
+                pending.push(Work::Post(stmt, depth));
+                pending.push(Work::Text(format!("}}\n")));
+                pending.push(Work::Body(else_body, Rc::new(else_body.iter().collect()), depth + 1, loop_label));
+                pending.push(Work::Text(format!("}} else {{\n")));
+                pending.push(Work::Body(then_body, Rc::new(then_body.iter().collect()), depth + 1, loop_label));
                 continue;
             }
             if let Some(code) = self.array_result_write_code(fun, stmt) {
-                let _ = writeln!(output, "{indent}{code}");
+                let _ = writeln!(output, "{code}");
                 self.map_post_entry_epochs(output, fun, stmt.span, depth);
                 continue;
             }
@@ -3737,13 +3780,13 @@ impl Emitter<'_> {
                     let b = &fun.bindings[index];
                     if self.finally_moves.contains(fun,index) {
                         let initialized=if value.is_deferred(){"None".to_owned()}else{format!("Some({})",self.expr(fun,value,Mode::Consume))};
-                        let _=writeln!(output,"{indent}let mut value{index}={initialized};");
+                        let _=writeln!(output,"let mut value{index}={initialized};");
                         continue;
                     }
                     if value.is_deferred() {
-                        if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{indent}{declarations}");continue;}
+                        if let Some(declarations)=self.owned_record_deferred(fun,index){let _=writeln!(output,"{declarations}");continue;}
                         // Assigned later; definite assignment was checked.
-                        let _ = writeln!(output, "{indent}let mut value{index}: {};", self.local_callback_environment_type(b.ty));
+                        let _ = writeln!(output, "let mut value{index}: {};", self.local_callback_environment_type(b.ty));
                         continue;
                     }
                     let scoped_alias =
@@ -3771,7 +3814,7 @@ impl Emitter<'_> {
                         |shape| self.fixed_literal(fun, value, shape),
                     );
                     self.expression_depth.set(expression_depth);
-                    if let Some(declaration)=self.owned_record_declaration(fun,index,&initializer){let _=writeln!(output,"{indent}{declaration}");continue;}
+                    if let Some(declaration)=self.owned_record_declaration(fun,index,&initializer){let _=writeln!(output,"{declaration}");continue;}
                     format!(
                         "let {}value{index}: {} = {};",
                         if b.mutable || self.finally_moves.partial_root(fun,index) { "mut " } else { "" },
@@ -3879,14 +3922,14 @@ impl Emitter<'_> {
                 .collect::<Vec<_>>()
                 .join(" ");
             if declarations.is_empty() {
-                let _ = writeln!(output, "{indent}{code}");
+                let _ = writeln!(output, "{code}");
             } else if matches!(&stmt.kind, StmtKind::Let { binding: Some(id), .. }
                 if fun.bindings[*id].borrowed_place.is_some()
                     || matches!(fun.bindings[*id].ty, Type::BorrowedUnion(_)))
             {
-                let _ = writeln!(output, "{indent}{declarations} {code}");
+                let _ = writeln!(output, "{declarations} {code}");
             } else {
-                let _ = writeln!(output, "{indent}{{ {declarations} {code} }}");
+                let _ = writeln!(output, "{{ {declarations} {code} }}");
             }
             self.map_post_entry_epochs(output,fun,stmt.span,depth);
         }
@@ -10094,19 +10137,6 @@ mod deque_emit;
 mod heap_emit;
 mod map_storage_epochs;
 
-impl Emitter<'_> {
-    #[inline(never)]
-    fn string_iteration(&self,output:&mut String,fun:&CheckedFunction,stmt:&Stmt,depth:usize,source:&str,declaring_body:Option<&[Stmt]>,resets:&[(String,String)]){
-        let StmtKind::ForOf{binding,body,..}=&stmt.kind else{unreachable!()};
-        let id=binding.expect("checked string iteration binding");let label=stmt.span.start;
-        let indent="    ".repeat(depth);
-        let _=writeln!(output,"{indent}{{ let string_source_{label}={source};");
-        let _=writeln!(output,"{indent}'loop_{label}: for string_character_{label} in string_source_{label}.as_ref().chars() {{");
-        let _=writeln!(output,"{indent}    let value{id}=&String::Owned(string_character_{label}.to_string());");
-        self.iteration_body(output,fun,body,depth+1,declaring_body,resets,stmt);
-        let _=writeln!(output,"{indent}}} }}");
-    }
-}
 
 impl Emitter<'_>{
     #[inline(never)]

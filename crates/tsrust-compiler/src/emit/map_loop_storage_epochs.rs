@@ -8,7 +8,7 @@ impl Emitter<'_> {
         output: &mut String,
         fun: &CheckedFunction,
         statement: &Stmt,
-        declarations: &[Stmt],
+        declarations: Declarations<'_, '_>,
         depth: usize,
     ) -> bool {
         let (condition, body, tail) = match &statement.kind {
@@ -31,7 +31,7 @@ impl Emitter<'_> {
         // independent storage epoch. Prove every selected leaf is cleared.
         let mut candidates = Vec::new();
         let mut intervening = Vec::new();
-        for previous in declarations[..index].iter().rev() {
+        for previous in declarations.prefix(index).iter().rev() {
             let StmtKind::Let {
                 binding: Some(binding),
                 value,
@@ -136,13 +136,13 @@ impl Emitter<'_> {
         {
             return false;
         }
-        let indent = "    ".repeat(depth);
+
         let label = statement.span.start;
         if matches!(statement.kind, StmtKind::ForOf { .. }) {
-            let mut nested = declarations.to_vec();
-            nested.extend(body.iter().cloned());
+            let mut nested = declarations.iter().collect::<Vec<_>>();
+            nested.extend(body.iter());
             let layouts=resets.iter().map(|(place,native,_,_)|(place.clone(),native.clone())).collect::<Vec<_>>();
-            self.for_of_loop(output,fun,statement,depth,Some(&nested),&layouts);
+            self.for_of_loop(output,fun,statement,depth,Some(Declarations::Visible(&nested)),&layouts);
             self.exception_regions.renew_storage(&layouts.iter().map(|(place,_)|place.clone()).collect::<Vec<_>>(),statement.span.end);
             return true;
         }
@@ -153,39 +153,39 @@ impl Emitter<'_> {
         // Cleanup empties each iteration before any exit, so no payload crosses
         // epochs; only loop-local owners ever contain callbacks.
         if let Some((_, post_test, _)) = tail {
-            let _ = writeln!(output, "{indent}'loop_{label}: loop {{");
+            let _ = writeln!(output, "'loop_{label}: loop {{");
             if !post_test && let Some(condition) = condition {
-                let _ = writeln!(output, "{indent}    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
+                let _ = writeln!(output, "    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
             }
         } else {
-            let _ = writeln!(output, "{indent}'loop_{label}: while {} {{", self.expr(fun, condition.unwrap(), Mode::Copy));
+            let _ = writeln!(output, "'loop_{label}: while {} {{", self.expr(fun, condition.unwrap(), Mode::Copy));
         }
         // Tail loops need a body scope so continue still evaluates their update
         // or post-test after finally releases each iteration's callback owners.
         let body_depth = if tail.is_some() {
-            let _ = writeln!(output, "{indent}    'body_{label}: {{");
+            let _ = writeln!(output, "    'body_{label}: {{");
             depth + 2
         } else { depth + 1 };
-        let body_indent = "    ".repeat(body_depth);
+
         for (place, native, _, _) in &resets {
             let _ = writeln!(
                 output,
-                "{body_indent}let mut {place}: {native} = <{native}>::new();"
+                "let mut {place}: {native} = <{native}>::new();"
             );
         }
-        let mut nested = declarations.to_vec();
-        nested.extend(body.iter().cloned());
-        self.control_block_epochs(output, fun, body, body_depth, Some(label), Some(&nested));
+        let mut nested = declarations.iter().collect::<Vec<_>>();
+        nested.extend(body.iter());
+        self.control_block_epochs(output, fun, body, body_depth, Some(label), Some(Declarations::Visible(&nested)));
         if let Some((update, post_test, tail_reachable)) = tail {
-            let _ = writeln!(output, "{indent}    }}");
+            let _ = writeln!(output, "    }}");
             if tail_reachable {
                 self.block(output, fun, update, depth + 1);
                 if post_test && let Some(condition) = condition {
-                    let _ = writeln!(output, "{indent}    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
+                    let _ = writeln!(output, "    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
                 }
             }
         }
-        let _ = writeln!(output, "{indent}}}");
+        let _ = writeln!(output, "}}");
         self.exception_regions.renew_storage(
             &resets
                 .iter()

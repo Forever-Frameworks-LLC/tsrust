@@ -295,3 +295,15 @@ cleanup results are memoized per immutable body and boolean assignment input
 within one variable query; the cache cannot cross variable or source changes.
 Exception joins retain targeted exits until their enclosing construct consumes
 them, and abrupt cleanup replaces pending completions in their original order.
+
+`emit::control_block_epochs` schedules ordinary block, branch and loop bodies on
+heap frames. Scope guards remain live until the corresponding completion frame;
+loop updates and post-tests run after body emission. `iteration_emit.rs` separates
+iterator setup and binding layout from body emission. `declaration_scope.rs`
+transports borrowed source statements instead of cloning descendant syntax trees.
+Map reset discovery and branch storage-result discovery use explicit worklists.
+Generated Rust does not add depth-dependent indentation: token separation and
+literal contents are preserved without quadratic whitespace output. Source
+formatting remains a separate user-facing operation.
+Storage-specific and exception completion helpers still contain synchronous
+re-entry; ordinary statement scheduling alone does not finish emitter nesting.

@@ -1,0 +1,73 @@
+//! Normal-stack witnesses for statement scheduling and borrowed declarations.
+use super::*;
+
+#[test]
+fn generated_statement_bytes_do_not_depend_on_indentation_depth() {
+    let checked = crate::check("function main():void{let total=0;for(const item of [1,2]){if(item>1){total+=item;}else{total+=3;}}console.log('  literal spacing  ',total);}").unwrap();
+    let emitter = emitter_for(&checked.program, "");
+    let function = checked.program.functions.iter().find(|function| function.name == "main").unwrap();
+    let mut root = String::new();
+    let mut nested = String::new();
+    emitter.control_block(&mut root, function, &function.body, 0, None);
+    emitter.control_block(&mut nested, function, &function.body, 16_384, None);
+    assert_eq!(root, nested);
+    assert!(root.contains("  literal spacing  "));
+}
+
+#[test]
+fn mixed_statement_work_preserves_scopes_at_depth() {
+    let repetitions = 512;
+    let openings = (0..repetitions).map(|index| format!("{{if(true){{while(false){{for(const ch{index} of \"a\"){{do{{")).collect::<String>();
+    let source = format!("function main():void{{let trace=0;{}trace=trace+1;{}}}",
+        openings,
+        "}while(false);}}}}".repeat(repetitions));
+    let mut parsed = crate::syntax::parse_unbounded(&source).unwrap();
+    crate::callables::module_state::lower(&mut parsed).unwrap();
+    crate::local_functions::resolve(&mut parsed).unwrap();
+    let checked = crate::analysis::analyze(parsed).unwrap();
+    let emitter = emitter_for(&checked, "");
+    let function = checked.functions.iter().find(|function| function.name == "main").unwrap();
+    let mut output = String::new();
+    emitter.control_block(&mut output, function, &function.body, 0, None);
+    assert_eq!(output.matches(".as_ref().chars()").count(), repetitions);
+    assert_eq!(output.matches(" else {").count(), repetitions);
+    assert_eq!(output.matches("'body_").count(), repetitions);
+    assert_eq!(output.matches('{').count(), output.matches('}').count());
+    assert!(output.contains("1i64"));
+    assert!(emitter.control_targets.snapshot().is_empty());
+    assert!(emitter.conditional_temporaries.borrow().is_empty());
+    assert_eq!(emitter.exception_regions.current_id(), None);
+}
+
+#[test]
+fn declaration_views_preserve_source_identity_and_prefix_order() {
+    let parsed = crate::syntax::parse("function main(){let first=1;{let nested=2;}let last=3;}").unwrap();
+    let body = &parsed.functions[0].body;
+    let StmtKind::Block(nested) = &body[1].kind else { panic!("block") };
+    let mut visible = Declarations::Body(body).prefix(1).iter().collect::<Vec<_>>();
+    visible.extend(nested.iter());
+    let view = Declarations::Visible(&visible);
+    let actual = view.iter().collect::<Vec<_>>();
+    assert!(std::ptr::eq(actual[0], &body[0]));
+    assert!(std::ptr::eq(actual[1], &nested[0]));
+    assert!(std::ptr::eq(view.prefix(1).iter().next().unwrap(), &body[0]));
+    assert!(std::ptr::eq(view.iter().rev().next().unwrap(), &nested[0]));
+}
+
+#[test]
+fn deep_clear_discovery_preserves_reset_order_and_rejects_effects() {
+    let checked = crate::check("type Holder={run:ReadOnly<Function<int>>;};function main():void{const items=[3];const handlers=new Map<string,Holder>();handlers.set('one',{run:():int=>items[0]});handlers.clear();}").unwrap();
+    let emitter = emitter_for(&checked.program, "");
+    let function = checked.program.functions.iter().find(|function| function.name == "main").unwrap();
+    let declarations = Declarations::Body(&function.body);
+    let clear = function.body.last().unwrap();
+    let expected = emitter.local_map_clear_epoch(function, declarations, clear).expect("scoped reset");
+    let mut nested = clear.clone();
+    for _ in 0..16_384 {
+        nested = Stmt { span: nested.span, labels: Vec::new(), control_target: None, kind: StmtKind::Block(vec![nested]) };
+    }
+    assert_eq!(emitter.map_clear_block_epoch(function, declarations, &nested), Some(expected));
+    let StmtKind::Block(body) = &mut nested.kind else { unreachable!() };
+    body.push(function.body[2].clone());
+    assert!(emitter.map_clear_block_epoch(function, declarations, &nested).is_none());
+}

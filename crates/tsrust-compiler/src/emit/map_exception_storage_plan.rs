@@ -3,7 +3,7 @@ use super::*;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_exception_storage_plan(&self,fun:&CheckedFunction,mut statements:Vec<&Stmt>,declarations:&[Stmt])->Option<(Vec<String>,std::collections::HashMap<String,String>)> {
+    pub(super) fn map_exception_storage_plan(&self,fun:&CheckedFunction,mut statements:Vec<&Stmt>,declarations: Declarations<'_, '_>)->Option<(Vec<String>,std::collections::HashMap<String,String>)> {
         let mut places=Vec::new();
         let mut native_places=std::collections::HashMap::new();
         while let Some(item)=statements.pop() {

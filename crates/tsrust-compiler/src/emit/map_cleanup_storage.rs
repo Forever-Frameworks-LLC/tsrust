@@ -3,11 +3,11 @@ use super::*;
 type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_finish_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str)->String {
+    pub(super) fn map_finish_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str)->String {
         self.map_finish_field_cleanup(fun,planned,region,body,declarations,id,error_name,contract,runtime,places,storage,pattern,span,normal,normal_code,override_drop,None)
     }
     #[inline(never)]
-    pub(super) fn map_finish_field_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations:&[Stmt],id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str,normal_fields:Option<&str>)->String {
+    pub(super) fn map_finish_field_cleanup(&self,fun:&CheckedFunction,planned:&CheckedFunction,region:&ExceptionRegion,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,normal:Option<&Layout>,normal_code:&str,override_drop:&str,normal_fields:Option<&str>)->String {
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
         let fallback=std::collections::BTreeMap::new();
         // A preserved pending return is not a return performed by cleanup.
