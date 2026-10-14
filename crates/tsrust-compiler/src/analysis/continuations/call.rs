@@ -6,6 +6,7 @@ pub(in crate::analysis) enum CallDispatch {
     PrepareReceiver,
     Ready(Type),
     Reduction,
+    Concat,
     Sorting { copying: bool, expected: Option<Type> },
     Transform(super::transform::Request),
     Deferred(super::super::deferred_generic_call_work::Request),

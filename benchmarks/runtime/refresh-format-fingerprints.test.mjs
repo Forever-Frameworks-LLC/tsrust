@@ -39,3 +39,23 @@ test('automatic refresh preserves comment contents as well as executable tokens'
     assert.equal(refreshFingerprintText(manifest,()=>after,()=>before).count,1);
     assert.throws(()=>refreshFingerprintText(manifest,()=>after.replace('keep this note','different note'),()=>before),/Code tokens changed/);
 });
+
+
+test('legacy identity refresh preserves original hashes and rejects changed tokens', async () => {
+    const {refreshIdentityText} = await import('./refresh-format-fingerprints.mjs');
+    const {codeTokens} = await import('./source-contract-tokens.mjs');
+    const {createHash} = await import('node:crypto');
+    const digest = value => createHash('sha256').update(value).digest('hex');
+    const original = 'function main(){const text="two  spaces";}';
+    const formatted = 'function main() {\n  const text = "two  spaces";\n}\n';
+    const proof = {path:'sample.tsr',originalSha256:digest(original),formattedSha256:digest(original),tokenSha256:digest(JSON.stringify(codeTokens(original,true).map(token=>token.text)))};
+    const text = JSON.stringify({version:1,proofs:[proof]});
+    const result = refreshIdentityText(text, () => formatted);
+    assert.equal(result.count,1);
+    const next = JSON.parse(result.text).proofs[0];
+    assert.equal(next.originalSha256,proof.originalSha256);
+    assert.equal(next.tokenSha256,proof.tokenSha256);
+    assert.equal(next.formattedSha256,digest(formatted));
+    assert.equal(refreshIdentityText(result.text, () => formatted).count,0);
+    assert.throws(() => refreshIdentityText(text, () => formatted.replace('two  spaces','two spaces')), /tokens changed/);
+});

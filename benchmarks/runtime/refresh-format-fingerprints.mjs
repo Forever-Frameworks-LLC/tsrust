@@ -45,6 +45,21 @@ export function refreshFingerprintText(text, readCurrent, readBaseline, ids = []
     return {text: updated, count};
 }
 
+// Older workload families retain original hashes plus a token-preservation
+// proof. Refresh the current-byte side without changing historical identities.
+export function refreshIdentityText(text, readCurrent) {
+    const identities = JSON.parse(text);
+    let count = 0;
+    for (const proof of identities.proofs) {
+        const source = readCurrent(proof.path), hash = digest(source);
+        if (hash === proof.formattedSha256) continue;
+        if (digest(spelling(source)) !== proof.tokenSha256) throw new Error('Code tokens changed; identity review required: ' + proof.path);
+        proof.formattedSha256 = hash;
+        count++;
+    }
+    return {text: count ? JSON.stringify(identities, null, 2) + '\n' : text, count};
+}
+
 export function capturePinnedSources() {
     const here = path.dirname(fileURLToPath(import.meta.url));
     const rows = JSON.parse(fs.readFileSync(path.join(here, 'manifest.json'), 'utf8')).workloads;
@@ -69,8 +84,11 @@ export function refreshProjectFingerprints(ids = [], priorSources = new Map()) {
             if (!cache.has(filename)) cache.set(filename, execFileSync('git', ['show', 'HEAD:benchmarks/runtime/' + filename], {cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
             return cache.get(filename);
         }, ids);
+    const identitiesPath = path.join(here, 'format-source-identities.json');
+    const identities = refreshIdentityText(fs.readFileSync(identitiesPath, 'utf8'), filename => fs.readFileSync(path.join(root, filename), 'utf8'));
     if (result.count) fs.writeFileSync(manifestPath, result.text);
-    return result.count;
+    if (identities.count) fs.writeFileSync(identitiesPath, identities.text);
+    return result.count + identities.count;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

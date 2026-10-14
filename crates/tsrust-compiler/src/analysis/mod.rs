@@ -7541,134 +7541,6 @@ self.names_materialized_type(element.with_depth(0).ty())
         Ok(())
     }
 
-    // Homogeneous concat spreads only arguments at the full receiver rank.
-    // Lower-rank arrays cannot be treated as scalar array elements in JavaScript.
-    fn collection_concat(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        args: &mut [Expr],
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        let (receiver, active) = self.concat_receiver(context, base, args, loans, expected)?;
-        if receiver.scalar_base() == Type::String {
-            self.concat_string_arguments(context, args, active)
-        } else {
-            self.concat_array_arguments(context, args, active, receiver, base.span)
-        }
-    }
-
-    #[inline(never)]
-    fn concat_receiver(&mut self, context: &mut Context, base: &mut Expr, args: &mut [Expr], loans: &Loans, expected: Option<Type>) -> Result<(Type, Loans), Diagnostic> {
-        let hint = if let ExprKind::Array(values) = &base.kind {
-            expected
-                .filter(|ty| matches!(ty, Type::Array(_)))
-                .or_else(|| {
-                    if !values.is_empty() {
-                        return None;
-                    }
-                    let mut inferred = None;
-                    for arg in args.iter() {
-                        let Some(ty) = self.expression_type_hint(context, arg) else {
-                            continue;
-                        };
-                        let hint = match ty {
-                            Type::Array(_) => Some(ty),
-                            Type::Int
-                            | Type::Number
-                            | Type::Boolean
-                            | Type::String
-                            | Type::Record(_) => Self::transform_array_type(ty, arg.span).ok(),
-                            _ => None,
-                        };
-                        // Like array literals, a Number hint supplies context for
-                        // integer literals, without converting typed int values.
-                        if matches!(hint, Some(Type::Array(ArrayElement::Number(_)))) {
-                            return hint;
-                        }
-                        if inferred.is_none() {
-                            inferred = hint;
-                        }
-                    }
-                    inferred
-                })
-        } else {
-            None
-        };
-        let receiver = self.expression(context, base, Mode::Read, loans, hint)?;
-        let mut active = loans.clone();
-        for root in Self::loan_roots(base, Mode::Read) {
-            active
-                .entry(root)
-                .or_default()
-                .push((Mode::Read, base.span));
-        }
-        Ok((receiver, active))
-    }
-
-    #[inline(never)]
-    fn concat_string_arguments(&mut self, context: &mut Context, args: &mut [Expr], mut active: Loans) -> Result<Type, Diagnostic> {
-            for arg in args {
-                let actual =
-                    self.expression(context, arg, Mode::Read, &active, Some(Type::String))?;
-                self.require(actual, Some(Type::String), arg.span)?;
-                for root in Self::loan_roots(arg, Mode::Read) {
-                    active.entry(root).or_default().push((Mode::Read, arg.span));
-                }
-            }
-            Ok(Type::String)
-    }
-
-    #[inline(never)]
-    fn concat_array_arguments(&mut self, context: &mut Context, args: &mut [Expr], mut active: Loans, receiver: Type, span: Span) -> Result<Type, Diagnostic> {
-        let Type::Array(element) = receiver else {
-            return Err(Diagnostic::new(
-                "type",
-                "concat() requires a string or array.",
-                span,
-            ));
-        };
-        let value = element.ty();
-        for arg in args {
-            let array = matches!(
-                self.expression_type_hint(context, arg),
-                Some(Type::Array(_))
-            ) || matches!(arg.kind, ExprKind::Array(_));
-            let target = if array { receiver } else { value };
-            let mode = if target.is_copy() {
-                Mode::Copy
-            } else {
-                Mode::Read
-            };
-            let actual = self.expression(context, arg, mode, &active, Some(target))?;
-            if let Type::Array(_) = actual {
-                if actual != receiver {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "concat() spreads array arguments one level; use an array at the receiver's full rank (wrap a nested element in an outer array).",
-                        arg.span,
-                    ));
-                }
-            } else {
-                if matches!(value, Type::Array(_)) {
-                    return Err(Diagnostic::new(
-                        "type",
-                        "Nested concat() requires array arguments at the receiver's full rank.",
-                        arg.span,
-                    ));
-                }
-                self.require(actual, Some(value), arg.span)?;
-            }
-            if !actual.is_copy() {
-                for root in Self::loan_roots(arg, Mode::Read) {
-                    active.entry(root).or_default().push((Mode::Read, arg.span));
-                }
-            }
-        }
-        Ok(receiver)
-    }
-
     // Reduction owns its accumulator independently from the borrowed source.
     // Keep callback and argument temporaries outside recursive expression frames.
     // Width-preserving mutation binds selected receiver access before operands,
@@ -8917,11 +8789,11 @@ self.names_materialized_type(element.with_depth(0).ty())
             && self.flow_view(context, callee).is_some_and(|(_, _, payload)| matches!(payload, Type::Closure(_) | Type::Callback(_) | Type::StoredCallable(_))) {
             return Ok(CallDispatch::Conditional { publish_type: false });
         }
-        // Recursive concat arguments must not retain the full builtin dispatch frame.
+        // Concat receiver and arguments suspend on the shared expression stack.
         if matches!(&expr.kind, ExprKind::Call(callee, _)
             if matches!(&callee.kind, ExprKind::Field(_, name) if name == "concat"))
         {
-            return self.concat_call(context, expr, loans, expected).map(CallDispatch::Ready);
+            return Ok(CallDispatch::Concat);
         }
         let ordinary_name = matches!(&expr.kind, ExprKind::Call(callee, _)
             if matches!(&callee.kind, ExprKind::Name(name)
@@ -8960,34 +8832,6 @@ self.names_materialized_type(element.with_depth(0).ty())
         if let Some(ty)=self.schema_composite_validation(context,expr,loans,expected)? {return Ok(Some(ty));}
         self.schema_method_call(context, expr)?;
         Ok(None)
-    }
-
-    fn concat_call(
-        &mut self,
-        context: &mut Context,
-        expr: &mut Expr,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
-        let ExprKind::Call(callee, args) = &mut expr.kind else {
-            unreachable!("concat call dispatch");
-        };
-        let ExprKind::Field(base, _) = &mut callee.kind else {
-            unreachable!("concat receiver dispatch");
-        };
-        let ty = self.collection_concat(context, base, args, loans, expected)?;
-        expr.target = Some(if ty == Type::String {
-            CallTarget::StringConcat
-        } else {
-            CallTarget::ArrayConcat
-        });
-        if expr.target == Some(CallTarget::ArrayConcat) {
-            self.require_cloneable(base.ty.expect("checked array receiver"), base.span)?;
-            for arg in args {
-                self.require_cloneable(arg.ty.expect("checked concat argument"), arg.span)?;
-            }
-        }
-        Ok(ty)
     }
 
     /// Binds `let name: Type;`. A type that admits `undefined` starts as

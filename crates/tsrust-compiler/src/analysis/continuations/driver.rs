@@ -14,6 +14,7 @@ mod methods;
 mod transform;
 mod reduction;
 mod sorting;
+mod concat;
 mod adapters;
 mod deferred;
 mod generic;
@@ -123,6 +124,7 @@ enum ExpressionState {
     Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
     Reduction(Box<reduction::State>),
+    Concat(Box<concat::State>),
     Sorting(Box<sorting::State>),
     Wrapper(super::wrappers::Frame),
     Start,
@@ -972,6 +974,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             *task.expression.value() = *value.into_child();
             finish_expression(analyzer, contexts.get(task.context), task, result)
         }
+        ExpressionState::Concat(state) => concat::resume(analyzer, contexts.get(task.context), task, state, completion.expect("concat child")),
         ExpressionState::Reduction(state) => reduction::resume(analyzer, contexts.get(task.context), task, state, completion.expect("reduction child")),
         ExpressionState::Sorting(state) => sorting::resume(analyzer, contexts.get(task.context), task, state, completion.expect("sorting child")),
         ExpressionState::Transform(state) => transform::resume(analyzer, contexts.get(task.context), task, state, completion.expect("transform child")),
@@ -2160,6 +2163,7 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
                             task.state = ExpressionState::GenericReceiver;
                             Step::Push(Task::Expression(task), child)
                         }
+                        Ok(CallDispatch::Concat) => concat::start(analyzer, context, task),
                         Ok(CallDispatch::Reduction) => reduction::start(analyzer, context, task),
                         Ok(CallDispatch::Sorting { copying, expected }) => sorting::start(analyzer, context, task, copying, expected),
                         Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),

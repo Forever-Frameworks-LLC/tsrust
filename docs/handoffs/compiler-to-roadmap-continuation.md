@@ -389,24 +389,31 @@ and the schema safeParse `{ success, data } | { success, error }` API across
 compiler, editor, catalog, workloads and fingerprints. Release CLI and server
 are installed.
 
-Open, in priority order:
+Completed in the 2026-10-14 continuation:
 
-1. Program-scoped test registry is implemented and passes focused compiler,
-   native, editor, formatter, and untimed benchmark acceptance. See the
-   [acceptance record](program-scoped-test-registry.md). Consumer refresh follows
-   the concat repair in this pass.
-2. Nested `concat` arguments still recurse through
-   `concat_string_arguments` -> `expression`. Debug builds overflow between
-   40 and 60 levels, so `tests/concat_depth.rs`,
-   `string_concat_integer_fusion.rs` and `string_concat_padding.rs` (depth
-   100) fail. The session-start commit `9ab53fb0` fails identically; this is
-   not a new regression. Scheduling the arguments must keep the receiver's
-   read loan active while each argument is checked; an early precheck would
-   drop that loan.
-3. Emission copies child fragments, which is quadratic in single-expression
+- Program-scoped registry integration and focused acceptance:
+  [acceptance record](program-scoped-test-registry.md), source checkpoint
+  `7c7b5bc0`. Consumer refresh follows the concat checkpoint.
+- Nested concat checks now schedule receivers and arguments on the shared
+  expression stack. Earlier operand loans remain active in source order.
+  The depth-100 string and array witnesses execute on the normal worker stack;
+  depth 200 retains the existing nesting-limit diagnostic. All 18 affected
+  compiler tests and 10 required editor agreement tests pass. Two representative
+  concat workloads pass 20 native/Node-after-tsc oracle cells without timings.
+  Evidence: `tsrust-concat-acceptance-2026-10-14.json` in SQLite.
+- Benchmark checks exposed stale formatting proofs and a historical-prefix
+  assertion displaced by four newer schema entries. Exact token comparisons
+  verified 60 legacy identity updates and 10 concat/padding sidecar updates.
+  The old 444-row metadata checksum remains unchanged. Automatic project
+  formatting now maintains the current-byte side of legacy identity proofs.
+  Original measurement records and timing protocols remain untouched.
+
+Still open, in priority order:
+
+1. Emission copies child fragments, which is quadratic in single-expression
    nesting depth (4.8 s at 32,768 nested Set constructors). Programs with
    many functions scale linearly.
-4. Plain nested array-literal spreads re-walk type hints per layer
+2. Plain nested array-literal spreads re-walk type hints per layer
    (quadratic); low priority per the owner.
 
 Console, path and value-type differential suites require the pinned Node
