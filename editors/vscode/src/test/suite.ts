@@ -2,6 +2,7 @@ import * as assert from 'node:assert/strict';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { testModules } from './modules';
+import { testAgreement } from './agreement';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(predicate: () => boolean, label: string): Promise<void> {
   const start = Date.now();
@@ -126,6 +127,7 @@ function main() { const user: User = { name: "Pat", age: 2 }; const result = sum
   await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0, 'reopened document diagnostics settle');
   assert.equal(vscode.languages.getDiagnostics(uri).length, 0, JSON.stringify(vscode.languages.getDiagnostics(uri)));
   await testModules(folder);
+  await testAgreement(folder);
   // Missing executable must leave language recognition and lexical editing available.
   await vscode.workspace.getConfiguration('tsrust').update('server.path', path.join(folder.fsPath, 'missing-server'), vscode.ConfigurationTarget.Workspace);
   await vscode.commands.executeCommand('tsrust.restartServer');

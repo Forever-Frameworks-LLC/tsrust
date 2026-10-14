@@ -212,3 +212,50 @@ After merge: build and install both consumers, restart the server, and check
 `parsed.` in an open project document. Then remove the evidence directory
 after its SQLite import, the worktree `tsrust-claude-lsp`, and the target
 `/private/tmp/tsrust-claude-lsp-target`.
+
+## Codex integration
+
+Merged into main at `0039df14`, after compiler storage continuations checkpoint
+`5c0b2c94`. The merge has no conflicts. All 129 evidence files, including the
+manifest, have been imported into `benchmarks/records.sqlite` under
+`claude-lsp-evidence/`, verified byte for byte, with SQLite `quick_check` passing.
+The original baseline failures and observational latency records are preserved.
+
+The compiler's existing common-field behavior for `Result.payload` is retained.
+No language rule is removed to accommodate editor output. The three requested
+compiler queries and the limitations above remain open integration follow-ups.
+
+The VS Code extension now has a regression covering immediate completions for
+`parsed.`, `console.log(parsed.pa`, matched error fields and indexed issue fields,
+plus a payload hover. It types each character into a real extension-host document
+and checks the first answer without a settling delay or retry. This passes with
+the merged compiler/server, along with the existing extension-host suite and
+extension executable-discovery/grammar tests. Whole-project formatting changes
+zero files and fingerprints.
+
+The three agreement suites pass against the merged compiler. `optional_main`
+reproduces the original failure: an invalid return in an imported function masks
+an independent entry-body diagnostic. It remains a compiler diagnostic replay
+issue, not a passing test. Inspection identifies eager dependency scheduling as
+the reason changing `diagnostic_first` does not visit the entry's earlier invalid
+statement before its failing dependency. Repair must preserve real callee
+contracts and keep diagnostic replay separate from executable analysis.
+
+Both installed binaries and the workspace editor server now match the merged
+build by SHA-256. After restarting the actual server, the owner's open
+`tsrust_test/src/main.tsr` offers `match` and `payload` for `parsed.` inside
+`console.log`. The temporary dot was undone; the document is clean with zero
+problems. The first attempt before a successful restart still used the old
+process and returned no suggestions; that deployment observation is retained.
+
+Final merged regression run: 51 targets, 50 passing and `optional_main` failing
+only the retained assertion above; 661 individual tests pass, one fails and one
+is ignored. The full run is preserved, not restarted or counted as wholly passed.
+No formal timing protocol was run. Integration records use
+`tsrust-lsp-agreement-integration-*` in SQLite.
+
+After byte verification and live consumer checks, the Claude evidence copies,
+merged clean worktree and 2.9 GB private Cargo target were removed. The branch is
+retained, and the unrelated `codex/stdlib-path` worktree is untouched. Compiler
+nesting architecture, diagnostic replay repair and the remaining roadmap stay
+active; this editor integration does not accept those requirements.
