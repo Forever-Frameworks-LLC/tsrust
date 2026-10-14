@@ -1647,3 +1647,84 @@ replacement and targeted control exits. Whole-project formatting changes zero
 files and fingerprints. Full compiler/LSP matrices and formal timing runs are not
 repeated for this internal section. Installed consumers are unchanged because no
 public contract changes.
+
+
+### Map phase infrastructure before parent integration (after 460b4b82)
+
+The working tree now has `emit/owned_work.rs`, a safe append-only owner for
+temporary checked functions and exception regions. Its breadth-first binary
+positions give logarithmic insertion without fixed source limits, unsafe pointers
+or leaked values; disposal drains child nodes with a worklist. Temporary variants
+retain their own binding environments instead of sharing one cache per analysis
+plan. These owners live for the emitter lifetime, so peak allocation behavior must
+be included in later scaling measurements.
+
+Statement work can enter a checked function context and restore its predecessor.
+Map phase bodies use those frames, retaining region/storage state until their
+queued body and result assembly finish. Catch-only Map regions and leading-clear
+prefix renewal are connected to the shared scheduler. Cleanup result assembly,
+precise return cleanup and destination-specific cleanup have scheduling entry
+points; synchronous adapters remain while their parents are migrated.
+
+At this intermediate state the work was not accepted or checkpointed. Four interface checks passed; batch
+unit/native checks were deferred until the connected Map section was finished.
+The two remaining outer parents were `map_finally_storage_epochs.rs` and
+`map_catch_finally_storage.rs`; their normal/error/control/return cleanup phases,
+inline return setup and body/handler phases must all queue in the original emission
+order. Dynamic control IDs must allocate when their phase begins. Borrowed Map
+iteration completion also remains to audit. Remove synchronous adapters only after
+all their callers use the shared work stack. Interface evidence is stored under
+`tsrust-nesting-map-phase-work-*` in SQLite.
+
+
+### Connected Map parent scheduling
+
+The Map phase infrastructure above is now connected through both outer finally
+parents. Finally emits normal/error/common cleanup, destination-specific cleanup,
+precise return cleanup, optional inline return cleanup, then its body. Catch/finally
+preserves its different order: initial cleanup phases, optional inline return
+cleanup, body and handler, then destination-specific and precise return cleanup.
+Dynamic IDs allocate at phase execution. The direct return result is consumed by
+body setup without disturbing the parent's remaining result slots.
+
+Borrowed Map iteration now queues its loop beneath a temporary typed region and
+restores that region before outer completion dispatch. Map catch-only regions,
+prefix renewal, cleanup bodies and owned variants all use the same statement
+stack. The synchronous Map/iteration adapters have been removed. An audit of these
+files finds no calls to `block`, `control_block_epochs` or `run_statement_work`.
+
+All 38 focused unit tests pass after repairing the new deep witness. Its original
+single-level deletion template did not select Map storage transport; the corrected
+clear template asserts eligibility before nesting and verifies all 512 emitted
+regions retain that transport. The failed original remains evidence, not a pass.
+The arena witness verifies 65,536 stable references and exactly-once destruction.
+These tests use normal stacks, with `RUST_MIN_STACK` unset. Four interface records
+include the failed mechanical lifetime-syntax edit and its successful repair.
+The previous phase-infrastructure records remain separately retained in SQLite.
+
+
+Discovery observes four Map families in breadth-first order. Ten of fourteen
+observations finish the full pipeline: all families at 8 and 32, plus cleanup and
+mixed control at 128. Catch and catch/finally at 128, and cleanup/mixed control at
+512, time out during analysis under the 30-second observation budget. The previous
+cleanup-128 emission stack overflow is gone. No observation crashes or overflows;
+timeouts are retained as timeouts. Discovery overlaps builds/native execution and
+is not a formal performance comparison or a supported-depth declaration.
+
+
+Connected-section validation passes all 260 native tests: 21 exception handling,
+34 return ownership, two Map iteration and 203 scoped-record composition cases.
+These preserve allocation/disposal behavior, partial fields, callback captures,
+cleanup replacement, borrowed iteration and distinct control destinations. The
+corrected deep witness changes only test code; native and discovery executables
+use identical production sources. Whole-project formatting changes zero files
+and fingerprints. Eighteen closed records, including failures and timeouts, are
+retained under `tsrust-nesting-map-parent-work-*` in SQLite.
+
+This accepts the connected Map/exception statement migration, not the complete
+nesting architecture. Public parser admission remains unchanged. Closure-method
+checking, fallback function checking and callable-result discovery still have
+128-depth guards and need their own worklist audits; other consumers and compilation
+scaling remain pending. No guard, stack size or language limit was raised. Full
+compiler/LSP matrices and formal measurements are not claimed for this internal
+section. Installed consumers remain unchanged because no public contract changes.

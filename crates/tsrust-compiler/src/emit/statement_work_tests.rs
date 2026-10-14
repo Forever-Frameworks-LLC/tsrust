@@ -149,3 +149,29 @@ fn nested_field_completion_bodies_use_shared_scheduler() {
     assert!(emitter.exception_regions.field_error_fields().is_none());
     assert!(emitter.control_targets.snapshot().is_empty());
 }
+
+#[test]
+fn nested_map_finally_bodies_share_storage_scheduler() {
+    let mut checked=crate::check("type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});try{handlers.clear();}finally{}console.log(handlers.size);handlers.clear();}").unwrap();
+    let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
+    let function_id=checked.program.functions.iter().position(|function|function.name=="main").unwrap();
+    let function=&checked.program.functions[function_id];
+    let position=function.body.iter().position(|statement|matches!(statement.kind,StmtKind::Try(_))).unwrap();
+    let template=&function.body[position];let mut nested=template.clone();let depth=512;
+    for _ in 1..depth {
+        let mut parent=template.clone();let StmtKind::Try(region)=&mut parent.kind else{panic!("exception region")};
+        region.body=vec![nested];nested=parent;
+    }
+    let mut body=function.body[..position].to_vec();body.push(nested);body.extend_from_slice(&function.body[position+1..]);
+    let emitter=emitter_for(&checked.program,"");
+    let StmtKind::Try(template_region)=&template.kind else{unreachable!()};
+    assert!(emitter.map_exception_storage_plan(function,template_region.statements().collect(),Declarations::Body(&function.body)).is_some(),"fixture must require Map transport before nesting");
+    let contract=checked.program.error_effects.function_errors[function_id].clone();
+    let (_,name)=emitter.completion_error_layout("DeepMapError",&contract,Some(runtime),template.span);
+    let output=emitter.callable_result_body(function,&body,0,&name,contract,Some(runtime));
+    assert_eq!(output.matches("carried finally completion").count(),depth,"every region must retain the Map storage transport");
+    assert_eq!(output.matches('{').count(),output.matches('}').count());
+    assert_eq!(emitter.exception_regions.current_id(),None);
+    assert!(emitter.control_targets.snapshot().is_empty());
+    assert!(emitter.inline_map_return.borrow().is_none());
+}

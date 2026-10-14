@@ -6,6 +6,8 @@ pub(super) enum Work<'a, 's> {
     Body(&'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
     Statement(&'a Stmt, &'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
     Text(String),
+    Function(&'a CheckedFunction),
+    RestoreFunction,
     Capture,
     Captured,
     Resume(Box<dyn FnOnce(&mut String,&mut Vec<Work<'a,'s>>,&mut Vec<String>)+'a>),

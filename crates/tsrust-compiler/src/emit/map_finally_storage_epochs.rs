@@ -1,16 +1,18 @@
 //! Preserve renewed Map owners through finally when no catch handles the error.
 use super::*;
+use std::rc::Rc;
+use statement_work::Work;
+use map_completion_work::{Context,Phase};
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_finally_storage_epoch(
-        &self,
-        output: &mut String,
-        fun: &CheckedFunction,
-        statement: &Stmt,
-        region: &ExceptionRegion,
-        declarations: Declarations<'_, '_>,
-        _depth: usize,
+    pub(super) fn schedule_map_finally<'a,'s:'a>(
+        &'s self,
+        fun: &'a CheckedFunction,
+        statement: &'a Stmt,
+        region: &'a ExceptionRegion,
+        declarations: Declarations<'a, '_>,
+        work:&mut Vec<Work<'a,'s>>,
     ) -> bool {
         let Some(cleanup) = &region.finally else {
             return false;
@@ -61,9 +63,9 @@ impl Emitter<'_> {
             statement.span,
         );
         let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
-        let fallback=std::collections::BTreeMap::new();
+        let fallback=map_return_storage::empty_layout();
         let boundary=region.body.first().map_or(statement.span.start,|statement|statement.span.start);
-        let return_carrier=self.map_completion_carrier(fun,format!("MapControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Body,&fallback);
+        let return_carrier=self.map_completion_carrier(fun,format!("MapControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Body,fallback);
         let cleaned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,None);
         let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
         let error_fields=self.exception_regions.error_storage_values(statement.span).unwrap_or_default().into_iter().filter_map(|value|{
@@ -83,17 +85,18 @@ impl Emitter<'_> {
         let (output_pattern,output_restore)=field_plan.as_ref().map_or_else(||(pattern.clone(),String::new()),|plan|{
             let (fields,restore)=field_completion_transport::restoration(&plan.output_fields,&format!("map_output_field{first}"));(format!("({pattern},{fields})"),restore)
         });
-        let normal_finish=self.map_finish_field_cleanup(fun,fun,region,cleanup,declarations,first+1,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","",output_fields.as_deref());
-        let normal_finish=if fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Body,None){normal_finish}else{"unreachable!(\"no normal Map body completion\")".into()};
-        let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
-        let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
-        let throw_finish=if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty(){
+        let context=Rc::new(Context{fun,region,declarations:Rc::new(declarations.iter().collect()),name:cleanup_name.clone(),contract:cleanup_contract.clone(),runtime,places:places.clone(),storage:storage_type.clone(),pattern:pattern.clone(),span:statement.span});
+        let mut steps=vec![self.map_cleanup_step(context.clone(),Phase::Cleanup{planned:fun,body:cleanup,id:first+1,normal:cleaned,code:"storage".into(),override_drop:String::new(),fields:output_fields.clone()})];
+        let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|self.work_functions.alloc(plan.function(fun)));
+        let error_fun=error_plan.unwrap_or(fun);let error_body=error_plan.map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
+        let throw_phase=if incoming.runtime || incoming.opaque || !incoming.explicit.is_empty(){
             let resume=if crate::completion::definitely_abrupt(cleanup){"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&incoming_name,&incoming,runtime,statement.span,cleaned_error)};
             let fields=field_completion_transport::tuple(&error_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>());
             let (fields_pattern,restore)=field_completion_transport::restoration(&error_fields.iter().map(|(name,_)|name.clone()).collect::<Vec<_>>(),&format!("map_cleaned_error{first}"));
             let normal=format!("let ({pattern},{fields_pattern})=storage;{restore}{resume}");
-            self.map_finish_field_cleanup(fun,error_fun,region,error_body,declarations,first+2,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned_error,&normal,"drop(pending_error);",Some(&fields))
-        }else{"match pending_error {}".into()};
+            Phase::Cleanup{planned:error_fun,body:error_body,id:first+2,normal:cleaned_error,code:normal,override_drop:"drop(pending_error);".into(),fields:Some(fields)}
+        }else{Phase::Text("match pending_error {}".into())};
+        steps.push(self.map_cleanup_step(context.clone(),throw_phase));
         let result = self.native_type(fun.result);
         let (outer_error, _, _) = self
             .exception_regions
@@ -109,41 +112,41 @@ impl Emitter<'_> {
             format!("{resume_control};unreachable!()")
         };
         let normal=format!("let {pattern}=storage;{resume_control}");
-        let return_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+3,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,None,&normal,"drop(pending_exit);");
-
-        // Finish the completion enum's scope before cleanup borrows captures.
-        // Each optional owner keeps its own native type; exactly one is live.
-        let carrier_declaration=return_carrier.as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
-        let carried=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
-        let selected_control=if let Some(carrier)=&return_carrier {
-            let control_cleanups=self.map_precise_control_cleanups(fun,region,declarations,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
-            let precise=self.map_precise_return_cleanup(fun,region,declarations,first+3,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
-            let has_other=region.body.first().is_some_and(|statement|self.control_targets.snapshot().iter().any(|target|[crate::completion::CompletionKind::Break(Some(*target)),crate::completion::CompletionKind::Continue(Some(*target))].into_iter().any(|kind|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(kind)).is_some())));
-            let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
-            self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
-        }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
-        if field_plan.is_none() && exception_contract_emit::has_partial_return(fun,&region.body) && let Some(carrier)=&return_carrier {
-            let precise=self.map_precise_return_cleanup(fun,region,declarations,first+3,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
-            *self.inline_map_return.borrow_mut()=Some(self.map_direct_return_route(carrier,&pattern,precise,first));
+        steps.push(self.map_cleanup_step(context.clone(),Phase::Cleanup{planned:fun,body:cleanup,id:first+3,normal:None,code:normal,override_drop:"drop(pending_exit);".into(),fields:None}));
+        let return_carrier=Rc::new(return_carrier);
+        if let Some(carrier)=&*return_carrier {
+            for (kind,_) in &carrier.controls{steps.push(self.map_cleanup_step(context.clone(),Phase::Control(*kind)));}
+            steps.push(self.map_cleanup_step(context.clone(),Phase::Return(first+3)));
         }
-        let pending = self.map_field_phase_storage_completion_body(
-            fun,
-            &region.body,
-            declarations,
-            first,
-            &incoming_name,
-            incoming.clone(),
-            runtime,
-            &storage_type,
-            &places,
-            true,
-            true,
-            None,
-            error,
-            return_carrier.as_ref(),
-            input_fields.as_deref(),
-            &error_fields,
-        );
+        let direct=field_plan.is_none() && exception_contract_emit::has_partial_return(fun,&region.body) && return_carrier.is_some();
+        if direct{steps.push(self.map_cleanup_step(context.clone(),Phase::Return(first+3)));}
+        let body_context=context.clone();let body_carrier=return_carrier.clone();
+        let body_name=incoming_name.clone();let body_contract=incoming.clone();
+        steps.push(Work::Resume(Box::new(move |_,work,results| {
+            let c=&*body_context;
+            if direct {
+                let precise=results.pop().expect("direct Map return cleanup");
+                *self.inline_map_return.borrow_mut()=Some(self.map_direct_return_route(body_carrier.as_ref().as_ref().expect("return carrier"),&c.pattern,precise,first));
+            }
+            self.schedule_map_phase_body(fun,&region.body,Declarations::Visible(&c.declarations),first,&body_name,body_contract,runtime,&c.storage,&c.places,true,true,None,error,body_carrier.as_ref().as_ref(),input_fields.as_deref(),&error_fields,work);
+        })));
+        let count=steps.len()-usize::from(direct);
+        work.push(Work::Resume(Box::new(move |output,_,results| {
+            let mut results=results.split_off(results.len()-count).into_iter();
+            let normal_finish=results.next().expect("normal Map cleanup");
+            let normal_finish=if fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Body,None){normal_finish}else{"unreachable!(\"no normal Map body completion\")".into()};
+            let throw_finish=results.next().expect("error Map cleanup");
+            let return_finish=results.next().expect("common Map cleanup");
+            let carrier_declaration=return_carrier.as_ref().as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
+            let carried=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
+            let selected_control=if let Some(carrier)=&*return_carrier {
+                let control_cleanups=(0..carrier.controls.len()).map(|_|results.next().expect("control Map cleanup")).collect();
+                let precise=results.next().expect("precise Map return cleanup");
+                let has_other=region.body.first().is_some_and(|statement|self.control_targets.snapshot().iter().any(|target|[crate::completion::CompletionKind::Break(Some(*target)),crate::completion::CompletionKind::Continue(Some(*target))].into_iter().any(|kind|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(kind)).is_some())));
+                let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
+                self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
+            }else{format!("let (pending_exit,{pattern})=control_owner.unwrap();{return_finish}")};
+            let pending=results.next().expect("Map finally body");
         let output_annotation=if !fun.storage_exits.has_completion_owners(boundary,crate::analysis::MapCompletionPhase::Cleaned,None){
             let fields=field_plan.as_ref().map(|plan|field_completion_transport::tuple(&plan.output_fields.iter().map(|name|{
                 let place=self.field_native_place(fun,name).expect("normal Map field path");
@@ -167,6 +170,8 @@ impl Emitter<'_> {
             .unwrap_or(statement.span.end)
             .max(statement.span.end);
         self.exception_regions.renew_storage(&places, boundary);
+        })));
+        self.queue_map_steps(steps,work);
         true
     }
     #[inline(never)]

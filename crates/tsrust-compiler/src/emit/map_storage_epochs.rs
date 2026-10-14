@@ -6,7 +6,7 @@ impl Emitter<'_> {
     /// Keep their fresh storage in the enclosing scope, then enter the checked
     /// exception region for all remaining effects and handlers.
     #[inline(never)]
-    pub(super) fn map_try_prefix_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: Declarations<'_, '_>, _depth: usize) -> bool {
+    pub(super) fn schedule_map_try_prefix<'a,'s:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, declarations: Declarations<'a, '_>, _depth: usize, work:&mut Vec<statement_work::Work<'a,'s>>) -> bool {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
         let mut resets = String::new();
@@ -22,8 +22,9 @@ impl Emitter<'_> {
         remaining.body.drain(..count);
 
         let _ = writeln!(output, "{resets}");
-        let code = self.nested_completion(fun, statement, &remaining);
-        let _ = writeln!(output, "{code}");
+        let remaining=self.work_regions.alloc(remaining);
+        work.push(statement_work::Work::Text("\n".into()));
+        self.schedule_nested_completion(output,fun,statement,remaining,work);
         true
     }
 

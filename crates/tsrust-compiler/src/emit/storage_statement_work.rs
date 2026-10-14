@@ -13,8 +13,8 @@ pub(super) enum StorageWork<'a> {
 }
 
 impl Emitter<'_> {
-    pub(super) fn schedule_storage_block<'a, 's>(
-        &'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt,
+    pub(super) fn schedule_storage_block<'a, 's:'a>(
+        &'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt,
         visible: Rc<Vec<&'a Stmt>>, depth: usize, label: Option<usize>, pending: &mut Vec<Work<'a, 's>>,
     ) -> bool {
         let StmtKind::Block(body) = &statement.kind else { return false; };
@@ -36,8 +36,8 @@ impl Emitter<'_> {
         true
     }
 
-    pub(super) fn schedule_storage_if<'a, 's>(
-        &'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt,
+    pub(super) fn schedule_storage_if<'a, 's:'a>(
+        &'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt,
         visible: Rc<Vec<&'a Stmt>>, depth: usize, label: Option<usize>, pending: &mut Vec<Work<'a, 's>>,
     ) -> bool {
         let StmtKind::If { condition, then_body, else_body } = &statement.kind else { return false; };
@@ -65,8 +65,8 @@ impl Emitter<'_> {
         true
     }
 
-    pub(super) fn resume_storage_statement<'a, 's>(
-        &'s self, output: &mut String, fun: &CheckedFunction, work: StorageWork<'a>, pending: &mut Vec<Work<'a, 's>>,
+    pub(super) fn resume_storage_statement<'a, 's:'a>(
+        &'s self, output: &mut String, fun: &'a CheckedFunction, work: StorageWork<'a>, pending: &mut Vec<Work<'a, 's>>,
     ) {
         match work {
             StorageWork::Renew(names, boundary) => self.exception_regions.renew_storage(&names, boundary),

@@ -1,9 +1,12 @@
 //! Keep body, handler and cleanup owners independent across catch-plus-finally.
 use super::*;
+use std::rc::Rc;
+use statement_work::Work;
+use map_completion_work::{Context,Phase};
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_catch_finally_storage_epoch(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion,declarations: Declarations<'_, '_>,_depth:usize)->bool {
+    pub(super) fn schedule_map_catch_finally<'a,'s:'a>(&'s self,fun:&'a CheckedFunction,statement:&'a Stmt,region:&'a ExceptionRegion,declarations: Declarations<'a, '_>,work:&mut Vec<Work<'a,'s>>)->bool {
         let (Some(handler),Some(cleanup))=(&region.catch,&region.finally) else{return false;};
         let statements=region.body.iter().chain(&handler.body).chain(cleanup).collect();
         let Some((places,native_places))=self.map_exception_storage_plan(fun,statements,declarations) else{return false;};
@@ -26,8 +29,8 @@ impl Emitter<'_> {
         let handler_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Handled,Some(crate::completion::CompletionKind::Throw));
         let cleaned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,None);
         let cleaned_error=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Throw));
-        let fallback=std::collections::BTreeMap::new();
-        let return_carrier=self.map_completion_carrier(fun,format!("MapCatchControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Handled,&fallback);
+        let fallback=map_return_storage::empty_layout();
+        let return_carrier=self.map_completion_carrier(fun,format!("MapCatchControl{first}"),&places,&storage_type,boundary,crate::analysis::MapCompletionPhase::Handled,fallback);
         let handler_throws=outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(),&self.program.records);
         let setup=if let Some(binding)=handler.binding {
@@ -58,32 +61,59 @@ impl Emitter<'_> {
         let (output_pattern,output_restore)=field_plan.as_ref().map_or_else(||(pattern.clone(),String::new()),|plan|{
             let (fields,restore)=field_completion_transport::restoration(&plan.output_fields,&format!("map_output_field{first}"));(format!("({pattern},{fields})"),restore)
         });
-        let normal_finish=self.map_finish_field_cleanup(fun,fun,region,cleanup,declarations,first+2,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned,"storage","",output_fields.as_deref());
-        let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|plan.function(fun));
-        let error_fun=error_plan.as_ref().unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
+        let context=Rc::new(Context{fun,region,declarations:Rc::new(declarations.iter().collect()),name:cleanup_name.clone(),contract:cleanup_contract.clone(),runtime,places:places.clone(),storage:storage_type.clone(),pattern:pattern.clone(),span:statement.span});
+        let mut steps=vec![self.map_cleanup_step(context.clone(),Phase::Cleanup{planned:fun,body:cleanup,id:first+2,normal:cleaned,code:"storage".into(),override_drop:String::new(),fields:output_fields.clone()})];
+        let error_plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Throw)).map(|plan|self.work_functions.alloc(plan.function(fun)));
+        let error_fun=error_plan.unwrap_or(fun);let error_body=error_plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let abrupt_cleanup=crate::completion::definitely_abrupt(cleanup);
         let resume_error=if abrupt_cleanup{"unreachable!(\"abrupt cleanup cannot resume pending error\")".into()}else{self.map_layout_storage_abrupt_dispatch(fun,"TsrCompletion::Throw(pending_error)",&out_name,&outgoing,runtime,statement.span,cleaned_error)};
         let normal=format!("let {pattern}=storage;{resume_error}");
-        let throw_finish=if handler_throws{self.map_finish_cleanup(fun,error_fun,region,error_body,declarations,first+3,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,cleaned_error,&normal,"drop(pending_error);")}else{"match pending_error {}".into()};
+        let throw_phase=if handler_throws{Phase::Cleanup{planned:error_fun,body:error_body,id:first+3,normal:cleaned_error,code:normal,override_drop:"drop(pending_error);".into(),fields:None}}else{Phase::Text("match pending_error {}".into())};
+        steps.push(self.map_cleanup_step(context.clone(),throw_phase));
         let result=self.native_type(fun.result);
         let (outer_error,_,_)=self.exception_regions.current_transport().expect("checked cleanup destination");
         let resumed=format!("match pending_exit{{TsrStorageExit::Return(value)=>TsrCompletion::<(),{result},{outer_error}>::Return(value),TsrStorageExit::Break(target)=>TsrCompletion::Break(target),TsrStorageExit::Continue(target)=>TsrCompletion::Continue(target)}}");
         let resume_control=if abrupt_cleanup{"unreachable!(\"abrupt cleanup cannot resume pending control\")".into()}else{format!("{};unreachable!()",self.map_cleanup_control_dispatch(fun,&resumed,statement.span))};
         let normal=format!("let {pattern}=storage;{resume_control}");
-        let return_finish=self.map_finish_cleanup(fun,fun,region,cleanup,declarations,first+4,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span,None,&normal,"drop(pending_exit);");
+        steps.push(self.map_cleanup_step(context.clone(),Phase::Cleanup{planned:fun,body:cleanup,id:first+4,normal:None,code:normal,override_drop:"drop(pending_exit);".into(),fields:None}));
+        let return_carrier=Rc::new(return_carrier);
         let impossible="TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"carried catch completion\")";
         let normal_arm="TsrCompletion::Normal(storage)=>(Some(storage),None,None)";
         let return_arm=if return_carrier.is_some(){"TsrCompletion::Return(control)=>(None,None,Some(control))"}else{"TsrCompletion::Return((exit,storage))=>(None,None,Some((exit,storage)))"};
         let handler_throw=if handler_throws{"TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None)"}else{"TsrCompletion::Throw(error)=>match error {}"};
-        let direct_return=return_carrier.as_ref().filter(|_|field_plan.is_none() && (exception_contract_emit::has_partial_return(fun,&region.body)
-            || exception_contract_emit::has_partial_return(fun,&handler.body))).map(|carrier|{
-            let precise=self.map_precise_return_cleanup(fun,region,declarations,first+4,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
-            self.map_direct_return_route(carrier,&pattern,precise,first)
-        });
-        *self.inline_map_return.borrow_mut()=direct_return.clone();
-        let pending=self.map_field_phase_storage_completion_body(fun,&region.body,declarations,first,&in_name,incoming.clone(),runtime,&storage_type,&places,true,true,None,body_error,return_carrier.as_ref(),body_values.as_deref(),&body_error_fields);
-        *self.inline_map_return.borrow_mut()=direct_return;
-        let handled=self.map_field_phase_storage_completion_body(fun,&handler.body,declarations,first+1,&out_name,outgoing.clone(),runtime,&storage_type,&places,handler_throws,true,None,handler_error,return_carrier.as_ref(),input_fields.as_deref(),&[]);
+        let direct=return_carrier.is_some() && field_plan.is_none() && (exception_contract_emit::has_partial_return(fun,&region.body) || exception_contract_emit::has_partial_return(fun,&handler.body));
+        if direct{steps.push(self.map_cleanup_step(context.clone(),Phase::Return(first+4)));}
+        let route=Rc::new(std::cell::RefCell::new(None));
+        let body_route=route.clone();let body_carrier=return_carrier.clone();let body_context=context.clone();
+        let body_name=in_name.clone();let body_contract=incoming.clone();
+        steps.push(Work::Resume(Box::new(move |_,work,results| {
+            let c=&*body_context;
+            if direct {
+                let precise=results.pop().expect("direct caught Map return cleanup");
+                *body_route.borrow_mut()=Some(self.map_direct_return_route(body_carrier.as_ref().as_ref().expect("return carrier"),&c.pattern,precise,first));
+            }
+            *self.inline_map_return.borrow_mut()=body_route.borrow().clone();
+            self.schedule_map_phase_body(fun,&region.body,Declarations::Visible(&c.declarations),first,&body_name,body_contract,runtime,&c.storage,&c.places,true,true,None,body_error,body_carrier.as_ref().as_ref(),body_values.as_deref(),&body_error_fields,work);
+        })));
+        let handler_context=context.clone();let handler_carrier=return_carrier.clone();
+        let handler_name=out_name.clone();let handler_contract=outgoing.clone();let handler_fields=input_fields.clone();
+        steps.push(Work::Resume(Box::new(move |_,work,_| {
+            let c=&*handler_context;
+            *self.inline_map_return.borrow_mut()=route.borrow_mut().take();
+            self.schedule_map_phase_body(fun,&handler.body,Declarations::Visible(&c.declarations),first+1,&handler_name,handler_contract,runtime,&c.storage,&c.places,handler_throws,true,None,handler_error,handler_carrier.as_ref().as_ref(),handler_fields.as_deref(),&[],work);
+        })));
+        if let Some(carrier)=&*return_carrier {
+            for (kind,_) in &carrier.controls{steps.push(self.map_cleanup_step(context.clone(),Phase::Control(*kind)));}
+            steps.push(self.map_cleanup_step(context.clone(),Phase::Return(first+4)));
+        }
+        let count=steps.len()-usize::from(direct);
+        work.push(Work::Resume(Box::new(move |output,_,results| {
+            let mut results=results.split_off(results.len()-count).into_iter();
+            let normal_finish=results.next().expect("normal caught Map cleanup");
+            let throw_finish=results.next().expect("error caught Map cleanup");
+            let return_finish=results.next().expect("common caught Map cleanup");
+            let pending=results.next().expect("caught Map body");
+            let handled=results.next().expect("Map handler");
         // An empty handler has no statement input epoch. Project its caught
         // owners explicitly into the normal cleanup representation.
         let handled=if handler.body.is_empty(){
@@ -97,18 +127,18 @@ impl Emitter<'_> {
             }).collect::<Vec<_>>();
             let values=field_completion_transport::tuple(&caught);
             let values=input_fields.as_ref().map_or_else(||values.clone(),|fields|format!("({values},{fields})"));
-            format!("TsrCompletion::<_,{},{out_name}>::Normal({values})",return_carrier.as_ref().map_or_else(||format!("(TsrStorageExit<{}>,{storage_type})",self.native_type(fun.result)),|carrier|carrier.native.clone()))
+            format!("TsrCompletion::<_,{},{out_name}>::Normal({values})",return_carrier.as_ref().as_ref().map_or_else(||format!("(TsrStorageExit<{}>,{storage_type})",self.native_type(fun.result)),|carrier|carrier.native.clone()))
         }else{handled};
         let handler_split=format!("{{let completed={handled};match completed{{{normal_arm},{handler_throw},{return_arm},{impossible}}}}}");
         let body_split=format!("{{let completed={pending};match completed{{{normal_arm},TsrCompletion::Throw((error,storage))=>(None,Some((error,storage)),None),{return_arm},{impossible}}}}}");
         let error_storage=handler_error.map(|layout|self.map_error_storage_type(fun,&places,layout)).unwrap_or_else(||storage_type.clone());
         // Consume the body enum before catch, then consume every owner option
         // before cleanup. Inactive alternatives must not retain capture loans.
-        let control_type=return_carrier.as_ref().map_or_else(||format!("(TsrStorageExit<{result}>,{storage_type})"),|carrier|carrier.native.clone());
-        let carrier_declaration=return_carrier.as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
-        let selected_control=if let Some(carrier)=&return_carrier {
-            let control_cleanups=self.map_precise_control_cleanups(fun,region,declarations,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
-            let precise=self.map_precise_return_cleanup(fun,region,declarations,first+4,carrier,&cleanup_name,&cleanup_contract,runtime,&places,&storage_type,&pattern,statement.span);
+        let control_type=return_carrier.as_ref().as_ref().map_or_else(||format!("(TsrStorageExit<{result}>,{storage_type})"),|carrier|carrier.native.clone());
+        let carrier_declaration=return_carrier.as_ref().as_ref().map_or(String::new(),|carrier|self.map_carrier_declaration(carrier));
+        let selected_control=if let Some(carrier)=&*return_carrier {
+            let control_cleanups=(0..carrier.controls.len()).map(|_|results.next().expect("caught Map control cleanup")).collect();
+            let precise=results.next().expect("caught Map return cleanup");
             let has_other=self.control_targets.snapshot().iter().any(|target|[crate::completion::CompletionKind::Break(Some(*target)),crate::completion::CompletionKind::Continue(Some(*target))].into_iter().any(|kind|fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Handled,Some(kind)).is_some()));
             let common=if has_other{format!("{{{return_finish}}}")}else{"unreachable!(\"no pending loop control\")".into()};
             self.map_select_control_owner(carrier,&pattern,precise,common,control_cleanups)
@@ -123,6 +153,8 @@ impl Emitter<'_> {
         let _=writeln!(output,"{in_decl}{out_decl}{cleanup_decl}{carrier_declaration}let {output_pattern}={{let (normal_owner,error_owner,control_owner)={joined};if normal_owner.is_some(){{let {input_pattern}=normal_owner.unwrap();{input_restore}drop(error_owner);drop(control_owner);{normal_finish}}}else{{drop(normal_owner);if error_owner.is_some(){{let (pending_error,{pattern})=error_owner.unwrap();drop(control_owner);{throw_finish}}}else{{drop(error_owner);if control_owner.is_some(){{{selected_control}}}else{{unreachable!(\"exactly one pending cleanup owner\")}}}}}}}};{output_restore}");
         let boundary=places.iter().flat_map(|place|[self.map_storage_transfer_at_exit(fun,&region.body,place),self.map_storage_transfer_at_exit(fun,&handler.body,place),self.map_storage_transfer_at_exit(fun,cleanup,place)]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
         self.exception_regions.renew_storage(&places,boundary);
+        })));
+        self.queue_map_steps(steps,work);
         true
     }
 }

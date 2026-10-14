@@ -36,6 +36,8 @@ mod nullable_record_parameter_emit;
 mod map_error_storage_emit;
 mod statement_work;
 mod completion_work;
+mod map_completion_work;
+mod owned_work;
 mod storage_statement_work;
 mod restored_capture_slots;
 mod finally_move_slots;
@@ -154,6 +156,8 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
     let native_views=native_view_emit::Shapes::new(program);
     let native_record_fields=native_view_record_parameters::Index::new(program,&native_views);
     let mut emitter = Emitter {
+        work_functions:owned_work::Arena::default(),
+        work_regions:owned_work::Arena::default(),
         borrowed_capture_alternatives,
         borrowed_owners,
         borrowed_lifetime_alternatives,
@@ -237,6 +241,8 @@ pub(crate) fn emit_with_source_segments(program:&CheckedProgram,entry_setup:&str
 }
 
 struct Emitter<'a> {
+    work_functions:owned_work::Arena<CheckedFunction>,
+    work_regions:owned_work::Arena<ExceptionRegion>,
     borrowed_lifetime_alternatives: borrowed_payload_emit::Alternatives,
     borrowed_owners: borrowed_owner_provenance::Plan,
     native_captures: native_capture_storage::Storage,
@@ -3397,13 +3403,6 @@ impl Emitter<'_> {
     }
 
     #[inline(never)]
-    fn nested_completion(&self,fun:&CheckedFunction,statement:&Stmt,region:&ExceptionRegion)->String {
-        let mut output=String::new();let mut pending=Vec::new();
-        self.schedule_nested_completion(&mut output,fun,statement,region,&mut pending);
-        self.run_statement_work(&mut output,fun,pending);output
-    }
-
-    #[inline(never)]
     fn completion_error_layout(&self,name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,span:crate::Span)->(String,String) {
         let unions=crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let payloads=contract.native_payloads(&unions,runtime,span).expect("checked native error layout");
@@ -3499,6 +3498,8 @@ impl Emitter<'_> {
     fn run_statement_work<'a, 's: 'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, mut pending: Vec<statement_work::Work<'a, 's>>) {
         use std::rc::Rc;
         use statement_work::Work;
+        let mut fun=fun;
+        let mut functions=Vec::new();
         let mut buffers=Vec::new();
         let mut values=Vec::new();
         while let Some(work) = pending.pop() {
@@ -3511,6 +3512,8 @@ impl Emitter<'_> {
                 Work::Capture => { buffers.push(std::mem::take(output)); continue; },
                 Work::Captured => { values.push(std::mem::replace(output,buffers.pop().expect("completion output buffer"))); continue; },
                 Work::Resume(resume) => { resume(output,&mut pending,&mut values); continue; },
+                Work::Function(function) => {functions.push(fun);fun=function;continue;},
+                Work::RestoreFunction => {fun=functions.pop().expect("enclosing emission function");continue;},
                 Work::Region(scope) => { drop(scope); continue; },
                 Work::Scope(scope) => { drop(scope); continue; },
                 Work::StorageScope(scope) => { drop(scope); continue; },
@@ -3560,8 +3563,8 @@ impl Emitter<'_> {
             if self.schedule_storage_block(output,fun,stmt,visible.clone(),depth,loop_label,&mut pending){continue;}
             if self.schedule_map_iteration(output,fun,stmt,visible.clone(),depth,&mut pending){continue;}
             if self.schedule_empty_map_loop(output, fun, stmt, visible.clone(), depth, &mut pending) { continue; }
-            if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
-            if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
+            if self.schedule_map_try_storage(fun, stmt, declarations, &mut pending) { continue; }
+            if self.schedule_map_try_prefix(output, fun, stmt, declarations, depth, &mut pending) { continue; }
             if let Some(reset) = self.local_map_clear_epoch(fun, Declarations::Body(body), stmt)
                 .or_else(|| self.local_map_clear_epoch(fun, declarations, stmt))
                 .or_else(|| self.map_clear_block_epoch(fun, declarations, stmt)) {

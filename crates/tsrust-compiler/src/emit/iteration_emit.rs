@@ -5,17 +5,14 @@ pub(super) struct IterationFrame<'a> {
     pub(super) suffix: String,
 }
 impl Emitter<'_> {
-    pub(super) fn for_of_loop(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, depth: usize, declaring_body: Option<Declarations<'_, '_>>, resets: &[(String, String)]) {
-        let StmtKind::ForOf { body, .. } = &statement.kind else { unreachable!() };
-        let visible = std::rc::Rc::new(declaring_body.unwrap_or(Declarations::Body(body)).iter().collect());
-        let mut pending = Vec::new();
-        self.schedule_for_of(output, fun, statement, visible, depth, resets, &mut pending);
-        self.run_statement_work(output, fun, pending);
-    }
-    pub(super) fn schedule_for_of<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: std::rc::Rc<Vec<&'a Stmt>>, depth: usize, resets: &[(String, String)], pending: &mut Vec<statement_work::Work<'a, 's>>) {
+    pub(super) fn schedule_for_of<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: std::rc::Rc<Vec<&'a Stmt>>, depth: usize, resets: &[(String, String)], pending: &mut Vec<statement_work::Work<'a, 's>>) {
         use statement_work::Work;
-        let StmtKind::ForOf { body, .. } = &statement.kind else { unreachable!() };
-        if let Some(frame) = self.prepare_for_of_loop(output, fun, statement, depth, Some(Declarations::Visible(&visible)), resets) {
+        let StmtKind::ForOf { body, iterable, .. } = &statement.kind else { unreachable!() };
+        if matches!(iterable.ty,Some(Type::Map(_))) && self.exception_regions.carries_storage() {
+            self.schedule_map_borrowed_iteration(fun,statement,visible,depth,resets,pending);
+            return;
+        }
+        if let Some(frame) = self.prepare_for_of_loop(output, fun, statement, depth) {
             pending.push(Work::Scope(frame.scope));
             pending.push(Work::Text(frame.suffix));
             if !self.schedule_map_for_of_body(output, fun, statement, visible.clone(), depth + 1, pending) {
@@ -30,9 +27,7 @@ impl Emitter<'_> {
         output: &mut String,
         fun: &CheckedFunction,
         statement: &Stmt,
-        depth: usize,
-        declaring_body: Option<Declarations<'_, '_>>,
-        resets: &[(String, String)],
+        _depth: usize,
     ) -> Option<IterationFrame<'s>> {
         let StmtKind::ForOf {
             iterable,
@@ -42,10 +37,7 @@ impl Emitter<'_> {
         else {
             unreachable!("checked for-of");
         };
-        if matches!(iterable.ty,Some(Type::Map(_))) && self.exception_regions.carries_storage() {
-            self.map_borrowed_iteration_completion(output,fun,statement,depth,declaring_body,resets);
-            return None;
-        }
+
 
         let scope = self
             .control_targets
@@ -123,18 +115,22 @@ impl Emitter<'_> {
 impl Emitter<'_> {
     /// Leave the iterator borrow scope before moving completion storage.
     #[inline(never)]
-    fn map_borrowed_iteration_completion(&self,output:&mut String,fun:&CheckedFunction,statement:&Stmt,depth:usize,declaring_body: Option<Declarations<'_, '_>>,resets:&[(String,String)]) {
+    fn schedule_map_borrowed_iteration<'a,'s:'a>(&'s self,fun:&'a CheckedFunction,statement:&'a Stmt,visible:std::rc::Rc<Vec<&'a Stmt>>,depth:usize,resets:&[(String,String)],work:&mut Vec<statement_work::Work<'a,'s>>) {
+        use statement_work::Work;
         let (error,contract,runtime)=self.exception_regions.current_transport().expect("typed storage region");
         let id=self.completion_next.get();self.completion_next.set(id+1);
         let result=self.native_type(fun.result);
-        let mut body=String::new();
-        {
-            let _scope=self.exception_regions.enter_typed(id,vec![ControlTarget::Loop(statement.span.start)],error.clone(),contract,runtime);
-            self.for_of_loop(&mut body,fun,statement,depth+1,declaring_body,resets);
-        }
-        let pending=format!("{{let iteration_completion:TsrCompletion<(),{result},{error}>='exception_region{id}:{{{body} TsrCompletion::Normal(())}};iteration_completion}}");
-        let dispatch=self.exception_regions.dispatch(&pending,&self.control_targets.snapshot(),statement.span).expect("enclosing iteration completion");
-
-        let _=writeln!(output,"{dispatch};");
+        let scope=self.exception_regions.enter_typed(id,vec![ControlTarget::Loop(statement.span.start)],error.clone(),contract,runtime);
+        work.push(Work::Resume(Box::new(move |output,_,results| {
+            let body=results.pop().expect("completed borrowed Map iteration");
+            let pending=format!("{{let iteration_completion:TsrCompletion<(),{result},{error}>='exception_region{id}:{{{body} TsrCompletion::Normal(())}};iteration_completion}}");
+            let dispatch=self.exception_regions.dispatch(&pending,&self.control_targets.snapshot(),statement.span).expect("enclosing iteration completion");
+            let _=writeln!(output,"{dispatch};");
+        })));
+        work.push(Work::Region(scope));
+        work.push(Work::Captured);
+        let resets=resets.to_vec();
+        work.push(Work::Resume(Box::new(move |output,work,_|self.schedule_for_of(output,fun,statement,visible,depth+1,&resets,work))));
+        work.push(Work::Capture);
     }
 }

@@ -1,5 +1,6 @@
 //! Exact break and continue destinations carry independent Map payloads.
 use super::*;
+use statement_work::Work;
 use super::map_return_storage::Carrier;
 type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
 impl Emitter<'_> {
@@ -86,18 +87,17 @@ impl Emitter<'_> {
         let owner=layout.and_then(|layout|self.exception_regions.control_storage_values(target,kind.is_continue(),span).map(|values|self.map_project_outgoing_storage(fun,layout,values)));
         self.exception_regions.dispatch_control(target,kind.is_continue(),span,owner.as_deref())
     }
-    #[inline(never)]
-    pub(super) fn map_precise_control_cleanups(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations: Declarations<'_, '_>,carrier:&Carrier<'_>,cleanup_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->Vec<String> {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn schedule_map_control_cleanup<'a,'s:'a>(&'s self,fun:&'a CheckedFunction,region:&'a ExceptionRegion,declarations:Declarations<'a,'_>,kind:crate::completion::CompletionKind,cleanup_name:&str,contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,work:&mut Vec<Work<'a,'s>>) {
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
         let cleanup=region.finally.as_ref().expect("control cleanup");
-        let mut arms=Vec::new();for (_index,(kind,_)) in carrier.controls.iter().enumerate(){
-            let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(*kind)).map(|plan|plan.function(fun));let planned=plan.as_ref().unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
-            let normal=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(*kind));
-            let id=self.completion_next.get();self.completion_next.set(id+1);
-            let resume=if crate::completion::definitely_abrupt(cleanup){"unreachable!(\"cleanup cannot resume control\")".into()}else{self.map_selected_control_dispatch(fun,*kind,normal,span)};
-            let normal_code=format!("let {pattern}=storage;{resume}");
-            arms.push(self.map_finish_cleanup(fun,planned,region,body,declarations,id,cleanup_name,contract,runtime,places,storage,pattern,span,normal,&normal_code,""));
-        }arms
+        let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(kind)).map(|plan|self.work_functions.alloc(plan.function(fun)));
+        let planned=plan.unwrap_or(fun);let body=plan.map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
+        let normal=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(kind));
+        let id=self.completion_next.get();self.completion_next.set(id+1);
+        let resume=if crate::completion::definitely_abrupt(cleanup){"unreachable!(\"cleanup cannot resume control\")".into()}else{self.map_selected_control_dispatch(fun,kind,normal,span)};
+        let normal_code=format!("let {pattern}=storage;{resume}");
+        self.schedule_map_finish(fun,planned,region,body,declarations,id,cleanup_name,contract,runtime,places,storage,pattern,span,normal,&normal_code,"",None,work);
     }
     pub(super) fn map_select_control_owner(&self,carrier:&Carrier<'_>,pattern:&str,returned:String,common:String,controls:Vec<String>)->String {
         let (returned_pattern,restore)=self.map_return_field_pattern(carrier,pattern);

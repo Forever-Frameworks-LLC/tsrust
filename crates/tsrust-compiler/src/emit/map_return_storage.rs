@@ -1,6 +1,11 @@
 //! Return values and precise Map owners share one consuming control payload.
 use super::*;
+use statement_work::Work;
 type Layout=std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>;
+pub(super) fn empty_layout()->&'static Layout {
+    static EMPTY:std::sync::LazyLock<Layout>=std::sync::LazyLock::new(Layout::new);
+    &EMPTY
+}
 pub(super) struct Carrier<'a> {
     pub(super) name:String,
     pub(super) native:String,
@@ -45,18 +50,19 @@ impl Emitter<'_> {
         let restore=carrier.fields.iter().zip(&names).map(|((field,_),value)|format!("{field}={value};")).collect::<String>();
         (map_error_storage_emit::extend_tuple(pattern,&names),restore)
     }
-    #[inline(never)]
-    pub(super) fn map_precise_return_cleanup(&self,fun:&CheckedFunction,region:&ExceptionRegion,declarations: Declarations<'_, '_>,first:usize,_carrier:&Carrier<'_>,cleanup_name:&str,cleanup_contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span)->String {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn schedule_map_return_cleanup<'a,'s:'a>(&'s self,fun:&'a CheckedFunction,region:&'a ExceptionRegion,declarations:Declarations<'a,'_>,first:usize,cleanup_name:&str,cleanup_contract:&crate::error_effects::FailureSet,runtime:Option<Type>,places:&[String],storage:&str,pattern:&str,span:crate::Span,work:&mut Vec<Work<'a,'s>>) {
         let cleanup=region.finally.as_ref().expect("return cleanup");
         let boundary=region.body.first().map_or(span.start,|statement|statement.span.start);
-        let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Return)).map(|plan|plan.function(fun));
-        let planned=plan.as_ref().unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
+        let plan=fun.storage_exits.map_cleanup_plan(boundary,Some(crate::completion::CompletionKind::Return)).map(|plan|self.work_functions.alloc(plan.function(fun)));
+        let planned=plan.unwrap_or(fun);let body=plan.as_ref().map_or(cleanup.as_slice(),|plan|plan.body.as_slice());
         let returned=fun.storage_exits.map_completion_layout(boundary,crate::analysis::MapCompletionPhase::Cleaned,Some(crate::completion::CompletionKind::Return));
         let owner=self.map_outgoing_return_storage(fun,span,returned);
         let resumed=if !crate::completion::definitely_abrupt(cleanup){self.exception_regions.dispatch_return("pending_return",span,owner.as_deref())}else{"unreachable!(\"cleanup cannot resume return\")".into()};
         let normal=format!("let {pattern}=storage;{resumed}");
-        self.map_finish_cleanup(fun,planned,region,body,declarations,first,cleanup_name,cleanup_contract,runtime,places,storage,pattern,span,returned,&normal,"drop(pending_return);")
+        self.schedule_map_finish(fun,planned,region,body,declarations,first,cleanup_name,cleanup_contract,runtime,places,storage,pattern,span,returned,&normal,"drop(pending_return);",None,work);
     }
+
 }
 
 #[cfg(test)]

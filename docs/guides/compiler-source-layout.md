@@ -316,8 +316,14 @@ abrupt cleanup retains its exit-replacement state until its pending body finishe
 `field_completion_transport.rs` and `field_control_transport.rs` queue typed
 body/handler/cleanup phases on that scheduler. Parent assembly consumes the phase
 results after storage scopes restore; dynamically allocated IDs remain ordered
-after prior child emission. Map storage transports and borrowed-map exception
-helpers still contain synchronous re-entry; emitter nesting remains unfinished.
+after prior child emission. Map storage transports use `map_completion_work.rs` to queue cleanup requests.
+Both finally parents preserve their distinct emission orders, including dynamic
+control IDs and inline return setup. Borrowed Map iteration restores its iterator
+and region scopes before dispatching the completion. These paths share the same
+work stack; their old synchronous adapters are removed. `owned_work.rs` retains
+temporary checked variants and trimmed regions at stable addresses without unsafe
+pointers or leaks. Work frames switch and restore the applicable checked function.
+Expression/callable paths and the wider pipeline still require nesting audits.
 
 Map storage traversal uses `analysis/map_epoch_work.rs` for one connected body,
 branch, loop and cleanup continuation stack. `map_entry_epochs.rs` contains the

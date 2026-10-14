@@ -6,10 +6,10 @@ use std::rc::Rc;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn schedule_empty_map_loop<'a, 's>(
+    pub(super) fn schedule_empty_map_loop<'a, 's:'a>(
         &'s self,
         output: &mut String,
-        fun: &CheckedFunction,
+        fun: &'a CheckedFunction,
         statement: &'a Stmt,
         visible: Rc<Vec<&'a Stmt>>,
         depth: usize,

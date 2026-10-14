@@ -1,13 +1,15 @@
 //! Carry renewed Map owners separately on normal and caught exception paths.
 use super::*;
+use statement_work::Work;
+use std::rc::Rc;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_try_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: Declarations<'_, '_>, depth: usize) -> bool {
+    pub(super) fn schedule_map_try_storage<'a,'s:'a>(&'s self, fun: &'a CheckedFunction, statement: &'a Stmt, declarations: Declarations<'a, '_>,work:&mut Vec<Work<'a,'s>>) -> bool {
         if !statement.labels.is_empty() { return false; }
         let StmtKind::Try(region) = &statement.kind else { return false; };
-        let Some(handler) = &region.catch else { return self.map_finally_storage_epoch(output,fun,statement,region,declarations,depth); };
-        if region.finally.is_some(){return self.map_catch_finally_storage_epoch(output,fun,statement,region,declarations,depth);}
+        let Some(handler) = &region.catch else { return self.schedule_map_finally(fun,statement,region,declarations,work); };
+        if region.finally.is_some(){return self.schedule_map_catch_finally(fun,statement,region,declarations,work);}
         let statements=region.body.iter().chain(&handler.body).chain(region.finally.iter().flatten()).collect();
         let Some((places,native_places))=self.map_exception_storage_plan(fun,statements,declarations) else{return false;};
         let values = format!("({},)", places.join(","));
@@ -25,10 +27,13 @@ impl Emitter<'_> {
         let (out_decl, out_name) = self.completion_error_layout(&format!("StorageOutgoing{first}"), &outgoing, runtime, statement.span);
         let normal=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,None))}else{None};
         let error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Body,Some(crate::completion::CompletionKind::Throw)));
-        let pending = self.map_error_phase_storage_completion_body(fun, &region.body, declarations, first, &in_name, incoming.clone(), runtime, &storage_type, &places, true, true, normal, error);
         let handler_throws = outgoing.runtime || outgoing.opaque || !outgoing.explicit.is_empty();
-        let handler_error=if region.finally.is_none(){region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,Some(crate::completion::CompletionKind::Throw)))}else{None};
-        let handled = self.map_error_phase_storage_completion_body(fun, &handler.body, declarations, first + 1, &out_name, outgoing.clone(), runtime, &storage_type, &places, handler_throws, true, normal, handler_error);
+        let handler_error=region.body.first().and_then(|statement|fun.storage_exits.map_completion_layout(statement.span.start,crate::analysis::MapCompletionPhase::Handled,Some(crate::completion::CompletionKind::Throw)));
+        let phases=[(&region.body,first,in_name.clone(),incoming.clone(),true,error),(&handler.body,first+1,out_name.clone(),outgoing.clone(),handler_throws,handler_error)];
+        let phase_storage=storage_type.clone();let phase_places=Rc::new(places.clone());let phase_declarations=Rc::new(declarations.iter().collect::<Vec<_>>());
+        work.push(Work::Resume(Box::new(move |output,_,results| {
+        let handled=results.pop().expect("completed Map handler");
+        let pending=results.pop().expect("completed Map body");
         let unions = crate::unions::UnionArena::from_snapshot_with_records(self.program.unions.clone(), &self.program.records);
         let setup = if let Some(binding) = handler.binding {
             let value = exception_contract_emit::checked_catch_value("caught_error", &in_name, incoming, &unions, runtime, statement.span).expect("checked catch payload");
@@ -51,6 +56,16 @@ impl Emitter<'_> {
             region.finally.as_ref().and_then(|body|self.map_storage_transfer_at_exit(fun,body,place)),
         ]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
         self.exception_regions.renew_storage(&places,boundary);
+        })));
+        for (body,id,name,contract,carry_error,error_layout) in phases.into_iter().rev(){
+            let storage=phase_storage.clone();let places=phase_places.clone();let declarations=phase_declarations.clone();
+            work.push(Work::Captured);
+            work.push(Work::Resume(Box::new(move |_,work,_| {
+                self.schedule_map_phase_body(fun,body,Declarations::Visible(&declarations),id,&name,contract,runtime,&storage,&places,carry_error,true,normal,error_layout,None,None,&[],work);
+            })));
+            work.push(Work::Capture);
+        }
+
         true
     }
 
@@ -70,20 +85,12 @@ impl Emitter<'_> {
         format!("let abrupt:TsrCompletion<(),{result},{error_name}>=match {pending} {{ TsrCompletion::Return(value)=>TsrCompletion::Return(value), TsrCompletion::Throw(error)=>TsrCompletion::Throw(error), TsrCompletion::Break(target)=>TsrCompletion::Break(target), TsrCompletion::Continue(target)=>TsrCompletion::Continue(target), TsrCompletion::Normal(_)=>unreachable!() }}; {dispatch}; unreachable!()")
     }
 
-    #[inline(never)]
-    pub(super) fn map_error_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>)->String {
-        self.map_return_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,error_layout,None)
-    }
-    #[inline(never)]
-    pub(super) fn map_return_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>)->String {
-        self.map_field_phase_storage_completion_body(fun,body,declarations,id,error_name,contract,runtime,storage_type,places,carry_error,carry_control,normal,error_layout,returned,None,&[])
-    }
-    #[inline(never)]
-    pub(super) fn map_field_phase_storage_completion_body(&self,fun:&CheckedFunction,body:&[Stmt],declarations: Declarations<'_, '_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>,normal_fields:Option<&str>,error_fields:&[(String,Type)])->String {
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn schedule_map_phase_body<'a,'s:'a>(&'s self,fun:&'a CheckedFunction,body:&'a [Stmt],declarations:Declarations<'a,'_>,id:usize,error_name:&str,contract:crate::error_effects::FailureSet,runtime:Option<Type>,storage_type:&str,places:&[String],carry_error:bool,carry_control:bool,normal:Option<&'a std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,error_layout:Option<&std::collections::BTreeMap<crate::capture_loan_owners::Place,Type>>,returned:Option<&map_return_storage::Carrier<'_>>,normal_fields:Option<&str>,error_fields:&[(String,Type)],work:&mut Vec<Work<'a,'s>>) {
         // Loops inside this phase own their controls. Forward only exits that
         // actually leave the phase to its enclosing cleanup.
         let locals=exception_contract_emit::local_control_targets(body);
-        let _region = self.exception_regions.enter_typed(id, locals, error_name.into(), contract, runtime);
+        let scope = self.exception_regions.enter_typed(id, locals, error_name.into(), contract, runtime);
         {
             let points=fun.storage_exits.starts().map(|start| (start,places.iter().map(|place|self.map_storage_value_before(fun,start,place)).collect())).collect();
             let expressions=fun.storage_exits.expression_points().map(|point| (point,places.iter().map(|place|self.map_storage_value_at_expression(fun,point,place)).collect())).collect();
@@ -98,15 +105,25 @@ impl Emitter<'_> {
         if carry_control {self.exception_regions.carry_storage_on_control_exit();}
         if let Some(carrier)=returned{self.attach_map_return_storage(fun,body,places,carrier);self.attach_map_control_storage(fun,body,places,carrier);}
         if let Some(route)=self.inline_map_return.borrow_mut().take(){self.exception_regions.set_inline_carried_return(route);}
-        let mut statements = String::new();
-        self.control_block_epochs(&mut statements, fun, body, 1, None, Some(declarations));
-        let normal_values = format!("({},)", places.iter().map(|place| self.map_phase_completion_exit_value(fun, body, place, normal)).collect::<Vec<_>>().join(","));
-        let normal_values=normal_fields.map_or_else(||normal_values.clone(),|fields|format!("({normal_values},{fields})"));
         let result = self.native_type(fun.result);
         let result = if let Some(carrier)=returned{carrier.native.clone()}else if carry_control {format!("(TsrStorageExit<{result}>,{storage_type})")} else {result};
         let error_storage=error_layout.map(|layout|self.map_error_storage_type(fun,places,layout)).unwrap_or_else(||storage_type.to_owned());
         let error_storage=map_error_storage_emit::extend_tuple(&error_storage,&error_fields.iter().map(|(_,ty)|self.native_type(*ty)).collect::<Vec<_>>());
         let error = if carry_error { format!("({error_name},{error_storage})") } else { error_name.to_owned() };
-        format!("{{ let completion:TsrCompletion<_,{result},{error}>='exception_region{id}: {{ {statements} TsrCompletion::Normal({normal_values}) }}; completion }}")
+
+        let places=places.to_vec();let normal_fields=normal_fields.map(str::to_owned);
+        work.push(Work::RestoreFunction);
+        work.push(Work::Region(scope));
+        work.push(Work::Resume(Box::new(move |output,_,results| {
+            let statements=results.pop().expect("completed Map storage phase");
+        let normal_values = format!("({},)", places.iter().map(|place| self.map_phase_completion_exit_value(fun, body, place, normal)).collect::<Vec<_>>().join(","));
+        let normal_values=normal_fields.as_deref().map_or_else(||normal_values.clone(),|fields|format!("({normal_values},{fields})"));
+        output.push_str(&format!("{{ let completion:TsrCompletion<_,{result},{error}>='exception_region{id}: {{ {statements} TsrCompletion::Normal({normal_values}) }}; completion }}"));
+        })));
+        work.push(Work::Captured);
+        work.push(Work::Body(body,Rc::new(declarations.iter().collect()),1,None));
+        work.push(Work::Capture);
+        work.push(Work::Function(fun));
     }
+
 }

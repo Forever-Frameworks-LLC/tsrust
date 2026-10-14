@@ -9,7 +9,7 @@ pub(super) enum IterationWork<'a> {
     Back(&'a Stmt, bool),
 }
 impl Emitter<'_> {
-    pub(super) fn schedule_map_iteration<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, pending: &mut Vec<Work<'a, 's>>) -> bool {
+    pub(super) fn schedule_map_iteration<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, pending: &mut Vec<Work<'a, 's>>) -> bool {
         let epochs = fun.storage_exits.map_iteration_epochs(statement.span);
         if epochs.is_empty() { return false; }
         if matches!(statement.kind, StmtKind::ForOf { .. }) {
@@ -33,7 +33,7 @@ impl Emitter<'_> {
         } else { self.schedule_map_iteration_loop(output, fun, statement, visible, depth, false, pending); }
         true
     }
-    fn schedule_map_iteration_loop<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, post_test: bool, pending: &mut Vec<Work<'a, 's>>) {
+    fn schedule_map_iteration_loop<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, post_test: bool, pending: &mut Vec<Work<'a, 's>>) {
         let condition = match &statement.kind { StmtKind::While { condition, .. } | StmtKind::Loop { condition: Some(condition), .. } => condition, _ => unreachable!() };
         let label = statement.span.start;
         let names = fun.storage_exits.map_iteration_epochs(statement.span).iter().map(|epoch| self.map_entry_epoch_place(fun, &epoch.entry)).collect::<Vec<_>>().join(",");
@@ -44,7 +44,7 @@ impl Emitter<'_> {
         pending.push(Work::Text(format!("        (map_stop_{label},{names},)\n    }};\n}}\n")));
         self.schedule_map_iteration_work(output, fun, statement, visible, depth + 2, true, pending);
     }
-    fn schedule_map_iteration_work<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, widen: bool, pending: &mut Vec<Work<'a, 's>>) {
+    fn schedule_map_iteration_work<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, widen: bool, pending: &mut Vec<Work<'a, 's>>) {
         let epochs = fun.storage_exits.map_iteration_epochs(statement.span);
         let label = statement.span.start;
         for epoch in epochs {
@@ -62,7 +62,7 @@ impl Emitter<'_> {
         pending.push(Work::Iteration(IterationWork::BodyEnd(statement, visible.clone(), depth, exits)));
         pending.push(Work::Body(body, visible, depth + 1, Some(label)));
     }
-    pub(super) fn schedule_map_for_of_body<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, pending: &mut Vec<Work<'a, 's>>) -> bool {
+    pub(super) fn schedule_map_for_of_body<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, statement: &'a Stmt, visible: Rc<Vec<&'a Stmt>>, depth: usize, pending: &mut Vec<Work<'a, 's>>) -> bool {
         let epochs = fun.storage_exits.map_iteration_epochs(statement.span);
         if epochs.is_empty() { return false; }
         let label = statement.span.start;
@@ -72,7 +72,7 @@ impl Emitter<'_> {
         self.schedule_map_iteration_work(output, fun, statement, visible, depth + 1, true, pending);
         true
     }
-    pub(super) fn resume_map_iteration<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, work: IterationWork<'a>, pending: &mut Vec<Work<'a, 's>>) {
+    pub(super) fn resume_map_iteration<'a, 's:'a>(&'s self, output: &mut String, fun: &'a CheckedFunction, work: IterationWork<'a>, pending: &mut Vec<Work<'a, 's>>) {
         match work {
             IterationWork::FirstEnd(statement, visible, depth) => {
                 let label = statement.span.start;
