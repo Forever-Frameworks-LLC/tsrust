@@ -5,6 +5,7 @@ pub(super) struct Arguments {
     pub prepared: Vec<bool>,
 }
 pub(super) enum Prepared {
+    Spread(Box<Expr>),
     Done,
     Function { index: usize, restore_name: Option<String> },
     Arguments(Arguments),
@@ -32,8 +33,7 @@ impl Analyzer {
     pub(super) fn start_generic_preparation(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<Prepared, Diagnostic> {
         let expr = call(expr);
         if matches!(&expr.kind, ExprKind::Call(_, args) if args.iter().any(|arg| matches!(arg.kind, ExprKind::Unary { op: UnaryOp::Spread, .. }))) {
-            self.prepare_generic_spread(context, expr, expected)?;
-            return Ok(Prepared::Done);
+            return Ok(self.generic_spread_prototype(context, expr)?.map_or(Prepared::Done, Prepared::Spread));
         }
         let ExprKind::Call(callee, args) = &mut expr.kind else { return Ok(Prepared::Done); };
         if matches!(&callee.kind,ExprKind::Name(name) if name=="@json:typedreadJsonl")

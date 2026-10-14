@@ -13,7 +13,7 @@ MANIFEST_PATH = Path(__file__).with_name('manifest.json')
 MANIFEST = json.loads(MANIFEST_PATH.read_text())
 
 
-def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False, call_arguments=None, generic_inferred=False):
+def source(count, scalar, call_main, recursive=False, inferred=False, callable_result=False, record_result=False, generic_records=False, generic_functions=False, call_arguments=None, generic_inferred=False, generic_entry=None):
     if call_arguments:
         return argument_source(count, scalar, call_main, call_arguments)
     functions = []
@@ -21,10 +21,20 @@ def source(count, scalar, call_main, recursive=False, inferred=False, callable_r
         for index in range(count):
             arguments = "" if generic_inferred else "<T>"
             annotation = "" if generic_inferred else ":T"
-            result = "value" if index + 1 == count else f"step{index + 1}{arguments}(value)"
+            if index + 1 == count:
+                result = "[value]" if generic_entry == 'receiver' else "value"
+            elif generic_entry == 'spread':
+                result = f"step{index + 1}(...[value])"
+            elif generic_entry == 'receiver':
+                result = f"step{index + 1}(value).slice()"
+            elif generic_entry == 'optional':
+                result = f"step{index + 1}?.(value)"
+            else:
+                result = f"step{index + 1}{arguments}(value)"
             functions.append(f"function step{index}<T>(value:T){annotation} {{ return {result}; }}")
         entry_arguments = "" if generic_inferred else f"<{scalar}>"
-        functions.append(f"function main() {{ console.log(step0{entry_arguments}(7)); }}")
+        item = "[0]" if generic_entry == 'receiver' else ""
+        functions.append(f"function main() {{ console.log(step0{entry_arguments}(7){item}); }}")
         return "\n".join([*functions, *(["main();"] if call_main else []), ""])
     if generic_records:
         for index in range(count):
@@ -92,6 +102,7 @@ def main():
     parser.add_argument('--measure', action='store_true')
     parser.add_argument('--verify-execution', action='store_true', help='Check native and Node outputs against the manifest oracle before timing')
     parser.add_argument('--call-arguments', choices=['declared', 'bound', 'inline', 'field'], help='Use nested arguments through one callable form')
+    parser.add_argument('--generic-entry', choices=['spread','receiver','optional'], help='Select generic entry preparation; requires --generic-functions --generic-inferred')
     parser.add_argument('--generic-inferred', action='store_true', help='Infer generic call arguments and results; requires --generic-functions')
     parser.add_argument('--generic-functions', action='store_true', help='Use explicit generic function dependency chains')
     parser.add_argument('--generic-records', action='store_true', help='Use the generic materialization workload; incompatible with recursive function variants')
@@ -105,6 +116,8 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         parser.error('Output already exists; preserve the original record and choose a new path')
+    if args.generic_entry and not (args.generic_functions and args.generic_inferred):
+        parser.error('--generic-entry requires --generic-functions --generic-inferred')
     if args.generic_inferred and not args.generic_functions:
         parser.error('--generic-inferred requires --generic-functions')
     variants = [name for name in ('inferred', 'callable', 'record') if getattr(args, name)]
@@ -121,7 +134,7 @@ def main():
     if args.generic_functions:
         if args.recursive or args.generic_records or variants:
             parser.error('Generic function chains are separate from other variants')
-        manifest_path = MANIFEST_PATH.parent.parent / ('inferred-generic-calls' if args.generic_inferred else 'generic-function-dependencies') / 'manifest.json'
+        manifest_path = MANIFEST_PATH.parent.parent / ('generic-entry-preparation' if args.generic_entry else 'inferred-generic-calls' if args.generic_inferred else 'generic-function-dependencies') / 'manifest.json'
     if args.call_arguments:
         if args.recursive or args.generic_records or args.generic_functions or variants:
             parser.error('Nested call arguments are separate from dependency workloads')
@@ -147,6 +160,8 @@ def main():
         'measurement': args.measure, 'groups': [], 'complete': False,
     }
 
+    if args.generic_entry:
+        record['genericEntryKind'] = args.generic_entry
     if args.call_arguments:
         record['callableForm'] = args.call_arguments
 
@@ -160,8 +175,8 @@ def main():
             for count in args.only or counts:
                 native = directory / 'main.tsr'
                 reference = directory / 'main.ts'
-                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred))
-                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred))
+                native.write_text(source(count, 'int', False, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry))
+                reference.write_text(source(count, 'number', True, args.recursive, args.inferred, args.callable, args.record, args.generic_records, args.generic_functions, args.call_arguments, args.generic_inferred, args.generic_entry))
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)
                 formatted = native.read_bytes()
                 subprocess.run([str(compiler), 'format', str(native), '--color=never'], check=True, capture_output=True)

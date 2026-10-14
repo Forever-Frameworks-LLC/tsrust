@@ -85,10 +85,10 @@ impl Analyzer {
     /// Generic preparation sees element slots, not an iterable as one argument.
     /// This pass infers types only; ordinary spread checking owns source effects.
     #[inline(never)]
-    pub(super) fn prepare_generic_spread(&mut self,context:&Context,expr:&mut Expr,expected:Option<Type>)->Result<(),Diagnostic>{
-        let ExprKind::Call(callee,args)=&expr.kind else{return Ok(());};
-        let ExprKind::Name(name)=&callee.kind else{return Ok(());};
-        if context.names.contains_key(name)||context.pending_names.contains(name)||self.generic_functions.template(name).is_none(){return Ok(());}
+    pub(super) fn generic_spread_prototype(&mut self,context:&Context,expr:&Expr)->Result<Option<Box<Expr>>,Diagnostic>{
+        let ExprKind::Call(callee,args)=&expr.kind else{return Ok(None);};
+        let ExprKind::Name(name)=&callee.kind else{return Ok(None);};
+        if context.names.contains_key(name)||context.pending_names.contains(name)||self.generic_functions.template(name).is_none(){return Ok(None);}
         let mut normalized=Vec::new();
         for arg in args {
             if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind {
@@ -101,11 +101,7 @@ impl Analyzer {
                 }
             }else{normalized.push(arg.clone());}
         }
-        let mut prototype=Expr::new(ExprKind::Call(callee.clone(),normalized),expr.span);
-        self.prepare_generic_call(context,&mut prototype,expected)?;
-        let ExprKind::Call(prepared,_)=prototype.into_kind() else{unreachable!()};
-        let ExprKind::Call(callee,_)=&mut expr.kind else{unreachable!()};*callee=prepared;
-        Ok(())
+        Ok(Some(Box::new(Expr::new(ExprKind::Call(callee.clone(),normalized),expr.span))))
     }
 
     fn spread_selected(&self, context: &Context, source: &Expr, slot: usize, selection: SpreadSelection, ty: Type, access: Mode) -> Expr {

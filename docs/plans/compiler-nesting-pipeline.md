@@ -2100,3 +2100,58 @@ fresh contextual hints, remaining callable-result specialization and discovery
 still require audit and migration. Count budgets, parser admission retirement,
 formal scaling, optimization and S12–S21 remain pending. No stack or limit constant
 is increased; full compiler/LSP regression and formal measurements are not claimed.
+
+
+### Generic entry preparation continuations
+
+Three baseline families on `6e2d4fe0` expose nested generic drivers: inferred
+spread calls overflow at 128 functions, generic method receivers at 32, and
+optional calls at 128. LLDB identifies spread prototype preparation, member
+receiver preparation and optional initialization respectively. Thirteen exact
+baseline sources, observations, traces and finding records are verified in SQLite
+under `tsrust-nesting-generic-entry-audit-*`.
+
+Spread preparation now returns a pure normalized prototype request; the generic
+scheduler checks it on the shared stack and publishes its prepared callee only
+when successful. Real source operands remain unevaluated. Optional initialization
+suspends generic preparation before its existing static-present and branch passes.
+Member/index receiver preparation suspends after assignment-callee staging and
+global-name normalization. Dispatch resumes without repeating either transform,
+and restores the receiver before propagating a failure.
+
+All 42 shared-driver tests pass. New witnesses check, emit and dispose 128 spread
+and optional functions and 64 receiver functions on the ordinary worker stack.
+Failures through thirty-two functions retain the leaf source location. All 143
+affected integration checks pass across calls, iterable spread, optional access,
+array copying/transforms and generic values/adapters. A forty-layer native witness
+for each family verifies the entire descending call log and final scalar result.
+All 65 distinct focused editor checks pass, including compiler agreement; the new
+editor witness checks concrete hover and original declarations through 64 layers
+of each family. Whole-project formatting changes only the new example, refreshes
+no benchmark fingerprints, and the formatted example executes successfully.
+
+Post-change discovery records thirteen observations: all three families complete
+at 8, 32 and 128, and optional calls also complete at 512. Spread and receiver
+analysis time out at 512 under their thirty-second observation budgets. Optional
+2,048 reports the existing generic instance count budget. No observation crashes
+or overflows. These observations overlap checks/builds and are not formal scaling
+samples or supported limits.
+
+The `generic-entry-preparation` manifest registers matched spread, receiver and
+optional variants through the shared compiler benchmark driver. Each variant at
+32 functions passes untimed native check/emission, strict TypeScript checking,
+and native/Node execution against independent `7\n` output. Larger registered
+groups remain unmeasured and unaccepted. The timing protocol remains two warmups
+and eleven samples. Implementation evidence uses
+`tsrust-nesting-generic-entry-work-*` in SQLite.
+
+This accepts the three preparation entries only. A follow-up audit of actual
+spread checking completes eight nested spread arguments and eight annotated
+generic spread functions, but both overflow at thirty-two. LLDB identifies source
+operand `expression` re-entry in `spread_call` and synchronous body checking in
+`ordinary_spread_contract`. Those phases and expanded variants need shared
+continuations; generic prototype migration does not resolve them. Exact sources,
+observations and traces use `tsrust-nesting-spread-execution-audit-*`. Other fresh
+hints, specialization/discovery entries, count budgets, parser admission, formal
+scaling, optimization and S12–S21 also remain required. No stack or limit constant
+is increased; full compiler/LSP regression and timing are not claimed.

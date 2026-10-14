@@ -3,7 +3,7 @@ use super::*;
 use crate::analysis::generic_call_work::{Arguments, Prepared, call};
 use std::rc::Rc;
 struct Pass { frame: Arguments, contexts: Vec<Option<Type>>, next: usize, progress: bool, deferred: Option<Diagnostic> }
-enum Phase { Start, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, Done }
+enum Phase { Start, Spread, Pass(Pass), Argument { pass: Pass, index: usize }, Function { restore_name: Option<String> }, Done }
 pub(super) struct GenericTask { expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>, phase: Phase }
 impl GenericTask {
     pub(super) fn new(expression: Box<Expr>, context: Rc<Context>, expected: Option<Type>) -> Self {
@@ -12,6 +12,10 @@ impl GenericTask {
 }
 fn prepared<'a>(analyzer: &mut Analyzer, task: &mut GenericTask, value: Prepared) -> Result<Option<Task<'a>>, Diagnostic> {
     match value {
+        Prepared::Spread(prototype) => {
+            task.phase = Phase::Spread;
+            return Ok(Some(Task::Generic(Box::new(GenericTask::new(prototype, task.context.clone(), task.expected)))));
+        }
         Prepared::Done => task.phase = Phase::Done,
         Prepared::Function { index, restore_name } => {
             let ready = analyzer.function_request_ready(index);
@@ -36,6 +40,14 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, mut task: Box<GenericTask>, mut 
                 Phase::Start => {
                     let value = analyzer.start_generic_preparation(&task.context, &mut task.expression, task.expected)?;
                     if let Some(child) = prepared(analyzer, &mut task, value)? { return Ok(Some(child)); }
+                }
+                Phase::Spread => {
+                    let Completion::Generic(prototype, result) = completion.take().expect("spread generic prototype") else { unreachable!() };
+                    result?;
+                    let ExprKind::Call(prepared, _) = prototype.into_kind() else { unreachable!() };
+                    let ExprKind::Call(callee, _) = &mut call(&mut task.expression).kind else { unreachable!() };
+                    *callee = prepared;
+                    task.phase = Phase::Done;
                 }
                 Phase::Function { restore_name } => {
                     if let Some(value) = completion.take() {
@@ -134,5 +146,42 @@ mod chain_tests {
         }
         source.push_str(&format!("function main(){{console.log(step{}(7));}}", count-1));
         drop(crate::check(&source).unwrap().emit_rust());
+    }
+}
+
+#[cfg(test)]
+mod entry_tests {
+    fn chain(kind: &str, count: usize, fail: bool) -> String {
+        let leaf = if fail { "missing" } else if kind == "receiver" { "[value]" } else { "value" };
+        let mut source = format!("function step0<T>(value:T){{return {leaf};}}");
+        for index in 1..count {
+            let previous = index-1;
+            let value = match kind {
+                "spread" => format!("step{previous}(...[value])"),
+                "receiver" => format!("step{previous}(value).slice()"),
+                "optional" => format!("step{previous}?.(value)"),
+                _ => unreachable!(),
+            };
+            source.push_str(&format!("function step{index}<T>(value:T){{return {value};}}"));
+        }
+        source.push_str(&format!("function main(){{console.log(step{}(7));}}", count-1));
+        source
+    }
+    #[test]
+    fn generic_spread_optional_and_receiver_preparation_share_the_driver() {
+        for (kind, count) in [("spread",128),("receiver",64),("optional",128)] {
+            let source = chain(kind,count,false);
+            let checked = crate::check(&source).unwrap_or_else(|error|panic!("{kind}: {}",error.render("input.tsr",&source)));
+            drop(checked.emit_rust());
+            drop(checked);
+        }
+    }
+    #[test]
+    fn failed_generic_entry_preparation_keeps_leaf_source_location() {
+        for kind in ["spread","receiver","optional"] {
+            let source = chain(kind,32,true);
+            let error = crate::check(&source).err().expect("invalid leaf result");
+            assert_eq!(&source[error.span.start..error.span.end],"missing","{kind}: {error:?}");
+        }
     }
 }

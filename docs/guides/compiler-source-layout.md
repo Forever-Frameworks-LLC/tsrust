@@ -418,3 +418,14 @@ snapshot shared between argument tasks; real source ownership is checked later.
 Direct named invocations and deferred generic bodies schedule these tasks on the
 same checker stack. Compatibility entry points still serve receiver factories,
 spreads and some contextual hints and remain audit targets.
+
+
+Generic spread preparation returns a normalized prototype request. The generic
+scheduler checks that prototype as child work and publishes only its prepared
+callee; source spread operands remain unevaluated. Optional initialization uses
+the same generic task before static-present lowering and branch selection. Call
+receiver preparation suspends after assignment-callee staging and global-name
+normalization, then resumes dispatch without repeating those transformations.
+`call_preparation_receiver` locates member/index receiver chains iteratively.
+Actual spread operand evaluation, ordinary spread contracts and expanded variants
+still use the synchronous spread analyzer and require their own migration.

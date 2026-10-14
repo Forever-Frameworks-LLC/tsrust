@@ -8771,6 +8771,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
+        receiver_prepared: bool,
     ) -> Result<CallDispatch, Diagnostic> {
         // A direct nongeneric declaration needs no builtin or conditional state.
         let declared = matches!(&expr.kind, ExprKind::Call(callee, args)
@@ -8785,9 +8786,18 @@ self.names_materialized_type(element.with_depth(0).ty())
         if declared {
             return Ok(CallDispatch::Declared { resolve_completed: false });
         }
-        let result = self.expression_call_other(context, expr, loans, expected)?;
+        let result = self.expression_call_other(context, expr, loans, expected, receiver_prepared)?;
         if let CallDispatch::Ready(ty) = result { self.resolve_completed_capture_invocation(context, expr, ty); }
         Ok(result)
+    }
+
+    pub(super) fn call_preparation_receiver(expr: &mut Expr) -> &mut Expr {
+        let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("call receiver preparation") };
+        let mut receiver = callee.as_mut();
+        while matches!(receiver.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _)) {
+            receiver = match &mut receiver.kind { ExprKind::Field(base, _) | ExprKind::Index(base, _) => base, _ => unreachable!() };
+        }
+        receiver
     }
 
     fn expression_call_other(
@@ -8796,22 +8806,15 @@ self.names_materialized_type(element.with_depth(0).ty())
         expr: &mut Expr,
         loans: &Loans,
         expected: Option<Type>,
+        receiver_prepared: bool,
     ) -> Result<CallDispatch, Diagnostic> {
-        self.stage_assignment_callee(context, expr)?;
-        if let ExprKind::Call(callee, _) = &mut expr.kind {
-            self.global_number_name(context, callee, true);
-        }
-        if let ExprKind::Call(callee, _) = &mut expr.kind {
-            let mut receiver = callee.as_mut();
-            while matches!(receiver.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _)) {
-                receiver = match &mut receiver.kind {
-                    ExprKind::Field(base, _) | ExprKind::Index(base, _) => base.as_mut(),
-                    _ => unreachable!("member receiver"),
-                };
+        if !receiver_prepared {
+            self.stage_assignment_callee(context, expr)?;
+            if let ExprKind::Call(callee, _) = &mut expr.kind { self.global_number_name(context, callee, true); }
+            let receiver = Self::call_preparation_receiver(expr);
+            if matches!(receiver.kind, ExprKind::Call(..) | ExprKind::OptionalChain(_) | ExprKind::Unary { op: UnaryOp::OptionalBoundary | UnaryOp::OptionalSelected, .. }) {
+                return Ok(CallDispatch::PrepareReceiver);
             }
-            // Resolve generic factories before inspecting a returned callable
-            // field. Preparation establishes types without evaluating arguments.
-            self.prepare_generic_call(context, receiver, None)?;
         }
         if Self::map_group_by_callee(context,expr) {return self.prepare_group_by_transform(context,expr,expected).map(CallDispatch::Transform);}
         if Self::array_from_callee(context, expr) {

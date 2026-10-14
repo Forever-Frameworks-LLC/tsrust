@@ -1,0 +1,15 @@
+import { strictEqual } from 'std:testing';
+
+function identity<T>(value: T) {
+  return value;
+}
+
+function values<T>(value: T) {
+  return [value];
+}
+
+function main() {
+  strictEqual(identity(...[7]), 7);
+  strictEqual(identity?.(9), 9);
+  strictEqual(values(11).slice()[0], 11);
+}

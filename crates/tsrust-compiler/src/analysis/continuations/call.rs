@@ -2,6 +2,7 @@
 use super::super::*;
 
 pub(in crate::analysis) enum CallDispatch {
+    PrepareReceiver,
     Ready(Type),
     Reduction,
     Sorting { copying: bool, expected: Option<Type> },

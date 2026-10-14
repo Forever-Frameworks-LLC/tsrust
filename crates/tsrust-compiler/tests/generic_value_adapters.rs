@@ -775,3 +775,26 @@ fn inferred_named_generic_adapters_keep_native_results_and_source_calls() {
     source.push_str(&format!("function main(){{const action=step{count};console.log([7].map(action)[0]);}}"));
     native(&source, "7\n");
 }
+
+#[test]
+fn generic_spread_optional_and_receiver_chains_keep_native_call_order() {
+    let count = 40;
+    for kind in ["spread","receiver","optional"] {
+        let leaf = if kind == "receiver" { "[value]" } else { "value" };
+        let mut source = format!("function step0<T>(value:T){{console.log(0);return {leaf};}}");
+        for index in 1..count {
+            let previous = index-1;
+            let value = match kind {
+                "spread" => format!("step{previous}(...[value])"),
+                "receiver" => format!("step{previous}(value).slice()"),
+                "optional" => format!("step{previous}?.(value)"),
+                _ => unreachable!(),
+            };
+            source.push_str(&format!("function step{index}<T>(value:T){{console.log({index});return {value};}}"));
+        }
+        let item = if kind == "receiver" { "[0]" } else { "" };
+        source.push_str(&format!("function main(){{console.log(step{}(7){item});}}",count-1));
+        let expected = (0..count).rev().map(|index|format!("{index}\n")).collect::<String>()+"7\n";
+        native(&source,&expected);
+    }
+}

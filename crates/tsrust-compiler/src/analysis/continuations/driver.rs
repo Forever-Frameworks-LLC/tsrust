@@ -108,6 +108,7 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    GenericReceiver,
     GenericCall,
     Adapter,
     Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
@@ -901,12 +902,19 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::GenericReceiver => {
+            let Completion::Generic(value, result) = completion.expect("receiver generic preparation") else { unreachable!() };
+            *Analyzer::call_preparation_receiver(task.expression.value()) = *value;
+            let context = contexts.get(task.context);
+            if let Err(error) = result { return finish_expression(analyzer, context, task, Err(error)); }
+            start_invocation(analyzer, context, task, false, true)
+        }
         ExpressionState::GenericCall => {
             let Completion::Generic(value, result) = completion.expect("call generic preparation") else { unreachable!() };
             *task.expression.value() = *value;
             let context = contexts.get(task.context);
             if let Err(error) = result { return finish_expression(analyzer, context, task, Err(error)); }
-            start_invocation(analyzer, context, task, true)
+            start_invocation(analyzer, context, task, true, false)
         }
 
         ExpressionState::Deferred { origin, conditional } => {
@@ -1444,7 +1452,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 }
             } else {
                 if invocation {
-                    start_invocation(analyzer, context, task, false)
+                    start_invocation(analyzer, context, task, false, false)
                 } else {
                     let result = analyzer.expression_kind(context, expr, mode, &task.loans, expected);
                     finish_expression(analyzer, context, task, result)
@@ -2072,7 +2080,7 @@ pub(in crate::analysis) fn check_generic_preparation(analyzer: &mut Analyzer, co
     result
 }
 
-fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, prepared: bool) -> Step<'a> {
+fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, prepared: bool, receiver_prepared: bool) -> Step<'a> {
     let expected = task.checked.as_ref().expect("checked invocation").expected;
     let expr = task.expression.value();
     let needs_preparation = !prepared && matches!(&expr.kind, ExprKind::Call(callee, _)
@@ -2088,8 +2096,16 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
         task.state = ExpressionState::GenericCall;
         return Step::Push(Task::Expression(task), child);
     }
-                    let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
+                    let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected, receiver_prepared);
                     match dispatch {
+                        Ok(CallDispatch::PrepareReceiver) => {
+                            let receiver = Analyzer::call_preparation_receiver(expr);
+                            let span = receiver.span;
+                            let value = Box::new(std::mem::replace(receiver, Expr::new(ExprKind::Undefined, span)));
+                            let child = Task::Generic(Box::new(generic::GenericTask::new(value, std::rc::Rc::new(context.clone()), None)));
+                            task.state = ExpressionState::GenericReceiver;
+                            Step::Push(Task::Expression(task), child)
+                        }
                         Ok(CallDispatch::Reduction) => reduction::start(analyzer, context, task),
                         Ok(CallDispatch::Sorting { copying, expected }) => sorting::start(analyzer, context, task, copying, expected),
                         Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),

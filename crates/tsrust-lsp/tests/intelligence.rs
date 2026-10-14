@@ -10085,3 +10085,33 @@ fn inferred_generic_chain_keeps_checked_hover_and_source_definition() {
     let definition = request("textDocument/definition", "step0(7)");
     assert_eq!(definition["range"]["start"], json!(at(&source, "step0<T>", 0)));
 }
+
+#[test]
+fn generic_entry_chains_keep_checked_hover_and_original_definitions() {
+    for kind in ["spread","receiver","optional"] {
+        let leaf = if kind == "receiver" { "[value]" } else { "value" };
+        let mut source = format!("function step0<T>(value:T){{return {leaf};}}\n");
+        for step in 1..64 {
+            let previous = step-1;
+            let value = match kind {
+                "spread" => format!("step{previous}(...[value])"),
+                "receiver" => format!("step{previous}(value).slice()"),
+                "optional" => format!("step{previous}?.(value)"),
+                _ => unreachable!(),
+            };
+            source.push_str(&format!("function step{step}<T>(value:T){{return {value};}}\n"));
+        }
+        let item = if kind == "receiver" { "[0]" } else { "" };
+        source.push_str(&format!("function main(){{const result=step63(7){item};console.log(result);}}"));
+        let source = tsrust_compiler::format(&source).unwrap();
+        assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+        assert!(tsrust_compiler::diagnostics(&source).is_empty(),"{kind}");
+        let index = SourceIndex::new(&source);
+        let request = |method: &str, needle: &str| index.request(method,
+            &json!({"position":at(&source,needle,0),"context":{"includeDeclaration":true}}), "file:///test.tsr").unwrap();
+        let hover = request("textDocument/hover","result =");
+        assert!(hover["contents"]["value"].as_str().unwrap_or("").contains("result: int"),"{kind}: {hover}");
+        let definition = request("textDocument/definition","step63(7)");
+        assert_eq!(definition["range"]["start"],json!(at(&source,"step63<T>",0)),"{kind}");
+    }
+}

@@ -6,7 +6,7 @@ pub(super) struct OptionalTask<'a>{
     pub(super) mode:Mode,pub(super) loans:ActiveLoans<'a>,pub(super) expected:Option<Type>,
     body:Option<Box<Expr>>,parents:Vec<Branch>,pending:Option<Pending>,
 }
-enum Pending{Base(Base),Body}
+enum Pending{Preparation,Base(Base),Body}
 impl<'a> OptionalTask<'a>{
     pub(super) fn new(expression:Expression<'a>,context:ContextId,mode:Mode,loans:ActiveLoans<'a>,expected:Option<Type>)->Self{
         Self{expression,context,mode,loans,expected,body:None,parents:Vec::new(),pending:None}
@@ -34,25 +34,38 @@ fn finish<'a>(analyzer:&mut Analyzer,context:&mut Context,mut task:Box<OptionalT
 }
 pub(super) fn step<'a>(analyzer:&mut Analyzer,context:&mut Context,mut task:Box<OptionalTask<'a>>,completion:Option<Completion<'a>>)->Step<'a>{
     if let Some(pending)=task.pending.take(){
-        let Completion::Expression(value,checked)=completion.expect("optional child completed") else{unreachable!("optional child result")};
-        match pending{
-            Pending::Body=>{task.body=Some(value.into_child());return finish(analyzer,context,task,checked);},
-            Pending::Base(mut frame)=>{
-                frame.value=*value.into_child();
-                let branch=analyzer.prepare_optional_branch(context,task.body.as_mut().expect("optional body"),frame,task.expected,checked);
-                match branch{
-                    Ok(frame)=>{task.parents.push(frame);task.expected=task.expected.map(|ty|analyzer.unions.payload(ty).unwrap_or(ty));},
-                    Err(error)=>return finish(analyzer,context,task,Err(error)),
+        match pending {
+            Pending::Preparation => {
+                let Completion::Generic(body, checked) = completion.expect("optional generic preparation") else { unreachable!() };
+                task.body = Some(body);
+                if let Err(error) = checked { return finish(analyzer, context, task, Err(error)); }
+                let body = task.body.as_mut().expect("prepared optional body");
+                analyzer.optional_static(context, body);
+                analyzer.optional_present_storage(context, body);
+            }
+            pending => {
+                let Completion::Expression(value,checked)=completion.expect("optional child completed") else{unreachable!("optional child result")};
+                match pending{
+                    Pending::Body=>{task.body=Some(value.into_child());return finish(analyzer,context,task,checked);},
+                    Pending::Base(mut frame)=>{
+                        frame.value=*value.into_child();
+                        let branch=analyzer.prepare_optional_branch(context,task.body.as_mut().expect("optional body"),frame,task.expected,checked);
+                        match branch{
+                            Ok(frame)=>{task.parents.push(frame);task.expected=task.expected.map(|ty|analyzer.unions.payload(ty).unwrap_or(ty));},
+                            Err(error)=>return finish(analyzer,context,task,Err(error)),
+                        }
+                    },
+                    Pending::Preparation => unreachable!(),
                 }
-            },
+            }
         }
     }else{
         let expr=task.expression.value();let span=expr.span;
         let mut old=std::mem::replace(expr,Expr::checked(ExprKind::Null,span,None));
-        let ExprKind::OptionalChain(mut body)=old.take_kind() else{unreachable!("optional chain task")};
-        if let Err(error)=analyzer.prepare_generic_call(context,&mut body,task.expected){task.body=Some(body);return finish(analyzer,context,task,Err(error));}
-        analyzer.optional_static(context,&mut body);analyzer.optional_present_storage(context,&mut body);
-        task.body=Some(body);
+        let ExprKind::OptionalChain(body)=old.take_kind() else{unreachable!("optional chain task")};
+        let child = Task::Generic(Box::new(generic::GenericTask::new(body, std::rc::Rc::new(context.clone()), task.expected)));
+        task.pending = Some(Pending::Preparation);
+        return Step::Push(Task::Optional(task), child);
     }
     let body=task.body.as_mut().expect("optional body");
     let child=if let Some(mut frame)=analyzer.prepare_optional_base(context,body){
