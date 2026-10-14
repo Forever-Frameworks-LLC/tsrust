@@ -96,6 +96,15 @@ impl ProjectSession {
             self.indices.insert(id, (input.clone(), index));
         }
     }
+    /// A project index built from the current text of every source it read
+    /// includes this document.
+    pub fn covers(&self, uri: &str) -> bool {
+        source_id(uri).is_ok_and(|id| {
+            self.indices
+                .values()
+                .any(|(input, index)| self.workspace.current(input) && index.contains(&id))
+        })
+    }
     pub fn request(
         &self,
         method: &str,

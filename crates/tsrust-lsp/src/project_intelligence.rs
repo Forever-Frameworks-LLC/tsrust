@@ -10,6 +10,8 @@ use tsrust_compiler::project::{ProjectGraph, SourceId};
 pub struct ProjectIndex {
     indices: BTreeMap<SourceId, SourceIndex>,
     references: BTreeMap<String, Vec<(Value, bool)>>,
+    /// The validated module graph of this index, for checks of a repaired module.
+    graph: ProjectGraph,
 }
 impl ProjectIndex {
     pub fn checked(analysis: &tsrust_compiler::project::ProjectAnalysis) -> Self {
@@ -22,6 +24,7 @@ impl ProjectIndex {
             source.checked_control_labels=labels.iter().filter(|(span,definition)|span.source==*id && definition.source==*id).map(|(span,definition)|(span.span,definition.span)).collect();
             source.apply_project_checked_facts(&analysis.graph, id, &facts, &index.indices);
             source.apply_project_local_functions(&analysis.graph, id, &local_functions, &index.indices);
+            source.mark_checked();
             index.indices.insert(id.clone(), source);
         }
         index.refresh_references();
@@ -102,7 +105,11 @@ impl ProjectIndex {
         Self {
             indices,
             references: BTreeMap::new(),
+            graph: graph.clone(),
         }
+    }
+    pub fn contains(&self, id: &SourceId) -> bool {
+        self.indices.contains_key(id)
     }
     fn refresh_references(&mut self) {
         self.references.clear();
@@ -147,8 +154,35 @@ impl ProjectIndex {
                     }),
             );
         }
-        self.indices
-            .get(&id)
-            .map(|index| index.request(method, params, uri))
+        let index = self.indices.get(&id)?;
+        let answer = index.request(method, params, uri);
+        if method == "textDocument/completion"
+            && !index.checked()
+            && answer.as_ref().is_ok_and(|items| items.as_array().is_some_and(Vec::is_empty))
+            && let Some(items) = self.repaired_member_completion(&id, index, params)
+        {
+            return Some(Ok(items));
+        }
+        Some(answer)
+    }
+
+    /// Answer an unfinished member access from a project check of the module
+    /// without that access. Headers and import identities stay those of the
+    /// same source snapshot; only the module body changes.
+    fn repaired_member_completion(&self, id: &SourceId, index: &SourceIndex, params: &Value) -> Option<Value> {
+        let offset = index.position_offset(params)?;
+        let (separator, prefix_start) = index.member_position(offset)?;
+        let source = &self.graph.modules.get(id)?.source.text;
+        let prefix = source.get(prefix_start..offset)?;
+        let replace = index.source_range(prefix_start, offset);
+        let receiver = index.receiver_text(separator);
+        index.member_repairs(offset).into_iter().find_map(|repair| {
+            let mut graph = self.graph.clone();
+            let module = graph.modules.get_mut(id)?;
+            module.declaration_source = format!("{}{}", module.declaration_source.get(..repair.start)?, &repair.text[repair.start..]);
+            module.source.text = repair.text;
+            let analysis = tsrust_compiler::project::check_graph(graph).ok()?;
+            Self::checked(&analysis).indices.get(id)?.members_ending_at(repair.receiver_end, prefix, replace, &receiver, index.optional_separator(separator))
+        })
     }
 }

@@ -1,4 +1,5 @@
 //! Single-file editor diagnostics. The compiler owns all language semantics.
+pub mod counters;
 mod documentation;
 pub mod workspace_scan;
 pub mod intelligence;
@@ -193,6 +194,18 @@ impl Documents {
                     .map(|(due, _)| due.saturating_duration_since(now))
             })
             .min()
+    }
+    /// An analysis of this document is queued.
+    pub fn pending(&self, uri: &str) -> bool {
+        self.open.get(uri).is_some_and(|document| document.pending.is_some())
+    }
+    /// Make a queued analysis due now. A request is waiting for its result.
+    pub fn expedite(&mut self, uri: &str, now: Instant) {
+        if let Some(document) = self.open.get_mut(uri)
+            && let Some((due, _)) = &mut document.pending
+        {
+            *due = (*due).min(now);
+        }
     }
     pub fn pending_count(&self) -> usize {
         self.open

@@ -53,7 +53,11 @@ fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
     let index = ProjectIndex::checked(&checked);
     let result_hover = ask(&index, &entry, "result)", "textDocument/hover");
     let result_docs = result_hover["contents"]["value"].as_str().unwrap_or("");
-    assert!(result_docs.replace(' ', "").contains("Result<Person,string>") && !result_docs.contains(" | "), "{result_hover}");
+    // The binding is one nominal Result, not a union. The help below the
+    // signature names the payload field, whose type joins both alternatives.
+    let signature = result_docs.split("```").nth(1).unwrap_or("");
+    assert!(signature.replace(' ', "").contains("Result<Person,string>") && !signature.contains(" | "), "{result_hover}");
+    assert!(result_docs.contains("`result.payload`") && result_docs.contains("`Person | string`"), "{result_hover}");
     let hover = ask(&index, &entry, "user.name", "textDocument/hover");
     let docs = hover["contents"]["value"].as_str().unwrap_or("");
     assert!(docs.contains("user: Person") && !docs.contains("Result#"), "{hover}");
