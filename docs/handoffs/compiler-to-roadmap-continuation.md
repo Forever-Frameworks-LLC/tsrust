@@ -150,7 +150,8 @@ re-entry audit; repairing these two observed crashes does not close that audit.
   Preserve existing cursor repair and typing-speed behavior. Syntax errors
   elsewhere still suppress some narrowed/open-closure completions; untyped catch
   bindings remain intentionally silent. `Result.payload` follows the existing
-  common-field rule and is retained, not a new decision to reopen.
+  common-field rule for general Result values. The owner subsequently requested
+  changing the schema-facing safeParse surface; see the API follow-up below.
 
 ### Architecture acceptance and exit
 
@@ -170,6 +171,19 @@ All required crashes/guards and known correctness defects above must be resolved
 or explicitly accounted for against the acceptance contract; no silent deferral
 or claim of completion based on a few scalar chains. Preserve completed suites,
 repair affected failures and resume unrun groups rather than restarting full runs.
+
+## Owner-requested schema API follow-up (2026-10-14)
+
+After the connected nesting work, implement the [schema result API alignment](../plans/schema-result-api-plan.md)
+before new schema optimization measurements and before S12. The owner requests
+Zod-like parsing rather than an unexplained payload wrapper. Target safeParse
+outcomes are `{ success: true, data: Output }` and
+`{ success: false, error: ValidationError }`, with checked narrowing and full
+editor support. `parse` already returns the output directly and throws on invalid
+input; verify and preserve that behavior. Do not flatten a user-defined payload
+field or change all general Result values. Update compiler/native/editor,
+examples, consumers and matched benchmarks together. This is pending, not an
+implemented API. Preserve native ownership and original measurement identities.
 
 ## Phase B: required optimization of existing code
 
@@ -338,8 +352,8 @@ checkpoint. Claude parser and LSP branches are already integrated.
 
 Carry the existing objective through completion, preserving its current status
 until the owner resumes it. On resumption: finish compiler nesting architecture
-and full-pipeline scaling acceptance, then the required existing-code optimization
-against comparable handwritten Rust timings/allocations and Node-after-tsc,
+and full-pipeline scaling acceptance, then the owner-requested schema safeParse success/data/error API alignment
+and required existing-code optimization against comparable handwritten Rust timings/allocations and Node-after-tsc,
 then implement S12–S21 through integrated release acceptance. Do not stop at an
 individual helper checkpoint or the superseded S11-only boundary. Do not create
 a duplicate goal or mark the overall goal complete while required work remains.

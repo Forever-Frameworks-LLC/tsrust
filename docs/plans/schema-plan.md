@@ -1,5 +1,10 @@
 # S11 schema validation
 
+Owner-requested API follow-up (2026-10-14): align schema `safeParse` with Zod's
+success/data/error result shape and preserve direct `parse` output. See the
+[schema result API plan](schema-result-api-plan.md). This is pending implementation;
+historical S11 acceptance below describes the existing Result-based surface.
+
 Status: S11 accepted on macOS. Public inferred/reusable schemas, constraints,
 objects/arrays/presence/defaults, literals/enums/unions, pipelines, collections,
 recursion, typed issues/messages, throwing parse, fused JSON validation and scoped
