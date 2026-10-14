@@ -379,3 +379,33 @@ Format the whole project before checkpoints. Keep SQLite canonical, verify exact
 imports before deleting copies, preserve owner files, refresh actual consumers,
 and prune obsolete generated outputs. Generated Rust does not need formatting.
 ```
+
+## Status after the 2026-10-14 Claude pass
+
+Done and committed: Set/Map constructor scheduling, array-spread operand moves,
+builtin method-chain receivers on the shared stacks, diagnostic replay for
+failed declared results, readable native and generic names in diagnostics,
+and the schema safeParse `{ success, data } | { success, error }` API across
+compiler, editor, catalog, workloads and fingerprints. Release CLI and server
+are installed.
+
+Open, in priority order:
+
+1. Program-scoped test registry (owner-approved option 1):
+   [handoff](program-scoped-test-registry.md).
+2. Nested `concat` arguments still recurse through
+   `concat_string_arguments` -> `expression`. Debug builds overflow between
+   40 and 60 levels, so `tests/concat_depth.rs`,
+   `string_concat_integer_fusion.rs` and `string_concat_padding.rs` (depth
+   100) fail. The session-start commit `9ab53fb0` fails identically; this is
+   not a new regression. Scheduling the arguments must keep the receiver's
+   read loan active while each argument is checked; an early precheck would
+   drop that loan.
+3. Emission copies child fragments, which is quadratic in single-expression
+   nesting depth (4.8 s at 32,768 nested Set constructors). Programs with
+   many functions scale linearly.
+4. Plain nested array-literal spreads re-walk type hints per layer
+   (quadratic); low priority per the owner.
+
+Console, path and value-type differential suites require the pinned Node
+(`v24.11.1`) first on `PATH`; with it they pass.

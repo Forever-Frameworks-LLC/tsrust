@@ -939,17 +939,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             if let Err(error) = result { return finish_expression(analyzer, context, task, Err(error)); }
             start_invocation(analyzer, context, task, false, true)
         }
-        ExpressionState::BuiltinReceiver { literals } => {
-            let Completion::Expression(value, result) = completion.expect("builtin receiver completed") else { unreachable!("builtin receiver result") };
-            analyzer.builtin_literals = literals;
-            let receiver = super::super::builtin_receivers::receiver(task.expression.value());
-            *receiver = *value.into_child();
-            let context = contexts.get(task.context);
-            // A failed receiver keeps no type; report it instead of checking it again.
-            let result = match result { Ok(ty) => ty, Err(error) => return finish_expression(analyzer, context, task, Err(error)) };
-            analyzer.prechecked_receivers.push((receiver as *const Expr as usize, Ok(result)));
-            start_invocation(analyzer, context, task, false, true)
-        }
+        ExpressionState::BuiltinReceiver { literals } => resume_builtin_receiver(analyzer, contexts.get(task.context), task, literals, completion),
         ExpressionState::GenericCall => {
             let Completion::Generic(value, result) = completion.expect("call generic preparation") else { unreachable!() };
             *task.expression.value() = *value;
@@ -1384,11 +1374,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let child=Task::ObjectSpread(Box::new(object_spread::ObjectSpreadTask::new(value,task.context,task.loans.clone(),expected)));
                 task.state=ExpressionState::ObjectSpread;return Step::Push(Task::Expression(task),child);
             }
-            if matches!(expr.kind,ExprKind::SetConstructor(_,_)|ExprKind::MapConstructor(_,_)){
-                let span=expr.span;let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
-                let child=Task::CollectionConstructor(Box::new(collection_constructor::CollectionConstructorTask::new(value,task.context,task.loans.clone(),expected)));
-                task.state=ExpressionState::CollectionConstructor;return Step::Push(Task::Expression(task),child);
-            }
+            if matches!(expr.kind,ExprKind::SetConstructor(_,_)|ExprKind::MapConstructor(_,_)){return schedule_collection_constructor(task,expected);}
             if matches!(expr.kind,ExprKind::OptionalChain(_)){return schedule_optional(task,mode,expected);}
             if matches!(expr.kind, ExprKind::CoalesceAssign { .. }) {
                 let frame = match analyzer.prepare_nullish_assignment_work(context, expr, mode, expected) {
@@ -2154,21 +2140,10 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
     }
                     // A builtin chain link checks its call receiver here, not in a nested driver.
                     if receiver_prepared && let Some(literals) = analyzer.builtin_receiver_precheck(context, expr) {
-                        let receiver = super::super::builtin_receivers::receiver(expr);
-                        let span = receiver.span;
-                        let value = Box::new(std::mem::replace(receiver, Expr::new(ExprKind::Undefined, span)));
-                        task.state = ExpressionState::BuiltinReceiver { literals: analyzer.builtin_literals };
-                        analyzer.builtin_literals |= literals;
-                        let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, Mode::Read, task.loans.clone(), None));
-                        return Step::Push(Task::Expression(task), child);
+                        return precheck_builtin_receiver(analyzer, task, literals);
                     }
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected, receiver_prepared);
-                    // A method rejected before reading its receiver leaves the result
-                    // unused. A successful method must have read it exactly once.
-                    let dispatch = if analyzer.prechecked_receivers.last().is_some_and(|(address, _)| *address == super::super::builtin_receivers::receiver_address(expr)) {
-                        analyzer.prechecked_receivers.pop();
-                        dispatch.and_then(|_| Err(Diagnostic::new("internal", "A checked builtin receiver was not read by its method.", expr.span)))
-                    } else { dispatch };
+                    let dispatch = unread_builtin_receiver(analyzer, expr, dispatch);
                     match dispatch {
                         Ok(CallDispatch::Spread) => {
                             let span=expr.span;
@@ -2238,4 +2213,49 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
                             }
                         }
                     }
+}
+
+/// Out of line: the invocation frame stays small on recursive argument paths.
+#[inline(never)]
+fn precheck_builtin_receiver<'a>(analyzer: &mut Analyzer, mut task: ExpressionTask<'a>, literals: bool) -> Step<'a> {
+    let receiver = super::super::builtin_receivers::receiver(task.expression.value());
+    let span = receiver.span;
+    let value = Box::new(std::mem::replace(receiver, Expr::new(ExprKind::Undefined, span)));
+    task.state = ExpressionState::BuiltinReceiver { literals: analyzer.builtin_literals };
+    analyzer.builtin_literals |= literals;
+    let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, Mode::Read, task.loans.clone(), None));
+    Step::Push(Task::Expression(task), child)
+}
+
+/// A method rejected before reading its receiver leaves the result unused.
+/// A successful method must have read it exactly once.
+#[inline(never)]
+fn unread_builtin_receiver(analyzer: &mut Analyzer, expr: &Expr, dispatch: Result<CallDispatch, Diagnostic>) -> Result<CallDispatch, Diagnostic> {
+    if analyzer.prechecked_receivers.last().is_some_and(|(address, _)| *address == super::super::builtin_receivers::receiver_address(expr)) {
+        analyzer.prechecked_receivers.pop();
+        return dispatch.and_then(|_| Err(Diagnostic::new("internal", "A checked builtin receiver was not read by its method.", expr.span)));
+    }
+    dispatch
+}
+
+#[inline(never)]
+fn schedule_collection_constructor<'a>(mut task: ExpressionTask<'a>, expected: Option<Type>) -> Step<'a> {
+    let expr = task.expression.value();
+    let span = expr.span;
+    let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
+    let child = Task::CollectionConstructor(Box::new(collection_constructor::CollectionConstructorTask::new(value, task.context, task.loans.clone(), expected)));
+    task.state = ExpressionState::CollectionConstructor;
+    Step::Push(Task::Expression(task), child)
+}
+
+#[inline(never)]
+fn resume_builtin_receiver<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, literals: bool, completion: Option<Completion<'a>>) -> Step<'a> {
+    let Completion::Expression(value, result) = completion.expect("builtin receiver completed") else { unreachable!("builtin receiver result") };
+    analyzer.builtin_literals = literals;
+    let receiver = super::super::builtin_receivers::receiver(task.expression.value());
+    *receiver = *value.into_child();
+    // A failed receiver keeps no type; report it instead of checking it again.
+    let result = match result { Ok(ty) => ty, Err(error) => return finish_expression(analyzer, context, task, Err(error)) };
+    analyzer.prechecked_receivers.push((receiver as *const Expr as usize, Ok(result)));
+    start_invocation(analyzer, context, task, false, true)
 }

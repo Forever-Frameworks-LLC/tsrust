@@ -1,6 +1,7 @@
 //! Schema method lowering preserves ordinary native argument ownership checks.
 use super::*;
 impl Analyzer {
+    #[inline(never)]
     fn schema_receiver(&self, context: &Context, base: &Expr) -> bool {
         let known = matches!(self.expression_type_hint(context, base), Some(Type::Record(id))
             if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
@@ -19,6 +20,7 @@ impl Analyzer {
 
     /// safeParse and safeParseJson present `{ success, data }` or `{ success, error }`.
     /// The internal Result is checked once, then moved through an ordinary adapter.
+    #[inline(never)]
     pub(in crate::analysis) fn schema_safe_parse_outcome(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
         let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };

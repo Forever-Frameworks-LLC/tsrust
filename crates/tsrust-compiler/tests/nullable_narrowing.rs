@@ -306,6 +306,7 @@ kept!
 
 #[test]
 fn narrowing_invalidations_loans_partial_moves_closures_and_depth_are_sound() {
+    support::execute("type Row={text:string;};function main(){const value:Row|null={text:\"x\"};if(value!==null){const text=value.text;console.log(text);}}","x\n",None);
     for (source, code) in [
         (
             "function main(){const x:string|null=null;console.log(x.length);}",
@@ -335,9 +336,10 @@ fn narrowing_invalidations_loans_partial_moves_closures_and_depth_are_sound() {
             "type Holder={value:string|null;};function main(){const a:Holder[]=[{value:\"x\"}];if(a[0].value!==null){console.log(a[0].value.length);}}",
             "type",
         ),
+        // Moving a narrowed field moves the whole local; later use is rejected.
         (
-            "type Row={text:string;};function main(){const value:Row|null={text:\"x\"};if(value!==null){const text=value.text;console.log(text);}}",
-            "unsupported",
+            "type Row={text:string;};function main(){const value:Row|null={text:\"x\"};if(value!==null){const text=value.text;console.log(text,value);}}",
+            "transferred",
         ),
         (
             "function main(){const value:string|null=\"x\";if(value!==null){const read=():int=>{return value.length;};read();}}",
