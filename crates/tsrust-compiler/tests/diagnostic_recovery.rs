@@ -1,3 +1,5 @@
+mod support;
+
 #[test]
 fn syntax_recovery_reports_independent_statements_and_preserves_original_spans() {
     let source="function main(){const first=;const second=;console.log(1);}function other(){const third=;}";
@@ -117,4 +119,30 @@ fn failed_destructuring_does_not_leak_generated_binding_diagnostics() {
     let errors=tsrust_compiler::diagnostics(source);
     assert_eq!(errors.len(),2,"{errors:?}");
     assert!(errors.iter().all(|error|error.code=="type" && !error.message.contains("pattern#")),"{errors:?}");
+}
+
+#[test]
+fn failed_declared_result_does_not_hide_independent_caller_errors() {
+    for (source, messages) in [
+        ("function bad():int{return \"bad\";}function main(){const independent:boolean=42;bad();}", vec!["Expected int, found string.", "Expected boolean, found int."]),
+        ("function bad():int{}function main(){const independent:boolean=42;bad();}", vec!["Function \"bad\" must return int.", "Expected boolean, found int."]),
+        ("function helper(x:int){return x;}function bad():int{return \"no\";}function main(){const a:string=helper(1);const b:boolean=bad();}", vec!["Expected int, found string.", "Expected string, found int.", "Expected boolean, found int."]),
+        // A callable result cannot be assumed without its checked closure; replay adds no artifact.
+        ("function make(): (b: boolean) => int { return (n: int): int => { return n; }; } function main() {}", vec!["Expected boolean, found int."]),
+    ] {
+        let diagnostics = tsrust_compiler::diagnostics(source);
+        let found = diagnostics.iter().map(|error| error.message.as_str()).collect::<Vec<_>>();
+        assert_eq!(found, messages, "{source}");
+        assert!(tsrust_compiler::check(source).is_err());
+    }
+}
+
+#[test]
+fn native_types_keep_their_exported_names_inside_arrays() {
+    let directory = support::TempDirectory::new();
+    let path = directory.source("import { s, ValidationError, SchemaIssue } from 'std:schema';\nfunction f(x: ReadOnly<ValidationError>){console.log(x.issues.nope);}\nfunction main(){}\n");
+    let output = support::run(support::cli().arg("check").arg(path).arg("--color=never"), 30);
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("Type \"SchemaIssue[]\" has no field \"nope\"."), "{stderr}");
+    assert!(!stderr.contains("__tsrust_module"), "{stderr}");
 }

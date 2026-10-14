@@ -1749,6 +1749,8 @@ pub struct FunctionApplication {
 pub struct Program {
     pub(crate) diagnostic_first: Option<Span>,
     pub(crate) diagnostic_skips: std::collections::HashSet<usize>,
+    /// Diagnostic replay: declared-result functions whose failed return was skipped.
+    pub(crate) diagnostic_contracts: std::collections::HashSet<usize>,
     pub(crate) unresolved_local_function: Option<Token>,
     pub(crate) local_declarations: Vec<crate::local_functions::Declaration>,
     pub(crate) local_capture_plans: Vec<crate::local_capture_plan::Plan>,
@@ -2281,6 +2283,7 @@ impl Parser<'_> {
         let mut program = Program {
             diagnostic_first: None,
             diagnostic_skips: Default::default(),
+            diagnostic_contracts: Default::default(),
             unresolved_local_function: None,
             local_declarations: Vec::new(),
             local_capture_plans: Vec::new(),

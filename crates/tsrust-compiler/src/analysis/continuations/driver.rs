@@ -117,6 +117,7 @@ enum ExpressionState {
     CollectionConstructor,
     Spread,
     GenericReceiver,
+    BuiltinReceiver { literals: bool },
     GenericCall,
     Adapter,
     Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
@@ -303,6 +304,10 @@ pub(super) fn check_block(analyzer: &mut Analyzer, context: &mut Context, body: 
 }
 
 pub(super) fn check_expression(analyzer: &mut Analyzer, context: &mut Context, expression: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
+    if mode == Mode::Read && expected.is_none()
+        && analyzer.prechecked_receivers.last().is_some_and(|(address, _)| *address == expression as *const Expr as usize) {
+        return analyzer.prechecked_receivers.pop().unwrap().1;
+    }
     let task = Task::Expression(ExpressionTask::new(Expression::Root(expression), ContextId(0), mode, ActiveLoans::Borrowed(loans), expected));
     let Completion::Expression(_, result) = drive(analyzer, context, task) else { unreachable!("expression result") };
     result
@@ -932,6 +937,17 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             *Analyzer::call_preparation_receiver(task.expression.value()) = *value;
             let context = contexts.get(task.context);
             if let Err(error) = result { return finish_expression(analyzer, context, task, Err(error)); }
+            start_invocation(analyzer, context, task, false, true)
+        }
+        ExpressionState::BuiltinReceiver { literals } => {
+            let Completion::Expression(value, result) = completion.expect("builtin receiver completed") else { unreachable!("builtin receiver result") };
+            analyzer.builtin_literals = literals;
+            let receiver = super::super::builtin_receivers::receiver(task.expression.value());
+            *receiver = *value.into_child();
+            let context = contexts.get(task.context);
+            // A failed receiver keeps no type; report it instead of checking it again.
+            let result = match result { Ok(ty) => ty, Err(error) => return finish_expression(analyzer, context, task, Err(error)) };
+            analyzer.prechecked_receivers.push((receiver as *const Expr as usize, Ok(result)));
             start_invocation(analyzer, context, task, false, true)
         }
         ExpressionState::GenericCall => {
@@ -2136,7 +2152,23 @@ fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task
         task.state = ExpressionState::GenericCall;
         return Step::Push(Task::Expression(task), child);
     }
+                    // A builtin chain link checks its call receiver here, not in a nested driver.
+                    if receiver_prepared && let Some(literals) = analyzer.builtin_receiver_precheck(context, expr) {
+                        let receiver = super::super::builtin_receivers::receiver(expr);
+                        let span = receiver.span;
+                        let value = Box::new(std::mem::replace(receiver, Expr::new(ExprKind::Undefined, span)));
+                        task.state = ExpressionState::BuiltinReceiver { literals: analyzer.builtin_literals };
+                        analyzer.builtin_literals |= literals;
+                        let child = Task::Expression(ExpressionTask::new(Expression::Child(value), task.context, Mode::Read, task.loans.clone(), None));
+                        return Step::Push(Task::Expression(task), child);
+                    }
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected, receiver_prepared);
+                    // A method rejected before reading its receiver leaves the result
+                    // unused. A successful method must have read it exactly once.
+                    let dispatch = if analyzer.prechecked_receivers.last().is_some_and(|(address, _)| *address == super::super::builtin_receivers::receiver_address(expr)) {
+                        analyzer.prechecked_receivers.pop();
+                        dispatch.and_then(|_| Err(Diagnostic::new("internal", "A checked builtin receiver was not read by its method.", expr.span)))
+                    } else { dispatch };
                     match dispatch {
                         Ok(CallDispatch::Spread) => {
                             let span=expr.span;

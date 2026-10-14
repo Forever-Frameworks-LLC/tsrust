@@ -292,7 +292,10 @@ impl Analyzer {
             result_type = self.inferred_body_result(&body)?;
             self.signatures[index].result = result_type;
         }
-        if result_type != Type::Void && !returned {
+        // Replay skipped this function's failed return; a declared data result
+        // still types its callers. A callable result needs its checked closure.
+        let contract=self.program.diagnostic_contracts.contains(&name.span.start) && !self.callable_result_type(result_type);
+        if result_type != Type::Void && !returned && !contract {
             return Err(Diagnostic::new(
                 "type",
                 format!(

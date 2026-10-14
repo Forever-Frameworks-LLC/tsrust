@@ -356,6 +356,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     let mut linked = Program {
         diagnostic_first: None,
         diagnostic_skips: Default::default(),
+        diagnostic_contracts: Default::default(),
         unresolved_local_function: None,
         local_declarations: Vec::new(),
         local_capture_plans: Vec::new(),

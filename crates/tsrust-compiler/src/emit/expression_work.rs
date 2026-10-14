@@ -8,6 +8,7 @@ struct Boundary {
 enum CallState<'p> {
     Spread,
     CollectionConstructor,
+    BuiltinReceiver,
     ObjectSpread { snapshots:Vec<Option<String>> },
     Sequence { discards: Vec<bool>, first_temporary: usize },
     Assignment { discards: Vec<bool>, first_temporary: usize },
@@ -224,6 +225,9 @@ impl<'p> Emitter<'p> {
     ) -> Option<CallFrame<'a, 'p>> {
         if let ExprKind::SpreadCall(plan)=&expr.kind {
             return Some(CallFrame{children:self.spread_expression_children(plan,mode),rendered:Vec::new(),invocation:None,state:CallState::Spread});
+        }
+        if let Some(receiver)=Self::builtin_chain_receiver(expr){
+            return Some(CallFrame{children:vec![(receiver,Mode::Read)],rendered:Vec::new(),invocation:None,state:CallState::BuiltinReceiver});
         }
         if let ExprKind::SetConstructor(arguments,_)|ExprKind::MapConstructor(arguments,_)=&expr.kind{
             return Some(CallFrame{children:arguments.iter().map(|source|(source,Mode::Read)).collect(),rendered:Vec::new(),invocation:None,state:CallState::CollectionConstructor});
@@ -564,6 +568,16 @@ impl<'p> Emitter<'p> {
             debug_assert!(rendered.next().is_none());
             return Self::access_wrapped(expr,mode,self.object_spread_value_with(result,args,copied));
         }
+        if matches!(state,CallState::BuiltinReceiver){
+            let receiver=Self::builtin_chain_receiver(expr).expect("builtin chain receiver");
+            let code=rendered.into_iter().next().expect("rendered builtin receiver");
+            self.rendered_receivers.borrow_mut().push((receiver as *const Expr as usize,code));
+            let code=self.expr_dispatch(fun,expr,mode);
+            let mut rendered=self.rendered_receivers.borrow_mut();
+            debug_assert!(rendered.last().is_none_or(|(address,_)|*address!=receiver as *const Expr as usize),"builtin receiver rendered twice");
+            if rendered.last().is_some_and(|(address,_)|*address==receiver as *const Expr as usize){rendered.pop();}
+            return code;
+        }
         if matches!(state,CallState::CollectionConstructor){
             let source=rendered.into_iter().next();
             return if matches!(expr.kind,ExprKind::SetConstructor(_,_)){self.set_constructor_expression(expr,mode,source)}else{self.map_constructor_expression(expr,mode,source)};
@@ -585,7 +599,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Spread|CallState::CollectionConstructor|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
@@ -833,7 +847,7 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
-            CallState::Spread|CallState::CollectionConstructor|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::CollectionConstructor|CallState::BuiltinReceiver|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { discards, .. } => {
                 let mut code = String::from("{");
                 for (value, discard) in rendered.into_iter().zip(discards) {
@@ -1667,5 +1681,27 @@ mod tests {
             assert!(emitter.conditional_temporaries.borrow().is_empty());
             drop(nested);
         }
+    }
+}
+
+impl Emitter<'_> {
+    /// A builtin method whose receiver is itself a call renders that receiver
+    /// as a child frame. Each listed target reads its receiver once, in read
+    /// mode (copy for copyable receivers), through `expr`.
+    fn builtin_chain_receiver(expr:&Expr)->Option<&Expr>{
+        let ExprKind::Call(callee,_)=&expr.kind else{return None};
+        let ExprKind::Field(base,_)=&callee.kind else{return None};
+        if !matches!(base.kind,ExprKind::Call(..)){return None;}
+        // Lowercasing a trimmed string renders the trim input directly.
+        if expr.target==Some(CallTarget::Lower)&&base.target==Some(CallTarget::Trim){return None;}
+        matches!(expr.target,Some(CallTarget::Trim|CallTarget::TrimStart|CallTarget::TrimEnd|CallTarget::Lower|CallTarget::Upper
+            |CallTarget::StringSlice|CallTarget::StringSubstring|CallTarget::StringSubstr|CallTarget::StringCharAt
+            |CallTarget::ArraySlice|CallTarget::ArrayJoin|CallTarget::IntToString|CallTarget::NumberToString|CallTarget::BooleanToString|CallTarget::StringIdentity|CallTarget::StringIsWellFormed))
+            .then_some(base.as_ref())
+    }
+    pub(super) fn take_rendered_receiver(&self,expr:&Expr,mode:Mode)->Option<String>{
+        let mut rendered=self.rendered_receivers.borrow_mut();
+        let readable=mode==Mode::Read||mode==Mode::Copy&&expr.ty.is_some_and(Type::is_copy);
+        (readable&&rendered.last().is_some_and(|(address,_)|*address==expr as *const Expr as usize)).then(||rendered.pop().unwrap().1)
     }
 }

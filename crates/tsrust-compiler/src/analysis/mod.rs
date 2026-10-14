@@ -118,6 +118,7 @@ mod spread_calls;
 mod spread_call_work;
 mod array_spread_work;
 mod collection_constructors;
+mod builtin_receivers;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -745,6 +746,8 @@ struct Analyzer {
     /// sets this.
     speculative_access_run: bool,
     builtin_literals: bool,
+    /// Receivers of builtin chain links checked on the shared stack, by address.
+    prechecked_receivers: Vec<(usize, Result<Type, Diagnostic>)>,
     module_literal_scope: Option<Span>,
     observing_values: bool,
     recursive_callbacks: HashSet<usize>,
@@ -1570,6 +1573,7 @@ impl Analyzer {
             effects_only: false,
             speculative_access_run: false,
             builtin_literals: false,
+            prechecked_receivers: Vec::new(),
             module_literal_scope: None,
             observing_values: false,
             recursive_callbacks: HashSet::new(),
@@ -2342,6 +2346,14 @@ impl Analyzer {
         resolve_value_type(annotation, allow_void, &self.record_names, &self.unions)
     }
 
+    /// A native type shows the name that its module exports, not its linked identity.
+    fn declaration_name(&self, id: usize) -> &str {
+        match self.program.records[id].native_type {
+            Some(native) => crate::native_types::declaration(native).name,
+            None => &self.program.records[id].name.text,
+        }
+    }
+
     fn type_name(&self, ty: Type) -> std::borrow::Cow<'_, str> {
         if let Some(name) = self.result_type_name(ty) { return name.into(); }
         let name = match ty {
@@ -2356,11 +2368,7 @@ impl Analyzer {
             Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => {
                 "closure"
             }
-            // A native type shows the name that its module exports.
-            Type::Record(i) | Type::Map(i) if self.program.records[i].native_type.is_some() => {
-                crate::native_types::declaration(self.program.records[i].native_type.expect("native record")).name
-            }
-            Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => &self.program.records[i].name.text,
+            Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => self.declaration_name(i),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 return self
                     .unions
@@ -2380,7 +2388,7 @@ impl Analyzer {
                     ArrayElement::Null(_) => "null",
                     ArrayElement::Undefined(_) => "undefined",
                     ArrayElement::String(_) => "string",
-                    ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => &self.program.records[id].name.text,
+                    ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => self.declaration_name(id),
                     ArrayElement::StoredCallable(_, _) => "closure",
                     ArrayElement::Union(id, _) => {
                         return format!(

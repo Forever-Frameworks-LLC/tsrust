@@ -192,6 +192,7 @@ fn emitter_for<'a>(program:&'a CheckedProgram,entry_setup:&'a str)->Emitter<'a> 
         result_storage: RefCell::new(HashMap::new()),
         result_callbacks: RefCell::new(HashMap::new()),
         conditional_temporaries: RefCell::new(Vec::new()),
+        rendered_receivers: RefCell::new(Vec::new()),
         conditional_next: Cell::new(0),
         expression_depth: Cell::new(0),
         native_bindings: RefCell::new(std::collections::BTreeSet::new()),
@@ -279,6 +280,8 @@ struct Emitter<'a> {
     result_storage: RefCell<HashMap<usize,(String,crate::error_effects::FailureSet)>>,
     result_callbacks: RefCell<HashMap<usize,(String,crate::error_effects::FailureSet)>>,
     conditional_temporaries: RefCell<Vec<String>>,
+    /// Receivers of builtin chain links rendered on the expression work stack.
+    rendered_receivers: RefCell<Vec<(usize, String)>>,
     conditional_next: Cell<usize>,
     expression_depth: Cell<usize>,
     native_bindings: RefCell<std::collections::BTreeSet<usize>>,
@@ -6865,6 +6868,7 @@ impl Emitter<'_> {
     }
 
     fn expr(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
+        if let Some(code) = self.take_rendered_receiver(expr, mode) { return code; }
         self.emit_expression_work(fun, expr, mode)
     }
 
