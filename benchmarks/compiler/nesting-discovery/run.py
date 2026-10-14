@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('fresh-generic-adapters', 'named-generic-adapters', 'reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks', 'transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('inferred-named-generic-adapters', 'inferred-generic-call-chain', 'nested-generic-arguments', 'fresh-generic-adapters', 'named-generic-adapters', 'reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks', 'transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -21,9 +21,16 @@ def source(family, size):
     if family == 'fresh-generic-adapters':
         factory = 'function make(seed:int){function identity<T>(value:T):T{if(seed===0){return value;}return value;}return identity;}'
         return factory + 'function main(){console.log(' + repeated('7',size,'[7].map(make(', '))[0]') + ');}'
-    if family == 'named-generic-adapters':
-        functions = ['function step0<T>(value:T):T{return value;}']
-        functions.extend(f'function step{index}<T>(value:T):T{{const action=step{index-1};return [value].map(action)[0];}}' for index in range(1,size))
+    if family == 'inferred-generic-call-chain':
+        functions = ['function step0<T>(value:T){return value;}']
+        functions.extend(f'function step{index}<T>(value:T){{return step{index-1}(value);}}' for index in range(1,size))
+        return ''.join(functions) + f'function main(){{console.log(step{size-1}(7));}}'
+    if family == 'nested-generic-arguments':
+        return 'function identity<T>(value:T){return value;}function main(){console.log(' + repeated('7',size,'identity(',')') + ');}'
+    if family in ('named-generic-adapters', 'inferred-named-generic-adapters'):
+        result = ':T' if family == 'named-generic-adapters' else ''
+        functions = [f'function step0<T>(value:T){result}{{return value;}}']
+        functions.extend(f'function step{index}<T>(value:T){result}{{const action=step{index-1};return [value].map(action)[0];}}' for index in range(1,size))
         return ''.join(functions) + f'function main(){{const action=step{size-1};console.log([7].map(action)[0]);}}'
     if family in ('reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks'):
         layers = [('[7].reduce((acc:int,value:int):int=>', ',0)'), ('[7,8].toSorted((left:int,right:int):int=>(', ')-7)[0]'), ('[7].map((value:int):int=>', ')[0]')]

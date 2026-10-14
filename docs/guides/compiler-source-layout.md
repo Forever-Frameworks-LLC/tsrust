@@ -406,3 +406,15 @@ path. Callable-result specializations complete before result resolution; data
 results retain their earlier resolution point. Synchronous result hints and
 remaining specialization budgets still require an audit before generic chains
 can be called stack independent.
+
+
+`analysis/generic_call_work.rs` separates generic publication, parameter-context
+passes and final inference from body scheduling. Its argument frame retains
+inline callable shapes and the prepared-argument bitmap. The shared driver in
+`analysis/continuations/driver/generic.rs` owns argument retries and inferred body
+requests. It preserves the first deferred inference diagnostic and restores source
+call names when a requested body fails. Preparation uses a read-only context
+snapshot shared between argument tasks; real source ownership is checked later.
+Direct named invocations and deferred generic bodies schedule these tasks on the
+same checker stack. Compatibility entry points still serve receiver factories,
+spreads and some contextual hints and remain audit targets.

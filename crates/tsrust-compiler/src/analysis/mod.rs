@@ -110,6 +110,7 @@ mod deferred_generic_call_work;
 mod deferred_generic_preparation;
 mod deferred_generic_methods;
 mod generic_calls;
+mod generic_call_work;
 mod polymorphic_argument_hints;
 mod optional_chain;
 mod rest_calls;

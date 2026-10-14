@@ -764,3 +764,14 @@ fn nested_named_generic_adapters_preserve_native_result() {
     source.push_str(&format!("function main(){{const action=step{count};console.log([7].map(action)[0]);}}"));
     native(&source, "7\n");
 }
+
+#[test]
+fn inferred_named_generic_adapters_keep_native_results_and_source_calls() {
+    let count = 40;
+    let mut source = "function step0<T>(value:T){return value;}".to_owned();
+    for index in 1..=count {
+        source.push_str(&format!("function step{index}<T>(value:T){{const action=step{};return [value].map(action)[0];}}", index-1));
+    }
+    source.push_str(&format!("function main(){{const action=step{count};console.log([7].map(action)[0]);}}"));
+    native(&source, "7\n");
+}

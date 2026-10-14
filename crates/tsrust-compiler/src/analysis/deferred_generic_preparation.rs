@@ -36,11 +36,11 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    pub(super) fn request_deferred_generic_body(
+    pub(super) fn start_deferred_generic_body(
         &mut self, context: &Context, origin: usize, arguments: Vec<Expr>,
-        expected: Option<Type>, span: Span,
-    ) -> Result<Pending, Diagnostic> {
-        let mut source_call = Expr::new(ExprKind::Call(
+        span: Span,
+    ) -> Result<(std::rc::Rc<Context>, Box<Expr>), Diagnostic> {
+        let source_call = Expr::new(ExprKind::Call(
             Box::new(Expr::new(ExprKind::Name(self.deferred_generic_values[&origin].declaration.clone()), span)), arguments), span);
         // Original template preparation solves constraints without evaluating
         // source arguments. It also retains omission and homogeneous rest packs.
@@ -55,8 +55,11 @@ impl Analyzer {
             preparation.source_bindings.extend(source.source_bindings.iter().map(|(&source, &slot)| (source, slot + start)));
             preparation
         });
-        let preparation = preparation.as_ref().unwrap_or(context);
-        self.prepare_generic_call(preparation, &mut source_call, expected)?;
+        Ok((std::rc::Rc::new(preparation.unwrap_or_else(|| context.clone())), Box::new(source_call)))
+    }
+
+    pub(super) fn finish_deferred_generic_request(&mut self, preparation: &Context, source_call: Expr) -> Result<Pending, Diagnostic> {
+        let span = source_call.span;
         let ExprKind::Call(target, prepared) = source_call.into_kind() else { unreachable!() };
         let ExprKind::Name(name) = target.into_kind() else { unreachable!() };
         let function = self.function_names[&name];
@@ -77,7 +80,9 @@ impl Analyzer {
     }
     #[cfg(test)]
     pub(super) fn prepare_deferred_generic_body(&mut self, context: &Context, origin: usize, arguments: Vec<Expr>, expected: Option<Type>, span: Span) -> Result<Prepared, Diagnostic> {
-        let pending = self.request_deferred_generic_body(context, origin, arguments, expected, span)?;
+        let (preparation, mut call) = self.start_deferred_generic_body(context, origin, arguments, span)?;
+        self.prepare_generic_call(&preparation, &mut call, expected)?;
+        let pending = self.finish_deferred_generic_request(&preparation, *call)?;
         self.function(pending.function)?;
         self.complete_deferred_generic_body(pending)
     }

@@ -1,0 +1,165 @@
+import { strictEqual } from 'std:testing';
+
+function step0<T>(value: T) {
+  return step1(value);
+}
+
+function step1<T>(value: T) {
+  return step2(value);
+}
+
+function step2<T>(value: T) {
+  return step3(value);
+}
+
+function step3<T>(value: T) {
+  return step4(value);
+}
+
+function step4<T>(value: T) {
+  return step5(value);
+}
+
+function step5<T>(value: T) {
+  return step6(value);
+}
+
+function step6<T>(value: T) {
+  return step7(value);
+}
+
+function step7<T>(value: T) {
+  return step8(value);
+}
+
+function step8<T>(value: T) {
+  return step9(value);
+}
+
+function step9<T>(value: T) {
+  return step10(value);
+}
+
+function step10<T>(value: T) {
+  return step11(value);
+}
+
+function step11<T>(value: T) {
+  return step12(value);
+}
+
+function step12<T>(value: T) {
+  return step13(value);
+}
+
+function step13<T>(value: T) {
+  return step14(value);
+}
+
+function step14<T>(value: T) {
+  return step15(value);
+}
+
+function step15<T>(value: T) {
+  return step16(value);
+}
+
+function step16<T>(value: T) {
+  return step17(value);
+}
+
+function step17<T>(value: T) {
+  return step18(value);
+}
+
+function step18<T>(value: T) {
+  return step19(value);
+}
+
+function step19<T>(value: T) {
+  return step20(value);
+}
+
+function step20<T>(value: T) {
+  return step21(value);
+}
+
+function step21<T>(value: T) {
+  return step22(value);
+}
+
+function step22<T>(value: T) {
+  return step23(value);
+}
+
+function step23<T>(value: T) {
+  return step24(value);
+}
+
+function step24<T>(value: T) {
+  return step25(value);
+}
+
+function step25<T>(value: T) {
+  return step26(value);
+}
+
+function step26<T>(value: T) {
+  return step27(value);
+}
+
+function step27<T>(value: T) {
+  return step28(value);
+}
+
+function step28<T>(value: T) {
+  return step29(value);
+}
+
+function step29<T>(value: T) {
+  return step30(value);
+}
+
+function step30<T>(value: T) {
+  return step31(value);
+}
+
+function step31<T>(value: T) {
+  return step32(value);
+}
+
+function step32<T>(value: T) {
+  return step33(value);
+}
+
+function step33<T>(value: T) {
+  return step34(value);
+}
+
+function step34<T>(value: T) {
+  return step35(value);
+}
+
+function step35<T>(value: T) {
+  return step36(value);
+}
+
+function step36<T>(value: T) {
+  return step37(value);
+}
+
+function step37<T>(value: T) {
+  return step38(value);
+}
+
+function step38<T>(value: T) {
+  return step39(value);
+}
+
+function step39<T>(value: T) {
+  return value;
+}
+
+function main() {
+  strictEqual(step0(7), 7);
+}

@@ -6,7 +6,7 @@ use crate::analysis::deferred_generic_preparation::{Pending, Prepared};
 enum Purpose { Primary, Join, Selected(usize) }
 enum Target { Primary, Selected { origin: usize, prepared: Prepared } }
 enum Phase {
-    Start, Pending { body: Pending, purpose: Purpose }, Join, Receiver(Type), Arguments,
+    Start, Preparation { context: std::rc::Rc<Context>, purpose: Purpose }, Pending { body: Pending, purpose: Purpose }, Join, Receiver(Type), Arguments,
     Argument { index: usize, frame: super::super::arguments::ArgumentFrame },
     Resolve(Target), Resolved { target: Target, function: usize, result: Option<Type> },
     Selected, Done,
@@ -36,10 +36,10 @@ fn function_child<'a>(analyzer: &mut Analyzer, index: usize) -> Result<Option<Ta
 fn prepare<'a>(analyzer: &mut Analyzer, context: &Context, task: &mut DeferredTask<'a>, origin: usize, expected: Option<Type>, purpose: Purpose) -> Result<Option<Task<'a>>, Diagnostic> {
     let span = task.expression.span;
     let args = task.operands().1.clone();
-    let body = analyzer.request_deferred_generic_body(context, origin, args, expected, span)?;
-    let child = function_child(analyzer, body.function)?;
-    task.phase = Phase::Pending { body, purpose };
-    Ok(child)
+    let (preparation, call) = analyzer.start_deferred_generic_body(context, origin, args, span)?;
+    let child = Task::Generic(Box::new(generic::GenericTask::new(call, preparation.clone(), expected)));
+    task.phase = Phase::Preparation { context: preparation, purpose };
+    Ok(Some(child))
 }
 pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Box<DeferredTask<'a>>, mut completion: Option<Completion<'a>>) -> Step<'a> {
     let action = (|| -> Result<Action<'a>, Diagnostic> {
@@ -53,6 +53,14 @@ pub(super) fn step<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task:
                     let primary = task.selection.as_ref().unwrap().primary;
                     let expected = task.request.expected;
                     if let Some(child) = prepare(analyzer, context, &mut task, primary, expected, Purpose::Primary)? { return Ok(Action::Child(child)); }
+                }
+                Phase::Preparation { context: preparation, purpose } => {
+                    let Completion::Generic(call, result) = completion.take().expect("deferred generic preparation") else { unreachable!() };
+                    result?;
+                    let body = analyzer.finish_deferred_generic_request(&preparation, *call)?;
+                    let child = function_child(analyzer, body.function)?;
+                    task.phase = Phase::Pending { body, purpose };
+                    if let Some(child) = child { return Ok(Action::Child(child)); }
                 }
                 Phase::Pending { body, purpose } => {
                     if let Some(completion) = completion.take() {
@@ -222,7 +230,6 @@ impl DeferredTask<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn named_generic_adapter_bodies_share_checker_stack() {
         let count = 64;

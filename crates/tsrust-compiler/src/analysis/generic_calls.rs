@@ -2,7 +2,7 @@
 use super::*;
 
 impl Analyzer {
-    fn generic_callable_shapes(
+    pub(super) fn generic_callable_shapes(
         &self,
         context: &Context,
         args: &[Expr],
@@ -17,7 +17,7 @@ impl Analyzer {
             .collect()
     }
 
-    fn inline_generic_callable_shape(&self, argument: &Expr) -> Option<(Vec<Type>, Type)> {
+    pub(super) fn inline_generic_callable_shape(&self, argument: &Expr) -> Option<(Vec<Type>, Type)> {
         let ExprKind::Closure {
             params,
             result: ResultAnnotation::Named(result),
@@ -81,7 +81,7 @@ impl Analyzer {
         }
     }
 
-    fn generic_argument_hint(
+    pub(super) fn generic_argument_hint(
         &self,
         context: &Context,
         argument: &Expr,
@@ -123,7 +123,7 @@ impl Analyzer {
         }
     }
 
-    fn generic_call_name(callee: &mut Expr) -> Option<(&mut String, Span)> {
+    pub(super) fn generic_call_name(callee: &mut Expr) -> Option<(&mut String, Span)> {
         match &mut callee.kind {
             ExprKind::Name(name) => Some((name, callee.span)),
             ExprKind::Unary {
@@ -135,204 +135,19 @@ impl Analyzer {
         }
     }
 
-    pub(super) fn prepare_generic_call(
-        &mut self,
-        context: &Context,
-        mut expr: &mut Expr,
-        expected: Option<Type>,
-    ) -> Result<(), Diagnostic> {
-        while matches!(&expr.kind,ExprKind::OptionalChain(_)|ExprKind::Unary{op:UnaryOp::OptionalBoundary|UnaryOp::OptionalSelected,..}){
-            expr=match &mut expr.kind{
-                ExprKind::OptionalChain(value)|ExprKind::Unary{value,..}=>value,
-                _=>unreachable!("optional generic receiver"),
-            };
-        }
-        if matches!(&expr.kind,ExprKind::Call(_,args) if args.iter().any(|arg|matches!(arg.kind,ExprKind::Unary{op:UnaryOp::Spread,..}))) {
-            return self.prepare_generic_spread(context,expr,expected);
-        }
-        let ExprKind::Call(callee, args) = &mut expr.kind else {
-            return Ok(());
-        };
-        if matches!(&callee.kind,ExprKind::Name(name) if name=="@json:typedreadJsonl")
-            && args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlReaderView))) {
-            callee.kind=ExprKind::Name("@json:typedreadJsonlView".into());
-        }
-
-        if matches!(&callee.kind,ExprKind::Name(name) if name=="@json:writeJsonl")
-            && args.first().and_then(|arg|self.expression_type_hint(context,arg)).is_some_and(|ty|matches!(ty,Type::Record(id) if self.program.records[id].native_type==Some(crate::native_signatures::NativeTypeId::JsonlWriterView))) {
-            callee.kind=ExprKind::Name("@json:writeJsonlView".into());
-        }
-        let Some((name, _)) = Self::generic_call_name(callee) else {
-            return Ok(());
-        };
-        if context.names.contains_key(name) || context.pending_names.contains(name) {
-            if self.generic_functions.value_arguments(&context.function_name, expr.span).is_some()
-                && let Some(&binding) = context.names.get(name)
-                && !matches!(self.unions.payload(context.bindings[binding].ty).unwrap_or(context.bindings[binding].ty), Type::Closure(origin) if self.deferred_generic_values.contains_key(&origin)) {
-                return Err(Diagnostic::new("type", "Explicit type arguments require a generic function value.", callee.span));
-            }
-            return Ok(());
-        }
-        if self.generic_functions.template(name).is_none() {
-            if let Some(&index) = self.function_names.get(name) {
-                self.prepare_named_result_hint(context, index)?;
-            }
-            return Ok(());
-        }
-        self.prepare_named_generic_call(context, expr, expected)
-    }
-
-    // Specialization state must not occupy the stack for nongeneric calls.
-    #[inline(never)]
-    fn prepare_named_generic_call(
-        &mut self,
-        context: &Context,
-        expr: &mut Expr,
-        expected: Option<Type>,
-    ) -> Result<(), Diagnostic> {
-        let ExprKind::Call(callee, args) = &mut expr.kind else {
-            unreachable!("generic call preparation");
-        };
-        let (name, callee_span) = Self::generic_call_name(callee)
-            .expect("generic call name checked by dispatch");
-        let template=self.generic_functions.template(name).expect("generic template");
-        if template.rest_parameter {
-            let fixed=template.params.len()-1;
-            let minimum=crate::parameter_arity::minimum_arguments(&template.parameter_initializers[..fixed],|initializer|initializer.omission().is_omittable());
-            if args.len()<minimum {return Err(Diagnostic::new("arity",format!("Expected at least {minimum} arguments, found {}.",args.len()),expr.span));}
-            Self::pack_rest_arguments(args,fixed,expr.span);
-        }
-        if let Some(arguments) = self.generic_functions.value_arguments(&context.function_name, expr.span) {
-            let captures = self.named_captures.source_context(name, context, &self.program)?
-                .map(|(context, _)| context.bindings.iter().map(|binding| binding.ty).collect()).unwrap_or_default();
-            let concrete = self.generic_functions.request_explicit_value(name, arguments, captures, expr.span, self.function_stack.len())?;
-            *name = self.publish_generic_call(context, concrete)?;
-            return Ok(());
-        }
-        let polymorphic_slots=self.generic_functions.template(name).expect("generic template").params.iter().map(|(_,annotation,_)| {
-            matches!(&annotation.kind,crate::type_syntax::ValueAnnotationKind::Named(variable) if self.generic_functions.template(name).unwrap().type_parameters.iter().any(|parameter|parameter.text==variable.text))
-        }).collect::<Vec<_>>();
-        for (argument,polymorphic) in args.iter_mut().zip(polymorphic_slots) {
-            if polymorphic {self.prepare_polymorphic_argument_hint(context,argument)?;}
-        }
-        let mut inline_shapes = HashMap::new();
-        for ((_, pattern, _), argument) in self
-            .generic_functions
-            .template(name)
-            .expect("generic template")
-            .params
-            .iter()
-            .zip(args.iter())
-        {
-            if let Some(shape) = self.inline_generic_callable_shape(argument) {
-                inline_shapes.insert((pattern.span.start, pattern.span.end), shape);
-            }
-        }
-        let mut prepared = vec![false; args.len()];
-        loop {
-            let callable_shapes = self.generic_callable_shapes(context, args);
-            let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
-            annotations.extend(self.polymorphic_argument_annotations(context,args)?);
-            let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
-                callable_shapes: Some(&callable_shapes),
-                inline_shapes: Some(&inline_shapes),
-                records: &self.program.records,
-                names: &self.record_names,
-                unions: &self.unions,
-            };
-            let seed = self
-                .generic_functions
-                .parameter_contexts(name, expected, &types, None)?;
-            let template=self.generic_functions.template(name).expect("generic template");
-            let fixed=template.params.len()-usize::from(template.rest_parameter);
-            let minimum=crate::parameter_arity::minimum_arguments(&template.parameter_initializers[..fixed],|initializer|initializer.omission().is_omittable());
-            if args.len()<minimum||args.len()>seed.len(){return Err(Diagnostic::new("arity",format!("Expected {minimum}..={} arguments, found {}.",seed.len(),args.len()),expr.span));}
-            let hints = args
-                .iter()
-                .zip(&seed)
-                .map(|(argument, expected)| {
-                    self.generic_argument_hint(context, argument, *expected)
-                })
-                .collect::<Vec<_>>();
-            let contexts =
-                self.generic_functions
-                    .parameter_contexts(name, expected, &types, Some(&hints))?;
-            let mut progress = false;
-            let mut deferred = None;
-            for (id, (argument, expected)) in args.iter_mut().zip(&contexts).enumerate() {
-                if prepared[id] {
-                    continue;
-                }
-                match self.prepare_generic_call(context, argument, *expected) {
-                    Ok(()) => {
-                        prepared[id] = true;
-                        progress = true;
-                    }
-                    Err(error) if error.code == "generic-inference" => {
-                        if deferred.is_none() {
-                            deferred = Some(error);
-                        }
-                    }
-                    Err(error) => return Err(error),
-                }
-            }
-            if prepared.iter().all(|prepared| *prepared) {
-                break;
-            }
-            if !progress {
-                return Err(deferred.expect("unprepared generic argument"));
-            }
-        }
-        let callable_shapes = self.generic_callable_shapes(context, args);
-            let mut annotations = self.checked_inference_callable_annotations(callable_shapes.keys().copied().chain(expected))?;
-            annotations.extend(self.polymorphic_argument_annotations(context,args)?);
-        let types = crate::generic_inference::Types { callable_annotations: Some(&annotations),
-            callable_shapes: Some(&callable_shapes),
-            inline_shapes: Some(&inline_shapes),
-            records: &self.program.records,
-            names: &self.record_names,
-            unions: &self.unions,
-        };
-        let seed = self
-            .generic_functions
-            .parameter_contexts(name, expected, &types, None)?;
-        let hints = args
-            .iter()
-            .zip(&seed)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
-            .collect::<Vec<_>>();
-        let contexts =
-            self.generic_functions
-                .parameter_contexts(name, expected, &types, Some(&hints))?;
-        let hints = args
-            .iter()
-            .zip(&contexts)
-            .map(|(argument, expected)| self.generic_argument_hint(context, argument, *expected))
-            .collect::<Vec<_>>();
-        let arguments =
-            self.generic_functions
-                .infer(name, &hints, expected, &types, callee_span)?;
-        let captures = self.named_captures.source_context(name, context, &self.program)?
-            .map(|(context, _)| context.bindings.iter().map(|binding| binding.ty).collect())
-            .unwrap_or_default();
-        let concrete = self.generic_functions.request_captured_checked(
-            name,
-            arguments,
-            captures,
-            &types,
-            expr.span,
-            self.function_stack.len(),
-        )?;
-        *name = self.publish_generic_call(context, concrete)?;
-        Ok(())
+    pub(super) fn prepare_generic_call(&mut self, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<(), Diagnostic> {
+        continuations::driver::check_generic_preparation(self, context, expr, expected)
     }
 
     #[inline(never)]
     pub(super) fn publish_generic_call(&mut self, context: &Context, concrete: String) -> Result<String, Diagnostic> {
-        if let Some(&index) = self.function_names.get(&concrete) {
-            self.prepare_named_result_hint(context, index)?;
-            return Ok(concrete);
-        }
+        let concrete = self.publish_generic_call_work(concrete)?;
+        self.prepare_named_result_hint(context, self.function_names[&concrete])?;
+        Ok(concrete)
+    }
+
+    pub(super) fn publish_generic_call_work(&mut self, concrete: String) -> Result<String, Diagnostic> {
+        if self.function_names.contains_key(&concrete) { return Ok(concrete); }
         let mut output = self.generic_functions.drain(true)?;
         for function in &mut output {
             let mut materialize = |annotation: &mut crate::type_syntax::ValueAnnotation| {
@@ -429,8 +244,6 @@ impl Analyzer {
             &self.record_names,
             &self.unions,
         )?;
-        self.prepare_named_result_hint(context, self.function_names[&concrete])?;
-
         Ok(concrete)
     }
 }

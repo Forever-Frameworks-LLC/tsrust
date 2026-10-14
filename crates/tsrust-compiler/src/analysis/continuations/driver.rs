@@ -16,6 +16,7 @@ mod reduction;
 mod sorting;
 mod adapters;
 mod deferred;
+mod generic;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -107,6 +108,7 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    GenericCall,
     Adapter,
     Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
@@ -233,8 +235,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Generic(Box<generic::GenericTask>), Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Generic(Box<Expr>, Result<(), Diagnostic>),
     Deferred(Box<Expr>, Result<(usize, Type), Diagnostic>),
     Method(Result<(usize, Type), Diagnostic>),
     Parameters(Vec<Stmt>, Result<(), Diagnostic>),
@@ -522,6 +525,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Generic(task) => generic::step(analyzer, task, completion.take()),
             Task::Deferred(task) => deferred::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Adapter(task) => adapters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Method(task) => methods::step(analyzer, &mut contexts, task, completion.take()),
@@ -897,6 +901,14 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::GenericCall => {
+            let Completion::Generic(value, result) = completion.expect("call generic preparation") else { unreachable!() };
+            *task.expression.value() = *value;
+            let context = contexts.get(task.context);
+            if let Err(error) = result { return finish_expression(analyzer, context, task, Err(error)); }
+            start_invocation(analyzer, context, task, true)
+        }
+
         ExpressionState::Deferred { origin, conditional } => {
             let Completion::Deferred(value, result) = completion.expect("deferred invocation") else { unreachable!() };
             *task.expression.value() = *value;
@@ -1432,61 +1444,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 }
             } else {
                 if invocation {
-                    let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
-                    match dispatch {
-                        Ok(CallDispatch::Reduction) => reduction::start(analyzer, context, task),
-                        Ok(CallDispatch::Sorting { copying, expected }) => sorting::start(analyzer, context, task, copying, expected),
-                        Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),
-                        Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
-                        Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
-                        Ok(CallDispatch::Deferred(request)) => schedule_deferred(task, request, None),
-                        Ok(CallDispatch::Method { binding, origin, params, invocation }) => {
-                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("method call") };
-                            let mut active = (*task.loans).clone();
-                            active.entry(binding).or_default().push((invocation, callee.span));
-                            let arguments = super::arguments::Arguments::new(params, active, context, true, false, true);
-                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Method { origin } }))
-                        }
-                        Ok(CallDispatch::Bound { binding, params, result, invocation, target }) => {
-                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("bound call") };
-                            let mut active = (*task.loans).clone();
-                            active.entry(binding).or_default().push((invocation, callee.span));
-                            let arguments = super::arguments::Arguments::new(params, active, context, false, false, false);
-                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Bound { binding, result, target } }))
-                        }
-                        Ok(CallDispatch::StoredField { field_type, params, result, invocation, family }) => {
-                            let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("stored field call") };
-                            let span = callee.span;
-                            let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
-                            let child = Task::Expression(ExpressionTask::new(Expression::Child(callee), task.context, invocation, task.loans.clone(), Some(field_type)));
-                            task.state = ExpressionState::StoredFieldCallee { params, result, invocation, family };
-                            Step::Push(Task::Expression(task), child)
-                        }
-                        Err(error) => finish_expression(analyzer, context, task, Err(error)),
-                        Ok(CallDispatch::Conditional { publish_type }) => {
-                            let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("conditional call") };
-                            let frame = match analyzer.prepare_conditional_callee(context, callee, args) {
-                                Ok(frame) => frame,
-                                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
-                            };
-                            if frame.checked_callee {
-                                let span = callee.span;
-                                let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
-                                let child = Task::Expression(ExpressionTask::new(
-                                    Expression::Child(callee), task.context, Mode::Consume,
-                                    task.loans.clone(), None,
-                                ));
-                                task.state = ExpressionState::Callee { frame, publish_type };
-                                Step::Push(Task::Expression(task), child)
-                            } else {
-                                let hint = analyzer.callback_value_hint(context, callee);
-                                match hint {
-                                    Ok(hint) => start_call(analyzer, context, task, frame, hint, publish_type),
-                                    Err(error) => finish_expression(analyzer, context, task, Err(error)),
-                                }
-                            }
-                        }
-                    }
+                    start_invocation(analyzer, context, task, false)
                 } else {
                     let result = analyzer.expression_kind(context, expr, mode, &task.loans, expected);
                     finish_expression(analyzer, context, task, result)
@@ -2102,4 +2060,87 @@ fn schedule_optional<'a>(mut task:ExpressionTask<'a>,mode:Mode,expected:Option<T
 pub(in crate::analysis) fn check_optional(analyzer:&mut Analyzer,context:&mut Context,expression:&mut Expr,mode:Mode,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
     let task=optional::OptionalTask::new(Expression::Root(expression),ContextId(0),mode,ActiveLoans::Borrowed(loans),expected);
     let Completion::Expression(_,result)=drive(analyzer,context,Task::Optional(Box::new(task))) else{unreachable!("optional root")};result
+}
+
+pub(in crate::analysis) fn check_generic_preparation(analyzer: &mut Analyzer, context: &Context, expr: &mut Expr, expected: Option<Type>) -> Result<(), Diagnostic> {
+    let span = expr.span;
+    let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
+    let task = generic::GenericTask::new(value, std::rc::Rc::new(context.clone()), expected);
+    let mut root = Context::new(context.function_name.clone());
+    let Completion::Generic(value, result) = drive(analyzer, &mut root, Task::Generic(Box::new(task))) else { unreachable!("generic root") };
+    *expr = *value;
+    result
+}
+
+fn start_invocation<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, prepared: bool) -> Step<'a> {
+    let expected = task.checked.as_ref().expect("checked invocation").expected;
+    let expr = task.expression.value();
+    let needs_preparation = !prepared && matches!(&expr.kind, ExprKind::Call(callee, _)
+        if matches!(&callee.kind, ExprKind::Name(name) if !context.names.contains_key(name) && !context.pending_names.contains(name)
+            && (analyzer.generic_functions.template(name).is_some()
+                || !analyzer.discovering_results && analyzer.function_names.get(name).is_some_and(|&index|
+                    analyzer.signatures[index].inferred_result && analyzer.checked[index].is_none()
+                    && !analyzer.visiting[index] && !analyzer.active_recursive_functions.contains(&index)))));
+    if needs_preparation {
+        let span = expr.span;
+        let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
+        let child = Task::Generic(Box::new(generic::GenericTask::new(value, std::rc::Rc::new(context.clone()), expected)));
+        task.state = ExpressionState::GenericCall;
+        return Step::Push(Task::Expression(task), child);
+    }
+                    let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
+                    match dispatch {
+                        Ok(CallDispatch::Reduction) => reduction::start(analyzer, context, task),
+                        Ok(CallDispatch::Sorting { copying, expected }) => sorting::start(analyzer, context, task, copying, expected),
+                        Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),
+                        Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
+                        Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
+                        Ok(CallDispatch::Deferred(request)) => schedule_deferred(task, request, None),
+                        Ok(CallDispatch::Method { binding, origin, params, invocation }) => {
+                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("method call") };
+                            let mut active = (*task.loans).clone();
+                            active.entry(binding).or_default().push((invocation, callee.span));
+                            let arguments = super::arguments::Arguments::new(params, active, context, true, false, true);
+                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Method { origin } }))
+                        }
+                        Ok(CallDispatch::Bound { binding, params, result, invocation, target }) => {
+                            let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("bound call") };
+                            let mut active = (*task.loans).clone();
+                            active.entry(binding).or_default().push((invocation, callee.span));
+                            let arguments = super::arguments::Arguments::new(params, active, context, false, false, false);
+                            schedule_argument(analyzer, context, task, Box::new(CallArguments { arguments, finish: InvocationFinish::Bound { binding, result, target } }))
+                        }
+                        Ok(CallDispatch::StoredField { field_type, params, result, invocation, family }) => {
+                            let ExprKind::Call(callee, _) = &mut expr.kind else { unreachable!("stored field call") };
+                            let span = callee.span;
+                            let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
+                            let child = Task::Expression(ExpressionTask::new(Expression::Child(callee), task.context, invocation, task.loans.clone(), Some(field_type)));
+                            task.state = ExpressionState::StoredFieldCallee { params, result, invocation, family };
+                            Step::Push(Task::Expression(task), child)
+                        }
+                        Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                        Ok(CallDispatch::Conditional { publish_type }) => {
+                            let ExprKind::Call(callee, args) = &mut expr.kind else { unreachable!("conditional call") };
+                            let frame = match analyzer.prepare_conditional_callee(context, callee, args) {
+                                Ok(frame) => frame,
+                                Err(error) => return finish_expression(analyzer, context, task, Err(error)),
+                            };
+                            if frame.checked_callee {
+                                let span = callee.span;
+                                let callee = std::mem::replace(callee, Box::new(Expr::new(ExprKind::Undefined, span)));
+                                let child = Task::Expression(ExpressionTask::new(
+                                    Expression::Child(callee), task.context, Mode::Consume,
+                                    task.loans.clone(), None,
+                                ));
+                                task.state = ExpressionState::Callee { frame, publish_type };
+                                Step::Push(Task::Expression(task), child)
+                            } else {
+                                let hint = analyzer.callback_value_hint(context, callee);
+                                match hint {
+                                    Ok(hint) => start_call(analyzer, context, task, frame, hint, publish_type),
+                                    Err(error) => finish_expression(analyzer, context, task, Err(error)),
+                                }
+                            }
+                        }
+                    }
 }

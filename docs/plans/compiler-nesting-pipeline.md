@@ -2050,3 +2050,53 @@ Thus the accepted deferred scheduling path does not make inferred generic bodies
 stack independent. Generic publication and result preparation must also suspend
 on the shared driver. Five exact source/discovery/trace records are preserved in
 SQLite under `tsrust-nesting-generic-result-audit-*`.
+
+
+### Generic publication and inferred argument continuations
+
+Generic publication now registers instances and signatures without checking a
+body. A preparation task owns inferred-result requests and nested argument passes
+on the shared checker stack. Each pass keeps the original prepared bitmap,
+parameter contexts, argument order, progress flag and first deferred inference
+diagnostic. Successful arguments are not prepared again. Final inference runs
+only after argument preparation completes. A failed inferred body restores the
+source callee name; failed child arguments are restored before their diagnostic
+propagates. Read-only context snapshots are shared by nested preparation tasks.
+Real source ownership checking remains afterward.
+
+Direct named calls and deferred generic bodies use the shared tasks. The previously
+overflowing inferred adapter chain now completes at 8, 32 and 128 in normal-pipeline
+discovery. A recursive-analysis witness checks 64 layers. A separate 256-function
+inferred direct-call witness checks, emits and disposes on the normal test-worker
+stack. Nested generic arguments complete at 8, 32, 128, 512, 2,048, 8,192, 32,768
+and 131,072. Of 17 discovery observations, fourteen complete, one reaches the
+existing callback specialization count diagnostic at 512 adapters, and two time
+out during analysis: 512 direct functions and 524,288 nested arguments. No
+observation crashes or overflows. Discovery overlaps other checks and is not
+formal timing, a supported ceiling or evidence of acceptable scaling.
+
+Validation passes forty distinct shared-driver tests across the section batches,
+including failed nested source-name restoration, and 187 affected integration
+checks. All 43 generic project checks and 50 focused editor checks pass, including
+compiler agreement. The new
+editor witness retains inferred concrete hover and original declaration navigation
+through 64 functions. A formatted forty-layer native adapter witness returns `7`;
+`examples/inferred-generic-calls.tsr` independently asserts the direct-call result.
+Whole-project formatting changes the new example and no benchmark fingerprints;
+the formatted example executes successfully.
+
+The new `inferred-generic-calls` benchmark manifest reuses the shared driver with
+matched native and TypeScript inferred calls. Counts 32 and 128 pass untimed check,
+emission and TypeScript validation. The optional execution check compares native
+and Node-after-tsc outputs with the manifest's independent oracle before any
+requested timing. Native and Node execution both return `7` at 32 and 128
+functions. The registered 512 group is not accepted or measured. Original
+two-warmup/eleven-sample timing remains unchanged. Records use
+`tsrust-nesting-generic-inference-work-*` in SQLite.
+
+This accepts shared generic publication, argument preparation and the migrated
+inferred-body entries. Compatibility entry points for receiver factories, spread,
+fresh contextual hints, remaining callable-result specialization and discovery
+still require audit and migration. Count budgets, parser admission retirement,
+formal scaling, optimization and S12–S21 remain pending. No stack or limit constant
+is increased; full compiler/LSP regression and formal measurements are not claimed.
