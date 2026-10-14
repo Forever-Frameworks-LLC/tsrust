@@ -7,5 +7,10 @@ publish = false
 [workspace]
 
 [dependencies]
+rayon = { version = "=1.11.0", optional = true }
 serde = "=1.0.229"
 serde_json = { version = "=1.0.151", features = ["raw_value"] }
+
+[features]
+default = []
+threads = ["dep:rayon"]

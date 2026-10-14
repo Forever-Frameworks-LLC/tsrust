@@ -10,6 +10,17 @@ const fn operation(name: &'static str) -> NativeBinding {
         backend: NativeBackend::Bundled { symbol: "thread_intrinsic" }, features: &[],
     }
 }
+pub(crate) const POOL_TASK: NativeBinding = operation("__poolTask");
+pub(crate) const CANCEL: NativeBinding = NativeBinding { parameters: &[NativeParameter { name: "worker", ty: NativeType::ObservedValue, access: Mode::Read, optional: false, rest: false }], result: NativeType::Boolean, ..operation("cancel") };
+pub(crate) const CANCELLATION_REQUESTED: NativeBinding = NativeBinding { parameters: &[], result: NativeType::Boolean, ..operation("cancellationRequested") };
+pub(crate) const POOL_STATS: NativeBinding = NativeBinding { parameters: &[], ..operation("__poolStats") };
+pub(crate) const CONFIGURE_POOL: NativeBinding = NativeBinding {
+    parameters: &[
+        NativeParameter { name: "workers", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+        NativeParameter { name: "capacity", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
+    ], ..operation("__poolConfigure")
+};
+pub(crate) const SHUTDOWN_POOL: NativeBinding = NativeBinding { parameters: &[], ..operation("__poolShutdown") };
 pub(crate) const SPAWN_SCOPED: NativeBinding = operation("spawnScoped");
 pub(crate) const SPAWN: NativeBinding = operation("spawn");
 pub(crate) const JOIN: NativeBinding = operation("join");
@@ -20,6 +31,15 @@ pub(crate) fn prepare(program: &mut crate::syntax::Program) -> Result<(), crate:
     let mut used = false;
     for function in &mut program.functions {
         crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
+            if let crate::syntax::ExprKind::Field(base, member) = &expression.kind {
+                if matches!(&base.kind, crate::syntax::ExprKind::Name(name) if name == crate::native_exports::Namespace::Pool.symbol()) {
+                    let binding = match member.as_str() {
+                        "task" => &POOL_TASK, "configure" => &CONFIGURE_POOL, "stats" => &POOL_STATS, "shutdown" => &SHUTDOWN_POOL,
+                        _ => return Err(crate::Diagnostic::new("pool-member", format!("Unknown pool operation {member:?}."), expression.span)),
+                    };
+                    expression.kind = crate::syntax::ExprKind::Name(format!("@native:std:threads#{}", binding.name));
+                }
+            }
             used |= matches!(&expression.kind, crate::syntax::ExprKind::Name(name) if name.starts_with("@native:std:threads#"));
             Ok(())
         })?;
@@ -41,13 +61,13 @@ mod tests {
     fn result_and_error_move_without_cloning_and_panics_are_distinct() {
         let value = vec![3, 5, 8]; let pointer = value.as_ptr() as usize;
         let caller = std::thread::current().id();
-        let worker = spawn(move || { assert_ne!(std::thread::current().id(),caller); Ok::<_,String>(value) }).unwrap();
+        let worker = spawn_dedicated(move || { assert_ne!(std::thread::current().id(),caller); Ok::<_,String>(value) }).unwrap();
         let returned = match join(worker) { Ok(value) => value, Err(_) => panic!("worker failed") };
         assert_eq!(returned.as_ptr() as usize,pointer);
         let error = String::from("owned failure"); let pointer = error.as_ptr() as usize;
-        let worker = spawn(move || Err::<(),_>(error)).unwrap();
+        let worker = spawn_dedicated(move || Err::<(),_>(error)).unwrap();
         match join(worker) { Err(JoinError::Worker(error)) => assert_eq!(error.as_ptr() as usize,pointer), _ => panic!("lost worker error") }
-        let worker = spawn(|| -> Result<(),()> { panic!("backend failure") }).unwrap();
+        let worker = spawn_dedicated(|| -> Result<(),()> { panic!("backend failure") }).unwrap();
         assert!(matches!(join(worker),Err(JoinError::Panic)));
     }
 
@@ -57,12 +77,12 @@ mod tests {
         let barrier = Arc::new(Barrier::new(2));
         let count = Arc::new(AtomicUsize::new(0));
         let left_barrier = barrier.clone(); let left_count = count.clone();
-        let first = spawn(move || { left_barrier.wait(); left_count.fetch_add(1, Ordering::SeqCst); Ok::<_, ()>(()) }).unwrap();
+        let first = spawn_dedicated(move || { left_barrier.wait(); left_count.fetch_add(1, Ordering::SeqCst); Ok::<_, ()>(()) }).unwrap();
         let right_count = count.clone();
-        let second = spawn(move || { barrier.wait(); right_count.fetch_add(1, Ordering::SeqCst); Err::<(), _>("worker failure") }).unwrap();
+        let second = spawn_dedicated(move || { barrier.wait(); right_count.fetch_add(1, Ordering::SeqCst); Err::<(), _>("worker failure") }).unwrap();
         drop(first); drop(second);
         assert_eq!(count.load(Ordering::SeqCst), 2);
-        let worker = spawn(|| Ok::<_, ()>(42)).unwrap();
+        let worker = spawn_dedicated(|| Ok::<_, ()>(42)).unwrap();
         assert!(matches!(join(worker), Ok(42)));
     }
 
@@ -75,7 +95,7 @@ mod tests {
         let payload=Payload(count.clone());
         let (release,wait)=std::sync::mpsc::channel();
         let (done,finished)=std::sync::mpsc::channel();
-        let worker=spawn(move || { wait.recv().unwrap(); drop(payload); done.send(()).unwrap(); Ok::<_,()>(()) }).unwrap();
+        let worker=spawn_dedicated(move || { wait.recv().unwrap(); drop(payload); done.send(()).unwrap(); Ok::<_,()>(()) }).unwrap();
         detach(worker);
         assert_eq!(count.load(Ordering::SeqCst),0);
         release.send(()).unwrap();

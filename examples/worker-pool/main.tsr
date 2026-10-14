@@ -1,0 +1,25 @@
+import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';
+
+function main() {
+  unwrap(pool.configure(2, 16));
+  const first = unwrap(pool.task((): int => 20));
+  const second = unwrap(pool.task((): int => 22));
+  console.log(unwrap(join(first)) + unwrap(join(second)));
+
+  const listener = unwrap(spawn((): void => {
+    while (!cancellationRequested()) {
+    }
+  }));
+  cancel(listener);
+  match (join(listener)) {
+    Ok(_) => {
+    },
+    Err(error) => console.log(error.code),
+  }
+
+  console.log(pool.stats().outstanding);
+  unwrap(pool.shutdown());
+}
+// 42
+// cancelled
+// 0

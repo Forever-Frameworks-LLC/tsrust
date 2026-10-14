@@ -233,3 +233,77 @@ fn global_unwrap_preserves_user_defined_names() {
         "function main(){const unwrap=(value:int):int=>value+1;unwrap(2);}",
     ] { tsrust_compiler::check(&support::format_round_trip(source)).unwrap(); }
 }
+
+#[test]
+fn configurable_pool_cancellation_and_shutdown_execute() {
+    let directory = support::TempDirectory::new();
+    let source = r#"
+import {pool,spawn,join,cancel,cancellationRequested} from 'std:threads';
+import {strictEqual} from 'std:testing';
+function main(){
+    match(pool.configure(0,1)){Ok(_)=>{throw 'accepted invalid workers';},Err(error)=>{strictEqual(error.code,'range');}}
+    unwrap(pool.configure(1,2));
+    match(pool.configure(2,4)){Ok(_)=>{throw 'reconfigured';},Err(error)=>{strictEqual(error.code,'configured');}}
+    const parent=unwrap(pool.task(():int=>{const child=unwrap(pool.task(():int=>42));return unwrap(join(child));}));
+    strictEqual(unwrap(join(parent)),42);
+    strictEqual(pool.stats().outstanding,0);
+    const first=unwrap(pool.task(():void=>{while(!cancellationRequested()) {}}));
+    while(pool.stats().running===0) {}
+    const queued=unwrap(pool.task(():int=>{throw 'queued callback ran';}));
+    strictEqual(pool.stats().outstanding,2);
+    match(pool.task(():void=>{})){Ok(_)=>{throw 'capacity overflow';},Err(error)=>{strictEqual(error.code,'full');}}
+    strictEqual(cancel(queued),true);strictEqual(cancel(queued),false);cancel(first);
+    match(join(first)){Ok(_)=>{throw 'lost cancellation';},Err(error)=>{strictEqual(error.code,'cancelled');}}
+    match(join(queued)){Ok(_)=>{throw 'lost queued cancellation';},Err(error)=>{strictEqual(error.code,'cancelled');}}
+    strictEqual(pool.stats().outstanding,0);
+    const dedicated=unwrap(spawn(():void=>{while(!cancellationRequested()) {}}));
+    cancel(dedicated);
+    match(join(dedicated)){Ok(_)=>{throw 'lost dedicated cancellation';},Err(error)=>{strictEqual(error.code,'cancelled');}}
+    strictEqual(cancellationRequested(),false);
+    unwrap(pool.shutdown());unwrap(pool.shutdown());
+    match(pool.task(():void=>{})){Ok(_)=>{throw 'reopened pool';},Err(error)=>{strictEqual(error.code,'closed');}}
+    const after=unwrap(spawn(():int=>7));strictEqual(unwrap(join(after)),7);
+}
+"#;
+    let path=directory.source(&support::format_round_trip(source));
+    support::success(&support::run(support::cli().arg("run").arg(path),120));
+    let path=directory.source(&support::format_round_trip(include_str!("../../../examples/worker-pool/main.tsr")));
+    let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);
+    assert_eq!(output.stdout,b"42\ncancelled\n0\n");
+}
+
+#[test]
+fn cancellation_borrows_but_does_not_duplicate_worker_ownership() {
+    for body in [
+        "cancel(42);",
+        "pool.missing();",
+        "pool.task();",
+        "const task=pool.task;",
+        "pool.task(():int=>1);",
+        "const worker=unwrap(spawn(():int=>1));join(worker);cancel(worker);",
+        "pool.configure('two',2);",
+        "cancellationRequested(1);",
+        "spawn(():int=>1);",
+    ] {
+        let directory=support::TempDirectory::new();
+        let source=format!("import {{pool,spawn,join,cancel,cancellationRequested}} from 'std:threads';function main(){{{body}}}");
+        let path=directory.source(&support::format_round_trip(&source));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"accepted {source}");
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("panicked"));
+    }
+}
+
+#[test]
+fn pool_namespace_aliases_preserve_lexical_shadowing() {
+    let directory=support::TempDirectory::new();
+    let source="import {pool as workers,join} from 'std:threads';type Local={task:int;};function shadow(workers:Local):int{return workers.task;}function main(){unwrap(workers.configure(1,2));const task=unwrap(workers.task(():int=>42));console.log(unwrap(join(task)));console.log(shadow({task:7}));unwrap(workers.shutdown());}";
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),120);support::success(&output);
+    assert_eq!(output.stdout,b"42\n7\n");
+    for name in ["__poolTask","__poolConfigure","__poolStats","__poolShutdown","configurePool","spawnDedicated"] {
+        let path=directory.source(&format!("import {{{name}}} from 'std:threads';function main(){{}}"));
+        let output=support::run(support::cli().arg("check").arg(path),30);
+        assert!(!output.status.success(),"exported {name}");
+    }
+}

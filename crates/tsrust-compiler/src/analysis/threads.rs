@@ -9,8 +9,14 @@ impl Analyzer {
         let Some((id, binding)) = crate::native_bindings::by_symbol(name).filter(|(_, binding)| binding.module == "std:threads") else { return Ok(None); };
         self.threads_enabled = true;
         let span = expression.span;
-        if arguments.len() != 1 { return Err(Diagnostic::new("arity", format!("{} expects one argument.", binding.name), span)); }
-        let result = if matches!(binding.name, "spawn" | "spawnScoped") {
+        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" => "pool.task", "__poolConfigure" => "pool.configure", "__poolStats" => "pool.stats", "__poolShutdown" => "pool.shutdown", name => name }, binding.parameters.len()), span)); }
+        let result = if binding.name == "__poolStats" { Type::Record(self.schema_native_dependency(NativeTypeId::PoolStats, span)?)
+        } else if binding.name == "cancellationRequested" { Type::Boolean
+        } else if matches!(binding.name, "__poolConfigure" | "__poolShutdown") {
+            for argument in arguments.iter_mut() { let actual = self.expression(context, argument, Mode::Copy, loans, Some(Type::Int))?; self.require(actual, Some(Type::Int), argument.span)?; }
+            let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
+            self.thread_result(Type::Void, failure, span)?
+        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask") {
             if let ExprKind::Closure { id, .. } = arguments[0].kind { self.escaping.insert(id); }
             let actual = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
             let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[0].span)); };
@@ -31,13 +37,13 @@ impl Analyzer {
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
             self.thread_result(handle, failure, span)?
         } else {
-            let handle = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
+            let handle = self.expression(context, &mut arguments[0], if binding.name == "cancel" { Mode::Read } else { Mode::Consume }, loans, None)?;
             let Type::Record(record) = handle else { return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span)); };
             if !matches!(self.program.records[record].native_type, Some(NativeTypeId::Thread | NativeTypeId::ScopedThread)) {
                 return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span));
             }
             let parameters = self.program.records[record].application.as_ref().expect("applied thread").resolved_arguments.clone();
-            if binding.name == "detach" { Type::Void } else {
+            if binding.name == "cancel" { Type::Boolean } else if binding.name == "detach" { Type::Void } else {
                 let error = self.thread_application(NativeTypeId::ThreadError, &[parameters[1]], span)?;
                 self.thread_result(parameters[0], error, span)?
             }
@@ -121,7 +127,7 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
         for expression in &expressions {
             if let Some(CallTarget::NativeBinding(id)) = expression.target {
                 let binding = &crate::native_bindings::BINDINGS[id];
-                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped") {
+                if binding.module == "std:threads" && matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask") {
                     let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
                     let Type::Closure(origin) = arguments[0].ty.unwrap() else { unreachable!() };
                     let closure = &program.closures[origin];

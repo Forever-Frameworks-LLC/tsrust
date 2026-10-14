@@ -44,24 +44,27 @@ fn thread_catalog_examples_check_and_execute() {
     let directory = Directory(path);
     let catalog: serde_json::Value = serde_json::from_str(include_str!("../src/builtins.json")).unwrap();
     let entries = catalog["std:threads"].as_array().unwrap();
-    assert_eq!(entries.len(), 8);
+    assert_eq!(entries.len(), 12);
     let mut seen=std::collections::HashSet::new();
-    for entry in entries.iter().chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
+    for entry in entries.iter().chain(catalog["workerPool"].as_array().unwrap()).chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
         for example in entry["examples"].as_array().unwrap() {
             if !seen.insert(example["source"].as_str().unwrap()) { continue; }
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
             assert_eq!(tsrust_compiler::format(&source).unwrap(), source);
             let id = tsrust_compiler::project::SourceId(directory.0.join("example.tsr").to_str().unwrap().into());
             let mut workspace = Workspace::default();
-            workspace.open(id.clone(), 1, source);
+            workspace.open(id.clone(), 1, source.clone());
             let checked = workspace.snapshot().check(&id).unwrap();
-            let rust = directory.0.join("example.rs");
-            std::fs::write(&rust, checked.emit_rust()).unwrap();
+            let _ = checked.emit_rust();
+            let input = directory.0.join("example.tsr");
+            std::fs::write(&input, source).unwrap();
+            let compiler = std::env::var_os("TSRUST").map(std::path::PathBuf::from).unwrap_or_else(|| std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("tsrust"));
             for level in ["0", "3"] {
                 let binary = directory.0.join("example");
-                let compiled = std::process::Command::new("rustup")
-                    .args(["run", tsrust_compiler::RUST_BACKEND_VERSION, "rustc", "--edition=2024"])
-                    .arg(format!("-Copt-level={level}")).arg(&rust).arg("-o").arg(&binary).output().unwrap();
+                let mut command = std::process::Command::new(&compiler);
+                command.arg("build").arg(&input).arg("-o").arg(&binary);
+                if level == "3" { command.arg("--release"); }
+                let compiled = command.output().unwrap();
                 assert!(compiled.status.success(), "{}: {}", entry["name"], String::from_utf8_lossy(&compiled.stderr));
                 let output = std::process::Command::new(&binary).current_dir(&directory.0).output().unwrap();
                 assert!(output.status.success(), "{}: {}", entry["name"], String::from_utf8_lossy(&output.stderr));
@@ -117,4 +120,32 @@ fn scoped_workers_and_propagation_have_checked_hover_and_signatures() {
     assert!(help.contains("Result<T, E>"),"{help}");
     let hover=request(source,"first=unwrap","textDocument/hover").to_string();
     assert!(hover.contains("throws")&&hover.contains("without cloning"),"{hover}");
+}
+
+#[test]
+fn pool_and_cancellation_have_documentation_and_checked_types() {
+    let source="import {pool,join,cancel,cancellationRequested} from 'std:threads';function main(){unwrap(pool.configure(2,8));const worker=unwrap(pool.task(():int=>1));cancel(worker);unwrap(join(worker));const stats=pool.stats();console.log(stats.outstanding);unwrap(pool.shutdown());}";
+    let uri="file:///pool.tsr";let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    for name in ["configure","task","cancel","stats","shutdown"] {
+        let offset=source.rfind(&format!("{name}(")).unwrap()+2;
+        let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+        assert!(hover.to_string().contains(name),"{name}: {hover}");
+    }
+    let offset=source.find("stats.outstanding").unwrap()+8;
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+    assert!(hover.to_string().contains("int"),"{hover}");
+}
+
+#[test]
+fn pool_statistics_completion_uses_checked_native_fields() {
+    let source="import {pool} from 'std:threads';function main(){const stats=pool.stats();stats.outstanding;}";
+    let uri="file:///pool-fields.tsr";let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
+    let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
+    let offset=source.find("stats.outstanding").unwrap()+6;
+    let items=index.request("textDocument/completion",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
+    let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset-3}}),uri).unwrap();
+    assert!(items.as_array().unwrap().iter().any(|item|item["label"]=="outstanding"),"{items}; hover {hover:?}; facts {:?}",checked.checked_type_facts());
 }

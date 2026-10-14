@@ -20,53 +20,53 @@
   }
 ],
   "std:threads": [
-{
-  "name": "spawnScoped",
-  "signature": "spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
-  "inferredSignature": "function spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
-  "parameters": [
-    {
-      "label": "callback: Owned<Function<T>>",
-      "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes."
-    }
-  ],
-  "documentation": "Compatibility spelling. Prefer spawn: both functions start immediately and join during owner cleanup.\n\nStarts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes.\n\nOwnership: consumes the callback and transfers owned captures; caller loans and program-state borrows are rejected. The handle cannot be cloned or stored in containers. Join or detach consumes it and cancels fallback joining.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
-  "examples": [
-    {
-      "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
-      "output": "42\n"
-    }
-  ]
-},
-{
-  "name": "ScopedThread",
-  "signature": "type ScopedThread<T, E>",
-  "documentation": "Compatibility spelling. Prefer Thread: both handle types join during owner cleanup.\n\nAn opaque, uniquely owned worker handle with fallback joining at the end of its owning scope. No fields, constructors or arguments. Obtain it from spawnScoped. Use join to collect its result or detach to explicitly stop waiting. Moving it transfers cleanup responsibility. Fallback cleanup waits and discards the completion, including failures, without replacing a pending error. It can block indefinitely.\n\nOwnership: cannot be cloned, inspected, placed in containers or transferred into worker callbacks.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
-  "examples": [
-    {
-      "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
-      "output": "42\n"
-    }
-  ]
-},
   {
-  "name": "spawn",
-  "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-  "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-  "parameters": [
-    {
-      "label": "callback: Owned<Function<T>>",
-      "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
-    }
-  ],
-  "documentation": "Starts work immediately on a dedicated native thread and returns Result<Thread<T, E>, SpawnError>. It consumes a callback that takes no arguments and owns its captured data. Work runs concurrently; join waits only when called. If its handle leaves scope without being joined or detached, cleanup waits for completion and discards the result or error. Cleanup does not throw; call join to observe worker failures. A failed OS-thread start returns SpawnError. No pool is selected yet.\n\n```tsrust\nimport {spawn, join} from \"std:threads\";\nfunction main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}\n// 42\n```\n\nOwnership: Captures transfer without cloning. The handle has one owner. Moving it transfers cleanup responsibility; join and detach consume it.",
-  "examples": [
-    {
-      "source": "import {spawn, join} from \"std:threads\";function main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}",
-      "output": "42\n"
-    }
-  ]
-},
+    "name": "spawnScoped",
+    "signature": "spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
+    "inferredSignature": "function spawnScoped(callback: Owned<Function<T>>): Result<ScopedThread<T, E>, SpawnError>",
+    "parameters": [
+      {
+        "label": "callback: Owned<Function<T>>",
+        "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes."
+      }
+    ],
+    "documentation": "Starts one dedicated OS thread immediately. The owned zero-argument callback runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use pool.task for reusable workers. Compatibility spelling of spawn. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "ScopedThread",
+    "signature": "type ScopedThread<T, E>",
+    "documentation": "Compatibility spelling. Prefer Thread: both handle types join during owner cleanup.\n\nAn opaque, uniquely owned worker handle with fallback joining at the end of its owning scope. No fields, constructors or arguments. Obtain it from spawnScoped. Use join to collect its result or detach to explicitly stop waiting. Moving it transfers cleanup responsibility. Fallback cleanup waits and discards the completion, including failures, without replacing a pending error. It can block indefinitely.\n\nOwnership: cannot be cloned, inspected, placed in containers or transferred into worker callbacks.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
+    "examples": [
+      {
+        "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "spawn",
+    "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "parameters": [
+      {
+        "label": "callback: Owned<Function<T>>",
+        "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
+      }
+    ],
+    "documentation": "Starts one dedicated OS thread immediately. The owned zero-argument callback runs once; T is its returned type and E its inferred thrown error, or undefined. Returns a handle on success or SpawnError code spawn on OS creation failure. Does not use pool capacity; use pool.task for reusable workers. Join waits for completion. Scope cleanup waits and discards completion, including errors, without replacing a caller error. It can wait indefinitely. Cancellation remains cooperative. No options or defaults.\n\nOwnership: consumes the callback and moves its captured data. Caller loans and program state borrows are rejected. The handle has one owner; join and detach consume it.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import {spawn, join} from \"std:threads\";function main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}",
+        "output": "42\n"
+      }
+    ]
+  },
   {
     "name": "join",
     "signature": "join(worker: Thread<T, E> | ScopedThread<T, E>): Result<T, ThreadError<E>>",
@@ -77,7 +77,7 @@
         "documentation": "Waits for the worker to finish and returns its owned result. Returns Err with code worker and the original typed error payload when the callback throws; code panic has no error payload and reports a backend panic. The handle is consumed on success and failure. The caller blocks until completion; there is no timeout or forced cancellation."
       }
     ],
-    "documentation": "Waits for the worker to finish and returns its owned result. Returns Err with code worker and the original typed error payload when the callback throws; code panic has no error payload and reports a backend panic. The handle is consumed on success and failure. The caller blocks until completion; there is no timeout or forced cancellation.\n\nOwnership: consumes the handle and moves the returned value or thrown payload without cloning. A second join or detach is rejected.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: 42.",
+    "documentation": "Waits for the worker to finish and returns its owned result. Returns Err with code worker and the original typed error payload when the callback throws; code panic has no error payload and reports a backend panic. Code cancelled has no error payload and reports a cancellation request that won before completion was published. The handle is consumed on success and failure. The caller waits until completion; a pool worker helps execute queued work during nested joins. There is no timeout or forced interruption. Blocking dependency cycles are unsupported.\n\nOwnership: consumes the handle and moves the returned value or thrown payload without cloning. A second join or detach is rejected.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: 42.",
     "examples": [
       {
         "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
@@ -95,7 +95,7 @@
         "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value."
       }
     ],
-    "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value.\n\nOwnership: consumes the handle. Later access, join or detach is rejected.\n\n```tsrust\nimport {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: none.",
+    "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value. A pooled task retains its outstanding slot until completion; detaching does not bypass capacity limits.\n\nOwnership: consumes the handle. Later access, join or detach is rejected.\n\n```tsrust\nimport {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: none.",
     "examples": [
       {
         "source": "import {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}",
@@ -104,22 +104,22 @@
     ]
   },
   {
-  "name": "Thread",
-  "signature": "type Thread<T, E>",
-  "parameters": [],
-  "documentation": "Owns one running or completed worker. T is its successful return type; E is its thrown payload type. join consumes the handle and returns the completion. detach consumes it without waiting. Otherwise, leaving its owning scope waits and discards completion, including on return, throw, break and continue. Cleanup can block until work finishes; it does not cancel work or throw worker errors.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    const worker = unwrap(spawn((): int => 42));\n    console.log(unwrap(join(worker))); // 42\n}\n```\n\nOwnership: One owner; moves transfer cleanup responsibility. Handles cannot be cloned, shared, captured by another callback or stored in collections.",
-  "examples": [
-    {
-      "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
-      "output": "42\n"
-    }
-  ]
-},
+    "name": "Thread",
+    "signature": "type Thread<T, E>",
+    "parameters": [],
+    "documentation": "Owns one running or completed worker. T is its successful return type; E is its thrown payload type. join consumes the handle and returns the completion. detach consumes it without waiting. Otherwise, leaving its owning scope waits and discards completion, including on return, throw, break and continue. Cleanup can block until work finishes; it does not cancel work or throw worker errors.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    const worker = unwrap(spawn((): int => 42));\n    console.log(unwrap(join(worker))); // 42\n}\n```\n\nHandles can represent pool tasks or dedicated workers. cancel borrows a live handle to request cancellation; join still consumes completion.\n\nOwnership: One owner; moves transfer cleanup responsibility. Handles cannot be cloned, shared, captured by another callback or stored in collections.",
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  },
   {
     "name": "SpawnError",
     "signature": "type SpawnError = { code: string; message: string; }",
     "parameters": [],
-    "documentation": "Failure to create a native worker. code is spawn; message describes the operating-system failure. No worker handle exists on this branch.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => 42));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// 42\n```\n\nOwnership: owns its message.",
+    "documentation": "Worker admission or pool-management failure. code is spawn for backend creation failure, full for exhausted outstanding capacity, closed after shutdown, configured for late configuration, range for invalid limits, or worker for shutdown requested inside a worker. message describes the failure. A failed submission returns no handle and disposes its callback; pool-management failures do not consume existing handles.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => 42));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// 42\n```\n\nPool errors include full (outstanding capacity), closed (shutdown), configured (late configuration), range (invalid limits), and worker (shutdown from a worker).\n\nOwnership: owns its message.",
     "fields": {
       "code": {
         "documentation": "Stable failure code: spawn."
@@ -139,7 +139,7 @@
     "name": "ThreadError",
     "signature": "type ThreadError<E> = { code: string; error?: E; }",
     "parameters": [],
-    "documentation": "Worker completion failure. code worker retains the original typed thrown payload in error. code panic reports a backend panic and error is undefined. Check error against undefined before reading an optional payload.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => { throw 'failed'; }));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// worker\n```\n\nOwnership: owns the thrown payload; no string conversion or cloning occurs.",
+    "documentation": "Worker completion failure. code worker retains the original typed thrown payload in error. code panic reports a backend panic; code cancelled reports a winning cancellation request. Both have undefined error payloads. Check error against undefined before reading an optional payload.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => { throw 'failed'; }));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// worker\n```\n\nCancellation uses code cancelled with no error payload; worker and panic remain distinct.\n\nOwnership: owns the thrown payload; no string conversion or cloning occurs.",
     "fields": {
       "code": {
         "documentation": "worker for a source throw; panic for a backend panic."
@@ -152,6 +152,127 @@
       {
         "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
         "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "cancel",
+    "signature": "cancel(worker: ReadOnly<Thread<T, E> | ScopedThread<T, E>>): boolean",
+    "inferredSignature": "function cancel(worker: ReadOnly<Thread<T, E> | ScopedThread<T, E>>): boolean",
+    "parameters": [
+      {
+        "label": "worker: ReadOnly<Thread<T, E> | ScopedThread<T, E>>",
+        "documentation": "Live dedicated or pooled worker handle."
+      }
+    ],
+    "documentation": "Requests cooperative cancellation. Returns true only for the first request made before completion is published; returns false for repeated requests or an already completed task. Queued callbacks are skipped when scheduled and their captures disposed. Running callbacks can poll cancellationRequested and return promptly. A winning request discards the eventual result/error and join reports code cancelled. Cancellation does not mean execution has stopped and never forcibly interrupts native calls. No options or defaults.\n\nOwnership: borrows the handle without consuming it. Join or scope cleanup still waits for completion.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "cancellationRequested",
+    "signature": "cancellationRequested(): boolean",
+    "inferredSignature": "function cancellationRequested(): boolean",
+    "parameters": [],
+    "documentation": "Reports whether the current worker has received a cancellation request. Takes no arguments; returns false outside workers. Poll during long loops and exit promptly when true. Checking does not interrupt execution or throw; after callback exit, join reports cancelled if the request won the completion race. Nested pool execution preserves each worker\u2019s own cancellation context.\n\nOwnership: does not access or consume caller-owned handles.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "PoolStats",
+    "signature": "type PoolStats = { workers: int; capacity: int; queued: int; running: int; completed: int; outstanding: int; }",
+    "documentation": "Snapshot returned by pool.stats(); all counts are nonnegative ints. queued waits for execution, running executes callbacks (including parents helping nested tasks), completed retains finished results, and outstanding counts all three. workers is configured worker count, not currently running OS threads after shutdown. Dedicated threads are excluded. No constructors, defaults or mutation of pool state.\n\nOwnership: ordinary owned record.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "pool",
+    "signature": "pool: worker pool namespace",
+    "documentation": "Global configurable worker pool. Use pool.configure(workers, capacity) before first submission, pool.task(callback) to submit, pool.stats() to inspect counts, and pool.shutdown() to close admission and wait. Default workers are CPU parallelism clamped to 2..256; default outstanding capacity is 1024. Submission returns a typed error when full, never blocks for admission. Dedicated spawn remains separate.\n\nOwnership: namespace operations preserve owned task handles; no namespace instances or cloning.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  }
+],
+"workerPool": [
+  {
+    "name": "task",
+    "signature": "pool.task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function pool.task(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "parameters": [
+      {
+        "label": "callback: Owned<Function<T>>",
+        "documentation": "Owned zero-argument task. T is its result; E is its inferred thrown error."
+      }
+    ],
+    "documentation": "Submits work immediately to the global Rayon pool; execution can queue behind busy workers. Returns code full when outstanding capacity is exhausted, closed after shutdown, or spawn on pool creation failure. Admission never waits for capacity. Completed tasks free workers but retain capacity until joined or cleaned up. Detached tasks release capacity after completion. Default workers are CPU parallelism clamped to 2..256, capacity 1024; pool.configure changes these before first use. Scope cleanup waits and discards the result/error.\n\nOwnership: consumes callback and transfers owned captures without cloning. Caller loans and program state borrows cannot cross workers. join and detach consume the unique handle; cancel borrows it.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "configure",
+    "signature": "pool.configure(workers: int, capacity: int): Result<void, SpawnError>",
+    "inferredSignature": "function pool.configure(workers: int, capacity: int): Result<void, SpawnError>",
+    "parameters": [
+      {
+        "label": "workers: int",
+        "documentation": "Number of reusable workers, 1..256."
+      },
+      {
+        "label": "capacity: int",
+        "documentation": "Maximum outstanding tasks, 1..1000000."
+      }
+    ],
+    "documentation": "Creates the global pool once, before its first pool.task submission. workers is 1..256; capacity is 1..1000000 outstanding tasks, including queued, running and completed unjoined tasks. Both arguments are required. Defaults without configuration are max(2, CPU parallelism), capped at 256 workers, and capacity 1024. Returns code range for invalid limits, configured after configuration/first use/shutdown, or spawn if creation fails. No partial configuration is retained on creation failure.\n\nOwnership: copies limits; creates no task handle.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "shutdown",
+    "signature": "pool.shutdown(): Result<void, SpawnError>",
+    "inferredSignature": "function pool.shutdown(): Result<void, SpawnError>",
+    "parameters": [],
+    "documentation": "Permanently closes admission and waits for queued/running pool tasks to finish. Takes no arguments. Does not cancel tasks or consume handles; retained results can still be joined. Repeated calls succeed. Calling from a worker returns code worker, avoiding self-deadlock. Dedicated threads remain available. Shutdown can wait indefinitely for nonterminating work.\n\nOwnership: existing task owners retain cleanup and completion responsibility.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
+      }
+    ]
+  },
+  {
+    "name": "stats",
+    "signature": "pool.stats(): PoolStats",
+    "inferredSignature": "function pool.stats(): PoolStats",
+    "parameters": [],
+    "documentation": "Returns a consistent snapshot of workers, capacity, queued, running, completed and outstanding counts. Takes no arguments and does not initialize the pool. completed counts results waiting for collection; outstanding equals queued + running + completed. Detached work retains capacity until it finishes. Dedicated threads are excluded. Counts may change immediately after reading. After shutdown, retained completion counts remain observable.\n\nOwnership: returns a new owned record; no worker handle is exposed.\n\n```tsrust\nimport { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n\n```\nExpected output: 42, cancelled, 0 on separate lines.",
+    "examples": [
+      {
+        "source": "import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';\n\nfunction main() {\n  unwrap(pool.configure(2, 16));\n  const first = unwrap(pool.task((): int => 20));\n  const second = unwrap(pool.task((): int => 22));\n  console.log(unwrap(join(first)) + unwrap(join(second)));\n\n  const listener = unwrap(spawn((): void => {\n    while (!cancellationRequested()) {\n    }\n  }));\n  cancel(listener);\n  match (join(listener)) {\n    Ok(_) => {\n    },\n    Err(error) => console.log(error.code),\n  }\n\n  console.log(pool.stats().outstanding);\n  unwrap(pool.shutdown());\n}\n// 42\n// cancelled\n// 0\n",
+        "output": "42\ncancelled\n0\n"
       }
     ]
   }

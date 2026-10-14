@@ -359,6 +359,7 @@ impl Analysis {
                         expression.target,
                         Some(
                             CallTarget::SetMethod(_) | CallTarget::MapMethod(_)
+                                | CallTarget::NativeBinding(_)
                                 | CallTarget::ArrayEntries(_)
                                 | CallTarget::Number
                                 | CallTarget::ResultUnwrap(_)

@@ -33,13 +33,14 @@ pub fn json_module_with_writer(writer:bool)->String {
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=String::new();
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=json.as_ref().is_some_and(|module|source.contains(module));
+    let dependencies=json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::threads::RUNTIME);
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
             application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));
             runtime.push_str("pub ");runtime.push_str(&module);
         }
     };
+    extract("tsrust_native_threads", crate::stdlib::threads::RUNTIME.to_owned());
     // Match complete variants; no feature is added merely because another is used.
     for (views,utf8) in [(true,true),(true,false),(false,true),(false,false)] {extract("tsrust_native_bytes",bytes_module(views,utf8));}
     if let Some(module)=json {extract("tsrust_native_json",module);}

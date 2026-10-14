@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use support::session::Session;
 use tsrust_lsp::{project_diagnostics::source_id, workspace::Workspace};
 
-const PRELUDE: &str = "import {SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
+const PRELUDE: &str = "import {PoolStats, SpawnError, ThreadError, ScopedThread} from 'std:threads';\nimport { s, ValidationError, SchemaIssue } from 'std:schema';\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n";
 
 /// A receiver `x` of one type inside `probe`.
 struct Receiver {
@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+    Receiver { ty: "PoolStats", parameter: "x: ReadOnly<PoolStats>" },
     Receiver { ty: "ScopedThread<int, undefined>", parameter: "x: Owned<ScopedThread<int, undefined>>" },
     Receiver { ty: "SpawnError", parameter: "x: ReadOnly<SpawnError>" },
     Receiver { ty: "ThreadError<string>", parameter: "x: ReadOnly<ThreadError<string>>" },
@@ -131,7 +132,7 @@ fn candidates() -> BTreeSet<String> {
             }
         }
     }
-    for name in ["payload", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
+    for name in ["workers", "capacity", "queued", "running", "completed", "outstanding", "payload", "ok", "value", "error", "id", "name", "issues", "truncated", "code", "message", "path", "pathTruncated", "expected", "observed", "size", "length"] {
         names.insert(name.to_owned());
     }
     names

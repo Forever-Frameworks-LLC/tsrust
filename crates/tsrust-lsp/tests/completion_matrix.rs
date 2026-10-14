@@ -237,6 +237,18 @@ fn rows() -> Vec<Row> {
         includes: &["code", "error"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });
     rows.push(Row {
+        kind: Kind::CallResult, name: "pool namespace methods",
+        before: "import {pool as workers} from 'std:threads';\nfunction main(){\n".into(),
+        typed: "workers.", after: "\n}\n",
+        includes: &["task", "configure", "stats", "shutdown"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+    });
+    rows.push(Row {
+        kind: Kind::RecordField, name: "pool statistics fields",
+        before: "import {pool} from 'std:threads';\nfunction main(){const stats=pool.stats();\n".into(),
+        typed: "stats.", after: "\n}\n",
+        includes: &["workers", "capacity", "queued", "running", "completed", "outstanding"], excludes: NOT_MEMBERS, silent: None, needs_check: true,
+    });
+    rows.push(Row {
         kind: Kind::ImportNames, name: "result propagation imports",
         before: "import { ".into(), typed: "unw",
         after: " } from 'std:result';\nfunction main() {}\n",

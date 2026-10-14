@@ -28,7 +28,8 @@ pair before awaiting completion and waits for both in finally. Source, counterpa
 and harness fingerprints are recorded automatically. `--verify --scoped` checks
 results without recording timing samples; no speedup is claimed from that check.
 
-`scoped-join` now exercises default `spawn` cleanup and global `unwrap`. The workload
+`scoped-join` exercises dedicated worker cleanup and global `unwrap`.
+Both original workloads retain dedicated `spawn` and their startup semantics. The workload
 name and original measurement protocol remain stable; records retain source hashes.
 
 Accepted SQLite records: `spawn-join-2026-10-14T21-27-32-540Z.json` and
@@ -36,5 +37,13 @@ Accepted SQLite records: `spawn-join-2026-10-14T21-27-32-540Z.json` and
 checksum 140 throughout. Native/Node median batch times are respectively
 0.139708/93.485334 ms sequentially and 0.101500/49.352375 ms for overlapping
 pairs. These are startup/transport microbenchmarks with different backend costs;
-there is no earlier comparable timing or application-speedup claim. No pool is
-implemented or measured.
+there is no earlier comparable timing or application-speedup claim. These original records do not measure a pool.
+
+
+Use `--pool --verify` for the new two-worker pool workload. Both engines reuse two
+workers across paired tasks and all batches; native uses Rayon, Node uses worker
+messages. The checksum remains 140. The original 3-process/8-warmup/31-sample
+measurement protocol applies if `--verify` is omitted. Pool setup/shutdown remains
+outside batch timing. `pool-manifest.json` tracks acceptance and source hashes;
+`node --test benchmarks/threads/pool-registration.test.mjs` guards the workload.
+No pooled performance measurements have been accepted yet.

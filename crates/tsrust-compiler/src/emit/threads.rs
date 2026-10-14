@@ -5,7 +5,14 @@ impl Emitter<'_> {
     pub(super) fn thread_native(&self, fun: &CheckedFunction, expr: &Expr, id: usize, args: &[Expr]) -> Option<String> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if binding.module != "std:threads" { return None; }
-        let value = self.expr(fun, &args[0], Mode::Consume);
+        if binding.name == "__poolStats" {
+            let Type::Record(record) = expr.ty.unwrap() else { unreachable!() };
+            let fields = ["workers", "capacity", "queued", "running", "completed", "outstanding"].iter().enumerate().map(|(index, name)| format!("field{index}:stats.{name} as i64")).collect::<Vec<_>>().join(",");
+            return Some(format!("{{let stats=tsrust_native_threads::pool_stats();Record{}{{{fields}{}}}}}", self.native_record_declaration(record), self.schema_record_order(record)));
+        }
+        if binding.name == "cancellationRequested" { return Some("tsrust_native_threads::cancellation_requested()".into()); }
+        if binding.name == "cancel" { return Some(format!("tsrust_native_threads::cancel({})", self.expr(fun, &args[0], Mode::Read))); }
+        let value = args.first().map(|arg| self.expr(fun, arg, Mode::Consume)).unwrap_or_default();
         if binding.name == "detach" { return Some(format!("tsrust_native_threads::detach({value})")); }
         let Type::Union(union) = expr.ty.unwrap() else { unreachable!("thread Result") };
         let variants = self.program.unions[union.index()].members.iter().enumerate().map(|(tag, ty)| {
@@ -23,7 +30,11 @@ impl Emitter<'_> {
         let Type::Record(failure) = self.program.records[err].fields[0].ty.unwrap() else { unreachable!() };
         let failure_name = self.native_record_declaration(failure);
         let order = self.schema_record_order(failure);
-        let call = if matches!(binding.name, "spawn" | "spawnScoped") {
+        let failed = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(error.code),field1:String::Owned(error.to_string()){order}}}"));
+        let call = if matches!(binding.name, "__poolConfigure" | "__poolShutdown") {
+            let call = if binding.name == "__poolConfigure" { format!("configure_pool({},{})", self.expr(fun, &args[0], Mode::Copy), self.expr(fun, &args[1], Mode::Copy)) } else { "shutdown_pool()".into() };
+            format!("match tsrust_native_threads::{call}{{Ok(value)=>{ok_value},Err(error)=>{failed}}}")
+        } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask") {
             let Type::Closure(origin) = args[0].ty.unwrap() else { unreachable!() };
             let Type::Record(handle) = self.program.records[ok].fields[0].ty.unwrap() else { unreachable!() };
             let parameters = &self.program.records[handle].application.as_ref().unwrap().resolved_arguments;
@@ -35,8 +46,8 @@ impl Emitter<'_> {
                 format!("callback.call().map_err(|error|{converted})")
             } else { format!("Ok::<_,{error_type}>(callback.call())") };
             let mutable = if self.program.closures[origin].invocation == Mode::Mutate { "mut " } else { "" };
-            let failed = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"spawn\"),field1:String::Owned(error.to_string()){order}}}"));
-            format!("{{let {mutable}callback={value};match tsrust_native_threads::spawn(move||{{{completion}}}){{Ok(value)=>{ok_value},Err(error)=>{failed}}}}}")
+            let spawn = if binding.name == "__poolTask" { "spawn" } else { "spawn_dedicated" };
+            format!("{{let {mutable}callback={value};match tsrust_native_threads::{spawn}(move||{{{completion}}}){{Ok(value)=>{ok_value},Err(error)=>{failed}}}}}")
         } else {
             let error_field = self.program.records[failure].fields[1].ty.unwrap();
             let Type::Record(handle) = args[0].ty.unwrap() else { unreachable!() };
@@ -58,7 +69,8 @@ impl Emitter<'_> {
             };
             let worker = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"worker\"),field1:{}{order}}}", inject(thrown,"error")));
             let panic = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"panic\"),field1:{}{order}}}", inject(Type::Undefined,"TsrUndefined")));
-            format!("match tsrust_native_threads::join({value}){{Ok(value)=>{ok_value},Err(tsrust_native_threads::JoinError::Worker(error))=>{worker},Err(tsrust_native_threads::JoinError::Panic)=>{panic}}}")
+            let cancelled = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(\"cancelled\"),field1:{}{order}}}", inject(Type::Undefined,"TsrUndefined")));
+            format!("match tsrust_native_threads::join({value}){{Ok(value)=>{ok_value},Err(tsrust_native_threads::JoinError::Worker(error))=>{worker},Err(tsrust_native_threads::JoinError::Panic)=>{panic},Err(tsrust_native_threads::JoinError::Cancelled)=>{cancelled}}}")
         };
         Some(call)
     }

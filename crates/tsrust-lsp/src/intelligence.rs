@@ -2666,14 +2666,18 @@ impl SourceIndex {
         )
     }
     pub(crate) fn import_native(&mut self, module: &str, exported: &str, local: &str, span: Span) {
-        if matches!(tsrust_compiler::native_exports::lookup(module, exported), Ok(tsrust_compiler::native_exports::Export::Namespace(tsrust_compiler::native_exports::Namespace::Schema))) {
-            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented schema namespace");
-            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
-            self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
+        if let Ok(tsrust_compiler::native_exports::Export::Namespace(namespace)) = tsrust_compiler::native_exports::lookup(module, exported) {
+            let catalog = builtins_for(module).into_iter().find(|entry| entry["name"] == exported).expect("documented native namespace");
+            if namespace == tsrust_compiler::native_exports::Namespace::Schema {
+                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::Schema);
+                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ValidationError);
+            } else {
+                self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::PoolStats);
+            }
             self.symbols.push(Symbol {
                 name: local.into(), kind: 3, span, extent: span, scope: 0,
-                ty: "@namespace:std:schema#s".into(),
-                signature: format!("{local}: schema builder namespace"),
+                ty: namespace.symbol().into(),
+                signature: format!("{local}: {} namespace", if namespace == tsrust_compiler::native_exports::Namespace::Schema { "schema builder" } else { "worker pool" }),
                 docs: catalog["documentation"].as_str().unwrap_or("").into(),
                 parameters: vec![], owner: None,
             });
@@ -3289,9 +3293,10 @@ impl SourceIndex {
         let mut entry = self.receiver_builtins(&receiver)
             .into_iter()
             .find(|b| b["name"] == self.text(token))?;
-        if receiver == "@namespace:std:schema#s" {
+        if matches!(receiver.as_str(), "@namespace:std:schema#s" | "@namespace:std:threads#pool") {
             if let Some(signature) = entry["signature"].as_str() {
-                entry["signature"] = json!(signature.replacen("s.", &format!("{}.", self.text(token - 2)), 1));
+                let prefix = if receiver == "@namespace:std:schema#s" { "s." } else { "pool." };
+                entry["signature"] = json!(signature.replacen(prefix, &format!("{}.", self.text(token - 2)), 1));
             }
         }
         if receiver == "JSON" && self.text(token + 1) == "<"
