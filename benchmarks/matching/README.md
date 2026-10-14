@@ -12,4 +12,7 @@ unions and switches. The timing protocol is 8 warmups and 31 measured samples in
 three processes per engine; run without `--verify` only at the family milestone.
 Import closed JSON records into `benchmarks/records.sqlite`, verify exact bytes,
 then remove the loose records. Implementation and measurement acceptance are
-separate. No timing has been accepted for this workload yet.
+separate. The first accepted timing is `match-values-2026-10-14T21-27-19-471Z.json`
+in SQLite: 93 samples per engine, medians 0.002167 ms native and 0.012125 ms
+Node-after-tsc; every checksum is 4203521. This is a small synthetic workload,
+not an application speedup claim. The local tsconfig reuses the pinned Node types.

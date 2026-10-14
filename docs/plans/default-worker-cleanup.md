@@ -1,6 +1,6 @@
 # Default worker cleanup and global Result propagation
 
-Implementation checkpoint, 2026-10-14. Broad acceptance and measurement are in progress.
+Accepted implementation and measurements, 2026-10-14. Source checkpoint `7c3a326c`.
 
 Use `spawn` from `std:threads`. It starts a dedicated OS thread immediately;
 `join` waits when called. Several workers started before the first join can overlap.
@@ -91,8 +91,10 @@ Compiler acceptance passes: 11 worker tests, 18 Result tests, 7 value-match test
 and 7 match syntax tests. A native witness preserves global and local user-defined
 `unwrap`; existing identifiers are not newly reserved. Runtime overlap and cleanup
 witnesses pass. Seven worker editor tests and two match editor tests pass; the
-complete typing matrix passes after checked recovery was repaired. Final executable
-catalog verification and broad compiler regressions are still running.
+complete typing matrix passes after checked recovery was repaired. Executable catalog verification passes. Consolidated compiler acceptance is
+4,008 passed / 7 ignored across 332 targets; editor acceptance is 679 passed /
+1 ignored across 54 targets. All three original compiler failures and both original
+editor failures were repaired, preserving original records.
 
 Result pattern lowering retains the selected variant before extracting its payload,
 matching existing readonly/exclusive provenance. The native-view regression passes
@@ -100,3 +102,36 @@ for both a bound error payload and `Err(_)`; success payload ownership remains
 protected. Exact original failures and focused repairs are stored in SQLite as
 `tsrust-match-worker-final-focus*.log`, `tsrust-match-native-view-final*.log`, and
 `tsrust-unwrap-shadow-native.log`. Measurement remains separate from these checks.
+
+## Timing and consumers
+
+The original 3-process / 8-warmup / 31-sample protocols are complete. All native and
+Node checksums agree. Median batch milliseconds:
+
+| Workload | Native | Node after tsc |
+| --- | ---: | ---: |
+| Match values, 2,048 iterations | 0.002167 | 0.012125 |
+| Eight sequential workers | 0.139708 | 93.485334 |
+| Eight workers in overlapping pairs | 0.101500 | 49.352375 |
+
+These are first baselines, with no comparable earlier timings. Thread costs include
+Node isolate/message transport versus native typed thread storage. No application
+speedup, pool throughput or cancellation claim follows. Original samples and exact
+source/compiler fingerprints are in SQLite; no optimization was justified by these
+three native-versus-Node signals.
+
+Release CLI/LSP binaries were built from `7c3a326c` and atomically installed in
+`~/.cargo/bin` and `target/editor/debug/tsrust-lsp`. The installed CLI executes the
+readable worker example (25205). The primary VS Code server restarted and the
+compiler workspace reports No Problems. The second `tsrust_test` window still
+requires Developer: Reload Window: its old server was stopped, but UI automation
+could not activate its restart command or relaunch VS Code. The updated binary is
+installed; do not claim that second running consumer is verified.
+
+The milestone proof is stored as `tsrust-match-worker-acceptance-2026-10-14.json`.
+All 558 timing samples are indexed in SQLite and match the original records.
+SQLite structure, foreign keys and all 32,830 then-existing blob checksums pass.
+The standard path verifier remains blocked by 758 historical absolute record names;
+those immutable records were preserved unchanged. Separate storage verification and
+cleanup proofs are retained in SQLite. Cleanup removed 390 completed executable
+outputs (13.33 GiB logical size), preserving current consumers and owner editor caches.

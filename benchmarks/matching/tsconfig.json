@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "typeRoots": ["../runtime/node_modules/@types"],
+    "noEmit": true
+  },
+  "include": ["*.ts"]
+}

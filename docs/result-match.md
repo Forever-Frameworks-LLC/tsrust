@@ -149,4 +149,5 @@ Result patterns keep their special payload binding behavior.
 
 Readable examples: [values](../examples/match-values/main.tsr),
 [literals](../examples/match-literals/main.tsr), and
-[named variants](../examples/match-variants/main.tsr). Acceptance is pending.
+[named variants](../examples/match-variants/main.tsr).
+[Compiler, editor and native acceptance](plans/match-values-acceptance.md) is complete.

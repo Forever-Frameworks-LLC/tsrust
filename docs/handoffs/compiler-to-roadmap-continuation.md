@@ -79,11 +79,10 @@ representative applications before changing general schema machinery.
    limitations and diagnose practical failures. The historical audit inventory is
    not an instruction to exhaust every possible shape before feature work.
 
-The last complete compiler/LSP regression predates the recent focused repairs.
-Do one consolidated pass at the next meaningful feature-family milestone. Preserve
-completed groups and rerun only affected failures. Do not describe the recent
-focused checks as a fresh full-suite result. Differential suites require pinned
-Node v24.11.1 first on PATH.
+The match/default-cleanup milestone completed consolidated compiler (4,008 passed,
+7 ignored) and LSP (679 passed, 1 ignored) regressions. Initial failures and affected
+repairs remain in SQLite. Do not repeat this full pass for routine edits. Differential
+suites require pinned Node v24.11.1 first on PATH.
 
 ## S12 owned workers
 
@@ -95,8 +94,10 @@ work. Do not repeat public spawn/join groundwork or treat untimed checks as timi
 
 Preserve already settled decisions:
 
-- Raw Thread handles require explicit join or detach; abandonment errors. No hidden
-  clone, automatic detach, or implicit shared ownership.
+- `spawn` starts immediately. `join` observes completion; otherwise owning-scope
+  cleanup joins and discards completion. `detach` explicitly opts out. No hidden
+  clone, automatic detach or implicit shared ownership. Global `unwrap` propagates
+  the original Result error through ordinary try/catch.
 - Local Rust modules and supported wrappers belong alongside S12 before worker
   APIs harden. Automatic lazy default pooling for explicit threaded interop is
   approved; evaluate Rayon and reuse compatible pools. Direct calls stay direct.
@@ -128,17 +129,18 @@ obsolete test/native outputs without deleting owner editor caches.
 
 Five executable consumers are the installed CLI/LSP, the workspace override
 `target/editor/debug/tsrust-lsp`, and shared-target debug CLI/LSP. Consumer refresh
-was verified after registry/concat, including both VS Code server processes.
-Subsequent warning cleanup has no public behavior change. Refresh installed
-consumers for the next accepted public API change using atomic sibling replacement;
-restart both editor servers and check open-document diagnostics. Request both
+now uses match/default-cleanup source checkpoint `7c3a326c`, with atomic installed
+release replacements. The primary VS Code server is refreshed and its workspace
+has No Problems. The second `tsrust_test` window needs Developer: Reload Window;
+its old server was stopped and automation could not restart it. The new binary is
+installed. Verify that consumer after reload. Request both
 `--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries explicitly.
 
 The current pass adds value-producing matches, scalar literal patterns and named
 record variants. See [match acceptance](../plans/match-values-acceptance.md).
 It also makes worker cleanup the default for `spawn` and exposes global `unwrap`;
 see [default cleanup](../plans/default-worker-cleanup.md). Compatibility spellings
-remain available. Family checks are in progress; update acceptance before handoff.
+remain available. Family checks and all three matched workload measurements pass.
 
 Owner clarification: configurable default pools must also be a stdlib option.
 Evaluate Rayon; preserve dedicated OS-thread spawning. Pool sizing, admission,

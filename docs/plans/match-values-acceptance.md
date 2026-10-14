@@ -1,28 +1,38 @@
 # Match expressions and scalar/record patterns
 
-Implementation checkpoint, 2026-10-14. Family regression and measurement remain
-pending until the thread ergonomics section finishes.
+Accepted on 2026-10-14. Source checkpoints: `05e0a16a` and `7c3a326c`.
 
-- Value arms yield their expression. Block arms exit explicitly; return targets
-  the enclosing callable. Ordinary concise arrow functions retain expression returns.
-- Strings, integers, numbers, booleans, null and undefined support literal patterns.
-  Open scalar types require `_`; finite alternatives require complete coverage.
-- Named record unions support nominal variant patterns binding the whole record.
-  Result variants continue binding their payload. No new variant constructors.
-- Match bodies and yields use the shared checker work queue. A 64-level witness
-  passes on the normal test stack. No broader scaling claim.
-- Native witnesses cover once-only evaluation, argument order, short-circuiting,
-  nested matches, enclosing returns, try/finally, typed throws, owned closures,
-  owned array payloads and readonly single-record/union patterns. Ownership and
-  exhaustiveness rejection cases stay active. Three readable examples execute
-  after formatting.
-- Focused compiler acceptance: `match_values` 7/7 and `result_match` 18/18.
-  Exact logs, including repaired failures, are retained in SQLite under
-  `tsrust-match-*`; final focused record: `tsrust-match-values-accepted5.log`.
-- Editor payload hover/navigation and member completion pass focused checks,
-  including unrelated syntax errors. Complete editor matrix is still running.
-- Matching benchmark has native/TypeScript counterparts, an independent arithmetic
-  oracle, fingerprint and mutation guards. Initial untimed verification returns
-  checksum 4203521 for both engines. No timing claim yet.
-- Whole-project formatting changed four files; second pass changed none. Matching
-  benchmark tokens remained identical and fingerprints were refreshed.
+- Concise arms yield their expression. Block arms exit explicitly; return targets
+  the enclosing callable. Concise arrow functions retain expression returns.
+- String, integer, number, boolean, null and undefined literal patterns are checked
+  for coverage. Open scalar types require `_`; finite alternatives can enumerate.
+- Named record unions bind the selected record, including three-way unions.
+  Result variants bind their payload. No new variant declaration/constructor syntax.
+- Shared checker scheduling passes a 64-level match witness on the normal stack.
+  No broader depth-scaling claim. Native witnesses cover once-only evaluation,
+  source order, short-circuiting, enclosing returns, typed throws/finally, owned
+  closures/arrays and readonly/exclusive payload rules. A selected-variant local
+  preserves native-view provenance, including discarded error payloads.
+- Three readable examples execute after formatting: `examples/match-values`,
+  `examples/match-literals` and `examples/match-variants`.
+- Focused compiler checks: 7 value-match, 18 Result-match and 7 syntax tests pass.
+  The consolidated compiler milestone has 4,008 passes and 7 existing ignored
+  tests across 332 targets. Three initial failures were repaired and rerun; original
+  evidence remains in SQLite. No unresolved failure remains.
+- Consolidated editor milestone: 679 passes and 1 existing ignored test across
+  54 targets. Payload hover/navigation, variant completion, unrelated-error recovery,
+  typing-speed matrix, signature help and executable catalog examples pass.
+- Whole-project formatting preserves tokens and is idempotent. Native/TypeScript
+  workload guards and matched checksums pass. The local TypeScript editor config
+  uses the existing pinned Node types and passes `tsc --project benchmarks/matching`.
+- First timing: `benchmarks/matching/match-values-2026-10-14T21-27-19-471Z.json`
+  in SQLite. Three processes, eight warmups and 31 samples per process/engine;
+  all checksums 4203521. Native median 0.002167 ms; Node-after-tsc 0.012125 ms.
+  No earlier comparable timing exists; this is not an application speedup claim.
+
+Exact records include `tsrust-match-family-compiler-regression.log`,
+`tsrust-match-family-editor-regression.log`, `tsrust-match-worker-final-focus2.log`,
+`tsrust-match-syntax-final.log`, `tsrust-match-native-view-final2.log`, and
+`tsrust-match-worker-editor-final.log`. Closed loose copies are removed only after
+byte-exact SQLite restoration. See [default worker acceptance](default-worker-cleanup.md)
+for consumer refresh and remaining S12 work.
