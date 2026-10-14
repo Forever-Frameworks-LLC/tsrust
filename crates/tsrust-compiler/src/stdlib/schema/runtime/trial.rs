@@ -439,3 +439,33 @@ mod tests {
         assert!(issues.is_valid());
     }
 }
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+    fn prepared(value:String)->Trial<String,String,impl Restore<String,String>, &'static str> {
+        Trial::Prepared{value,restoration:|value|value}
+    }
+    #[test]
+    fn boxed_remapped_refinement_restores_allocation_and_finish_propagates_errors() {
+        let input=String::from("original");let pointer=input.as_ptr();
+        let rejected=prepared(input).boxed().remap_input(Some).refine_issues(|_|Ok(false));
+        let Trial::Rejected(Some(input))=rejected else {panic!("input must remain reversible")};
+        assert_eq!(input.as_ptr(),pointer);
+        let accepted=prepared(input).boxed().refine_issues(|_|Ok(true)).finish().unwrap().unwrap();
+        assert_eq!(accepted.as_ptr(),pointer);
+        assert_eq!(prepared("x".into()).refine_issues(|_|Err("callback")).finish(),Err("callback"));
+        assert_eq!(prepared("x".into()).transform(Ok).refine_issues(|_|Ok(false)).finish(),Ok(None));
+    }
+    #[test]
+    fn pair_rejection_restores_inputs_unless_key_conversion_committed() {
+        let key=String::from("key");let pointer=key.as_ptr();
+        let rejected=pair(prepared(key),String::from("value"),|value|prepared(value).refine_issues(|_|Ok(false)));
+        let Trial::Rejected((key,value))=rejected else {panic!("readonly pair must restore")};
+        assert_eq!(key.as_ptr(),pointer);assert_eq!(value,"value");
+        let committed=pair(prepared(key).transform(Ok),value,|value|prepared(value).refine_issues(|_|Ok(false)));
+        assert_eq!(committed.finish(),Ok(None));
+        let accepted=pair(prepared("k".into()),"v".into(),prepared).finish().unwrap();
+        assert_eq!(accepted,Some(("k".into(),"v".into())));
+    }
+}

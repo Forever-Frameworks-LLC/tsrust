@@ -61,3 +61,31 @@ pub(crate) fn unpack(source:&Path,destination:&Path)->io::Result<()> {
     for (name,content) in files {fs::write(destination.join(name),content)?;}
     Ok(())
 }
+
+#[cfg(test)]
+mod artifact_tests {
+    use super::*;
+    #[test]
+    fn artifact_round_trip_preserves_bytes_and_dependency_identity() {
+        let directory=std::env::temp_dir().join(format!("tsrust-bundle-roundtrip-{}",std::process::id()));
+        fs::create_dir(&directory).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup { fn drop(&mut self) { let _=fs::remove_dir_all(&self.0); } }
+        let _cleanup=Cleanup(directory.clone());
+        let dependencies=directory.join("deps");fs::create_dir(&dependencies).unwrap();
+        let library=directory.join("libtsrust_runtime.rlib");fs::write(&library,b"runtime\0bytes").unwrap();
+        fs::write(dependencies.join("libdependency.rlib"),b"dependency").unwrap();
+        fs::write(dependencies.join("ignored.d"),b"metadata").unwrap();
+        let bundle=directory.join("bundle");pack(&library,&dependencies,&bundle).unwrap();
+        let output=directory.join("output");unpack(&bundle,&output).unwrap();
+        assert_eq!(fs::read(output.join("libtsrust_runtime.rlib")).unwrap(),b"runtime\0bytes");
+        assert_eq!(fs::read(output.join("libdependency.rlib")).unwrap(),b"dependency");
+        assert!(!output.join("ignored.d").exists());
+        assert!(unpack(&bundle,&output).is_err());
+        assert!(IDENTITY.starts_with("native-dependencies-1\n"));
+        for name in ["Cargo.toml","Cargo.lock"] {
+            let (_,bytes)=FILES.iter().find(|(path,_)|*path==name).unwrap();
+            assert!(IDENTITY.contains(std::str::from_utf8(bytes).unwrap()));
+        }
+    }
+}

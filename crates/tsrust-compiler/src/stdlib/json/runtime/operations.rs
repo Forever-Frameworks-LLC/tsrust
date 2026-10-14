@@ -287,3 +287,58 @@ mod construction_tests {
   assert!(build_object(vec![("same".into(),Value::Null);3],BuildLimits{nodes:4,..limits()}).is_ok());
  }
 }
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+    #[test]
+    fn scalar_and_container_access_preserve_types_missing_values_and_allocations() {
+        for (value, expected, category) in [
+            (Value::Null,"null","object"), (Value::Bool(true),"boolean","boolean"),
+            (Value::from(7),"number","number"), (Value::from("é"),"string","string"),
+            (serde_json::json!([]),"array","object"), (serde_json::json!({}),"object","object"),
+        ] { assert_eq!(kind(&value),expected); assert_eq!(type_of(&value),category); }
+        assert!(read_bool(&Value::Bool(true)).unwrap());
+        assert_eq!(read_bool(&Value::from(1)).unwrap_err().code,"expected-boolean");
+        let text=Value::String("owned é".into()); let pointer=read_string(&text).unwrap().as_ptr();
+        let moved=take_string(text).unwrap();assert_eq!(moved.as_ptr(),pointer);
+        assert_eq!(read_string(&Value::Null).unwrap_err().code,"expected-string");
+        assert_eq!(take_string(Value::Null).unwrap_err().code,"expected-string");
+        let object=serde_json::json!({"present":null});
+        assert_eq!(get_key(&object,"missing").unwrap(),None);
+        assert_eq!(get_key(&object,"present").unwrap(),Some(&Value::Null));
+        assert_eq!(take_key(object,"present").unwrap(),Some(Value::Null));
+        let text=String::from("retained allocation");let pointer=text.as_ptr();
+        let array=Value::Array(vec![Value::Null,Value::String(text)]);
+        assert_eq!(get_index(&array,-1).unwrap_err().code,"index-range");
+        assert_eq!(get_index(&array,2).unwrap(),None);
+        assert_eq!(get_index(&array,0).unwrap(),Some(&Value::Null));
+        let selected=take_string(take_index(array,1).unwrap().unwrap()).unwrap();
+        assert_eq!(selected.as_ptr(),pointer);
+        assert_eq!(get_key(&Value::Null,"x").unwrap_err().code,"expected-object");
+        assert_eq!(take_key(Value::Null,"x").unwrap_err().code,"expected-object");
+        assert_eq!(take_index(Value::Null,0).unwrap_err().code,"expected-array");
+    }
+    #[test]
+    fn generated_source_adapters_borrow_the_original_value() {
+        struct Owner(Value);
+        impl Source for Owner { fn json_value(&self)->&Value { &self.0 } }
+        impl<'a> ViewSource<'a> for &'a Owner { fn json_view(self)->&'a Value { &self.0 } }
+        fn owned(source:&impl Source)->&Value { source.json_value() }
+        fn view<'a>(source:impl ViewSource<'a>)->&'a Value { source.json_view() }
+        let owner=Owner(serde_json::json!(["payload"]));
+        assert!(std::ptr::eq(owned(&owner),&owner.0));
+        assert!(std::ptr::eq(view(&owner),&owner.0));
+    }
+    #[test]
+    fn finite_numbers_and_root_budgets_reject_without_coercion() {
+        assert!(from_f64(-0.0).unwrap().as_f64().unwrap().is_sign_negative());
+        for value in [f64::NAN,f64::INFINITY,f64::NEG_INFINITY] {
+            assert_eq!(from_f64(value).unwrap_err().code,"number-nonfinite");
+        }
+        let limits=BuildLimits{depth:1,entries:2,nodes:3};
+        assert!(validate_build_root(limits,2).is_ok());
+        assert_eq!(validate_build_root(limits,3).unwrap_err().code,"entry-limit");
+        assert_eq!(validate_build_root(BuildLimits{nodes:2,..limits},2).unwrap_err().code,"node-limit");
+    }
+}

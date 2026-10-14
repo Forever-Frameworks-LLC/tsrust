@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn scope_exit_flushes_and_closes_a_buffered_writer() {
         let _guard=LOCK.lock().unwrap();let path=path("drop");
-        {let mut writer=buffer_writer(super::super::fs::create(path.to_str().unwrap()).unwrap(),8).unwrap();buffered_write_all(&mut writer,&[9,8,7]).unwrap();}
+        {let mut writer=buffer_writer(super::super::fs::create(path.to_str().unwrap()).unwrap(),DEFAULT_CAPACITY).unwrap();buffered_write_all(&mut writer,&[9,8,7]).unwrap();}
         assert_eq!(std::fs::read(&path).unwrap(),[9,8,7]);std::fs::remove_file(path).unwrap();
     }
     #[test]

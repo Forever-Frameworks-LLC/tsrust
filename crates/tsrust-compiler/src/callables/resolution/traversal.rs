@@ -263,8 +263,8 @@ pub(super) fn value(r: &mut Resolver<'_>, value: &ValueAnnotation, allow_void: b
 pub(super) fn callback(r: &mut Resolver<'_>, value: &CallbackAnnotation) -> Result<Type, Diagnostic> { let Output::Type(ty) = run(r, Work::Callback(value))? else { unreachable!() }; Ok(ty) }
 pub(super) fn result(r: &mut Resolver<'_>, value: &ResultAnnotation) -> Result<Type, Diagnostic> { let Output::Type(ty) = run(r, Work::Result(value))? else { unreachable!() }; Ok(ty) }
 pub(super) fn storage(r: &mut Resolver<'_>, value: &ValueAnnotation) -> Result<Option<(Type, usize)>, Diagnostic> { let Output::Storage(found) = run(r, Work::Storage(value))? else { unreachable!() }; Ok(found) }
+#[cfg(test)]
 pub(super) fn array_storage(r: &mut Resolver<'_>, value: &ValueAnnotation) -> Result<Option<(Type, usize, usize)>, Diagnostic> { let Output::ArrayStorage(found) = run(r, Work::ArrayStorage(value))? else { unreachable!() }; Ok(found) }
-pub(super) fn parameters(r: &mut Resolver<'_>, values: &[CallableParameter], explicit: bool) -> Result<Vec<ArgumentContract>, Diagnostic> { let Output::Parameters(found) = run(r, Work::Parameters(parameter_state(Parameters::Source(values), explicit)))? else { unreachable!() }; Ok(found) }
 
 #[cfg(test)]
 mod tests {

@@ -239,3 +239,20 @@ mod tests {
         assert!(!errors.truncated);
     }
 }
+
+#[cfg(test)]
+mod vocabulary_tests {
+    use super::*;
+    #[test]
+    fn exported_issue_summaries_keep_stable_codes_and_kinds() {
+        let mut issues=Issues::new(3,2,16);
+        for code in [Code::NumberNonfinite,Code::Discriminator,Code::Collision] {
+            issues.push(&[],code,Kind::Union,Kind::Number);
+        }
+        assert_eq!(issues.items.iter().map(|issue|issue.code.as_str()).collect::<Vec<_>>(),
+            ["number-nonfinite","discriminator-mismatch","collection-collision"]);
+        assert_eq!(issues.items[0].expected.as_str(),"union");
+        assert_eq!(issues.items[0].observed.as_str(),"number");
+        assert!(!issues.is_valid());
+    }
+}

@@ -421,6 +421,15 @@ TypeScript compilation (189 executions), including checksum, failure, and dispos
 checks. No elapsed-time samples were collected. VS Code now reports zero errors;
 39 existing Rust warnings remain. Evidence and original failed attempts are in
 SQLite under `tsrust-allocation-syntax-acceptance-2026-10-14.json`.
+The subsequent Rust warning cleanup removes the unused parameter-resolution
+entry points and standalone JSON facade import, and restricts the array-storage
+query facade to its test callers. Generated-runtime APIs remain intact; focused
+backend tests now exercise their borrow, allocation, rollback, bounds, vocabulary,
+resource dispatch, and artifact round-trip contracts. No warning allowances or
+behavior changes were introduced. Workspace/all-target checking has zero warnings
+and errors; all 219 affected test executions pass without warnings. Refreshed
+VS Code diagnostics show No Problems. Acceptance evidence:
+`tsrust-rust-warnings-acceptance-2026-10-14.json` in SQLite.
 Rust workspace reload clears its stale concat error (39 warnings
 remain). Installed CLI registry/depth witnesses and LSP initialize/shutdown pass.
 Evidence: `tsrust-consumer-refresh-2026-10-14.json` in SQLite. Cleanup removes

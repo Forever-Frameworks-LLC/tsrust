@@ -110,6 +110,7 @@ impl Resolver<'_> {
     }
 
     /// Retain source labels independently of the canonical family's representative.
+    #[cfg(test)]
     pub(crate) fn array_storage_declaration(
         &mut self,
         annotation: &crate::type_syntax::ValueAnnotation,
@@ -136,14 +137,6 @@ impl Resolver<'_> {
         annotation: &ResultAnnotation,
     ) -> Result<Type, Diagnostic> {
         traversal::result(self, annotation)
-    }
-
-    pub(crate) fn parameter_contracts(
-        &mut self,
-        params: &[CallableParameter],
-        explicit: bool,
-    ) -> Result<Vec<ArgumentContract>, Diagnostic> {
-        traversal::parameters(self, params, explicit)
     }
 }
 

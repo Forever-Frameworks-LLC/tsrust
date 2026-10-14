@@ -101,6 +101,25 @@ mod tests {
   fn flush(&mut self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.flushes+=1;if s.fail_flush{Err(error())}else{Ok(())}}
   fn close(self)->Result<(),FsFailure> {let mut s=self.0.borrow_mut();s.closes+=1;if s.fail_close{Err(error())}else{Ok(())}}
  }
+ // Model the generated resource wrapper and exercise its trait dispatch.
+ struct Resource(Writer<Probe>);
+ impl Sink for Resource {
+  fn write_jsonl(&mut self,value:&Value)->Result<(),WriteError>{self.0.write(value)}
+  fn flush_jsonl(&mut self)->Result<(),WriteError>{self.0.flush()}
+  fn close_jsonl(self)->Result<(),WriteError>{self.0.close()}
+ }
+ #[test]
+ fn resource_sink_forwards_records_flush_and_close_failures(){
+  fn exercise(mut sink:impl Sink)->Result<(),WriteError>{
+   sink.write_jsonl(&Value::Bool(true))?;sink.flush_jsonl()?;sink.close_jsonl()
+  }
+  let state=Rc::new(RefCell::new(State::default()));
+  exercise(Resource(Writer::new(Probe(state.clone()),16))).unwrap();
+  assert_eq!(state.borrow().bytes,b"true\n");assert_eq!(state.borrow().closes,1);
+  let state=Rc::new(RefCell::new(State{fail_flush:true,..State::default()}));
+  assert_eq!(exercise(Resource(Writer::new(Probe(state.clone()),16))).unwrap_err().operation,"flush");
+  assert_eq!(state.borrow().bytes,b"true\n");
+ }
  #[test]
  fn raw_record_delimiters_fail_atomically_for_owned_and_borrowed_outputs(){
   for text in ["\nnull","null\r","[1,\n2]","{\"x\":\r\n7}"] {

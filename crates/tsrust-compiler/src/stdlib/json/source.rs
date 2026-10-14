@@ -180,3 +180,20 @@ mod tests {
     }
 
 }
+
+#[cfg(test)]
+mod scalar_cursor_tests {
+    use super::*;
+    #[test]
+    fn cursor_categories_and_boolean_reads_do_not_coerce() {
+        let limits=Limits{bytes:128,depth:4,entries:4,nodes:8};
+        for (text,kind) in [("null","null"),("true","boolean"),("false","boolean"),("1","number"),("\"x\"","string"),("[]","array"),("{}","object")] {
+            let node=document(text,limits).unwrap();assert_eq!(node.kind(),kind);
+            match text {
+                "true"=>assert!(node.boolean().unwrap()),
+                "false"=>assert!(!node.boolean().unwrap()),
+                _=>assert_eq!(node.boolean().unwrap_err().code,"shape-mismatch"),
+            }
+        }
+    }
+}

@@ -266,3 +266,20 @@ mod tests {
         assert_eq!(StringBounds::default().min(i64::MAX).unwrap().check("short"),Some("too-small"));
     }
 }
+
+#[cfg(test)]
+mod exported_bounds_tests {
+    use super::*;
+    #[test]
+    fn exported_bounds_retain_effective_intersections() {
+        assert_eq!(StringBounds::default().limits(),(None,None));
+        let text=StringBounds::default().min(2).unwrap().max(8).unwrap();
+        assert_eq!(StringBounds::default().min(4).unwrap().intersect(&text,"min",4).unwrap().limits(),(Some(4),Some(8)));
+        assert_eq!(IntBounds::default().limits(),(None,None));
+        let integer=IntBounds::default().min(-2).unwrap().max(8).unwrap();
+        assert_eq!(IntBounds::default().max(6).unwrap().intersect(&integer,"max",6).unwrap().limits(),(Some(-2),Some(6)));
+        assert_eq!(NumberBounds::default().limits(),(None,None));
+        let number=NumberBounds::default().min(-2.5).unwrap().max(8.5).unwrap();
+        assert_eq!(NumberBounds::default().min(0.5).unwrap().intersect(&number,"min",0.5).unwrap().limits(),(Some(0.5),Some(8.5)));
+    }
+}
