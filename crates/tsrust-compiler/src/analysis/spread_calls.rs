@@ -16,43 +16,6 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    pub(super) fn spread_array_construction(&mut self,context:&mut Context,expr:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic> {
-        let (args,annotation)=match &expr.kind { ExprKind::ArrayOf(args,annotation) => (args,annotation.as_ref()), ExprKind::Array(args) => (args,None), _ => unreachable!() };
-        let span=expr.span;let slot=span.start;
-        let annotated=annotation.map(|annotation|self.resolve_value_annotation(annotation,false)).transpose()?;
-        let hint=annotated.or_else(||if let Some(Type::Array(element))=expected {Some(element.ty())}else{None}).or_else(|| {
-            args.iter().filter_map(|arg| {
-                if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind {
-                    match self.expression_type_hint(context,value)? { Type::Array(element)=>Some(element.ty()), _=>None }
-                } else {self.expression_type_hint(context,arg)}
-            }).find(|ty|matches!(ty,Type::Number|Type::Array(ArrayElement::Number(_))))
-        });
-        let mut element=hint;
-        let mut segments=Vec::new();let mut active=loans.clone();
-        for arg in args {
-            let (mut value,spread)=if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind {(*value.clone(),true)}else{(arg.clone(),false)};
-            let length=if spread {if let ExprKind::Array(values)=&value.kind { if values.iter().any(|value|matches!(value.kind,ExprKind::Unary{op:UnaryOp::Spread,..})) {None} else {Some(values.len())} }else{None}}else{Some(1)};
-            let guessed=self.expression_type_hint(context,&value);
-            let expected=if spread {self.array_spread_context(&value,guessed,element)?}else{element};
-            let copied=if spread {match guessed {Some(Type::Array(element))=>element.ty().is_copy(),Some(Type::Set(id))=>self.program.records[id].set_definition.as_ref().unwrap().key.is_copy(),Some(ty) if self.native_spread_source(ty)=>self.iterable_element(ty).is_some_and(|element|element.ty().is_copy()),_=>false}}else{guessed.is_some_and(Type::is_copy)};
-            let access=if spread && guessed==Some(Type::String) {Mode::Read}else if copied {Mode::Copy}else{Mode::Consume};
-            let actual=self.expression(context,&mut value,if spread&&copied {Mode::Read}else{access},&active,expected)?;
-            let actual=if spread {match actual {Type::Array(element)=>element.ty(),Type::String=>Type::String,Type::Set(id)=>self.program.records[id].set_definition.as_ref().unwrap().key,Type::Map(id)=>Type::Record(self.map_iteration_entry(id,value.span)?),ty if self.native_spread_source(ty)=>self.iterable_element(ty).unwrap().ty(),_=>return Err(Diagnostic::new("spread-source","Array spread requires an array, string, Set, Map, Deque, Heap or OrderedSet.",value.span))}}else{actual};
-            if let Some(element)=element {self.require(actual,Some(element),value.span)?;}else{element=Some(actual);}
-            segments.push(SpreadSegment{value:Box::new(value),spread,element:actual,access,length});
-            let _=&mut active;
-        }
-        let element=element.ok_or_else(||Diagnostic::new("array-type","An empty array construction needs an explicit element type or array context.",span))?;
-        let ty=self.constructor_array_type(element,span)?;self.require(ty,expected,span)?;
-        let source=segments.first().expect("spread array source").value.as_ref();
-        let mut call=self.spread_selected(context,source,slot,SpreadSelection::Rest,ty,Mode::Consume);call.span=span;
-        let parameters=vec![ArgumentContract{ty,mode:Mode::Consume,omission:crate::ParameterOmission::Required,rest:true}];
-        let variant=SpreadCallVariant{selection:SpreadVariantSelection::Count(0),count:0,call:Box::new(call.clone())};
-        expr.kind=ExprKind::SpreadCall(Box::new(CheckedSpreadCall{callee:None,segments,call:Box::new(call),parameters,selected_types:Vec::new(),selected_unions:Vec::new(),variants:vec![variant],slot,minimum:0,maximum:None,builtin:None}));
-        expr.ty=Some(ty);expr.target=Some(CallTarget::ArrayOf);Ok(ty)
-    }
-
-    #[inline(never)]
     pub(super) fn array_spread_context(&mut self,value:&Expr,guessed:Option<Type>,element:Option<Type>)->Result<Option<Type>,Diagnostic>{
         if matches!(value.kind,ExprKind::SetConstructor(_,Some(_))|ExprKind::MapConstructor(_,Some(_))){return Ok(None);}
         let Some(element)=element else{return Ok(None);};

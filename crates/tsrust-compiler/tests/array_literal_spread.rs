@@ -250,3 +250,18 @@ fn owned_sources_and_borrowed_owners_cannot_escape_or_be_reused() {
 fn published_language_examples_match_native_output() {
     native(include_str!("fixtures/array-literal-spread/language-examples.tsr"), include_str!("fixtures/array-literal-spread/language-examples.stdout"));
 }
+
+#[test]
+fn nested_literal_and_array_of_spreads_evaluate_sources_once_in_order(){
+    for literal in [true,false]{
+        let mut value="[mark(7)]".to_owned();
+        for index in 1..=40{
+            value=if literal{format!("[...{value},mark({})]",100+index)}else{format!("Array.of(...{value},mark({}))",100+index)};
+        }
+        let source=format!("function mark(value:int):int{{console.log(value);return value;}}function main(){{const values={value};console.log(values.length,values[0],values[40]);}}");
+        let source=support::format_round_trip(&source);let directory=support::TempDirectory::new();let path=directory.source(&source);
+        let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+        let expected="7\n".to_owned()+&(101..=140).map(|value|format!("{value}\n")).collect::<String>()+"41 7 140\n";
+        assert_eq!(String::from_utf8(output.stdout).unwrap(),expected);
+    }
+}

@@ -116,6 +116,7 @@ mod optional_chain;
 mod rest_calls;
 mod spread_calls;
 mod spread_call_work;
+mod array_spread_work;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -5075,11 +5076,11 @@ impl Analyzer {
             ExprKind::Record(fields) => {
                 self.record_literal(context, fields, loans, expected, expr.span)
             }
-            ExprKind::ArrayOf(_, _) => self.spread_array_construction(context, expr, loans, expected),
+            ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
             ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
             ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
             ExprKind::NativeConstructor(_, _) => self.native_collection_constructor(expr,expected),
-            ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => self.spread_array_construction(context, expr, loans, expected),
+            ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),
             ExprKind::Template(parts) => self.template_literal(context, parts, loans),
             // Synthesized wrappers and other unary forms keep their

@@ -1,0 +1,14 @@
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const empty = Array.of<int>();
+  strictEqual(empty.length, 0);
+  const original = [7];
+  const literal = [...[...original], 9];
+  const constructed = Array.of (...Array.of (...original), 11);
+  strictEqual(literal[0], 7);
+  strictEqual(literal[1], 9);
+  strictEqual(constructed[0], 7);
+  strictEqual(constructed[1], 11);
+  strictEqual(original.length, 1);
+}

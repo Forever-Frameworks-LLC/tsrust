@@ -10131,3 +10131,17 @@ fn nested_spread_operands_keep_checked_hover_and_source_definition(){
     let definition=index.request("textDocument/definition",&json!({"position":at(&source,&source[call..],0),"context":{"includeDeclaration":true}}),"file:///test.tsr").unwrap();
     assert_eq!(definition["range"]["start"],json!(at(&source,"identity(value",0)));
 }
+
+#[test]
+fn nested_array_spread_constructors_publish_checked_element_types(){
+    for literal in [true,false]{
+        let value=if literal{format!("{}[7]{}","[...".repeat(32),"]".repeat(32))}else{format!("{}[7]{}","Array.of(...".repeat(32),")".repeat(32))};
+        let source=format!("function main(){{const values={value};const result=values[0];console.log(result);}}");
+        let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+        assert!(tsrust_compiler::diagnostics(&source).is_empty());let index=SourceIndex::new(&source);
+        for (needle,ty) in [("values =","int[]"),("result =","result: int")]{
+            let hover=index.request("textDocument/hover",&json!({"position":at(&source,needle,0)}),"file:///test.tsr").unwrap();
+            assert!(hover["contents"]["value"].as_str().unwrap_or("").contains(ty),"{hover}");
+        }
+    }
+}

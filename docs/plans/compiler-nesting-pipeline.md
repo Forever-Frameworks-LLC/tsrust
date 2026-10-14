@@ -2215,3 +2215,58 @@ other contextual/fresh hints, specialization and discovery, budgets, public
 admission retirement, formal scaling, optimization and S12–S21 remain required.
 No stack or limit constant is increased; full compiler/LSP regression and formal
 timing are not claimed for this section.
+
+
+### Array spread constructor continuations
+
+Array literal and `Array.of` spread construction now suspend source checks on the
+shared expression stack. Pure work helpers retain the initial numeric/contextual
+hint, left-to-right element inference, iterable conversion, copy/ownership modes,
+selected rest transport and final expected-type validation. The original
+constructor remains intact on a child failure. The old synchronous constructor
+entry is removed. Completed plans reuse the shared spread emitter.
+
+Validation initially exposes a dispatch regression: dense `Array.of`, including
+an explicitly typed empty call, is incorrectly routed to spread work. The editor
+documentation/example test reaches an empty-source panic. Dispatch now selects
+spread work only when a written operand uses spread. Dense constructor behavior
+returns to the existing literal path. The failed record remains separate; a new
+dense empty/inferred witness, all four constructor integration tests and the
+failed editor test pass after repair. Unaffected completed checks are retained,
+and the previously unrun editor group resumes instead of restarting the batch.
+
+Across the section batches, 47 distinct shared-driver tests and 134 integration
+checks pass. New normal-stack witnesses check, emit and dispose 512 nested literal
+and `Array.of` spreads. Failure cases retain the original constructor and leaf
+span. Forty-layer native witnesses verify each source runs once in order and
+check final length and boundary elements. The new editor witness checks concrete
+array and element hover through both 32-layer forms. The focused editor batches,
+including compiler agreement and the repaired documentation test, cover 67 distinct
+passing checks. Whole-project formatting changes the new example without changing
+benchmark fingerprints; its dense-empty and nested-spread assertions execute.
+
+Discovery completes fifteen of eighteen observations: literal, `Array.of` and
+mixed families each complete at 8, 32, 128, 512 and 2,048. Their 8,192 observations
+time out during analysis under the external budgets, with no new crash or stack
+overflow. The 2,048 cases use approximately 0.5–0.6 GB RSS. Discovery precedes the
+dense-only dispatch repair; these source families contain only spread constructor
+entries, which are unchanged by that repair. Post-repair deep unit witnesses pass.
+These are discovery signals, not formal timing, acceptable-scaling evidence or
+supported ceilings.
+
+The `array-spread-construction` manifest reuses the matched compiler driver for
+literal and `Array.of` variants. Each 32-layer variant passes untimed native
+check/emission, strict TypeScript checking and native/Node execution against the
+independent `7\n` oracle. Original and final-binary validation records remain
+separate. Higher registered groups remain unaccepted and unmeasured; timing still
+uses two warmups and eleven samples. Evidence uses
+`tsrust-nesting-array-spread-work-*` in SQLite.
+
+The next constructor audit completes eight layers but overflows at thirty-two
+for object spread, Set and Map construction. Compiled traces identify each
+constructor re-entering expression checking. Exact sources, observations and
+traces use `tsrust-nesting-constructor-audit-*`. These consumers, other contextual
+hints, specialization/discovery entries, budgets, parser admission retirement,
+formal scaling, optimization, known diagnostic aggregation and S12–S21 remain
+required. No stack or limit constant is increased, and full regressions or formal
+measurements are not claimed for this section.

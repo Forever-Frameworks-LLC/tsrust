@@ -432,8 +432,11 @@ selected-slot normalization and expanded-variant construction. Its helpers never
 check a source expression or function body. `analysis/continuations/driver/spread.rs`
 schedules static target bodies, fresh callees, receiver access, source operands and
 expanded calls on the shared checker stack. The original call remains intact on
-failure; successful completion publishes the checked spread plan. Array spread
-construction still uses a separate synchronous entry and requires migration.
+failure; successful completion publishes the checked spread plan. `analysis/array_spread_work.rs` owns array literal and `Array.of` spread
+inference and conversion. `analysis/continuations/driver/array_spread.rs` checks
+each constructor source on the shared expression stack before advancing the
+element type. Dense constructors remain on the established literal path; the
+spread task is selected only when a written source operand uses spread.
 
 
 Spread emission enumerates callee, source and variant children in their existing

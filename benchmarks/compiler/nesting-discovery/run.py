@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('spread-operands', 'spread-fresh-callees', 'spread-annotated-functions', 'generic-spread-chain', 'generic-receiver-chain', 'generic-optional-chain', 'inferred-named-generic-adapters', 'inferred-generic-call-chain', 'nested-generic-arguments', 'fresh-generic-adapters', 'named-generic-adapters', 'reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks', 'transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('array-spread-literal','array-spread-of','array-spread-mixed', 'spread-operands', 'spread-fresh-callees', 'spread-annotated-functions', 'generic-spread-chain', 'generic-receiver-chain', 'generic-optional-chain', 'inferred-named-generic-adapters', 'inferred-generic-call-chain', 'nested-generic-arguments', 'fresh-generic-adapters', 'named-generic-adapters', 'reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks', 'transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,11 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('array-spread-literal','array-spread-of','array-spread-mixed'):
+        layers=[('[...',']'),('Array.of(...',')')]
+        kinds=[0 if family=='array-spread-literal' else 1 if family=='array-spread-of' else index%2 for index in range(size)]
+        value=''.join(layers[kind][0] for kind in kinds)+'[7]'+''.join(layers[kind][1] for kind in reversed(kinds))
+        return f'function main(){{console.log(({value}).length);}}'
     if family in ('spread-operands','spread-fresh-callees'):
         callee = 'identity' if family == 'spread-operands' else '((value:int):int=>value)'
         declarations = 'function identity(value:int):int{return value;}' if family == 'spread-operands' else ''
