@@ -106,5 +106,52 @@ test('real TextMate tokenization covers lexer syntax and multiline state', async
     }
   }
   assert.ok(grammar.tokenizeLine('console.log(Player);', typeState).tokens.every(t => !t.scopes.some(s => s.startsWith('meta.type') || s.startsWith('entity.name.type'))));
+
+  const scopeAt = (result, line, text) => {
+    const offset = line.indexOf(text);
+    assert.notEqual(offset, -1, `Missing witness ${text}`);
+    return result.tokens.find(t => t.startIndex <= offset && t.endIndex > offset).scopes;
+  };
+  for (const line of [
+    'User(user) => `Welcome, ${user.name}`,',
+    'Guest(guest) => `Invitation: ${guest.invitation}`,',
+  ]) {
+    const result = grammar.tokenizeLine(line);
+    assert.ok(scopeAt(result, line, '`').includes('string.template.tsrust'));
+    assert.ok(scopeAt(result, line, '${').includes('punctuation.section.embedded.begin.tsrust'));
+    assert.ok(scopeAt(result, line, '.').includes('meta.embedded.line.tsrust'));
+    assert.ok(scopeAt(result, line, '}').includes('punctuation.section.embedded.end.tsrust'));
+    assert.ok(!scopeAt(result, line, '`,').includes('meta.embedded.line.tsrust'));
+    const label = line.includes('Welcome') ? 'Welcome' : 'Invitation';
+    assert.deepEqual(scopeAt(result, line, label), ['source.tsrust', 'string.template.tsrust']);
+    assert.ok(!result.tokens.at(-1).scopes.includes('string.template.tsrust'));
+  }
+  // Braces in records, blocks, strings and comments must not end interpolation.
+  const nested = 'const text = `outer ${format({value: `inner ${1 + 2}`}, "}", /* } */ 3)} tail`; const after = 4;';
+  const nestedResult = grammar.tokenizeLine(nested);
+  assert.ok(scopeAt(nestedResult, nested, '1 +').includes('constant.numeric.tsrust'));
+  assert.ok(scopeAt(nestedResult, nested, '+').includes('keyword.operator.tsrust'));
+  assert.ok(scopeAt(nestedResult, nested, '3)').includes('meta.embedded.line.tsrust'));
+  assert.deepEqual(scopeAt(nestedResult, nested, ' tail'), ['source.tsrust', 'string.template.tsrust']);
+  assert.ok(!scopeAt(nestedResult, nested, 'after').includes('string.template.tsrust'));
+  const escaped = 'const text = `escaped \\` and \\${literal} and \\\\${2} done`;';
+  const escapedResult = grammar.tokenizeLine(escaped);
+  assert.ok(scopeAt(escapedResult, escaped, '\\`').includes('constant.character.escape.tsrust'));
+  assert.ok(!scopeAt(escapedResult, escaped, 'literal').includes('meta.embedded.line.tsrust'));
+  assert.ok(scopeAt(escapedResult, escaped, '2}').includes('constant.numeric.tsrust'));
+  let templateState;
+  for (const [line, text, scope] of [
+    ['const text = `first', 'first', 'string.template.tsrust'],
+    ['${(() => {', '=>', 'keyword.operator.tsrust'],
+    ['return "}";', 'return', 'keyword.control.tsrust'],
+    ['})()} last', 'last', 'string.template.tsrust'],
+    ['end`; const after = 5;', '5', 'constant.numeric.tsrust'],
+  ]) {
+    const result = grammar.tokenizeLine(line, templateState);
+    templateState = result.ruleStack;
+    assert.ok(scopeAt(result, line, text).includes(scope), line);
+    if (text === 'last') assert.ok(!scopeAt(result, line, text).includes('meta.embedded.line.tsrust'));
+    if (text === '5') assert.ok(!scopeAt(result, line, text).includes('string.template.tsrust'));
+  }
   registry.dispose();
 });

@@ -35,6 +35,9 @@
       ]
     },
     {
+      "include": "#template"
+    },
+    {
       "name": "meta.import.tsrust",
       "begin": "\\bimport\\b",
       "beginCaptures": {
@@ -487,6 +490,72 @@
         }
       ],
       "name": "meta.parameters.tsrust"
+    },
+    "template": {
+      "name": "string.template.tsrust",
+      "begin": "`",
+      "end": "`",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.tsrust"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.tsrust",
+          "match": "\\\\(?:u\\{[0-9a-fA-F]+\\}|u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|.)"
+        },
+        {
+          "name": "meta.embedded.line.tsrust",
+          "begin": "\\$\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.tsrust"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.tsrust"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#template-expression-braces"
+            },
+            {
+              "include": "$self"
+            }
+          ]
+        }
+      ]
+    },
+    "template-expression-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.tsrust"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#template-expression-braces"
+        },
+        {
+          "include": "$self"
+        }
+      ]
     }
   }
 }
