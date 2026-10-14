@@ -87,45 +87,6 @@ pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(
 }
 
 impl Analyzer {
-    pub(super) fn thread_live(&self, context: &Context, id: usize) -> bool {
-        if !self.threads_enabled { return false; }
-        let binding = &context.bindings[id];
-        if binding.transferred.is_some() || binding.capture_reference || binding.borrowed_place.is_some()
-            || binding.parameter && binding.mode != Mode::Consume { return false; }
-        let mut pending = vec![(binding.ty, Vec::<String>::new())];
-        let mut seen = HashSet::new();
-        while let Some((ty, path)) = pending.pop() {
-            if binding.moved_fields.keys().any(|moved| path.starts_with(moved)) { continue; }
-            if !seen.insert((ty, path.clone())) { continue; }
-            let candidates = context.flow.get(&crate::flow::Place { root: id, fields: path.clone() }).map(|fact| fact.members.clone()).unwrap_or(vec![ty]);
-            for ty in candidates {
-                match ty {
-                    Type::Record(record) if self.program.records[record].native_type == Some(NativeTypeId::Thread) => return true,
-                    Type::Record(record) => {
-                        // Other containers are rejected separately; only Result wrappers carry live handles here.
-                        if self.program.records[record].application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) {
-                            for field in &self.program.records[record].fields {
-                                let mut field_path = path.clone(); field_path.push(field.name.text.clone());
-                                pending.push((field.ty.unwrap(), field_path));
-                            }
-                        }
-                    },
-                    Type::Union(union) => pending.extend(self.unions.members(union).into_iter().filter(|member| *member != ty).map(|member| (member, path.clone()))),
-                    _ => {},
-                }
-            }
-        }
-        false
-    }
-    pub(super) fn thread_scope_exit(&self, context: &Context, first: usize, span: Span) -> Result<(), Diagnostic> {
-        if !self.threads_enabled || context.effects_only || self.effects_only || context.template || self.discovering_results { return Ok(()); }
-        for &id in context.names.values() {
-            if id >= first && self.thread_live(context, id) {
-                return Err(Diagnostic::new("thread-lifecycle", format!("Thread owner {:?} must be joined, detached, or transferred before leaving this scope.", context.bindings[id].name), span).related(context.bindings[id].declaration_span.unwrap_or(span), "Thread ownership starts here."));
-            }
-        }
-        Ok(())
-    }
     pub(super) fn thread_discard(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
         if self.threads_enabled && contains_handle(ty, &self.program.records, &|id| self.unions.members(id)) {
             return Err(Diagnostic::new("thread-lifecycle", "Cannot discard a thread owner or an unhandled spawn Result. Join, detach, or transfer ownership explicitly.", span));
@@ -196,9 +157,6 @@ pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
             if matches!(expression.kind, ExprKind::Conditional { .. } | ExprKind::Binary { op: BinaryOp::And | BinaryOp::Or | BinaryOp::Coalesce, .. } | ExprKind::Optional { .. })
                 && expressions.iter().any(|child| child.span.start >= expression.span.start && child.span.end <= expression.span.end && child.ty.is_some_and(&contains)) {
                 return Err(Diagnostic::new("thread-lifecycle", "Use explicit if branches to settle thread ownership; conditional and short-circuit owner expressions are not supported.", expression.span));
-            }
-            if expression.own_may_fail && !function.storage_exits.thread_owners(expression.span).is_empty() {
-                return Err(Diagnostic::new("thread-lifecycle", "This operation can exit with a live thread owner. Settle the handle before fallible work; cleanup through exception regions is not supported yet.", expression.span));
             }
             if let Some(ty @ (Type::Array(_) | Type::Map(_) | Type::Set(_))) = expression.ty {
                 if contains(ty) { return Err(Diagnostic::new("thread-storage", "Thread handles cannot be stored in collections until element lifecycle checking is supported.", expression.span)); }

@@ -1,5 +1,8 @@
 # Owned native worker slice
 
+Historical slice. The [default cleanup update](default-worker-cleanup.md) supersedes
+its opt-in cleanup surface and mandatory explicit settlement rules.
+
 The [scoped-worker ergonomics slice](scoped-worker-acceptance.md) adds opt-in
 fallback joining and concise typed error propagation to this foundation.
 

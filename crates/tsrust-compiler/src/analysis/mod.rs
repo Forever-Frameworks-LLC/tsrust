@@ -3599,7 +3599,6 @@ impl Analyzer {
         self.enter_source_callable_body(context)?;
         let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
         self.validate_native_returns(context)?;
-        if !returned { self.thread_scope_exit(context, 0, body.last().map_or(Span::default(), |item| item.span))?; }
         Ok(returned)
     }
 

@@ -21,23 +21,14 @@ function main(){
 }
 
 #[test]
-fn lifecycle_rejects_abandonment_and_partial_consumption() {
+fn lifecycle_rejects_unhandled_results_and_unsupported_storage() {
     for body in [
         "spawn(():int=>1);",
-        "match(spawn(():int=>1)){Ok(_)=>{},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{while(flag){if(flag){detach(worker);break;}break;}},Err(error)=>{}}",
-        "while(flag){match(spawn(():int=>1)){Ok(worker)=>{continue;},Err(error)=>{break;}}}",
-        "const pending=spawn(():int=>1);",
-        "match(spawn(():int=>1)){Ok(worker)=>{},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{if(flag){detach(worker);}},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{return;},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{throw 'failure';},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{let value=1;value+=1;detach(worker);},Err(error)=>{}}",
         "match(spawn(():int=>1)){Ok(worker)=>{const bad=[worker];},Err(error)=>{}}",
         "match(spawn(():int=>1)){Ok(worker)=>{const abandoned=():void=>{detach(worker);};},Err(error)=>{}}",
     ] {
         let directory=support::TempDirectory::new();
-        let source=format!("import {{spawn,join,detach}} from 'std:threads';function probe(flag:boolean){{{body}}}function main(){{probe(true);}}");
+        let source=format!("import {{spawn,detach}} from 'std:threads';function main(){{{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted: {source}");
@@ -52,7 +43,6 @@ fn worker_inputs_must_be_owned_and_handles_are_single_use() {
         "const text='borrowed';const callback=():int=>text.length;match(spawn(callback)){Ok(worker)=>{detach(worker);},Err(error)=>{}}console.log(text);",
         "match(spawn(():int=>1)){Ok(worker)=>{detach(worker);detach(worker);},Err(error)=>{}}",
         "match(spawn(():int=>1)){Ok(worker)=>{flag && (detach(worker),true);},Err(error)=>{}}",
-        "match(spawn(():int=>1)){Ok(worker)=>{const values=[1];console.log(values[9]);detach(worker);},Err(error)=>{}}",
     ] {
         let directory=support::TempDirectory::new();
         let source=format!("import {{spawn,join,detach}} from 'std:threads';function probe(flag:boolean){{{body}}}function main(){{probe(true);}}");
@@ -102,7 +92,6 @@ fn void_workers_join_and_discarded_module_owners_reject() {
     let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
     for source in [
-        "import {spawn} from 'std:threads';const pending=spawn(():int=>1);function main(){}",
         "import {spawn} from 'std:threads';function main(){const value=(spawn(():int=>1),2);}",
     ] {
         let path=directory.source(&support::format_round_trip(source));
@@ -116,21 +105,20 @@ fn void_workers_join_and_discarded_module_owners_reject() {
 fn scoped_cleanup_covers_normal_return_throw_and_loop_exits() {
     let directory = support::TempDirectory::new();
     let source = r#"
-import {spawnScoped,join,detach} from 'std:threads';
-import {unwrap} from 'std:result';
+import {spawn,join,detach} from 'std:threads';
 import {strictEqual} from 'std:testing';
-function early(){const worker=unwrap(spawnScoped(():void=>{console.log('returned');}));return;}
-function failing(){const worker=unwrap(spawnScoped(():void=>{console.log('cleaned');throw 'worker error';}));throw 'caller error';}
+function early(){const worker=unwrap(spawn(():void=>{console.log('returned');}));return;}
+function failing(){const worker=unwrap(spawn(():void=>{console.log('cleaned');throw 'worker error';}));throw 'caller error';}
 function main(){
-    {const worker=unwrap(spawnScoped(():void=>{console.log('normal');}));}
+    {const worker=unwrap(spawn(():void=>{console.log('normal');}));}
     console.log('after normal');
     early();console.log('after return');
     try{failing();}catch(error){if(typeof error==='string'){strictEqual(error,'caller error');console.log(error);}else{throw error;}}finally{console.log('finally');}
-    for(let i=0;i<2;i+=1){const worker=unwrap(spawnScoped(():void=>{console.log('iteration');}));if(i===0){continue;}break;}
+    for(let i=0;i<2;i+=1){const worker=unwrap(spawn(():void=>{console.log('iteration');}));if(i===0){continue;}break;}
     console.log('after loop');
-    const done=unwrap(spawnScoped(():void=>{}));unwrap(join(done));
-    const detached=unwrap(spawnScoped(():void=>{}));detach(detached);
-    try{const worker=unwrap(spawnScoped(():int=>{throw 'original';}));unwrap(join(worker));}catch(error){console.log(error.code);}
+    const done=unwrap(spawn(():void=>{}));unwrap(join(done));
+    const detached=unwrap(spawn(():void=>{}));detach(detached);
+    try{const worker=unwrap(spawn(():int=>{throw 'original';}));unwrap(join(worker));}catch(error){console.log(error.code);}
 }
 "#;
     let path=directory.source(&support::format_round_trip(source));
@@ -145,8 +133,7 @@ fn scoped_workers_overlap_before_join_without_timing_a_speedup() {
     // Each worker must see the other's marker before either can complete.
     // Sequential execution fails the deadline instead of appearing to overlap.
     let source = r#"
-import {spawnScoped,join} from 'std:threads';
-import {unwrap} from 'std:result';
+import {spawn,join} from 'std:threads';
 import {writeFile,readFile} from 'std:fs';
 import {fromUtf8} from 'std:bytes';
 import {monotonicNow} from 'std:time';
@@ -158,8 +145,8 @@ function rendezvous(own:string,other:string):int{
     throw 'workers did not overlap';
 }
 function main(){
-    const first=unwrap(spawnScoped(():int=>rendezvous('first.ready','second.ready')));
-    const second=unwrap(spawnScoped(():int=>rendezvous('second.ready','first.ready')));
+    const first=unwrap(spawn(():int=>rendezvous('first.ready','second.ready')));
+    const second=unwrap(spawn(():int=>rendezvous('second.ready','first.ready')));
     const a=unwrap(join(first));const b=unwrap(join(second));strictEqual(a+b,42);
 }
 "#;
@@ -172,18 +159,17 @@ function main(){
 fn unwrap_preserves_owned_and_union_errors_and_scoped_moves_remain_linear() {
     let directory = support::TempDirectory::new();
     let source=r#"
-import {unwrap} from 'std:result';
-import {spawnScoped,join,ScopedThread,ThreadError} from 'std:threads';
+import {spawn,join,Thread,ThreadError} from 'std:threads';
 import {strictEqual} from 'std:testing';
 function result(flag:boolean):Result<string,string|int>{if(flag){return Ok('owned');}return Err('failure');}
-function take(worker:ScopedThread<int,undefined>):int{return unwrap(join(worker));}
+function take(worker:Thread<int,undefined>):int{return unwrap(join(worker));}
 function main(){
     strictEqual(unwrap(result(true)),'owned');
     const values=unwrap(Ok<int[],string>([1,2]));values.push(3);strictEqual(values.length,3);
     unwrap(Ok<void,string>());
     try{unwrap(Err<int,string>('direct'));}catch(error){strictEqual(error,'direct');}
     try{unwrap(result(false));}catch(error){strictEqual(String(error),'failure');}
-    const worker=unwrap(spawnScoped(():int=>42));strictEqual(take(worker),42);
+    const worker=unwrap(spawn(():int=>42));strictEqual(take(worker),42);
 }
 "#;
     let path=directory.source(&support::format_round_trip(source));
@@ -191,12 +177,12 @@ function main(){
     for body in [
         "unwrap(42);",
         "const operation=unwrap;",
-        "const worker=unwrap(spawnScoped(():int=>42));join(worker);join(worker);",
-        "const worker=unwrap(spawnScoped(():int=>42));const workers=[worker];",
-        "const worker=unwrap(spawnScoped(():int=>42));const cb=():void=>{join(worker);};",
-        "const text='borrowed';const cb=():int=>text.length;const worker=unwrap(spawnScoped(cb));console.log(text);",
+        "const worker=unwrap(spawn(():int=>42));join(worker);join(worker);",
+        "const worker=unwrap(spawn(():int=>42));const workers=[worker];",
+        "const worker=unwrap(spawn(():int=>42));const cb=():void=>{join(worker);};",
+        "const text='borrowed';const cb=():int=>text.length;const worker=unwrap(spawn(cb));console.log(text);",
     ] {
-        let source=format!("import {{unwrap}} from 'std:result';import {{spawnScoped,join}} from 'std:threads';function main(){{{body}}}");
+        let source=format!("import {{spawn,join}} from 'std:threads';function main(){{{body}}}");
         let path=directory.source(&support::format_round_trip(&source));
         let output=support::run(support::cli().arg("check").arg(path),30);
         assert!(!output.status.success(),"accepted {source}");
@@ -211,4 +197,39 @@ fn scoped_example_without_explicit_throw_activates_typed_transport() {
     let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);
     support::success(&output);assert_eq!(output.stdout,b"25205\n");
+}
+
+#[test]
+fn default_spawn_cleans_up_ignored_success_replacement_and_fallible_work() {
+    let directory=support::TempDirectory::new();
+    let source=r#"
+import {spawn,join} from 'std:threads';
+import {strictEqual} from 'std:testing';
+function main(){
+    match(spawn(():void=>{console.log('ignored');})){Ok(_)=>{},Err(error)=>{throw error;}}
+    console.log('after ignored');
+    {
+        let worker=unwrap(spawn(():void=>{console.log('replaced');}));
+        const silent=false;
+        worker=unwrap(spawn(():void=>{if(silent){console.log('unused');}}));
+        console.log('after replacement');
+    }
+    try{
+        const worker=unwrap(spawn(():void=>{console.log('bounds cleanup');}));
+        const values=[1];console.log(values[9]);
+        unwrap(join(worker));
+    }catch(error){console.log('after failure');}
+}
+"#;
+    let path=directory.source(&support::format_round_trip(source));
+    let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
+    assert_eq!(output.stdout,b"ignored\nafter ignored\nreplaced\nafter replacement\nbounds cleanup\nafter failure\n");
+}
+
+#[test]
+fn global_unwrap_preserves_user_defined_names() {
+    for source in [
+        "function unwrap(value:int):int{return value+1;}function main(){unwrap(2);}",
+        "function main(){const unwrap=(value:int):int=>value+1;unwrap(2);}",
+    ] { tsrust_compiler::check(&support::format_round_trip(source)).unwrap(); }
 }

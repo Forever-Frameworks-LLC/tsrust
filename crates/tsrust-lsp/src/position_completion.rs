@@ -115,7 +115,7 @@ impl SourceIndex {
         } else {
             let expanded = self.type_aliases.get(&receiver).map_or(receiver.as_str(), String::as_str);
             let parts = expanded.split('|').map(str::trim).collect::<Vec<_>>();
-            if parts.iter().all(|part| self.nominal_definitions.contains_key(*part)) {
+            if parts.iter().all(|part| self.nominal_definitions.contains_key(*part) || self.symbols.iter().any(|symbol| symbol.name == *part && symbol.kind == 23)) {
                 parts.into_iter().map(|name| (name.to_string(), name.to_string(), "value")).collect()
             } else if expanded == "boolean" {
                 return Some(json!(["true", "false", "_"].into_iter().filter(|name| name.starts_with(&self.source[prefix_start..offset]) && !written.contains(name)).map(|name| json!({"label":name,"kind":20,"textEdit":{"range":self.range(Span::new(prefix_start,offset)),"newText":format!("{name} => $0")},"insertTextFormat":2})).collect::<Vec<_>>()));

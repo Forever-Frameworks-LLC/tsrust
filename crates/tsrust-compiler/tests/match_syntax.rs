@@ -43,11 +43,9 @@ fn malformed_match_patterns_and_bodies_report_bounded_source_diagnostics() {
         "match (x) { Ok(x, y) => {} }",
         "match (x) { Ok() => {} }",
         "match (x) { Ok(value) {} }",
-        "match (x) { Ok(value) => value }",
         "match (x) { Ok(value) => {",
         "match (x) { _() => {} }",
         "match (x) { Ok(value) if true => {} }",
-        "match (x) { 4 => {} }",
         "match (x) {} trailing",
     ] {
         let error = parse(source).unwrap_err();
@@ -72,4 +70,20 @@ fn arm_bodies_share_existing_statement_parser_and_depth_limit() {
     let error = parse(&deep).unwrap_err();
     assert_eq!(error.code, "unsupported");
     assert!(error.message.contains("nesting"));
+}
+
+#[test]
+fn concise_arms_and_literal_patterns_preserve_spans_after_formatting() {
+    for source in ["match (x) { Ok(value) => value }", "match (x) { 4 => {} }"] {
+        let formatted = tsrust_compiler::format(source).unwrap();
+        assert_eq!(tsrust_compiler::format(&formatted).unwrap(), formatted);
+        let parsed = parse(&formatted).unwrap();
+        assert_eq!(parsed.arms.len(), 1);
+        let arm = &parsed.arms[0];
+        match arm.pattern {
+            Pattern::Literal(span) => assert_eq!(&formatted[span.start..span.end], "4"),
+            Pattern::Variant { .. } => assert_eq!(&formatted[arm.body.start..arm.body.end], "value"),
+            Pattern::Wildcard(_) => panic!("unexpected wildcard"),
+        }
+    }
 }

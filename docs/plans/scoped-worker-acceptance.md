@@ -1,5 +1,8 @@
 # Scoped worker ergonomics
 
+Historical slice. The [default cleanup update](default-worker-cleanup.md) supersedes
+its opt-in cleanup surface and mandatory explicit settlement rules.
+
 This slice adds `spawnScoped` and `ScopedThread<T, E>` to `std:threads`, plus
 `unwrap` in `std:result`. The original `spawn`, `join` and `detach` contracts remain
 available. No general defer syntax, scheduler, pool, cancellation or borrowed

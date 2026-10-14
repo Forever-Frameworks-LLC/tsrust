@@ -134,11 +134,20 @@ consumers for the next accepted public API change using atomic sibling replaceme
 restart both editor servers and check open-document diagnostics. Request both
 `--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries explicitly.
 
-The scoped ergonomics follow-up adds opt-in fallback joining and `std:result`
-`unwrap`; see [scoped acceptance](../plans/scoped-worker-acceptance.md). Raw Thread settlement stays explicit;
-ScopedThread registers joining with its owner and transfers that duty on moves.
+The current pass adds value-producing matches, scalar literal patterns and named
+record variants. See [match acceptance](../plans/match-values-acceptance.md).
+It also makes worker cleanup the default for `spawn` and exposes global `unwrap`;
+see [default cleanup](../plans/default-worker-cleanup.md). Compatibility spellings
+remain available. Family checks are in progress; update acceptance before handoff.
 
 Owner clarification: configurable default pools must also be a stdlib option.
 Evaluate Rayon; preserve dedicated OS-thread spawning. Pool sizing, admission,
 nested waits and shutdown still need implementation and acceptance after this
 scoped-cleanup slice. Do not treat the pool requirement as declined or completed.
+
+Required next S12 work: configurable default pool, cancellation for dedicated and
+pooled workers, Rayon bridging, and dedicated-worker channels. Preserve owned
+transfer and typed completion. Pool task accounting survives completion until join;
+saturation returns an error rather than blocking admission. Cancellation requests
+need acknowledged completion and cleanup, not forced thread termination. Full
+requirements and acceptance witnesses are in the default-cleanup document.

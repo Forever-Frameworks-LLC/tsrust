@@ -145,9 +145,9 @@ callback lowering, typed Result completion and explicit lifecycle checks. See
 storage/control-flow limits. Bounded channels and Rust/pool integration remain open.
 Direct OS-thread spawning does not select or freeze a future pool contract.
 
-The scoped ergonomics follow-up adds opt-in fallback joining and `std:result`
-`unwrap`; see [scoped acceptance](scoped-worker-acceptance.md). Raw Thread settlement stays explicit;
-ScopedThread registers joining with its owner and transfers that duty on moves.
+The [default cleanup update](default-worker-cleanup.md) makes fallback joining part
+of `spawn` and exposes global `unwrap`. Moves transfer cleanup responsibility.
+The older scoped spellings remain compatibility forms.
 
 ## Owner clarification (2026-10-14)
 
@@ -176,3 +176,10 @@ against these requirements. This is required follow-up, not an accepted API yet.
 Current round prioritizes value-producing matches, literal patterns and named
 record variants with ownership, runtime and editor acceptance. Thread API
 simplification follows; pool work remains high priority if it cannot fit this round.
+
+Owner addition (2026-10-14): cancellation is required for both dedicated and pooled
+workers. Rayon bridging and dedicated-worker channels are also required S12 work.
+See [cancellation and integration requirements](default-worker-cleanup.md#additional-owner-requirements-cancellation-rayon-and-channels).
+These requirements remain pending implementation and must not disappear behind the
+accepted match/default-cleanup slice. Cancellation must preserve ownership cleanup
+and distinguish a request from acknowledged completion.

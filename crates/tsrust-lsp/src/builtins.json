@@ -30,7 +30,7 @@
       "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes."
     }
   ],
-  "documentation": "Starts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes.\n\nOwnership: consumes the callback and transfers owned captures; caller loans and program-state borrows are rejected. The handle cannot be cloned or stored in containers. Join or detach consumes it and cancels fallback joining.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
+  "documentation": "Compatibility spelling. Prefer spawn: both functions start immediately and join during owner cleanup.\n\nStarts one OS thread immediately and registers fallback joining with the returned owner. The zero-argument callback runs once; T is its return type and E its inferred thrown payload, or undefined. Returns Ok with a scoped handle or Err with code spawn and an OS message. Failed creation disposes the callback. No options or defaults. Leaving the owning scope waits for an unsettled worker, including on return or error. Moving the handle transfers cleanup responsibility. Fallback cleanup discards completion values and failures; use join to observe them. Cleanup never replaces a pending caller error, and can wait indefinitely for a worker that never finishes.\n\nOwnership: consumes the callback and transfers owned captures; caller loans and program-state borrows are rejected. The handle cannot be cloned or stored in containers. Join or detach consumes it and cancels fallback joining.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
   "examples": [
     {
       "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
@@ -41,7 +41,7 @@
 {
   "name": "ScopedThread",
   "signature": "type ScopedThread<T, E>",
-  "documentation": "An opaque, uniquely owned worker handle with fallback joining at the end of its owning scope. No fields, constructors or arguments. Obtain it from spawnScoped. Use join to collect its result or detach to explicitly stop waiting. Moving it transfers cleanup responsibility. Fallback cleanup waits and discards the completion, including failures, without replacing a pending error. It can block indefinitely.\n\nOwnership: cannot be cloned, inspected, placed in containers or transferred into worker callbacks.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
+  "documentation": "Compatibility spelling. Prefer Thread: both handle types join during owner cleanup.\n\nAn opaque, uniquely owned worker handle with fallback joining at the end of its owning scope. No fields, constructors or arguments. Obtain it from spawnScoped. Use join to collect its result or detach to explicitly stop waiting. Moving it transfers cleanup responsibility. Fallback cleanup waits and discards the completion, including failures, without replacing a pending error. It can block indefinitely.\n\nOwnership: cannot be cloned, inspected, placed in containers or transferred into worker callbacks.\n\n```tsrust\nimport {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
   "examples": [
     {
       "source": "import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>20));const second=unwrap(spawnScoped(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
@@ -50,23 +50,23 @@
   ]
 },
   {
-    "name": "spawn",
-    "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-    "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
-    "parameters": [
-      {
-        "label": "callback: Owned<Function<T>>",
-        "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
-      }
-    ],
-    "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected.\n\nOwnership: consumes the callback and moves its captures. Settle every successful handle with join, detach or an owned transfer. Calls must be direct; polymorphic operation values are not supported.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: 42.",
-    "examples": [
-      {
-        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
-        "output": "42\n"
-      }
-    ]
-  },
+  "name": "spawn",
+  "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+  "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+  "parameters": [
+    {
+      "label": "callback: Owned<Function<T>>",
+      "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
+    }
+  ],
+  "documentation": "Starts work immediately on a dedicated native thread and returns Result<Thread<T, E>, SpawnError>. It consumes a callback that takes no arguments and owns its captured data. Work runs concurrently; join waits only when called. If its handle leaves scope without being joined or detached, cleanup waits for completion and discards the result or error. Cleanup does not throw; call join to observe worker failures. A failed OS-thread start returns SpawnError. No pool is selected yet.\n\n```tsrust\nimport {spawn, join} from \"std:threads\";\nfunction main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}\n// 42\n```\n\nOwnership: Captures transfer without cloning. The handle has one owner. Moving it transfers cleanup responsibility; join and detach consume it.",
+  "examples": [
+    {
+      "source": "import {spawn, join} from \"std:threads\";function main(){const worker=unwrap(spawn(():int=>42));console.log(unwrap(join(worker)));}",
+      "output": "42\n"
+    }
+  ]
+},
   {
     "name": "join",
     "signature": "join(worker: Thread<T, E> | ScopedThread<T, E>): Result<T, ThreadError<E>>",
@@ -104,22 +104,22 @@
     ]
   },
   {
-    "name": "Thread",
-    "signature": "type Thread<T, E>",
-    "parameters": [],
-    "documentation": "A uniquely owned running or completed native worker. T is its returned value and E its thrown payload type. Use join to wait, or detach to release interest explicitly. Handles cannot be constructed, cloned, compared or inspected. Every path must settle or transfer ownership. This initial API supports direct values and Result wrappers; records, collections, retained callbacks, handles carried into loops and cleanup through exception regions are not supported. Settle handles before fallible work.",
-    "examples": [
-      {
-        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
-        "output": "42\n"
-      }
-    ]
-  },
+  "name": "Thread",
+  "signature": "type Thread<T, E>",
+  "parameters": [],
+  "documentation": "Owns one running or completed worker. T is its successful return type; E is its thrown payload type. join consumes the handle and returns the completion. detach consumes it without waiting. Otherwise, leaving its owning scope waits and discards completion, including on return, throw, break and continue. Cleanup can block until work finishes; it does not cancel work or throw worker errors.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    const worker = unwrap(spawn((): int => 42));\n    console.log(unwrap(join(worker))); // 42\n}\n```\n\nOwnership: One owner; moves transfer cleanup responsibility. Handles cannot be cloned, shared, captured by another callback or stored in collections.",
+  "examples": [
+    {
+      "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+      "output": "42\n"
+    }
+  ]
+},
   {
     "name": "SpawnError",
     "signature": "type SpawnError = { code: string; message: string; }",
     "parameters": [],
-    "documentation": "Failure to create a native worker. code is spawn; message describes the operating-system failure. No worker handle exists on this branch. Ownership: owns its message.",
+    "documentation": "Failure to create a native worker. code is spawn; message describes the operating-system failure. No worker handle exists on this branch.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => 42));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// 42\n```\n\nOwnership: owns its message.",
     "fields": {
       "code": {
         "documentation": "Stable failure code: spawn."
@@ -139,7 +139,7 @@
     "name": "ThreadError",
     "signature": "type ThreadError<E> = { code: string; error?: E; }",
     "parameters": [],
-    "documentation": "Worker completion failure. code worker retains the original typed thrown payload in error. code panic reports a backend panic and error is undefined. Check error against undefined before reading an optional payload. Ownership: owns the thrown payload; no string conversion or cloning occurs.",
+    "documentation": "Worker completion failure. code worker retains the original typed thrown payload in error. code panic reports a backend panic and error is undefined. Check error against undefined before reading an optional payload.\n\n```tsrust\nimport { spawn, join } from 'std:threads';\nfunction main() {\n    try {\n        const worker = unwrap(spawn((): int => { throw 'failed'; }));\n        console.log(unwrap(join(worker)));\n    } catch (error) {\n        console.log(error.code);\n    }\n}\n// worker\n```\n\nOwnership: owns the thrown payload; no string conversion or cloning occurs.",
     "fields": {
       "code": {
         "documentation": "worker for a source throw; panic for a backend panic."
@@ -3877,6 +3877,25 @@
       }
     ]
   }
+,
+{
+  "name": "unwrap",
+  "signature": "unwrap(result: Result<T, E>): T",
+  "inferredSignature": "function unwrap(result: Result<T, E>): T",
+  "parameters": [
+    {
+      "label": "result: Result<T, E>",
+      "documentation": "Returns the Ok payload or throws the original Err payload through ordinary try/catch/finally. Takes one Result, with no defaults or additional options. Result<void, E> returns no value on success. Errors retain their type and owned contents; unwrap does not panic or stringify them. Use match when each failure needs local recovery."
+    }
+  ],
+  "documentation": "Returns the Ok payload or throws the original Err payload through ordinary try/catch/finally. Takes one Result, with no defaults or additional options. Result<void, E> returns no value on success. Errors retain their type and owned contents; unwrap does not panic or stringify them. Use match when each failure needs local recovery.\n\nOwnership: consumes the Result and moves its active payload without cloning. Calls must be direct; polymorphic function values are unsupported.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){const first=unwrap(spawn(():int=>20));const second=unwrap(spawn(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}\n```\n\nExpected output: 42.",
+  "examples": [
+    {
+      "source": "import {spawn,join} from 'std:threads';function main(){const first=unwrap(spawn(():int=>20));const second=unwrap(spawn(():int=>22));const a=unwrap(join(first));const b=unwrap(join(second));console.log(a+b);}",
+      "output": "42\n"
+    }
+  ]
+}
 ],
   "ArrayConstructor": [
   {

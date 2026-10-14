@@ -22,7 +22,6 @@ impl Analyzer {
     pub(super) fn finish_return(&mut self, context: &mut Context, value: &mut Option<Expr>, frame: ReturnFrame, mut actual: Type) -> Result<(), Diagnostic> {
         let ReturnFrame { result_type, span, .. } = frame;
         context.returning_closure = false;
-        self.thread_scope_exit(context, 0, span)?;
         let facts = self.aggregate_callable_facts(actual);
         // An absent nullable record holds no callback instance to escape.
         let absent_record = self.nullable_scoped_record_declaration(actual).is_some()

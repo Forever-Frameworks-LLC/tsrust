@@ -120,10 +120,18 @@ impl Parser<'_> {
                 ParsedPattern::Wildcard(_) => None,
                 ParsedPattern::Literal(value) => Some(Expr::new(ExprKind::Binary { op: BinaryOp::Equal, operator: value.span, left: Box::new(Expr::new(ExprKind::Name(holder.text.clone()), span)), right: Box::new(value) }, arm.span)),
                 ParsedPattern::Variant { name, binding } => {
+                    // Retain the selected variant so payload loans keep their original ownership mode.
+                    let at = binding.as_ref().map_or(name.span, |binding| binding.span);
+                    let value = intrinsic("@match:payload", Some((&name.text, name.span)), at);
+                    let mut temporary = self.pattern_holder();
+                    temporary.span = Span::new(at.start, at.start);
                     if let Some(binding) = binding {
-                        let value = intrinsic("@match:payload", Some((&name.text, name.span)), binding.span);
+                        let selected = Expr::new(ExprKind::Name(temporary.text.clone()), binding.span);
+                        let callee = Expr::new(ExprKind::Name("@match:binding".into()), binding.span);
+                        let value = Expr::new(ExprKind::Call(Box::new(callee), vec![selected]), binding.span);
                         body.insert(0, statement(StmtKind::Let { rebindable: false, name: binding, annotation: None, value, binding: None }, arm.span));
                     }
+                    body.insert(0, statement(StmtKind::Let { rebindable: false, name: temporary, annotation: None, value, binding: None }, arm.span));
                     Some(intrinsic("@match:variant", Some((&name.text, name.span)), arm.span))
                 }
             };

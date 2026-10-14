@@ -112,6 +112,22 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 }
 ```
 
+For concise error propagation, global `unwrap(result)` consumes the Result, returns
+its successful payload, or throws its original error payload. Use ordinary
+`try`/`catch` when the caller handles that error. An existing user-defined `unwrap`
+keeps its meaning; `std:result` also retains the explicit import for compatibility.
+
+```ts
+function main() {
+    try {
+        const value = unwrap(divide(10, 2));
+        console.log(value); // 5
+    } catch (error) {
+        console.error(error);
+    }
+}
+```
+
 ## Value matches, literals and named variants
 
 A match can produce a value: `const name = match (result) { Ok(value) => value,

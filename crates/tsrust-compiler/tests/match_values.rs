@@ -37,6 +37,7 @@ fn matches_evaluate_once_and_keep_expression_order_and_enclosing_returns() {
 import {strictEqual} from "std:testing";
 let calls = 0;
 function next(): Result<int,string> { calls += 1; return Ok(calls); }
+function numberCase(value:1.0|2.0):int{return match(value){1=>10,2=>20,};}
 function selected(flag:boolean):int {
     const value=match(flag){true=>{return 9;},false=>4,};
     return value;
@@ -51,6 +52,7 @@ function main(){
     strictEqual(match("hello"){"bye"=>1,"hello"=>2,_=>3,},2);
     strictEqual(match(-2){-2=>7,_=>0,},7);
     strictEqual(match(1.5){1.5=>8,_=>0,},8);
+    strictEqual(match(null){null=>3,},3);strictEqual(match(undefined){undefined=>4,},4);strictEqual(numberCase(1.0),10);
     const nested=match(true){true=>match(false){true=>0,false=>11,},false=>0,};
     strictEqual(nested,11);
     strictEqual(match(true){true=>"hello",false=>"no",}.length,5);
@@ -77,6 +79,7 @@ fn matches_check_finite_unions_borrows_callbacks_and_argument_loans() {
         "type A={value:int;};type B={value:int;};function read(x:ReadOnly<A|B>):int{return match(x){A(a)=>a.value,B(b)=>b.value,};}function main(){const member:A={value:3};const a:A|B=member;console.log(read(a),read(a));}",
         "function main(){const result:Result<int[],string>=Ok([1,2]);const values=match(result){Ok(v)=>v,Err(_)=>[0],};values.push(3);console.log(values.length);}",
         "type User={name:string;};function read(user:ReadOnly<User>):int{return match(user){User(value)=>value.name.length,};}function main(){const user:User={name:'Ada'};console.log(read(user),read(user));}",
+        "type A={a:int;};type B={b:int;};type C={c:int;};function read(x:A|B|C):int{return match(x){A(a)=>a.a,B(b)=>b.b,C(c)=>c.c,};}function main(){const b:B={b:42};console.log(read(b));}",
     ] {
         let directory=support::TempDirectory::new();
         let path=directory.source(&support::format_round_trip(source));

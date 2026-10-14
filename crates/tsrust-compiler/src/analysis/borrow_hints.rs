@@ -47,7 +47,7 @@ impl Analyzer {
                 | ExprKind::Unary { op: UnaryOp::PatternSelection, value, .. } => {
                     pending.push(Work::Indexed(value)); pending.push(Work::Borrowed(value));
                 }
-                ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => {
+                ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "@match:payload" | "@match:binding")) => {
                     if let Some(value) = arguments.first() {
                         if self.expression_type_hint(context, value).is_some_and(|ty| matches!(ty, Type::BorrowedUnion(_))) { return true; }
                         pending.push(Work::Borrowed(value));

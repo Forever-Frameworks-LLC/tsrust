@@ -46,7 +46,7 @@ fn thread_catalog_examples_check_and_execute() {
     let entries = catalog["std:threads"].as_array().unwrap();
     assert_eq!(entries.len(), 8);
     let mut seen=std::collections::HashSet::new();
-    for entry in entries.iter().chain(catalog["std:result"].as_array().unwrap()) {
+    for entry in entries.iter().chain(catalog["std:result"].as_array().unwrap()).chain(catalog["globals"].as_array().unwrap().iter().filter(|entry| entry["name"] == "unwrap")) {
         for example in entry["examples"].as_array().unwrap() {
             if !seen.insert(example["source"].as_str().unwrap()) { continue; }
             let source = tsrust_compiler::format(example["source"].as_str().unwrap()).unwrap();
@@ -104,11 +104,11 @@ fn declared_thread_error_fields_survive_unrelated_syntax_errors() {
 
 #[test]
 fn scoped_workers_and_propagation_have_checked_hover_and_signatures() {
-    let source="import {spawnScoped,join} from 'std:threads';import {unwrap} from 'std:result';function main(){const first=unwrap(spawnScoped(():int=>42));const value=unwrap(join(first));console.log(value);}";
+    let source="import {spawn,join} from 'std:threads';function main(){const first=unwrap(spawn(():int=>42));const value=unwrap(join(first));console.log(value);}";
     let uri="file:///scoped-workers.tsr";let id=source_id(uri).unwrap();
     let mut workspace=Workspace::default();workspace.open(id.clone(),1,source.into());
     let checked=workspace.snapshot().check(&id).unwrap();let index=ProjectIndex::checked(&checked);
-    for (needle,expected) in [("join(first","ScopedThread<int, undefined>"),("console.log(value","int")] {
+    for (needle,expected) in [("join(first","Thread<int, undefined>"),("console.log(value","int")] {
         let offset=source.find(needle).unwrap()+needle.len()-1;
         let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":offset}}),uri).unwrap().unwrap();
         assert!(hover.to_string().contains(expected),"{hover}");

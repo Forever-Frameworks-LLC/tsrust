@@ -1,5 +1,4 @@
-import { spawnScoped, join } from 'std:threads';
-import { unwrap } from 'std:result';
+import { spawn, join } from 'std:threads';
 
 function sumTo(limit: int): int {
   let total = 0;
@@ -12,8 +11,8 @@ function sumTo(limit: int): int {
 
 function main() {
   // Both workers start before either join waits.
-  const first = unwrap(spawnScoped((): int => sumTo(100)));
-  const second = unwrap(spawnScoped((): int => sumTo(200)));
+  const first = unwrap(spawn((): int => sumTo(100)));
+  const second = unwrap(spawn((): int => sumTo(200)));
 
   // The caller can keep working while both workers run.
   const callerTotal = sumTo(10);

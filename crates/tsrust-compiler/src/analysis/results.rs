@@ -4,7 +4,7 @@ impl Analyzer {
     pub(super) fn result_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(None); };
         let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
-        if !crate::native_bindings::by_symbol(name).is_some_and(|(_, binding)| binding.module == "std:result" && binding.name == "unwrap") { return Ok(None); }
+        if !(name == "unwrap" && !context.names.contains_key(name) && !self.function_names.contains_key(name)) && !crate::native_bindings::by_symbol(name).is_some_and(|(_, binding)| binding.module == "std:result" && binding.name == "unwrap") { return Ok(None); }
         if arguments.len() != 1 { return Err(Diagnostic::new("arity", "unwrap expects one Result argument.", expression.span)); }
         let actual = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
         let members = match actual { Type::Union(id) => self.unions.members(id), ty => vec![ty] };

@@ -3480,6 +3480,7 @@ impl SourceIndex {
             "true",
             "false",
             "clone",
+            "unwrap",
             "Result",
             "Ok",
             "Err",
@@ -3723,7 +3724,7 @@ impl SourceIndex {
             let (label, docs, parameters) = if let Some(b) = self.builtin_at(callee).or_else(|| {
                 matches!(
                     self.text(callee),
-                    "Number" | "clone" | "String" | "Boolean" | "Set" | "Map" | "Ok" | "Err" | "parseInt" | "parseFloat" | "isNaN" | "isFinite"
+                    "Number" | "clone" | "unwrap" | "String" | "Boolean" | "Set" | "Map" | "Ok" | "Err" | "parseInt" | "parseFloat" | "isNaN" | "isFinite"
                 )
                     .then(|| self.global_builtin_at(callee))
                     .flatten()

@@ -17,14 +17,14 @@ impl Analyzer {
         match &value.kind {
             ExprKind::Name(name) => context.names.get(name).is_some_and(|id| context.mutable_parameters.contains(id) || context.bindings[*id].mutable_place),
             ExprKind::Field(base, _) | ExprKind::Project { value: base, .. } => Self::mutable_match_source(context, base),
-            ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload") => arguments.first().is_some_and(|value| Self::mutable_match_source(context, value)),
+            ExprKind::Call(callee, arguments) if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "@match:payload" | "@match:binding")) => arguments.first().is_some_and(|value| Self::mutable_match_source(context, value)),
             _ => false,
         }
     }
 
     pub(super) fn mutable_match_initializer(context: &Context, name: &Token, value: &Expr) -> bool {
         let generated = name.text.starts_with("match#")
-            || matches!(&value.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:payload"))
+            || matches!(&value.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "@match:payload" | "@match:binding")))
             || matches!(&value.kind, ExprKind::Project { .. }) && name.text.starts_with("pattern#")
             || matches!(&value.kind, ExprKind::Field(base, _) if matches!(&base.kind, ExprKind::Name(name) if name.starts_with("pattern#")));
         generated && Self::mutable_match_source(context, value)
@@ -51,9 +51,20 @@ impl Analyzer {
     pub(super) fn result_match_intrinsic(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans) -> Result<Option<Type>, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &expression.kind else { return Ok(None); };
         let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
-        if !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload") { return Ok(None); }
+        if !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload" | "@match:binding") { return Ok(None); }
         let kind = name.clone();
         let ty = self.expression_type_hint(context, &arguments[0]).ok_or_else(|| Diagnostic::new("match-type", "Match needs a known Result<T, E> type.", arguments[0].span))?;
+        if kind == "@match:binding" {
+            let value = arguments[0].clone();
+            let result = matches!(ty, Type::Record(id) if self.program.records[id].application.as_ref().is_some_and(|application| application.declaration.text.starts_with("Result#")));
+            if result && matches!(ty, Type::Record(id) if self.program.records[id].fields.is_empty()) {
+                return Err(Diagnostic::new("match-payload", "A void variant has no payload to bind; use _ inside its pattern.", expression.span));
+            }
+            let access = if Self::mutable_match_source(context, &value) { Mode::Mutate }
+                else if self.borrowed_place_hint(context, &value) { Mode::Read } else { Mode::Consume };
+            *expression = if result { Expr::new(ExprKind::Field(Box::new(value), "payload".into()), expression.span) } else { value };
+            return self.expression(context, expression, access, loans, None).map(Some);
+        }
         let result = self.result_variant_records(ty);
         let members = ty.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![ty]);
         let variants = if let Some((_, variants)) = result {
@@ -97,13 +108,10 @@ impl Analyzer {
             *expression = Expr::new(ExprKind::Unary { op: UnaryOp::VariantIs(Type::Record(record)), operator: expression.span, value: Box::new(value) }, expression.span);
             return self.expression(context, expression, Mode::Read, loans, Some(Type::Boolean)).map(Some);
         }
-        if result.is_some() && self.program.records[record].fields.is_empty() {
-            return Err(Diagnostic::new("match-payload", "A void variant has no payload to bind; use _ inside its pattern.", expression.span));
-        }
         let projected = if let Some(union) = ty.union() {
             Expr::checked(ExprKind::Project { value: Box::new(value), union, narrowed: Type::Record(record) }, expression.span, Some(Type::Record(record)))
         } else { value };
-        *expression = if result.is_some() { Expr::new(ExprKind::Field(Box::new(projected), "payload".into()), expression.span) } else { projected };
+        *expression = projected;
         let access = if mutable { Mode::Mutate } else if borrowed || matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
         self.expression(context, expression, access, loans, None).map(Some)
     }

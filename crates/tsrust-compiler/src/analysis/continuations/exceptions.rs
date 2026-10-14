@@ -63,7 +63,6 @@ impl Analyzer {
     }
 
     pub(in crate::analysis) fn finish_throw_value(&self, context: &mut Context, value: &Expr, ty: Type) -> Result<Type, Diagnostic> {
-        self.thread_scope_exit(context, 0, value.span)?;
         self.thread_discard(ty, value.span)?;
         let facts = self.aggregate_callable_facts(ty);
         if facts.scoped || facts.unknown {return Err(Diagnostic::new("closure-escape","A thrown value must own any callable storage it contains.",value.span));}

@@ -244,7 +244,7 @@ fn rows() -> Vec<Row> {
     });
     rows.push(Row {
         kind: Kind::CallResult, name: "unwrapped result members",
-        before: "import {unwrap} from 'std:result';\nfunction text():Result<string,int>{return Ok('hello');}\nfunction main(){const value=unwrap(text());\n".into(),
+        before: "function text():Result<string,int>{return Ok('hello');}\nfunction main(){const value=unwrap(text());\n".into(),
         typed: "value.", after: "\n}\n",
         includes: &["length", "slice"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });

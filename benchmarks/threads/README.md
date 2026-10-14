@@ -27,3 +27,6 @@ oracle (140), and the original timing protocol. The Node counterpart starts each
 pair before awaiting completion and waits for both in finally. Source, counterpart
 and harness fingerprints are recorded automatically. `--verify --scoped` checks
 results without recording timing samples; no speedup is claimed from that check.
+
+`scoped-join` now exercises default `spawn` cleanup and global `unwrap`. The workload
+name and original measurement protocol remain stable; records retain source hashes.

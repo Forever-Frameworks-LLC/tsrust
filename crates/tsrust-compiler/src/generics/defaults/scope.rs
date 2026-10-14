@@ -168,7 +168,7 @@ pub(super) fn validate(program: &Program) -> Result<(), Diagnostic> {
         .map(|function| function.name.text.as_str())
         .collect::<HashSet<_>>();
     globals.extend([
-        "clone",
+        "clone", "unwrap",
         "String",
         "Boolean",
         "Array",

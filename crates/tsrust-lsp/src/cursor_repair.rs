@@ -123,7 +123,12 @@ impl SourceIndex {
         let receiver_end = self.tokens[separator - 1].span.end;
         self.tokens.iter().filter(|token| token.scope == 0 && token.span.start > offset
             && !token.literal && matches!(token.text.as_str(), "function" | "export" | "type" | "interface" | "enum" | "const" | "let"))
-            .map(|token| Repair { text: self.source[..token.span.start].to_owned(), start: token.span.start, receiver_end }).collect()
+            .flat_map(|token| {
+                let text = self.source[..token.span.start].to_owned();
+                let mut repairs = SourceIndex::new(&text).member_repairs(offset);
+                repairs.push(Repair { text, start: token.span.start, receiver_end });
+                repairs
+            }).collect()
     }
 
     /// Repaired documents to try, most likely first.

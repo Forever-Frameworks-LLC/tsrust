@@ -57,13 +57,13 @@ mod tests {
         let barrier = Arc::new(Barrier::new(2));
         let count = Arc::new(AtomicUsize::new(0));
         let left_barrier = barrier.clone(); let left_count = count.clone();
-        let first = scoped(spawn(move || { left_barrier.wait(); left_count.fetch_add(1, Ordering::SeqCst); Ok::<_, ()>(()) }).unwrap());
+        let first = spawn(move || { left_barrier.wait(); left_count.fetch_add(1, Ordering::SeqCst); Ok::<_, ()>(()) }).unwrap();
         let right_count = count.clone();
-        let second = scoped(spawn(move || { barrier.wait(); right_count.fetch_add(1, Ordering::SeqCst); Err::<(), _>("worker failure") }).unwrap());
+        let second = spawn(move || { barrier.wait(); right_count.fetch_add(1, Ordering::SeqCst); Err::<(), _>("worker failure") }).unwrap();
         drop(first); drop(second);
         assert_eq!(count.load(Ordering::SeqCst), 2);
-        let worker = scoped(spawn(|| Ok::<_, ()>(42)).unwrap());
-        assert!(matches!(join_scoped(worker), Ok(42)));
+        let worker = spawn(|| Ok::<_, ()>(42)).unwrap();
+        assert!(matches!(join(worker), Ok(42)));
     }
 
     #[test]
@@ -71,17 +71,15 @@ mod tests {
         use std::sync::{Arc,atomic::{AtomicUsize,Ordering}};
         struct Payload(Arc<AtomicUsize>);
         impl Drop for Payload { fn drop(&mut self) { self.0.fetch_add(1,Ordering::SeqCst); } }
-        for scoped_mode in [false, true] {
         let count=Arc::new(AtomicUsize::new(0));
         let payload=Payload(count.clone());
         let (release,wait)=std::sync::mpsc::channel();
         let (done,finished)=std::sync::mpsc::channel();
         let worker=spawn(move || { wait.recv().unwrap(); drop(payload); done.send(()).unwrap(); Ok::<_,()>(()) }).unwrap();
-        if scoped_mode { detach_scoped(scoped(worker)); } else { detach(worker); }
+        detach(worker);
         assert_eq!(count.load(Ordering::SeqCst),0);
         release.send(()).unwrap();
         finished.recv_timeout(std::time::Duration::from_secs(5)).unwrap();
         assert_eq!(count.load(Ordering::SeqCst),1);
-        }
     }
 }

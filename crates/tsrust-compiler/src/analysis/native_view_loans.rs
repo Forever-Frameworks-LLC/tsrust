@@ -959,6 +959,9 @@ mod tests {
             Analyzer::check_native_view_access(&context, owner, Mode::Mutate, Span::default())
                 .is_ok()
         );
+        let ignored = crate::formatting::format(&source.replace("Err(error)", "Err(_)" )).unwrap();
+        let mut ignored_body = crate::syntax::parse(&ignored).unwrap().functions.remove(0).body;
+        analyzer.block(&mut before.clone(), &mut ignored_body, Type::Void).unwrap();
         let source =
             r#"function main(){match(result){Ok(value)=>{owner="changed";}Err(error)=>{}}}"#;
         let formatted = crate::formatting::format(source).unwrap();

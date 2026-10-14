@@ -74,11 +74,6 @@ impl Analyzer {
         if !matches!(kind, Kind::Scalar) { self.reject_string_position_write(context, target)?; }
         let named = matches!(target.kind, ExprKind::Name(_));
         if named {
-            if let ExprKind::Name(name) = &target.kind {
-                if context.names.get(name).is_some_and(|&id| self.thread_live(context,id)) {
-                    return Err(Diagnostic::new("thread-lifecycle", "Settle the existing thread owner before assigning a replacement.", target.span));
-                }
-            }
             self.rebind_target(context, target)?;
         }
         else if !Self::named_storage(target) || !matches!(target.kind, ExprKind::Field(_, _) | ExprKind::Index(_, _)) {
@@ -149,7 +144,6 @@ impl Analyzer {
 
     pub(super) fn finish_assignment_value(&mut self, context: &mut Context, target: &Expr, value: &Expr, frame: Value, operator: Span, loans: &Loans, actual: Type) -> Result<Type, Diagnostic> {
         let Value { kind, named, ty, skipped } = frame;
-        if !matches!(kind, Kind::Scalar) { self.thread_scope_exit(context, 0, operator)?; }
         self.require(actual, Some(ty), if matches!(kind, Kind::Scalar) { value.span } else { operator })?;
         Self::storage_access(context, target, Mode::Mutate, target.span, loans)?;
         for (id, before) in skipped { before.join(Availability::of(&context.bindings[id])).restore(&mut context.bindings[id]); }

@@ -838,12 +838,12 @@ impl Linker<'_> {
                     if let Some(linked) = self.names.get(name) {
                         *name = linked.clone();
                     } else if crate::native_bindings::by_symbol(name).is_none()
-                        && !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload" | "@match:yield")
+                        && !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload" | "@match:binding" | "@match:yield")
                         && crate::syntax::global_number_member(name, false).is_none()
                         && crate::syntax::global_number_member(name, true).is_none()
                         && !matches!(
                         name.as_str(),
-                        "Object#in" | "console" | "Math" | "Number" | "JSON" | "Array" | "Set" | "Map" | "Result" | "Ok" | "Err" | "Object" | "String" | "Boolean" | "clone" | "undefined"
+                        "Object#in" | "console" | "Math" | "Number" | "JSON" | "Array" | "Set" | "Map" | "Result" | "Ok" | "Err" | "Object" | "String" | "Boolean" | "clone" | "unwrap" | "undefined"
                     ) {
                         *name = symbol(self.module, name);
                     }

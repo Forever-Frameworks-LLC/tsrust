@@ -903,6 +903,7 @@ fn every_catalog_entry_has_a_current_compiler_witness() {
                     "Set" => "new Set<int>([1]).size",
                     "Map" => "new Map<string, int>().size",
                     "clone" => "clone(\"text\").length",
+                    "unwrap" => "unwrap(Ok<int,string>(42))",
                     _ => panic!("unverified global {method}"),
                 };
                 assert!(
