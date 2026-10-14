@@ -391,7 +391,9 @@ are installed.
 
 Open, in priority order:
 
-1. Program-scoped test registry (owner-approved option 1):
+1. Program-scoped test registry (owner-approved invocation-time borrowing;
+   supersedes retained callback borrows, native design witness passes, compiler
+   integration remains pending):
    [handoff](program-scoped-test-registry.md).
 2. Nested `concat` arguments still recurse through
    `concat_string_arguments` -> `expression`. Debug builds overflow between
