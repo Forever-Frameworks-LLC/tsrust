@@ -148,5 +148,11 @@ provides no basis for another optimization pass. These are dispatch
 microbenchmarks, not application speedup claims. Original records are retained.
 
 Exact `tsrust-threadpool-*.log` evidence and both new benchmark records are stored
-in SQLite after byte-for-byte restoration checks. Release consumer refresh follows
-the accepted source checkpoint.
+in SQLite after byte-for-byte restoration checks. Implementation checkpoint
+`c4013ce5` and documentation refinement `4b4d5e20` are accepted. Release CLI/LSP
+and shared-target debug consumers are refreshed; installed binaries match their
+release SHA-256 hashes. Both installed-CLI examples produce expected output. The
+primary VS Code server was restarted and reports checking enabled with No Problems.
+The secondary editor window was not rechecked. Full unrelated compiler/LSP suites
+were not rerun for this API migration. Retired acceptance executables (293 MiB) and
+migration scripts were removed; shared dependencies and owner editor caches remain.

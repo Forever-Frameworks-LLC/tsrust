@@ -129,7 +129,7 @@ obsolete test/native outputs without deleting owner editor caches.
 
 Five executable consumers are the installed CLI/LSP, the workspace override
 `target/editor/debug/tsrust-lsp`, and shared-target debug CLI/LSP. Consumer refresh
-now uses pool/configuration source checkpoint `33c4d741`, with atomic installed
+now uses ThreadPool source checkpoints `c4013ce5` / `4b4d5e20`, with atomic installed
 release replacements and matching SHA-256 hashes. The primary VS Code server was
 restarted and its workspace reports No Problems. The second `tsrust_test` window
 was not rechecked in this pass; reload it if it still uses an older server.
@@ -150,7 +150,8 @@ rules. A shut-down instance cannot restart; a new instance has an independent
 lifecycle. See [pool acceptance](../plans/worker-pool-cancellation.md). Migration
 compiler/runtime/editor and offline-export acceptance passes, with zero leaks in
 the cleanup corpus and current matched benchmark measurement. Release consumers
-are being refreshed from the accepted source checkpoint.
+are installed and hash-verified; the restarted primary VS Code server reports
+No Problems. Both installed-CLI examples produce their expected output.
 
 Required next S12 work: dedicated-worker channels. Preserve owned transfer and
 typed completion. Cancellation remains cooperative, with join acknowledging
