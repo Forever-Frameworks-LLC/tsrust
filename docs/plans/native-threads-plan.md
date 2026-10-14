@@ -1,8 +1,7 @@
 # Native threads: S12
 
-S12 depends on accepted S07 and can proceed independently while S10's raw output
-policy remains pending. This plan implements the existing roadmap scope, not an
-async runtime or shared-ownership expansion. S12 is not accepted.
+S12 depends on accepted S07; S10 and S11 are also accepted. This plan implements
+the existing roadmap scope, not an async runtime or shared-ownership expansion. S12 is not accepted.
 
 ## Current backend evidence
 
@@ -27,7 +26,8 @@ SQLite evidence: `tsrust-thread-backend-5c033a7e.log`. No timing measurements.
    clone, Arc/Mutex wrapper or erased lifetime.
 2. Add typed spawn and consuming join with Result-based spawn/join failures.
    Verify returned values, moved captures, callback throws, backend panics and
-   partial failure disposal. Decide unjoined-handle policy before exposing it.
+   partial failure disposal. Enforce the settled explicit join/detach policy
+   before exposing it.
 3. Add bounded channel endpoints, capacity validation, FIFO semantics, receiver
    closure and unsent-value recovery. Specify endpoint transfer and sharing;
    do not infer permission for implicit shared ownership.
@@ -37,15 +37,13 @@ SQLite evidence: `tsrust-thread-backend-5c033a7e.log`. No timing measurements.
 5. At the family milestone, run complete regressions, measure multicore and
    allocation/resource behavior, review performance and refresh consumers.
 
-## Pending public decision
+## Settled lifecycle decision (updated 2026-10-14)
 
-Unjoined handles cannot inherit Rust's detach-on-drop behavior accidentally.
-Owner question: require explicit join/detach, automatically join at scope exit,
-or detach at scope exit. Recommendation: explicit join/detach with a checker
-error otherwise. Automatic join can deadlock with bounded-channel ownership;
-silent detach allows work to outlive its caller. No option is implemented or
-assumed approved. Native threads cannot be forcibly cancelled safely; any future
-cancellation is cooperative and separately specified.
+The owner approved explicit join or detach, with a checker error for abandoned
+handles. Do not reopen this as an undecided three-way choice. Automatic join can
+deadlock with bounded channels, and silent detach permits work to outlive callers.
+Public lifecycle enforcement remains to be implemented. Native threads cannot be
+forcibly cancelled safely; future cancellation is cooperative and separately specified.
 
 ## Owned-data transfer classifier
 
@@ -66,7 +64,7 @@ Whole-project formatting changes no files or fingerprints.
 
 This internal helper is not yet connected to a public spawn/channel API. There
 is no source feature acceptance, timing result or consumer refresh for this step.
-Unjoined-handle semantics and subsequent capture/lifecycle checks remain open.
+The explicit join/detach policy is settled; public capture/lifecycle checks remain open.
 
 ## Capture storage eligibility
 

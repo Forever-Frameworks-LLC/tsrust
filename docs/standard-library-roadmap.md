@@ -1,10 +1,13 @@
 # Modules, native standard library and async roadmap
 
 Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).
-S01–S11 are accepted within their documented boundaries. On owner resumption,
-finish nesting architecture, then required existing-code optimization, then
-continue source feature implementation from S12 through S21. Historical S11-only
-stop instructions below do not create a new stop for that resumed objective.
+S01–S11 are accepted within their documented boundaries. The owner's 2026-10-14
+priority is a bounded practical-performance review, then product feature work.
+Extreme-nesting optimizations and exhaustive architecture audits are deferred
+unless representative workloads demonstrate a practical problem. S12 owned
+spawn/join and lifecycle checking is the next concrete feature slice. Older
+mandatory nesting/optimization gates below are historical; use the current
+continuation for priorities and preserved acceptance evidence.
 
 Owner-prioritized [diagnostic suppression directives](plans/diagnostic-suppression-plan.md)
 are accepted and installed for `check` and LSP reporting. Strict compilation stays

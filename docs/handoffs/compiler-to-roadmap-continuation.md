@@ -1,449 +1,137 @@
-# Continuation: compiler foundations through new roadmap features
+# Current continuation: practical performance and product features
 
-This is the current continuation entry point. Source basis: `39aaec7d` on `main`
-(object spread continuations), following `dbd03e89` (array spread) and `fa3b0d98`
-(spread checking/emission). S01–S11 are accepted within their documented boundaries;
-compiler nesting, the required optimization phase and S12–S21 are not complete.
+## Owner priority, updated 2026-10-14
 
-At this handoff the existing goal is **paused**, not complete. Preparing these
-instructions does not resume it. When the owner resumes work, continue the existing
-objective through the phases below. Do not create a duplicate goal if one exists.
-The historical S11-only stop instructions are superseded for resumed continuation.
-Do not stop again at S11, a helper checkpoint, or a single repaired crash.
+The owner approved a bounded practical-performance review and a return to product
+features. Extreme-nesting optimization is deferred. This supersedes earlier
+instructions to finish every nesting audit, eliminate every quadratic path, or
+achieve universal benchmark parity before S12. Historical measurements remain
+valid for their original inputs; they are not current acceptance requirements.
 
-## Read first and reconcile
+Do not turn this continuation into an open-ended compiler cleanup campaign.
+Fix correctness failures, crashes at practical depths, and measured costs that
+block a representative workload. Keep existing depth witnesses and diagnostics.
+Do not raise worker stacks or silently remove resource checks.
 
-Inspect Git status before editing. Read `AGENTS.md`,
-[development workflow](../development-workflow.md),
-[compiler source layout](../guides/compiler-source-layout.md),
-[roadmap](../standard-library-roadmap.md),
-[coverage](../standard-library-coverage.md),
-[schema plan](../plans/schema-plan.md), and
-[S11 acceptance](2026-10-13-s11-acceptance.md).
-Then use this handoff with the [pipeline map](../plans/compiler-nesting-pipeline.md)
-and [architecture plan](../plans/compiler-nesting-architecture.md). Those plans
-contain historical progress sections; later accepted source/evidence supersedes
-an earlier statement that a migrated path still recurses. Their original
-observations must remain intact. The pipeline's initial phase table is historical,
-not a description of the current parser or every current emitter path.
+## Accepted work and current evidence
 
-Use one agent in this tree. Preserve unrelated owner changes and the separate
-`codex/stdlib-path` worktree. Owner files include `UI_VISION.md`,
-`docs/plans/axum-hono-http-ui-contract.md`, `editable-list-app-example.md`,
-`parallel-ui-foundations-plan.md`, `ui-feasibility-review.md` and
-`ui-route-contracts-first-task.md`. The owner has authorized tracking these intended
-later-work files; preserve their contents and do not mix semantic changes to them
-into compiler work. Inspect current status instead of assuming they are untracked.
+- S01–S11 are accepted within their documented scope. The
+  [S11 acceptance](2026-10-13-s11-acceptance.md) retains its historical evidence.
+- Parser/checker/emitter worklists, disposal, constructor and spread repairs are
+  implemented across multiple checkpoints. Use the
+  [pipeline history](../plans/compiler-nesting-pipeline.md) and
+  [source layout](../guides/compiler-source-layout.md) for implementation details;
+  old open-item statements must be checked against later commits.
+- Schema `safeParse`/`safeParseJson` expose `{ success, data } | { success, error }`.
+  Compiler narrowing, editor hover/completion, examples and workload migration are
+  accepted. Do not restore the old Result-match surface.
+- Program-scoped test registry: `7c7b5bc0`. Callbacks own eligible local captures
+  and borrow module state only while invoked. Registry disposal precedes module
+  storage disposal. [Design and acceptance](program-scoped-test-registry.md).
+- Nested concat overflow: `fc82d9db`. Receiver and argument work is scheduled on
+  the shared expression stack; earlier operand loans stay active in source order.
+  Depth-100 string/array witnesses execute on normal stacks; depth 200 preserves
+  the existing admission diagnostic. All 18 affected compiler tests, 10 editor
+  agreement tests and 20 native/Node correctness cells pass.
+- Allocation fixtures/adapters: `263ff644`. Seven migrated fixtures, 19 adapter
+  tests and 189 native/direct-Rust/Node executions pass. Native allocation and
+  disposal records are in `tsrust-allocation-syntax-acceptance-2026-10-14.json`.
+- Rust warnings: `00f996c8`. Obsolete resolver entry points/import removed;
+  test-only query facades remain test-only. Live generated-runtime APIs retain
+  behavior and gain meaningful backend coverage. Workspace/all-target checking
+  reports no warnings/errors; 219 affected test executions pass. VS Code reports
+  No Problems. Evidence: `tsrust-rust-warnings-acceptance-2026-10-14.json`.
 
-## Current accepted architecture
+Original acceptance and failed attempts are stored in `benchmarks/records.sqlite`.
+Registry, concat and consumer refresh records use respectively
+`tsrust-program-registry-acceptance-2026-10-14.json`,
+`tsrust-concat-acceptance-2026-10-14.json` and
+`tsrust-consumer-refresh-2026-10-14.json`.
 
-The shared checker scheduler is `analysis/continuations/driver.rs`, with dedicated
-function, parameter, method, adapter, deferred-call, generic, spread and constructor
-frames. These own suspended expressions/bodies and resume their parents. Maintain
-context identity, expected type, access mode, active loans, capture boundaries,
-lexical restoration, generic scope, error cleanup and result-publication order.
-`finish_builtin_result` must still enforce cloneability and capture-slot collapse
-when a builtin continuation bypasses ordinary dispatch.
+## Practical performance decision
 
-| Accepted source checkpoint | What can be reused |
-| --- | --- |
-| `79295194` parser integration | One heap scheduler across the whole grammar and separate annotation frames; public admission remains migration debt. |
-| `0039df14`, `26dba7ce` editor integration | Current-text routing, cursor repair, compiler/editor agreement, typing harness and real extension-host regression. Already merged, imported and deployed; do not reintegrate Claude branches. |
-| `493cf4b7` through `f025fcba` | Shared statement/emission, storage, exception and Map completion continuations. |
-| `cf3caf6b`, `5ca42ea8`, `01c470ca` | Named bodies, defaults/destructuring and closure methods on the shared checker stack. |
-| `349df188`, `22e393e2`, `8755de98` | Collection callbacks, reductions/sorting and generic adapter wrappers with cleanup. |
-| `ae58b042`, `6e2d4fe0`, `af1078b7` | Deferred calls, generic inference/result requests and spread/receiver/optional preparation. Compatibility entries still need auditing. |
-| `fa3b0d98`, `dbd03e89`, `39aaec7d` | Spread calls, array spread constructors and object spread checking/emission. |
+See [the bounded performance review](../reviews/2026-10-14-practical-schema-performance.md)
+for current representative timings, allocation evidence, comparability limits and
+priorities. The historical 31-row S11 review has 27 slower native medians, not the
+28 claimed in its prose. Some references omit validation work, return existing
+objects, or construct simpler errors. They are handwritten references, not Zod
+measurements and not a universal language-performance ranking.
 
-AST/annotation cloning and disposal also have worklists. This does not establish
-that checked side tables, debug rendering or every auxiliary consumer is safe.
-Refer to current code and the pipeline history before repeating an old conversion.
+Use fused `safeParseJson` when validating raw JSON directly. The separate owned
+`safeParse(JSON.parse(...))` path intentionally constructs an intermediate dynamic
+tree. Preserve both APIs and their ownership contracts. Do not remove safety checks,
+add hidden clones/shared wrappers, or weaken reference observations to win a ratio.
 
-[Object spread acceptance](object-spread-continuations.md) records the latest
-section: 50 distinct driver units, 278 compiler integration tests and 11 editor
-tests pass. Normal-stack discovery completes the full pipeline through 8,192
-object-spread layers. At 32,768, analysis finishes but emission exceeds its
-30-second observation budget. This is an unresolved scaling signal, not a source
-limit or formal timing result. Two incorrect new output oracles were corrected;
-the original failed run remains in SQLite.
+Keep timing and implementation acceptance separate. No new optimization is
+required solely because a specialized reference wins a microbenchmark. Profile
+representative applications before changing general schema machinery.
 
-## Phase A: finish the compiler architecture
+## Deferred work and trigger to reopen
 
-Complete coherent paths across checking, emission, diagnostics and disposal.
-The following is the known backlog, not a claim that a text search exhausts it.
-Use the pipeline map to find remaining cross-phase cycles before choosing edits.
+1. **Quadratic fragment assembly in extremely deep expressions.** Recorded example:
+   roughly 4.8 seconds at 32,768 nested Set constructors. Programs containing many
+   ordinary functions scale linearly in the recorded checks. Reopen for measured
+   compile-time/memory impact in actual generated source or an explicit untrusted
+   compiler-service requirement. This is not a blocker for S12.
+2. **Quadratic nested array-literal spread checking.** Retain witnesses; reopen
+   when representative source makes it material.
+3. **Broader architecture audits and representation limits.** Preserve known
+   limitations and diagnose practical failures. The historical audit inventory is
+   not an instruction to exhaust every possible shape before feature work.
 
-### Immediate constructor section
+The last complete compiler/LSP regression predates the recent focused repairs.
+Do one consolidated pass at the next meaningful feature-family milestone. Preserve
+completed groups and rerun only affected failures. Do not describe the recent
+focused checks as a fresh full-suite result. Differential suites require pinned
+Node v24.11.1 first on PATH.
 
-Set and Map constructors are confirmed recursive consumers. Baseline witnesses
-complete eight layers and overflow during analysis at 32 on normal stacks.
-SQLite `tsrust-nesting-constructor-audit-*` contains exact sources and LLDB traces.
-Object spread from that audit is now repaired; Set and Map are not.
+## Next concrete feature: S12 native threads
 
-Start in `analysis/sets.rs::set_constructor`, `analysis/maps.rs::map_constructor`,
-`emit/set_emit.rs::set_constructor_expression` and
-`emit/map_emit.rs::map_constructor_expression`. Schedule source expressions on the
-existing checker/emitter stacks. Preserve arity and shadow checks, declaration and
-expected-type materialization, the empty scoped-Map exception, contextual literal
-arrays, read-mode source access, Map value cloneability, type conversion and source
-spans. Restore a moved child before propagating its error. Constructor completion
-uses the ordinary expression finish; it must not inherit the source-call capture
-postlude merely because another task shares a completion variant.
+Implement public owned `spawn` and consuming `join` with checked capture/result
+transfer, source diagnostics, explicit join/detach lifecycle enforcement, and
+failure/panic cleanup. Use [the thread plan](../plans/native-threads-plan.md) and
+[interop contracts](../interop-and-targets.md). Existing backend/transfer-classifier
+witnesses are groundwork, not public API acceptance. Finish this coherent slice
+across compiler, runtime, editor, documentation, examples and benchmark support
+before broadening to bounded channels.
 
-Retain source evaluation once and in order, null/undefined evaluation, Set string
-iteration, literal-string storage, Map tuple/source iteration and requested
-read/mutate wrappers. Pure emitter assembly must consume completed child fragments.
-Include native constructors and non-callback builtin helpers in the surrounding
-re-entry audit; repairing these two observed crashes does not close that audit.
+Preserve already settled decisions:
 
-### Remaining connected checking and type work
+- Thread handles require explicit join or detach; abandonment errors. No hidden
+  clone, automatic detach, or implicit shared ownership.
+- Local Rust modules and supported wrappers belong alongside S12 before worker
+  APIs harden. Automatic lazy default pooling for explicit threaded interop is
+  approved; evaluate Rayon and reuse compatible pools. Direct calls stay direct.
+  Queue/admission/shutdown contracts remain material design work. Arbitrary
+  crates/macros/traits/lifetime-heavy APIs are not implicitly authorized.
+- Async tasks are lazy, uniquely owned and single use. Calling transfers inputs;
+  awaiting consumes. Start/cancel/timeout direction is approved. Never-started
+  tasks warn; abandoned started jobs error. Cancellation alone does not settle a
+  job or guarantee source finally execution. Detailed combinator contracts remain
+  open; `std:futures` naming remains a recommendation.
+- Cache reads borrow. Explicit clone creates independent supported values.
+  Expiration occurs during operations; outstanding used borrows block mutation.
 
-- Audit synchronous compatibility entries in `analysis/generic_calls.rs`,
-  `generic_expression_adapters.rs`, `deferred_generic_values.rs`,
-  `deferred_generic_preparation.rs` and `return_type_inference.rs`:
-  `prepare_generic_call`, `prepare_named_result_hint` and
-  `deferred_generic_result_hint`. A compatibility driver may remain a root entry,
-  but a task already running on the shared stack must request child work instead
-  of starting a nested driver.
-- Audit callable-result discovery, `discover_body`, `resolved_call`, `forward_call`,
-  fresh/contextual hints and remaining specialization entries. Preserve the
-  ordering of callable versus data-result publication and real callee contracts.
-  Diagnose semantic cycles/nonconverging specialization separately from finite
-  expensive input.
-- Inventory all remaining guards and representation bounds in types, aliases,
-  substitution, callable resolution, environment lifetimes and generic instances.
-  Known examples include discovery depth 128, callback specialization counts,
-  per-declaration 128/program 1,024 generic counts and array rank representation.
-  These are not presumed hardware limits. Redesign a representation or traversal
-  where necessary; do not raise a constant or blindly remove a termination check.
-- Audit proof/inference replay and context cloning. Generic tasks currently retain
-  read-only context snapshots; spread/fresh sources and proof requests can copy
-  substantial trees/state. Use dependency-aware summaries and invalidation that
-  preserve callable origin, capture-instance identity, generic scope and
-  point-sensitive ownership/effects. Do not cache by function/type name alone.
+Later dependency order remains S13 async checking, S14 runtime/task lifecycle,
+S15–S16 HTTP/TLS, S17–S18 SQLite/SQL pools, S19 cache, S20 queues, S21 integrated
+service acceptance. This review does not implement or accept those features.
 
-### Complete pipeline consumers and correctness
+## Work discipline and consumers
 
-- Retire public parser nesting admission only when downstream checking, type
-  operations, finalization, emission, diagnostic replay, project linking, editor
-  requests, cloning and both success/error disposal are safe for admitted shapes.
-  The parser itself is already iterative. Do not repeat parser implementation.
-- Formatter nesting rescans and alias chains have quadratic behavior. Compact
-  generic closers such as `x: Box<int>=1` still cause token insertion costs; a lexer
-  change must cover parser, formatter and editor consumers together. Preserve
-  tokens, locations, recovery and packed `>>` behavior.
-- Emission still copies descendant fragments and has poor scaling for some deep
-  families. Use output/fragment ownership with bounded assembly cost; profile
-  before attributing every timeout to the same cause. Generated Rust need not be
-  formatted or indented for the backend. Source formatting remains required.
-- Repair `tsrust-lsp/tests/optional_main.rs::invalid_return_in_dependency_does_not_mask_independent_entry_error`.
-  A bad imported return currently masks an independent entry diagnostic: one
-  diagnostic instead of two. It reproduces on the old baseline and remains
-  unresolved. Keep diagnostic replay separate from executable analysis; do not
-  weaken callee contracts or the assertion to make it pass.
-- Review internal linked native names leaking into diagnostics. Preserve spans
-  while exposing useful source-facing type names.
-- The editor still has inference/catalog duplication. Three compiler-query gaps
-  remain documented in [Claude LSP handoff](claude-lsp-agreement.md): complete
-  type members/signatures, expression type at a span with canonical spelling,
-  and standard-module enumeration. Method agreement is one-directional today.
-  Preserve existing cursor repair and typing-speed behavior. Syntax errors
-  elsewhere still suppress some narrowed/open-closure completions; untyped catch
-  bindings remain intentionally silent. `Result.payload` follows the existing
-  common-field rule for general Result values. The owner subsequently requested
-  changing the schema-facing safeParse surface; see the API follow-up below.
+Follow `AGENTS.md` and [development workflow](../development-workflow.md). One
+agent works in this tree. Inspect status and preserve owner UI/interop plans.
+Use Git checkpoints, not archives or snapshots. Format the entire project before
+source checkpoints; preserve tokens, idempotence and executable fixture behavior.
 
-### Architecture acceptance and exit
+Reuse `/private/tmp/tsrust-gate100-editor-target` with `CARGO_INCREMENTAL=0` and
+`CARGO_BUILD_JOBS=1`. Keep normal worker stacks. Preserve exact original evidence
+in SQLite, verify restoration/integrity, then remove closed loose copies. Prune
+obsolete test/native outputs without deleting owner editor caches.
 
-Do not choose another arbitrary depth ceiling or enlarge stacks. Discover actual
-behavior with geometric finite inputs on normal stacks, including mixed shapes,
-long ordinary and recursive dependency graphs, captures, generics, types, effects,
-errors, modules and editor consumers. Observe phase, work, time and memory. A test
-budget protects the machine; a timeout is not proof that a larger input is invalid.
-Any resource admission policy must follow measured costs and device capacity,
-with clear diagnostics, rather than a convenient passing witness count.
-
-Finish affected sections and then batch checks. At the completed architecture
-milestone, run complete compiler/LSP regressions and formal compilation scaling
-with preserved protocols, identities and individual samples. Keep semantic
-rejections, unresolved failures, discovery observations and measurements separate.
-All required crashes/guards and known correctness defects above must be resolved
-or explicitly accounted for against the acceptance contract; no silent deferral
-or claim of completion based on a few scalar chains. Preserve completed suites,
-repair affected failures and resume unrun groups rather than restarting full runs.
-
-## Owner-requested schema API follow-up (2026-10-14)
-
-After the connected nesting work, implement the [schema result API alignment](../plans/schema-result-api-plan.md)
-before new schema optimization measurements and before S12. The owner requests
-Zod-like parsing rather than an unexplained payload wrapper. Target safeParse
-outcomes are `{ success: true, data: Output }` and
-`{ success: false, error: ValidationError }`, with checked narrowing and full
-editor support. `parse` already returns the output directly and throws on invalid
-input; verify and preserve that behavior. Do not flatten a user-defined payload
-field or change all general Result values. Update compiler/native/editor,
-examples, consumers and matched benchmarks together. This is pending, not an
-implemented API. Preserve native ownership and original measurement identities.
-
-## Phase B: required optimization of existing code
-
-After architecture acceptance, optimize existing supported code before S12.
-The owner's requirement is comparable handwritten Rust timings and allocations,
-and at least comparable Node-after-tsc performance on matched workloads. Do not
-replace it with a universal claim or declare it achieved without measurements.
-
-Begin with S11 collection, recursive, pipeline and JSON Schema export costs.
-The retained S11 baseline has 31 native/Node workloads, with native slower in
-28. That baseline uses three fresh processes, eight warmups and 31 samples per
-engine, with its original correctness cells. SQLite `tsrust-s11-measurement-proof.json` and
-`tsrust-s11-measurement-review.json` define the measured scope. Reusable
-allocation/disposal evidence under `tsrust-schema-reusable-*` does not profile all
-later paths. Some Node references return existing objects or use simpler errors;
-review semantic and allocation comparability before drawing conclusions.
-
-Profile retained costs, prepare missing matched handwritten Rust references and
-allocation observers, then optimize underlying causes without hidden clones,
-shared ownership, erased lifetimes, removed safety checks or weakened oracles.
-The existing runtime driver supports native/Node comparisons; it does not
-implicitly provide a handwritten-Rust reference engine. Complete reference and
-measurement support rather than calling generated Rust its own independent baseline.
-Preserve original protocols and sample counts. Measure changed comparable
-workloads and review regressions at the optimization milestone. If a material
-contract mismatch prevents parity, provide concrete evidence and seek only the
-remaining decision; do not silently weaken the requested target or loop forever
-on unrelated cleanup.
-
-Fix the known program-storage/test-callback lifetime issue before calling the
-foundation complete: an owned registered test callback that invokes a function
-reading a module global can retain a transitive program borrow and reject.
-Review owner-scoped test execution/registration disposed before globals while
-preserving real provenance. `clone(message)` alone does not resolve that boundary.
-
-## Phase C: return to new features and continue through S21
-
-Once A and B are accepted, proceed directly to source feature implementation.
-Do not insert another speculative cleanup/research phase or wait for a new
-instruction merely because foundations reached a checkpoint. Use the roadmap's
-dependency order; S12 is the next planned feature. S17 has independent synchronous
-prerequisites but is not a reason to abandon the chosen sequence without direction.
-
-| Gate | Required continuation |
-| --- | --- |
-| S12 | Public native-thread spawn/join/detach, owned capture/result transfer, failure/panic handling and bounded channels. Read [thread plan](../plans/native-threads-plan.md) and [interop contracts](../interop-and-targets.md) first. |
-| S13 | Parsed/checked async functions, await, unique task results, suspension-safe ownership and generated futures; [async plan](../plans/async-compiler-plan.md). |
-| S14 | Tokio bootstrap, explicit start, cancellation/timeouts, combinators, timers/channels, child settlement and shutdown. |
-| S15–S16 | Validated HTTP client/server, streaming/backpressure/limits/shutdown, then TLS trust/hostname/certificate/error coverage. |
-| S17–S18 | Synchronous SQLite statements/rows/transactions/rollback, then separately accepted SQLx drivers/pools/cancellation/migrations. |
-| S19 | Public cache integration using existing LRU/deadline/timed backend and [approved cache decisions](../plans/cache-plan.md); backend tests are not source acceptance. |
-| S20 | Bounded queue ownership, backpressure, close/drain, cancellation and worker shutdown. Durable/distributed adapters remain separate scope. |
-| S21 | Integrated validated service with database/cache/queue, overload and leak checks, graceful shutdown, complete editor support and reproducible distribution. |
-
-Settled contracts must carry forward:
-
-- Native thread handles require explicit join or detach; abandoned handles error.
-  No automatic detach-on-drop, hidden payload clone or implicit shared wrapper.
-- Local Rust modules and supported package wrappers belong alongside S12 before
-  worker APIs harden. Automatic lazy default pooling for explicit threaded interop
-  is approved; evaluate Rayon and reuse compatible pools. Direct calls stay direct.
-  Exact syntax, queue/admission configuration and shutdown details remain material
-  design work. The earlier blanket pool deferral does not override this approval;
-  arbitrary crates/macros/traits/lifetime-heavy APIs are not thereby authorized.
-- Tasks are lazy, uniquely owned and single use. Calling transfers arguments/loans
-  but does not start the body. Await consumes; `.start()`, `.cancel()` and
-  `.timeout()` direction is approved. Unused never-started tasks warn; abandoned
-  started jobs error even through aggregates, returns and combinators. Cancellation
-  requests alone do not discharge settlement obligations.
-- Cancellation does not guarantee source finally execution. Owned state and child
-  jobs still require exact cleanup. Combinators accept both lazy and started inputs;
-  lazy children begin together when awaited, started children continue. Detailed
-  race/timeout/empty/heterogeneous-result contracts still need specification.
-  `std:futures` is the recommendation, not separately settled module naming.
-- Cache reads borrow; explicit clone creates an independent value when supported.
-  Expiration runs during operations. Further operations reject while an outstanding
-  borrowed result remains used. Preserve approved ownership/cleanup; do not reopen
-  those decisions because older proposal sections still say pending.
-
-Implement each coherent source family across compiler, native execution, CLI,
-LSP, diagnostics, complete `builtins.json` help/examples and matched benchmark
-support. Keep implementation and measured acceptance separate. Ask only for
-unresolved material semantics after completing independent authorized work.
-Backend feasibility controls do not count as public API implementation.
-
-## Commands, evidence and consumer state
-
-Use the shared target; do not create a target per gate or repopulate pruned caches
-just for handoff. Unset `RUST_MIN_STACK`; expect some test relinking/cold builds.
-
-```sh
-env -u RUST_MIN_STACK CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target \
-  CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo test -p tsrust-compiler \
-  --lib --no-run
-# Obtain the current probe path from Cargo output; hashes/paths can change.
-env -u RUST_MIN_STACK python3 benchmarks/compiler/nesting-discovery/run.py \
-  --probe "$PROBE" --output /private/tmp/NEW-discovery.json \
-  --families object-spread --unbounded-parser --breadth-first \
-  --start 8 --factor 4 --seconds-per-case 30 --seconds-total 120
-# Operational budgets above are examples, never language limits.
-python3 benchmarks/compiler/function-dependencies/run.py \
-  --compiler /private/tmp/tsrust-gate100-editor-target/debug/tsrust \
-  --object-spread --verify-execution --only 32 --output /private/tmp/NEW-matched.json
-# --measure uses each manifest's original 2 warmups/11 samples after validation.
-node benchmarks/runtime/run.mjs --execution-only --engines=native,node-tsc \
-  --only=WORKLOAD_IDS
-TSRUST=/private/tmp/tsrust-gate100-editor-target/debug/tsrust \
-  node tools/format-project.mjs
-```
-
-Choose fresh evidence names. `benchmarks/records.sqlite` is canonical, with
-`records(path, kind, sha256)` and compressed blobs. Hyphenated filename families
-are not directory prefixes for the storage CLI's `--prefix`; enumerate them with
-SQLite, then read exact paths, for example:
-
-```sh
-python3 benchmarks/storage/store.py read benchmarks/records.sqlite \
-  tsrust-nesting-constructor-audit-finding.json
-```
-
-Useful record families: `tsrust-nesting-constructor-audit-*`,
-`tsrust-nesting-object-spread-work-*`, `tsrust-nesting-array-spread-work-*`,
-`tsrust-nesting-spread-work-*`, `tsrust-nesting-generic-inference-work-*`,
-`tsrust-nesting-generic-entry-work-*` and `tsrust-nesting-deferred-call-work-*`.
-Earlier formal acyclic measurements are `tsrust-nesting-dependency-scaling.json`
-and its proof; they do not measure the current whole architecture. Claude parser
-originals are under `benchmarks/runtime/results/claude-parser-evidence/` in SQLite;
-LSP originals use `claude-lsp-evidence/`, with integration under
-`tsrust-lsp-agreement-integration-*`. Do not restore their removed worktrees or
-reimport evidence already verified merely to revisit the reports.
-
-At `39aaec7d`, 22 object-spread records are imported and byte-verified with
-`quick_check` passing. Consumers are atomically refreshed and hash-matched:
-`~/.cargo/bin/tsrust`, `~/.cargo/bin/tsrust-lsp` and
-`target/editor/debug/tsrust-lsp`. The actual VS Code server restart was verified;
-the owner's open `tsrust_test/src/main.tsr` has zero diagnostics. One stale app
-connection initially failed to restart it; both observations are preserved.
-Twelve current-section and 92 older integration executables were pruned. Shared
-target size was about 2.3 GB afterward. Preserve current CLI/server/probe and
-needed libraries; do not delete owner target contents based on an old size report.
-
-When rebuilding consumers, explicitly request both packages and binary names:
-
-```sh
-env -u RUST_MIN_STACK CARGO_TARGET_DIR=/private/tmp/tsrust-gate100-editor-target \
-  CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 cargo build \
-  -p tsrust-compiler -p tsrust-lsp --bin tsrust --bin tsrust-lsp
-```
-
-Before checkpoints, format the entire project and verify tokens, idempotence and
-formatted-source behavior. Import closed records, read them back byte-exactly,
-verify SQLite integrity, then remove only the verified loose copies. Preserve
-original failures and measurements. No snapshots or archive directories. Refresh
-consumers after accepted public changes with atomic sibling replacement, restart
-actual configured servers, verify process change and open-document diagnostics.
-Do not describe installation alone as an active-server refresh.
-
-## Copyable continuation instruction
-
-```text
-Continue Tsrust in /Users/seancotter/Desktop/dev/learning/tsrust using $caveman.
-Use one agent. Inspect Git status first. Read AGENTS.md and
-docs/handoffs/compiler-to-roadmap-continuation.md, then its required references.
-Reconcile Git and SQLite evidence; source basis is 39aaec7d, not the old S11
-checkpoint. Claude parser and LSP branches are already integrated.
-
-Carry the existing objective through completion, preserving its current status
-until the owner resumes it. On resumption: finish compiler nesting architecture
-and full-pipeline scaling acceptance, then the owner-requested schema safeParse success/data/error API alignment
-and required existing-code optimization against comparable handwritten Rust timings/allocations and Node-after-tsc,
-then implement S12–S21 through integrated release acceptance. Do not stop at an
-individual helper checkpoint or the superseded S11-only boundary. Do not create
-a duplicate goal or mark the overall goal complete while required work remains.
-
-Start with Set/Map constructor checking and emission on the shared work stacks.
-Audit all remaining connected paths, representations and resource guards; preserve
-ownership, effects, generic scopes, evaluation order and diagnostic locations.
-Never raise stacks/constants or select new arbitrary depth limits. Discover actual
-resource behavior on normal stacks and derive any policy from evidence/device
-capacity. Keep discovery timeouts separate from support limits and formal timing.
-
-Use the handoff's complete backlog and exit criteria, including diagnostic replay,
-public admission retirement, proof/context/output scaling and module-test lifetime
-repair. After foundation and optimization acceptance, proceed directly to S12
-source features and approved interop design, then roadmap dependencies. Preserve
-settled thread/task/cache contracts; ask only about unresolved material semantics.
-
-Implement complete compiler/native/editor/docs/examples/matched benchmark support
-by coherent sections; batch affected checks. Run full regressions and original
-measurement protocols at meaningful family milestones, preserving completed work
-and resuming unrun groups. Reuse the documented Cargo target with incremental off.
-Format the whole project before checkpoints. Keep SQLite canonical, verify exact
-imports before deleting copies, preserve owner files, refresh actual consumers,
-and prune obsolete generated outputs. Generated Rust does not need formatting.
-```
-
-## Status after the 2026-10-14 Claude pass
-
-Done and committed: Set/Map constructor scheduling, array-spread operand moves,
-builtin method-chain receivers on the shared stacks, diagnostic replay for
-failed declared results, readable native and generic names in diagnostics,
-and the schema safeParse `{ success, data } | { success, error }` API across
-compiler, editor, catalog, workloads and fingerprints. Release CLI and server
-are installed.
-
-Completed in the 2026-10-14 continuation:
-
-- Program-scoped registry integration and focused acceptance:
-  [acceptance record](program-scoped-test-registry.md), source checkpoint
-  `7c7b5bc0`. Concat checkpoint: `fc82d9db`.
-- Nested concat checks now schedule receivers and arguments on the shared
-  expression stack. Earlier operand loans remain active in source order.
-  The depth-100 string and array witnesses execute on the normal worker stack;
-  depth 200 retains the existing nesting-limit diagnostic. All 18 affected
-  compiler tests and 10 required editor agreement tests pass. Two representative
-  concat workloads pass 20 native/Node-after-tsc oracle cells without timings.
-  Evidence: `tsrust-concat-acceptance-2026-10-14.json` in SQLite.
-- Benchmark checks exposed stale formatting proofs and a historical-prefix
-  assertion displaced by four newer schema entries. Exact token comparisons
-  verified 60 legacy identity updates and 10 concat/padding sidecar updates.
-  The old 444-row metadata checksum remains unchanged. Automatic project
-  formatting now maintains the current-byte side of legacy identity proofs.
-  Original measurement records and timing protocols remain untouched.
-
-Release consumers were rebuilt from `fc82d9db`. All five current executables
-were atomically replaced and hash-verified; both VS Code server processes were
-restarted. The owner test project has no diagnostics, and the originally open
-repository documents have no Tsrust errors. The seven allocation fixtures exposed by workspace scanning are now migrated to
-`result.success`/`result.data`, preserving owned versus fused parsing and the
-original failure behavior. Allocation adapters select unique matching signatures
-rather than fixed function indices; ambiguity and borrow drift still reject.
-All 19 adapter tests and seven formatted fixture checks pass. The seven probes
-pass three sizes and three samples across native, direct Rust, and Node after
-TypeScript compilation (189 executions), including checksum, failure, and disposal
-checks. No elapsed-time samples were collected. VS Code now reports zero errors;
-39 existing Rust warnings remain. Evidence and original failed attempts are in
-SQLite under `tsrust-allocation-syntax-acceptance-2026-10-14.json`.
-The subsequent Rust warning cleanup removes the unused parameter-resolution
-entry points and standalone JSON facade import, and restricts the array-storage
-query facade to its test callers. Generated-runtime APIs remain intact; focused
-backend tests now exercise their borrow, allocation, rollback, bounds, vocabulary,
-resource dispatch, and artifact round-trip contracts. No warning allowances or
-behavior changes were introduced. Workspace/all-target checking has zero warnings
-and errors; all 219 affected test executions pass without warnings. Refreshed
-VS Code diagnostics show No Problems. Acceptance evidence:
-`tsrust-rust-warnings-acceptance-2026-10-14.json` in SQLite.
-Rust workspace reload clears its stale concat error (39 warnings
-remain). Installed CLI registry/depth witnesses and LSP initialize/shutdown pass.
-Evidence: `tsrust-consumer-refresh-2026-10-14.json` in SQLite. Cleanup removes
-232 obsolete debug test/native executables and object files (1,575,517,056 bytes);
-shared Cargo target is 944 MB. Current libraries and five consumers remain.
-Removed test executables must rebuild when those suites next run.
-
-Still open, in priority order:
-
-1. Emission copies child fragments, which is quadratic in single-expression
-   nesting depth (4.8 s at 32,768 nested Set constructors). Programs with
-   many functions scale linearly.
-2. Plain nested array-literal spreads re-walk type hints per layer
-   (quadratic); low priority per the owner.
-
-Console, path and value-type differential suites require the pinned Node
-(`v24.11.1`) first on `PATH`; with it they pass.
+Five executable consumers are the installed CLI/LSP, the workspace override
+`target/editor/debug/tsrust-lsp`, and shared-target debug CLI/LSP. Consumer refresh
+was verified after registry/concat, including both VS Code server processes.
+Subsequent warning cleanup has no public behavior change. Refresh installed
+consumers for the next accepted public API change using atomic sibling replacement;
+restart both editor servers and check open-document diagnostics. Request both
+`--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries explicitly.
