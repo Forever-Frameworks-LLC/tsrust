@@ -1609,3 +1609,41 @@ acceptance. Map/field storage completion, borrowed-map exception emission and Ma
 prefix renewal still enter synchronous helpers. Their owned cleanup function
 variants also require lifetime-safe scheduling. Public admission, formal scaling,
 full milestone regressions and installed consumer refresh remain pending.
+
+
+### Field completion and control transport continuations
+
+Both field transport paths now schedule their body, optional catch, normal cleanup,
+return cleanup, inherited-error cleanup and destination-specific control cleanup
+on the shared statement work stack. Typed phase descriptions own small layout
+metadata and borrow checked bodies. Body scopes restore before sibling phases;
+parent string assembly consumes the completed phase results in source emission
+order. Dynamically allocated handler/error IDs are assigned when their phase
+starts, after prior child emission has allocated its IDs. Fallible plan discovery
+finishes before any phase is queued. Neither field transport file calls block
+emission or starts another statement scheduler.
+
+Seven scheduler tests pass. The new isolated witness checks that all 512 nested
+regions actually choose field transport, preserve balanced generated code and
+restore transport/control state. Discovery adds independent return-field and
+control-field cleanup sources: all eight observations through 512 levels finish
+the pipeline on normal stacks. Both 2,048-level observations time out in analysis
+under the 30-second per-observation budget. These runs overlap native builds and
+are not formal measurements or language limits. Evidence uses
+`tsrust-nesting-field-work-*` in SQLite; original records are retained.
+
+Map completion helpers remain synchronous, including owned cleanup function
+variants and prefix renewal. Those are the next connected migration. Cleanup
+plans are shared through `Arc` in storage metadata, so caching one function variant
+per shared plan would require proving that its original binding environment is
+identical; it must not silently reuse a variant across distinct native layouts.
+Public admission and full architecture acceptance remain open.
+
+
+Section validation also passes all 258 native tests: 21 exception-handling,
+34 return-ownership and 203 scoped-record composition cases. The latter include
+allocation/disposal witnesses, nested Map/field error forwarding, cleanup
+replacement and targeted control exits. Whole-project formatting changes zero
+files and fingerprints. Full compiler/LSP matrices and formal timing runs are not
+repeated for this internal section. Installed consumers are unchanged because no
+public contract changes.

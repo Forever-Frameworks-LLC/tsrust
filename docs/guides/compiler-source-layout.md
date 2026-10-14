@@ -313,8 +313,11 @@ starts. Empty-loop renewal and iterator bodies use the same scheduler.
 `completion_work.rs` schedules ordinary try/catch/finally bodies and captures
 child strings on the shared stack. Region guards restore before sibling handlers;
 abrupt cleanup retains its exit-replacement state until its pending body finishes.
-Map and field storage transports and borrowed-map exception helpers still contain
-synchronous re-entry; this migration does not finish emitter nesting.
+`field_completion_transport.rs` and `field_control_transport.rs` queue typed
+body/handler/cleanup phases on that scheduler. Parent assembly consumes the phase
+results after storage scopes restore; dynamically allocated IDs remain ordered
+after prior child emission. Map storage transports and borrowed-map exception
+helpers still contain synchronous re-entry; emitter nesting remains unfinished.
 
 Map storage traversal uses `analysis/map_epoch_work.rs` for one connected body,
 branch, loop and cleanup continuation stack. `map_entry_epochs.rs` contains the

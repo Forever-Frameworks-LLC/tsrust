@@ -164,13 +164,13 @@ impl Emitter<'_> {
         let (in_decl,in_name)=if let Some(handler)=&region.catch {
             self.completion_error_layout(&format!("RegionIncoming{first}"),handler.error_contract.as_deref().expect("checked catch contract"),runtime,statement.span)
         }else{(String::new(),out_name.clone())};
-        if let Some(transport)=self.field_control_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
-            let _=write!(output,"{{ {in_decl} {out_decl} {transport} }}"); return;
+        work.push(Work::Text(" }".into()));
+        if self.schedule_field_control_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime,work).is_some()
+            || self.schedule_field_completion_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime,work).is_some() {
+            let _=write!(output,"{{ {in_decl} {out_decl} ");
+            return;
         }
-        if let Some(transport)=self.field_completion_transport(fun,statement,region,first,&in_name,&out_name,&outgoing,runtime) {
-            let _=write!(output,"{{ {in_decl} {out_decl} {transport} }}"); return;
-        }
-
+        work.pop(); // Neither field plan scheduled work; remove its wrapper.
         let names=(in_name.clone(),out_name.clone());let contract=outgoing.clone();
         work.push(Work::Resume(Box::new(move |output,_,values| {
             let pending=values.pop().expect("completed nested region");

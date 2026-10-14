@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,15 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('field-return-cleanup', 'field-control-cleanup'):
+        seed = 'if(early){return row.name;}'
+        if family == 'field-control-cleanup':
+            seed += 'break;'
+        body = repeated(seed, size, 'try{', '}finally{console.log(row.other);}')
+        if family == 'field-control-cleanup':
+            body = 'while(true){' + body + '}'
+        return ('type Row={name:string;other:string;};function pick(row:Row,early:boolean):string{'
+                + body + 'return row.name;}function main(){console.log(pick({name:"x",other:"sibling"},true),pick({name:"y",other:"sibling"},false));}')
     if family in ('cleanup-regions', 'catch-regions', 'mixed-exception-regions'):
         if family == 'mixed-exception-regions':
             layers = [('try{', '}finally{}'), ('try{', '}catch(error){}'), ('try{', '}catch(error){}finally{}')]

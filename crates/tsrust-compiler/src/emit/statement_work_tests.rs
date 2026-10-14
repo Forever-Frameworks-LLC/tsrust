@@ -126,3 +126,26 @@ fn nested_exception_bodies_resume_and_restore_transport_scopes() {
     assert!(emitter.inline_abrupt.borrow().is_none());
     assert!(!emitter.cleanup_replaces_exits.get());
 }
+
+
+#[test]
+fn nested_field_completion_bodies_use_shared_scheduler() {
+    let mut checked=crate::check("type Row={name:string;other:string;};function pick(row:Row,early:boolean):string{try{if(early){return row.name;}}finally{console.log(row.other);}return row.name;}function main(){}").unwrap();
+    let runtime=crate::error_effects::materialize_runtime_record(&mut checked.program);
+    let function_id=checked.program.functions.iter().position(|function|function.name=="pick").unwrap();
+    let function=&checked.program.functions[function_id];
+    let template=&function.body[0];let mut nested=template.clone();let depth=512;
+    for _ in 1..depth {
+        let mut parent=template.clone();let StmtKind::Try(region)=&mut parent.kind else{panic!("exception region")};
+        region.body=vec![nested];nested=parent;
+    }
+    let emitter=emitter_for(&checked.program,"");
+    let contract=checked.program.error_effects.function_errors[function_id].clone();
+    let (_,name)=emitter.completion_error_layout("DeepFieldError",&contract,Some(runtime),template.span);
+    let output=emitter.callable_result_body(function,&[nested],0,&name,contract,Some(runtime));
+    assert_eq!(output.matches("checked field cleanup control").count()+output.matches("checked field completion\"").count(),depth,"every nested region must exercise field transport");
+    assert_eq!(output.matches('{').count(),output.matches('}').count());
+    assert_eq!(emitter.exception_regions.current_id(),None);
+    assert!(emitter.exception_regions.field_error_fields().is_none());
+    assert!(emitter.control_targets.snapshot().is_empty());
+}
