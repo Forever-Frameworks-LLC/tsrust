@@ -59,9 +59,9 @@ impl SourceIndex {
             let binding = pattern + 2;
             if self.text(binding) == "_" || !name(self.text(binding)) || self.tokens[binding].literal { continue; }
             let Some(arm_scope) = self.scopes.iter().position(|scope| scope.span.start == self.tokens[pattern + 5].span.start) else { continue; };
-            // Recover only a complete pattern header. The unfinished body has no
-            // checked payload facts; preserve navigation without inventing types.
-            self.install_match_binding(binding, arm_scope, false);
+            // A repaired-document check may provide authoritative facts for this
+            // unchanged header. Without those facts, retain navigation only.
+            self.install_match_binding(binding, arm_scope, true);
         }
     }
 

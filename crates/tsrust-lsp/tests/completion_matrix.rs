@@ -220,6 +220,20 @@ fn rows() -> Vec<Row> {
         silent: None,
         needs_check: false,
     });
+    rows.push(Row {
+        kind: Kind::ImportNames,
+        name: "thread imports",
+        before: "import { ".into(), typed: "spa",
+        after: " } from 'std:threads';\nfunction main() {}\n",
+        includes: &["spawn"], excludes: &[], silent: None, needs_check: false,
+    });
+    rows.push(Row {
+        kind: Kind::RecordField,
+        name: "thread error fields",
+        before: "import {ThreadError} from 'std:threads';\nfunction probe(error: ReadOnly<ThreadError<string>>) {\n  ".into(),
+        typed: "error.", after: "\n}\nfunction main() {}\n",
+        includes: &["code", "error"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+    });
     rows
 }
 

@@ -1,0 +1,214 @@
+//! Thread calls preserve concrete callback ownership and typed completion payloads.
+use super::*;
+use crate::native_signatures::NativeTypeId;
+
+impl Analyzer {
+    pub(super) fn thread_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        let ExprKind::Call(callee, arguments) = &mut expression.kind else { return Ok(None); };
+        let ExprKind::Name(name) = &callee.kind else { return Ok(None); };
+        let Some((id, binding)) = crate::native_bindings::by_symbol(name).filter(|(_, binding)| binding.module == "std:threads") else { return Ok(None); };
+        self.threads_enabled = true;
+        let span = expression.span;
+        if arguments.len() != 1 { return Err(Diagnostic::new("arity", format!("{} expects one argument.", binding.name), span)); }
+        let result = if binding.name == "spawn" {
+            if let ExprKind::Closure { id, .. } = arguments[0].kind { self.escaping.insert(id); }
+            let actual = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
+            let Type::Closure(origin) = actual else { return Err(Diagnostic::new("thread-callback", "spawn requires an owned concrete zero-argument callback.", arguments[0].span)); };
+            let closure = &self.closures[origin];
+            if !closure.parameters.is_empty() || closure.program_scoped || !closure.program_captures.is_empty() {
+                return Err(Diagnostic::new("thread-callback", "A worker must take no arguments and cannot borrow program state.", arguments[0].span));
+            }
+            thread_transfer::require_owned_captures(closure, &self.program.records, &|id| self.unions.members(id))
+                .map_err(|_| Diagnostic::new("thread-transfer", "Worker captures must own transferable data; caller loans and stored callbacks cannot cross threads.", arguments[0].span))?;
+            let output = closure.function.result;
+            let effects = self.discovery_error_effects();
+            let failures = &effects.closure_errors[origin];
+            let runtime = failures.runtime.then(|| self.materialize_discovery_runtime_error());
+            thread_transfer::require_owned_completion(output, failures, runtime, &self.program.records, &|id| self.unions.members(id))
+                .map_err(|_| Diagnostic::new("thread-transfer", "Worker results and thrown payloads must be resolved owned transferable data.", span))?;
+            let error = failures.catch_type(&self.unions, runtime, span)?.unwrap_or(Type::Undefined);
+            let handle = self.thread_application(NativeTypeId::Thread, &[output, error], span)?;
+            let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
+            self.thread_result(handle, failure, span)?
+        } else {
+            let handle = self.expression(context, &mut arguments[0], Mode::Consume, loans, None)?;
+            let Type::Record(record) = handle else { return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span)); };
+            if self.program.records[record].native_type != Some(NativeTypeId::Thread) {
+                return Err(Diagnostic::new("thread-handle", "join and detach consume an owned Thread handle.", span));
+            }
+            let parameters = self.program.records[record].application.as_ref().expect("applied thread").resolved_arguments.clone();
+            if binding.name == "detach" { Type::Void } else {
+                let error = self.thread_application(NativeTypeId::ThreadError, &[parameters[1]], span)?;
+                self.thread_result(parameters[0], error, span)?
+            }
+        };
+        self.require(result, expected, span)?;
+        expression.ty = Some(result);
+        expression.target = Some(CallTarget::NativeBinding(id));
+        Ok(Some(result))
+    }
+
+    fn thread_application(&mut self, identity: NativeTypeId, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {
+        self.thread_applied(&crate::native_type_resolution::linked_name(identity), arguments, span)
+    }
+    fn thread_result(&mut self, output: Type, error: Type, span: Span) -> Result<Type, Diagnostic> {
+        self.thread_applied("Result", &[output, error], span)
+    }
+    fn thread_applied(&mut self, name: &str, arguments: &[Type], span: Span) -> Result<Type, Diagnostic> {
+        use crate::type_syntax::{ValueAnnotation, ValueAnnotationKind, TypeName};
+        let mut annotation = ValueAnnotation { span, kind: ValueAnnotationKind::Applied { name: TypeName { text: name.into(), span }, arguments: arguments.iter().map(|&ty| self.checked_value_annotation(ty, span)).collect::<Result<_, _>>()? } };
+        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
+        append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
+        self.resolve_value_annotation(&annotation, false)
+    }
+}
+
+pub(super) fn contains_handle(root: Type, records: &[Record], members: &impl Fn(UnionId) -> Vec<Type>) -> bool {
+    let mut pending = vec![root]; let mut seen = HashSet::new();
+    while let Some(ty) = pending.pop() {
+        if !seen.insert(ty) { continue; }
+        match ty {
+            Type::Record(id) => {
+                let record = &records[id];
+                if record.native_type == Some(NativeTypeId::Thread) { return true; }
+                pending.extend(record.fields.iter().filter_map(|field| field.ty));
+                if matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet)) {
+                    if let Some(application) = &record.application { pending.extend(&application.resolved_arguments); }
+                }
+            },
+            Type::Array(element) => pending.push(element.ty()),
+            Type::Union(id) | Type::BorrowedUnion(id) => pending.extend(members(id)),
+            Type::Map(id) => if let Some(map) = &records[id].map_definition { pending.extend([map.key, map.value]); },
+            Type::Set(id) => if let Some(set) = &records[id].set_definition { pending.push(set.key); },
+            _ => {},
+        }
+    }
+    false
+}
+
+impl Analyzer {
+    pub(super) fn thread_live(&self, context: &Context, id: usize) -> bool {
+        if !self.threads_enabled { return false; }
+        let binding = &context.bindings[id];
+        if binding.transferred.is_some() || binding.capture_reference || binding.borrowed_place.is_some()
+            || binding.parameter && binding.mode != Mode::Consume { return false; }
+        let mut pending = vec![(binding.ty, Vec::<String>::new())];
+        let mut seen = HashSet::new();
+        while let Some((ty, path)) = pending.pop() {
+            if binding.moved_fields.keys().any(|moved| path.starts_with(moved)) { continue; }
+            if !seen.insert((ty, path.clone())) { continue; }
+            let candidates = context.flow.get(&crate::flow::Place { root: id, fields: path.clone() }).map(|fact| fact.members.clone()).unwrap_or(vec![ty]);
+            for ty in candidates {
+                match ty {
+                    Type::Record(record) if self.program.records[record].native_type == Some(NativeTypeId::Thread) => return true,
+                    Type::Record(record) => {
+                        // Other containers are rejected separately; only Result wrappers carry live handles here.
+                        if self.program.records[record].application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) {
+                            for field in &self.program.records[record].fields {
+                                let mut field_path = path.clone(); field_path.push(field.name.text.clone());
+                                pending.push((field.ty.unwrap(), field_path));
+                            }
+                        }
+                    },
+                    Type::Union(union) => pending.extend(self.unions.members(union).into_iter().filter(|member| *member != ty).map(|member| (member, path.clone()))),
+                    _ => {},
+                }
+            }
+        }
+        false
+    }
+    pub(super) fn thread_scope_exit(&self, context: &Context, first: usize, span: Span) -> Result<(), Diagnostic> {
+        if !self.threads_enabled || context.effects_only || self.effects_only || context.template || self.discovering_results { return Ok(()); }
+        for &id in context.names.values() {
+            if id >= first && self.thread_live(context, id) {
+                return Err(Diagnostic::new("thread-lifecycle", format!("Thread owner {:?} must be joined, detached, or transferred before leaving this scope.", context.bindings[id].name), span).related(context.bindings[id].declaration_span.unwrap_or(span), "Thread ownership starts here."));
+            }
+        }
+        Ok(())
+    }
+    pub(super) fn thread_discard(&self, ty: Type, span: Span) -> Result<(), Diagnostic> {
+        if self.threads_enabled && contains_handle(ty, &self.program.records, &|id| self.unions.members(id)) {
+            return Err(Diagnostic::new("thread-lifecycle", "Cannot discard a thread owner or an unhandled spawn Result. Join, detach, or transfer ownership explicitly.", span));
+        }
+        Ok(())
+    }
+}
+
+pub(super) fn validate(program: &CheckedProgram) -> Result<(), Diagnostic> {
+    if !program.records.iter().any(|record| record.native_type == Some(NativeTypeId::Thread)) { return Ok(()); }
+    let contains = |ty| contains_handle(ty, &program.records, &|id| program.unions[id.index()].members.clone());
+    for record in &program.records {
+        if record.native_type == Some(NativeTypeId::Thread) || record.application.as_ref().is_some_and(|app| app.declaration.text.starts_with("Result#")) { continue; }
+        if record.fields.iter().filter_map(|field| field.ty).any(&contains)
+            || matches!(record.native_type, Some(NativeTypeId::Deque | NativeTypeId::Heap | NativeTypeId::OrderedMap | NativeTypeId::OrderedSet))
+                && record.application.as_ref().is_some_and(|app| app.resolved_arguments.iter().copied().any(&contains)) {
+            return Err(Diagnostic::new("thread-storage", "Thread handles currently transfer directly or through Result; storing them in records or collections requires lifecycle support for those containers.", record.name.span));
+        }
+    }
+    for closure in &program.closures {
+        if closure.captures.iter().any(|capture| contains(closure.function.bindings[capture.inner].ty)) {
+            return Err(Diagnostic::new("thread-storage", "A callback cannot retain a thread handle. Join or detach before capturing other data.", closure.span));
+        }
+    }
+    for function in program.functions.iter().chain(program.closures.iter().map(|closure| &closure.function)).filter(|function| !function.template) {
+        for binding in function.bindings.iter().take(function.parameter_count).filter(|binding| contains(binding.ty)) {
+            if binding.mode != Mode::Consume {
+                return Err(Diagnostic::new("thread-lifecycle", format!("Thread-bearing parameter {:?} of {:?} must consume and settle or transfer its owner.",binding.name,function.name), binding.declaration_span.unwrap_or_default()));
+            }
+        }
+        let expressions = crate::error_effects::checked_expressions(function);
+        for expression in &expressions {
+            if let Some(CallTarget::NativeBinding(id)) = expression.target {
+                let binding = &crate::native_bindings::BINDINGS[id];
+                if binding.module == "std:threads" && binding.name == "spawn" {
+                    let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
+                    let Type::Closure(origin) = arguments[0].ty.unwrap() else { unreachable!() };
+                    let closure = &program.closures[origin];
+                    let runtime = program.records.iter().position(|record| record.name.text == "#RuntimeError").map(Type::Record);
+                    let members = |id:UnionId| program.unions[id.index()].members.clone();
+                    thread_transfer::require_owned_captures(closure, &program.records, &members)
+                        .map_err(|_| Diagnostic::new("thread-transfer", "The final worker capture layout must own transferable data.", expression.span))?;
+                    let failures = &program.error_effects.closure_errors[origin];
+                    thread_transfer::require_owned_completion(closure.function.result, failures, runtime, &program.records, &members)
+                        .map_err(|_| Diagnostic::new("thread-transfer", "The final worker completion contract must own transferable data.", expression.span))?;
+                    let unions = crate::unions::UnionArena::from_snapshot_with_records(program.unions.clone(), &program.records);
+                    let actual = failures.catch_type(&unions,runtime,expression.span)?.unwrap_or(Type::Undefined);
+                    let Type::Union(result) = expression.ty.unwrap() else { unreachable!() };
+                    let handle = members(result).into_iter().find_map(|ty| {
+                        let Type::Record(record) = ty else { return None; };
+                        program.records[record].fields.first().and_then(|field| match field.ty {
+                            Some(Type::Record(id)) if program.records[id].native_type == Some(NativeTypeId::Thread) => Some(id),
+                            _ => None,
+                        })
+                    }).expect("checked spawn handle");
+                    if program.records[handle].application.as_ref().unwrap().resolved_arguments[1] != actual {
+                        return Err(Diagnostic::new("thread-transfer", "Worker error inference changed after checking; use a callback with a resolved completion contract.", expression.span));
+                    }
+                }
+            }
+            if let ExprKind::Call(_, arguments) = &expression.kind {
+                for (position, argument) in arguments.iter().enumerate() {
+                    if argument.ty.is_some_and(&contains) && arguments[position+1..].iter().any(|later| later.may_fail) {
+                        return Err(Diagnostic::new("thread-lifecycle", "Evaluate fallible arguments before transferring a thread owner into this call.", expression.span));
+                    }
+                }
+            }
+            if matches!(expression.kind, ExprKind::Conditional { .. } | ExprKind::Binary { op: BinaryOp::And | BinaryOp::Or | BinaryOp::Coalesce, .. } | ExprKind::Optional { .. })
+                && expressions.iter().any(|child| child.span.start >= expression.span.start && child.span.end <= expression.span.end && child.ty.is_some_and(&contains)) {
+                return Err(Diagnostic::new("thread-lifecycle", "Use explicit if branches to settle thread ownership; conditional and short-circuit owner expressions are not supported.", expression.span));
+            }
+            if expression.own_may_fail && !function.storage_exits.thread_owners(expression.span).is_empty() {
+                return Err(Diagnostic::new("thread-lifecycle", "This operation can exit with a live thread owner. Settle the handle before fallible work; cleanup through exception regions is not supported yet.", expression.span));
+            }
+            if let Some(ty @ (Type::Array(_) | Type::Map(_) | Type::Set(_))) = expression.ty {
+                if contains(ty) { return Err(Diagnostic::new("thread-storage", "Thread handles cannot be stored in collections until element lifecycle checking is supported.", expression.span)); }
+            }
+            if let ExprKind::Sequence(values) = &expression.kind {
+                if values.iter().take(values.len().saturating_sub(1)).any(|value| value.ty.is_some_and(&contains)) {
+                    return Err(Diagnostic::new("thread-lifecycle", "A comma expression cannot discard thread ownership.", expression.span));
+                }
+            }
+        }
+    }
+    Ok(())
+}

@@ -6,7 +6,6 @@ pub(super) enum CompletionFailure { Result(Type), Thrown(Type), UnknownError }
 
 /// Both successful and exceptional completion cross the same thread boundary.
 /// Unknown error contracts must be resolved before transfer can be accepted.
-#[allow(dead_code)] // Connected to join transport when the source API is introduced.
 pub(super) fn require_owned_completion(result:Type,errors:&crate::error_effects::FailureSet,runtime:Option<Type>,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),CompletionFailure>{
  require_owned_data(result,records,members).map_err(CompletionFailure::Result)?;
  if errors.opaque {return Err(CompletionFailure::UnknownError);}
@@ -23,7 +22,6 @@ pub(super) fn require_owned_completion(result:Type,errors:&crate::error_effects:
 /// Returns the capture index that cannot move independently of its caller.
 /// A copied scalar is owned storage; a borrowed scalar is still a caller loan.
 /// Invocation access does not change ownership of an already moved environment.
-#[allow(dead_code)] // Connected to spawn checking after lifecycle semantics are settled.
 pub(super) fn require_owned_captures(closure:&super::CheckedClosure,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),usize>{
  for (index,capture) in closure.captures.iter().enumerate(){
   let binding=closure.function.bindings.get(capture.inner).ok_or(index)?;
@@ -39,7 +37,6 @@ pub(super) fn require_owned_captures(closure:&super::CheckedClosure,records:&[Re
 
 /// Returns the first unsupported type without granting callable capture transfer.
 /// Cycles terminate through checked type identity; every reachable field is inspected.
-#[allow(dead_code)] // Connected to spawn/channel checking when their API is introduced.
 pub(super) fn require_owned_data(root:Type,records:&[Record],members:&impl Fn(UnionId)->Vec<Type>)->Result<(),Type>{
  let mut pending=vec![root];let mut seen=std::collections::HashSet::new();
  while let Some(ty)=pending.pop(){

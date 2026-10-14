@@ -75,7 +75,13 @@ impl Analyzer {
                 _ => {},
             }
         }
-        if checked.is_ok() { self.refresh_native_recursive_shapes(context); }
+        if checked.is_ok() {
+            if self.threads_enabled {
+                let owners = context.names.values().copied().filter(|&id| self.thread_live(context,id)).collect();
+                context.storage_exits.record_thread_owners(expr.span, owners);
+            }
+            self.refresh_native_recursive_shapes(context);
+        }
         checked
     }
 

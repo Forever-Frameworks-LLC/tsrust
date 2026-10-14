@@ -8,6 +8,7 @@ mod result_discovery;
 mod discovery_work;
 mod schema;
 mod thread_transfer;
+mod threads;
 mod json_typed;
 mod record_union_fields;
 mod json_refinement;
@@ -601,6 +602,7 @@ fn finish_analysis(mut checked: CheckedProgram) -> Result<CheckedProgram, Diagno
     checked.polymorphic_storage.validate(&checked.closures, Span::default())?;
     checked.polymorphic_invocations.validate(&checked.closures, Span::default())?;
     definitely_assigned(&mut checked)?;
+    threads::validate(&checked)?;
     for (family, declaration, _) in checked.stored_contracts.populated() {
         if let Some(layout) = checked.stored_contracts.scoped_native_family(family) {
             let span = layout.alternatives.first().map(|alternative| checked.closures[alternative.origin].span).unwrap_or_default();
@@ -755,6 +757,7 @@ struct Analyzer {
     schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
     schema_factories: HashMap<Type,usize>,
     native_borrow_types: bool,
+    threads_enabled: bool,
     named_captures: named_capture_context::Contexts,
     assumed_capture_access: named_capture_access::Lattice,
     program: Program,
@@ -1469,6 +1472,7 @@ impl Analyzer {
         if let Some(statement) = program.module_bindings.first() {
             return Err(Diagnostic::new("module-state", "Module storage requires program ownership lowering.", statement.span));
         }
+        crate::stdlib::threads::prepare(&mut program)?;
         crate::stdlib::json::namespace::prepare(&mut program)?;
         crate::stdlib::schema::namespace::prepare(&mut program)?;
         if program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::JsonValue | crate::native_signatures::NativeTypeId::JsonView))) {
@@ -1584,12 +1588,14 @@ impl Analyzer {
             .map(|(id, fun)| (id, fun.clone()))
             .collect();
         let named_captures = named_capture_context::Contexts::new(&program, &function_names);
+        let threads_enabled = program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::Thread));
         let native_borrow_types = program.records.iter().any(|record| record.native_type.is_some_and(|id| crate::native_types::declaration(id).borrow_access().is_some()));
         let mut analyzer = Self {
             schema_choices: Default::default(),
             schema_pipelines: Default::default(),
             schema_factories: HashMap::new(),
             native_borrow_types,
+            threads_enabled,
             named_captures,
             program_access: BTreeMap::new(),
             program_callback_sites: BTreeMap::new(),
@@ -1875,6 +1881,7 @@ impl Analyzer {
         expected: Option<Type>,
     ) -> Result<Type, Diagnostic> {
         let binding = &crate::native_bindings::BINDINGS[id];
+        if binding.module == "std:threads" { return Err(Diagnostic::new("thread-call", "Call spawn, join and detach directly; polymorphic thread operation values are not supported.", span)); }
         let count = match expected {
             Some(Type::Callback(contract)) => self.callables.callbacks[contract].params.len(),
             Some(Type::Callable(contract)) => self.callables.results[contract].params.len(),
@@ -3582,6 +3589,7 @@ impl Analyzer {
         self.enter_source_callable_body(context)?;
         let returned=if has_exception_syntax(body) {self.check_exception_callable_body(context,body,result)}else{self.block(context,body,result)}?;
         self.validate_native_returns(context)?;
+        if !returned { self.thread_scope_exit(context, 0, body.last().map_or(Span::default(), |item| item.span))?; }
         Ok(returned)
     }
 
@@ -8762,6 +8770,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
+        if let Some(ty) = self.thread_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
         if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {
             if let Some(request) = self.transform_request(context, expr, expected, true) { return Ok(CallDispatch::Transform(request)); }

@@ -61,11 +61,11 @@ impl Context<'_> {
                     return Ok(None);
                 }
                 let types = arguments
-                    .iter()
-                    .map(|argument| {
+                    .iter().enumerate()
+                    .map(|(position, argument)| {
                         crate::analysis::resolve_value_type(
                             argument,
-                            false,
+                            position == 0 && self.templates.get(&name.text).is_some_and(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::Thread)),
                             &self.names,
                             self.unions,
                         )

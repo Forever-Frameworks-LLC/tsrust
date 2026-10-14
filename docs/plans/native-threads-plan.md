@@ -134,3 +134,13 @@ compatibility is not assumed. Include pool integration and its documented
 acceptance cases in S12 planning, with Rayon evaluated for CPU work. Preserve the approved explicit
 join/detach contract and ensure a future native callable can use the same checked
 transfer boundary without payload serialization.
+
+
+## Public owned-worker slice (2026-10-14)
+
+The earlier public-integration pending statements above are historical. The
+`std:threads` spawn/join/detach slice now connects the transfer classifier, concrete
+callback lowering, typed Result completion and explicit lifecycle checks. See
+[owned worker acceptance](owned-thread-acceptance.md) for current acceptance and
+storage/control-flow limits. Bounded channels and Rust/pool integration remain open.
+Direct OS-thread spawning does not select or freeze a future pool contract.

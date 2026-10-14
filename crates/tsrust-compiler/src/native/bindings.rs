@@ -106,6 +106,9 @@ impl NativeBinding {
     }
 }
 pub const BINDINGS: &[NativeBinding] = &[
+    crate::stdlib::threads::SPAWN,
+    crate::stdlib::threads::JOIN,
+    crate::stdlib::threads::DETACH,
     crate::stdlib::schema::namespace::STRING,
     crate::stdlib::schema::namespace::MIN_STRING,
     crate::stdlib::schema::namespace::GT_INT,

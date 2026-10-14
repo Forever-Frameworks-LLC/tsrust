@@ -157,6 +157,10 @@ impl SourceIndex {
         let mut count = 0;
         let mut counts = BTreeMap::<String, usize>::new();
         while let Some(source) = pending.pop() {
+            // Parameter access wraps the data type; it does not change its fields.
+            let source = ["ReadOnly<", "Mutable<", "Owned<"].into_iter()
+                .find_map(|prefix| source.strip_prefix(prefix).and_then(|inner| inner.strip_suffix('>')))
+                .unwrap_or(&source).to_owned();
             if source.len() > 65536 {
                 continue;
             }

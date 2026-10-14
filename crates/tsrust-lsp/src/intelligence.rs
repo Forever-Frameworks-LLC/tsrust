@@ -2478,7 +2478,7 @@ impl SourceIndex {
         let ty = self.written_type(&self.receiver_type_end(end, 0));
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
-                && (self.native_type_aliases.contains_key(inner) || self.deque_element(inner).is_some()) {
+                && self.native_type_aliases.contains_key(inner.split_once('<').map_or(inner, |(name, _)| name.trim())) {
                 return inner.into();
             }
         }

@@ -49,6 +49,7 @@ impl Analyzer {
     }
 
     fn prepare_loop_body(&mut self, context: &mut Context, span: Span, labels: &[Token], availability: (Vec<(usize, Availability)>, Vec<Availability>), flows: (crate::flow::Facts, crate::flow::Facts, crate::flow::Facts)) -> Result<Box<BodyLoop>, Diagnostic> {
+        self.thread_scope_exit(context, 0, span)?;
         let control_boundary = context.loops.len();
         let (entry, baseline) = availability;
         let (flow_entry, flow_required, zero_flow) = flows;
@@ -159,6 +160,7 @@ impl Analyzer {
     }
 
     pub(super) fn prepare_tail_body(&mut self, context: &mut Context, condition: &Option<Expr>, post_test: bool, actual: Option<Type>, entry: Box<TailEntry>, span: Span, labels: &[Token]) -> Result<Box<Tail>, Diagnostic> {
+        self.thread_scope_exit(context, 0, span)?;
         let TailEntry { initial_flow, entry } = *entry;
         let mut required = HashMap::new();
         let mut zero_flow = None;

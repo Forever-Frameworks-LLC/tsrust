@@ -123,6 +123,7 @@ impl Analyzer {
 
     pub(super) fn finish_block(&mut self, context: &mut Context, body: &mut [Stmt], frame: Box<BlockFrame>) -> Result<bool, Diagnostic> {
         let result = (|| {
+            if !frame.exited { self.thread_scope_exit(context, frame.first_local, body.last().map_or(Span::default(), |item| item.span))?; }
             self.record_sequence_carriers(context,body)?;
             context.storage_exits.record(body, &context.bindings[..frame.first_local]);
             if !frame.keep_names { Self::check_retained_scope_borrows(context, frame.first_local)?; }

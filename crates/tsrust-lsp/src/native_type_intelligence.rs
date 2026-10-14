@@ -200,8 +200,11 @@ impl SourceIndex {
     pub(super) fn import_native_type(&mut self, declaration: &tsrust_compiler::native_types::Declaration, local: &str, span: Span) {
         let Some(catalog) = builtins_for(declaration.module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
+        if !declaration.type_parameters.is_empty() {
+            self.generic_parameters.insert(local.into(), declaration.type_parameters.iter().map(|name| (*name).to_owned()).collect());
+        }
         let render = |signature: &tsrust_compiler::native_signatures::Signature| {
-            signature.render(|id| Some(tsrust_compiler::native_types::declaration(id).name.into())).expect("registered native field signature").into_owned()
+            signature.render_with_parameters(|id| Some(tsrust_compiler::native_types::declaration(id).name.into()), |index| declaration.type_parameters.get(index).map(|name| (*name).into())).expect("registered native field signature").into_owned()
         };
         let fields = declaration.fields.iter().map(|field| format!("{}{}: {}", field.name, if field.optional { "?" } else { "" }, render(&field.signature))).collect::<Vec<_>>();
         let type_name = if declaration.type_parameters.is_empty() { local.to_owned() } else { format!("{local}<{}>", declaration.type_parameters.join(", ")) };

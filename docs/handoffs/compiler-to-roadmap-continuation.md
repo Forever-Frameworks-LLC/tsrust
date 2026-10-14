@@ -85,15 +85,13 @@ completed groups and rerun only affected failures. Do not describe the recent
 focused checks as a fresh full-suite result. Differential suites require pinned
 Node v24.11.1 first on PATH.
 
-## Next concrete feature: S12 native threads
+## S12 owned workers
 
-Implement public owned `spawn` and consuming `join` with checked capture/result
-transfer, source diagnostics, explicit join/detach lifecycle enforcement, and
-failure/panic cleanup. Use [the thread plan](../plans/native-threads-plan.md) and
-[interop contracts](../interop-and-targets.md). Existing backend/transfer-classifier
-witnesses are groundwork, not public API acceptance. Finish this coherent slice
-across compiler, runtime, editor, documentation, examples and benchmark support
-before broadening to bounded channels.
+The owned `spawn`/consuming `join`/explicit `detach` slice is implemented across
+compiler, runtime, editor and benchmark support. See [scope and acceptance](../plans/owned-thread-acceptance.md)
+for the direct-handle lifecycle boundary and evidence. Broader S12 remains open:
+bounded channels, multicore throughput, and local Rust/pool integration are separate
+work. Do not repeat public spawn/join groundwork or treat untimed checks as timings.
 
 Preserve already settled decisions:
 

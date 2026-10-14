@@ -50,6 +50,29 @@ impl Declaration {
     }
 }
 
+static THREAD: Declaration = Declaration {
+    id: NativeTypeId::Thread, module: "std:threads", name: "Thread",
+    type_parameters: &["T", "E"], representation: Representation::Opaque,
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+static SPAWN_ERROR: Declaration = Declaration {
+    id: NativeTypeId::SpawnError, module: "std:threads", name: "SpawnError",
+    type_parameters: &[], representation: Representation::Record,
+    independent_clone: false, collection_key: false, thread_transfer: true,
+    fields: &[
+        Field { name: "code", signature: Signature::String, optional: false },
+        Field { name: "message", signature: Signature::String, optional: false },
+    ], capabilities: &[],
+};
+static THREAD_ERROR: Declaration = Declaration {
+    id: NativeTypeId::ThreadError, name: "ThreadError", type_parameters: &["E"],
+    fields: &[
+        Field { name: "code", signature: Signature::String, optional: false },
+        Field { name: "error", signature: Signature::Parameter(0), optional: true },
+    ], ..SPAWN_ERROR
+};
+
 static TEST_REGISTRY: Declaration = Declaration {
     id: NativeTypeId::TestRegistry, module: "std:testing-runtime", name: "TestRegistry",
     type_parameters: &[], representation: Representation::Opaque,
@@ -269,6 +292,9 @@ static HEAP: Declaration = Declaration {
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::Thread => &THREAD,
+        NativeTypeId::ThreadError => &THREAD_ERROR,
+        NativeTypeId::SpawnError => &SPAWN_ERROR,
         NativeTypeId::TestRegistry => &TEST_REGISTRY,
         NativeTypeId::Schema => &SCHEMA,
         NativeTypeId::ValidationContext => &VALIDATION_CONTEXT,
@@ -309,7 +335,7 @@ pub fn declaration(id: NativeTypeId) -> &'static Declaration {
 /// Exact module/name lookup does not grant aliases a new declaration identity.
 /// This registry alone does not publish types through the source module loader.
 pub fn lookup(module: &str, name: &str) -> Option<&'static Declaration> {
-    [&SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
+    [&THREAD, &THREAD_ERROR, &SPAWN_ERROR, &SCHEMA_EXPORT_ERROR, &VALIDATION_CONTEXT, &SCHEMA_CONSTRUCTION_ERROR, &VALIDATION_ERROR, &SCHEMA_ISSUE, &SCHEMA_PATH, &SCHEMA, &JSON_RAW, &JSONL_WRITER_VIEW, &JSONL_READER_VIEW, &JSONL_WRITER, &JSON_BUILD_LIMITS, &JSON_ENTRY, &STRING_VIEW, &JSONL_READER, &JSONL_ERROR, &JSON_VALUE, &JSON_VIEW, &JSON_ERROR, &JSON_LIMITS, &ENV_ERROR, &BYTES, &BYTE_ERROR, &BYTE_VIEW, &BYTE_VIEW_MUT, &FILE, &BUFFERED_READER, &BUFFERED_WRITER, &FS_ERROR, &DEQUE, &HEAP, &ORDERED_SET, &ORDERED_MAP].into_iter().find(|item| item.module == module && item.name == name)
 }
 
 #[cfg(test)]

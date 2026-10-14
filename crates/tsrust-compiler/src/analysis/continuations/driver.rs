@@ -697,6 +697,7 @@ fn step_block<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Bloc
                     let StmtKind::Expr(value) = &mut task.body.statements()[index].kind else { unreachable!("statement expression slot") };
                     *value = *expression;
                     let ty = result?;
+                    analyzer.thread_discard(ty, value.span)?;
                     if precise { context.storage_exits.record_discarded_sequence(value.span); }
                     if matches!(ty, Type::Closure(_)) && !matches!(value.kind, ExprKind::Call(..)) {
                         return Err(Diagnostic::new("unsupported", "Bind a closure before using it.", value.span));

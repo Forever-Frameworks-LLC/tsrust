@@ -19,6 +19,7 @@ impl Analyzer {
         let Some(index)=index else {
             return Err(Diagnostic::new("loop-control","break and continue require an enclosing target in the same function or closure.",labels.first().map_or(span,|label|label.span)));
         };
+        self.thread_scope_exit(context, context.loops[index].scope_start, span)?;
         if continuing && matches!(context.loops[index].target,ControlTarget::Block(_)) {
             return Err(Diagnostic::new("loop-control","continue requires a label on an enclosing loop.",labels.first().map_or(span,|label|label.span)));
         }

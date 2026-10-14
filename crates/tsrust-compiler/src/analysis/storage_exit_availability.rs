@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<discarded_sequence::Sites>>, Option<Box<HashMap<usize,Vec<CompletionOwners>>>>);
+pub(crate) struct Exits(HashMap<(usize, usize), Vec<Unavailable>>, HashMap<usize, Vec<Unavailable>>, HashMap<(usize, usize), Vec<Unavailable>>, Option<Box<HashMap<(usize,usize),MapEntrySurvivors>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<HashMap<(usize,usize),Vec<MapEntrySurvivors>>>>, Option<Box<HashMap<(usize,usize,bool),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize,MapLoopEdge),std::collections::BTreeMap<crate::capture_loan_owners::Place,HashSet<Type>>>>>, Option<Box<HashMap<(usize,usize),Vec<MapIterationEpoch>>>>, Option<Box<HashMap<(usize,usize),HashMap<usize,Type>>>>, Option<Box<HashMap<(usize,usize),(usize,bool,Vec<MapEntryEpoch>)>>>, Option<Box<map_completion_payloads::Snapshots>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<std::sync::Arc<map_cleanup_phase_plan::Plans>>, Option<Box<HashMap<(usize,usize),Vec<MapEntryEpoch>>>>, Option<Box<HashMap<usize,Vec<MapEntryEpoch>>>>, Option<Box<HashMap<(usize,usize),Type>>>, Option<Box<discarded_sequence::Sites>>, Option<Box<HashMap<usize,Vec<CompletionOwners>>>>, Option<Box<HashMap<(usize,usize),Vec<usize>>>>);
 #[derive(Clone,Debug)]
 pub(crate) struct MapIterationEpoch {
     /// Working family includes every reaching iteration origin, even when the
@@ -90,6 +90,13 @@ struct CompletionOwners {
     unavailable:Vec<Unavailable>,
 }
 impl Exits {
+    pub(super) fn record_thread_owners(&mut self, span: Span, owners: Vec<usize>) {
+        if !owners.is_empty() { self.20.get_or_insert_with(Default::default).insert((span.start,span.end), owners); }
+    }
+    pub(super) fn thread_owners(&self, span: Span) -> &[usize] {
+        self.20.as_ref().and_then(|points| points.get(&(span.start,span.end))).map_or(&[],Vec::as_slice)
+    }
+
     pub(super) fn record_completion_owners(&mut self,boundary:usize,phase:map_completion_payloads::Phase,kind:Option<crate::completion::CompletionKind>,owners:&[Availability]) {
         let unavailable=owners.iter().enumerate().filter_map(|(binding,owner)|(owner.transferred.is_some() || !owner.fields.is_empty()).then(||Unavailable{binding,root:owner.transferred,fields:owner.fields.iter().map(|(path,span)|(path.clone(),*span)).collect()})).collect::<Vec<_>>();
         let states=self.19.get_or_insert_with(Default::default).entry(boundary).or_default();

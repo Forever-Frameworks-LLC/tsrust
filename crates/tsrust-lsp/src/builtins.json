@@ -1,4 +1,112 @@
 {
+  "std:threads": [
+  {
+    "name": "spawn",
+    "signature": "spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "inferredSignature": "function spawn(callback: Owned<Function<T>>): Result<Thread<T, E>, SpawnError>",
+    "parameters": [
+      {
+        "label": "callback: Owned<Function<T>>",
+        "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected."
+      }
+    ],
+    "documentation": "Starts one native OS thread immediately. The zero-argument callback runs once. T is its returned type; E is its inferred thrown payload type, or undefined when it cannot throw. Returns Ok with a uniquely owned handle, or Err with code spawn and an OS error message. A failed spawn disposes the callback and its captures. Worker throws are retained for join; they do not throw in the spawning caller. No pool, serialization, cancellation or stack-size option is provided. Captures, returned values and thrown payloads must be owned transferable data. Caller loans, program-state borrows and stored callbacks are rejected.\n\nOwnership: consumes the callback and moves its captures. Settle every successful handle with join, detach or an owned transfer. Calls must be direct; polymorphic operation values are not supported.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: 42.",
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "join",
+    "signature": "join(worker: Thread<T, E>): Result<T, ThreadError<E>>",
+    "inferredSignature": "function join(worker: Thread<T, E>): Result<T, ThreadError<E>>",
+    "parameters": [
+      {
+        "label": "worker: Thread<T, E>",
+        "documentation": "Waits for the worker to finish and returns its owned result. Returns Err with code worker and the original typed error payload when the callback throws; code panic has no error payload and reports a backend panic. The handle is consumed on success and failure. The caller blocks until completion; there is no timeout or forced cancellation."
+      }
+    ],
+    "documentation": "Waits for the worker to finish and returns its owned result. Returns Err with code worker and the original typed error payload when the callback throws; code panic has no error payload and reports a backend panic. The handle is consumed on success and failure. The caller blocks until completion; there is no timeout or forced cancellation.\n\nOwnership: consumes the handle and moves the returned value or thrown payload without cloning. A second join or detach is rejected.\n\n```tsrust\nimport {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: 42.",
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "detach",
+    "signature": "detach(worker: Thread<T, E>): void",
+    "inferredSignature": "function detach(worker: Thread<T, E>): void",
+    "parameters": [
+      {
+        "label": "worker: Thread<T, E>",
+        "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value."
+      }
+    ],
+    "documentation": "Explicitly releases the caller\u2019s handle without waiting. The worker continues independently; its eventual result or failure is discarded. Process exit does not wait for detached workers. Takes one handle and returns no value.\n\nOwnership: consumes the handle. Later access, join or detach is rejected.\n\n```tsrust\nimport {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}\n```\n\nExpected output: none.",
+    "examples": [
+      {
+        "source": "import {spawn,detach} from 'std:threads';function main(){match(spawn(():void=>{})){Ok(worker)=>{detach(worker);},Err(error)=>{console.log(error.code);}}}",
+        "output": ""
+      }
+    ]
+  },
+  {
+    "name": "Thread",
+    "signature": "type Thread<T, E>",
+    "parameters": [],
+    "documentation": "A uniquely owned running or completed native worker. T is its returned value and E its thrown payload type. Use join to wait, or detach to release interest explicitly. Handles cannot be constructed, cloned, compared or inspected. Every path must settle or transfer ownership. This initial API supports direct values and Result wrappers; records, collections, retained callbacks, handles carried into loops and cleanup through exception regions are not supported. Settle handles before fallible work.",
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "SpawnError",
+    "signature": "type SpawnError = { code: string; message: string; }",
+    "parameters": [],
+    "documentation": "Failure to create a native worker. code is spawn; message describes the operating-system failure. No worker handle exists on this branch. Ownership: owns its message.",
+    "fields": {
+      "code": {
+        "documentation": "Stable failure code: spawn."
+      },
+      "message": {
+        "documentation": "Operating-system error description."
+      }
+    },
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "ThreadError",
+    "signature": "type ThreadError<E> = { code: string; error?: E; }",
+    "parameters": [],
+    "documentation": "Worker completion failure. code worker retains the original typed thrown payload in error. code panic reports a backend panic and error is undefined. Check error against undefined before reading an optional payload. Ownership: owns the thrown payload; no string conversion or cloning occurs.",
+    "fields": {
+      "code": {
+        "documentation": "worker for a source throw; panic for a backend panic."
+      },
+      "error": {
+        "documentation": "Original typed source throw, or undefined for backend panic."
+      }
+    },
+    "examples": [
+      {
+        "source": "import {spawn,join} from 'std:threads';function main(){match(spawn(():int=>42)){Ok(worker)=>{match(join(worker)){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.code);}}},Err(error)=>{console.log(error.code);}}}",
+        "output": "42\n"
+      }
+    ]
+  }
+],
   "ValidationContext": [
   {
     "name": "addIssue",

@@ -243,7 +243,9 @@ impl Context<'_> {
                             value.span,
                         ));
                     }
-                    for argument in arguments.iter().rev() {
+                    for (position, argument) in arguments.iter().enumerate().rev() {
+                        if position == 0 && template.native_type == Some(crate::native_signatures::NativeTypeId::Thread)
+                            && matches!(&argument.kind, Kind::Named(name) if name.text == "void") { continue; }
                         pending.push(argument);
                     }
                 }
@@ -411,6 +413,7 @@ impl Context<'_> {
                         }));
                     }
                 }
+                Type::Void => output.push_str("void"),
                 _ => unreachable!("validated value type argument"),
             }
         }

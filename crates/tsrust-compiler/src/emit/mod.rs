@@ -5,6 +5,7 @@ use declaration_scope::Declarations;
 mod coalesce_work;
 mod expression_work;
 mod program_testing;
+mod threads;
 mod schema;
 mod json_encoding;
 mod json_typed;
@@ -2338,8 +2339,10 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
+        if self.program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::Thread)) { output.push_str(crate::stdlib::threads::RUNTIME); }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if self.thread_record(&mut output, index) { continue; }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
                 let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
                 continue;
@@ -8470,6 +8473,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call) = self.thread_native(fun, expr, id, args) { return call; }
                     if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                         let binding = &crate::native_bindings::BINDINGS[id];

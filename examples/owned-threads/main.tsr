@@ -1,0 +1,19 @@
+import { spawn, join } from 'std:threads';
+
+function main() {
+  match (spawn((): int => 42)) {
+    Ok(worker) => {
+      match (join(worker)) {
+        Ok(value) => {
+          console.log(value);
+        },
+        Err(error) => {
+          console.log(error.code);
+        }
+      }
+    },
+    Err(error) => {
+      console.log(error.code);
+    }
+  }
+}

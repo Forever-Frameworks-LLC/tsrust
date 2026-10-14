@@ -64,6 +64,14 @@ impl Analyzer {
     pub(super) fn finish_if(&mut self, context: &mut Context, frame: Box<Else>, then_body: &mut [Stmt], else_body: &mut [Stmt], else_exits: bool, span: Span) -> Result<bool, Diagnostic> {
         let Else { entry, after_then_owners, after_then_flow, after_then, then_exits } = *frame;
         let before = entry.before;
+        if self.threads_enabled && !then_exits && !else_exits && !context.effects_only && !self.effects_only {
+            for ((id, _), state) in before.iter().zip(&after_then) {
+                if threads::contains_handle(context.bindings[*id].ty, &self.program.records, &|id| self.unions.members(id))
+                    && (state.transferred.is_some() != context.bindings[*id].transferred.is_some() || !state.fields.keys().eq(context.bindings[*id].moved_fields.keys())) {
+                    return Err(Diagnostic::new("thread-lifecycle", "Thread ownership must be settled consistently on both branches.", span));
+                }
+            }
+        }
         context.capture_loan_owners = crate::capture_loan_owners::Owners::reaching(
             (!then_exits).then_some(after_then_owners),
             (!else_exits).then(|| context.capture_loan_owners.clone()),

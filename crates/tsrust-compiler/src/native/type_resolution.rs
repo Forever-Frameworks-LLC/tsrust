@@ -52,7 +52,9 @@ impl Resolver<'_> {
         });
         let mut fields = Vec::new();
         for field in item.fields {
-            let mut annotation = self.signature(&field.signature, span, depth + 1)?;
+            let mut annotation = if let Signature::Parameter(index) = field.signature {
+                named(item.type_parameters.get(index).ok_or_else(|| Diagnostic::new("native-type-argument", "Missing native field type parameter.", span))?, span)
+            } else { self.signature(&field.signature, span, depth + 1)? };
             if field.optional {
                 annotation = ValueAnnotation { kind: Kind::Union(vec![annotation, named("undefined", span)]), span };
             }
