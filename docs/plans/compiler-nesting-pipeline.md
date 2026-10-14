@@ -2040,3 +2040,13 @@ Evidence uses `tsrust-nesting-deferred-call-work-*` in SQLite. This section acce
 deferred call scheduling only. Synchronous generic result hints, discovery and
 other callable specialization entries, count budgets, public parser admission,
 remaining consumers and formal scaling are still required before S12.
+
+
+A subsequent audit on `ae58b042` removes written result annotations from the named
+generic chain. Eight layers complete; 32 overflow during analysis. LLDB identifies
+`publish_generic_call` calling `prepare_named_result_hint`, which starts another
+function driver before `request_deferred_generic_body` returns its pending work.
+Thus the accepted deferred scheduling path does not make inferred generic bodies
+stack independent. Generic publication and result preparation must also suspend
+on the shared driver. Five exact source/discovery/trace records are preserved in
+SQLite under `tsrust-nesting-generic-result-audit-*`.
