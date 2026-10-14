@@ -53,7 +53,7 @@
   "measurementStatus": "unmeasured-schema-family",
   "specification": "Validate 5, then reject 0 with two ordered root issues. Observe all issue fields and messages. Checksum is seed + 7*n.",
   "notes": "Plan outside loop; both engines parse JSON then validate. Exact integer corpus. Handwritten TypeScript counterpart, not Zod. Unmeasured.",
-  "sourceSha256": "0a1a2a783e5372bbd0d24d844456af3e756ac3682987adfd43b5746e129dc211",
+  "sourceSha256": "d0f4cc9247146cc5254f5c653a83e143b583f0eee98569223d90f00fc043aa7c",
   "counterpartSha256": "bca348463d492ac1a6b57f3fd368a010e9cbb782051d322cb9850f7c6cd16b1e"
 },
 {
@@ -77,7 +77,7 @@
   "measurementStatus": "unmeasured-schema-family",
   "specification": "Validate a root with one child, then reject a nested string value. Observe both successful integer fields and the full three-segment rejection path. Checksum is seed + 4*n.",
   "notes": "Plan constructed outside loop. Both engines parse JSON then validate. Fixed two-node corpus uses exact small integers; TypeScript reference is handwritten, not Zod. No timing yet.",
-  "sourceSha256": "9678bb4d03e6afe99380bb0faa6ca30e2eda639b6656a3c49ce73688cc5c4769",
+  "sourceSha256": "59bf3086f33c1c8fc44ef070f98efda71256d9ddf26fdfc49bd4e071b6dda643",
   "counterpartSha256": "9bda1376785443477c90bbe532750c1f75c7109624b66c9f820e8c5f0e4ed915"
 },
 {
@@ -101,7 +101,7 @@
   "measurementStatus": "unmeasured-schema-family",
   "specification": "String min 2/max 6; hello succeeds and x fails with too-small and message Too short. Check every issue field and message; checksum adds six.",
   "notes": "Parse plus bounded validation and observation. Construct plan outside loop. TypeScript counts code points; fixed workload uses ASCII. Handwritten counterpart, not Zod. No timing yet.",
-  "sourceSha256": "4606c405a6569eb4182b2802a5e6bd598a10aefa4d4ef763ba92e74c0dd41ff4",
+  "sourceSha256": "652249abefadd1209a9a76730b6ca9a710e3744012b46f08b5b652c1ea71b60d",
   "counterpartSha256": "8c51f6f5b4e3809808e1a20fecba9195ffc9ee6054deb424b4d0b74a47dbd021"
 },
     {
@@ -21856,7 +21856,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "One successful string and one rejected number per iteration. Observe successful length and every error field; checksum adds six.",
       "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
-      "sourceSha256": "547845a5db138900cba7bc5d5b0e4c3ef36bd1643bca739806dde9ccc861ed01",
+      "sourceSha256": "c1b0f04223934e61db0f1a4669a66f252490e009aa5d55c219f728af0e17080a",
       "counterpartSha256": "873e7355c5b3e32c060a8823896e3741b440ad41cba2bee8b7b9658da6490c35"
     },
     {
@@ -21880,7 +21880,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "One successful true boolean and one rejected number per iteration. Observe the boolean and every error field; checksum adds two.",
       "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
-      "sourceSha256": "b3e4a67afe874a24f64024ff6acaf7b73b2efdd44c17efbca929d2f12ee87ff7",
+      "sourceSha256": "1e3fcdda560a0e75ffcbcde25c84e11983b424350c50398855a2dcf0a9839182",
       "counterpartSha256": "0dfe159e84c3cecbe76ebe4d1eaf62f3a0d75a60dbec4184bf13995fdcb2a960"
     },
     {
@@ -21904,7 +21904,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "One successful integer 7 and one rejected fraction 1.5 per iteration. Observe the integer and every error field; checksum adds eight.",
       "notes": "Parse plus validate, including output/error creation and observation. Plans constructed outside loop. Node uses a handwritten equivalent contract, not Zod. Native consumes owned input; JS shares immutable primitive text. Separate validation-only and pinned Zod comparisons remain required.",
-      "sourceSha256": "dc422bb456242196627456e483e2583508962e4a6aca0f5d8505c29abf0531b1",
+      "sourceSha256": "0300cb9f050c6952571c16f6232a313fffed8336e4ea90d2fbc72933fe2a072f",
       "counterpartSha256": "758da393828f22f5ce8cfeed2d7e144f2282536bef7b57cb8417b96557df37f2"
     },
     {
@@ -21928,7 +21928,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "One successful number 1.5 and one rejected boolean per iteration. Observe the number and every error field; checksum adds two.",
       "notes": "Parse plus validate and observe. Plan constructed outside loop. Matched Node domain contains only 1.5 and true; exact integer-to-number precision rejection has separate native boundary checks. Handwritten reference, not Zod. Validation-only and pinned Zod comparisons remain required.",
-      "sourceSha256": "b04d0ed1e3e1a436a58569327c40b9b3d05f3643d3d6d16bf8fc63999e75fe58",
+      "sourceSha256": "ecbf386e847754748c4f0ad43814a3788099d726f6b4cc2b28ba1c6c890c0549",
       "counterpartSha256": "9b96d0d9bddbf08233833e58bad9422c563880a8a5d8044781de4fab2ce772f7"
     },
     {
@@ -21952,7 +21952,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate integer 42 successfully and reject 9007199254740993 as number-precision. Observe the successful value and every issue field. Checksum adds two per iteration.",
       "notes": "Validation only; no JSON parsing. Schema constructed outside loop. Native i64 versus exact TypeScript bigint inputs; checked conversion to floating output. Input text is a scenario identifier, not parsed data. Untimed parity only until family measurements.",
-      "sourceSha256": "4163ad7ed9c0d6e9a10c0e74902cbacfc42bdb8923ce510ff59d7637c5f89f7b",
+      "sourceSha256": "4d3f8b291d2396704e6b514d05bba90db8b8adb2355659767c4f5c01e4c1b52d",
       "counterpartSha256": "269b97eb2a731aa67173916d578faee062d7ed0f4ea55c39799b5af8645113c8"
     },
     {
@@ -21976,7 +21976,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "One successful null and one rejected number per iteration. Observe null and every error field; checksum adds two.",
       "notes": "Parse plus validation and observation. Reusable schema outside loop. Matched explicit TypeScript contract; not Zod. Native consumes JSON input, with no hidden clone.",
-      "sourceSha256": "1dd4b436f4266ef5cdab0d04164320091cb3ca46c6cbd4b1478199eedef04fc8",
+      "sourceSha256": "b398a9a5982a38b72c6ff623b708abb146e6421d87efcde42b197e1aa3aed7a3",
       "counterpartSha256": "a3e3349642d9762e82035501e8e455a198db6663f66c3edeff13df3b0397a01f"
     },
     {
@@ -22000,7 +22000,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "String schema has min 2/max 6 code points; hello succeeds and x fails too-small. Observe successful length and every issue field; checksum adds six.",
       "notes": "Parse plus bounded validation and observation. Construct plan outside loop. TypeScript counts code points; fixed workload uses ASCII. Handwritten counterpart, not Zod. No timing yet.",
-      "sourceSha256": "848cfc9c2430ffa89f32f1336bcfa39c88e55621b9b52506dd6e4e9f275299f1",
+      "sourceSha256": "acdd2a6f68d82fa3772a85047a4ad488f974894b16335ecda7add98226ee5354",
       "counterpartSha256": "768cee640f1ed515be9f0a272479eb5a20fa5c07a185b4a969b06efd3fc1b7da"
     },
     {
@@ -22024,7 +22024,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Integer schema min 2/max 9: 7 succeeds, 10 returns too-large. Observe value and every issue field; checksum adds eight.",
       "notes": "Parse plus constrained validation. Plan constructed outside loop. Small matched TypeScript number domain only; full int64 endpoint correctness has separate native tests. Handwritten reference, not Zod.",
-      "sourceSha256": "369957e05c465650131be0857e3354669672b36a8cceb26b63ae92b2863e28a1",
+      "sourceSha256": "cb41f9e609f094eded5ddcfffa1d82b04934f7b21040a44a8fa34ef9d24769e8",
       "counterpartSha256": "2c40454d55d94caa02d1c927067238956c5b33288676669c6771aa4d8d9491cc"
     },
     {
@@ -22048,7 +22048,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Integer schema gt 2/lt 10: 7 succeeds, 10 returns too-large. Observe value and every issue field; checksum adds eight.",
       "notes": "Parse plus constrained validation. Plan constructed outside loop. Small matched TypeScript number domain only; full int64 endpoint correctness has separate native tests. Handwritten reference, not Zod.",
-      "sourceSha256": "4b40c26b425319a6a70ca189c5461b00529ff0e338bd0eaffc1fbd6db78645c0",
+      "sourceSha256": "03578431c35fdd99afcf057c8a8f2fa84b0df4ca866b887ce3401460c04135fe",
       "counterpartSha256": "904a21256c21e4c0a2020ae61c569e15594672a62d36262e0229ad3f9332edb8"
     },
     {
@@ -22072,7 +22072,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Bounds min 0/max 3/gt 1/lt 2: 1.5 succeeds and 2.0 returns too-large. Observe every result field; checksum adds two.",
       "notes": "Parse plus validate and observe. Plan constructed outside loop. Matched Node domain contains only 1.5 and true; exact integer-to-number precision rejection has separate native boundary checks. Handwritten reference, not Zod. Validation-only and pinned Zod comparisons remain required.",
-      "sourceSha256": "5248ca9f50878977c90ab7d740fead66d548b2f1a58930357959b32d28d8f1be",
+      "sourceSha256": "ac715d8d7dc4031136082da1c13f6029785a56b53af473c859d0195d68d4b313",
       "counterpartSha256": "9a7cae2ae3538ec1d9059fde37760cc970e95ec73e73ad4230c0bcd3f3bdd796"
     },
     {
@@ -22096,7 +22096,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate [2,3] successfully and reject [1,0] with two indexed errors. Checksum adds four per iteration.",
       "notes": "Validation of small exact integers with a reusable min-2 plan. Handwritten TypeScript reference, not Zod. JSON parsing excluded; no timings collected.",
-      "sourceSha256": "8aa9db522911ee1af0cd520d494dfa1f765d09bca7fcf5a0e46758b3851a46af",
+      "sourceSha256": "d1bc9a876fff7c5a60cddb5413ba8c145ae3e15ccebff86bc9a6718044badb09",
       "counterpartSha256": "0664d225258160fa72cb3db3a265711ee2d850d59d419ef3af656399033e6a88"
     },
     {
@@ -22120,7 +22120,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Parse and validate [2,3]; reject [1,0] with two indexed too-small errors. Checksum adds four per iteration.",
       "notes": "Parse plus validation in a small exact-integer domain. Handwritten TypeScript reference, not Zod. Full signed-64 endpoints and precision failures have separate native checks. Unmeasured.",
-      "sourceSha256": "969f16b6c64cf7c8181540ff852e7afd3b0e938f56e442ecd4aa369a6c925885",
+      "sourceSha256": "fada1c403b0b742ebfeb0615207ab78a30615eb0b21a3fbfc2c4176781b54379",
       "counterpartSha256": "69dc548002d1800f6cd1d455e1e3057eb168ae41dd0d0be9a6f01d9a137d2052"
     },
     {
@@ -22144,7 +22144,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Convert [42] exactly and reject [9007199254740993] with an indexed number-precision error. Checksum adds two per iteration.",
       "notes": "Owned array validation only; no JSON parse. TypeScript uses BigInt as the exact integer reference. Handwritten reference, not Zod. Unmeasured.",
-      "sourceSha256": "af584104bea00f9739261846b814ab060b5c631cab1a618261a2d9de93980938",
+      "sourceSha256": "d6aa50a94a9f7727651389e179ae00fa602f9308d48f47b2fe1d6b75d96e4b5f",
       "counterpartSha256": "27a45cd603f715142184eb44e082d4ab106c1dc27aa5af6fb5c9fd2cc0a10858"
     },
     {
@@ -22168,7 +22168,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate count 2; reject a missing count and unknown extra field. Checksum adds four per iteration.",
       "notes": "Direct typed native output versus handwritten TypeScript JSON.parse plus validation. Includes syntax checks, output construction and errors. Not Zod. Unmeasured; parity pending.",
-      "sourceSha256": "dd58e2f32ef704ede64ab4118c27370da8d5198c5ea89b5d5d6ae03425e4c465",
+      "sourceSha256": "b2bbce06b7669ad83a03d86eab06808c1d5cc84168141a68fd5697ad3f35f6e4",
       "counterpartSha256": "efc1a80e793752ccf70c6cea2db12006bf322a5c9b7e98701c5112228b2d4cc2"
     },
     {
@@ -22192,7 +22192,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate count 2; reject a missing count and unknown extra field. Checksum adds four per iteration.",
       "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
-      "sourceSha256": "1a826885532d80a4236e65ef5b19f0be65d8bfc05ba579b56fd74032c36d4a75",
+      "sourceSha256": "94bbb7f8bd2059dd63d7444e6ce546bc7a976aa14b849a3b73954887236fdddf",
       "counterpartSha256": "efc1a80e793752ccf70c6cea2db12006bf322a5c9b7e98701c5112228b2d4cc2"
     },
     {
@@ -22216,7 +22216,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate count 2 while stripping extra; reject a missing count. Checksum adds three per iteration.",
       "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
-      "sourceSha256": "ccd3edf85da9c72c6158f2a41360b063dbba75f07834dce34703ec6ea47cccee",
+      "sourceSha256": "12776b4fb8fe99f29598167469ded51061bb9040f8c6ac9d6a4bb7240c6b0f78",
       "counterpartSha256": "36de74f9879673de26dad5e2a197e2a0797ac441db8573f29aa698eba8ccc141"
     },
     {
@@ -22240,7 +22240,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate count 3 and retain extra in a map; reject missing count. Checksum adds five per iteration.",
       "notes": "Small exact integer domain. Handwritten TypeScript reference, not Zod. Untimed parity only; unmeasured.",
-      "sourceSha256": "b7065d5f8175fa36763f3878787966b5124c795f4517c396be649dcc6d06e51c",
+      "sourceSha256": "7c4329b133b8fa47d9445bcf47e5cb44d5d9211f50b1607c9da34d17540be400",
       "counterpartSha256": "3b255e97d19353558240f0731eea34c5ae3aa948a96a6f11ceaf4389541910a0"
     },
     {
@@ -22264,7 +22264,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Accept absent optional count and nullable label; reject null count and missing label with named issues. Checksum adds three per iteration.",
       "notes": "Presence semantics in a fixed small JSON domain; handwritten TypeScript reference, not Zod. No timing yet.",
-      "sourceSha256": "c6511e91e236a53b5d7b9d8ad7b7be1157b2e5518782da0aa27431aaba824d22",
+      "sourceSha256": "46c4cd63a24cffba66597f649c2934b7f907f42e64a1725eb9adc9fbec16a44e",
       "counterpartSha256": "68314986bd7ced757a25c58c6f1ae5901b3b5ef650e68fa41e6909f639931ea9"
     },
     {
@@ -22288,7 +22288,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Generate and validate missing count 7; reject supplied null count and missing label. Checksum adds nine per iteration.",
       "notes": "Small exact integer domain. Handwritten TypeScript reference; default factory reused across validations. Untimed parity only; unmeasured.",
-      "sourceSha256": "3c3581fd940431367fe226e8e35f9e8509d593dc6454e6ac76348502d4fcdcbb",
+      "sourceSha256": "a8c758c10b14cd0db1e2160e8c525fd6e02580b561bb700adf8ba742861de6e2",
       "counterpartSha256": "9077b759f325055e0d5969eff266fc9949d2e324997bdbd4e04caa0acf4e16b0"
     },
     {
@@ -22312,7 +22312,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate exact ready and reject waiting with a root literal-mismatch issue. Checksum adds six per iteration.",
       "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
-      "sourceSha256": "6f05fb767ea91888551a8e8076764e3d30862c870afb2f90aff07ec27e0bc588",
+      "sourceSha256": "1179b04bce92af618f7755d7345f6c6993800d7c079cbc934f84d645b0c5e76c",
       "counterpartSha256": "8a05bb75258106736ff2d953d5e3447b58cdabc3fbfd4cc91ccf76331a5e35c7"
     },
     {
@@ -22336,7 +22336,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Accept ready or done and reject waiting with a root literal-mismatch issue. Checksum adds six per iteration.",
       "notes": "Handwritten TypeScript reference over a fixed string domain. Untimed parity only; unmeasured.",
-      "sourceSha256": "d72df405f498a3e38980b96b08a78356fb713def350d7734df16872ea0d43a4e",
+      "sourceSha256": "9ff698b953e8e49255e70da472893bc1d18a20112978f00de3379e5997a56eb9",
       "counterpartSha256": "9270059c1a9ec4fc799249b28ac367669ba748627384463dc0fc337de82f2446"
     },
     {
@@ -22360,7 +22360,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Accept Code.High and reject 3.0 with a root literal-mismatch issue. Checksum adds two per iteration.",
       "notes": "Handwritten TypeScript enum validator; small finite numeric domain. Exact large-integer rejection covered separately by native correctness checks. Untimed parity only; unmeasured.",
-      "sourceSha256": "b8c4d0c2dbacc5eba5789311a9c0ffe76aa84e155a17b13d3a81e25cc93a52ce",
+      "sourceSha256": "e1393678b5812cb533e13fd342047d694123063c3caad134b3e8dea6c9a2cdde",
       "counterpartSha256": "9d2bd8af79d544f100344b2b029029cbdbfd0864c9829dc5138d48ecb1dc13dd"
     },
     {
@@ -22384,7 +22384,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate success and rejection, checking issue codes and paths. Checksum adds 13 per iteration.",
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
-      "sourceSha256": "1d1bf9a92df33c25fb0ded66ad1e7eaa6a136d7be3ca6c666bec4385e2a486ea",
+      "sourceSha256": "9019966f2add4629ab86a7a03a23136d9be45cf74485598fe80e8ecf04b35d1e",
       "counterpartSha256": "f742cabd793b1663107aaa54231d957176d9d3057a3c1c88b778ad93c67b41cf"
     },
     {
@@ -22408,7 +22408,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Validate success and rejection, checking issue codes and paths. Checksum adds 5 per iteration.",
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
-      "sourceSha256": "a231e42cfb1d64d3ecd8ff125762809982da7b87bea0859a3ac50de379180d77",
+      "sourceSha256": "b23ab261b76ebabe940d6570f59dca4a068f9bc6de0149befbef420ea506a6cd",
       "counterpartSha256": "6fad23204b566a3eb140581333f2614ba3917261f97baecac53da892ff8493cb"
     },
     {
@@ -22432,7 +22432,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "A mutating coercion extends input; receiving integer constraints and refinement precede a transformed result. Observe success 4, one bounded root issue with its custom message, and rollback success 2, contributing 7 per iteration.",
       "notes": "Handwritten TypeScript reference for the stated workload domain. Implementation and timing acceptance pending.",
-      "sourceSha256": "1fb8d2c876ebad07187e49b029579320b6b197af48edb9d0449754b61991e96f",
+      "sourceSha256": "07ff4d1eab28c3df6507b26b544f7db00cec68ab20cd15ac1267bb8247cea09d",
       "counterpartSha256": "8cd1cd3c60c57c43f6e9c777ec85b753ac77041cd67713f9d6d184470e444d6a"
     },
     {
@@ -22456,7 +22456,7 @@
       "measurementStatus": "unmeasured-schema-family",
       "specification": "Three successful collection validations add six; two collisions add two. Checksum seed + 8*n.",
       "notes": "Handwritten TypeScript reference. Includes input construction, JSON record decoding and Map/Set collisions. Unmeasured; parity pending.",
-      "sourceSha256": "4c6824710f8040db6231f0e98d18c35710569d43f2276d77bf355f89ccec0fbf",
+      "sourceSha256": "8371f6327aede1901ce2c30aeb9516de1156cedceb8265512a6073dc12443429",
       "counterpartSha256": "64bb06fb4df7bb565e296f671fa3a0d99c48bdeb6517a7366f5b726877fa2018"
     },
     {
