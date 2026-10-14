@@ -15,11 +15,18 @@ impl Emitter<'_> {
         Some(format!("record_fields{id}.{}",Self::record_order_member(&path)))
     }
     pub(super) fn record_parameter_owned_clone(&self,fun:&CheckedFunction,value:&Expr)->Option<String> {
+        if self.record_parameter_borrow_leaf(fun,value){return Some(format!("Clone::clone({})",self.expr(fun,value,Mode::Read)));}
+        self.record_parameter_fields_clone(fun,value)
+    }
+    pub(super) fn record_parameter_fields_clone(&self,fun:&CheckedFunction,value:&Expr)->Option<String> {
         if !matches!(value.ty,Some(Type::Record(_))){return None;}
         let(id,record,mut path)=self.parameter_record_source(fun,value)?;
         if !self.record_runtime.cloneable(record){return None;}
-        if self.record_borrow_leaf(record){return Some(format!("Clone::clone({})",self.expr(fun,value,Mode::Read)));}
+        if self.record_borrow_leaf(record){return None;}
         Some(self.record_clone_from_fields(id,record,&mut path))
+    }
+    pub(super) fn record_parameter_borrow_leaf(&self,fun:&CheckedFunction,value:&Expr)->bool{
+        self.parameter_record_source(fun,value).is_some_and(|(_,record,_)|self.record_runtime.cloneable(record)&&self.record_borrow_leaf(record))
     }
     fn record_clone_from_fields(&self,id:usize,record:usize,path:&mut Vec<usize>)->String {
         let mut fields=self.program.records[record].fields.iter().enumerate().map(|(index,field)| {

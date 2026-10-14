@@ -7,6 +7,7 @@ struct Boundary {
 
 enum CallState<'p> {
     Spread,
+    ObjectSpread { snapshots:Vec<Option<String>> },
     Sequence { discards: Vec<bool>, first_temporary: usize },
     Assignment { discards: Vec<bool>, first_temporary: usize },
     Logical { plan: super::logical_values_emit::LogicalPlan, temporary: Option<usize> },
@@ -222,6 +223,18 @@ impl<'p> Emitter<'p> {
     ) -> Option<CallFrame<'a, 'p>> {
         if let ExprKind::SpreadCall(plan)=&expr.kind {
             return Some(CallFrame{children:self.spread_expression_children(plan,mode),rendered:Vec::new(),invocation:None,state:CallState::Spread});
+        }
+        if matches!(expr.target,Some(CallTarget::RecordSpread(_))){
+            let ExprKind::Call(_,args)=&expr.kind else{unreachable!("object spread call")};
+            let mut children=Vec::new();let mut snapshots=Vec::new();
+            for arg in args{
+                if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{
+                    let snapshot=self.record_parameter_fields_clone(fun,value);
+                    if snapshot.is_none(){children.push((value.as_ref(),Mode::Read));}
+                    snapshots.push(snapshot);
+                }else{children.push((arg,Mode::Consume));snapshots.push(None);}
+            }
+            return Some(CallFrame{children,rendered:Vec::new(),invocation:None,state:CallState::ObjectSpread{snapshots}});
         }
         let assignment = match &expr.kind {
             ExprKind::Assign { target, value, .. } => Some((target, Some((value, if expr.ty == Some(Type::Void) { Mode::Consume } else { Mode::Copy })))),
@@ -535,6 +548,18 @@ impl<'p> Emitter<'p> {
         state: CallState<'_>,
         rendered: Vec<String>,
     ) -> String {
+        if let CallState::ObjectSpread{snapshots}=state{
+            let Some(CallTarget::RecordSpread(result))=expr.target else{unreachable!("object spread target")};
+            let ExprKind::Call(_,args)=&expr.kind else{unreachable!("object spread call")};
+            let mut rendered=rendered.into_iter();
+            let copied=args.iter().zip(snapshots).map(|(arg,snapshot)|{
+                if let Some(snapshot)=snapshot{return snapshot;}
+                let code=rendered.next().expect("completed object spread source");
+                if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{self.finish_clone_argument(fun,value,code)}else{code}
+            }).collect();
+            debug_assert!(rendered.next().is_none());
+            return Self::access_wrapped(expr,mode,self.object_spread_value_with(result,args,copied));
+        }
         if matches!(state,CallState::Spread){
             let ExprKind::SpreadCall(plan)=&expr.kind else{unreachable!("spread emission frame")};
             let mut rendered=rendered.into_iter();
@@ -552,7 +577,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Spread=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
@@ -800,7 +825,7 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
-            CallState::Spread=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { discards, .. } => {
                 let mut code = String::from("{");
                 for (value, discard) in rendered.into_iter().zip(discards) {

@@ -445,3 +445,11 @@ order through `emit/expression_work.rs`. `spread_emit.rs` and
 results, snapshots, arity guards and builtin receiver modes. They do not start
 nested expression emitters. Named function tasks retain their entry depth and
 function-stack boundary and release owned visiting frames when child work fails.
+
+Object spread keeps its sequential inference and overwrite proof in
+`analysis/object_spread.rs`. `analysis/continuations/driver/object_spread.rs`
+schedules each field and spread source on the shared checker stack, retaining the
+literal-policy boundary until that source finishes or fails. The overwrite proof
+uses a heap worklist without a source-depth cutoff. The emitter schedules source
+expressions through `emit/expression_work.rs`, then assembles completed fragments
+with their original snapshots, overwrite rules and key order.

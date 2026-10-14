@@ -19,6 +19,7 @@ mod deferred;
 mod generic;
 mod spread;
 mod array_spread;
+mod object_spread;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -111,6 +112,7 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     ArraySpread,
+    ObjectSpread,
     Spread,
     GenericReceiver,
     GenericCall,
@@ -240,7 +242,7 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { ArraySpread(Box<array_spread::ArraySpreadTask<'a>>), Spread(Box<spread::SpreadTask<'a>>), Generic(Box<generic::GenericTask>), Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { ObjectSpread(Box<object_spread::ObjectSpreadTask<'a>>), ArraySpread(Box<array_spread::ArraySpreadTask<'a>>), Spread(Box<spread::SpreadTask<'a>>), Generic(Box<generic::GenericTask>), Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
     Spread(Box<Expr>, Result<Type, Diagnostic>),
     Generic(Box<Expr>, Result<(), Diagnostic>),
@@ -531,6 +533,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::ObjectSpread(task) => object_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::ArraySpread(task) => array_spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Spread(task) => spread::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Generic(task) => generic::step(analyzer, task, completion.take()),
@@ -909,7 +912,7 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
-        ExpressionState::ArraySpread => {
+        ExpressionState::ArraySpread | ExpressionState::ObjectSpread => {
             let Completion::Spread(value,result)=completion.expect("array spread completion") else{unreachable!()};
             *task.expression.value()=*value;
             finish_expression(analyzer,contexts.get(task.context),task,result)
@@ -1356,6 +1359,11 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 let span=expr.span;let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
                 let child=Task::ArraySpread(Box::new(array_spread::ArraySpreadTask::new(value,task.context,task.loans.clone(),expected)));
                 task.state=ExpressionState::ArraySpread;return Step::Push(Task::Expression(task),child);
+            }
+            if matches!(&expr.kind,ExprKind::Record(fields) if fields.iter().any(|(key,_)|key.text=="record#spread")){
+                let span=expr.span;let value=Box::new(std::mem::replace(expr,Expr::new(ExprKind::Undefined,span)));
+                let child=Task::ObjectSpread(Box::new(object_spread::ObjectSpreadTask::new(value,task.context,task.loans.clone(),expected)));
+                task.state=ExpressionState::ObjectSpread;return Step::Push(Task::Expression(task),child);
             }
             if matches!(expr.kind,ExprKind::OptionalChain(_)){return schedule_optional(task,mode,expected);}
             if matches!(expr.kind, ExprKind::CoalesceAssign { .. }) {

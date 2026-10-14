@@ -6505,12 +6505,11 @@ impl Emitter<'_> {
 
     /// An independent owned copy of a readable value in its ordinary storage.
     #[inline(never)]
-    fn object_spread_value(&self,fun:&CheckedFunction,result:usize,args:&[Expr])->String{
+    fn object_spread_value_with(&self,result:usize,args:&[Expr],copied:Vec<String>)->String{
         let mut code=String::from("{");let mut last=std::collections::HashMap::new();
         let count=self.program.records[result].fields.len();
         let _=write!(code,"let mut spread_order=[0usize;{count}];let mut spread_seen=[false;{count}];let mut spread_next=0usize;");
-        for (part,arg) in args.iter().enumerate(){
-            let copied=if let ExprKind::Unary{op:UnaryOp::Spread,value,..}=&arg.kind{self.clone_argument(fun,value)}else{self.expr(fun,arg,Mode::Consume)};
+        for (part,(arg,copied)) in args.iter().zip(copied).enumerate(){
             let _=write!(code,"let spread_part{part}={copied};");
             let Type::Record(id)=arg.ty.expect("checked spread part")else{unreachable!()};
             let mut arms=String::new();
@@ -6529,6 +6528,10 @@ impl Emitter<'_> {
     fn clone_argument(&self, fun: &CheckedFunction, value: &Expr) -> String {
         if let Some(snapshot)=self.record_parameter_owned_clone(fun,value){return snapshot;}
         let argument = self.expr(fun, value, Mode::Read);
+        self.finish_clone_argument(fun,value,argument)
+    }
+    fn finish_clone_argument(&self,fun:&CheckedFunction,value:&Expr,argument:String)->String{
+        if self.record_parameter_borrow_leaf(fun,value){return format!("Clone::clone({argument})");}
         match self.expression_shape(value) {
             Some(crate::fixed_storage::Shape::LiteralStrings) => format!("({argument}).clone_owned()"),
             Some(crate::fixed_storage::Shape::Record { .. }) => format!("({argument}).clone_owned()"),
@@ -8962,7 +8965,7 @@ impl Emitter<'_> {
                     };
                     self.array_concat(fun, base, args, expr.span)
                 }
-                CallTarget::RecordSpread(result) => self.object_spread_value(fun,result,args),
+                CallTarget::RecordSpread(_) => unreachable!("object spread children use expression work stack"),
                 CallTarget::PatternRest(result,start) => {
                     let ExprKind::Field(base,_) = &callee.kind else {unreachable!()};
                     let record_rest=start==usize::MAX;

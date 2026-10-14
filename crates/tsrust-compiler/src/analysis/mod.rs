@@ -5072,7 +5072,7 @@ impl Analyzer {
             ExprKind::Update {
                 target, operator, ..
             } => self.update_expression(context, target, loans, *operator),
-            ExprKind::Record(fields) if fields.iter().any(|(key,_)|key.text=="record#spread") => self.object_spread(context,expr,loans,expected),
+            ExprKind::Record(fields) if fields.iter().any(|(key,_)|key.text=="record#spread") => unreachable!("object spread sources use the shared checker stack"),
             ExprKind::Record(fields) => {
                 self.record_literal(context, fields, loans, expected, expr.span)
             }

@@ -1,0 +1,25 @@
+import { strictEqual } from 'std:testing';
+
+type Item = {
+  value: int;
+  text: string;
+};
+
+function copy(source: Item): Item {
+  return {
+    value: 'overwritten', ...{
+      ...source
+    }
+  };
+}
+
+function main() {
+  const original: Item = {
+    text: 'retained', value: 7
+  };
+  let result = copy(original);
+  result.value = 9;
+  strictEqual(original.value, 7);
+  strictEqual(result.value, 9);
+  strictEqual(result.text, 'retained');
+}
