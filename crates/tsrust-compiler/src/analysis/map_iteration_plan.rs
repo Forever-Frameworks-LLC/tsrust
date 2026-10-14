@@ -89,7 +89,7 @@ impl Analyzer {
             inner.insert(epoch.entry.place.binding,self.scoped_array_replace_field(root,&epoch.entry.place.fields,working).expect("working Map path"));
         }
         self.scoped_map_entry_epochs_with_demand(context,body,&mut inner,demand,&local)?;
-        self.plan_map_iteration_body_family(context,body,&mut inner,&mut epochs)?;
+        self.plan_map_iteration_body_family(context,body,statement.span.start,&mut inner,&mut epochs)?;
         if let StmtKind::Loop{update,tail_reachable:true,..}=&mut statement.kind {
             self.scoped_map_entry_epochs_with_demand(context,update,&mut inner,demand,&local)?;
         }
@@ -105,14 +105,16 @@ impl Analyzer {
         Ok(())
     }
     #[inline(never)]
-    fn plan_map_iteration_body_family(&mut self,context:&mut Context,body:&[Stmt],inner:&mut HashMap<usize,Type>,epochs:&mut [storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
+    fn plan_map_iteration_body_family(&mut self,context:&mut Context,body:&[Stmt],target:usize,inner:&mut HashMap<usize,Type>,epochs:&mut [storage_exit_availability::MapIterationEpoch])->Result<(),Diagnostic> {
         let mut controls=Vec::new();let mut pending=body.iter().collect::<Vec<_>>();
         while let Some(statement)=pending.pop(){match &statement.kind {
             StmtKind::Block(body)=>pending.extend(body),
             StmtKind::If{then_body,else_body,..}=>{pending.extend(then_body);pending.extend(else_body);},
             StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
             StmtKind::Loop{body,update,tail_reachable,..}=>{pending.extend(body);if *tail_reachable{pending.extend(update);}},
-            StmtKind::Break|StmtKind::Continue=>controls.push(statement.span),
+            // Nested loops consume their own exits. Only controls targeting
+            // this loop contribute owners to this body's completion family.
+            StmtKind::Break|StmtKind::Continue if matches!(statement.control_target,Some(crate::syntax::ControlTarget::Loop(id)|crate::syntax::ControlTarget::Tail(id)) if id==target)=>controls.push(statement.span),
             _=>{},
         }}
         for epoch in epochs {

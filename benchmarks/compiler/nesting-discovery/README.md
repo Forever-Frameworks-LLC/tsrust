@@ -34,3 +34,10 @@ The `assertions`, `satisfies`, `rest-arguments`, `array-of` and `mixed-wrappers`
 families generate source in linear time. Array.of/index layers keep array rank
 fixed while increasing expression depth. Use the existing geometric progression
 and operational process budgets; last passing sizes are not supported ceilings.
+
+`scoped-map-branches` nests joins that renew callback-bearing Map storage;
+`scoped-map-loops` nests loops that delete one callback entry and retain another.
+Both construct source in linear time and exercise ownership analysis before
+storage-aware emission. Their phase events distinguish checker limitations from
+emitter failures; isolated checked-tree witnesses do not establish pipeline
+acceptance for these families.

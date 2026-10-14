@@ -141,51 +141,6 @@ impl Emitter<'_> {
 }
 
 impl Emitter<'_> {
-    #[inline(never)]
-    pub(super) fn map_clear_if_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: Declarations<'_, '_>, depth: usize, loop_label: Option<usize>) -> bool {
-        let StmtKind::If { condition, then_body, else_body } = &statement.kind else { return false; };
-        let mut places = self.map_block_return_places(fun, declarations, then_body);
-        for place in self.map_block_return_places(fun, declarations, else_body) {
-            if !places.contains(&place) { places.push(place); }
-        }
-        for right in [false,true] {
-            for epoch in fun.storage_exits.map_branch_restore(statement.span,right) {
-                let place=self.map_entry_epoch_place(fun,epoch);
-                if !places.contains(&place){places.push(place);}
-            }
-        }
-        if places.is_empty() { return false; }
-        places.sort();
-        let comma = if places.is_empty() { "" } else { "," };
-
-        let pattern = places.iter().map(|place| format!("mut {place}")).collect::<Vec<_>>().join(",");
-        let condition = self.expr(fun, condition, Mode::Copy);
-        let _ = writeln!(output, "let ({pattern}{comma}) = if {condition} {{");
-        {
-            let _branch=self.exception_regions.storage_branch();
-            self.control_block_epochs(output, fun, then_body, depth + 1, loop_label, Some(declarations));
-            for epoch in fun.storage_exits.map_branch_restore(statement.span,false) {
-                let _=writeln!(output,"    {}",self.map_entry_epoch_code(fun,epoch));
-            }
-            let then_values=places.iter().map(|place|self.map_branch_exit_value(fun,then_body,place)).collect::<Vec<_>>().join(",");
-            let _ = writeln!(output, "    ({then_values}{comma})\n}} else {{");
-        }
-        {
-            let _branch=self.exception_regions.storage_branch();
-            self.control_block_epochs(output, fun, else_body, depth + 1, loop_label, Some(declarations));
-            for epoch in fun.storage_exits.map_branch_restore(statement.span,true) {
-                let _=writeln!(output,"    {}",self.map_entry_epoch_code(fun,epoch));
-            }
-            let else_values=places.iter().map(|place|self.map_branch_exit_value(fun,else_body,place)).collect::<Vec<_>>().join(",");
-            let _ = writeln!(output, "    ({else_values}{comma})\n}};");
-        }
-        let boundary=places.iter().flat_map(|place|[self.map_storage_transfer_at_exit(fun,then_body,place),self.map_storage_transfer_at_exit(fun,else_body,place)]).flatten().map(|span|span.end).max().unwrap_or(statement.span.end).max(statement.span.end);
-        self.exception_regions.renew_storage(&places,boundary);
-        true
-    }
-}
-
-impl Emitter<'_> {
     pub(super) fn map_storage_binding(&self, fun:&CheckedFunction, place:&str)->Option<(usize,Vec<String>)> {
         for (binding,value) in fun.bindings.iter().enumerate() {
             if place==format!("value{binding}") {return Some((binding,Vec::new()));}

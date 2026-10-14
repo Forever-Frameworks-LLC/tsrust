@@ -695,6 +695,17 @@ fn ordinary_map_loop_without_backedge_preserves_break_survivor() {
 }
 
 #[test]
+fn nested_iteration_controls_join_only_their_target_storage() {
+    let source = "type Holder={run:ReadOnly<Function<int>>;};function main():void{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});outer:while(true){while(true){handlers.delete('first');break;}break outer;}console.log(handlers.size);for(const [key,entry] of handlers){console.log(key,entry.run());}handlers.clear();}";
+    support::execute(&support::format_round_trip(source), "1\nsecond 5\n", None);
+    verify_disposal(&support::format_round_trip(source), 2, "drop 0\n1\nsecond 5\ndrop 1\n");
+    let escaping = source.replace("handlers.delete('first');break;", "handlers.delete('first');break outer;");
+    support::execute(&support::format_round_trip(&escaping), "1\nsecond 5\n", None);
+    let counted = source.replace("outer:while(true){while(true){", "outer:for(let turn=0;turn<1;turn++){for(const item of [0]){");
+    support::execute(&support::format_round_trip(&counted), "1\nsecond 5\n", None);
+}
+
+#[test]
 fn ordinary_map_loop_without_backedge_releases_capture_before_return() {
     let source=support::format_round_trip("type Holder={run:ReadOnly<Function<int>>;};function scenario():int{const first=[3];const second=[5];const handlers=new Map<string,Holder>();handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});while(true){handlers.delete('first');first[0]+=1;return first[0];}return 0;}function main():void{console.log('result',scenario());}");
     support::execute(&source,"result 4\n",None);

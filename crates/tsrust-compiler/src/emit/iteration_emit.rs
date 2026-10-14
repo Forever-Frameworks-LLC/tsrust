@@ -6,11 +6,22 @@ pub(super) struct IterationFrame<'a> {
 }
 impl Emitter<'_> {
     pub(super) fn for_of_loop(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, depth: usize, declaring_body: Option<Declarations<'_, '_>>, resets: &[(String, String)]) {
-        if let Some(frame) = self.prepare_for_of_loop(output, fun, statement, depth, declaring_body, resets) {
-            let StmtKind::ForOf { body, .. } = &statement.kind else { unreachable!() };
-            self.iteration_body(output, fun, body, depth + 1, declaring_body, resets, statement);
-            output.push_str(&frame.suffix);
-            drop(frame.scope);
+        let StmtKind::ForOf { body, .. } = &statement.kind else { unreachable!() };
+        let visible = std::rc::Rc::new(declaring_body.unwrap_or(Declarations::Body(body)).iter().collect());
+        let mut pending = Vec::new();
+        self.schedule_for_of(output, fun, statement, visible, depth, resets, &mut pending);
+        self.run_statement_work(output, fun, pending);
+    }
+    pub(super) fn schedule_for_of<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, statement: &'a Stmt, visible: std::rc::Rc<Vec<&'a Stmt>>, depth: usize, resets: &[(String, String)], pending: &mut Vec<statement_work::Work<'a, 's>>) {
+        use statement_work::Work;
+        let StmtKind::ForOf { body, .. } = &statement.kind else { unreachable!() };
+        if let Some(frame) = self.prepare_for_of_loop(output, fun, statement, depth, Some(Declarations::Visible(&visible)), resets) {
+            pending.push(Work::Scope(frame.scope));
+            pending.push(Work::Text(frame.suffix));
+            if !self.schedule_map_for_of_body(output, fun, statement, visible.clone(), depth + 1, pending) {
+                for (place, native) in resets { let _ = writeln!(output, "let mut {place}: {native} = <{native}>::new();"); }
+                pending.push(Work::Body(body, visible, depth + 1, None));
+            }
         }
     }
     #[inline(never)]
@@ -106,27 +117,7 @@ impl Emitter<'_> {
         let suffix = format!("}}\n{}", if temporary_scope { format!("}}\n") } else { String::new() });
         Some(IterationFrame { scope, suffix })
     }
-    #[inline(never)]
-    pub(super) fn iteration_body(
-        &self,
-        output: &mut String,
-        fun: &CheckedFunction,
-        body: &[Stmt],
-        depth: usize,
-        declaring_body: Option<Declarations<'_, '_>>,
-        resets: &[(String, String)],
-        statement:&Stmt,
-    ) {
-        if self.map_for_of_iteration_body(output,fun,statement,depth,declaring_body){return;}
 
-        for (place, native) in resets {
-            let _ = writeln!(
-                output,
-                "let mut {place}: {native} = <{native}>::new();"
-            );
-        }
-        self.control_block_epochs(output, fun, body, depth, None, declaring_body);
-    }
 }
 
 impl Emitter<'_> {

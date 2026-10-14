@@ -2,6 +2,31 @@
 use super::*;
 
 #[test]
+fn nested_storage_branches_resume_without_retaining_rust_frames() {
+    let checked = crate::check("type Holder={run:ReadOnly<Function<int>>;};function main():void{const items=[3];const handlers=new Map<string,Holder>();handlers.set('one',{run:():int=>items[0]});if(true){handlers.clear();}else{}}").unwrap();
+    let emitter = emitter_for(&checked.program, "");
+    let function = checked.program.functions.iter().find(|function| function.name == "main").unwrap();
+    let template = function.body.last().unwrap();
+    let mut nested = template.clone();
+    let depth = 2_048;
+    for _ in 0..depth {
+        let mut parent = template.clone();
+        let StmtKind::If { then_body, .. } = &mut parent.kind else { panic!("branch") };
+        *then_body = vec![nested];
+        nested = parent;
+    }
+    emitter.exception_regions.renew_storage(&["unrelated_owner".into()], 40);
+    let mut output = String::new();
+    emitter.control_block_epochs(&mut output, function, &[nested], 0, None, Some(Declarations::Body(&function.body)));
+    assert_eq!(output.matches(" = if ").count(), depth + 1);
+    assert_eq!(output.matches('{').count(), output.matches('}').count());
+    assert!(emitter.exception_regions.native_storage_available("unrelated_owner", Some(crate::Span::new(20, 40))));
+    assert!(!emitter.exception_regions.native_storage_available("unrelated_owner", Some(crate::Span::new(40, 41))));
+    assert!(emitter.control_targets.snapshot().is_empty());
+    assert_eq!(emitter.exception_regions.current_id(), None);
+}
+
+#[test]
 fn generated_statement_bytes_do_not_depend_on_indentation_depth() {
     let checked = crate::check("function main():void{let total=0;for(const item of [1,2]){if(item>1){total+=item;}else{total+=3;}}console.log('  literal spacing  ',total);}").unwrap();
     let emitter = emitter_for(&checked.program, "");

@@ -1500,3 +1500,34 @@ unformatted; the original failed formatting comparison is retained as evidence.
 Both whole-project formatter runs change zero files or fingerprints. Evidence
 uses `tsrust-nesting-statement-work-*` in SQLite. Installed editor consumers remain
 at `79295194` pending coordinated integration.
+
+### Storage statement continuations
+
+Array and Map storage blocks, storage branches, empty-storage loops and Map
+iteration bodies now schedule continuations on the shared statement work stack.
+Scope guards remain alive through their bodies and conversions, then restore
+before sibling branches. Loop updates, post-tests, transfer boundaries, owner
+renewal and post-statement bookkeeping retain their original order. The shared
+work enum lives in `emit/statement_work.rs`; storage-specific continuations live
+in `emit/storage_statement_work.rs` and `emit/map_iteration_emit.rs`.
+
+Discovery also exposed an independent checker panic: an outer loop's Map family
+join included breaks consumed by an inner loop. Family collection now selects
+only controls targeting the loop being planned. The native regression covers
+inner exits, labeled outer exits, counting/for-of nesting and capture disposal.
+
+Five focused emitter witnesses and 59 affected native tests pass. The new
+checked-tree witness emits 2,049 nested storage joins without retaining Rust
+frames. This isolated emission witness is not full-pipeline acceptance. Full
+unbounded probes complete storage branches through 1,024 layers; 4,096 reaches
+an analysis time budget. After the control-target repair, scoped Map loops at
+2, 8 and 32 layers complete. At 128, analysis still overflows: the debugger shows
+the connected `scoped_map_entry_epochs_with_demand` / `plan_map_iteration_body`
+recursion. The original panic, repaired discovery, source and trace are retained.
+
+Exception completion emission and borrowed Map completion still enter statement
+emission synchronously. Their migration, the checker cycle above, scaling and
+public admission remain open. No limit or stack setting changed. These are
+correctness/discovery observations, not formal performance measurements. Evidence
+uses `tsrust-nesting-storage-work-*` in SQLite. Consumer refresh is coordinated
+with the incoming Claude editor-agreement integration.

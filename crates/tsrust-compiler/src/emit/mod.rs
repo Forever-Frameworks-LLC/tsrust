@@ -34,7 +34,8 @@ mod callback_capture_emit;
 mod record_parameter_borrow_emit;
 mod nullable_record_parameter_emit;
 mod map_error_storage_emit;
-mod map_block_storage_emit;
+mod statement_work;
+mod storage_statement_work;
 mod restored_capture_slots;
 mod finally_move_slots;
 mod field_completion_transport;
@@ -3582,18 +3583,14 @@ impl Emitter<'_> {
 
     fn control_block_epochs(&self, output: &mut String, fun: &CheckedFunction, body: &[Stmt], depth: usize, loop_label: Option<usize>, declaring_body: Option<Declarations<'_, '_>>) {
         use std::rc::Rc;
-        enum Work<'a, 's> {
-            Body(&'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
-            Statement(&'a Stmt, &'a [Stmt], Rc<Vec<&'a Stmt>>, usize, Option<usize>),
-            Text(String),
-            Scope(exception_contract_emit::ControlScope<'s>),
-            Post(&'a Stmt, usize),
-            BlockReturn(&'a Stmt, Vec<String>),
-            LoopTail(&'a Stmt, usize),
-            LoopTest(&'a Expr, usize),
-        }
+        use statement_work::Work;
         let declarations = Rc::new(declaring_body.unwrap_or(Declarations::Body(body)).iter().collect::<Vec<_>>());
-        let mut pending = vec![Work::Body(body, declarations, depth, loop_label)];
+        self.run_statement_work(output, fun, vec![Work::Body(body, declarations, depth, loop_label)]);
+    }
+
+    fn run_statement_work<'a, 's>(&'s self, output: &mut String, fun: &CheckedFunction, mut pending: Vec<statement_work::Work<'a, 's>>) {
+        use std::rc::Rc;
+        use statement_work::Work;
         while let Some(work) = pending.pop() {
             let (stmt, body, visible, depth, loop_label) = match work {
                 Work::Body(body, declarations, depth, label) => {
@@ -3602,6 +3599,9 @@ impl Emitter<'_> {
                 },
                 Work::Text(code) => { output.push_str(&code); continue; },
                 Work::Scope(scope) => { drop(scope); continue; },
+                Work::StorageScope(scope) => { drop(scope); continue; },
+                Work::Storage(work) => { self.resume_storage_statement(output, fun, work, &mut pending); continue; },
+                Work::Iteration(work) => { self.resume_map_iteration(output, fun, work, &mut pending); continue; },
                 Work::Post(stmt, depth) => { self.map_post_entry_epochs(output, fun, stmt.span, depth); continue; },
                 Work::BlockReturn(stmt, places) => {
                     let StmtKind::Block(inner) = &stmt.kind else { unreachable!() };
@@ -3643,13 +3643,9 @@ impl Emitter<'_> {
                 self.exception_regions.renew_storage(&[format!("value{}",epoch.place.binding)],stmt.span.start);
             }
             if let Some(code)=self.map_iteration_control_code(fun,stmt){let _=writeln!(output,"{code}");continue;}
-            if self.array_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
-            if self.map_block_storage_epoch(output,fun,stmt,declarations,depth,loop_label){continue;}
-            if self.map_iteration_epoch(output,fun,stmt,declarations,depth){continue;}
-            if self.map_empty_loop_epoch(output, fun, stmt, declarations, depth) {
-                self.map_post_entry_epochs(output,fun,stmt.span,depth);
-                continue;
-            }
+            if self.schedule_storage_block(output,fun,stmt,visible.clone(),depth,loop_label,&mut pending){continue;}
+            if self.schedule_map_iteration(output,fun,stmt,visible.clone(),depth,&mut pending){continue;}
+            if self.schedule_empty_map_loop(output, fun, stmt, visible.clone(), depth, &mut pending) { continue; }
             if self.map_try_storage_epoch(output, fun, stmt, declarations, depth) { continue; }
             if self.map_try_prefix_epoch(output, fun, stmt, declarations, depth) { continue; }
             if let Some(reset) = self.local_map_clear_epoch(fun, Declarations::Body(body), stmt)
@@ -3703,14 +3699,8 @@ impl Emitter<'_> {
                 continue;
             }
             if let StmtKind::ForOf { body, .. } = &stmt.kind {
-                if let Some(frame) = self.prepare_for_of_loop(output, fun, stmt, depth, None, &[]) {
-                    pending.push(Work::Post(stmt, depth));
-                    pending.push(Work::Scope(frame.scope));
-                    pending.push(Work::Text(frame.suffix));
-                    if !self.map_for_of_iteration_body(output, fun, stmt, depth + 1, None) {
-                        pending.push(Work::Body(body, Rc::new(body.iter().collect()), depth + 1, None));
-                    }
-                } else { self.map_post_entry_epochs(output, fun, stmt.span, depth); }
+                pending.push(Work::Post(stmt, depth));
+                self.schedule_for_of(output, fun, stmt, Rc::new(body.iter().collect()), depth, &[], &mut pending);
                 continue;
             }
             if let StmtKind::While { condition, body } = &stmt.kind {
@@ -3731,10 +3721,7 @@ impl Emitter<'_> {
                 else_body,
             } = &stmt.kind
             {
-                if self.map_clear_if_epoch(output, fun, stmt, declarations, depth, loop_label) {
-                    self.map_post_entry_epochs(output,fun,stmt.span,depth);
-                    continue;
-                }
+                if self.schedule_storage_if(output, fun, stmt, visible.clone(), depth, loop_label, &mut pending) { continue; }
                 let _ = writeln!(
                     output,
                     "if {} {{",

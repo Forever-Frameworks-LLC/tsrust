@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('scoped-map-branches', 'scoped-map-loops', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,15 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('scoped-map-branches', 'scoped-map-loops'):
+        if family == 'scoped-map-branches':
+            body = repeated('handlers.clear();', size, 'if(true){', '}else{handlers.clear();}')
+        else:
+            body = repeated("handlers.delete('first');", size, 'while(true){', 'break;}')
+        return ("type Holder={run:ReadOnly<Function<int>>;};function main():void{"
+                "const first=[3];const second=[5];const handlers=new Map<string,Holder>();"
+                "handlers.set('first',{run:():int=>first[0]});handlers.set('second',{run:():int=>second[0]});"
+                + body + "console.log(handlers.size);handlers.clear();}")
     if family == 'local-functions':
         return 'function probe():int{' + 'function nested():int{' * size + 'return 1;' + '}return nested();' * size + '}function main(){console.log(probe());}'
     if family == 'mixed-local-scopes':

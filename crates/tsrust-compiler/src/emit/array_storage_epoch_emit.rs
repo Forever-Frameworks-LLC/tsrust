@@ -43,29 +43,6 @@ impl Emitter<'_> {
         Some(format!("let array_result_replacement = {}; drop({place}); let mut {place}: {} = array_result_replacement;", self.expr(fun, value, Mode::Consume), self.native_type(ty)))
     }
 
-    pub(super) fn array_block_storage_epoch(&self, output: &mut String, fun: &CheckedFunction, statement: &Stmt, declarations: Declarations<'_, '_>, depth: usize, loop_label: Option<usize>) -> bool {
-        let epochs = fun.storage_exits.array_block_epochs(statement.span.start);
-        if epochs.is_empty() { return false; }
-        let StmtKind::Block(body) = &statement.kind else { return false; };
-        let maps = fun.storage_exits.map_block_epochs(statement.span.start);
-        let mut names = epochs.iter().chain(maps).map(|epoch| self.map_entry_epoch_place(fun, epoch)).collect::<Vec<_>>();
-        let ordinary_maps = self.map_block_return_places(fun, declarations, body);
-        for name in &ordinary_maps { if !names.contains(name) { names.push(name.clone()); } }
-        let pattern = names.iter().map(|name| format!("mut {name}")).collect::<Vec<_>>().join(",");
-
-        let _ = writeln!(output, "let ({pattern},) = {{");
-        self.control_block_epochs(output, fun, body, depth + 1, loop_label, Some(declarations));
-        for epoch in maps {
-            if epoch.input != epoch.output { let _ = writeln!(output, "    {}", self.map_entry_epoch_code(fun, epoch)); }
-        }
-        let values = names.iter().map(|name| {
-            if ordinary_maps.contains(name) { self.map_branch_exit_value(fun, body, name) } else { name.clone() }
-        }).collect::<Vec<_>>();
-        let _ = writeln!(output, "    ({},)\n}};", values.join(","));
-        self.exception_regions.renew_storage(&names, statement.span.end);
-        true
-    }
-
     pub(super) fn array_storage_epoch_code(&self, fun: &CheckedFunction, epoch: &crate::analysis::MapEntryEpoch) -> String {
         let mut source = epoch.input;
         let mut target = epoch.output;

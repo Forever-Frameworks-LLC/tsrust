@@ -305,5 +305,10 @@ Map reset discovery and branch storage-result discovery use explicit worklists.
 Generated Rust does not add depth-dependent indentation: token separation and
 literal contents are preserved without quadratic whitespace output. Source
 formatting remains a separate user-facing operation.
-Storage-specific and exception completion helpers still contain synchronous
-re-entry; ordinary statement scheduling alone does not finish emitter nesting.
+`emit/statement_work.rs` defines the shared statement frames.
+`storage_statement_work.rs` resumes storage block exits and branch joins;
+`map_iteration_emit.rs` resumes first iterations, body exits, updates and backedge
+conversions. Branch availability snapshots restore before the sibling branch
+starts. Empty-loop renewal and iterator bodies use the same scheduler.
+Exception completion and borrowed-map exception helpers still contain synchronous
+re-entry; statement scheduling alone does not finish emitter nesting.

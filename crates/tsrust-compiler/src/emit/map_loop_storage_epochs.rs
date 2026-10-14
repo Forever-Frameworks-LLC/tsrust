@@ -1,16 +1,21 @@
 //! End proven-empty scoped Map epochs at iteration boundaries.
 use super::*;
+use statement_work::Work;
+use storage_statement_work::StorageWork;
+use std::rc::Rc;
 
 impl Emitter<'_> {
     #[inline(never)]
-    pub(super) fn map_empty_loop_epoch(
-        &self,
+    pub(super) fn schedule_empty_map_loop<'a, 's>(
+        &'s self,
         output: &mut String,
         fun: &CheckedFunction,
-        statement: &Stmt,
-        declarations: Declarations<'_, '_>,
+        statement: &'a Stmt,
+        visible: Rc<Vec<&'a Stmt>>,
         depth: usize,
+        pending: &mut Vec<Work<'a, 's>>,
     ) -> bool {
+        let declarations = Declarations::Visible(&visible);
         let (condition, body, tail) = match &statement.kind {
             StmtKind::While { condition, body } => (Some(condition), body, None),
             StmtKind::Loop { condition, body, update, post_test, tail_reachable } =>
@@ -138,61 +143,35 @@ impl Emitter<'_> {
         }
 
         let label = statement.span.start;
+        let names = resets.iter().map(|(place, _, _, _)| place.clone()).collect::<Vec<_>>();
+        let mut nested = declarations.iter().collect::<Vec<_>>();
+        nested.extend(body.iter());
+        let nested = Rc::new(nested);
+        pending.push(Work::Post(statement, depth));
         if matches!(statement.kind, StmtKind::ForOf { .. }) {
-            let mut nested = declarations.iter().collect::<Vec<_>>();
-            nested.extend(body.iter());
-            let layouts=resets.iter().map(|(place,native,_,_)|(place.clone(),native.clone())).collect::<Vec<_>>();
-            self.for_of_loop(output,fun,statement,depth,Some(Declarations::Visible(&nested)),&layouts);
-            self.exception_regions.renew_storage(&layouts.iter().map(|(place,_)|place.clone()).collect::<Vec<_>>(),statement.span.end);
+            let layouts = resets.iter().map(|(place, native, _, _)| (place.clone(), native.clone())).collect::<Vec<_>>();
+            pending.push(Work::Storage(StorageWork::Renew(names, statement.span.end)));
+            self.schedule_for_of(output, fun, statement, nested, depth, &layouts, pending);
             return true;
         }
-        let _scope = self.control_targets.enter(if tail.is_some() {
-            ControlTarget::Tail(label)
-        } else { ControlTarget::Loop(label) });
-        // Keep the original empty owner for zero iterations and outer errors.
-        // Cleanup empties each iteration before any exit, so no payload crosses
-        // epochs; only loop-local owners ever contain callbacks.
+        pending.push(Work::Scope(self.control_targets.enter(if tail.is_some() { ControlTarget::Tail(label) } else { ControlTarget::Loop(label) })));
+        pending.push(Work::Storage(StorageWork::Renew(names, statement.span.end)));
+        // Each iteration owns its fresh empty storage; zero iterations retain
+        // the original owner. Tail work remains inside the loop control scope.
         if let Some((_, post_test, _)) = tail {
             let _ = writeln!(output, "'loop_{label}: loop {{");
             if !post_test && let Some(condition) = condition {
                 let _ = writeln!(output, "    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
             }
+            let _ = writeln!(output, "    'body_{label}: {{");
+            pending.push(Work::Storage(StorageWork::EmptyLoopTail(statement, depth)));
         } else {
             let _ = writeln!(output, "'loop_{label}: while {} {{", self.expr(fun, condition.unwrap(), Mode::Copy));
+            pending.push(Work::Text("}\n".into()));
         }
-        // Tail loops need a body scope so continue still evaluates their update
-        // or post-test after finally releases each iteration's callback owners.
-        let body_depth = if tail.is_some() {
-            let _ = writeln!(output, "    'body_{label}: {{");
-            depth + 2
-        } else { depth + 1 };
+        for (place, native, _, _) in &resets { let _ = writeln!(output, "let mut {place}: {native} = <{native}>::new();"); }
+        pending.push(Work::Body(body, nested, depth + if tail.is_some() { 2 } else { 1 }, Some(label)));
 
-        for (place, native, _, _) in &resets {
-            let _ = writeln!(
-                output,
-                "let mut {place}: {native} = <{native}>::new();"
-            );
-        }
-        let mut nested = declarations.iter().collect::<Vec<_>>();
-        nested.extend(body.iter());
-        self.control_block_epochs(output, fun, body, body_depth, Some(label), Some(Declarations::Visible(&nested)));
-        if let Some((update, post_test, tail_reachable)) = tail {
-            let _ = writeln!(output, "    }}");
-            if tail_reachable {
-                self.block(output, fun, update, depth + 1);
-                if post_test && let Some(condition) = condition {
-                    let _ = writeln!(output, "    if !({}) {{ break 'loop_{label}; }}", self.expr(fun, condition, Mode::Copy));
-                }
-            }
-        }
-        let _ = writeln!(output, "}}");
-        self.exception_regions.renew_storage(
-            &resets
-                .iter()
-                .map(|(place, _, _, _)| place.clone())
-                .collect::<Vec<_>>(),
-            statement.span.end,
-        );
         true
     }
 }
