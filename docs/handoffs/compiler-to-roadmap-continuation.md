@@ -129,12 +129,12 @@ obsolete test/native outputs without deleting owner editor caches.
 
 Five executable consumers are the installed CLI/LSP, the workspace override
 `target/editor/debug/tsrust-lsp`, and shared-target debug CLI/LSP. Consumer refresh
-now uses match/default-cleanup source checkpoint `7c3a326c`, with atomic installed
-release replacements. The primary VS Code server is refreshed and its workspace
-has No Problems. The second `tsrust_test` window needs Developer: Reload Window;
-its old server was stopped and automation could not restart it. The new binary is
-installed. Verify that consumer after reload. Request both
-`--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries explicitly.
+now uses pool/configuration source checkpoint `33c4d741`, with atomic installed
+release replacements and matching SHA-256 hashes. The primary VS Code server was
+restarted and its workspace reports No Problems. The second `tsrust_test` window
+was not rechecked in this pass; reload it if it still uses an older server.
+Request both `--bin tsrust` and `--bin tsrust-lsp` when selecting Cargo binaries
+explicitly.
 
 The current pass adds value-producing matches, scalar literal patterns and named
 record variants. See [match acceptance](../plans/match-values-acceptance.md).
@@ -149,7 +149,9 @@ acceptance. `spawn` remains dedicated; `pool.task` uses the shared default;
 Scope cleanup drains independent pools, including detached work. Retained results
 stay joinable. MacOS leak inspection reports zero leaks in the cleanup corpus.
 See [pool acceptance](../plans/worker-pool-cancellation.md) for exact evidence and
-measurement limits. Release consumer refresh follows this source checkpoint.
+measurement limits. Module-scope `pool.configure({ workers, capacity })` returns
+void; configuration and `new Pool(...)` throw typed SpawnError without unwrap.
+Release consumers are refreshed from the accepted API checkpoint.
 
 Required next S12 work: dedicated-worker channels. Preserve owned transfer and
 typed completion. Cancellation remains cooperative, with join acknowledging

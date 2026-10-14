@@ -127,3 +127,9 @@ Offline relocated packages are checked in debug and release.
 The earlier pooled timing record uses the prior configuration syntax. The current
 source has an untimed checksum verification record; no new timing claim is made.
 Exact `tsrust-pool-options-*.log` records retain the failed attempts and repairs.
+
+Release CLI and LSP consumers were rebuilt from `33c4d741` and atomically
+installed with matching hashes. Both installed-CLI examples produced their
+expected output. Restarting the primary VS Code server cleared all three stale
+diagnostics; its Problems panel reports no problems. The secondary window was not
+rechecked. Final release, installation and example logs are retained in SQLite.
