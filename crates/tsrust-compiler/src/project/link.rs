@@ -248,6 +248,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
                 fixes: Box::new([]),
             }
         })?;
+        if id.0 == "std:testing" { crate::stdlib::testing::program::facade(&mut program); }
         if let Some(base) = program.unresolved_bases.first() {
             return Err(ProjectDiagnostic {
                 code: "type",
@@ -518,7 +519,7 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         linked.functions.extend(program.functions);
     }
     if !entries.is_empty() {
-        let mut entry = crate::syntax::parse_test_entry("").expect("empty synthetic entry").functions.pop().unwrap();
+        let mut entry = crate::syntax::parse_module("", true, Default::default(), Default::default()).expect("empty synthetic entry").functions.pop().unwrap();
         let mut body = Vec::new();
         for id in entries {
             let segment = segments.iter().find(|(source, _, _)| source == id).expect("test source segment");
@@ -536,6 +537,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
         body.append(&mut entry.body);
         entry.body = body;
         linked.functions.push(entry);
+    }
+    if let Some(names) = globals.get(&SourceId("std:testing".into())) {
+        crate::stdlib::testing::program::omit_unused_facades(&mut linked, names).map_err(|value| diagnostic(&graph, &segments, value))?;
     }
     crate::callables::module_state::lower(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;
     crate::local_functions::resolve(&mut linked).map_err(|value| diagnostic(&graph, &segments, value))?;

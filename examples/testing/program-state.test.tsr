@@ -1,0 +1,14 @@
+import { beforeAll, afterAll, test, strictEqual } from "std:testing";
+import { count, setCount } from "./program-state.tsr";
+beforeAll((): void => {
+  setCount(7);
+});
+test("reads setup state", (): void => {
+  strictEqual(count, 7); setCount(8);
+});
+test("reads earlier test state", (): void => {
+  strictEqual(count, 8);
+});
+afterAll((): void => {
+  strictEqual(count, 8);
+});

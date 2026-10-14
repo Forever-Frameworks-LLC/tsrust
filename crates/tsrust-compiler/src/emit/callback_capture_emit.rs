@@ -83,7 +83,7 @@ impl Emitter<'_> {
         } else {
             format!("for{} ", lifetime_parameters(&lifetimes))
         };
-        let trait_name = if matches!(contract.kind, CallbackKind::Read | CallbackKind::SharedRead) {
+        let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::ProgramReusable) { "ProgramCallback" } else if matches!(contract.kind, CallbackKind::Read | CallbackKind::SharedRead) {
             "ReadCallback"
         } else if contract.kind.is_once() {
             "OnceCallback"

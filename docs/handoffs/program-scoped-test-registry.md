@@ -1,8 +1,8 @@
 # Program-scoped test registry
 
-Status: owner approved invocation-time borrowing on 2026-10-14.
-The original retained-borrow design below is superseded. Compiler integration
-is pending; the executable design witness is not source-language acceptance.
+Status: compiler integration and focused acceptance completed on 2026-10-14.
+The owner-approved invocation-time design is implemented in the checker,
+standard library, native runner, code generation, and editor projections.
 This closes the known foundation defect listed under Phase B of the
 [compiler continuation](compiler-to-roadmap-continuation.md).
 
@@ -153,8 +153,35 @@ invocation borrow in a callback environment rejects with E0521. No timing was
 performed. Evidence record: `tsrust-program-registry-invocation-design-2026-10-14.json`
 in `benchmarks/records.sqlite`.
 
-This is a design checkpoint only. Production runtime, source compiler, standard
-library, catalog, editor, and installed consumers remain unchanged. The original
-module-state test failure is not fixed. The next implementation section must wire
-the ownership contract and program dependencies through checking and emission;
-passing this witness must not be used to close the implementation gate.
+## Compiler integration acceptance (2026-10-14)
+
+The program owner declares the registry after user module storage. Registered
+callback environments own eligible local captures; module dependencies retain
+declaration identity and become fresh invocation inputs. Access inference keeps
+read/write modes and checks runner calls against existing loans. Immediate suite
+callbacks retain ordinary local borrows while receiving program inputs through
+the same private interface. Named registration callbacks remain reusable.
+
+The production registry no longer stores callbacks in thread-local storage.
+Execution takes pending entries out of the active registry before invoking them.
+Registration and execution guards remain recoverable, failure exit status stays
+1, and suite scope is restored on typed failure and native unwinding. Unused
+trusted registration wrappers are omitted for assertion-only imports, preserving
+ordinary generic layouts and public import hover.
+
+Focused acceptance: 146 compiler integration tests across testing, exceptions,
+module state, closure arguments, owned arguments, captures, and the seven new
+registry tests. Required editor agreement suites pass (10 tests); project editor
+intelligence passes all 173 tests. Nine registry unit checks, three module-state
+checks, and the native failure-contract audit pass. The formatter corpus checks
+240 lexable fixtures and 84 standalone contracts; project formatting is
+idempotent and changes no benchmark fingerprints. Production runtime disposal
+is checked with a never-run registry, in addition to the earlier design witness.
+Catalog examples and the imported program-state example execute successfully.
+
+Both existing testing workloads pass five independent-oracle cases in native
+and Node-after-tsc (20 cells total), using the new untimed `testing-check.mjs`.
+No performance samples were collected or relabeled. Exact evidence and earlier
+failed attempts are retained in `benchmarks/records.sqlite` under
+`tsrust-program-registry-acceptance-2026-10-14.json` and its referenced records.
+Consumer refresh is coordinated with the following concat repair.

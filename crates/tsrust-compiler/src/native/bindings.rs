@@ -12,6 +12,9 @@ pub enum NativeType {
     Void,
     /// Owned reusable callback with no arguments and a void result.
     OwnedVoidCallback,
+    /// Private registry callback; program access is supplied at invocation.
+    ProgramVoidCallback,
+    ProgramReusableVoidCallback,
     /// Private polymorphic compiler intrinsic; never emitted as a native call.
     SharedCallback,
     /// Private read-only value observation, resolved by compiler checking.
@@ -28,6 +31,8 @@ impl NativeType {
             Self::Int => Signature::Int,
             Self::Number => Signature::Number,
             Self::Void => Signature::Void,
+            Self::ProgramReusableVoidCallback => Signature::Intrinsic(Intrinsic::ProgramReusableVoidCallback),
+            Self::ProgramVoidCallback => Signature::Intrinsic(Intrinsic::ProgramVoidCallback),
             Self::OwnedVoidCallback => Signature::Intrinsic(Intrinsic::OwnedVoidCallback),
             Self::SharedCallback => Signature::Intrinsic(Intrinsic::SharedCallback),
             Self::ObservedValue => Signature::Intrinsic(Intrinsic::ObservedValue),
@@ -190,6 +195,8 @@ pub const BINDINGS: &[NativeBinding] = &[
     crate::stdlib::path::bindings::IS_ABSOLUTE,
     crate::stdlib::path::bindings::NORMALIZE,
     crate::stdlib::testing::bindings::CHECK_ASSERTION,
+    crate::stdlib::testing::bindings::INVOKE_REGISTRATION,
+    crate::stdlib::testing::bindings::CREATE_REGISTRY,
     crate::stdlib::testing::bindings::REGISTER_TEST,
     crate::stdlib::testing::bindings::RUN_TESTS,
     crate::stdlib::testing::bindings::FINISH_TESTS,

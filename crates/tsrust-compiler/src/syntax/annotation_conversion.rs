@@ -11,6 +11,8 @@ enum Work<'a> {
 
 fn callback_ownership(kind: CallbackKind) -> CallableOwnership {
     match kind {
+        CallbackKind::ProgramReusable => CallableOwnership::ProgramReusable,
+        CallbackKind::Program => CallableOwnership::Program,
         CallbackKind::Read => CallableOwnership::Read,
         CallbackKind::Reusable => CallableOwnership::Reusable,
         CallbackKind::Once => CallableOwnership::Once,
@@ -33,6 +35,8 @@ fn convert(root: Work<'_>) -> ValueAnnotation {
                 ResultAnnotation::Named(value) => results.push((**value).clone()),
                 ResultAnnotation::Callable { kind, params, result, span } => {
                     let ownership = match kind {
+                        Some(CallbackKind::ProgramReusable) => CallableOwnership::ProgramReusable,
+                        Some(CallbackKind::Program) => CallableOwnership::Program,
                         Some(CallbackKind::OwnedOnce) => CallableOwnership::OwnedOnce,
                         Some(CallbackKind::Owned) => CallableOwnership::Owned,
                         Some(CallbackKind::SharedRead) => CallableOwnership::SharedRead,

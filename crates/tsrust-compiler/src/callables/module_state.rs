@@ -6,6 +6,7 @@ use crate::{Diagnostic, Span};
 /// share this lexical owner; the capture solver computes their transitive access.
 /// Linking must already have canonicalized module names and initialization order.
 pub(crate) fn lower(program: &mut Program) -> Result<(), Diagnostic> {
+    crate::stdlib::testing::program::lower(program)?;
     if program.module_bindings.is_empty() { return Ok(()); }
     if !program.local_declarations.is_empty() {
         return Err(Diagnostic::new("module-state", "Module ownership must be resolved before local captures.", program.module_bindings[0].span));

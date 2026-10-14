@@ -16,7 +16,7 @@ pub(crate) const REGISTER_TEST: NativeBinding = NativeBinding { returned_borrow:
     name: "registerTest",
     parameters: &[
         NativeParameter { name: "name", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
-        NativeParameter { name: "callback", ty: NativeType::OwnedVoidCallback, access: Mode::Consume, optional: false, rest: false },
+        NativeParameter { name: "callback", ty: NativeType::ProgramVoidCallback, access: Mode::Consume, optional: false, rest: false },
     ],
     result: NativeType::Void,
     backend: NativeBackend::Bundled { symbol: "tsrust_testing_register_test" },
@@ -46,7 +46,7 @@ pub(crate) const REGISTER_HOOK: NativeBinding = NativeBinding { returned_borrow:
     module: "std:testing-runtime", name: "registerHook",
     parameters: &[
         NativeParameter { name: "kind", ty: NativeType::Int, access: Mode::Copy, optional: false, rest: false },
-        NativeParameter { name: "callback", ty: NativeType::OwnedVoidCallback, access: Mode::Consume, optional: false, rest: false },
+        NativeParameter { name: "callback", ty: NativeType::ProgramVoidCallback, access: Mode::Consume, optional: false, rest: false },
     ], result: NativeType::Void,
     backend: NativeBackend::Bundled { symbol: "tsrust_testing_register_hook" },
     features: &["testing", "testing-runner", "testing-hooks"],
@@ -95,4 +95,16 @@ pub(crate) const ASSERTION_DETAILS: NativeBinding = NativeBinding { returned_bor
         NativeParameter { name: "message", ty: NativeType::String, access: Mode::Read, optional: false, rest: false },
     ],
     result: NativeType::String, backend: NativeBackend::Bundled { symbol: "@compiler-assertion-details" }, features: &[],
+};
+
+pub(crate) const CREATE_REGISTRY: NativeBinding = NativeBinding {
+    returned_borrow: None, module: "std:testing-runtime", name: "createRegistry", parameters: &[],
+    result: NativeType::Structured(&crate::native_signatures::Signature::Named(crate::native_signatures::NativeTypeId::TestRegistry)),
+    backend: NativeBackend::Bundled { symbol: "TsrTestRegistry::default" }, features: &["testing", "testing-runner"],
+};
+
+pub(crate) const INVOKE_REGISTRATION: NativeBinding = NativeBinding {
+    returned_borrow: None, module: "std:testing-runtime", name: "invokeRegistration",
+    parameters: &[NativeParameter { name: "callback", ty: NativeType::ProgramReusableVoidCallback, access: Mode::Mutate, optional: false, rest: false }],
+    result: NativeType::Void, backend: NativeBackend::Bundled { symbol: "@compiler-invoke-registration" }, features: &["testing", "testing-runner"],
 };

@@ -46,7 +46,7 @@ impl StorageContract {
             )
             .related(closure.span, "Single-use closure is created here."));
         }
-        if closure.borrowed && !(matches!(self,Self::ScopedOwned(..)|Self::RecursiveScopedOwned(..)) && crate::native_view_callable_storage::carried_slots(closure).is_some()) {
+        if (closure.borrowed || !closure.program_captures.is_empty()) && !(matches!(self,Self::ScopedOwned(..)|Self::RecursiveScopedOwned(..)) && crate::native_view_callable_storage::carried_slots(closure).is_some()) {
             if let Some(slots)=crate::native_view_callable_storage::carried_slots(closure) {
                 return Err(Diagnostic::new(
                     "native-view-callable-storage",
@@ -59,6 +59,9 @@ impl StorageContract {
                 "An owned callback cannot retain borrowed state, including state borrowed through a called function. Returning clone(state) from that function does not remove its dependency on state. Create owned data before constructing the callback, or remove the function's dependency on outer state.",
                 span,
             ).related(closure.span, "Borrowed environment is created here.");
+            for capture in &closure.program_captures {
+                diagnostic = diagnostic.related(capture.span, "Program access is available only through the test registry invocation contract.");
+            }
             for capture in &closure.captures {
                 if matches!(capture.storage, Mode::Read | Mode::Mutate) {
                     diagnostic = diagnostic.related(capture.span, "This capture requires the outer owner to remain alive.");
@@ -77,7 +80,7 @@ impl StorageContract {
     pub(crate) fn invocation(&self, signatures: &Contracts) -> Mode {
         let signature=match self {Self::Owned(signature)|Self::ScopedOwned(signature,_)|Self::RecursiveScopedOwned(signature,_,_)=>signature,_=>return Mode::Read};
         match signatures.get(*signature).kind {
-            Some(CallbackKind::Owned) => Mode::Mutate,
+            Some(CallbackKind::Owned | CallbackKind::Program) => Mode::Mutate,
             Some(CallbackKind::OwnedOnce) => Mode::Consume,
             _ => unreachable!("checked owned storage contract"),
         }

@@ -67,10 +67,38 @@ fn native_runner_reports_result_errors_and_continues() {
     let binary = directory.0.join("runner");
     let runtime = concat!(include_str!("../src/runtime/number_tie.rs"),include_str!("../src/runtime/console.rs"),include_str!("../src/stdlib/testing/runtime/mod.rs"));
     let registration = include_str!("../src/stdlib/testing/runtime/registration.rs");
-    std::fs::write(&source, format!("type String=std::borrow::Cow<'static,str>;{runtime}\nfn main(){{TSR_TESTS.with(|registry|{{let mut registry=registry.borrow_mut();registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"typed\".into(),callback:Box::new(||Err(\"typed failure\".to_owned()))}});registry.suites[0].entries.push(TsrTestEntry::Test{{name:\"later\".into(),callback:Box::new(||Ok(()))}});}});assert_eq!(tsrust_testing_run_tests(),1);}}" )).unwrap();
-    let original = std::fs::read_to_string(&source).unwrap();
-    let guard = "TSR_TEST_RUNNING.with(|running|running.set(true));assert!(tsrust_testing_register_test_result(&String::Borrowed(\"invalid\"),Box::new(||panic!(\"must not invoke\"))).is_err());assert!(tsrust_testing_run_tests_result().is_err());TSR_TEST_RUNNING.with(|running|running.set(false));tsrust_testing_begin_suite(&String::Borrowed(\"active\"));assert!(tsrust_testing_run_tests_result().is_err());tsrust_testing_end_suite();";
-    std::fs::write(&source, format!("trait Callback<A,R>{{fn invoke(&mut self,args:A)->R;}}{registration}{}", original.replace("fn main(){", &format!("fn main(){{{guard}")))).unwrap();
+    std::fs::write(&source, format!(r#"
+type String=std::borrow::Cow<'static,str>;
+struct TsrTestContext<'p>(std::marker::PhantomData<&'p ()>);
+trait ProgramCallback<A,R>{{fn invoke_program(&mut self,args:A,program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->R;}}
+{runtime}
+{registration}
+fn main(){{
+    let mut registry=TsrTestRegistry::default();
+    let mut program=TsrTestContext(std::marker::PhantomData);
+    TSR_TEST_RUNNING.with(|running|running.set(true));
+    assert!(tsrust_testing_register_test_result(&mut registry,&String::Borrowed("invalid"),Box::new(|_,_|panic!("must not invoke"))).is_err());
+    assert!(tsrust_testing_run_tests_result(&mut registry,&mut program).is_err());
+    TSR_TEST_RUNNING.with(|running|running.set(false));
+    tsrust_testing_begin_suite(&mut registry,&String::Borrowed("active"));
+    assert!(tsrust_testing_run_tests_result(&mut registry,&mut program).is_err());
+    tsrust_testing_end_suite(&mut registry);
+    registry.suites[0].entries.push(TsrTestEntry::Test{{name:"typed".into(),callback:Box::new(|_,_|Err("typed failure".to_owned()))}});
+    registry.suites[0].entries.push(TsrTestEntry::Test{{name:"later".into(),callback:Box::new(|_,_|Ok(()))}});
+    assert_eq!(tsrust_testing_run_tests(&mut registry,&mut program),1);
+    // The production registry owns pending callbacks even when never run.
+    struct Disposal(std::rc::Rc<std::cell::RefCell<Vec<&'static str>>>, &'static str);
+    impl Drop for Disposal {{ fn drop(&mut self) {{ self.0.borrow_mut().push(self.1); }} }}
+    let events=std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    {{
+        let _global=Disposal(events.clone(), "program");
+        let mut pending=TsrTestRegistry::default();
+        let capture=Disposal(events.clone(), "callback");
+        tsrust_testing_register_test_result(&mut pending,&String::Borrowed("never run"),Box::new(move |_,_| {{ let _=&capture; Ok(()) }})).unwrap();
+    }}
+    assert_eq!(*events.borrow(),["callback","program"]);
+}}
+"#)).unwrap();
     let compiled = support::run(support::rustc().arg("--edition=2024").arg(&source).arg("-o").arg(&binary), 60);
     support::success(&compiled);
     let output = support::run(&mut std::process::Command::new(binary), 30);
@@ -226,7 +254,7 @@ fn prepared_test_entry_guards_file_registration_scope() {
     let emitted=support::run(support::cli().arg("emit").arg(&path),60);
     support::success(&emitted);
     let rust=String::from_utf8_lossy(&emitted.stdout);
-    assert!(rust.contains("let _suite_scope_guard=TsrSuiteScopeGuard::new();"),"prepared file entry has no registration scope guard");
+    assert!(rust.contains("tsrust_testing_scope(&mut *value"),"prepared file entry has no registration scope guard");
     let output=support::run(support::cli().arg("test").arg(&path),60);
     assert!(!output.status.success());
     assert_eq!(String::from_utf8_lossy(&output.stdout),"file cleanup\n");

@@ -69,7 +69,9 @@ impl Analyzer {
                 CallbackKind::Read => CallableOwnership::Read,
                 CallbackKind::Reusable => CallableOwnership::Reusable,
                 CallbackKind::Once => CallableOwnership::Once,
-                CallbackKind::Owned => CallableOwnership::Owned,
+                CallbackKind::ProgramReusable => crate::type_syntax::CallableOwnership::ProgramReusable,
+                    CallbackKind::Program => crate::type_syntax::CallableOwnership::Program,
+                    CallbackKind::Owned => CallableOwnership::Owned,
                 CallbackKind::OwnedOnce => CallableOwnership::OwnedOnce,
                 CallbackKind::SharedRead => CallableOwnership::SharedRead,
             };

@@ -3,6 +3,7 @@
 use super::super::*;
 
 pub(super) struct Frame {
+    program_scoped: bool,
     origin: usize,
     span: Span,
     pub(super) result: Type,
@@ -18,6 +19,7 @@ pub(super) struct Frame {
     access_checks: Vec<(usize, String, Mode, Span)>,
 }
 pub(super) struct Parameters {
+    program_scoped: bool,
     origin:usize,span:Span,result:Type,inferred_result:bool,escapes:bool,
     visible:Vec<usize>,parameters:Vec<usize>,declared:Vec<Type>,
     pub(super) next:usize,
@@ -78,7 +80,7 @@ impl Analyzer {
         let inferred_result = matches!(result, ResultAnnotation::Inferred(_)) && contextual_result.is_none();
         let result = if let Some(result) = contextual_result { result }
             else if inferred_result { Type::Void } else { self.resolve_result(result)? };
-        let escapes = self.escaping.contains(&origin);
+        let escapes = self.escaping.contains(&origin) || self.program_callback_sites.get(&span.start) == Some(&CallbackKind::Program);
         let mut visible = outer.names.values().copied().collect::<Vec<_>>();
         // A nested function called in the body can need a variable that has no
         // visible name here: a shadowed one, or one that only a called function uses.
@@ -98,6 +100,7 @@ impl Analyzer {
         if self.discovering_results {
             context.pending_names = outer.pending_names.clone();
         }
+        let program_scoped = self.program_callback_sites.contains_key(&span.start) || matches!(contextual, Some(Type::Callback(id)) if matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable));
         let contextual = contextual.and_then(|ty| match self.unions.payload(ty).unwrap_or(ty) {
             Type::Callback(id) => Some(self.callables.callbacks[id].params.clone()),
             Type::Callable(id) => Some(self.callables.results[id].params.clone()),
@@ -128,7 +131,7 @@ impl Analyzer {
             declared.push(ty);
         }
         context.names = inherited_names;
-        Ok(Started::Parameters(Box::new(Parameters{origin,span,result,inferred_result,escapes,visible,parameters,declared,next:0}),Box::new(context)))
+        Ok(Started::Parameters(Box::new(Parameters{program_scoped,origin,span,result,inferred_result,escapes,visible,parameters,declared,next:0}),Box::new(context)))
     }
 
     pub(super) fn prepare_closure(&mut self,outer:&mut Context,syntax:(usize,&[CallableParameter],&ResultAnnotation),contextual:Option<Type>,body:&mut Vec<Stmt>,span:Span,loans:&Loans)->Result<Prepared,Diagnostic>{
@@ -203,7 +206,7 @@ impl Analyzer {
     }
 
     pub(super) fn complete_closure_parameters(&mut self,frame:Box<Parameters>,context:&mut Context,params:&[CallableParameter],body:&mut Vec<Stmt>)->Result<Box<Frame>,Diagnostic>{
-        let Parameters{origin,span,result,inferred_result,escapes,visible,parameters,..}=*frame;
+        let Parameters{program_scoped,origin,span,result,inferred_result,escapes,visible,parameters,..}=*frame;
         let method_template = parameters.iter().any(|&parameter| matches!(self.unions.payload(context.bindings[parameter].ty).unwrap_or(context.bindings[parameter].ty),Type::Callback(_)));
         let source_body=method_template.then(||body.clone());
         let declared_result=result;
@@ -224,13 +227,14 @@ impl Analyzer {
             Some((binding, param.name.text.clone(), mode, access.span))
         }).collect();
         Ok(Box::new(Frame {
+            program_scoped,
             origin, span, result, inferred_result, escapes, visible, parameters,
             method_template, declared_result, method_context, source_body, restoration, access_checks,
         }))
     }
 
     pub(super) fn finish_closure(&mut self, outer: &mut Context, frame: Box<Frame>, mut context: Box<Context>, body: &mut Vec<Stmt>, loans: &Loans, returned: Result<bool, Diagnostic>) -> Result<Type, Diagnostic> {
-        let Frame { origin, span, mut result, inferred_result, escapes, visible, parameters,
+        let Frame { program_scoped, origin, span, mut result, inferred_result, escapes, visible, parameters,
             method_template, declared_result, method_context, source_body, restoration, access_checks } = *frame;
         let returned = returned.map_err(|error| self.filter_ownership_fixes(&context, error))?;
         for (binding, name, declared, access_span) in access_checks {
@@ -262,6 +266,7 @@ impl Analyzer {
         self.finalize_nullable_locals(&mut context.bindings, body)?;
         let restoration_bounded=capture_restoration::bounded_body(body);
         let mut captures = Vec::new();
+        let mut program_captures = Vec::new();
         let mut invocation = Mode::Read;
         for (inner, &outer_id) in visible.iter().enumerate() {
             let binding = &context.bindings[inner];
@@ -278,6 +283,11 @@ impl Analyzer {
                 }
                 let module_capture = self.program.module_owner_bindings.iter()
                     .any(|declaration| context.source_bindings.get(&declaration.start) == Some(&inner));
+                if program_scoped && escapes && !module_capture && !binding.ty.is_copy()
+                    && (context.readonly_parameters.contains(&inner) || context.mutable_parameters.contains(&inner)) {
+                    return Err(Diagnostic::new("callback-escape",
+                        "A registered callback cannot retain a borrowed local or parameter. Move owned data into the callback, or use program-owned module storage.", span));
+                }
                 let storage = if module_capture {
                     if access == Mode::Consume {
                         return Err(Diagnostic::new("module-state-consume", "A callback cannot consume program-owned module storage; use explicit clone().", usage));
@@ -306,6 +316,13 @@ impl Analyzer {
                         span,
                     )
                     .related(self.closures[id].span, "Borrowed callable is created here."));
+                }
+                if program_scoped && module_capture {
+                    let declaration = *self.program.module_owner_bindings.iter()
+                        .find(|declaration| context.source_bindings.get(&declaration.start) == Some(&inner))
+                        .expect("program binding identity");
+                    program_captures.push(ProgramCapture { declaration, inner, access: storage, span: usage });
+                    continue;
                 }
                 Self::access(outer, outer_id, storage, span, loans)?;
                 if matches!(storage, Mode::Read | Mode::Mutate) {
@@ -342,6 +359,11 @@ impl Analyzer {
                 capture.storage
             };
         }
+        for capture in &program_captures {
+            let binding = &mut context.bindings[capture.inner];
+            binding.capture_reference = true;
+            binding.mode = capture.access;
+        }
         // Provisional recursive summaries can overstate borrowed lifetimes.
         // Cap the count just above the supported limit; inference never emits
         // this layout, and final checking still enforces the actual guard.
@@ -369,6 +391,7 @@ impl Analyzer {
         }
         let borrowed = lifetime_count != 0;
         let key = ClosureKey {
+            program_scoped,
             origin,
             template: outer.template,
             escapes,
@@ -413,6 +436,7 @@ impl Analyzer {
                     std::mem::take(body)
                 };
                 self.closures[id].captures = captures;
+                self.closures[id].program_captures = program_captures;
                 self.closures[id].parameters = parameters;
                 self.validated_closures.insert(id);
             } else {
@@ -449,6 +473,7 @@ impl Analyzer {
             self.validated_closures.insert(id);
         }
         self.closures.push(CheckedClosure {
+                program_scoped, program_captures,
             polymorphic: method_template,
             methods: Vec::new(),
             forward: None,

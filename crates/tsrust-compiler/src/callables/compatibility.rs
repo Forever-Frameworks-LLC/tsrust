@@ -73,7 +73,7 @@ impl<'a> Contracts<'a> {
                 }
                 Type::Closure(id) => {
                     let closure = &self.closures[id];
-                    if !self.effects_only && closure.borrowed {
+                    if !self.effects_only && (closure.borrowed || !closure.program_captures.is_empty()) {
                         return Err(Diagnostic::new(
                             "closure-escape",
                             "A callable result cannot retain borrowed capture storage.",
@@ -97,7 +97,7 @@ impl<'a> Contracts<'a> {
             let signature = match actual {
                 Type::Closure(id) => {
                     let closure = &self.closures[id];
-                    let closure = if !self.effects_only && contract.kind.is_owned() {
+                    let closure = if !self.effects_only && contract.kind.is_owned() && contract.kind != crate::syntax::CallbackKind::Program {
                         if contract.kind == crate::syntax::CallbackKind::SharedRead {
                             crate::callable_storage::StorageContract::checked_shared(self.signatures, contract.structural)
                         } else if crate::native_view_callable_storage::carried_slots(closure).is_some() {
@@ -127,6 +127,10 @@ impl<'a> Contracts<'a> {
                         }
                         closure
                     };
+                    if !self.effects_only && contract.kind == crate::syntax::CallbackKind::Program && closure.borrowed {
+                        crate::callable_storage::StorageContract::Owned(contract.structural)
+                            .environment(self.signatures, closure, span)?;
+                    }
                     Some((Parameters::Closure(closure), closure.function.result))
                 }
                 Type::Callable(id) => {
@@ -159,7 +163,7 @@ impl<'a> Contracts<'a> {
                 Type::StoredCallable(family) => {
                     let actual = &self.callbacks[self.storage.declaration(family).expect("checked stored family")];
                     let compatible = match actual.kind {
-                        crate::syntax::CallbackKind::Owned => matches!(contract.kind,crate::syntax::CallbackKind::Reusable|crate::syntax::CallbackKind::Owned),
+                        crate::syntax::CallbackKind::Owned => matches!(contract.kind,crate::syntax::CallbackKind::ProgramReusable|crate::syntax::CallbackKind::Program|crate::syntax::CallbackKind::Reusable|crate::syntax::CallbackKind::Owned),
                         crate::syntax::CallbackKind::OwnedOnce => matches!(contract.kind,crate::syntax::CallbackKind::Once|crate::syntax::CallbackKind::OwnedOnce),
                         _ => false,
                     };

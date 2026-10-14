@@ -1621,6 +1621,10 @@ pub struct RecordField {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CallbackKind {
+    /// Immediate registration callback with invocation-time program access.
+    ProgramReusable,
+    /// Registry-owned environment with invocation-time program access.
+    Program,
     /// Owned reference-counted environment with readonly reusable invocation.
     SharedRead,
     Read,
@@ -1633,7 +1637,7 @@ pub enum CallbackKind {
 impl CallbackKind {
     /// Reusable owned parameters may lend their environment for a scoped call.
     pub fn can_pass_to(self, target: Self) -> bool {
-        self == target || (self == Self::OwnedOnce && target == Self::Once) || (self == Self::Owned && target == Self::Reusable)
+        self == target || (matches!(self, Self::Owned | Self::Reusable) && target == Self::ProgramReusable) || (self == Self::Owned && target == Self::Program) || (self == Self::OwnedOnce && target == Self::Once) || (self == Self::Owned && target == Self::Reusable)
             || (self == Self::SharedRead && matches!(target, Self::Read | Self::Reusable | Self::Owned))
     }
     pub fn invocation(self) -> crate::Mode {
@@ -1647,7 +1651,7 @@ impl CallbackKind {
     }
 
     pub fn is_owned(self) -> bool {
-        matches!(self, Self::Owned | Self::OwnedOnce | Self::SharedRead)
+        matches!(self, Self::Owned | Self::OwnedOnce | Self::SharedRead | Self::Program)
     }
     pub fn is_once(self) -> bool {
         matches!(self, Self::Once | Self::OwnedOnce)
@@ -1789,10 +1793,6 @@ pub(crate) fn module_diagnostics(source: &str, test_entry: bool) -> Vec<Diagnost
     errors.sort_by_key(|error| (error.span.start, error.span.end));
     errors.dedup_by(|a,b| a.span == b.span && a.code == b.code && a.message == b.message);
     errors
-}
-
-pub(crate) fn parse_test_entry(source: &str) -> Result<Program, Diagnostic> {
-    parse_entry(source, true, Default::default())
 }
 
 /// Parses a module whose imports include type aliases of other modules.

@@ -159,7 +159,7 @@ impl Emitter<'_> {
                 match b.input_ty.unwrap_or(b.ty) {
                     Type::Callback(id) => {
                         let contract = &self.program.callback_contracts[id];
-                        let trait_name = if matches!(
+                        let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::ProgramReusable) { "ProgramCallback" } else if matches!(
                             contract.kind,
                             crate::syntax::CallbackKind::Read
                                 | crate::syntax::CallbackKind::SharedRead

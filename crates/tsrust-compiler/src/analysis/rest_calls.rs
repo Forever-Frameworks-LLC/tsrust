@@ -255,6 +255,7 @@ impl Analyzer {
                 );
             }
             self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
                 polymorphic,
                 methods: Vec::new(),
                 forward: Some(ClosureForward::RestAdapter { fixed, counted }),

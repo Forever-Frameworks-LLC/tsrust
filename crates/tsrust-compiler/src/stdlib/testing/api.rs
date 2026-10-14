@@ -212,7 +212,7 @@ export function expect<T>(actual:T):Expectation<T> {
 import { registerTest, runTests as executeTests, beginSuite, endSuite, registerHook } from "std:testing-runtime";
 
 /**
-Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Escaping borrowed captures are rejected.
+Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 
 ```tsrust
 import {test,expect,runTests} from "std:testing";function main(){test("sample",():void=>{expect(3).toBe(3);});console.log(runTests());}
@@ -222,7 +222,7 @@ import {test,expect,runTests} from "std:testing";function main(){test("sample",(
 export function test(name:string, callback:Owned<Function<void>>):void { registerTest(name,callback); }
 
 /**
-Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Escaping borrowed captures are rejected.
+Registers a synchronous named test and returns void. The callback runs when runTests is called, in registration order. Names may repeat. Registration during test execution is an error. Wrong arity or callback types are compile-time errors. This is an alias of test. Ownership: the name is borrowed and copied into the registry; the callback transfers into the registry. Module storage is borrowed only while the callback runs, including access through called functions. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 
 ```tsrust
 import {it,expect,runTests} from "std:testing";function main(){it("sample",():void=>{expect(3).toBe(3);});console.log(runTests());}
@@ -292,7 +292,17 @@ import {beforeAll,test,runTests} from "std:testing";function main(){beforeAll(()
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
+
+Hooks and tests can share module state:
+
+```tsrust
+import {beforeAll,test,strictEqual,runTests} from "std:testing";
+let count=0;
+function main(){beforeAll(():void=>{count=7;});test("shared state",():void=>{strictEqual(count,7);count=8;});runTests();strictEqual(count,8);}
+// PASS shared state; 1 passed, 0 failed, 0 skipped
+```
+
 */
 export function beforeAll(callback:Owned<Function<void>>):void { registerHook(0,callback); }
 /**
@@ -308,7 +318,7 @@ import {afterAll,test,runTests} from "std:testing";function main(){afterAll(():v
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 */
 export function afterAll(callback:Owned<Function<void>>):void { registerHook(1,callback); }
 /**
@@ -324,7 +334,7 @@ import {beforeEach,test,runTests} from "std:testing";function main(){beforeEach(
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 */
 export function beforeEach(callback:Owned<Function<void>>):void { registerHook(2,callback); }
 /**
@@ -340,7 +350,7 @@ import {afterEach,test,runTests} from "std:testing";function main(){afterEach(()
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 */
 export function afterEach(callback:Owned<Function<void>>):void { registerHook(3,callback); }
 
@@ -357,7 +367,7 @@ import {before,test,runTests} from "std:testing";function main(){before(():void=
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 */
 export function before(callback:Owned<Function<void>>):void { beforeAll(callback); }
 
@@ -374,7 +384,7 @@ import {after,test,runTests} from "std:testing";function main(){after(():void=>{
 // 0
 ```
 
-Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations; escaping borrowed captures are rejected.
+Ownership: the callback transfers into the registry and is released when the registry is consumed. Owned mutable captures persist across hook invocations. Module storage is borrowed only while each hook runs, so hooks and tests can read or update the same module state in execution order. Borrowed local captures and borrowed callback inputs cannot escape into the registry.
 */
 export function after(callback:Owned<Function<void>>):void { afterAll(callback); }
 "####;

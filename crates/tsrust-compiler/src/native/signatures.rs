@@ -4,6 +4,7 @@
 /// not publish source exports: module loading must resolve registered declarations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum NativeTypeId {
+    TestRegistry,
     Schema,
     ValidationContext,
     ValidationError,
@@ -41,6 +42,8 @@ pub enum NativeTypeId {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Intrinsic {
+    ProgramVoidCallback,
+    ProgramReusableVoidCallback,
     OwnedVoidCallback,
     SharedCallback,
     ObservedValue,
@@ -150,6 +153,8 @@ impl Signature {
         let primitive = match self {
             Self::String => Some("string"), Self::Boolean => Some("boolean"),
             Self::Int => Some("int"), Self::Number => Some("number"), Self::Void => Some("void"), Self::Null => Some("null"),
+            Self::Intrinsic(Intrinsic::ProgramReusableVoidCallback) => Some("Mutable<Function<void>>"),
+            Self::Intrinsic(Intrinsic::ProgramVoidCallback) => Some("Owned<Function<void>>"),
             Self::Intrinsic(Intrinsic::OwnedVoidCallback) => Some("Owned<Function<void>>"),
             Self::Intrinsic(Intrinsic::SharedCallback) => Some("Function"),
             Self::Intrinsic(Intrinsic::ObservedValue) => Some("unknown"),
@@ -190,7 +195,8 @@ impl Signature {
                         }
                         Self::Parameter(index) => output.push_str(&parameter(*index).ok_or(RenderError::MissingParameter(*index))?),
                         Self::Intrinsic(intrinsic) => output.push_str(match intrinsic {
-                            Intrinsic::OwnedVoidCallback => "Owned<Function<void>>",
+                            Intrinsic::ProgramReusableVoidCallback => "Mutable<Function<void>>",
+                            Intrinsic::ProgramVoidCallback | Intrinsic::OwnedVoidCallback => "Owned<Function<void>>",
                             Intrinsic::SharedCallback => "Function",
                             Intrinsic::ObservedValue => "unknown",
                         }),
@@ -258,7 +264,7 @@ mod tests {
     fn nested_signatures_keep_native_identity_and_use_visible_aliases() {
         static ARRAY: Signature = Signature::Array(&Signature::Named(NativeTypeId::Bytes));
         let result = Signature::Result(&ARRAY, &Signature::Named(NativeTypeId::ByteError));
-        assert_eq!(result.render(|id| Some(match id { NativeTypeId::SchemaExportError => "SchemaExportError".into(), NativeTypeId::ValidationContext => "ValidationContext".into(), NativeTypeId::SchemaConstructionError => "SchemaConstructionError".into(), NativeTypeId::ValidationError => "ValidationError".into(), NativeTypeId::SchemaIssue => "SchemaIssue".into(), NativeTypeId::SchemaPath => "SchemaPath".into(), NativeTypeId::Schema => "Schema".into(), NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::BufferedReader => "Reader".into(), NativeTypeId::BufferedWriter => "Writer".into(), NativeTypeId::FsError => "FileFailure".into(), NativeTypeId::EnvError => "EnvironmentFailure".into(), NativeTypeId::JsonValue => "JsonValue".into(), NativeTypeId::JsonView => "JsonView".into(), NativeTypeId::JsonRaw => "JsonRaw".into(), NativeTypeId::StringView => "StringView".into(), NativeTypeId::JsonError => "JsonError".into(), NativeTypeId::JsonLimits => "JsonLimits".into(), NativeTypeId::JsonBuildLimits => "JsonBuildLimits".into(), NativeTypeId::JsonEntry => "JsonEntry".into(), NativeTypeId::JsonlReader => "JsonlReader".into(), NativeTypeId::JsonlReaderView => "JsonlReaderView".into(), NativeTypeId::JsonlWriter => "JsonlWriter".into(), NativeTypeId::JsonlWriterView => "JsonlWriterView".into(), NativeTypeId::JsonlError => "JsonlError".into(), NativeTypeId::Deque => "Queue".into(), NativeTypeId::OrderedMap => "TreeMap".into(), NativeTypeId::OrderedSet => "TreeSet".into(), NativeTypeId::Heap => "PriorityQueue".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
+        assert_eq!(result.render(|id| Some(match id { NativeTypeId::TestRegistry => "TestRegistry".into(), NativeTypeId::SchemaExportError => "SchemaExportError".into(), NativeTypeId::ValidationContext => "ValidationContext".into(), NativeTypeId::SchemaConstructionError => "SchemaConstructionError".into(), NativeTypeId::ValidationError => "ValidationError".into(), NativeTypeId::SchemaIssue => "SchemaIssue".into(), NativeTypeId::SchemaPath => "SchemaPath".into(), NativeTypeId::Schema => "Schema".into(), NativeTypeId::Bytes => "Buffer".into(), NativeTypeId::ByteError => "ErrorInfo".into(), NativeTypeId::ByteView => "Window".into(), NativeTypeId::ByteViewMut => "MutableWindow".into(), NativeTypeId::File => "Handle".into(), NativeTypeId::BufferedReader => "Reader".into(), NativeTypeId::BufferedWriter => "Writer".into(), NativeTypeId::FsError => "FileFailure".into(), NativeTypeId::EnvError => "EnvironmentFailure".into(), NativeTypeId::JsonValue => "JsonValue".into(), NativeTypeId::JsonView => "JsonView".into(), NativeTypeId::JsonRaw => "JsonRaw".into(), NativeTypeId::StringView => "StringView".into(), NativeTypeId::JsonError => "JsonError".into(), NativeTypeId::JsonLimits => "JsonLimits".into(), NativeTypeId::JsonBuildLimits => "JsonBuildLimits".into(), NativeTypeId::JsonEntry => "JsonEntry".into(), NativeTypeId::JsonlReader => "JsonlReader".into(), NativeTypeId::JsonlReaderView => "JsonlReaderView".into(), NativeTypeId::JsonlWriter => "JsonlWriter".into(), NativeTypeId::JsonlWriterView => "JsonlWriterView".into(), NativeTypeId::JsonlError => "JsonlError".into(), NativeTypeId::Deque => "Queue".into(), NativeTypeId::OrderedMap => "TreeMap".into(), NativeTypeId::OrderedSet => "TreeSet".into(), NativeTypeId::Heap => "PriorityQueue".into() })).unwrap(), "Result<Buffer[], ErrorInfo>");
         assert_eq!(Signature::Named(NativeTypeId::Bytes).render(|_| None), Err(RenderError::MissingType(NativeTypeId::Bytes)));
     }
 

@@ -63,6 +63,15 @@ impl Analyzer {
     }
 
     pub(super) fn finish_parameter_argument(&mut self, argument: &mut Expr, frame: ArgumentFrame, actual: Type) -> Result<Type, Diagnostic> {
+        if let Type::Callback(id) = frame.contract.ty
+            && matches!(self.callables.callbacks[id].kind, CallbackKind::Program | CallbackKind::ProgramReusable)
+            && let Type::Closure(origin) = actual {
+            let kind = self.callables.callbacks[id].kind;
+            let site = self.closures[origin].span.start;
+            self.program_callback_sites.entry(site).and_modify(|old| {
+                if kind == CallbackKind::Program { *old = kind; }
+            }).or_insert(kind);
+        }
         match frame.adaptation {
             Adaptation::Plain => Ok(actual),
             Adaptation::MutableUnion => {

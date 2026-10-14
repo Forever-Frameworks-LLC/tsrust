@@ -112,7 +112,13 @@ fn walk(
     while let Some(node) = work.pop() {
         match node {
             Work::Statement(statement) => match &mut statement.kind {
-                StmtKind::LocalFunction(_) => unreachable!("local declarations must be resolved before checked traversal"),
+                StmtKind::LocalFunction(function) => {
+                    function_annotations(function, annotation_visit)?;
+                    work.extend(function.body.iter_mut().map(Work::Statement));
+                    for initializer in &mut function.parameter_initializers {
+                        if let ParameterInitializer::Default { value, .. } = initializer { work.push(Work::Expression(value)); }
+                    }
+                },
                     StmtKind::Try(region) => work.extend(region.statements_mut().map(Work::Statement)),
                     StmtKind::Throw(value) => work.push(Work::Expression(value)),
                 StmtKind::Let {

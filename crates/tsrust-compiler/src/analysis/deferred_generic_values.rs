@@ -126,6 +126,7 @@ impl Analyzer {
         }).unwrap_or_else(|| {
             let origin = self.closures.len();
             self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
                 polymorphic: true, methods: Vec::new(), forward: None,
                 borrowed: lifetime_count != 0, lifetime_count: lifetime_count.min(129), depth: outer.closure_depth + 1,
                 parameters: Vec::new(),

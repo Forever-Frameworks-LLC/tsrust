@@ -4,6 +4,7 @@ mod statement_work_tests;
 use declaration_scope::Declarations;
 mod coalesce_work;
 mod expression_work;
+mod program_testing;
 mod schema;
 mod json_encoding;
 mod json_typed;
@@ -608,7 +609,7 @@ impl Emitter<'_> {
                 } else {
                     format!("for{} ", lifetime_parameters(&lifetimes))
                 };
-                let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
+                let trait_name = if matches!(contract.kind, crate::syntax::CallbackKind::Program | crate::syntax::CallbackKind::ProgramReusable) { "ProgramCallback" } else if matches!(contract.kind, crate::syntax::CallbackKind::Read | crate::syntax::CallbackKind::SharedRead) {
                     "ReadCallback"
                 } else if contract.kind.is_once() {
                     "OnceCallback"
@@ -1214,7 +1215,7 @@ impl Emitter<'_> {
             Type::Closure(id)=>self.result_closures.borrow().get(&id).cloned().map(|name|(name,self.program.error_effects.closure_errors[id].clone())),
             _=>return None,
         };
-        let invocation="Callback::invoke(&mut registered_callback,())";
+        let invocation="ProgramCallback::invoke_program(&mut registered_callback,(),program,registry)";
         let result=if let Some((name,contract))=registered {
             let invocation=format!("{{let result:Result<(),{name}>={invocation};result}}");
             let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
@@ -1231,7 +1232,7 @@ impl Emitter<'_> {
             if arms.is_empty(){format!("{invocation}.map_err(|error|match error{{}})")}else{format!("{invocation}.map_err(|error|match error{{{arms}}})")}
         }else{format!("{{let result:()={invocation};Ok(result)}}")};
         let helper=if hook{"tsrust_testing_register_hook_result"}else{"tsrust_testing_register_test_result"};
-        let call=format!("{{let registered_name={};let mut registered_callback={};{helper}(registered_name,Box::new(move ||{result}))}}",arguments[0],arguments[1]);
+        let call=format!("{{let registered_name={};let mut registered_callback={};{helper}({},registered_name,Box::new(move |program,registry|{result}))}}",arguments[0],arguments[1],arguments[2]);
         self.typed_runner_result(&call,span,closure)
     }
 
@@ -2011,6 +2012,13 @@ impl Emitter<'_> {
                 let conversion=exception_emit::error_conversion("error",source_name,destination_name,&mapping);
                 format!("{call}.map_err(|error|{conversion})")
             }else{format!("Ok({call})")};
+            if closure.program_scoped {
+                if !matches!(checked.kind, CallbackKind::Program | CallbackKind::ProgramReusable) { continue; }
+                let separator = if forwarded.is_empty() { "" } else { ", " };
+                let body = convert(format!("self.call({forwarded}{separator}program,registry)"));
+                let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where} {{ fn invoke_program(&mut self,args:{arguments},program:&mut TsrTestContext<'_>,registry:&mut TsrTestRegistry)->{result}{{{body}}} }}");
+                continue;
+            }
             for (trait_name,method,receiver,allowed) in [
                 ("OnceCallback","invoke_once","mut self",true),
                 ("ReadCallback","invoke_read","&self",closure.invocation==Mode::Read),
@@ -2311,6 +2319,7 @@ impl Emitter<'_> {
             output.push_str("impl<F:ReadCallback<A,R>+?Sized,A,R> ReadCallback<A,R> for &F { fn invoke_read(&self,args:A)->R { (**self).invoke_read(args) } fn invoke_read_with_count(&self,args:A,count:usize)->R { (**self).invoke_read_with_count(args,count) } }\n");
             output.push_str("impl<F:Callback<A,R>+?Sized,A,R> Callback<A,R> for &mut F { fn invoke(&mut self,args:A)->R { (**self).invoke(args) } fn invoke_with_count(&mut self,args:A,count:usize)->R { (**self).invoke_with_count(args,count) } }\n");
         }
+        self.test_program_declarations(&mut output);
         if self.program.records.iter().any(|record| record.native_element().is_some()) {
             output.push_str(include_str!("../stdlib/collections/deque_runtime.rs"));
         }
@@ -2331,6 +2340,10 @@ impl Emitter<'_> {
         }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry) {
+                let _ = writeln!(output, "type Record{index} = TsrTestRegistry;");
+                continue;
+            }
             if record.literal_definition.is_some(){continue;}
             if self.native_record_declaration(index) != index { continue; }
             if record.native_type==Some(crate::native_signatures::NativeTypeId::ValidationContext) {
@@ -2532,7 +2545,8 @@ impl Emitter<'_> {
             let receiver = closure_signature.as_ref().and_then(|signature|signature.receiver_lifetime)
                 .map_or_else(||receiver.to_owned(),|lifetime|format!("&{lifetime} mut self"));
             let receiver=signature.and_then(|signature|signature.receiver).map_or(receiver,|mode|format!("&'native_receiver {}self",if mode==Mode::Mutate {"mut "}else{""}));
-            let parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
+            let mut parameters = signature.map_or(parameters, |signature| format!(", {}", signature.params));
+            if closure.program_scoped { parameters.push_str(", test_program: &mut TsrTestContext<'_>, test_registry: &mut TsrTestRegistry"); }
             let call_generics = signature.map_or(call_generics, |signature| signature.generics.clone());
             let replacement_where = signature.map_or_else(String::new, |signature| signature.replacement_where.clone());
             let native_result = signature.map_or(native_result, |signature| match &result_layout {
@@ -2544,6 +2558,7 @@ impl Emitter<'_> {
                 "    fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
                 native_result.clone()
             );
+            self.test_program_capture_bindings(&mut output, closure);
             for capture in &closure.captures {
                 let binding = &closure.function.bindings[capture.inner];
                 let reference = if self.record_capture_is_view(capture,closure){if closure.invocation==Mode::Mutate{"&mut "}else{"&"}}else{match (capture.storage, closure.invocation) {
@@ -2635,6 +2650,7 @@ impl Emitter<'_> {
             output.push_str("    }\n");
             if self.counted_calls {
                 let _ = writeln!(output, "    fn call_with_count{call_generics}({receiver}, supplied_count: usize{parameters}) -> {}{replacement_where} {{", native_result.clone());
+                if closure.program_scoped { self.test_program_capture_bindings(&mut output, closure); }
                 self.counted_closure_body(&mut output, closure);
                 output.push_str("    }\n");
             }
@@ -2695,6 +2711,12 @@ impl Emitter<'_> {
                 arguments.extend(self.unnamed_owner_markers(self.closure_owner_inputs(index).len()).into_iter().map(|marker|format!("std::marker::PhantomData::<{marker}>")));
                 arguments.into_iter().filter(|value|!value.is_empty()).collect::<Vec<_>>().join(", ")
             }, |(target,_)|self.forwarded_record_trait_arguments(*target,&forwarded));
+            if closure.program_scoped {
+                let separator = if forwarded.is_empty() { "" } else { ", " };
+                let _ = writeln!(output, "impl{impl_lifetimes} ProgramCallback<{arguments}, {native_result}> for Closure{index}{lifetime}{forwarded_trait_where} {{ fn invoke_program(&mut self, args:{arguments}, program:&mut TsrTestContext<'_>, registry:&mut TsrTestRegistry)->{native_result} {{self.call({forwarded}{separator}program,registry)}} }}");
+                self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
+                continue;
+            }
             if self.callback_traits {
                 let result = native_result.clone();
                 let counted_method = if self.counted_calls { format!("    fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
@@ -3459,8 +3481,11 @@ impl Emitter<'_> {
         let pending=self.completion_body_frame(fun,body,id,error_name,contract,runtime,true);
         let normal=if fun.result==Type::Void {"Ok(())"}else{"unreachable!(\"checked non-void callable cannot fall through\")"};
         let suite_scope=crate::error_effects::checked_expressions(fun).iter().any(|expression|matches!(expression.target,Some(CallTarget::NativeBinding(id)) if crate::native_bindings::BINDINGS[id].module=="std:testing-runtime" && matches!(crate::native_bindings::BINDINGS[id].name,"beginSuite"|"beginFile")));
-        let guard=if suite_scope {"let _suite_scope_guard=TsrSuiteScopeGuard::new();"}else{""};
-        format!("{{{guard} match {pending} {{ TsrCompletion::Normal(())=>{normal}, TsrCompletion::Return(value)=>Ok(value), TsrCompletion::Throw(error)=>Err(error), TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"checked control cannot escape its callable\") }} }}")
+        let result = format!("{{ match {pending} {{ TsrCompletion::Normal(())=>{normal}, TsrCompletion::Return(value)=>Ok(value), TsrCompletion::Throw(error)=>Err(error), TsrCompletion::Break(_)|TsrCompletion::Continue(_)=>unreachable!(\"checked control cannot escape its callable\") }} }}");
+        if suite_scope {
+            let slot = fun.bindings.iter().position(|binding| self.test_registry_type(binding.ty)).expect("registry capture");
+            format!("tsrust_testing_scope({}, |value{slot}| {result})", self.binding(fun, slot, Mode::Mutate))
+        } else { result }
     }
 
     #[inline(never)]
@@ -8445,6 +8470,7 @@ impl Emitter<'_> {
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),
                 CallTarget::JsonDecode => self.json_typed_decode(fun,expr,args),
                 CallTarget::NativeBinding(id) => {
+                    if let Some(call) = self.program_testing_native(fun, expr, id, args) { return call; }
                     if crate::native_bindings::BINDINGS[id].parameters.first().is_some_and(|p| p.ty == crate::native_bindings::NativeType::ObservedValue) {
                         let binding = &crate::native_bindings::BINDINGS[id];
                         if binding.name == "assertionDetails" {

@@ -743,7 +743,7 @@ fn native_binding_effect(id:usize)->FailureSet {
         // Sharing does not invoke the environment. Observations read checked values,
         // returning NaN/false for unsupported numeric/length shapes.
         // Allocation failures are outside recoverable checked error transport.
-        Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
+        Some(binding) if binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength")=>FailureSet::default(),
         // Target constants have no recoverable runtime failures.
         Some(binding) if binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")=>FailureSet::default(),
         Some(binding) if binding.module=="std:path" && binding.name=="relative"=>FailureSet::runtime(),
@@ -761,6 +761,15 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
     match target {
         Callback(_)=>value.callback_contract().and_then(|id|effects.callback_errors.get(&id).cloned()).unwrap_or_else(FailureSet::unknown),
         ConditionalCallback(id)=>effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+        NativeBinding(id) if crate::native_bindings::BINDINGS[id].name == "invokeRegistration" && crate::native_bindings::BINDINGS[id].module == "std:testing-runtime" => {
+            let callback = match &value.kind { ExprKind::Call(_, args) => args.first().and_then(|value| value.ty), _ => None };
+            match callback {
+                Some(Type::Closure(id)) => effects.closure_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::Callback(id)) => effects.callback_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                Some(Type::StoredCallable(id) | Type::BorrowedCallable(id)) => effects.storage_errors.get(&id).cloned().unwrap_or_else(FailureSet::unknown),
+                _ => FailureSet::unknown(),
+            }
+        }
         NativeBinding(id)=>native_binding_effect(id),
         ClosureMethod(method)=>{
             if let ExprKind::Call(callee,_)=&value.kind && let Some(id)=callee.generic_invocation {
@@ -853,7 +862,7 @@ mod tests {
         assert_eq!(super::native_effect(crate::syntax::CallTarget::NativeBinding(native),&value,&effects),super::FailureSet::default());
         for (id,binding) in crate::native_bindings::BINDINGS.iter().enumerate() {
             // Audited testing-runtime and target identity bindings have explicit contracts; every other binding stays unresolved.
-            let audited=(binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && binding.name=="get") || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"checkAssertion"|"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
+            let audited=(binding.module=="std:json" && matches!(binding.name,"borrowRaw"|"parse"|"parseJsonc"|"stringify"|"kind"|"fromArray"|"fromEntries"|"nullValue"|"fromBoolean"|"fromInt"|"fromNumber"|"fromString"|"asString"|"asBoolean"|"asInt"|"asNumber"|"takeString"|"get"|"at"|"openJsonl"|"borrowJsonl"|"readJsonl"|"closeJsonl"|"createJsonl"|"borrowJsonlWriter"|"writeJsonl"|"flushJsonl"|"closeJsonlWriter")) || (binding.module=="std:schema" && matches!(binding.name,"__string"|"__boolean"|"__safeParseString"|"__safeParseOwnedString"|"__safeParseBoolean"|"__safeParseBooleanValue"|"__int"|"__safeParseInt"|"__safeParseIntValue"|"__number"|"__safeParseNumber"|"__safeParseNumberValue"|"__safeParseNumberInt"|"__null"|"__safeParseNull"|"__safeParseNullValue"|"__minString"|"__maxString"|"__minInt"|"__maxInt"|"__gtInt"|"__ltInt"|"__minNumber"|"__maxNumber"|"__gtNumber"|"__ltNumber")) || (binding.module=="std:env" && binding.name=="get") || (binding.module=="std:fs" && matches!(binding.name,"open"|"read"|"close"|"create"|"write"|"writeAll"|"readFile"|"writeFile"|"bufferReader"|"bufferWriter"|"flush")) || (binding.module=="std:bytes" && matches!(binding.name,"fromArray"|"length"|"at"|"set"|"alloc"|"resize"|"append"|"copy"|"fromUtf8"|"toUtf8"|"view"|"viewMut")) || binding.module=="std:path" || (binding.module=="std:os" && matches!(binding.name,"platform"|"arch"|"endianness")) || (binding.module=="std:testing-runtime" && matches!(binding.name,"createRegistry"|"checkAssertion"|"shareCallback"|"assertionDetails"|"numericValue"|"lengthValue"|"hasLength"|"runTests"|"finishTests"|"registerTest"|"registerHook"|"beginSuite"|"beginFile"|"endSuite"));
             if binding.module=="std:os" {assert_eq!(super::native_binding_effect(id),super::FailureSet::default());}
             if !audited {assert!(super::native_binding_effect(id).opaque,"unreviewed binding {} must remain unresolved",binding.name);}
         }

@@ -50,6 +50,13 @@ impl Declaration {
     }
 }
 
+static TEST_REGISTRY: Declaration = Declaration {
+    id: NativeTypeId::TestRegistry, module: "std:testing-runtime", name: "TestRegistry",
+    type_parameters: &[], representation: Representation::Opaque,
+    independent_clone: false, collection_key: false, thread_transfer: false,
+    fields: &[], capabilities: &[],
+};
+
 static SCHEMA_PATH: Declaration = Declaration {
     id: NativeTypeId::SchemaPath, module: "std:schema", name: "SchemaPath",
     fields: &[
@@ -262,6 +269,7 @@ static HEAP: Declaration = Declaration {
 /// Exhaustive identity lookup prevents missing declarations as IDs are added.
 pub fn declaration(id: NativeTypeId) -> &'static Declaration {
     match id {
+        NativeTypeId::TestRegistry => &TEST_REGISTRY,
         NativeTypeId::Schema => &SCHEMA,
         NativeTypeId::ValidationContext => &VALIDATION_CONTEXT,
         NativeTypeId::ValidationError => &VALIDATION_ERROR,

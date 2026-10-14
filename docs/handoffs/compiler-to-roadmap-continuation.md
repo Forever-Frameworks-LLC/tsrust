@@ -391,10 +391,10 @@ are installed.
 
 Open, in priority order:
 
-1. Program-scoped test registry (owner-approved invocation-time borrowing;
-   supersedes retained callback borrows, native design witness passes, compiler
-   integration remains pending):
-   [handoff](program-scoped-test-registry.md).
+1. Program-scoped test registry is implemented and passes focused compiler,
+   native, editor, formatter, and untimed benchmark acceptance. See the
+   [acceptance record](program-scoped-test-registry.md). Consumer refresh follows
+   the concat repair in this pass.
 2. Nested `concat` arguments still recurse through
    `concat_string_arguments` -> `expression`. Debug builds overflow between
    40 and 60 levels, so `tests/concat_depth.rs`,

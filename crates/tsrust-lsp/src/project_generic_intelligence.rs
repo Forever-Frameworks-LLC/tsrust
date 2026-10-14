@@ -38,9 +38,9 @@ impl SourceIndex {
                 let prefix = match ownership {
                     CallableOwnership::Default => None,
                     CallableOwnership::Read => Some("ReadOnly"),
-                    CallableOwnership::Reusable => Some("Mutable"),
+                    CallableOwnership::ProgramReusable | CallableOwnership::Reusable => Some("Mutable"),
                     CallableOwnership::Once => Some("Once"),
-                    CallableOwnership::Owned => None,
+                    CallableOwnership::Program | CallableOwnership::Owned => None,
                     CallableOwnership::OwnedOnce => Some("Once"),
                     CallableOwnership::SharedRead => Some("SharedRead"),
                 };

@@ -823,9 +823,9 @@ fn type_name(
                 .expect("callback structural contract")
             {
                 CallbackKind::Read => Some("ReadOnly"),
-                CallbackKind::Reusable => Some("Mutable"),
+                CallbackKind::Reusable | CallbackKind::ProgramReusable => Some("Mutable"),
                 CallbackKind::Once => Some("Once"),
-                CallbackKind::Owned | CallbackKind::SharedRead => None,
+                CallbackKind::Program | CallbackKind::Owned | CallbackKind::SharedRead => None,
                 CallbackKind::OwnedOnce => Some("Once"),
             };
             let parameters = contract

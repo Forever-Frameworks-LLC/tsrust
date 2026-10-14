@@ -119,6 +119,7 @@ mod spread_call_work;
 mod array_spread_work;
 mod collection_constructors;
 mod builtin_receivers;
+mod program_testing;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -232,7 +233,17 @@ struct ClosureMethodSource {
     body: Vec<Stmt>,
 }
 
+pub struct ProgramCapture {
+    pub declaration: Span,
+    pub inner: usize,
+    pub access: Mode,
+    pub span: Span,
+}
+
 pub struct CheckedClosure {
+    pub program_scoped: bool,
+    /// Borrowed only during invocation through the private registry contract.
+    pub program_captures: Vec<ProgramCapture>,
     /// Stable environment; only invocation bodies materialize per witness vector.
     pub polymorphic: bool,
     pub methods: Vec<CheckedClosureMethod>,
@@ -293,6 +304,7 @@ impl CallbackContract {
 
 
 pub struct CheckedProgram {
+    pub(crate) program_callback_sites: BTreeMap<usize, CallbackKind>,
     pub(crate) module_owner_bindings: Vec<Span>,
     pub(crate) schema_choices: crate::stdlib::schema::plans::Choices,
     pub(crate) schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
@@ -575,7 +587,10 @@ pub(crate) fn has_exception_syntax(body:&[Stmt])->bool {
     false
 }
 
-pub fn analyze(program: Program) -> Result<CheckedProgram, Diagnostic> {
+pub fn analyze(mut program: Program) -> Result<CheckedProgram, Diagnostic> {
+    if crate::stdlib::testing::program::registry_reachable(&mut program)? {
+        return analyze_recursive(program);
+    }
     finish_analysis(Analyzer::new(program)?.run()?)
 }
 
@@ -646,6 +661,8 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         .collect::<Vec<_>>();
     let parameter_count = modes.iter().map(Vec::len).sum::<usize>();
     let mut capture_access = named_capture_access::Lattice::default();
+    let mut program_access: BTreeMap<usize, Mode> = BTreeMap::new();
+    let mut program_callback_sites = BTreeMap::new();
     // Every non-copy coordinate can rise from read to mutate to consume only.
     let mut remaining = parameter_count.saturating_mul(2) + 1;
     while remaining > 0 {
@@ -653,6 +670,8 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         let mut analyzer = Analyzer::new(program.clone())?;
         analyzer.assumed_modes = Some(modes.clone());
         analyzer.assumed_capture_access = capture_access.clone();
+        analyzer.program_access = program_access.clone();
+        analyzer.program_callback_sites = program_callback_sites.clone();
         analyzer.effects_only = true;
         analyzer.speculative_access_run = true;
         let inferred = analyzer.run()?;
@@ -674,6 +693,19 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
         }
         let (mut changed, mut discovered) = capture_access.observe(&inferred.named_capture_access);
         let (generic_changed, generic_discovered) = capture_access.observe_declarations(&inferred.named_capture_access, &inferred.generic_declarations);
+        for capture in inferred.closures.iter().flat_map(|closure| &closure.program_captures) {
+            let prior = program_access.get(&capture.declaration.start).copied();
+            let next = prior.map_or(capture.access, |mode| mode.max(capture.access));
+            if prior != Some(next) { changed = true; if prior.is_none() { discovered += 1; } }
+            program_access.insert(capture.declaration.start, next);
+        }
+        for (&site, &kind) in &inferred.program_callback_sites {
+            if program_callback_sites.get(&site) != Some(&kind) {
+                program_callback_sites.insert(site, kind);
+                changed = true;
+                discovered += 1;
+            }
+        }
         changed |= generic_changed;
         discovered += generic_discovered;
         remaining += discovered.saturating_mul(2) + usize::from(discovered != 0);
@@ -688,6 +720,8 @@ pub fn analyze_recursive(program: Program) -> Result<CheckedProgram, Diagnostic>
             let mut analyzer = Analyzer::new(program)?;
             analyzer.assumed_modes = Some(modes);
             analyzer.assumed_capture_access = capture_access;
+            analyzer.program_access = program_access;
+            analyzer.program_callback_sites = program_callback_sites;
             return finish_analysis(analyzer.run()?);
         }
     }
@@ -715,6 +749,8 @@ mod exception_escape_tests {
 }
 
 struct Analyzer {
+    program_access: BTreeMap<usize, Mode>,
+    program_callback_sites: BTreeMap<usize, CallbackKind>,
     schema_choices: crate::stdlib::schema::plans::Choices,
     schema_pipelines: crate::stdlib::schema::pipelines::Pipelines,
     schema_factories: HashMap<Type,usize>,
@@ -804,6 +840,7 @@ struct CaptureKey {
 /// create new native environment types; captured callable types still do.
 #[derive(PartialEq, Eq, Hash)]
 struct ClosureKey {
+    program_scoped: bool,
     origin: usize,
     template: bool,
     escapes: bool,
@@ -1554,6 +1591,8 @@ impl Analyzer {
             schema_factories: HashMap::new(),
             native_borrow_types,
             named_captures,
+            program_access: BTreeMap::new(),
+            program_callback_sites: BTreeMap::new(),
             assumed_capture_access: Default::default(),
             generic_functions,
             generic_records,
@@ -1907,6 +1946,7 @@ impl Analyzer {
                 .collect();
             let origin = self.closures.len();
             self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
                 polymorphic: false,
                 methods: Vec::new(),
                 forward: Some(ClosureForward::Native(id)),
@@ -2066,6 +2106,7 @@ impl Analyzer {
         } else {
             let id = self.closures.len();
             self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
                 polymorphic: false,
                 methods: Vec::new(),
                 forward: Some(ClosureForward::Function(index)),
@@ -2229,6 +2270,7 @@ impl Analyzer {
             self.validated_closures.insert(id);
         }
         self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
             polymorphic: false,
             methods: Vec::new(),
             forward: Some(ClosureForward::Abstract(contract)),
@@ -2302,6 +2344,7 @@ impl Analyzer {
         );
         let id = self.closures.len();
         let wrapper = CheckedClosure {
+            program_scoped: false, program_captures: Vec::new(),
             polymorphic: inner.polymorphic,
             methods: Vec::new(),
             forward: Some(ClosureForward::Once(origin)),
@@ -2694,6 +2737,7 @@ impl Analyzer {
             installer_value_uses::check(&self.checked, &self.closures, &record_parameter_borrows, &closure_record_parameter_borrows, &closure_record_capture_borrows)?;
         }
         let checked = CheckedProgram {
+            program_callback_sites: self.program_callback_sites,
             module_owner_bindings: self.program.module_owner_bindings,
             schema_choices: self.schema_choices,
             schema_pipelines: self.schema_pipelines,
@@ -2987,6 +3031,7 @@ impl Analyzer {
             .collect::<Vec<_>>();
         let id = self.closures.len();
         self.closures.push(CheckedClosure {
+                program_scoped: false, program_captures: Vec::new(),
             polymorphic: false,
             methods: Vec::new(),
             forward: None,
@@ -9032,6 +9077,9 @@ self.names_materialized_type(element.with_depth(0).ty())
         loans: &Loans,
         expected: Option<Type>,
     ) -> Result<CallDispatch, Diagnostic> {
+        if let Some(result) = self.program_callback_call(context, expr, loans) {
+            return result.map(CallDispatch::Ready);
+        }
         let span = expr.span;
         let ExprKind::Call(callee, args) = &mut expr.kind else {
             unreachable!("named call dispatch");
@@ -9085,6 +9133,10 @@ self.names_materialized_type(element.with_depth(0).ty())
                 Self::access(context, local, invocation, callee.span, loans)?;
                 callee.binding = Some(local);
                 callee.ty = Some(context.bindings[local].ty);
+            }
+            if binding.module == "std:testing-runtime" && crate::stdlib::testing::program::operation(name).is_some()
+                && self.program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::TestRegistry)) {
+                return self.program_testing_call(context, expr, id, loans).map(CallDispatch::Ready);
             }
             if !binding.accepts_arity(args.len()) {
                 return Err(Diagnostic::new(
@@ -9298,9 +9350,11 @@ self.names_materialized_type(element.with_depth(0).ty())
         if ty == crate::native_bindings::NativeType::SharedCallback {
             return Err(Diagnostic::new("unsupported", "The private sharing intrinsic requires a direct call.", Span::default()));
         }
-        if ty == crate::native_bindings::NativeType::OwnedVoidCallback {
+        if matches!(ty, crate::native_bindings::NativeType::OwnedVoidCallback | crate::native_bindings::NativeType::ProgramVoidCallback | crate::native_bindings::NativeType::ProgramReusableVoidCallback) {
             let annotation = crate::type_syntax::parse("Owned<Function<void>>")?;
-            let callback = crate::callable_annotations::callback(&annotation).expect("native callback annotation");
+            let mut callback = crate::callable_annotations::callback(&annotation).expect("native callback annotation");
+            if ty == crate::native_bindings::NativeType::ProgramVoidCallback { callback.kind = CallbackKind::Program; }
+            if ty == crate::native_bindings::NativeType::ProgramReusableVoidCallback { callback.kind = CallbackKind::ProgramReusable; }
             self.resolve_callback(&callback)
         } else {
             Ok(native_type(ty, &self.program.records))
@@ -10721,7 +10775,7 @@ fn native_type(ty: crate::native_bindings::NativeType, records: &[Record]) -> Ty
         NativeType::Int => Type::Int,
         NativeType::Number => Type::Number,
         NativeType::Void => Type::Void,
-        NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => unreachable!("native callbacks resolve through callable contracts"),
+        NativeType::ProgramReusableVoidCallback | NativeType::ProgramVoidCallback | NativeType::OwnedVoidCallback | NativeType::SharedCallback | NativeType::ObservedValue => unreachable!("native callbacks resolve through callable contracts"),
     }
 }
 

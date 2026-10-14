@@ -3066,3 +3066,38 @@ fn generic_record_expansion_beyond_former_depth_keeps_field_help() {
     let hover = ask(&index, &source, "next.length", "textDocument/hover");
     assert!(hover["contents"]["value"].as_str().unwrap().contains("Layer1<int>[]"), "{hover}");
 }
+
+#[test]
+fn registered_callbacks_expose_program_globals_without_hidden_parameters() {
+    let entry="import {test,beforeAll,strictEqual} from 'std:testing';let count=0;beforeAll(():void=>{count=7;});test('global',():void=>{strictEqual(count,7);});";
+    let uri="file:///tsrust-intelligence/program-registry.test.tsr";
+    let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&id).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,method,expected) in [
+        ("test('global'","textDocument/hover","Module storage is borrowed only while the callback runs"),
+        ("():void=>{strictEqual","textDocument/signatureHelp","Owned<Function<void>>"),
+        ("count,7","textDocument/hover","int"),
+    ] {
+        let offset=entry.find(needle).unwrap();
+        let result=index.request(method,&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
+        assert!(result.to_string().contains(expected),"{result}");
+        assert!(!result.to_string().contains("@program-test-registry"),"{result}");
+    }
+}
+
+#[test]
+fn unused_testing_import_keeps_public_hover_without_runtime_owner() {
+    let entry="import {test,beforeAll} from 'std:testing';function main(){}";
+    let uri="file:///tsrust-intelligence/main.tsr";
+    let id=source_id(uri).unwrap();
+    let mut workspace=Workspace::default();workspace.open(id.clone(),1,entry.into());
+    let checked=workspace.snapshot().check(&id).unwrap();
+    let index=ProjectIndex::checked(&checked);
+    for (needle,expected) in [("test,", "Registers a synchronous named test"),("beforeAll}","Registers a synchronous setup callback")] {
+        let offset=entry.find(needle).unwrap();
+        let result=index.request("textDocument/hover",&json!({"position":{"line":0,"character":entry[..offset].encode_utf16().count()}}),uri).unwrap().unwrap();
+        assert!(result.to_string().contains(expected),"{result}");
+    }
+}

@@ -18,6 +18,10 @@ pub struct ValueAnnotation {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallableOwnership {
+    /// Immediate registration callback with invocation-time program access.
+    ProgramReusable,
+    /// Internal test-registration contract; never parsed from user source.
+    Program,
     Default,
     Read,
     Reusable,

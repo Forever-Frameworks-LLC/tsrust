@@ -18,6 +18,8 @@ pub(crate) fn ownership(annotation: &ValueAnnotation) -> Option<CallbackKind> {
         return None;
     };
     Some(match ownership {
+        CallableOwnership::ProgramReusable => CallbackKind::ProgramReusable,
+        CallableOwnership::Program => CallbackKind::Program,
         CallableOwnership::Default => CallbackKind::Owned,
         CallableOwnership::Read => CallbackKind::Read,
         CallableOwnership::Reusable => CallbackKind::Reusable,
