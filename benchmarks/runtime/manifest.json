@@ -18614,7 +18614,7 @@
       "measured": false,
       "notes": "A swap of two owned strings, a Fibonacci step in a classic-for update clause, a tuple result assigned to two names, a shorthand record literal and a record pattern assignment. Seven complete observed cells per scenario. Untimed verification only; measurements pending.",
       "specification": "Swap two strings through an array pattern, advance two ints with a pattern assignment in a loop update, assign a returned tuple to existing names, build a record from shorthand properties and assign two of its fields to existing names; retain seven cells.",
-      "sourceSha256": "3fec1ebc6c4b8206873684ade202714950c2e2f01d029c09c25ff6fef8ca35ef",
+      "sourceSha256": "ea450992e5ae84e6d36babee1ac9337a3c2f1e3dd97c1afc947a2e5a6cb3b3c2",
       "counterpartSha256": "a9d91811c1930720b25e22107f15e4575df30816d81d758b41b274d4ad2ce61a"
     },
     {
@@ -18866,7 +18866,7 @@
       "measured": true,
       "notes": "Caught throw, normal return, cleanup trace, finally replacing return, and conditional whole-owner and record-field returns through finally. Cleanup observes the retained sibling and invokes the current Map callback after conditional replacement. A conditional cleanup return selects a different field and preserves it on normal continuation. Loop field returns include break, continue and normal fallthrough with cleanup trace. Body field returns, caught throws, handler field returns and normal continuation retain their cleanup traces. The renewed Map path throws and is caught before cleanup; its trace verifies catch execution. Map errors cross an inner finally; loop break and continue leave a catch in the same cleanup region. Field retention includes a callback-bearing record; caught field returns execute inside an owning callback. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Retain return values, cleanup trace and dynamic input text.",
-      "sourceSha256": "f1da25a29d6f295df70ea9eb1c471f71d23d29a9b7c41f81126ca20af9f68061",
+      "sourceSha256": "17126445eb5afd14f1eb14e9f98d7988060b84a997be68163fa505bc00ed18d1",
       "counterpartSha256": "c30b99c471c54ce54d3b0bc491c45cd6ad9ac8a3e37679fb90f68cfdeb6da294",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -19721,7 +19721,7 @@
       "measured": true,
       "notes": "Independent retained factories, inferred callable arrays, consuming owner return, recursive retained dispatch and callback failure. Gate 172 accepted with untimed native/Node verification; dead inner declarations add no runtime captures. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain eight scalar observations from independently checked factory/storage/failure scenarios.",
-      "sourceSha256": "fe4a0a77d44da8439f62772e476277039ffa58d6865eeead90565d37f5a91f71",
+      "sourceSha256": "7b065618bf6dac2b465a2e93d600155e471ecd1e0e901c0bc2b5e6a4edda44aa",
       "counterpartSha256": "fa85ca3ebd82a6a9f92ee6269969251a8532aa13a38ce050565d2ad78496a4b2"
     },
     {
@@ -19749,7 +19749,7 @@
       "measured": true,
       "notes": "Inferred scalar, generic, captured and array returns. Untimed support; full gate173 signature/context acceptance pending. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain six independent observations from checked inferred named results.",
-      "sourceSha256": "dfe2f2292263b2d8b48953a6b5a3b4ff42c662cb5a348d3dd7607bf50572cbb6",
+      "sourceSha256": "3c85755cd1e4747dba696e58e85c1fcaf7e296d242a1252f21b916d6553a11f1",
       "counterpartSha256": "b61ebede20e7b6ff680519e5bea851e75da2b0d985328111e57d7663fe629343"
     },
     {
@@ -19777,7 +19777,7 @@
       "measured": true,
       "notes": "Captured optional/default values, omitted/undefined/supplied arguments, exact default side effects and consuming defaults. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain eight independent observations from captured callable default and optional argument behavior.",
-      "sourceSha256": "346dd2e11d94521d31d9450a20b0617a8b8dbe39653596adb9c984bcb75d726e",
+      "sourceSha256": "caab2afdf136db38a2b40a894014125044020ab6da4b1938c73a0e267a620d25",
       "counterpartSha256": "6d4fb9b4c78ec7abfcc77bd5ff3afba0c37becbd1957ed2c1eeebbda25032341"
     },
     {
@@ -19805,7 +19805,7 @@
       "measured": true,
       "notes": "Captured rest values, empty/supplied/spread packs and default-prefix forwarding. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain seven independent observations from captured rest callable argument behavior.",
-      "sourceSha256": "1fd03655546dbea83324a3c1b3258bf15e13708fd872fbafd99c1a6db3e47cea",
+      "sourceSha256": "f237c92b75fefc8210129430313cb88261fdf3af1ad9d7bb25f43876cf1a5e1b",
       "counterpartSha256": "9b13d9bd0d509d4fa50cd92e808ad2465391191c9167c1c98f68bc9cdceb7842",
       "measurementEvidence": "runtime/diagnostics/s08-single-spread-proof-d6de4131.json"
     },
@@ -19834,7 +19834,7 @@
       "measured": true,
       "notes": "Contextual generic scalar/string/array values and mutable array arguments with exact captured call count. Untimed support; unannotated polymorphism and full gate173 acceptance pending. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain seven independent observations from concrete generic callable contexts and capture state.",
-      "sourceSha256": "d31d9059afe838022a4d3cb26e79c607859040b290c8821d68554e4db86114a3",
+      "sourceSha256": "c22ae121845b894be0e8774f3dcbba1bcff9ad169446945db0e8c73465ec249d",
       "counterpartSha256": "261b294054f018bef319815d31b3082d35c94f54d4bd703825f1b38db75ea291"
     },
     {
@@ -19862,7 +19862,7 @@
       "measured": true,
       "notes": "Capture-free polymorphic aliases across scalar/string/array, rest, defaults and borrowed arrays. Untimed support; complete generic alias help and full gate173 acceptance pending. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain seven independently checked observations from capture-free deferred generic values.",
-      "sourceSha256": "df787c98d8c8019f5762976a0d9599b1619f95b549b94217dba8814b8cbfae1f",
+      "sourceSha256": "9633b8f7621ff5a018164659f8e4a60b05af19089191d2b963d2ea995b978f97",
       "counterpartSha256": "f0bf9de5762e3cd861b635c6ddd01c3055606605ca51bd0741b4f15743c78353"
     },
     {
@@ -19890,7 +19890,7 @@
       "measured": true,
       "notes": "One borrowed local environment and two independent owned factory environments across scalar/string/array specializations. Untimed support; full generic value and gate173 acceptance pending. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain nine independent observations of shared mutation, factory isolation and owning argument results.",
-      "sourceSha256": "95cc225c510a79c646e7c887ba99343a660bb60cb017b5652454963a179abd14",
+      "sourceSha256": "fcd732f2150476ce9b311c56cc345178ebd7d4b4ce1c24f6f649a1da2b356977",
       "counterpartSha256": "6f40377fe179d2dada7c016b31be3d66b862c6bfcb098872c276c6a8acb1c070"
     },
     {
@@ -19918,7 +19918,7 @@
       "measured": true,
       "notes": "Distinct result-only int/string array methods of capture-free and captured generic aliases. Untimed support; full generic editor/storage/context acceptance pending. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain six independent observations of result inference, owning arrays and shared captured calls.",
-      "sourceSha256": "6990b1f4ea8d79956b88d6716f989e966bdd6fb0a5c3db363b9df0dcab0701c8",
+      "sourceSha256": "d8b8c660a70565345ab0c7f565414480168610273bd84f06e944c3a7de9b196a",
       "counterpartSha256": "b03ad02bef4dbdc813e281b115006e2f115d6cf2500c1674d18333b0db126cf8"
     },
     {
@@ -19946,7 +19946,7 @@
       "measured": true,
       "notes": "The scenario now retains 136 observations, including scoped readonly/mutable borrowed carriers and inferred common conditional carriers with scalar captures and named callable self-assignment invocation and replacement by a fresh factory instance. Concrete borrowed/owned views, generic calls, map callbacks and independent record/array storage environments. Lexical generic echo and escaped capture instances add four observations.  Polymorphic argument factories add independent one/two-argument results and string specialization. Matched execution-only measurement accepted at the named-declaration family milestone; original and affected optimization records remain separate.",
       "specification": "Retain 136 independent observations of values, ownership-preserving adapters, parameter patterns and shared/independent captured counters.",
-      "sourceSha256": "d3e7f25e9e90f114ceb087ad93d1d5ea5009d5250a00ddb3731d28a0e84ede65",
+      "sourceSha256": "66b6cc496000fe6ec20876c8b85002a0a64ae6c03bab16894cd4a7c53650a6b7",
       "counterpartSha256": "33682523bef4badbf2277ff3c9b064a0061f35942f6093700eb6b1ba9f77175c",
       "measurementEvidence": "runtime/diagnostics/s08-single-spread-proof-d6de4131.json"
     },
@@ -20421,7 +20421,7 @@
       "measured": true,
       "notes": "Direct readonly and mutable array inputs, stable input aliases and named relays, repeated replacement with distinct inputs, nested multiple captures, readonly callback aliases, independent callback input types and mutable callback state with release before independent invocation. B7 accepted at gate 183 with 74 observations per iteration, including installers called through captured closures and stores inside exception regions. Execution-only native/Node-after-tsc measurement recorded; startup, compilation and allocation not measured.",
       "specification": "Seventy-four independent scalar observations per iteration, including scoped mutable reborrows, explicit owned transfer, transitive hidden-source installation, installation through a held installer closure and installation inside finally and catch regions; arithmetic oracle does not execute callback code.",
-      "sourceSha256": "447b5fa22b7a6f946e611d25de4edf94ad6e56122e966c9d751e8a8289ba6642",
+      "sourceSha256": "c9c836571e6a3224cbf1ffdc59ac18f1f9b27e6e8c535169c4a21588472e890b",
       "counterpartSha256": "af96a29e4f51b4075b4abb9db0eae97db8971b354dae89cf81da77c559b3e3a8"
     },
     {
@@ -20593,7 +20593,7 @@
       "measured": true,
       "notes": "Gate 188 owned-byte operations accepted with focused evidence. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Seven retained observations prove direct and array-record clone independence after writes to source and clone, plus buffer lengths. Matched deep Uint8Array copies and an independent arithmetic oracle.",
-      "sourceSha256": "314edde5418aacf2e3a2b18c0d15379a1b4690731c2433dac92db60fa8fa9c94",
+      "sourceSha256": "009eb98a72a0feac8662385edade1d832054ab0b64ea993d88c93668483c4705",
       "counterpartSha256": "52aed6c957d5108e51a767f0d0b861e38ba28d2ef9cddd220a540cd083965f56",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20680,7 +20680,7 @@
       "measured": true,
       "notes": "Recursive byte-view array storage. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume child arrays during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "1d7b5e1747fef68833eeed37854f8a2616c5c7349a4c5a490574b204f2574ca1",
+      "sourceSha256": "4abaa40741ed49f9173c6f0b12438a20ce7a191f00480178b92b90b0edd7a694",
       "counterpartSha256": "3518a6e4a6d1f0f325ddc984848047aa23fb092317defba807b36b412c06c5fb",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20709,7 +20709,7 @@
       "measured": true,
       "notes": "Nullable recursive byte-view storage. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node chain with a freshly borrowed two-byte view at every level, then consume nullable next links during traversal. Retain node count, sum of first bytes, and final view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "0a7ad2a11365054cab870c7cc08cfd43934239d979cd014c8c2096dcc24100a2",
+      "sourceSha256": "dcd1514a8f4d694e1356bb96e81a97daad7b88267f633df705d547d12b300d1c",
       "counterpartSha256": "2947db1658ec792a0e49c398f6c0e9e06f0a9d21c86faef9b32a1dcafce1ff91",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20738,7 +20738,7 @@
       "measured": true,
       "notes": "Capturing callbacks returning argument views. Native and Node-after-tsc agree on five untimed cases. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Capture the first byte view, validate its value during invocation, and return an independently supplied two-byte view. Repeat with a callback borrowing the owner and constructing its returned view during invocation. Observe both returned lengths and first bytes. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray.",
-      "sourceSha256": "453a9bda6c9ac68e396abebcc37ea4965188755e8b33683fb49dadc2d70314a2",
+      "sourceSha256": "7873e2a01e29021009737fe28c125c8a26f7c96d9ec29bf9468fa72b459b1d2c",
       "counterpartSha256": "abac2c843b67ea9b47df7eb60f846189bc7c60172cc0a33b588b9ccf846f60e2",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20767,7 +20767,7 @@
       "measured": true,
       "notes": "Recursive records combine two factories in one stored callback field family and return the final callback through a record parameter. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node nullable chain alternating two callback factories. Each node stores a direct two-byte view and a Once callback capturing another two-byte view of the same owner. Consume each callback during traversal, returning the final callback through an owning record parameter after observing its direct view length. Record node count, byte sum and final direct view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "64a1045afca2c2ce41404547b389f36c0f0681ddd25503552030173df8270e45",
+      "sourceSha256": "2fc5cf5af6505f25a01b03771b91690da36ab165d71f3519c1357adcd853dcfb",
       "counterpartSha256": "b519c217ef660bcd279da69869c7069dc52b4d534bbe22286cb23a77ef340c1c",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20796,7 +20796,7 @@
       "measured": true,
       "notes": "Recursive records retain views only through captured callback environments. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build a 17-node nullable chain alternating two factories. Each node stores only a Once callback capturing a two-byte view, with no direct view field. Consume callbacks during traversal and return the final callback through an owning record parameter. Observe node count, byte sum and final returned view length. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "9ffea0d21fdba37e83267eabe8edb23c398b6620dab9507e21cde901d26b1a2f",
+      "sourceSha256": "96a3b29421a17f6b59d48531ccc26cc05f126eb0433e156bd4a83c8994888187",
       "counterpartSha256": "2a1a2ad624145febe015c3baa387d5c33d8f4d4c222929df3f10fc95fe48f63c",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20825,7 +20825,7 @@
       "measured": true,
       "notes": "Nullable callbacks join two capturing factories and an empty factory. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build an empty leaf and 16 parents alternating two view-capturing factories. Consume present callbacks during traversal, then extract the absent leaf callback through an owning parameter. Observe 17 nodes, the sum of 16 first bytes, and a true absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "434982172d6d6fd441e6a52b8bb07b5fedc115a8eaa12aad3bbb8b2355815d8c",
+      "sourceSha256": "244168484aa738e44be5bf19a7595969ffcc7e8c6c3769df8440d0457cc2ffc5",
       "counterpartSha256": "7a6f58c23892932ebe867c8ee7465823ff5ada79546ca78f505610ec26432fb3",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20854,7 +20854,7 @@
       "measured": true,
       "notes": "Mutable recursive parameters replace optional view-capturing callbacks while retaining caller owner provenance. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "Build an empty leaf and 16 parents alternating two factories. Replace each parent callback through a mutable record parameter with a closure capturing the second byte window. Consume callbacks during traversal, then extract the absent leaf callback. Observe 17 nodes, the sum of 16 second bytes, and an absent-callback flag. Independent arithmetic oracle; TypeScript uses Uint8Array.subarray and closures.",
-      "sourceSha256": "9788e0dd2f739c7a834fa41b78e162afda4af904e38c9b8811e29d3b66c00237",
+      "sourceSha256": "bbd8cf3d6aa86f30d405abaebfa78c8722247ff260d120a4996f60254924ce98",
       "counterpartSha256": "1ae4ffa3af2a3823551326bbb9bf3266645686549346211ed1455e2612a3e586",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20884,7 +20884,7 @@
       "measured": true,
       "notes": "Successful regular-file operations only. Temp input preparation is outside measured bodies; Node uses try/finally for deterministic cleanup. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "For iteration i, open a private 4096-byte file containing 256 ASCII hexadecimal blocks, read (i+seed)%64+1 bytes, observe returned length and byte sum, then release the file. Native release is explicit close.",
-      "sourceSha256": "0c144764aba84c3e05761482e5d54910a2d4e32a764ba9b1b8dc2d3fdd2eab43",
+      "sourceSha256": "b5f8384e90d2d15d461fd202eae392eb5d720c0512c0fda2bc564e56415272e4",
       "counterpartSha256": "820deec7a274f2baf801921605168496fd9ffc365cf6792d8341ae7ed58ed0c1",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20914,7 +20914,7 @@
       "measured": true,
       "notes": "Successful regular-file operations only. Temp input preparation is outside measured bodies; Node uses try/finally for deterministic cleanup. S07 matched execution and allocation evidence is accepted in SQLite; see measurementEvidence.",
       "specification": "For iteration i, open a private 4096-byte file containing 256 ASCII hexadecimal blocks, read (i+seed)%64+1 bytes, observe returned length and byte sum, then release the file. Native release is scope drop.",
-      "sourceSha256": "d3cef4672b08d3fb1d5738575f0af274b89b08145ed840a91c7b091591643073",
+      "sourceSha256": "4ae799eee2d4ae85bcb1f2dfa9ef0cfe06dcdc2cb2910ba42220b2478f26f25a",
       "counterpartSha256": "820deec7a274f2baf801921605168496fd9ffc365cf6792d8341ae7ed58ed0c1",
       "measurementEvidence": "runtime/results/s07-measurement-proof-2026-10-11.json"
     },
@@ -20943,7 +20943,7 @@
       "measured": true,
       "notes": "Map view transport and readonly projection verified in five matched native/Node cases. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Construct two eight-entry Maps through mutable parameters. Traverse one in insertion order; return a readonly subview from the other after its Map ends. Observe size, key sum, byte sum, projected first byte and length. Node uses Map and Uint8Array.subarray; independent arithmetic oracle.",
-      "sourceSha256": "8e16f0840454ef0214d940e961b0989ae90b500e5cb80ed0262f17546847b2d6",
+      "sourceSha256": "fa2019bd06593290ccb26e4f1ca99763873681cca7bdd300c9bdea7ce2cfb10b",
       "counterpartSha256": "93dfcdd12b0ba246a3c1a7c4170340173c8afe3f0e420087e2c9728e9f2b1007",
       "verificationEvidence": "runtime/results/2026-10-11T10-04-18-452Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-bucket-optimization-proof-7f6c3887.json"
@@ -20973,7 +20973,7 @@
       "measured": true,
       "notes": "Five matched native/Node cases verify borrowed traversal and deque operations without timing. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Insert eight readonly byte views at the back and one at the front. Read index four, remove from both ends, drain the remainder, then insert and clear. Node uses array deque operations and Uint8Array.subarray. Independent arithmetic oracle observes count, indexed byte, removed byte sum and final size. Borrowed traversal independently observes the stored byte sum before removals.",
-      "sourceSha256": "8f5dfb840e2591f41693180a43ee55cd3c7dfc401ac340be81152c0debfae4bb",
+      "sourceSha256": "ca3743c2e295ea679cdb54ac2e0c27a3f48ad1b7c16898d4aed5a6a475753017",
       "counterpartSha256": "6276e45e3a28ba7cf948036f95a2cd2100e82fa093dd3f1380423cc78095416f",
       "verificationEvidence": "runtime/results/2026-10-11T11-05-09-012Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
@@ -21003,7 +21003,7 @@
       "measured": true,
       "notes": "Matched native and Node-after-tsc correctness verified for five cases. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Store nine callback records capturing one readonly byte view, with distinct closure origins at both ends. Invoke through borrowed traversal and after moving removals. Observe count, indexed value, removal sum, empty size and traversal sum using an independent arithmetic oracle.",
-      "sourceSha256": "e3f172d3906ad63b6bc0d39263ed36b65d98529bdbe25feafb22b593dc481118",
+      "sourceSha256": "cf53180a7842b83e6d0bfc8f3a9d07d34da589fed74b3e02479c20c2298ef291",
       "counterpartSha256": "7ce75718f2ac85ddf859d284c9a1560058e219d09b6dbf91d5b08e518c014de1",
       "verificationEvidence": "runtime/results/2026-10-11T11-34-29-577Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
@@ -21033,7 +21033,7 @@
       "measured": true,
       "notes": "Five matched native and Node-after-tsc correctness cases pass. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Clone a deque containing a record with an owned numeric array. Mutate and remove the cloned payload independently. Observe both payload lengths, original and appended values, and empty queue sizes. Observe a nested scalar through a readonly front view before cloning.",
-      "sourceSha256": "8bee5d00c5cfc39e6a03185078b9e6577726c036c7de4debcce8e8b70495996e",
+      "sourceSha256": "c6a04ce39ad5ad375cb4f2cafb1d7ffc7dbbccd9ef6dadddda54fde7e610af61",
       "counterpartSha256": "07106a582d745efdf9b976a5de2f2a49533b1c3ae669a3e5634fea08bb6191a0",
       "verificationEvidence": "runtime/results/2026-10-11T12-26-30-652Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
@@ -21063,7 +21063,7 @@
       "measured": true,
       "notes": "Five matched native and Node-after-tsc correctness cases include borrowed traversal and independent removal observations. Collections family timing is recorded. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Insert nine bounded integers into a max heap, borrow every element without removing it, peek the greatest, independently clone and drain the clone. Observe original size, greatest value, drain sum, empty clone size and traversal sum. Node uses an explicitly sorted numeric array and independent slice. Call spread observes the sum of copied scalar elements; array spread observes nine copied elements. Both preserve the original collection.",
-      "sourceSha256": "4a9720c5000f2156f8446bdb0a2fd66ddc44824dfb24fe44d05b27aeef06e65e",
+      "sourceSha256": "6851de172865c3be07ed424bef50f7b5bcbb96c36568c77db9f833b888a2697c",
       "counterpartSha256": "7c32100093e1dbf60238ba5aba0546698c3ea72d54da2dfc3e407fff5ea88c7b",
       "verificationEvidence": "runtime/results/2026-10-11T12-11-54-547Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-single-spread-proof-d6de4131.json"
@@ -21093,7 +21093,7 @@
       "measured": true,
       "notes": "Five matched native and Node-after-tsc correctness cases pass. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Insert nine distinct bounded integers and one duplicate. Visit unique keys in ascending numeric order and observe a position-weighted sum, first and last keys. Clone, find and remove the fifth inserted key; observe independent sizes. Node uses Set plus explicit numeric sorting.",
-      "sourceSha256": "025111f9b330f787de9c15c5164715a40f7784184a8280be15ffdb6c50428752",
+      "sourceSha256": "aedd99e4a9f2660a77e4ccfdbb8ecdf9b0c35dd72c49bef1fbc4fbe05304e2ed",
       "counterpartSha256": "f1f6eb38c37cd49505c9ecb87598b1ed7c1c372fbe89a48f96e90f023ad21210",
       "verificationEvidence": "runtime/results/2026-10-11T12-36-23-186Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
@@ -21123,7 +21123,7 @@
       "measured": true,
       "notes": "Focused integration and complete family regressions accepted with preserved repair evidence. Five untimed native/Node cases pass; family timing is recorded. S08 matched execution and allocation measurements are preserved in SQLite; S08 milestone acceptance and installed-consumer verification are complete on macOS.",
       "specification": "Insert nine key/value pairs, replace the first inserted value with 999, traverse in ascending key order, clone, read and delete the fifth inserted key. Observe ordered key weighting, value sum, selected value and independent sizes. Node uses Map with explicitly sorted entries.",
-      "sourceSha256": "dcbcf1e6d84f362fd2526961c282fcb8923490345a015f31629f2a79edb6acd6",
+      "sourceSha256": "e9e3d78d4fa6ec96c827707195f0a2b8cfc248aae5e5fdb8e43bde00d5924192",
       "counterpartSha256": "661d3d874a80bfce14d2d87b00d5fdedda175c76fe3ced4ac9056bd97cb8c0c3",
       "verificationEvidence": "runtime/results/2026-10-11T13-33-55-719Z-verify.json",
       "measurementEvidence": "runtime/diagnostics/s08-measurement-proof-c7dc044e.json"
@@ -21153,7 +21153,7 @@
       "measured": false,
       "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
       "specification": "For iteration i, create or truncate a private output file, borrow the first (i+seed)%64+1 bytes of four ASCII hexadecimal blocks, write them, close, reopen, read and observe length and sum. One write must complete the regular-file range.",
-      "sourceSha256": "0b764e8e03fd16a93cf775cad6e2b66e1d3ea1cb36f17d89c4b5312b58e091bc",
+      "sourceSha256": "389ec1bc7f472815101fb6f0ff4dfd36a38f6a8dc6bac53d3086f3d66c68ef08",
       "counterpartSha256": "e13a9f3c9e92d747b0ad0d7b42bcc26203721eecf9d1b22a01e8868df811eaa3"
     },
     {
@@ -21181,7 +21181,7 @@
       "measured": false,
       "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
       "specification": "For iteration i, create or truncate a private output file, borrow the first (i+seed)%64+1 bytes of four ASCII hexadecimal blocks, write them, close, reopen, read and observe length and sum. writeAll retries short writes; Node loops writeSync equivalently.",
-      "sourceSha256": "3dcf8be7c18e7c083c7c887bf91e5e187417fd026ecca19e58bf4b47964a4dd0",
+      "sourceSha256": "81dd516327a5026beb65b052f2df4d2789b29e4c6ee23dfa9de1481424a88293",
       "counterpartSha256": "b65df1b86bf2dda3693195115defff10448346a1ea069c0d267370fd1ec1021d"
     },
     {
@@ -21209,7 +21209,7 @@
       "measured": false,
       "notes": "Successful regular-file writes with readback. Input fixture and output directory preparation are outside measured bodies. Output files are isolated per workload and removed by fixture cleanup. Timing pending S09 milestone.",
       "specification": "For each iteration, write a borrowed prefix of four ASCII hexadecimal blocks to a private output file, read through EOF with a count+1 ceiling, and return byte length and sum. Both operations close their handles. Node writes the same range and uses a bounded read loop with deterministic close.",
-      "sourceSha256": "805d19c759f96a3bc61646234988c3814d51579ec8ab57d55258dbb9cfdca0b6",
+      "sourceSha256": "f87e5d8bb90c750857e172db4c2e32e4e2b87c5160f1b447d79774719ca61e62",
       "counterpartSha256": "c675a7d59822b372f8fb994af2863901b84130cfacf7ee806bb553ac562db52c"
     },
     {
@@ -21237,7 +21237,7 @@
       "measured": false,
       "notes": "Matched successful regular-file buffered I/O. Buffer preparation is inside each sample; temporary directory and initial fixture preparation are outside measured bodies. No timing yet; pending S09 milestone.",
       "specification": "For each iteration, write an ASCII hexadecimal prefix in 3-byte borrowed chunks through a 16-byte writer, close to flush, then read through a 16-byte reader in at most 3-byte owned chunks until EOF. Return total byte length and sum. Node uses explicit buffers of the same capacities, flush policy, chunk boundaries and deterministic close.",
-      "sourceSha256": "66da9bd1c4effb1dc76babd0fe2d091c37051c22750664ceecc713be5ec33dfc",
+      "sourceSha256": "6920c7f7d3f0fb64f3969e43d692c747feb9bafff13e69614fdbee6ef281d958",
       "counterpartSha256": "c4414cbf01d31cdc2eadf9d2ac6fbec41d23e744eed90a6c3938b97c6ffd5a5f"
     },
     {
@@ -21703,7 +21703,7 @@
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Two fixed ASCII records contribute 84 per iteration.",
       "notes": "Includes synchronous file open/read/close and 8192-byte read-ahead. Node streams UTF8 and checks parsed fields; native budgets and exact integer semantics differ outside the fixed shared input. No timing samples.",
-      "sourceSha256": "29730ef45db223da00b94d7d3f95d630dca67af637a3685e66593a80f37d8a71",
+      "sourceSha256": "3625f25744910832aa408a21e807c653b660cf8467f08312f3642369b9e3e674",
       "counterpartSha256": "5efe0194eba16952904a0130e6607a8ea6283e72c223dd2c74e41433b7fcf62e",
       "fixtureSha256": "9c194b8d966138341ba704b40220738c86dc3d470d49dfa50379ace2a9e501c2"
     },
@@ -21729,7 +21729,7 @@
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Write the fixed 48-byte ASCII record, including LF. Observe one completed write per iteration; verify final file bytes outside timing.",
       "notes": "Includes synchronous create/truncate, encoding, output and close. Native bounded staging and buffering; Node allocates encoded text then checks the limit and writes all bytes. Shared input has sorted keys and finite exact numbers. No durability sync or timing samples.",
-      "sourceSha256": "8fe1d2208762fa59dc21db70644d5ddc2b2d6a457a95a642fbd04269b39aeb78",
+      "sourceSha256": "939c7405daebd4f027bf832214a537bdaf513313b987ec07d09aa5a567768193",
       "counterpartSha256": "908a2cf5a0db24337054cfcfb004b56c2b08ba4ec6642ac7ee9d54203d64cc17",
       "fixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
@@ -21755,7 +21755,7 @@
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Two fixed ASCII records contribute 84 per iteration.",
       "notes": "Includes synchronous open, 8192-byte buffered owner, borrowed adapter, two typed reads, EOF, adapter release and owner close. Node uses the same file and read-ahead protocol. Native direct decoding differs from Node JSON.parse plus checked fields; fixed ASCII input shares exact semantics. No timing samples.",
-      "sourceSha256": "8be5b1bc1c9cb65e87c70c948f2dcebb8b4338dd9771c254030e094f124a6678",
+      "sourceSha256": "f1e5d715429d04b4bd16c59fabe91d7b4e32e8158231a7f692319fbc901fa07b",
       "counterpartSha256": "5efe0194eba16952904a0130e6607a8ea6283e72c223dd2c74e41433b7fcf62e",
       "fixtureSha256": "9c194b8d966138341ba704b40220738c86dc3d470d49dfa50379ace2a9e501c2"
     },
@@ -21781,7 +21781,7 @@
       "measurementRecord": "results/2026-10-12T06-04-29-404Z.json",
       "specification": "Write the fixed 48-byte ASCII record, including LF. Observe one completed write per iteration; verify final file bytes outside timing.",
       "notes": "Includes file creation/truncation, buffered owner, borrowed adapter, typed record write, adapter flush/close and owner close. Exact final file bytes are checked outside timing. Node stages the same fixed ASCII record and writes all bytes; native bounds reject during staging. No timing samples.",
-      "sourceSha256": "d2f991edd87db9193b4195661f2b23f16304a607e801da2c55fd2a8edef14ea2",
+      "sourceSha256": "9a1e55aafe537facf6f3e47300c9aa83c16dfb368c2429987e36ecc3c537fbf5",
       "counterpartSha256": "908a2cf5a0db24337054cfcfb004b56c2b08ba4ec6642ac7ee9d54203d64cc17",
       "fixtureSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },

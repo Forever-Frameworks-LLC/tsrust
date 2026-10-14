@@ -92,5 +92,4 @@ function failure(value: int): () => int {
   return fail;
 }
 
-function main(): void {
-}
+function main(): void {}

@@ -37,8 +37,7 @@ function upper(window: Mutable<ByteViewMut>, index: int) {
   match (at(window, index)) {
     Ok(value) => {
       match (set(window, index, value - 32)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },

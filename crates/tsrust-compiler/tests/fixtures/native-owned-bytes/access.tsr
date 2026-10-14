@@ -18,8 +18,7 @@ function main() {
       strictEqual(value(bytes, 0), 0);
       strictEqual(value(bytes, 2), 255);
       match (set(bytes, 1, 200)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -72,8 +71,7 @@ function main() {
           return calls;
         };
         match (set(bytes, next(), next())) {
-          Ok(_) => {
-          },
+          Ok(_) => {},
           Err(error) => {
             throw error.message;
           },
@@ -86,8 +84,7 @@ function main() {
       const read = at;
       const write = set;
       match (write(bytes, 0, 255)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },

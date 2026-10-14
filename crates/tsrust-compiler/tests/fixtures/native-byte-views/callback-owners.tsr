@@ -93,8 +93,7 @@ function main() {
     const picker = saveWrite(slice(first));
     const selected = picker.pick(second);
     match (set(selected, 0, 88)) {
-      Ok(_) => {
-      },
+      Ok(_) => {},
       Err(error) => {
         throw error.message;
       },

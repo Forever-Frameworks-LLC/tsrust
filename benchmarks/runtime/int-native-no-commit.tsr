@@ -24,5 +24,4 @@ function power(values: int[]): int {
   return values[0];
 }
 
-function main() {
-}
+function main() {}

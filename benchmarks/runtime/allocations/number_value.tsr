@@ -2,5 +2,4 @@ function workload(n: int, seed: int): number {
   return Number(n) + Number(seed) + 0.5;
 }
 
-function main() {
-}
+function main() {}

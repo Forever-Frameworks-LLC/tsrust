@@ -8,13 +8,11 @@ function main() {
   console.log(unwrap(join(first)) + unwrap(join(second)));
 
   const listener = unwrap(spawn((): void => {
-    while (!cancellationRequested()) {
-    }
+    while (!cancellationRequested()) {}
   }));
   cancel(listener);
   match (join(listener)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => console.log(error.code),
   }
 

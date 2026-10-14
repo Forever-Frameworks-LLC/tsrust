@@ -9,5 +9,4 @@ function workload(n: int, seed: int): Value {
   };
 }
 
-function main() {
-}
+function main() {}

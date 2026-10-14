@@ -17,8 +17,7 @@ function main() {
     Ok(bytes) => {
       const add = append;
       match (add(bytes, [7, 8])) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -40,8 +39,7 @@ function main() {
       strictEqual(length(bytes), 5);
       strictEqual(read(bytes, 4), 8);
       match (append(bytes, [])) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -54,8 +52,7 @@ function main() {
           strictEqual(read(part, 0), 65);
           strictEqual(read(part, 2), 7);
           match (set(bytes, 1, 90)) {
-            Ok(_) => {
-            },
+            Ok(_) => {},
             Err(error) => {
               throw error.message;
             },
@@ -63,8 +60,7 @@ function main() {
 
           strictEqual(read(part, 0), 65);
           match (set(part, 1, 2)) {
-            Ok(_) => {
-            },
+            Ok(_) => {},
             Err(error) => {
               throw error.message;
             },

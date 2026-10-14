@@ -646,8 +646,7 @@ function failBeforeInstall(holder: Mutable<Holder>, action: ReadOnly<Function<in
   holder.run = action;
 }
 
-function main() {
-}
+function main() {}
 
 function installNullable(holder: Mutable<NullableHolder>, action: Mutable<Function<int>>): void {
   holder.run = action;

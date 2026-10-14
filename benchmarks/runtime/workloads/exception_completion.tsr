@@ -84,8 +84,7 @@ function retainedMap(value: RetainedOwner, early: boolean, trace: int[]): string
         run: (): int => current[0]
       });
       throw 32;
-    } finally {
-    }
+    } finally {}
   } catch (error) {
     trace.push(32);
   } finally {

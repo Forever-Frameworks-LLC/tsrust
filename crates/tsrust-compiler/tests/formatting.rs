@@ -93,7 +93,7 @@ fn module_import_braces_are_bindings_not_statement_blocks() {
     for (source, expected) in [
         (
             "import { left } from \"./left.tsr\";\nimport { right } from './right.tsr';\n\nfunction main(){}",
-            "import { left } from \"./left.tsr\";\nimport { right } from './right.tsr';\n\nfunction main() {\n}\n",
+            "import { left } from \"./left.tsr\";\nimport { right } from './right.tsr';\n\nfunction main() {}\n",
         ),
         (
             "import {\n  value as sharedValue\n}\n\nfrom \"./shared.tsr\";\n\nexport function left():int{return sharedValue;}",
@@ -412,4 +412,24 @@ fn chained_logical_not_stays_attached_without_changing_postfix_spacing() {
     let directory = support::TempDirectory::new();
     let path = directory.source(&formatted);
     support::success(&support::run(support::cli().arg("run").arg(path), 60));
+}
+
+#[test]
+fn empty_delimiters_stay_tight_without_losing_comments_or_behavior() {
+    for gap in ["", " ", "\n", "\n\n"] {
+        let source = format!("type Empty={{{gap}}};function noop({gap}){{{gap}}}function main({gap}){{const object:Empty={{{gap}}};const values:int[]=[{gap}];const action=({gap}):void=>{{{gap}}};action();noop({gap});if(false){{{gap}}}console.log(values.length);}}");
+        let formatted = format(&source).unwrap();
+        for expected in ["type Empty = {};", "function noop() {}", "object: Empty = {};", "values: int[] = [];", "(): void => {};", "if (false) {}"] {
+            assert!(formatted.contains(expected), "missing {expected}: {formatted}");
+        }
+        assert_eq!(format(&formatted).unwrap(), formatted);
+        assert_eq!(check(&source).unwrap().contracts(), check(&formatted).unwrap().contracts());
+    }
+    for source in ["function main(){/* keep */}", "function main(){\n// keep\n}"] {
+        let formatted = format(source).unwrap();
+        assert!(formatted.contains(if source.contains("/*") { "{/* keep */}" } else { "{\n// keep\n}" }), "{formatted}");
+        assert_eq!(format(&formatted).unwrap(), formatted);
+        assert!(check(&formatted).is_ok());
+    }
+    support::execute("function noop(){}function main(){const values:int[]=[];noop();console.log(values.length);}", "0\n", None);
 }

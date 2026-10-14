@@ -52,8 +52,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
         match (view(owner, offset, end)) {
           Ok(bytes) => {
             match (writeAll(output, bytes)) {
-              Ok(_) => {
-              },
+              Ok(_) => {},
               Err(error) => {
                 throw error.message;
               }
@@ -73,8 +72,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
   }
 
   match (close(output)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => {
       throw error.message;
     }
@@ -113,8 +111,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
   }
 
   match (close(file)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => {
       throw error.message;
     }
@@ -135,5 +132,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

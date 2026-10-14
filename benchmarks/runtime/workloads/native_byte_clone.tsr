@@ -17,8 +17,7 @@ function read(bytes: ReadOnly<Bytes>, index: int): int {
 
 function write(bytes: Mutable<Bytes>, index: int, value: int): void {
   match (set(bytes, index, value)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => {
       throw error.message;
     },

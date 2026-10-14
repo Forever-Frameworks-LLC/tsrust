@@ -19,16 +19,14 @@ function main() {
       strictEqual(value(bytes, 0), 0);
       strictEqual(value(bytes, 2), 0);
       match (set(bytes, 0, 7)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
       }
 
       match (resize(bytes, 5, 255)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -68,8 +66,7 @@ function main() {
       strictEqual(length(bytes), 5);
       const change = resize;
       match (change(bytes, 1)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -78,8 +75,7 @@ function main() {
       strictEqual(length(bytes), 1);
       strictEqual(value(bytes, 0), 7);
       match (change(bytes, 3)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
@@ -88,8 +84,7 @@ function main() {
       strictEqual(value(bytes, 1), 0);
       strictEqual(value(bytes, 2), 0);
       match (resize(bytes, 0)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },

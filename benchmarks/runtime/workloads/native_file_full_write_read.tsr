@@ -8,8 +8,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
       match (view(owner, 0, count)) {
         Ok(bytes) => {
           match (writeFile(destination, bytes)) {
-            Ok(_) => {
-            },
+            Ok(_) => {},
             Err(error) => {
               throw error.message;
             }
@@ -62,5 +61,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

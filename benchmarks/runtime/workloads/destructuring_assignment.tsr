@@ -16,8 +16,7 @@ function workload(n: int, seed: int, input: string): string[][] {
     let left = input.repeat(1), right = String(base);
     [left, right] = [right, left];
     let f0 = 0, f1 = 1;
-    for (let turn = 0; turn < base % 4 + 2; [f0, f1] = [f1, f0 + f1], turn++) {
-    }
+    for (let turn = 0; turn < base % 4 + 2; [f0, f1] = [f1, f0 + f1], turn++) {}
 
     let count = 0, word = "";
     [count, word] = ends(base, input);

@@ -41,8 +41,7 @@ function other(first: ByteView, second: ByteView): Holder {
 }
 
 function empty(): Holder {
-  return {
-  };
+  return {};
 }
 
 function vacant(): Holder {

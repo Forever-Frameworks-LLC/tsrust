@@ -70,8 +70,7 @@ function loop(result: Mutable<Result<int[], string>>): void {
     Ok(values) => {
       values.push(9);
     },
-    Err(_) => {
-    }
+    Err(_) => {}
   }
 }
 

@@ -57,8 +57,7 @@ function replace(chunk: Mutable<Chunk>, replacement: ByteView): void {
 }
 
 function empty(): Chunk {
-  return {
-  };
+  return {};
 }
 
 function take(chunk: Chunk) {
@@ -108,5 +107,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

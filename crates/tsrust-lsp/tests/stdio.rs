@@ -198,6 +198,7 @@ fn formatting_readonly_tuple_generics_returns_tight_idempotent_edit() {
     let edits = response.result.unwrap();
     let formatted = edits[0]["newText"].as_str().unwrap();
     assert!(formatted.contains("ReadOnly<[string, string]>"), "{formatted}");
+    assert!(formatted.contains("function main() {}"), "{formatted}");
     assert!(tsrust_compiler::check(formatted).is_ok());
     server.notify("textDocument/didChange", json!({"textDocument":{"uri":uri,"version":2},"contentChanges":[{"text":formatted}]}));
     server.request(3, "textDocument/formatting", json!({"textDocument":{"uri":uri},"options":{"tabSize":4,"insertSpaces":true}}));

@@ -33,8 +33,7 @@ function workload(n: int, seed: int, input: string): int {
         }
 
         match (closeJsonl(reader)) {
-          Ok(_) => {
-          },
+          Ok(_) => {},
           Err(error) => {
             throw error.message;
           }

@@ -65,5 +65,4 @@ function project(tree: Tree, row: int[]) {
   }
 }
 
-function main() {
-}
+function main() {}

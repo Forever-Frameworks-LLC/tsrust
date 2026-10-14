@@ -16,16 +16,14 @@ function workload(n: int, seed: int, input: string): int {
     match (createJsonl(input)) {
       Ok(writer) => {
         match (writeJsonl(writer, item)) {
-          Ok(_) => {
-          },
+          Ok(_) => {},
           Err(error) => {
             throw error.message;
           }
         }
 
         match (closeJsonlWriter(writer)) {
-          Ok(_) => {
-          },
+          Ok(_) => {},
           Err(error) => {
             throw error.message;
           }

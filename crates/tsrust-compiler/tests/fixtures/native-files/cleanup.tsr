@@ -119,8 +119,7 @@ function main() {
   close(partialFinally(false));
   const file = make("fail-close.bin");
   match (close(file)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => {
       strictEqual(error.operation, "close");
       strictEqual(error.code, "interrupted");

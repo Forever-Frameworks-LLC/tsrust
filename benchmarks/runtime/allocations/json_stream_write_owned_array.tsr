@@ -16,8 +16,7 @@ function workload(n: int, seed: int, input: string): int {
     Ok(writer) => {
       while (i < n) {
         match (writeJsonl(writer, item)) {
-          Ok(_) => {
-          },
+          Ok(_) => {},
           Err(error) => {
             throw error.message;
           }
@@ -28,8 +27,7 @@ function workload(n: int, seed: int, input: string): int {
       }
 
       match (closeJsonlWriter(writer)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         }

@@ -9,5 +9,4 @@ function workload(n: int, seed: int): int[] {
   return values;
 }
 
-function main() {
-}
+function main() {}

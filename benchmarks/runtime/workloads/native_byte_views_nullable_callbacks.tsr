@@ -42,8 +42,7 @@ function first(data: ByteView): int {
 }
 
 function empty(): Chunk {
-  return {
-  };
+  return {};
 }
 
 function take(chunk: Chunk) {
@@ -91,5 +90,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

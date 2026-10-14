@@ -27,5 +27,4 @@ function pair(value: int) {
   return [value, value + 1];
 }
 
-function main() {
-}
+function main() {}

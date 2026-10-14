@@ -270,10 +270,11 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
             let prev = previous.text.as_str();
             let current = token.text.as_str();
             let previous_symbol = previous.kind == TokenKind::Symbol;
+            let empty_pair = previous_symbol && symbol && matches!((prev, current), ("{", "}") | ("[", "]") | ("(", ")"));
             let existing_newlines = gap.bytes().filter(|&byte| byte == b'\n').count();
             let exception_handler = previous_symbol && prev == "}" && matches!(current,"catch"|"finally");
             let type_continuation = previous_symbol && prev == "}" && matches!(current, "as" | "satisfies");
-            let newline = if pattern[i - 1] {
+            let newline = if empty_pair || pattern[i - 1] {
                 false
             } else if label_colon[i - 1] || interface_field_comma[i - 1] || match_commas[i - 1] {
                 true
@@ -292,7 +293,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 && prev == ";"
                 && depth == 0
                 && matches!(current, "function" | "type" | "export");
-            if newline || (!exception_handler && !type_continuation && existing_newlines > 1 && (!import || prev == ";")) {
+            if newline || (!empty_pair && !exception_handler && !type_continuation && existing_newlines > 1 && (!import || prev == ";")) {
                 let required = if separate_blocks || separate_declarations {
                     2
                 } else {
@@ -320,7 +321,7 @@ pub fn format(source: &str) -> Result<String, Diagnostic> {
                 let generic_close = symbol && matches!(current, ">" | ">>" | ">>>") && generic(token.span.start);
                 let after_generic_open = previous_symbol && prev == "<" && generic(previous.span.start);
                 let optional_parameter = symbol && current == "?" && real.get(i + 1).is_some_and(|t| t.text == ":");
-                let tight = sign_operand || generic_open || generic_close || after_generic_open || optional_parameter || postfix_assertion || (symbol
+                let tight = empty_pair || sign_operand || generic_open || generic_close || after_generic_open || optional_parameter || postfix_assertion || (symbol
                     && matches!(current, "." | "?." | "," | ";" | ")" | "]" | ":" | "++" | "--")
                     && !conditional_colon[i])
                     || (previous_symbol

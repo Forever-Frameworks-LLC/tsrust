@@ -127,8 +127,7 @@ function main() {
   strictEqual((mark(trace, 21), textBox).other, "kept");
   let appended = String("a");
   let k = 0;
-  for (k = 0; k < 2; k++, appended += "b") {
-  }
+  for (k = 0; k < 2; k++, appended += "b") {}
 
   strictEqual(appended, "abb");
   const reused = String("keep");
@@ -138,8 +137,7 @@ function main() {
   strictEqual(selectedAfter, 4);
   strictEqual(appended, "abbc");
   let replaced = String("start");
-  for (k = 0; k < 2; k++, replaced = String("done")) {
-  }
+  for (k = 0; k < 2; k++, replaced = String("done")) {}
 
   strictEqual(replaced, "done");
   const afterReplace = (replaced = String("next"), 5);
@@ -152,13 +150,11 @@ function main() {
   lastCapture.push(2);
   strictEqual(lastCapture.length, 2);
   let left = 0, right = 1;
-  for (k = 0; k < 3; [left, right] = [right, left + right], k++) {
-  }
+  for (k = 0; k < 3; [left, right] = [right, left + right], k++) {}
 
   strictEqual(left, 2);
   strictEqual(right, 3);
-  for ([left, right] = [3, 4], k = 0; k < 1; k++) {
-  }
+  for ([left, right] = [3, 4], k = 0; k < 1; k++) {}
 
   strictEqual(left, 3);
   strictEqual(right, 4);

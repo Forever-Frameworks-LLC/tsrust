@@ -82,5 +82,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

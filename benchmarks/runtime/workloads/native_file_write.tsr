@@ -57,8 +57,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
       }
 
       match (close(output)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         }
@@ -73,8 +72,7 @@ function sample(input: ReadOnly<string>, count: int): int[] {
     Ok(file) => {
       const observed = observe(file, count + 1);
       match (close(file)) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         }
@@ -100,5 +98,4 @@ function workload(n: int, seed: int, input: string): int[][] {
   return output;
 }
 
-function main() {
-}
+function main() {}

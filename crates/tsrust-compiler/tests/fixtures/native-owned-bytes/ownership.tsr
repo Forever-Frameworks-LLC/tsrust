@@ -34,8 +34,7 @@ function read(bytes: ReadOnly<Bytes>, index: int): int {
 
 function write(bytes: Mutable<Bytes>, index: int, value: int): void {
   match (set(bytes, index, value)) {
-    Ok(_) => {
-    },
+    Ok(_) => {},
     Err(error) => {
       throw error.message;
     },
@@ -150,16 +149,14 @@ function exercise(): void {
   match (alloc(tick(state, 2), tick(state, 0))) {
     Ok(counted) => {
       match (resize(counted, tick(state, 4), tick(state, 1))) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
       }
 
       match (append(counted, values(state))) {
-        Ok(_) => {
-        },
+        Ok(_) => {},
         Err(error) => {
           throw error.message;
         },
