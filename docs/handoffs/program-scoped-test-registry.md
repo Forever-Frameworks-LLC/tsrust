@@ -184,4 +184,8 @@ and Node-after-tsc (20 cells total), using the new untimed `testing-check.mjs`.
 No performance samples were collected or relabeled. Exact evidence and earlier
 failed attempts are retained in `benchmarks/records.sqlite` under
 `tsrust-program-registry-acceptance-2026-10-14.json` and its referenced records.
-Consumer refresh is coordinated with the following concat repair.
+Release consumers were rebuilt from `fc82d9db`, atomically installed and hash-verified.
+Both VS Code servers were restarted and their new processes verified. The installed
+CLI passes the imported registry example and both depth-100 concat witnesses; the
+installed LSP passes initialize/shutdown. Refresh evidence is
+`tsrust-consumer-refresh-2026-10-14.json` in SQLite.

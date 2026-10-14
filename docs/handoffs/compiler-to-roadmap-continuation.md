@@ -393,7 +393,7 @@ Completed in the 2026-10-14 continuation:
 
 - Program-scoped registry integration and focused acceptance:
   [acceptance record](program-scoped-test-registry.md), source checkpoint
-  `7c7b5bc0`. Consumer refresh follows the concat checkpoint.
+  `7c7b5bc0`. Concat checkpoint: `fc82d9db`.
 - Nested concat checks now schedule receivers and arguments on the shared
   expression stack. Earlier operand loans remain active in source order.
   The depth-100 string and array witnesses execute on the normal worker stack;
@@ -407,6 +407,19 @@ Completed in the 2026-10-14 continuation:
   The old 444-row metadata checksum remains unchanged. Automatic project
   formatting now maintains the current-byte side of legacy identity proofs.
   Original measurement records and timing protocols remain untouched.
+
+Release consumers were rebuilt from `fc82d9db`. All five current executables
+were atomically replaced and hash-verified; both VS Code server processes were
+restarted. The owner test project has no diagnostics, and the originally open
+repository documents have no Tsrust errors. Workspace scanning exposes seven
+older allocation fixtures that still match `safeParseJson` as a Result; their
+bytes are unchanged since `2bac528b`. These need a separate schema-support
+follow-up. Rust workspace reload clears its stale concat error (39 warnings
+remain). Installed CLI registry/depth witnesses and LSP initialize/shutdown pass.
+Evidence: `tsrust-consumer-refresh-2026-10-14.json` in SQLite. Cleanup removes
+232 obsolete debug test/native executables and object files (1,575,517,056 bytes);
+shared Cargo target is 944 MB. Current libraries and five consumers remain.
+Removed test executables must rebuild when those suites next run.
 
 Still open, in priority order:
 
