@@ -7472,229 +7472,18 @@ self.names_materialized_type(element.with_depth(0).ty())
         Ok(())
     }
 
-    fn array_transform(
-        &mut self,
-        context: &mut Context,
-        base: &mut Expr,
-        args: &mut [Expr],
-        loans: &Loans,
-        span: Span,
-        options: (bool, bool, Mode, bool, bool, bool, bool),
-    ) -> Result<Type, Diagnostic> {
-        let (filter, discard, receiver_mode, receiver_literals, flatten, callable_elements, from_array) =
-            options;
-        let set_for_each=discard && self.set_receiver_hint(context,base);
-        let map_for_each=discard && self.map_receiver_hint(context,base);
-        let collection_for_each=set_for_each||map_for_each;
-        let collection_from=from_array && (self.set_receiver_hint(context,base)||self.map_receiver_hint(context,base));
-        Self::arity(args.len(), 1, span)?;
-        args[0].traversal_method = None;
-        let callback_hint = self.callback_value_hint(context, &args[0])?;
-        let value_hint = match &args[0].kind {
-            ExprKind::Closure { params, .. } => params
-                .first()
-                .map(|p| match &p.ty {
-                    ParameterAnnotation::Named(token) => {
-                        self.resolve_value_annotation(token, false)
-                    }
-                    ParameterAnnotation::Callback(annotation) => self.resolve_callback(annotation),
-                    ParameterAnnotation::Inferred(token) => match &p.initializer {
-                        ParameterInitializer::Default { value, .. } => self.expression_type_hint(context, value).ok_or_else(|| Diagnostic::new("parameter-inference", "This parameter needs its checked initializer or contextual type.", token.span)),
-                        _ => Ok(Type::Void),
-                    },
-                })
-                .transpose()?,
-            _ => match callback_hint {
-                Some(Type::Closure(id)) => self.closures[id]
-                    .parameters
-                    .first()
-                    .map(|&p| self.closures[id].function.bindings[p].ty),
-                Some(Type::Callback(id)) => {
-                    self.callables.callbacks[id].params.first().map(|p| p.ty)
-                }
-                Some(Type::Callable(id)) => self.callables.results[id]
-                    .params
-                    .first()
-                    .map(|parameter| parameter.ty),
-                _ => None,
-            },
-        };
-        let value_hint = value_hint.map(|ty| Self::array_callback_hint_type(ty, self.array_callback_rest_position(&args[0], callback_hint) == Some(0)));
-        let value_hint = value_hint.map(|ty| self.unions.payload(ty).unwrap_or(ty));
-        let absent_elements = matches!(self.expression_type_hint(context, base), Some(Type::Array(element)) if matches!(element.ty(), Type::Null | Type::Undefined)) || matches!(&base.kind, ExprKind::Array(values) if !values.is_empty() && values.iter().all(|value| matches!(value.kind, ExprKind::Null | ExprKind::Undefined)));
-        let receiver_hint = value_hint
-            .filter(|_| !collection_for_each && !collection_from)
-            .filter(|ty| *ty != Type::Void)
-            .filter(|_| !absent_elements)
-            .filter(|ty| !matches!(ty, Type::Callback(_)))
-            .map(|ty| Self::transform_array_type(ty, base.span))
-            .transpose()?;
+    fn array_transform(&mut self, context: &mut Context, base: &mut Expr, args: &mut [Expr], loans: &Loans, span: Span, options: continuations::transform::Options) -> Result<Type, Diagnostic> {
+        let start = self.prepare_transform(context, base, args, span, options)?;
         let previous = self.builtin_literals;
-        self.builtin_literals |= receiver_literals;
-        let receiver = self.expression(context, base, receiver_mode, loans, if collection_for_each || collection_from{None}else{receiver_hint});
+        self.builtin_literals |= options.3;
+        let receiver = self.expression(context, base, options.2, loans, start.receiver_hint);
         self.builtin_literals = previous;
-        let receiver = receiver?;
-        let (value,position_type)=match receiver {
-            Type::Array(element)=>(element.ty(),Type::Int),
-            Type::Set(id) if from_array => (self.program.records[id].set_definition.as_ref().unwrap().key,Type::Int),
-            Type::Map(id) if from_array => (Type::Record(self.map_iteration_entry(id,base.span)?),Type::Int),
-            Type::Set(id) if set_for_each=>{let key=self.program.records[id].set_definition.as_ref().unwrap().key;(key,key)},
-            Type::Map(id) if map_for_each=>{let map=self.program.records[id].map_definition.as_ref().unwrap();(map.value,map.key)},
-            _=>return Err(Diagnostic::new("type","Array callback methods require an array.",base.span)),
-        };
-        let supplied_types=if from_array{vec![value,position_type]}else{vec![value,position_type,receiver]};
-        self.contextual_arrow_parameters(&mut args[0], &supplied_types)?;
-        let lends_callable = callable_elements
-            && matches!(value, Type::StoredCallable(_))
-            && matches!(value_hint, Some(Type::Callback(id)) if self.callables.callbacks[id].kind == CallbackKind::Reusable);
-        let mut active = loans.clone();
-        for root in Self::loan_roots(base, Mode::Read) {
-            active.entry(root).or_default().push((
-                if lends_callable {
-                    Mode::Mutate
-                } else {
-                    Mode::Read
-                },
-                base.span,
-            ));
-        }
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let checked_callback_hint = callback_hint.filter(|ty| {
-            !(matches!(args[0].kind, ExprKind::Call(_, _))
-                && matches!(ty, Type::Closure(id) if self.closures[*id].polymorphic))
-        });
-        let ty = if let Some(ty) = self.adapt_generic_traversal(context, &mut args[0], &supplied_types, &active)? {
-            ty
-        } else {
-            self.expression(context, &mut args[0], Mode::Mutate, &active, checked_callback_hint)?
-        };
-        let (parameters, mut result, once) = match ty {
-            Type::Closure(id) => {
-                let closure = &self.closures[id];
-                let once = closure.invocation == Mode::Consume
-                    || args[0].binding.is_some_and(|binding| {
-                        context.bindings[binding].callback_invocation == Some(Mode::Consume)
-                    });
-                (
-                    closure
-                        .parameters
-                        .iter()
-                        .map(|&p| ArgumentContract::from(&closure.function.bindings[p]))
-                        .collect::<Vec<_>>(),
-                    closure.function.result,
-                    once,
-                )
-            }
-            Type::Callback(id) | Type::StoredCallable(id) | Type::BorrowedCallable(id) => {
-                let id = if matches!(ty, Type::StoredCallable(_) | Type::BorrowedCallable(_)) {
-                    self.callables.storage.declaration(id).expect("checked traversal storage")
-                } else { id };
-                let contract = &self.callables.callbacks[id];
-                (
-                    contract.params.clone(),
-                    contract.result,
-                    contract.kind.is_once(),
-                )
-            }
-            _ => {
-                return Err(Diagnostic::new(
-                    "type",
-                    "Array callback methods require a typed reusable callback.",
-                    args[0].span,
-                ));
-            }
-        };
-        if once {
-            return Err(Diagnostic::new(
-                "callback-access",
-                "Array callbacks must be reusable; a consuming callback cannot run for each element.",
-                args[0].span,
-            ));
-        }
-
-        let expected = [
-            ArgumentContract { rest: false,
-                ty: value,
-                mode: if lends_callable {
-                    Mode::Mutate
-                } else if value.is_copy() {
-                    Mode::Copy
-                } else {
-                    Mode::Read
-                },
-             omission: crate::ParameterOmission::Required, },
-            ArgumentContract { rest: false,
-                ty: position_type,
-                mode: if position_type.is_copy(){Mode::Copy}else{Mode::Read},
-                omission: crate::ParameterOmission::Required,
-            },
-            ArgumentContract { rest: false,
-                ty: receiver,
-                mode: Mode::Read,
-                omission: crate::ParameterOmission::Required,
-            },
-        ];
-        if lends_callable {
-            if parameters.iter().skip(2).any(|parameter| !parameter.rest && !parameter.omission.is_omittable()) {
-                return Err(Diagnostic::new(
-                    "conflicting-access",
-                    "A mutable callable element cannot be borrowed together with its source array.",
-                    args[0].span,
-                ));
-            }
-            self.require(value, Some(parameters[0].ty), args[0].span)?;
-            if parameters[0].mode != Mode::Mutate {
-                return Err(Diagnostic::new(
-                    "callback-access",
-                    "Callable element invocation requires a mutate callback parameter.",
-                    args[0].span,
-                ));
-            }
-            self.require_array_callback_parameters(&parameters[1..], &expected[1..2], args[0].span)?;
-            let Type::Closure(origin) = ty else {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Callable element traversal currently requires a concrete callback environment.",
-                    args[0].span,
-                ));
-            };
-            let (method, specialized_result) = self.materialize_closure_method_types(
-                origin,
-                Self::array_callback_parameter_types(&parameters, &expected[..2].iter().map(|parameter| parameter.ty).collect::<Vec<_>>()),
-                args[0].span,
-            )?;
-            args[0].traversal_method = Some(TraversalMethod { id: method, access: Mode::Mutate });
-            result = specialized_result;
-            Self::storage_access(context, base, Mode::Mutate, span, loans)?;
-        } else {
-            let supplied=if from_array{&expected[..2]}else{&expected[..]};
-            self.require_array_callback_parameters(&parameters, supplied, args[0].span)?;
-            if let Type::Closure(origin) = ty
-                && self.closures[origin].polymorphic {
-                let types = Self::array_callback_parameter_types(&parameters, &supplied.iter().map(|parameter| parameter.ty).collect::<Vec<_>>());
-                let (id, specialized_result) = self.materialize_closure_method_types(origin, types, args[0].span)?;
-                args[0].traversal_method = Some(TraversalMethod { id, access: Mode::Read });
-                result = specialized_result;
-            }
-        }
-        if flatten && matches!(result,Type::Record(id) if self.program.records[id].is_tuple()) {
-            return Err(Diagnostic::new("unsupported", "flatMap() cannot yet flatten a tuple result into a homogeneous array.", args[0].span));
-        }
-        let result = if discard {
-            // Any otherwise valid callback result (including callable owners) is
-            // evaluated and dropped at the end of this invocation.
-            Type::Void
-        } else if filter {
-            self.require(result, Some(Type::Boolean), args[0].span)?;
-            receiver
-        } else if flatten && matches!(result, Type::Array(_)) {
-            result
-        } else {
-            Self::transform_array_type(result, args[0].span)?
-        };
-        // Temporary callback captures end after traversal. Named closures retain their existing loans.
-        capture_boundary.unwind(&mut context.capture_loans);
-        Ok(result)
+        let callback = self.receive_transform(context, base, args, loans, receiver?, start)?;
+        let ty = if let Some(ty) = self.adapt_generic_traversal(context, &mut args[0], &callback.supplied_types, &callback.active)? { ty }
+            else { self.expression(context, &mut args[0], Mode::Mutate, &callback.active, callback.checked_hint)? };
+        let frame = self.check_transform_callback(context, args, span, callback, ty)?;
+        let specialized = frame.method.as_ref().map(|method| self.materialize_closure_method_types(method.origin, method.types.clone(), args[0].span)).transpose()?;
+        self.finish_transform(context, base, args, loans, span, frame, specialized)
     }
 
     // Homogeneous concat spreads only arguments at the full receiver rank.
@@ -9557,17 +9346,20 @@ self.names_materialized_type(element.with_depth(0).ty())
             // field. Preparation establishes types without evaluating arguments.
             self.prepare_generic_call(context, receiver, None)?;
         }
-        if Self::map_group_by_callee(context,expr) {return self.map_group_by(context,expr,loans,expected).map(CallDispatch::Ready);}
+        if Self::map_group_by_callee(context,expr) {return self.prepare_group_by_transform(context,expr,expected).map(CallDispatch::Transform);}
         if Self::array_from_callee(context, expr) {
             self.array_from(context, expr)?;
         }
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(_,name) if name=="map#arrayFrom")) {
-            return self.array_from_mapping(context,expr,loans,expected).map(CallDispatch::Ready);
+            return Ok(CallDispatch::Transform(continuations::transform::Request { options:(false,false,Mode::Read,false,false,true,true),target:CallTarget::ArrayMap,kind:continuations::transform::ResultKind::ArrayFrom,expected }));
         }
         if matches!(&expr.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,_) if self.ordered_set_receiver(context,base).is_some())){return self.ordered_set_method_call(context,expr,loans,expected).map(CallDispatch::Ready);}
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.heap_receiver(context, base).is_some())) { return self.heap_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Field(base, _) if self.deque_receiver(context, base).is_some())) { return self.deque_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if let Some(ty) = self.schema_call(context, expr, loans, expected)? { return Ok(CallDispatch::Ready(ty)); }
+        if self.map_method_receiver(context, expr) || self.set_method_receiver(context, expr) {
+            if let Some(request) = self.transform_request(context, expr, expected, true) { return Ok(CallDispatch::Transform(request)); }
+        }
         if self.map_method_receiver(context, expr) { return self.map_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         if self.set_method_receiver(context, expr) { return self.set_method_call(context, expr, loans, expected).map(CallDispatch::Ready); }
         self.array_values(context, expr)?;
@@ -12304,16 +12096,6 @@ mod maps;
 mod deques;
 #[path = "../stdlib/collections/heap_check.rs"]
 mod heaps;
-
-impl Analyzer {
-    #[inline(never)]
-    fn array_from_mapping(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
-        let ExprKind::Call(callee,args)=&mut expression.kind else{unreachable!()};
-        let ExprKind::Field(base,_)=&mut callee.kind else{unreachable!()};
-        let result=self.array_transform(context,base,args,loans,expression.span,(false,false,Mode::Read,false,false,true,true)).map_err(|mut error|{if error.code=="arity"{error.message=format!("Array.from: {}",error.message);}error})?;
-        self.require(result,expected,expression.span)?;expression.target=Some(CallTarget::ArrayMap);Ok(result)
-    }
-}
 
 impl Analyzer {
     #[inline(never)]

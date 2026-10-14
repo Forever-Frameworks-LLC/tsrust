@@ -363,3 +363,15 @@ method returns. Publish native return information, callable origin and completed
 capture effects at the same completion point as before. Collection callback
 helpers still call the compatibility materialization entry and need their own
 parent continuations; method body suspension does not make those parents safe.
+
+
+`analysis/continuations/transform.rs` owns collection transform contracts and result
+selection. `analysis/continuations/driver/transform.rs` suspends receiver, callback
+and method checking on the shared stack. Keep contextual callback types, receiver
+loans and temporary capture boundaries in their original order. Requests cover
+array transforms/predicates, array/Set/Map forEach, mapped Array.from and Map.groupBy.
+GroupBy source rewriting precedes checking, while concrete group record creation
+follows callback completion. Collection size properties use `FieldFrame` receiver
+continuations; do not start another expression driver to check a property receiver.
+Generic callback adaptation, reduction and sorting retain compatibility entry
+points and still require their separate suspension audits.

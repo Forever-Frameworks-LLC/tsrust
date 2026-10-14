@@ -39,12 +39,6 @@ impl Analyzer {
             _ => Err(Diagnostic::new("deque-member", "Unsupported Deque method.", span)),
         }
     }
-    pub(super) fn deque_size(&mut self, context: &mut Context, base: &mut Expr, name: &str, mode: Mode, loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
-        self.expression(context, base, Mode::Read, loans, None)?;
-        if name != "size" { return Err(Diagnostic::new("deque-member", "Deque has only the size value property; call methods with parentheses.", span)); }
-        if mode == Mode::Mutate { return Err(Diagnostic::new("readonly", "Deque size is read-only.", span)); }
-        Ok(Type::Int)
-    }
     pub(super) fn deque_method_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { unreachable!() };
         let ExprKind::Field(base, name) = &mut callee.kind else { unreachable!() };

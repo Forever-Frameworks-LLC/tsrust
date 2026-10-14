@@ -27,13 +27,6 @@ impl Analyzer {
         }
     }
     #[inline(never)]
-    pub(super) fn map_size(&mut self, context: &mut Context, base: &mut Expr, name: &str, mode: Mode, loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
-        self.expression(context, base, Mode::Read, loans, None)?;
-        if name != "size" { return Err(Diagnostic::new("map-member", "Map has only the size value property; call its methods with parentheses.", span)); }
-        if mode == Mode::Mutate { return Err(Diagnostic::new("readonly", "Map size is read-only.", span)); }
-        Ok(Type::Int)
-    }
-    #[inline(never)]
     pub(super) fn map_method_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { unreachable!() };
         let ExprKind::Field(base, name) = &mut callee.kind else { unreachable!() };
@@ -266,7 +259,7 @@ impl Analyzer {
         matches!(&expression.kind,ExprKind::Call(callee,_) if matches!(&callee.kind,ExprKind::Field(base,name) if name=="groupBy" && matches!(&base.kind,ExprKind::Name(name) if name=="Map" && !context.names.contains_key(name))))
     }
     #[inline(never)]
-    pub(super) fn map_group_by(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
+    pub(super) fn prepare_group_by_transform(&mut self, context: &Context, expression: &mut Expr, expected: Option<Type>) -> Result<continuations::transform::Request, Diagnostic> {
         let span=expression.span;
         if self.function_names.contains_key("Map")||context.pending_names.contains("Map")||context.lexical_scopes.iter().any(|scope|scope.contains("Map")){return Err(Diagnostic::new("unsupported","A shadowed Map name cannot invoke Map.groupBy.",span));}
         let ExprKind::Call(_,arguments)=&mut expression.kind else{unreachable!()};
@@ -278,8 +271,15 @@ impl Analyzer {
             let callee=Expr::new(ExprKind::Field(Box::new(source),"split".into()),source_span);
             source=Expr::new(ExprKind::Call(Box::new(callee),vec![Expr::new(ExprKind::String(String::new()),source_span)]),source_span);
         }
-        let mut callbacks=vec![callback];
-        let keys=self.array_transform(context,&mut source,&mut callbacks,loans,span,(false,false,Mode::Read,false,false,false,true))?;
+        let callee=Expr::new(ExprKind::Field(Box::new(source),"groupBy#map".into()),span);
+        expression.kind=ExprKind::Call(Box::new(callee),vec![callback]);
+        Ok(continuations::transform::Request { options:(false,false,Mode::Read,false,false,false,true),target:CallTarget::MapGroupBy,kind:continuations::transform::ResultKind::GroupBy,expected })
+    }
+
+    pub(super) fn finish_group_by_transform(&mut self, expression: &mut Expr, keys: Type) -> Result<Type, Diagnostic> {
+        let span=expression.span;
+        let ExprKind::Call(callee,_) = &expression.kind else { unreachable!() };
+        let ExprKind::Field(source,_) = &callee.kind else { unreachable!() };
         let Type::Array(key)=keys else{unreachable!("group key results")};
         let element=self.iterable_element(source.ty.unwrap()).ok_or_else(||Diagnostic::new("type","Map.groupBy requires an array, string, Set or Map source.",source.span))?.ty();
         self.require_cloneable(element,source.span)?;
@@ -288,8 +288,7 @@ impl Analyzer {
         let mut annotation=crate::type_syntax::ValueAnnotation{span,kind:crate::type_syntax::ValueAnnotationKind::Applied{name:crate::type_syntax::TypeName{text:"Map".into(),span},arguments:vec![types.annotation(key.ty(),span)?,types.annotation(groups,span)?]}};
         self.generic_records.materialize(&mut annotation,&mut self.program.records,&mut self.record_names,&self.unions, &mut self.callables)?;
         append_checked_record_fields(&mut self.program.records,&self.record_names,&self.unions,&mut self.fields,&mut self.callables)?;
-        let result=self.resolve_value_annotation(&annotation,false)?;self.require(result,expected,span)?;
-        let callee=Expr::new(ExprKind::Field(Box::new(source),"groupBy#map".into()),span);
-        expression.kind=ExprKind::Call(Box::new(callee),callbacks);expression.target=Some(CallTarget::MapGroupBy);Ok(result)
+        let result=self.resolve_value_annotation(&annotation,false)?;
+        Ok(result)
     }
 }

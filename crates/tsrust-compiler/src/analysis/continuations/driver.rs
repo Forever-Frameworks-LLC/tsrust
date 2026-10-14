@@ -11,6 +11,7 @@ mod optional;
 mod functions;
 mod parameters;
 mod methods;
+mod transform;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -102,6 +103,7 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    Transform(Box<transform::State>),
     Wrapper(super::wrappers::Frame),
     Start,
     Prelude(super::prelude::Frame),
@@ -884,6 +886,7 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Transform(state) => transform::resume(analyzer, contexts.get(task.context), task, state, completion.expect("transform child")),
         ExpressionState::Wrapper(frame) => {
             let Completion::Expression(value, result) = completion.expect("wrapper operand completed") else { unreachable!("wrapper result") };
             let context = contexts.get(task.context);
@@ -1388,6 +1391,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 if invocation {
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
                     match dispatch {
+                        Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),
                         Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
                         Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
                         Ok(CallDispatch::ReadyMethod { .. }) => unreachable!("ready method is published by dispatch"),

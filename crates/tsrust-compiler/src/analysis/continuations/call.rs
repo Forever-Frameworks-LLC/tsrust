@@ -3,6 +3,7 @@ use super::super::*;
 
 pub(in crate::analysis) enum CallDispatch {
     Ready(Type),
+    Transform(super::transform::Request),
     ReadyMethod { origin: usize, method: usize, result: Type },
     Method { binding: usize, origin: usize, params: Vec<ArgumentContract>, invocation: Mode },
     Conditional { publish_type: bool },
@@ -59,6 +60,7 @@ impl Analyzer {
                 | ExprKind::Unary { op: UnaryOp::RestPack | UnaryOp::CoalesceSelected | UnaryOp::OptionalSelected | UnaryOp::NonNull, .. }) {
             return Ok(CallDispatch::Conditional { publish_type: true });
         }
+        if let Some(request) = self.transform_request(context, expr, expected, false) { return Ok(CallDispatch::Transform(request)); }
         self.builtin_or_method_call(context, expr, loans, expected).map(CallDispatch::Ready)
     }
 

@@ -44,13 +44,6 @@ impl Analyzer {
         }
     }
 
-    #[inline(never)]
-    pub(super) fn set_size(&mut self, context: &mut Context, base: &mut Expr, name: &str, mode: Mode, loans: &Loans, span: Span) -> Result<Type, Diagnostic> {
-        self.expression(context,base,Mode::Read,loans,None)?;
-        if name != "size" { return Err(Diagnostic::new("set-member", "Set has only the size value property; call its methods with parentheses.", span)); }
-        if mode == Mode::Mutate { return Err(Diagnostic::new("readonly", "Set size is read-only.",span)); }
-        Ok(Type::Int)
-    }
 
     #[inline(never)]
     pub(super) fn set_method_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {

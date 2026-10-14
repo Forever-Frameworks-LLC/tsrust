@@ -1860,3 +1860,55 @@ Collection callback parents, other compatibility entries and specialization
 budget retirement remain required. No full compiler/LSP regression or formal
 scaling measurement is claimed. Installed consumers remain unchanged because
 this internal section changes no public API contract.
+
+
+### Collection transform parent continuations
+
+Discovery on `01c470ca` reproduces analysis overflows at eight nested map/groupBy
+callbacks and 32 nested forEach callbacks. LLDB identifies the synchronous
+`array_transform` callback check. Transform preparation, receiver completion,
+callback contracts, specialized method requests and result completion now run as
+shared expression continuations. This connects map/filter/flatMap, predicates,
+array/Map/Set forEach, mapped Array.from and Map.groupBy without increasing stacks
+or guards. Generic callback adaptation, reduction and sorting remain separate
+compatibility audits.
+
+The first post-change discovery completes map and forEach through 8,192, but
+GroupBy still overflows at 32. LLDB isolates a second parent: collection `.size`
+starts another expression driver. Collection size access now suspends the receiver
+and preserves exact member/readonly diagnostics after receiver checking. Obsolete
+synchronous size helpers are removed for Map, Set, OrderedSet, Heap and Deque.
+The original discovery, failed native test and both debugger traces are retained;
+they are not relabeled as passing evidence. The native batch completed 17 tests
+in five targets before stopping at the failed array-transform target. Those
+completed groups remain evidence while affected/unrun groups resume.
+
+Evidence uses `tsrust-nesting-transform-work-*` in SQLite. All 30 shared-driver
+unit tests pass on the repaired source. New witnesses check 512 nested map,
+forEach and groupBy/size contexts, plus leaf diagnostic and literal-hint cleanup
+through 128 flatMap callbacks. The original 29-unit pass remains separately
+recorded before the collection-size migration.
+
+The resumed compiler batch passes 159 tests: array transforms, collection native
+operations, generic value adapters, Map/Set forEach and Map.groupBy. Together with
+the previously completed 17 tests, 176 distinct affected integration tests pass.
+The new formatted native witness executes nested map, forEach and groupBy chains
+at both optimization levels and verifies independent expected output `7`, `7`, `1`.
+Array.from collection size assertions receive an affected supplementary run after
+the property migration. Eight affected editor tests pass, including compiler
+agreement, Map/Set callback help, groupBy result types and mapped Array.from.
+Whole-project formatting changes zero files and fingerprints.
+
+The first discovery completes map and forEach through 8,192, with analysis
+timeouts at 32,768. Its groupBy-32 overflow remains a failure record. After the
+property repair, groupBy completes at 8, 32, 128, 512, 2,048 and 8,192; 32,768 times
+out during analysis under the 30-second observation budget. No repaired groupBy
+observation crashes. These are discovery observations overlapping builds/native
+checks, not formal timing samples or language ceilings. Large
+memory growth remains a scaling concern requiring measurement and optimization.
+
+This accepts transform parent and collection-size continuations only. Reduction,
+sorting, generic callback adaptation, other compatibility entries, specialization
+budgets and public admission retirement remain required. Full compiler/LSP
+regressions and formal scaling are not claimed. Installed consumers remain
+unchanged because this internal section changes no public API contract.

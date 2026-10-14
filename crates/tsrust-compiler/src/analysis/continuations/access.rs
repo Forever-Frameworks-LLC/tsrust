@@ -2,6 +2,7 @@
 use super::super::*;
 
 pub(in crate::analysis) enum FieldFrame {
+    CollectionSize { code: &'static str, missing: &'static str, readonly: &'static str },
     Length,
     Temporary { borrowed: bool },
     Named { top_projection: bool },
@@ -25,30 +26,19 @@ impl Analyzer {
         {
             return Self::numeric_constant_access(mode, span).map(FieldDispatch::Ready);
         }
-        if self.ordered_set_receiver(context, base).is_some() {
-            return self
-                .ordered_set_size(context, base, name, mode, loans, span)
-                .map(FieldDispatch::Ready);
-        }
-        if self.heap_receiver(context, base).is_some() {
-            return self
-                .heap_size(context, base, name, mode, loans, span)
-                .map(FieldDispatch::Ready);
-        }
-        if self.deque_receiver(context, base).is_some() {
-            return self
-                .deque_size(context, base, name, mode, loans, span)
-                .map(FieldDispatch::Ready);
-        }
-        if self.map_receiver_hint(context, base) {
-            return self
-                .map_size(context, base, name, mode, loans, span)
-                .map(FieldDispatch::Ready);
-        }
-        if self.set_receiver_hint(context, base) {
-            return self
-                .set_size(context, base, name, mode, loans, span)
-                .map(FieldDispatch::Ready);
+        let collection = if self.ordered_set_receiver(context, base).is_some() {
+            Some(("ordered-set-member", "OrderedSet has only the size value property; call methods with parentheses.", "OrderedSet size is read-only."))
+        } else if self.heap_receiver(context, base).is_some() {
+            Some(("heap-member", "Heap has only the size value property; call methods with parentheses.", "Heap size is read-only."))
+        } else if self.deque_receiver(context, base).is_some() {
+            Some(("deque-member", "Deque has only the size value property; call methods with parentheses.", "Deque size is read-only."))
+        } else if self.map_receiver_hint(context, base) {
+            Some(("map-member", "Map has only the size value property; call its methods with parentheses.", "Map size is read-only."))
+        } else if self.set_receiver_hint(context, base) {
+            Some(("set-member", "Set has only the size value property; call its methods with parentheses.", "Set size is read-only."))
+        } else { None };
+        if let Some((code, missing, readonly)) = collection {
+            return Ok(FieldDispatch::Receiver { mode: Mode::Read, frame: FieldFrame::CollectionSize { code, missing, readonly } });
         }
         if name == "length"
             && !matches!(
@@ -159,6 +149,12 @@ impl Analyzer {
         result: Result<Type, Diagnostic>,
     ) -> Result<Type, Diagnostic> {
         match frame {
+            FieldFrame::CollectionSize { code, missing, readonly } => {
+                result?;
+                if name != "size" { return Err(Diagnostic::new(code, missing, span)); }
+                if mode == Mode::Mutate { return Err(Diagnostic::new("readonly", readonly, span)); }
+                Ok(Type::Int)
+            }
             FieldFrame::Length => {
                 let actual = result?;
                 if !matches!(actual, Type::String | Type::Array(_))

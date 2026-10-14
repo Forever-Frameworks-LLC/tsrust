@@ -221,3 +221,12 @@ fn callback_diagnostics_preserve_source_loans_access_arity_and_type_constraints(
         assert_eq!(error.code, code, "{source}: {}", error.message);
     }
 }
+
+#[test]
+fn nested_transform_parents_preserve_native_callback_results() {
+    let map = format!("{}7{}", "[7].map((value:int):int=>".repeat(16), ")[0]".repeat(16));
+    let foreach = format!("{}console.log(7);{}", "[7].forEach((value:int):void=>{".repeat(32), "});".repeat(32));
+    let groups = format!("{}7{}", "Map.groupBy([7],(value:int):int=>".repeat(16), ").size".repeat(16));
+    let source = support::format_round_trip(&format!("function main(){{console.log({map});{foreach}console.log({groups});}}"));
+    native(&source, "7\n7\n1\n", "", "");
+}

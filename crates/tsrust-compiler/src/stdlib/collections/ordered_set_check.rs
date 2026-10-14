@@ -8,11 +8,6 @@ impl Analyzer {
     pub(super) fn ordered_set_method_type(&self,name:&str,span:Span)->Result<Type,Diagnostic>{
         match name {"add"|"clear"=>Ok(Type::Void),"has"|"delete"=>Ok(Type::Boolean),_=>Err(Diagnostic::new("ordered-set-member","OrderedSet supports add, has, delete and clear.",span))}
     }
-    pub(super) fn ordered_set_size(&mut self,context:&mut Context,base:&mut Expr,name:&str,mode:Mode,loans:&Loans,span:Span)->Result<Type,Diagnostic>{
-        self.expression(context,base,Mode::Read,loans,None)?;
-        if name!="size"{return Err(Diagnostic::new("ordered-set-member","OrderedSet has only the size value property; call methods with parentheses.",span));}
-        if mode==Mode::Mutate{return Err(Diagnostic::new("readonly","OrderedSet size is read-only.",span));}Ok(Type::Int)
-    }
     pub(super) fn ordered_set_method_call(&mut self,context:&mut Context,expression:&mut Expr,loans:&Loans,expected:Option<Type>)->Result<Type,Diagnostic>{
         let ExprKind::Call(callee,arguments)=&mut expression.kind else{unreachable!()};
         let ExprKind::Field(base,name)=&mut callee.kind else{unreachable!()};

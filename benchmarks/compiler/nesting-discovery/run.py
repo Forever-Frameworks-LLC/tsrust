@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,12 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family == 'transform-callbacks':
+        return 'function main(){console.log(' + repeated('7', size, '[7].map((value:int):int=>', ')[0]') + ');}'
+    if family == 'for-each-callbacks':
+        return 'function main(){' + repeated('console.log(7);', size, '[7].forEach((value:int):void=>{', '});') + '}'
+    if family == 'group-by-callbacks':
+        return 'function main(){console.log(' + repeated('7', size, 'Map.groupBy([7],(value:int):int=>', ').size') + ');}'
     if family == 'closure-method-chain':
         declarations = ['const step0=(f:Function<int,[x:int]>):int=>f(0);']
         declarations.extend(f'const step{index}=(f:Function<int,[x:int]>):int=>step{index-1}(f);' for index in range(1,size))
