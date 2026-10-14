@@ -117,6 +117,7 @@ mod rest_calls;
 mod spread_calls;
 mod spread_call_work;
 mod array_spread_work;
+mod collection_constructors;
 pub(crate) use spread_calls::spread_position_range;
 mod spread_builtins;
 
@@ -5077,8 +5078,7 @@ impl Analyzer {
                 self.record_literal(context, fields, loans, expected, expr.span)
             }
             ExprKind::ArrayOf(_, _) => unreachable!("array constructors use the shared checker worklist"),
-            ExprKind::SetConstructor(_, _) => self.set_constructor(context, expr, loans, expected),
-            ExprKind::MapConstructor(_, _) => self.map_constructor(context, expr, loans, expected),
+            ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructors use the shared checker stack"),
             ExprKind::NativeConstructor(_, _) => self.native_collection_constructor(expr,expected),
             ExprKind::Array(values) if values.iter().any(|value| matches!(value.kind, ExprKind::Unary { op: UnaryOp::Spread, .. })) => unreachable!("array spread constructors use the shared checker worklist"),
             ExprKind::Array(_) => unreachable!("dense array literals use the shared checker worklist"),

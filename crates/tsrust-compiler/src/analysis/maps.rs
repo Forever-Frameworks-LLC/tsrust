@@ -151,7 +151,7 @@ impl Analyzer {
 
 impl Analyzer {
     #[inline(never)]
-    fn map_literal_types(&self, context: &Context, source: &Expr) -> Result<Option<(Type, Type)>, Diagnostic> {
+    pub(super) fn map_literal_types(&self, context: &Context, source: &Expr) -> Result<Option<(Type, Type)>, Diagnostic> {
         let ExprKind::Array(entries) = &source.kind else { return Ok(None) };
         if entries.is_empty() { return Ok(None); }
         let mut keys = Vec::new();
@@ -169,61 +169,6 @@ impl Analyzer {
             if types.contains(&Type::Number) { types.retain(|ty| *ty != Type::Int); }
         }
         Ok(Some((self.unions.intern(keys, source.span)?, self.unions.intern(values, source.span)?)))
-    }
-    #[inline(never)]
-    pub(super) fn map_constructor(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
-        let ExprKind::MapConstructor(arguments, annotation) = &mut expression.kind else { unreachable!() };
-        if arguments.len() > 1 { return Err(Diagnostic::new("arity", "Map accepts zero or one entry source.", expression.span)); }
-        if context.names.contains_key("Map") || context.pending_names.contains("Map") || context.lexical_scopes.iter().any(|scope| scope.contains("Map")) || self.function_names.contains_key("Map") {
-            return Err(Diagnostic::new("unsupported", "A shadowed Map name cannot construct the built-in collection.", expression.span));
-        }
-        let declared = annotation.as_ref().map(|annotation| self.resolve_value_annotation(annotation, false)).transpose()?;
-        let empty_scoped = arguments.is_empty() && declared.zip(expected).is_some_and(|(declared, expected)| self.scoped_map_contract(expected, declared));
-        if let Some(declared) = declared && !empty_scoped { self.require(declared, expected, expression.span)?; }
-        let target = if empty_scoped { expected } else { declared.or(expected) };
-        let target_types = if let Some(Type::Map(id)) = target {
-            let map = self.program.records[id].map_definition.as_ref().unwrap(); Some((map.key, map.value))
-        } else if let Some(source) = arguments.first() {
-            self.map_literal_types(context, source)?
-        } else { None };
-        let source_types = if let Some(source) = arguments.first_mut() {
-            let mut source_context = None;
-            if matches!(source.kind, ExprKind::Array(_)) {
-                if let Some((key, value)) = target_types {
-                    let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
-                    let mut pair = crate::type_syntax::ValueAnnotation { span: source.span, kind: crate::type_syntax::ValueAnnotationKind::Tuple(vec![types.annotation(key, source.span)?, types.annotation(value, source.span)?]) };
-                    self.generic_records.materialize(&mut pair, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
-                    append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
-                    let pair = self.resolve_value_annotation(&pair, false)?;
-                    source_context = ArrayElement::from_value_type(pair).map(Type::Array);
-                }
-            }
-            let actual = self.expression(context, source, Mode::Read, loans, source_context)?;
-            let types = match actual {
-                Type::Map(id) => { let map = self.program.records[id].map_definition.as_ref().unwrap(); Some((map.key, map.value)) },
-                Type::Array(ArrayElement::Record(id, 0)) if self.program.records[id].is_tuple() && self.program.records[id].fields.len() == 2 => {
-                    let fields = &self.program.records[id].fields; Some((fields[0].ty.unwrap(), fields[1].ty.unwrap()))
-                },
-                Type::Null | Type::Undefined => None,
-                _ => return Err(Diagnostic::new("type", "Map construction requires an array of key/value tuples or another Map.", source.span)),
-            };
-            if let Some((key, value)) = types {
-                if let Some((target_key, target_value)) = target_types { self.require(key, Some(target_key), source.span)?; self.require(value, Some(target_value), source.span)?; }
-                self.require_cloneable(value, source.span)?;
-            }
-            types.or(target_types)
-        } else { target_types };
-        let Some((key, value)) = source_types else { return Err(Diagnostic::new("map-type", "An empty Map needs key/value types or a Map annotation.", expression.span)); };
-        if let Some(Type::Map(id)) = target { return Ok(Type::Map(id)); }
-        let types = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None, records: &self.program.records, names: &self.record_names, unions: &self.unions };
-        let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span, kind: crate::type_syntax::ValueAnnotationKind::Applied {
-            name: crate::type_syntax::TypeName { text: "Map".into(), span: expression.span }, arguments: vec![types.annotation(key, expression.span)?, types.annotation(value, expression.span)?],
-        } };
-        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
-        append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
-        let result = self.resolve_value_annotation(&annotation, false)?;
-        self.require(result, expected, expression.span)?;
-        Ok(result)
     }
 }
 

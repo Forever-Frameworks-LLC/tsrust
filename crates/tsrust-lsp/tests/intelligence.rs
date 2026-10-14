@@ -10145,3 +10145,17 @@ fn nested_array_spread_constructors_publish_checked_element_types(){
         }
     }
 }
+
+#[test]
+fn nested_collection_constructors_publish_checked_collection_types(){
+    for (open,leaf,ty) in [("new Set<int>(","[7]","Set<int>"),("new Map<int, int>(","[[7, 9]]","Map<int, int>")]{
+        let value=format!("{}{leaf}{}",open.repeat(32),")".repeat(32));
+        let source=format!("function main(){{const values={value};const size=values.size;console.log(size);}}");
+        let source=tsrust_compiler::format(&source).unwrap();assert_eq!(tsrust_compiler::format(&source).unwrap(),source);
+        assert!(tsrust_compiler::diagnostics(&source).is_empty());let index=SourceIndex::new(&source);
+        for (needle,ty) in [("values =",ty),("size =","size: int")]{
+            let hover=index.request("textDocument/hover",&json!({"position":at(&source,needle,0)}),"file:///test.tsr").unwrap();
+            assert!(hover["contents"]["value"].as_str().unwrap_or("").contains(ty),"{hover}");
+        }
+    }
+}

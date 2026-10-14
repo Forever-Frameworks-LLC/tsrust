@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "status": "implemented-unmeasured",
+  "evidence": null,
+  "scope": "Nested Set or Map construction from another constructed collection; timed phases exclude backend compilation and runtime throughput.",
+  "samples": 11,
+  "warmups": 2,
+  "generator": "../function-dependencies/run.py:source(..., collection_constructor='set'|'map')",
+  "expectedOutput": "1\n",
+  "phases": {
+    "native-check": "Fresh tsrust check process wall time, including startup and source reads; no backend execution.",
+    "native-emit": "Fresh tsrust emit process wall time, including startup and generated source transport; excludes rustc and execution.",
+    "node-tsc-check": "Fresh Node/TypeScript tsc --noEmit --strict process wall time, including startup and source reads. TypeScript number and native int have different checking contracts. This is frontend cost, not equal language coverage or runtime throughput."
+  },
+  "acceptance": "Validate every selected source before timing. Preserve exact sources, hashes, tool versions, compiler hash, source identity, commands and each duration in SQLite. Preserve completed groups and original failures. Do not label partial counts as complete architecture scaling.",
+  "nestingCounts": [
+    32,
+    128,
+    512
+  ]
+}

@@ -138,44 +138,4 @@ impl Analyzer {
         Ok((Type::Array(ArrayElement::Record(pair,0)),pair))
     }
 
-    #[inline(never)]
-    pub(super) fn set_constructor(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
-        let ExprKind::SetConstructor(arguments, annotation) = &mut expression.kind else { unreachable!() };
-        if arguments.len() > 1 { return Err(Diagnostic::new("arity", "Set accepts zero or one source collection.", expression.span)); }
-        if context.names.contains_key("Set") || context.pending_names.contains("Set") || context.lexical_scopes.iter().any(|scope| scope.contains("Set")) || self.function_names.contains_key("Set") { return Err(Diagnostic::new("unsupported", "A shadowed Set name cannot construct the built-in collection.", expression.span)); }
-        let declared = annotation.as_ref().map(|annotation| self.resolve_value_annotation(annotation, false)).transpose()?;
-        if let Some(declared) = declared { self.require(declared, expected, expression.span)?; }
-        let target = declared.or(expected);
-        let key = if let Some(Type::Set(id)) = target {
-            Some(self.program.records[id].set_definition.as_ref().expect("set definition").key)
-        } else { None };
-        let actual_key = if let Some(source) = arguments.first_mut() {
-            let array_context = key.and_then(ArrayElement::from_value_type).map(Type::Array);
-            let context_type = if matches!(source.kind, ExprKind::Array(_)) { array_context } else { None };
-            let actual = self.expression(context, source, Mode::Read, loans, context_type)?;
-            let actual_key = match actual {
-                Type::Array(element) if element.depth() == 0 => Some(element.ty()),
-                Type::Set(id) => Some(self.program.records[id].set_definition.as_ref().expect("set definition").key),
-                Type::Null | Type::Undefined => None,
-                Type::String => Some(Type::String),
-                _ => return Err(Diagnostic::new("type", "Set construction requires a dense array, string, or another Set.", source.span)),
-            };
-            if let (Some(actual), Some(key)) = (actual_key, key) { self.require(actual, Some(key), source.span)?; }
-            actual_key.or(key)
-        } else { key };
-        let Some(key) = actual_key else {
-            return Err(Diagnostic::new("set-type", "An empty Set needs an explicit key type or Set annotation.", expression.span));
-        };
-        if let Some(Type::Set(id)) = target { return Ok(Type::Set(id)); }
-        let key_annotation = crate::generic_inference::Types { callable_annotations: None, callable_shapes: None, inline_shapes: None,
-            records: &self.program.records, names: &self.record_names, unions: &self.unions }.annotation(key, expression.span)?;
-        let mut annotation = crate::type_syntax::ValueAnnotation { span: expression.span,
-            kind: crate::type_syntax::ValueAnnotationKind::Applied {
-                name: crate::type_syntax::TypeName { text: "Set".into(), span: expression.span }, arguments: vec![key_annotation] } };
-        self.generic_records.materialize(&mut annotation, &mut self.program.records, &mut self.record_names, &self.unions, &mut self.callables)?;
-        while self.fields.len() < self.program.records.len() { self.fields.push(HashMap::new()); }
-        let result = self.resolve_value_annotation(&annotation, false)?;
-        self.require(result, expected, expression.span)?;
-        Ok(result)
-    }
 }

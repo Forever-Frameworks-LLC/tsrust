@@ -1,0 +1,13 @@
+import { strictEqual } from 'std:testing';
+
+function main() {
+  const keys = new Set<int>([1, 2]);
+  const copy = new Set<int>(new Set<int>([...keys, 3]));
+  strictEqual(keys.size, 2);
+  strictEqual(copy.size, 3);
+  const names = new Map<string, string>([['a', 'x']]);
+  const renamed = new Map<string, string>(new Map<string, string>(names));
+  renamed.set('a', 'y');
+  strictEqual(names.get('a'), 'x');
+  strictEqual(renamed.get('a'), 'y');
+}

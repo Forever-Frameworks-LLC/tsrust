@@ -11,21 +11,31 @@ impl<'a> ArraySpreadTask<'a>{
 }
 pub(super) fn step<'a>(analyzer:&mut Analyzer,context:&mut Context,mut task:Box<ArraySpreadTask<'a>>,completion:Option<Completion<'a>>)->Step<'a>{
     let next=(||->Result<Option<Task<'a>>,Diagnostic>{
+        let restore=|task:&mut ArraySpreadTask<'a>,failed:Option<Input>,error:Diagnostic|{
+            Analyzer::restore_array_spread_operands(&mut task.expression,task.work.take().unwrap(),failed);Err(error)
+        };
         if let Some(mut input)=task.pending.take(){
             let Completion::Expression(value,result)=completion.expect("array spread source") else{unreachable!()};
             input.value=value.into_child();
-            analyzer.finish_array_spread_value(task.work.as_mut().unwrap(),input,result?)?;
+            let actual=match result{Ok(actual)=>actual,Err(error)=>return restore(&mut task,Some(input),error)};
+            if let Err((error,input))=analyzer.finish_array_spread_value(task.work.as_mut().unwrap(),input,actual){return restore(&mut task,Some(input),error);}
         }else{
             task.work=Some(analyzer.start_array_spread_work(context,&task.expression,task.expected)?);
         }
         let work=task.work.as_mut().unwrap();
-        if let Some(mut input)=analyzer.next_array_spread_value(context,&task.expression,work)?{
-            let span=input.value.span;
-            let value=std::mem::replace(&mut input.value,Box::new(Expr::new(ExprKind::Undefined,span)));
-            let child=Task::Expression(ExpressionTask::new(Expression::Child(value),task.context,input.mode,task.loans.clone(),input.expected));
-            task.pending=Some(input);return Ok(Some(child));
+        match analyzer.next_array_spread_value(context,&mut task.expression,work){
+            Ok(Some(mut input))=>{
+                let span=input.value.span;
+                let value=std::mem::replace(&mut input.value,Box::new(Expr::new(ExprKind::Undefined,span)));
+                let child=Task::Expression(ExpressionTask::new(Expression::Child(value),task.context,input.mode,task.loans.clone(),input.expected));
+                task.pending=Some(input);return Ok(Some(child));
+            },
+            Ok(None)=>{},
+            Err(error)=>return restore(&mut task,None,error),
         }
-        analyzer.finish_array_spread_work(context,&mut task.expression,task.work.take().unwrap(),task.expected)?;
+        if let Err((error,work))=analyzer.finish_array_spread_work(context,&mut task.expression,task.work.take().unwrap(),task.expected){
+            Analyzer::restore_array_spread_operands(&mut task.expression,work,None);return Err(error);
+        }
         Ok(None)
     })();
     match next{
@@ -53,7 +63,7 @@ mod tests{
         let checked=crate::check(source).unwrap();drop(checked.emit_rust());drop(checked);
     }
     #[test]
-    fn array_spread_failures_keep_original_constructor_and_leaf_span(){
+    fn array_spread_failures_restore_constructor_operands_and_leaf_span(){
         use super::*;
         for expression in ["[...[...missing]]","Array.of(...Array.of(...missing))","[1,...[true]]"]{
             let source=crate::format(&format!("function main(){{const value={expression};}}")).unwrap();
@@ -64,7 +74,18 @@ mod tests{
             let error=analyzer.expression(&mut context,&mut value,Mode::Consume,&Loans::new(),None).expect_err("invalid constructor child");
             let expected=if source.contains("true"){ "true" }else{ "missing" };
             assert_eq!(&source[error.span.start..error.span.end],expected);
-            assert_eq!(format!("{:?}",value.kind),before);
+            // Operands move back in place; operands checked before the failure keep their types.
+            let unchecked=|text:String|{
+                let mut output=String::new();let mut rest=text.as_str();
+                while let Some(start)=rest.find("ty: Some("){
+                    output.push_str(&rest[..start]);output.push_str("ty: None");
+                    let mut depth=0;let tail=&rest[start+"ty: Some".len()..];
+                    let end=tail.char_indices().find(|(_,ch)|{if *ch=='('{depth+=1;}else if *ch==')'{depth-=1;}depth==0}).unwrap().0;
+                    rest=&tail[end+1..];
+                }
+                output+rest
+            };
+            assert_eq!(unchecked(format!("{:?}",value.kind)),before);
         }
     }
 }

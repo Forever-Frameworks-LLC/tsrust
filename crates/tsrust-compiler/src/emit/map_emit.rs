@@ -46,14 +46,14 @@ impl Emitter<'_> {
             }else{let _=writeln!(output,"type Map{id}=TsrMap<{key},{value}>;");}
         }}
     }
-    #[inline(never)]
-    pub(super) fn map_constructor_expression(&self, function: &CheckedFunction, expression: &Expr, mode: Mode) -> String {
+    /// Assembles a Map from its already rendered read-mode source.
+    pub(super) fn map_constructor_expression(&self, expression: &Expr, mode: Mode, value: Option<String>) -> String {
         let ExprKind::MapConstructor(arguments, _) = &expression.kind else { unreachable!() };
         let Type::Map(id) = expression.ty.unwrap() else { unreachable!() };
         let map = self.program.records[id].map_definition.as_ref().unwrap();
         let native=self.native_type(Type::Map(id));
         let code=if let Some(source)=arguments.first() {
-            let value=self.expr(function, source, Mode::Read);
+            let value=value.expect("rendered Map source");
             let items=match source.ty.unwrap() {
                 Type::Null|Type::Undefined=>None,
                 Type::Map(id)=>{

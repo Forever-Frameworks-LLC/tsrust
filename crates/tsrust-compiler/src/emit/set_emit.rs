@@ -130,12 +130,12 @@ impl Emitter<'_> {
         arms.join(",")
     }
 
-    #[inline(never)]
-    pub(super) fn set_constructor_expression(&self, function: &CheckedFunction, expression: &Expr, mode: Mode) -> String {
+    /// Assembles a Set from its already rendered read-mode source.
+    pub(super) fn set_constructor_expression(&self, expression: &Expr, mode: Mode, value: Option<String>) -> String {
         let ExprKind::SetConstructor(arguments, _) = &expression.kind else { unreachable!() };
         let native = self.native_type(expression.ty.expect("checked Set"));
         let code = if let Some(source) = arguments.first() {
-            let value = self.expr(function,source,Mode::Read);
+            let value = value.expect("rendered Set source");
             let values: Option<String> = match source.ty.expect("checked Set source") {
                 Type::Null | Type::Undefined => None,
                 Type::String => Some("set_source.as_ref().chars().map(|value|String::Owned(value.to_string()))".into()),

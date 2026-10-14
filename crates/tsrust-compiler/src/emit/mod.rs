@@ -7255,8 +7255,7 @@ impl Emitter<'_> {
     fn expr_dispatch(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
         if let Some(value)=self.nullable_record_parameter_field(fun,expr,mode) { return value; }
         match &expr.kind {
-            ExprKind::SetConstructor(_, _) => self.set_constructor_expression(fun, expr, mode),
-            ExprKind::MapConstructor(_, _) => self.map_constructor_expression(fun,expr,mode),
+            ExprKind::SetConstructor(_, _) | ExprKind::MapConstructor(_, _) => unreachable!("collection constructor sources use the expression work stack"),
             ExprKind::NativeConstructor(_, _) => self.native_collection_constructor_expression(fun,expr,mode),
             ExprKind::TypeAssertion { value, satisfies, .. } => {
                 let code = self.expr(fun, value, mode);

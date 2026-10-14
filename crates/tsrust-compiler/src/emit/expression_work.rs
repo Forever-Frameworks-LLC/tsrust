@@ -7,6 +7,7 @@ struct Boundary {
 
 enum CallState<'p> {
     Spread,
+    CollectionConstructor,
     ObjectSpread { snapshots:Vec<Option<String>> },
     Sequence { discards: Vec<bool>, first_temporary: usize },
     Assignment { discards: Vec<bool>, first_temporary: usize },
@@ -223,6 +224,9 @@ impl<'p> Emitter<'p> {
     ) -> Option<CallFrame<'a, 'p>> {
         if let ExprKind::SpreadCall(plan)=&expr.kind {
             return Some(CallFrame{children:self.spread_expression_children(plan,mode),rendered:Vec::new(),invocation:None,state:CallState::Spread});
+        }
+        if let ExprKind::SetConstructor(arguments,_)|ExprKind::MapConstructor(arguments,_)=&expr.kind{
+            return Some(CallFrame{children:arguments.iter().map(|source|(source,Mode::Read)).collect(),rendered:Vec::new(),invocation:None,state:CallState::CollectionConstructor});
         }
         if matches!(expr.target,Some(CallTarget::RecordSpread(_))){
             let ExprKind::Call(_,args)=&expr.kind else{unreachable!("object spread call")};
@@ -560,6 +564,10 @@ impl<'p> Emitter<'p> {
             debug_assert!(rendered.next().is_none());
             return Self::access_wrapped(expr,mode,self.object_spread_value_with(result,args,copied));
         }
+        if matches!(state,CallState::CollectionConstructor){
+            let source=rendered.into_iter().next();
+            return if matches!(expr.kind,ExprKind::SetConstructor(_,_)){self.set_constructor_expression(expr,mode,source)}else{self.map_constructor_expression(expr,mode,source)};
+        }
         if matches!(state,CallState::Spread){
             let ExprKind::SpreadCall(plan)=&expr.kind else{unreachable!("spread emission frame")};
             let mut rendered=rendered.into_iter();
@@ -577,7 +585,7 @@ impl<'p> Emitter<'p> {
         };
         let mut rendered = rendered.into_iter();
         let code = match state {
-            CallState::Spread|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::CollectionConstructor|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { .. } | CallState::Assignment { .. } | CallState::Logical { .. } | CallState::Selected | CallState::Assertion { .. } | CallState::Coalesce { .. } | CallState::Conditional { .. } | CallState::BorrowedInjection { .. } | CallState::Unary { .. } | CallState::Binary | CallState::Array | CallState::Record | CallState::Template { .. } | CallState::TemporaryAccess { .. } | CallState::NamedAccess { .. } | CallState::NullableParameterField { .. } => {
                 unreachable!("structural completion handled above")
             }
@@ -825,7 +833,7 @@ impl<'p> Emitter<'p> {
         rendered: Vec<String>,
     ) -> String {
         let code = match state {
-            CallState::Spread|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
+            CallState::Spread|CallState::CollectionConstructor|CallState::ObjectSpread{..}=>unreachable!("spread emission handled before ordinary assembly"),
             CallState::Sequence { discards, .. } => {
                 let mut code = String::from("{");
                 for (value, discard) in rendered.into_iter().zip(discards) {
