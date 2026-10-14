@@ -1,5 +1,9 @@
 # Object spread compiler continuations
 
+Current continuation: [compiler foundations through S12–S21](compiler-to-roadmap-continuation.md).
+Use that entry for current priorities, remaining work, acceptance and resumption.
+Historical checkpoint/stop statements below retain their original context.
+
 Object spread source checking and emission use the shared heap work stacks.
 This continues the nesting architecture work after `dbd03e89`. Set and Map
 constructors remain the next known synchronous source-checking and emission paths.

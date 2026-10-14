@@ -1,5 +1,11 @@
 # Modules, native standard library and async roadmap
 
+Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).
+S01–S11 are accepted within their documented boundaries. On owner resumption,
+finish nesting architecture, then required existing-code optimization, then
+continue source feature implementation from S12 through S21. Historical S11-only
+stop instructions below do not create a new stop for that resumed objective.
+
 Owner-prioritized [diagnostic suppression directives](plans/diagnostic-suppression-plan.md)
 are accepted and installed for `check` and LSP reporting. Strict compilation stays
 unchanged. Continue the remaining S10 work.

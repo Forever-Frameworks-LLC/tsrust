@@ -1,5 +1,9 @@
 # S11 acceptance and continuation handoff
 
+Current continuation: [compiler foundations through S12–S21](compiler-to-roadmap-continuation.md).
+Use that entry for current priorities, remaining work, acceptance and resumption.
+Historical checkpoint/stop statements below retain their original context.
+
 Status: S11 implementation, family measurement, source cleanup and consumer refresh
 are accepted on macOS. Stop boundary reached; do not start S12 in this run.
 The compiler nesting architecture below is the next agent’s first priority.

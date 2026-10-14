@@ -1,5 +1,10 @@
 # Compiler pipeline and continuation ownership
 
+Current source/status and the route back to feature implementation are in the
+[continuation handoff](../handoffs/compiler-to-roadmap-continuation.md), based on
+`39aaec7d`. The chronological sections below preserve earlier source states and
+evidence; do not treat an earlier remaining-work list as the current inventory.
+
 This map implements the owner's holistic nesting direction. It describes the
 current source at `eee661c3`, with the discovery probe added afterward. It is not
 an acceptance claim. Historical helper checkpoints remain evidence, not the

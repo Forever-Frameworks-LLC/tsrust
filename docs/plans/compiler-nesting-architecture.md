@@ -1,5 +1,10 @@
 # Compiler nesting architecture
 
+Current source/status and the route back to feature implementation are in the
+[continuation handoff](../handoffs/compiler-to-roadmap-continuation.md), based on
+`39aaec7d`. The chronological sections below preserve earlier source states and
+evidence; do not treat an earlier remaining-work list as the current inventory.
+
 Status: active, required before S12. Full nesting acceptance remains pending;
 ordinary acyclic dependency measurements are recorded below. Baseline source is
 `6fe878c2`; `f26712cf` tracks the
