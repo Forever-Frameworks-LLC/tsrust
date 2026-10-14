@@ -338,10 +338,9 @@ than entering another block driver. `analysis/continuations/driver/functions.rs`
 keeps that schedule on the shared checker stack while the body runs with its real
 capture context. Declared calls prepare capture readiness, suspend for the callee,
 then obtain access contracts and evaluate written arguments. Uncalled nested
-functions enter the same schedule after their owner's finalization. Parameter
-context preparation, closure-method specialization and compatibility dispatch
-still require separate re-entry audits; a suspended body alone does not establish
-that every function-related path is stack independent.
+functions enter the same schedule after their owner's finalization. Generic specialization and compatibility dispatch elsewhere still require separate
+re-entry audits; suspended bodies alone do not establish that every
+function-related path is stack independent.
 
 
 `analysis/function_parameters.rs` reserves named parameter slots and owns parameter
@@ -360,9 +359,8 @@ keeps method bodies on the caller's work stack. Named polymorphic closure calls
 schedule arguments with their original capture-loan boundary and then request a
 method; expression-valued calls keep their conditional completion frame until the
 method returns. Publish native return information, callable origin and completed
-capture effects at the same completion point as before. Collection callback
-helpers still call the compatibility materialization entry and need their own
-parent continuations; method body suspension does not make those parents safe.
+capture effects at the same completion point as before. Collection callbacks request the same shared method task. Deferred generic
+adapters retain separate compatibility checking and still require an audit.
 
 
 `analysis/continuations/transform.rs` owns collection transform contracts and result
@@ -373,5 +371,19 @@ array transforms/predicates, array/Set/Map forEach, mapped Array.from and Map.gr
 GroupBy source rewriting precedes checking, while concrete group record creation
 follows callback completion. Collection size properties use `FieldFrame` receiver
 continuations; do not start another expression driver to check a property receiver.
-Generic callback adaptation, reduction and sorting retain compatibility entry
-points and still require their separate suspension audits.
+Generic callback adaptation retains compatibility entry points and still requires
+a separate suspension audit. Reduction and sorting use the dedicated driver stages
+described below.
+
+
+`analysis/continuations/reduction.rs` and `sorting.rs` separate receiver, callback,
+initial-value and method contracts from driver scheduling. Their driver modules
+own suspended expression frames. Reduction checks its callback before its initial
+value, then validates accumulator/element access and specializes the callback.
+Sorting releases callback capture loans before final receiver mutation access.
+Both retain source evaluation order and exact diagnostic spans. All collection
+callback method requests now enter the shared method task; obsolete synchronous
+transform/reduction/sorting adapters and materializer wrappers are removed.
+`finish_builtin_result` owns shared copy requirements and capture-slot collapse.
+Every builtin continuation must call it before publishing completed invocation
+facts, so bypassing ordinary dispatch cannot omit ownership validation.

@@ -319,3 +319,19 @@ fn owned_seeds_accumulators_and_temporary_sources_dispose_on_normal_and_unwind_p
     "#,
     );
 }
+
+#[test]
+fn nested_reduce_sort_and_transform_callbacks_keep_native_results() {
+    let layers = [
+        ("[7].reduce((acc:int,value:int):int=>", ",0)"),
+        ("[7,8].toSorted((left:int,right:int):int=>(", ")-7)[0]"),
+        ("[7].map((value:int):int=>", ")[0]"),
+    ];
+    let count = 24;
+    let mut value = String::new();
+    for index in 0..count { value.push_str(layers[index % layers.len()].0); }
+    value.push('7');
+    for index in (0..count).rev() { value.push_str(layers[index % layers.len()].1); }
+    let source = support::format_round_trip(&format!("function main(){{console.log({value});}}"));
+    native(&source, "7\n", "", "");
+}

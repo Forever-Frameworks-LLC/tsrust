@@ -12,6 +12,8 @@ mod functions;
 mod parameters;
 mod methods;
 mod transform;
+mod reduction;
+mod sorting;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -104,6 +106,8 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Transform(Box<transform::State>),
+    Reduction(Box<reduction::State>),
+    Sorting(Box<sorting::State>),
     Wrapper(super::wrappers::Frame),
     Start,
     Prelude(super::prelude::Frame),
@@ -886,6 +890,8 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Reduction(state) => reduction::resume(analyzer, contexts.get(task.context), task, state, completion.expect("reduction child")),
+        ExpressionState::Sorting(state) => sorting::resume(analyzer, contexts.get(task.context), task, state, completion.expect("sorting child")),
         ExpressionState::Transform(state) => transform::resume(analyzer, contexts.get(task.context), task, state, completion.expect("transform child")),
         ExpressionState::Wrapper(frame) => {
             let Completion::Expression(value, result) = completion.expect("wrapper operand completed") else { unreachable!("wrapper result") };
@@ -1391,6 +1397,8 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                 if invocation {
                     let dispatch = analyzer.prepare_call_work(context, expr, &task.loans, expected);
                     match dispatch {
+                        Ok(CallDispatch::Reduction) => reduction::start(analyzer, context, task),
+                        Ok(CallDispatch::Sorting { copying, expected }) => sorting::start(analyzer, context, task, copying, expected),
                         Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),
                         Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
                         Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
@@ -1549,13 +1557,6 @@ fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut t
         }
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
     }
-}
-
-pub(in crate::analysis) fn check_closure_method(analyzer: &mut Analyzer, origin: usize, types: Vec<Type>, span: Span) -> Result<(usize, Type), Diagnostic> {
-    let mut context = Context::new(String::new());
-    let task = Task::Method(Box::new(methods::MethodTask::Start { origin, types, span }));
-    let Completion::Method(result) = drive(analyzer, &mut context, task) else { unreachable!("method schedule result") };
-    result
 }
 
 fn schedule_method<'a>(mut task: ExpressionTask<'a>, origin: usize, types: Vec<Type>, conditional: Option<(super::call::CallCompletion, bool)>) -> Step<'a> {

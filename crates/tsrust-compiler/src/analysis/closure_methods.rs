@@ -15,15 +15,6 @@ impl Analyzer {
         }).collect::<Vec<_>>()
     }
 
-    pub(super) fn materialize_closure_method_types(
-        &mut self,
-        origin: usize,
-        types: Vec<Type>,
-        span: Span,
-    ) -> Result<(usize, Type), Diagnostic> {
-        continuations::driver::check_closure_method(self, origin, types, span)
-    }
-
     pub(super) fn prepare_closure_method(&mut self, origin: usize, types: Vec<Type>, span: Span) -> Result<PreparedMethod, Diagnostic> {
         let source = self.closure_method_sources.get(&origin).cloned().ok_or_else(|| Diagnostic::new("unsupported", "Callable traversal visitor requires an arrow environment with a checked specialization body.", span))?;
         let key = (

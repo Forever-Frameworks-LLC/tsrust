@@ -287,6 +287,7 @@ impl Analyzer {
         };
         self.require(result, request.expected, expr.span)?;
         expr.target = Some(request.target);
+        let result = self.finish_builtin_result(context, expr, result)?;
         self.resolve_completed_capture_invocation(context, expr, result);
         Ok(result)
     }

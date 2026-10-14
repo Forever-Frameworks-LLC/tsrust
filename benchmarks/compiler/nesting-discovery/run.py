@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks', 'transform-callbacks', 'for-each-callbacks', 'group-by-callbacks', 'closure-method-chain', 'captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,14 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family in ('reduce-callbacks', 'sort-callbacks', 'mixed-collection-callbacks'):
+        layers = [('[7].reduce((acc:int,value:int):int=>', ',0)'), ('[7,8].toSorted((left:int,right:int):int=>(', ')-7)[0]'), ('[7].map((value:int):int=>', ')[0]')]
+        if family == 'reduce-callbacks':
+            layers = layers[:1]
+        elif family == 'sort-callbacks':
+            layers = layers[1:2]
+        body = ''.join(layers[level % len(layers)][0] for level in range(size)) + '7' + ''.join(layers[level % len(layers)][1] for level in reversed(range(size)))
+        return 'function main(){console.log(' + body + ');}'
     if family == 'transform-callbacks':
         return 'function main(){console.log(' + repeated('7', size, '[7].map((value:int):int=>', ')[0]') + ');}'
     if family == 'for-each-callbacks':

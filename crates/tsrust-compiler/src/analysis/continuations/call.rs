@@ -3,6 +3,8 @@ use super::super::*;
 
 pub(in crate::analysis) enum CallDispatch {
     Ready(Type),
+    Reduction,
+    Sorting { copying: bool, expected: Option<Type> },
     Transform(super::transform::Request),
     ReadyMethod { origin: usize, method: usize, result: Type },
     Method { binding: usize, origin: usize, params: Vec<ArgumentContract>, invocation: Mode },
@@ -61,6 +63,10 @@ impl Analyzer {
             return Ok(CallDispatch::Conditional { publish_type: true });
         }
         if let Some(request) = self.transform_request(context, expr, expected, false) { return Ok(CallDispatch::Transform(request)); }
+        if let ExprKind::Call(callee, _) = &expr.kind && let ExprKind::Field(_, name) = &callee.kind {
+            if matches!(name.as_str(), "reduce" | "reduceRight") { return Ok(CallDispatch::Reduction); }
+            if matches!(name.as_str(), "sort" | "toSorted") { return Ok(CallDispatch::Sorting { copying: name == "toSorted", expected }); }
+        }
         self.builtin_or_method_call(context, expr, loans, expected).map(CallDispatch::Ready)
     }
 

@@ -30,12 +30,7 @@ impl Analyzer {
     pub(super) fn map_method_call(&mut self, context: &mut Context, expression: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Type, Diagnostic> {
         let ExprKind::Call(callee, arguments) = &mut expression.kind else { unreachable!() };
         let ExprKind::Field(base, name) = &mut callee.kind else { unreachable!() };
-        if name=="forEach" {
-            let result=self.array_transform(context,base,arguments,loans,expression.span,(false,true,Mode::Read,false,false,false,false))?;
-            self.require(result,expected,expression.span)?;
-            expression.target=Some(CallTarget::ArrayForEach);
-            return Ok(result);
-        }
+
         if matches!(name.as_str(),"keys"|"values"|"entries") {
             return self.map_snapshot_call(context,expression,loans,expected);
         }

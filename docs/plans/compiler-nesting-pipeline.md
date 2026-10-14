@@ -1912,3 +1912,52 @@ sorting, generic callback adaptation, other compatibility entries, specializatio
 budgets and public admission retirement remain required. Full compiler/LSP
 regressions and formal scaling are not claimed. Installed consumers remain
 unchanged because this internal section changes no public API contract.
+
+
+### Reduction, sorting and builtin completion continuations
+
+Discovery on `349df188` reproduces analysis stack overflows at eight nested reduce
+and sorting callbacks. A mixed map/reduce/sort chain completes at eight but
+stack-overflows at 32. LLDB records the synchronous reduction callback/body path.
+Reduction and sorting now separate receiver, callback, initial value and method
+completion into shared-driver stages. Reduction preserves callback checking before
+the initial value and validates accumulator access afterward. Sorting restores
+literal hints after receiver checking and releases callback capture loans before
+its final mutation access. Obsolete synchronous transform/reduction/sort adapters
+and the compatibility method materializer are removed.
+
+The audit also found a regression in the preceding transform checkpoint: filter
+accepted a record containing a non-cloneable owned callback because the new request
+path skipped the shared builtin postlude. A CLI witness records the incorrect
+acceptance. `finish_builtin_result` now centralizes independent-copy requirements
+and capture-slot collapse; transform, reduction and sorting continuations call it
+before completed-call facts publish. A focused clone-type rejection witness guards
+this contract. Previous transform acceptance did not cover that rejection and does
+not establish that the regression was absent.
+
+Evidence uses `tsrust-nesting-reduce-sort-work-*` in SQLite. All 33 shared-driver
+unit tests pass. New witnesses analyze 512-layer reduction and comparator chains,
+retain a missing initial-value location through 128 reductions, and restore
+literal hints after a failure through 128 sorting callbacks. All 109 affected
+compiler integration tests pass across callback errors, copying, reduction,
+sorting, transforms and generic value adapters. The new formatted native mixed
+chain executes at both optimization levels and returns the independently expected
+value `7`. The filter clone-type regression witness passes with its original
+receiver location. Four focused editor checks pass: sorting documentation/native
+examples, mutable callable reduction help and compiler agreement. Whole-project
+formatting changes zero files and fingerprints.
+
+Geometric discovery completes all three families at 8, 32, 128, 512, 2,048 and
+8,192: 18 completed observations. All three 32,768 cases time out during analysis
+under the 30-second observation budget. No post-change observation crashes or
+stack-overflows. Discovery overlaps builds and native checks, so these are not
+formal timing samples or supported-depth ceilings. Memory/scaling concerns remain
+for the formal measurement and optimization phase.
+
+A scoped source audit finds no synchronous expression/body checks in the three
+collection contract modules or closure method materializer. Generic callback
+adaptation still contains compatibility checking elsewhere and remains pending,
+as do other consumers, specialization budgets, public admission retirement and
+formal scaling. No stack or depth constant is increased. Full compiler/LSP
+regressions are not claimed for this section. Installed consumers remain unchanged
+because these internal changes preserve the public API contracts.

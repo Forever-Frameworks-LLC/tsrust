@@ -230,3 +230,12 @@ fn nested_transform_parents_preserve_native_callback_results() {
     let source = support::format_round_trip(&format!("function main(){{console.log({map});{foreach}console.log({groups});}}"));
     native(&source, "7\n7\n1\n", "", "");
 }
+
+#[test]
+fn filtered_records_require_independent_cloneable_payloads() {
+    let source = "type Row={action:Once<Function<int>>;};function main(){const rows:Row[]=[{action:():int=>7}];const selected=rows.filter((row:ReadOnly<Row>):boolean=>true);}";
+    let source = support::format_round_trip(source);
+    let error = check(&source).err().expect("filter copies its retained records");
+    assert_eq!(error.code, "clone-type", "{}", error.message);
+    assert_eq!(&source[error.span.start..error.span.end], "rows");
+}

@@ -55,12 +55,7 @@ impl Analyzer {
         if matches!(name.as_str(),"isSubsetOf"|"isSupersetOf"|"isDisjointFrom") {
             return self.set_relation_call(context,expression,loans,expected);
         }
-        if name=="forEach" {
-            let result=self.array_transform(context,base,arguments,loans,expression.span,(false,true,Mode::Read,false,false,false,false))?;
-            self.require(result,expected,expression.span)?;
-            expression.target=Some(CallTarget::ArrayForEach);
-            return Ok(result);
-        }
+
         let Type::Set(id) = self.expression(context,base,Mode::Read,loans,None)? else { unreachable!("Set receiver hint") };
         if name=="entries" {
             Self::arity(arguments.len(),0,expression.span)?;
