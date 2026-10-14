@@ -9,8 +9,10 @@ pub(super) struct Prepared {
     pub invocation: Mode,
 }
 
+pub(super) struct Pending { pub function: usize, pub arguments: Vec<Expr>, pub span: Span }
+
 impl Analyzer {
-    fn same_deferred_argument_type(&self,left:Type,right:Type)->bool {
+    pub(super) fn same_deferred_argument_type(&self,left:Type,right:Type)->bool {
         if left==right {return true;}
         match (left,right) {
             (Type::Callback(left),Type::Callback(right))=>self.callables.callbacks[left].structural==self.callables.callbacks[right].structural,
@@ -18,27 +20,10 @@ impl Analyzer {
         }
     }
 
-    /// Join access before source evaluation; declaration preparation does not
-    /// consume source arguments or mutate caller availability.
-    #[inline(never)]
-    pub(super) fn join_deferred_argument_contracts(
-        &mut self, context:&Context, primary:usize, origins:&[usize],
-        arguments:&[Expr], contracts:&mut [ArgumentContract], expected:Option<Type>, span:Span,
-    )->Result<(),Diagnostic> {
-        for &alternative in origins {
-            if alternative==primary {continue;}
-            let other=self.prepare_deferred_generic_body(context,alternative,arguments.to_vec(),expected,span)?;
-            if contracts.len()!=other.contracts.len() || contracts.iter().zip(&other.contracts).any(|(left,right)|!self.same_deferred_argument_type(left.ty,right.ty) || left.omission!=right.omission || left.rest!=right.rest) {
-                return Err(Diagnostic::new("callable-layout","Reachable generic declarations require compatible prepared argument contracts.",span));
-            }
-            for (contract,other) in contracts.iter_mut().zip(other.contracts) {contract.mode=contract.mode.max(other.mode);}
-        }
-        Ok(())
-    }
-
     /// Prepare an alternative from its own declaration after source arguments
     /// have been accessed. This must not replay their ownership effects.
     #[inline(never)]
+    #[cfg(test)]
     pub(super) fn prepare_deferred_alternative_method(
         &mut self, context:&mut Context, origin:usize, arguments:Vec<Expr>,
         expected:Option<Type>, span:Span,
@@ -51,10 +36,10 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    pub(super) fn prepare_deferred_generic_body(
+    pub(super) fn request_deferred_generic_body(
         &mut self, context: &Context, origin: usize, arguments: Vec<Expr>,
         expected: Option<Type>, span: Span,
-    ) -> Result<Prepared, Diagnostic> {
+    ) -> Result<Pending, Diagnostic> {
         let mut source_call = Expr::new(ExprKind::Call(
             Box::new(Expr::new(ExprKind::Name(self.deferred_generic_values[&origin].declaration.clone()), span)), arguments), span);
         // Original template preparation solves constraints without evaluating
@@ -76,7 +61,11 @@ impl Analyzer {
         let ExprKind::Name(name) = target.into_kind() else { unreachable!() };
         let function = self.function_names[&name];
         self.named_captures.prepare(function, preparation, &self.program)?;
-        self.function(function)?;
+        Ok(Pending { function, arguments: prepared, span })
+    }
+
+    pub(super) fn complete_deferred_generic_body(&mut self, pending: Pending) -> Result<Prepared, Diagnostic> {
+        let Pending { function, arguments: prepared, span } = pending;
         let checked = self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?;
         debug_assert_eq!(checked.parameter_count, self.program.functions[function].params.len());
         let contracts = checked.bindings[..checked.parameter_count].iter().map(ArgumentContract::from).collect::<Vec<_>>();
@@ -86,6 +75,13 @@ impl Analyzer {
         let method_invocation = accesses.iter().fold(Mode::Read, |mode, access| mode.max(access.mode));
         Ok(Prepared { function, arguments, contracts, accesses, invocation: method_invocation })
     }
+    #[cfg(test)]
+    pub(super) fn prepare_deferred_generic_body(&mut self, context: &Context, origin: usize, arguments: Vec<Expr>, expected: Option<Type>, span: Span) -> Result<Prepared, Diagnostic> {
+        let pending = self.request_deferred_generic_body(context, origin, arguments, expected, span)?;
+        self.function(pending.function)?;
+        self.complete_deferred_generic_body(pending)
+    }
+
 }
 
 #[cfg(test)]

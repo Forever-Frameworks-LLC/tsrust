@@ -753,3 +753,14 @@ fn nested_fresh_factory_traversal_adapters_evaluate_each_source_once() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn nested_named_generic_adapters_preserve_native_result() {
+    let count = 40;
+    let mut source = "function step0<T>(value:T):T{return value;}".to_owned();
+    for index in 1..=count {
+        source.push_str(&format!("function step{index}<T>(value:T):T{{const action=step{};return [value].map(action)[0];}}", index-1));
+    }
+    source.push_str(&format!("function main(){{const action=step{count};console.log([7].map(action)[0]);}}"));
+    native(&source, "7\n");
+}

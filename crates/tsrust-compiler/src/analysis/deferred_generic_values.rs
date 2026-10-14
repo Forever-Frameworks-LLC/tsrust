@@ -10,7 +10,7 @@ pub(super) struct Source {
 
 impl Analyzer {
     #[inline(never)]
-    fn retain_generic_invocation(&mut self, context: &Context, origin: usize, method: usize, result: Type, span: Span) -> Result<(usize, Type), Diagnostic> {
+    pub(super) fn retain_generic_invocation(&mut self, context: &Context, origin: usize, method: usize, result: Type, span: Span) -> Result<(usize, Type), Diagnostic> {
         if !self.effects_only && !self.discovering_results && !context.template {
             self.polymorphic_invocations.publish(
                 [crate::polymorphic_invocation_plans::Pair { origin, method }], &self.closures, span,
@@ -163,76 +163,7 @@ impl Analyzer {
         Ok(self.checked[function].as_ref().ok_or_else(|| Self::pending_result(span))?.result)
     }
 
-    #[allow(clippy::too_many_arguments)]
-    #[inline(never)]
-    pub(super) fn deferred_generic_call(
-        &mut self, context: &mut Context, binding: Option<usize>, origin: usize,
-        callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, once: bool, expected: Option<Type>, checked_receiver: bool,
-    ) -> Result<(usize, Type), Diagnostic> {
-        let declaration = self.deferred_generic_values[&origin].declaration.clone();
-        let reachable_origins = if !context.template
-            && let Some(reachable) = self.generic_functions.reachable_declarations(&context.function_name, span, callee.span)
-        {
-            self.polymorphic_storage.reachable_origins(origin, reachable, |member| {
-                self.deferred_generic_values.get(&member)
-                    .and_then(|source| self.generic_functions.template(&source.declaration))
-                    .map(|template| template.name.span)
-            }, span)?
-        } else if self.polymorphic_storage.contains(origin) {
-            // Generated contextual adapters have no original source call proof.
-            // Retain every matching environment instead of guessing the first.
-            let source = self.generic_functions.template(&declaration).expect("deferred source declaration").name.span;
-            self.polymorphic_storage.reachable_origins(origin, &[source], |member| {
-                self.deferred_generic_values.get(&member)
-                    .and_then(|source| self.generic_functions.template(&source.declaration))
-                    .map(|template| template.name.span)
-            }, span)?
-        } else { vec![origin] };
-        let preparation_origin=if reachable_origins.contains(&origin) {origin} else {
-            *reachable_origins.first().ok_or_else(||Diagnostic::new("callable-layout","Generic invocation has no reachable environment.",span))?
-        };
-        let prepared = self.prepare_deferred_generic_body(context, preparation_origin, args.clone(), expected, span)?;
-        let function = prepared.function;
-        let mut contracts = prepared.contracts;
-        *args = prepared.arguments;
-        self.join_deferred_argument_contracts(context,preparation_origin,&reachable_origins,args,&mut contracts,expected,span)?;
-        let accesses = prepared.accesses;
-        let method_invocation = prepared.invocation;
-        let invocation = if once { Mode::Consume } else { method_invocation };
-        if let Some(binding) = binding {
-            Self::access(context, binding, invocation, callee.span, loans)?;
-            callee.binding = Some(binding);
-            callee.ty = Some(context.bindings[binding].ty);
-        } else {
-            let receiver = self.expression_type_hint(context, callee).unwrap_or(Type::Closure(origin));
-            let actual = if checked_receiver { callee.ty.expect("checked generic receiver") }
-                else { self.expression(context, callee, invocation, loans, Some(receiver))? };
-            self.require(actual, Some(receiver), callee.span)?;
-        }
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let mut active = loans.clone();
-        if let Some(binding) = binding { active.entry(binding).or_default().push((invocation, callee.span)); }
-        else { for root in Self::loan_roots(callee, invocation) { active.entry(root).or_default().push((invocation, callee.span)); } }
-        for (argument, contract) in args.iter_mut().zip(contracts) {
-            let actual = self.parameter_argument(context, argument, contract, &active)?;
-            self.require(actual, Some(contract.ty), argument.span)?;
-            if !actual.is_copy() {
-                for root in Self::loan_roots(argument, contract.mode) {
-                    active.entry(root).or_default().push((contract.mode, argument.span));
-                }
-            }
-        }
-        capture_boundary.unwind(&mut context.capture_loans);
-        let (function, result) = self.resolved_call(context, function, args, span)?;
-        // Callable arguments can select a further concrete body specialization.
-        // Check that body before retaining its invocation method.
-        self.function(function)?;
-        let method = self.materialize_deferred_method(preparation_origin, function, result, args, &accesses, method_invocation, span)?;
-        if !self.effects_only && !self.discovering_results && !context.template && (reachable_origins.len() > 1 || preparation_origin!=origin) {
-            callee.generic_invocation = Some(self.materialize_selected_generic_methods(context, preparation_origin, function, result, args, &accesses, method_invocation, &reachable_origins, span)?);
-        }
-        self.retain_generic_invocation(context, preparation_origin, method, result, span)
-    }
+
 }
 
 #[cfg(test)]

@@ -33,6 +33,7 @@ impl Analyzer {
 
     #[inline(never)]
     #[allow(clippy::too_many_arguments)]
+    #[cfg(test)]
     pub(super) fn materialize_selected_generic_methods(
         &mut self, context:&mut Context, original: usize, function: usize, result: Type, args: &[Expr],
         accesses: &[named_capture_access::Access], invocation: Mode, origins: &[usize], span: Span,

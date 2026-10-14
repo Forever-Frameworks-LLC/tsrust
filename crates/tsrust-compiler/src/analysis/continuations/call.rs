@@ -6,7 +6,7 @@ pub(in crate::analysis) enum CallDispatch {
     Reduction,
     Sorting { copying: bool, expected: Option<Type> },
     Transform(super::transform::Request),
-    ReadyMethod { origin: usize, method: usize, result: Type },
+    Deferred(super::super::deferred_generic_call_work::Request),
     Method { binding: usize, origin: usize, params: Vec<ArgumentContract>, invocation: Mode },
     Conditional { publish_type: bool },
     Declared { resolve_completed: bool },
@@ -34,7 +34,7 @@ pub(super) struct CallableInvocation {
     target: CallTarget,
 }
 
-pub(super) enum PreparedInvocation { Ready((CallTarget, Type)), Check(CallableInvocation) }
+pub(super) enum PreparedInvocation { Deferred(super::super::deferred_generic_call_work::Request), Check(CallableInvocation) }
 
 impl Analyzer {
     pub(in crate::analysis) fn prepare_builtin_call_work(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<CallDispatch, Diagnostic> {
@@ -99,15 +99,14 @@ impl Analyzer {
         Ok(result)
     }
 
-    pub(super) fn prepare_callable_invocation(&mut self, context: &mut Context, callee: &mut Expr, args: &mut Vec<Expr>, loans: &Loans, span: Span, hint: Type, checked_callee: bool, expected: Option<Type>) -> Result<PreparedInvocation, Diagnostic> {
+    pub(super) fn prepare_callable_invocation(&mut self, context: &mut Context, callee: &mut Expr, args: &mut Vec<Expr>, _loans: &Loans, span: Span, hint: Type, checked_callee: bool, expected: Option<Type>) -> Result<PreparedInvocation, Diagnostic> {
         if let Type::Closure(origin) = hint {
             let (origin, once) = match self.closures[origin].forward {
                 Some(ClosureForward::Once(inner)) => (inner, true),
                 _ => (origin, false),
             };
             if self.deferred_generic_values.contains_key(&origin) {
-                let (method, result) = self.deferred_generic_call(context, None, origin, callee, args, loans, span, once, expected, checked_callee)?;
-                return Ok(PreparedInvocation::Ready((CallTarget::ClosureMethod(method), result)));
+                return Ok(PreparedInvocation::Deferred(super::super::deferred_generic_call_work::Request { binding: None, origin, once, expected, checked_receiver: checked_callee }));
             }
         }
         let (params, result, invocation, target) = match hint {

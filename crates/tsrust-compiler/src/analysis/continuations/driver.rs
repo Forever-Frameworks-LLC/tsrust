@@ -15,6 +15,7 @@ mod transform;
 mod reduction;
 mod sorting;
 mod adapters;
+mod deferred;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -107,6 +108,7 @@ struct BlockTask<'a> {
 
 enum ExpressionState {
     Adapter,
+    Deferred { origin: usize, conditional: Option<(super::call::CallCompletion, bool)> },
     Transform(Box<transform::State>),
     Reduction(Box<reduction::State>),
     Sorting(Box<sorting::State>),
@@ -231,8 +233,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Deferred(Box<deferred::DeferredTask<'a>>), Adapter(Box<adapters::AdapterTask<'a>>), Method(Box<methods::MethodTask>), Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Deferred(Box<Expr>, Result<(usize, Type), Diagnostic>),
     Method(Result<(usize, Type), Diagnostic>),
     Parameters(Vec<Stmt>, Result<(), Diagnostic>),
     Function(Result<(), Diagnostic>),
@@ -519,6 +522,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Deferred(task) => deferred::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Adapter(task) => adapters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Method(task) => methods::step(analyzer, &mut contexts, task, completion.take()),
             Task::Parameters(task) => parameters::step(analyzer, contexts.get(task.context), task, completion.take()),
@@ -893,6 +897,25 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::Deferred { origin, conditional } => {
+            let Completion::Deferred(value, result) = completion.expect("deferred invocation") else { unreachable!() };
+            *task.expression.value() = *value;
+            let context = contexts.get(task.context);
+            let expr = task.expression.value();
+            let result = result.and_then(|(method, result)| {
+                if let Some((frame, publish_type)) = conditional {
+                    complete_conditional_call(analyzer, context, expr, frame, (CallTarget::ClosureMethod(method), result), publish_type)
+                } else {
+                    analyzer.remember_native_closure_returns(context, origin, Some(method), expr.span)?;
+                    if analyzer.native_borrow_types { expr.callable_origin = Some(CallableOrigin::Closure(origin)); }
+                    expr.target = Some(CallTarget::ClosureMethod(method));
+                    expr.ty = Some(result);
+                    analyzer.resolve_completed_capture_invocation(context, expr, result);
+                    Ok(result)
+                }
+            });
+            finish_expression(analyzer, context, task, result)
+        }
         ExpressionState::Adapter => {
             let Completion::Expression(value, result) = completion.expect("generic adapter") else { unreachable!("adapter result") };
             *task.expression.value() = *value.into_child();
@@ -1416,7 +1439,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
                         Ok(CallDispatch::Transform(request)) => transform::start(analyzer, context, task, request),
                         Ok(CallDispatch::Ready(ty)) => finish_expression(analyzer, context, task, Ok(ty)),
                         Ok(CallDispatch::Declared { resolve_completed }) => start_declared_call(analyzer, context, task, resolve_completed),
-                        Ok(CallDispatch::ReadyMethod { .. }) => unreachable!("ready method is published by dispatch"),
+                        Ok(CallDispatch::Deferred(request)) => schedule_deferred(task, request, None),
                         Ok(CallDispatch::Method { binding, origin, params, invocation }) => {
                             let ExprKind::Call(callee, _) = &expr.kind else { unreachable!("method call") };
                             let mut active = (*task.loans).clone();
@@ -1534,10 +1557,7 @@ fn start_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Expr
     let expected = task.checked.as_ref().expect("checked call frame").expected;
     let prepared = analyzer.prepare_callable_invocation(context, callee, args, &task.loans, expr.span, frame.hint, frame.checked_callee, expected);
     let mut invocation = match prepared {
-        Ok(super::call::PreparedInvocation::Ready(result)) => {
-            let result = complete_conditional_call(analyzer, context, expr, frame, result, publish_type);
-            return finish_expression(analyzer, context, task, result);
-        }
+        Ok(super::call::PreparedInvocation::Deferred(request)) => return schedule_deferred(task, request, Some((frame, publish_type))),
         Ok(super::call::PreparedInvocation::Check(invocation)) => invocation,
         Err(error) => return finish_expression(analyzer, context, task, Err(error)),
     };
@@ -1558,6 +1578,16 @@ fn start_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: Expr
         })),
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
     }
+}
+
+fn schedule_deferred<'a>(mut task: ExpressionTask<'a>, request: crate::analysis::deferred_generic_call_work::Request, conditional: Option<(super::call::CallCompletion, bool)>) -> Step<'a> {
+    let expr = task.expression.value();
+    let span = expr.span;
+    let value = Box::new(std::mem::replace(expr, Expr::new(ExprKind::Undefined, span)));
+    let origin = request.origin;
+    let child = Task::Deferred(Box::new(deferred::DeferredTask::new(value, request, task.context, task.loans.clone())));
+    task.state = ExpressionState::Deferred { origin, conditional };
+    Step::Push(Task::Expression(task), child)
 }
 
 fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut task: ExpressionTask<'a>, resolve_completed: bool) -> Step<'a> {

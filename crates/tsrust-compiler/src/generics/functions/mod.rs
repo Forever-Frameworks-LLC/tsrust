@@ -213,7 +213,7 @@ impl Cache {
 
     fn instance_with_captures(
         &mut self, name: &str, arguments: Vec<ValueAnnotation>, captures: Vec<Type>,
-        span: Span, depth: usize,
+        span: Span, _depth: usize,
     ) -> Result<String, Diagnostic> {
         let template = &self.templates[name];
         if arguments.len() != template.type_parameters.len() {
@@ -235,11 +235,10 @@ impl Cache {
         if let Some(name) = self.instances.get(&identity) {
             return Ok(name.clone());
         }
-        if depth > 32
-            || self.instances.len() >= 1024
+        if self.instances.len() >= 1024
             || self.counts.get(name).copied().unwrap_or(0) >= 128
         {
-            return Err(Diagnostic::new("generic-limit","Generic function specialization exceeds its depth (32), per-declaration (128), or program (1024) limit.",span));
+            return Err(Diagnostic::new("generic-limit","Generic function specialization exceeds its per-declaration (128) or program (1024) limit.",span));
         }
         let concrete = format!("{name}<specialization#{}>", self.instances.len());
         let mut bindings: HashMap<String, ValueAnnotation> = template

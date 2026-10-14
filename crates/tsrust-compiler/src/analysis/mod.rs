@@ -106,6 +106,7 @@ mod checked_value_annotations;
 mod generic_expression_adapters;
 mod generic_value_metadata;
 mod deferred_generic_values;
+mod deferred_generic_call_work;
 mod deferred_generic_preparation;
 mod deferred_generic_methods;
 mod generic_calls;
@@ -3331,9 +3332,9 @@ impl Analyzer {
         Ok(ready)
     }
 
-    fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {
+    fn prepare_specialization(&mut self, index: usize, args: &[Expr], span: Span) -> Result<(usize, bool), Diagnostic> {
         if !self.templates.contains_key(&index) {
-            return Ok(index);
+            return Ok((index, false));
         }
         let mut signature = self.signatures[index].clone();
         let mut types = Vec::new();
@@ -3344,7 +3345,7 @@ impl Analyzer {
                     let Type::Callback(callback)=self.unions.payload(*ty).expect("nullable callback signature") else {unreachable!()};
                     self.absent_callback(callback)
                 } else {self.unions.payload(origin).unwrap_or(origin)};
-                if !matches!(payload,Type::Closure(id) if !self.closures[id].function.template) && !self.absent_callable_type(payload) {return Ok(index);}
+                if !matches!(payload,Type::Closure(id) if !self.closures[id].function.template) && !self.absent_callable_type(payload) {return Ok((index, false));}
                 *ty=self.unions.intern(self.unions.members(id).into_iter().map(|member|if matches!(member,Type::Callback(_)){payload}else{member}),arg.span)?;
                 types.push(*ty);
             }
@@ -3353,11 +3354,11 @@ impl Analyzer {
             {
                 let actual = arg.ty.expect("checked argument");
                 if self.discovering_results && self.has_pending_result(actual) {
-                    return Ok(index);
+                    return Ok((index, false));
                 }
                 // Template calls stay abstract until their caller is specialized.
                 if !matches!(actual,Type::StoredCallable(_)) && !matches!(actual, Type::Closure(id) if !self.closures[id].function.template) {
-                    return Ok(index);
+                    return Ok((index, false));
                 }
                 *ty = actual;
                 types.push(actual);
@@ -3368,7 +3369,7 @@ impl Analyzer {
         }
         let key = (index, types);
         if let Some(&id) = self.specializations.get(&key) {
-            return Ok(id);
+            return Ok((id, false));
         }
         if self.callable_body_specialization_count()
             >= 128
@@ -3395,10 +3396,13 @@ impl Analyzer {
         // concrete bodies iteratively in run(), rather than unfolding native
         // type contexts on the compiler stack. Callable results still need
         // immediate checking to resolve their concrete returned environment.
-        if !self.discovering_results && self.callable_result_type(self.signatures[id].result) {
-            self.function(id)?;
-        }
-        Ok(id)
+        Ok((id, !self.discovering_results && self.callable_result_type(self.signatures[id].result)))
+    }
+
+    fn specialize(&mut self, index: usize, args: &[Expr], span: Span) -> Result<usize, Diagnostic> {
+        let (index, immediate) = self.prepare_specialization(index, args, span)?;
+        if immediate { self.function(index)?; }
+        Ok(index)
     }
 
     fn check_loop_back(context: &Context) -> Result<(), Diagnostic> {
@@ -8255,9 +8259,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             _ => (origin, false),
         };
         if self.deferred_generic_values.contains_key(&origin) {
-            let (method, result) = self.deferred_generic_call(context, Some(binding), origin, callee, args, loans, span, once, expected, false)?;
-            self.remember_native_closure_returns(context, origin, Some(method), span)?;
-            return Ok(CallDispatch::ReadyMethod { origin, method, result });
+            return Ok(CallDispatch::Deferred(deferred_generic_call_work::Request { binding: Some(binding), origin, once, expected, checked_receiver: false }));
         }
         let closure = &self.closures[origin];
         let invocation = if once {
@@ -8318,6 +8320,10 @@ self.names_materialized_type(element.with_depth(0).ty())
         span: Span,
     ) -> Result<(usize, Type), Diagnostic> {
         let index = self.specialize(index, args, span)?;
+        self.resolved_prepared_call(context, index, args, span)
+    }
+
+    fn resolved_prepared_call(&mut self, context: &Context, index: usize, args: &[Expr], span: Span) -> Result<(usize, Type), Diagnostic> {
         let result = if let Some(target) = self.checked[index].as_ref() {
             target.result
         } else if let Some(&result) = self.known_results.get(&index) {
@@ -9131,14 +9137,7 @@ self.names_materialized_type(element.with_depth(0).ty())
                 && (self.closures[origin].polymorphic
                     || matches!(self.closures[origin].forward, Some(ClosureForward::Once(inner)) if self.closures[inner].polymorphic))
             {
-                let dispatch = self.prepare_closure_method_call(context, binding, origin, callee, args, loans, span, expected)?;
-                if let CallDispatch::ReadyMethod { origin, method, result } = dispatch {
-                    if self.native_borrow_types { expr.callable_origin = Some(CallableOrigin::Closure(origin)); }
-                    expr.target = Some(CallTarget::ClosureMethod(method));
-                    expr.ty = Some(result);
-                    return Ok(CallDispatch::Ready(result));
-                }
-                return Ok(dispatch);
+                return self.prepare_closure_method_call(context, binding, origin, callee, args, loans, span, expected);
             }
             let (params, result, invocation, target) = match context.bindings[binding].ty {
                 Type::StoredCallable(family) | Type::BorrowedCallable(family) => {

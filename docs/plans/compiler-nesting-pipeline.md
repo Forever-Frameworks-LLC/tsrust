@@ -2002,3 +2002,41 @@ This accepts adapter-wrapper scheduling and cleanup only; deferred body
 preparation, remaining consumers/budgets, public admission and formal scaling
 remain required. Installed consumers remain unchanged because this internal
 section preserves the public API contracts.
+
+
+### Deferred generic call continuations
+
+Deferred generic invocations now schedule source-function checking on the shared
+checker stack. Primary preparation and all reachable alternative contract joins
+finish before real source operands are accessed. Receiver access precedes written
+arguments, which are checked once with the existing loan contracts. Selected
+alternatives retain independent declarations, arguments, capture access and
+invocation modes. Specialization preparation no longer checks a callable body
+synchronously on this path: callable results wait for body completion before
+resolution, while data results retain their previous resolution point.
+
+The active analyzer depth admission of 32 is removed from generic function
+instance requests. Existing per-declaration and program instance budgets remain,
+as does the separate callback specialization count budget. No stack or constant
+is increased. These budgets are migration debt, not supported hardware ceilings.
+The first 128-layer recursive-analysis witness reaches the former depth guard;
+after removal it reaches the callback count budget instead. Both failed records
+remain evidence. A 64-layer recursive-analysis witness passes. Normal pipeline
+discovery completes named adapter chains at 8, 32 and 128, then reports the existing
+callback count diagnostic at 512. Fresh adapters complete at 8, 32, 128 and 512;
+2,048 times out during analysis under the 30-second observation budget. No new
+observation crashes or overflows. Discovery overlaps builds and native checks;
+these observations are neither formal scaling samples nor language ceilings.
+
+All 37 shared-driver tests and six deferred contract tests pass. All 183 affected
+integration tests pass across generic calls, defaults, effects, loops, values,
+adapters and higher-order values. The new formatted native witness executes forty
+named adapter layers and returns the independent expected value `7`. All 43
+generic project checks and 49 focused editor checks pass, including compiler
+agreement. Whole-project formatting changes zero files and fingerprints. Full
+compiler/LSP regressions and formal timing are not claimed for this section.
+
+Evidence uses `tsrust-nesting-deferred-call-work-*` in SQLite. This section accepts
+deferred call scheduling only. Synchronous generic result hints, discovery and
+other callable specialization entries, count budgets, public parser admission,
+remaining consumers and formal scaling are still required before S12.

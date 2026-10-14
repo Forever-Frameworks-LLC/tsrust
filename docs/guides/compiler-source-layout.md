@@ -397,5 +397,12 @@ child checking fails. Fresh staging retains the rewritten expression, matching
 its established recovery behavior. Contextual generic values and collection
 callbacks use the same requests. Selected factories retain their stored-value
 completion frame. Adapter preparation no longer starts another expression driver;
-deferred result/body preparation still invokes function checking separately and
-must be migrated before claiming generic chains stack independent.
+deferred calls now use `analysis/continuations/driver/deferred.rs` to suspend
+primary and alternative body preparation, contract joins, receiver access,
+arguments and specialization. `analysis/deferred_generic_call_work.rs` owns
+selection and contract compatibility. `analysis/deferred_generic_preparation.rs`
+separates requests from completion and never checks a body on its production
+path. Callable-result specializations complete before result resolution; data
+results retain their earlier resolution point. Synchronous result hints and
+remaining specialization budgets still require an audit before generic chains
+can be called stack independent.
