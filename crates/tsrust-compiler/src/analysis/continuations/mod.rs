@@ -43,3 +43,5 @@ pub(super) mod transform;
 pub(super) mod reduction;
 
 pub(super) mod sorting;
+
+pub(super) mod adapters;

@@ -4691,25 +4691,25 @@ impl Analyzer {
 
     // Generic/spread staging is finished before ordinary recursive checking begins.
     #[inline(never)]
-    fn prepare_other_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+    fn prepare_other_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, _loans: &Loans, expected: Option<Type>) -> Result<Option<continuations::adapters::Other>, Diagnostic> {
         if let Some(expected) = expected
             && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
         {
             if self.lower_selected_generic_factory(context, expr)? {
-                return self.stage_selected_generic_expression(context, expr, expected, loans).map(Some);
+                return self.prepare_selected_generic_expression(context, expr, expected).map(|request|Some(continuations::adapters::Other::Adapter(request)));
             }
         }
         if let Some(expected) = expected
             && self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).is_some()
             && self.fresh_generic_origin(context, expr)?.is_some()
         {
-            return self.stage_generic_expression(context, expr, expected, mode, loans).map(Some);
+            return self.prepare_generic_expression(context, expr, expected, mode).map(|request|Some(continuations::adapters::Other::Adapter(request)));
         }
         self.lower_enum_member(context, expr, mode)?;
         if matches!(&expr.kind, ExprKind::SpreadValue(_) | ExprKind::SpreadCall(_))
             || matches!(&expr.kind, ExprKind::Unary { op: UnaryOp::RestPack, value, .. } if matches!(value.kind, ExprKind::SpreadValue(_)))
         {
-            return self.checked_spread_expression(context, expr, mode, expected).map(Some);
+            return self.checked_spread_expression(context, expr, mode, expected).map(|ty|Some(continuations::adapters::Other::Ready(ty)));
         }
         Ok(None)
     }
@@ -10202,18 +10202,12 @@ self.names_materialized_type(element.with_depth(0).ty())
             ));
         }
         if !context.names.contains_key(name) && self.generic_functions.template(name).is_some() {
-            return self.contextual_generic_value(context, expr, mode, loans, expected);
+            return self.deferred_generic_value(context, expr, loans);
         }
         let index = *context
             .names
             .get(name)
             .ok_or_else(|| Diagnostic::new("name", format!("Unknown value {name:?}."), span))?;
-        if let Type::Closure(origin) = context.bindings[index].ty
-            && self.deferred_generic_values.contains_key(&origin)
-            && let Some(expected) = expected
-            && self.checked_generic_callable_shape(expected).is_some() {
-            return self.adapt_generic_value(context, expr, index, origin, expected, mode, loans);
-        }
         let callback_argument = matches!(expected, Some(Type::Callback(_)));
         let observation =
             self.observing_values && mode == Mode::Read && !context.is_capture(index);

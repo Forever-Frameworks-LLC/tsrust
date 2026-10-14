@@ -43,8 +43,11 @@ impl Analyzer {
         if matches!(expr.kind, ExprKind::Sequence(_)) {
             return Ok(super::checked_expression::PreparedExpression::Sequence { mode, expected });
         }
-        if let Some(ty) = self.prepare_other_expression(context, expr, mode, loans, expected)? {
-            return Ok(super::checked_expression::PreparedExpression::Ready(ty));
+        if let Some(other) = self.prepare_other_expression(context, expr, mode, loans, expected)? {
+            return Ok(match other {
+                super::adapters::Other::Ready(ty) => super::checked_expression::PreparedExpression::Ready(ty),
+                super::adapters::Other::Adapter(request) => super::checked_expression::PreparedExpression::Adapter(Box::new(request)),
+            });
         }
         if matches!(expr.kind, ExprKind::TypeAssertion { .. }) {
             let (frame, expected) = self.prepare_assertion_work(context, expr, mode, expected)?;

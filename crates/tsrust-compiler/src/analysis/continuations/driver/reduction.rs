@@ -24,8 +24,14 @@ pub(super) fn resume<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
             let ExprKind::Field(base, _) = &mut callee.kind else { unreachable!() };
             *base = receiver.into_child();
             let frame = match result.and_then(|receiver| analyzer.receive_reduction(context, base, args, &task.loans, frame, receiver)) { Ok(frame) => frame, Err(error) => return finish_expression(analyzer, context, task, Err(error)) };
-            match analyzer.adapt_generic_traversal(context, &mut args[0], &frame.supplied, &frame.active) {
-                Ok(Some(ty)) => checked_callback(analyzer, context, task, frame, Ok(ty)),
+            match analyzer.prepare_generic_traversal(context, &mut args[0], &frame.supplied) {
+                Ok(Some(adapter)) => {
+                    let span = args[0].span;
+                    let original = Box::new(std::mem::replace(&mut args[0], Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Adapter(Box::new(adapters::AdapterTask::new(original, adapter, task.context, ActiveLoans::Shared(std::rc::Rc::new(frame.active.clone())))));
+                    task.state = ExpressionState::Reduction(Box::new(State::Callback(frame)));
+                    Step::Push(Task::Expression(task), child)
+                }
                 Err(error) => finish_expression(analyzer, context, task, Err(error)),
                 Ok(None) => {
                     let span = args[0].span;

@@ -1961,3 +1961,44 @@ as do other consumers, specialization budgets, public admission retirement and
 formal scaling. No stack or depth constant is increased. Full compiler/LSP
 regressions are not claimed for this section. Installed consumers remain unchanged
 because these internal changes preserve the public API contracts.
+
+
+### Generic adapter wrapper continuations
+
+Two geometric witnesses on `22e393e2` overflow during analysis at eight layers:
+fresh captured generic factories used as traversal callbacks, and named generic
+functions whose bodies adapt another generic function. LLDB separates generated
+wrapper expression checking from deferred generic source-body preparation.
+
+Generated adapters now carry owned requests with mode, expected type, rewritten
+value and explicit cleanup. Contextual generic names, concrete views of deferred
+values, fresh staging, selected factories and transform/reduce/sort callbacks
+schedule child checking on the same stack. Hidden lexical bindings, temporary
+escape flags and source capture boundaries restore after success or failure.
+Selected factories retain the existing stored-value completion. Named adaptation
+keeps its original source on child failure; fresh staging retains the rewritten
+source as before. Adapter preparation contains no synchronous expression check.
+
+All 35 shared-driver unit tests pass, including 128 nested fresh adapters and a
+failure that restores a pre-existing hidden name, escape state and original name
+expression. All 144 affected integration tests pass across generic values/adapters,
+higher-order values, owning defaults and nullable callbacks. The new formatted
+native witness checks twelve fresh adapter layers, the final value and exact
+factory call count. Source production is unchanged between unit and native runs;
+the native witness gains its independent call-count assertion before the batch.
+
+Post-change discovery completes fresh adapters at 8, 32, 128 and 512; 2,048 times
+out during analysis under its 30-second observation budget. Named chains complete
+at eight but still stack-overflow at 32 in deferred body preparation. Both failure
+records and the current compiled trace remain evidence. Deferred source-function
+preparation is explicitly required next; this section does not accept that path.
+Discovery overlaps builds/native checks and is not formal scaling or a language
+ceiling. Evidence uses `tsrust-nesting-generic-adapter-work-*` in SQLite. Editor
+validation passes 27 focused tests covering contextual/deferred generic
+values, defaults/rest, fresh and selected factories, nullable/heterogeneous
+results, source navigation and compiler agreement. Whole-project formatting
+changes zero files and fingerprints. No stack or depth constant is increased.
+This accepts adapter-wrapper scheduling and cleanup only; deferred body
+preparation, remaining consumers/budgets, public admission and formal scaling
+remain required. Installed consumers remain unchanged because this internal
+section preserves the public API contracts.

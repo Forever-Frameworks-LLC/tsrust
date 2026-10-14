@@ -1,37 +1,38 @@
 //! Concrete callable views retain an existing deferred generic environment.
 use super::*;
+use continuations::adapters::{Request, Cleanup};
 
 impl Analyzer {
     #[inline(never)]
-    pub(super) fn adapt_generic_value(
+    pub(super) fn prepare_generic_value(
         &mut self, context: &mut Context, expression: &mut Expr,
-        binding: usize, origin: usize, expected: Type, mode: Mode, loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
+        binding: usize, origin: usize, expected: Type, mode: Mode,
+    ) -> Result<Request, Diagnostic> {
         let (parameters, result) = self.checked_generic_callable_shape(expected).expect("concrete adapter contract");
         let hints = parameters.into_iter().map(Some).collect::<Vec<_>>();
-        self.check_generic_adapter(context, expression, binding, origin, hints, Some(result), Some(expected), mode, loans)
+        self.prepare_generic_adapter(context, expression, binding, origin, hints, Some(result), Some(expected), mode)
     }
 
     #[inline(never)]
-    pub(super) fn adapt_generic_traversal(
-        &mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type], loans: &Loans,
-    ) -> Result<Option<Type>, Diagnostic> {
+    pub(super) fn prepare_generic_traversal(
+        &mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type],
+    ) -> Result<Option<Request>, Diagnostic> {
         let ExprKind::Name(name) = &expression.kind else {
-            return self.stage_generic_traversal(context, expression, supplied, loans);
+            return self.prepare_generic_traversal_expression(context, expression, supplied);
         };
         let Some(&binding) = context.names.get(name) else { return Ok(None); };
         let Type::Closure(origin) = context.bindings[binding].ty else { return Ok(None); };
         let Some(source) = self.deferred_generic_values.get(&origin) else { return Ok(None); };
         let count = self.generic_functions.template(&source.declaration).expect("traversal template").params.len();
         let hints = supplied.iter().take(count).copied().map(Some).collect();
-        self.check_generic_adapter(context, expression, binding, origin, hints, None, None, Mode::Mutate, loans).map(Some)
+        self.prepare_generic_adapter(context, expression, binding, origin, hints, None, None, Mode::Mutate).map(Some)
     }
 
     #[inline(never)]
-    fn check_generic_adapter(
+    fn prepare_generic_adapter(
         &mut self, context: &mut Context, expression: &mut Expr, binding: usize, origin: usize,
-        hints: Vec<Option<Type>>, result: Option<Type>, expected: Option<Type>, mode: Mode, loans: &Loans,
-    ) -> Result<Type, Diagnostic> {
+        hints: Vec<Option<Type>>, result: Option<Type>, expected: Option<Type>, mode: Mode,
+    ) -> Result<Request, Diagnostic> {
         let span = expression.span;
         let declaration = self.deferred_generic_values[&origin].declaration.clone();
         let template = self.generic_functions.template(&declaration).expect("generic adapter template").clone();
@@ -99,11 +100,7 @@ impl Analyzer {
             _ => false,
         };
         let inserted_escape = owned && self.escaping.insert(id);
-        let checked = self.expression(context, &mut wrapper, mode, loans, expected);
-        if inserted_escape { self.escaping.remove(&id); }
-        match previous { Some(previous) => { context.names.insert(hidden, previous); }, None => { context.names.remove(&hidden); } }
-        let ty = checked?;
-        *expression = wrapper;
-        Ok(ty)
+        Ok(Request { value: Box::new(wrapper), mode, expected,
+            cleanup: Cleanup::Named { hidden, previous, escape: inserted_escape.then_some(id) }, restore_on_error: true })
     }
 }

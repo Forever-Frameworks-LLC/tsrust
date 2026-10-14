@@ -371,9 +371,9 @@ array transforms/predicates, array/Set/Map forEach, mapped Array.from and Map.gr
 GroupBy source rewriting precedes checking, while concrete group record creation
 follows callback completion. Collection size properties use `FieldFrame` receiver
 continuations; do not start another expression driver to check a property receiver.
-Generic callback adaptation retains compatibility entry points and still requires
-a separate suspension audit. Reduction and sorting use the dedicated driver stages
-described below.
+Generic adapter wrappers use cleanup requests on the shared driver. Deferred
+source-body preparation still requires a separate suspension audit. Reduction and
+sorting use the dedicated driver stages described below.
 
 
 `analysis/continuations/reduction.rs` and `sorting.rs` separate receiver, callback,
@@ -387,3 +387,15 @@ transform/reduction/sorting adapters and materializer wrappers are removed.
 `finish_builtin_result` owns shared copy requirements and capture-slot collapse.
 Every builtin continuation must call it before publishing completed invocation
 facts, so bypassing ordinary dispatch cannot omit ownership validation.
+
+
+`analysis/continuations/adapters.rs` owns generic adapter requests and cleanup.
+`analysis/continuations/driver/adapters.rs` checks generated wrappers on the shared
+stack and restores hidden names, escape flags and temporary source captures on
+success or error. Named adaptation restores its original source expression when
+child checking fails. Fresh staging retains the rewritten expression, matching
+its established recovery behavior. Contextual generic values and collection
+callbacks use the same requests. Selected factories retain their stored-value
+completion frame. Adapter preparation no longer starts another expression driver;
+deferred result/body preparation still invokes function checking separately and
+must be migrated before claiming generic chains stack independent.

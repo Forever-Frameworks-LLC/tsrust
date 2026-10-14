@@ -8,7 +8,7 @@ pub(super) struct CheckedExpressionFrame {
     pub(super) mode: Mode,
     pub(super) expected: Option<Type>,
 }
-pub(super) enum PreparedExpression { Wrapper{frame:super::wrappers::Frame,mode:Mode,expected:Option<Type>}, Literal(super::literals::LiteralFrame), Optional{mode:Mode,expected:Option<Type>}, Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame), Prelude { mode:Mode, expected:Option<Type>, frame:super::prelude::Frame } }
+pub(super) enum PreparedExpression { Adapter(Box<super::adapters::Request>), Wrapper{frame:super::wrappers::Frame,mode:Mode,expected:Option<Type>}, Literal(super::literals::LiteralFrame), Optional{mode:Mode,expected:Option<Type>}, Ready(Type), Sequence { mode: Mode, expected: Option<Type> }, Evaluate(CheckedExpressionFrame), Prelude { mode:Mode, expected:Option<Type>, frame:super::prelude::Frame } }
 
 impl Analyzer {
     pub(super) fn prepare_checked_expression(&mut self, context: &mut Context, expr: &mut Expr, mode: Mode, loans: &Loans, expected: Option<Type>) -> Result<PreparedExpression, Diagnostic> {

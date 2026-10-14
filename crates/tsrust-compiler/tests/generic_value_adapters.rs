@@ -741,3 +741,15 @@ fn distinct_branch_contracts_keep_valid_omission_rest_and_overwrite() {
         "function one<T>(value:T):T{return value;}function two<T>(value:T,other:T):T{return other;}function unused<T>(flag:boolean,value:T):T{let action=one;if(flag){action=two;}action=one;return action<T>(value);}function main(){}",
     ] {let formatted=support::format_round_trip(source);tsrust_compiler::check(&formatted).unwrap_or_else(|error|panic!("{}",error.render("input.tsr",&formatted)));}
 }
+
+#[test]
+fn nested_fresh_factory_traversal_adapters_evaluate_each_source_once() {
+    let count = 12;
+    let value = format!("{}7{}", "[7].map(make(".repeat(count), "))[0]".repeat(count));
+    let source = support::format_round_trip(&format!("import {{strictEqual}} from 'std:testing';function main(){{const visits=[0];function make(seed:int){{visits[0]+=1;function identity<T>(value:T):T{{if(seed===0){{return value;}}return value;}}return identity;}}strictEqual({value},7);strictEqual(visits[0],{count});}}"));
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}

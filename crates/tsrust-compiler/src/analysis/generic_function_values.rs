@@ -32,19 +32,10 @@ pub(crate) fn parameter(
 
 impl Analyzer {
     #[inline(never)]
-    pub(super) fn contextual_generic_value(
-        &mut self,
-        context: &mut Context,
-        expression: &mut Expr,
-        mode: Mode,
-        loans: &Loans,
-        expected: Option<Type>,
-    ) -> Result<Type, Diagnostic> {
+    pub(super) fn prepare_contextual_generic_value(&mut self, expression: &Expr, mode: Mode, expected: Type) -> Result<continuations::adapters::Request, Diagnostic> {
         let ExprKind::Name(name) = &expression.kind else { unreachable!() };
         let template = self.generic_functions.template(name).expect("generic value template").clone();
-        let Some((parameters, result)) = expected.and_then(|ty| self.checked_generic_callable_shape(self.unions.payload(ty).unwrap_or(ty))) else {
-            return self.deferred_generic_value(context, expression, loans);
-        };
+        let (parameters, result) = self.checked_generic_callable_shape(self.unions.payload(expected).unwrap_or(expected)).expect("contextual generic contract");
         let hints = parameters.iter().copied().map(Some).collect::<Vec<_>>();
         let shapes = self.checked_inference_callable_shapes(parameters.iter().copied().chain([result]));
         let annotations = self.checked_inference_callable_annotations(parameters.iter().copied().chain([result]))?;
@@ -55,8 +46,8 @@ impl Analyzer {
         let contract = self.generic_functions.value_signature(name, &hints, Some(result), &types, expression.span)?;
         // Capture-free template values need no lexical environment. Captured
         // templates are wrapped during lexical resolution, before escape analysis.
-        *expression = crate::local_function_values::value(&template, usize::MAX - expression.span.start, expression.span);
-        if let ExprKind::Closure { params, result, .. } = &mut expression.kind {
+        let mut value = crate::local_function_values::value(&template, usize::MAX - expression.span.start, expression.span);
+        if let ExprKind::Closure { params, result, .. } = &mut value.kind {
             debug_assert_eq!(contract.type_arguments.len(), template.type_parameters.len());
             if let Some(solved) = contract.result { *result = solved; }
             for (parameter, solved) in params.iter_mut().zip(contract.parameters) {
@@ -67,7 +58,7 @@ impl Analyzer {
                 }
             }
         }
-        self.expression(context, expression, mode, loans, expected)
+        Ok(continuations::adapters::Request { value: Box::new(value), mode, expected: Some(expected), cleanup: continuations::adapters::Cleanup::None, restore_on_error: false })
     }
 
 }

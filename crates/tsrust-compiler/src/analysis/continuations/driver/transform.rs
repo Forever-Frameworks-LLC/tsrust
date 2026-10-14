@@ -42,8 +42,14 @@ pub(super) fn resume<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
                 Ok(frame) => frame,
                 Err(error) => return failed(analyzer, context, task, request, error),
             };
-            match analyzer.adapt_generic_traversal(context, &mut args[0], &frame.supplied_types, &frame.active) {
-                Ok(Some(ty)) => checked(analyzer, context, task, frame, request, Ok(ty)),
+            match analyzer.prepare_generic_traversal(context, &mut args[0], &frame.supplied_types) {
+                Ok(Some(adapter)) => {
+                    let span = args[0].span;
+                    let original = Box::new(std::mem::replace(&mut args[0], Expr::new(ExprKind::Undefined, span)));
+                    let child = Task::Adapter(Box::new(adapters::AdapterTask::new(original, adapter, task.context, ActiveLoans::Shared(std::rc::Rc::new(frame.active.clone())))));
+                    task.state = ExpressionState::Transform(Box::new(State::Callback { frame, request }));
+                    Step::Push(Task::Expression(task), child)
+                }
                 Err(error) => failed(analyzer, context, task, request, error),
                 Ok(None) => {
                     let span = args[0].span;

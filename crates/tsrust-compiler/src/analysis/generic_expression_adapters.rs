@@ -1,5 +1,6 @@
 //! Source staging gives fresh generic environments one ordinary lexical owner.
 use super::*;
+use continuations::adapters::{Request, Cleanup};
 
 impl Analyzer {
     #[inline(never)]
@@ -11,7 +12,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    pub(super) fn stage_generic_traversal(&mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type], loans: &Loans) -> Result<Option<Type>, Diagnostic> {
+    pub(super) fn prepare_generic_traversal_expression(&mut self, context: &mut Context, expression: &mut Expr, supplied: &[Type]) -> Result<Option<Request>, Diagnostic> {
         let selected = self.lower_selected_generic_factory(context, expression)?;
         let source = if selected {
             let ExprKind::Conditional { consequent, .. } = &expression.kind else { unreachable!() };
@@ -46,14 +47,14 @@ impl Analyzer {
         append_checked_record_fields(&mut self.program.records, &self.record_names, &self.unions, &mut self.fields, &mut self.callables)?;
         let expected = self.resolve_callback(&CallbackAnnotation { kind: CallbackKind::Owned, params: params.clone(), result: Box::new(result), span: expression.span })?;
         if selected {
-            self.stage_selected_generic_expression(context, expression, expected, loans).map(Some)
+            self.prepare_selected_generic_expression(context, expression, expected).map(Some)
         } else {
-            self.stage_generic_expression(context, expression, expected, Mode::Consume, loans).map(Some)
+            self.prepare_generic_expression(context, expression, expected, Mode::Consume).map(Some)
         }
     }
 
     #[inline(never)]
-    pub(super) fn stage_selected_generic_expression(&mut self, context: &mut Context, expression: &mut Expr, expected: Type, loans: &Loans) -> Result<Type, Diagnostic> {
+    pub(super) fn prepare_selected_generic_expression(&mut self, context: &Context, expression: &Expr, expected: Type) -> Result<Request, Diagnostic> {
         let span = expression.span;
         let callback = match expected {
             Type::Callback(id) if self.callables.callbacks[id].kind.is_owned() => id,
@@ -75,7 +76,8 @@ impl Analyzer {
             _ => return Err(Diagnostic::new("closure-escape", "Selected fresh generic environments require an owning callable context.", span)),
         };
         let Type::StoredCallable(family) = self.callables.storage.intern(&self.callables.shapes, &self.callables.callbacks[callback], callback).expect("selected owning contract") else { unreachable!() };
-        self.stored_callable_value(context, expression, family, loans)
+        let frame = self.prepare_stored_value(context, expression, family)?;
+        Ok(Request { value: Box::new(expression.clone()), mode: Mode::Consume, expected: frame.expected, cleanup: Cleanup::Stored(frame), restore_on_error: false })
     }
 
     // Distributing a call over its selected callee preserves evaluation order:
@@ -134,7 +136,7 @@ impl Analyzer {
     }
 
     #[inline(never)]
-    pub(super) fn stage_generic_expression(&mut self, context: &mut Context, expression: &mut Expr, expected: Type, mode: Mode, loans: &Loans) -> Result<Type, Diagnostic> {
+    pub(super) fn prepare_generic_expression(&mut self, context: &Context, expression: &Expr, expected: Type, mode: Mode) -> Result<Request, Diagnostic> {
         let span = expression.span;
         let payload = self.unions.payload(expected).unwrap_or(expected);
         let (parameters, result, kind) = match payload {
@@ -166,12 +168,8 @@ impl Analyzer {
             statement(StmtKind::Return(Some(Expr::new(ExprKind::Name(adapted.text), span)))),
         ];
         let closure = Expr::new(ExprKind::Closure { id: usize::MAX / 2 + span.start, params: Vec::new(), result: result_annotation, body }, span);
-        *expression = Expr::new(ExprKind::Call(Box::new(closure), Vec::new()), span);
-        let capture_boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
-        let checked = self.expression(context, expression, mode, loans, Some(expected));
-        // The staging closure is invoked immediately. Its argument-evaluation
-        // borrows end here; the returned owned adapter retains its own environment.
-        capture_boundary.unwind(&mut context.capture_loans);
-        checked
+        let value = Expr::new(ExprKind::Call(Box::new(closure), Vec::new()), span);
+        let boundary = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
+        Ok(Request { value: Box::new(value), mode, expected: Some(expected), cleanup: Cleanup::Source(boundary), restore_on_error: false })
     }
 }
