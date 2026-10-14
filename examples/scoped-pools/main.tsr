@@ -1,15 +1,22 @@
 import { pool, join, Pool, Thread } from 'std:threads';
 
+pool.configure({
+  workers: 2, capacity: 16
+});
+
 function calculate(jobs: ReadOnly<Pool>): Thread<int, undefined> {
   return unwrap(jobs.task((): int => 42));
 }
 
 function main() {
-  unwrap(pool.configure(2, 16));
   const shared = unwrap(pool.task((): int => 7));
   {
-    const jobs = unwrap(pool.create(1, 4));
-    const background = unwrap(pool.create(2, 8));
+    const jobs = new Pool({
+      workers: 1, capacity: 4
+    });
+    const background = new Pool({
+      workers: 2, capacity: 8
+    });
     const answer = calculate(jobs);
     const other = unwrap(background.task((): string => 'independent'));
     unwrap(jobs.shutdown());

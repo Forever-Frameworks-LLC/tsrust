@@ -11,7 +11,7 @@ function check(source,expected,kind){
     const nativeSnippet=kind==='native' && snippet==='checksum+=left+right;'?'checksum+=a+b;':snippet;
     assert.ok(containsCodeSnippet(source,nativeSnippet),nativeSnippet);
   }
-  assert.ok(containsCodeSnippet(source,kind==='native'?'pool.configure(2,16)':'[0,1].map('));
+  assert.ok(containsCodeSnippet(source,kind==='native'?'pool.configure({workers:2,capacity:16})':'[0,1].map('));
 }
 test('pooled workload preserves fingerprints, two workers and eight square results',()=>{
   assert.equal(manifest.expectedChecksum,140);

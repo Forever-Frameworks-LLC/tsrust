@@ -2015,6 +2015,10 @@ impl SourceIndex {
     // Recognize only complete simple expressions; do not infer binary expressions
     // from their first operand. Primitive calls preserve this rule.
     fn set_constructor_type(&self, id: usize, offset: usize, depth: usize) -> Option<(String, usize)> {
+        if self.text(id) == "new" && self.native_type_aliases.get(self.text(id + 1)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) {
+            let open = self.member_call_open(id + 1)?;
+            return Some((self.text(id + 1).into(), self.pairs.get(open).copied().flatten()? + 1));
+        }
         if depth > 8 || self.text(id) != "new" || !(matches!(self.text(id + 1), "Set" | "Map") || matches!(self.native_type_aliases.get(self.text(id + 1)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap))) { return None; }
         let open = self.member_call_open(id + 1)?;
         let close = self.pairs.get(open).copied().flatten()?;
@@ -3716,6 +3720,11 @@ impl SourceIndex {
             let Some(callee) = self.call_callee(open) else {
                 continue;
             };
+            if callee > 0 && self.text(callee - 1) == "new" && self.native_type_aliases.get(self.text(callee)) == Some(&tsrust_compiler::native_signatures::NativeTypeId::Pool) {
+                let entry = builtins_for("std:threads").into_iter().find(|entry| entry["name"] == "Pool").expect("documented Pool constructor");
+                let label = entry["signature"].as_str().unwrap().replace("new Pool(", &format!("new {}(", self.text(callee))).replace(": Pool", &format!(": {}", self.text(callee)));
+                return json!({"signatures":[{"label":label,"documentation":{"kind":"markdown","value":entry["documentation"]},"parameters":entry["parameters"]}],"activeSignature":0,"activeParameter":0});
+            }
             if callee > 0 && self.text(callee - 1) == "new"
                 && matches!(self.native_type_aliases.get(self.text(callee)),Some(tsrust_compiler::native_signatures::NativeTypeId::Deque | tsrust_compiler::native_signatures::NativeTypeId::Heap | tsrust_compiler::native_signatures::NativeTypeId::OrderedSet | tsrust_compiler::native_signatures::NativeTypeId::OrderedMap)) {
                 let ty = self.snippet(callee, open);

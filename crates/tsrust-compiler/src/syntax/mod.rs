@@ -2381,11 +2381,12 @@ impl Parser<'_> {
                 registration.push(self.block_statement()?);
                 registration.append(&mut self.pending);
             } else {
-                return Err(Diagnostic::new(
-                    "unsupported",
-                    "Expected a type or function declaration.",
-                    self.peek().span,
-                ));
+                let statement = self.block_statement()?;
+                if !matches!(&statement.kind, StmtKind::Expr(Expr { kind: ExprKind::Call(_, _), .. })) {
+                    return Err(Diagnostic::new("unsupported", "Expected a declaration or a module initialization call.", statement.span));
+                }
+                program.module_bindings.push(statement);
+                program.module_bindings.append(&mut self.pending);
             }
         }
         if test_entry {

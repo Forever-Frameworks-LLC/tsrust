@@ -240,11 +240,11 @@ fn rows() -> Vec<Row> {
         kind: Kind::CallResult, name: "pool namespace methods",
         before: "import {pool as workers} from 'std:threads';\nfunction main(){\n".into(),
         typed: "workers.", after: "\n}\n",
-        includes: &["task", "configure", "create", "stats", "shutdown"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
+        includes: &["task", "configure", "stats", "shutdown"], excludes: NOT_MEMBERS, silent: None, needs_check: false,
     });
     rows.push(Row {
         kind: Kind::CallResult, name: "scoped pool methods",
-        before: "import {pool} from 'std:threads';\nfunction main(){const jobs=unwrap(pool.create(1,4));\n".into(),
+        before: "import {Pool} from 'std:threads';\nfunction main(){const jobs=new Pool({workers: 1, capacity: 4});\n".into(),
         typed: "jobs.", after: "\n}\n",
         includes: &["task", "stats", "shutdown"], excludes: &["configure", "create"], silent: None, needs_check: true,
     });

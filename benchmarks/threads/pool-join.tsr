@@ -1,4 +1,8 @@
 import { pool, join } from 'std:threads';
+
+pool.configure({
+  workers: 2, capacity: 16
+});
 import { monotonicNow } from 'std:time';
 
 function batch(): int {
@@ -17,7 +21,6 @@ function batch(): int {
 }
 
 function main() {
-  unwrap(pool.configure(2, 16));
   for (let warmup = 0; warmup < 8; warmup += 1) {
     batch();
   }

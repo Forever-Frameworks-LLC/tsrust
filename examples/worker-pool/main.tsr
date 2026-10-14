@@ -1,7 +1,10 @@
 import { pool, spawn, join, cancel, cancellationRequested } from 'std:threads';
 
+pool.configure({
+  workers: 2, capacity: 16
+});
+
 function main() {
-  unwrap(pool.configure(2, 16));
   const first = unwrap(pool.task((): int => 20));
   const second = unwrap(pool.task((): int => 22));
   console.log(unwrap(join(first)) + unwrap(join(second)));

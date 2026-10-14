@@ -145,7 +145,7 @@ remain available. Family checks and all three matched workload measurements pass
 Shared and independent scoped pools, cooperative cancellation and the Rayon
 callback bridge now pass focused compiler/runtime/editor and offline export
 acceptance. `spawn` remains dedicated; `pool.task` uses the shared default;
-`pool.create` returns an independent owner with task/stats/shutdown methods.
+`new Pool({ workers, capacity })` returns an independent owner with task/stats/shutdown methods.
 Scope cleanup drains independent pools, including detached work. Retained results
 stay joinable. MacOS leak inspection reports zero leaks in the cleanup corpus.
 See [pool acceptance](../plans/worker-pool-cancellation.md) for exact evidence and

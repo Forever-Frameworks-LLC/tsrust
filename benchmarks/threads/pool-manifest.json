@@ -1,13 +1,14 @@
 {
   "id": "pool-join",
   "implementationAccepted": true,
-  "measurementStatus": "measured",
+  "measurementStatus": "prior-configuration-syntax-measured",
   "workers": 2,
   "workersPerBatch": 8,
   "expectedChecksum": 140,
   "source": "pool-join.tsr",
   "counterpart": "pool-join.ts",
-  "sourceSha256": "a2cc81ec3354f8b2c594c4268a9c630593c7c1a0bbdce7b2425b8162ec99df73",
+  "sourceSha256": "b6ed722fcb1e7a5f22c7da85ddcf828a6faa968ba9ed294d1730042b9ce91856",
   "counterpartSha256": "dbaff62d312c8a72a83b6eb30ce83d19a73c80ce599e22ea77bef242a860de74",
-  "measurementRecord": "benchmarks/threads/pool-join-2026-10-14T22-25-15-491Z.json"
+  "measurementRecord": "benchmarks/threads/pool-join-2026-10-14T22-25-15-491Z.json",
+  "verificationRecord": "benchmarks/threads/pool-join-2026-10-14T22-38-42-320Z-verify.json"
 }

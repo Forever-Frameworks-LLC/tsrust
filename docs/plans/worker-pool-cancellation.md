@@ -9,12 +9,16 @@ starts an OS thread for long-lived or blocking work. Import `pool` from `std:thr
 `Thread<T, E>` and retain scope joining, explicit join and explicit detach.
 `spawnScoped` remains a compatibility spelling of dedicated spawn.
 
-Call `pool.configure(workers, capacity)` before the first pooled spawn. Workers range
+Call `pool.configure({ workers, capacity })` before the first pooled spawn. Workers range
 from 1 through 256; outstanding capacity ranges from 1 through 1,000,000. Defaults
 are available CPU parallelism clamped to 2..256 and capacity 1024. Configuration is
-permanent. Pool creation failure does not freeze an invalid configuration.
+permanent. Configuration may run at module scope; it returns void and throws a
+typed SpawnError for invalid limits, repeated configuration or worker creation
+failure. No unwrap is needed. Pool creation failure does not freeze an invalid
+configuration. Independent construction also returns Pool directly and throws
+SpawnError; ordinary try/catch handles both.
 
-`pool.create(workers, capacity)` returns an independent `Pool` with the same limits
+`new Pool({ workers, capacity })` returns an independent `Pool` with the same limits
 and validation. It never initializes or changes the shared default. `jobs.task`,
 `jobs.stats` and `jobs.shutdown` operate on that pool only. Limits are fixed at
 creation. The unique owner may move between caller functions or be borrowed as
@@ -102,3 +106,24 @@ native/Node-after-tsc times are 0.014625/0.070583 ms per eight-task batch. These
 small-task dispatch costs, not an application speedup claim. Dedicated startup and
 scoped-join workloads passed current untimed checks. Their earlier timings remain
 unchanged. The registration guard passes with current source fingerprints.
+
+
+## Configuration ergonomics amendment
+
+The shared singleton remains available. Module-scope `pool.configure({ workers,
+capacity })` returns void; `new Pool({ workers, capacity })` returns an independent
+owner. Both propagate typed SpawnError through normal exception handling, without
+an unwrap call. PoolOptions supplies contextual integer checking and reusable
+configuration values. Task submission and completion retain their Result types.
+
+The native thread suite now has 18 cases. Focused amendment checks cover
+ordered, once-only dependency initialization,
+initialization failure before main, configuration limits, independent construction,
+ownership rejection, aliases, completion and executable catalog examples. The
+operation-only runtime selection regression covers configuration, statistics and
+cancellation queries without a Thread value. Existing module-state checks pass.
+Offline relocated packages are checked in debug and release.
+
+The earlier pooled timing record uses the prior configuration syntax. The current
+source has an untimed checksum verification record; no new timing claim is made.
+Exact `tsrust-pool-options-*.log` records retain the failed attempts and repairs.

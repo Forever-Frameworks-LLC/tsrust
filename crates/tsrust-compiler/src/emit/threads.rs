@@ -5,6 +5,7 @@ impl Emitter<'_> {
     pub(super) fn thread_native(&self, fun: &CheckedFunction, expr: &Expr, id: usize, args: &[Expr]) -> Option<String> {
         let binding = &crate::native_bindings::BINDINGS[id];
         if binding.module != "std:threads" { return None; }
+        self.native_bindings.borrow_mut().insert(id);
         if matches!(binding.name, "__poolStats" | "__ownedPoolStats") {
             let call = if binding.name == "__poolStats" { "tsrust_native_threads::pool_stats()".into() } else { format!("({}).stats()", self.expr(fun, &args[0], Mode::Read)) };
             let Type::Record(record) = expr.ty.unwrap() else { unreachable!() };
@@ -34,7 +35,13 @@ impl Emitter<'_> {
         let order = self.schema_record_order(failure);
         let failed = wrap(err_tag, err, &format!("Record{failure_name}{{field0:String::Borrowed(error.code),field1:String::Owned(error.to_string()){order}}}"));
         let call = if matches!(binding.name, "__poolConfigure" | "__poolShutdown" | "__poolCreate" | "__ownedPoolShutdown") {
-            let call = if matches!(binding.name, "__poolConfigure" | "__poolCreate") { format!("tsrust_native_threads::{}({},{})", if binding.name == "__poolCreate" { "create_pool" } else { "configure_pool" }, self.expr(fun, &args[0], Mode::Copy), self.expr(fun, &args[1], Mode::Copy)) } else if binding.name == "__ownedPoolShutdown" { format!("({}).shutdown()", self.expr(fun, &args[0], Mode::Read)) } else { "tsrust_native_threads::shutdown_pool()".into() };
+            let call = if matches!(binding.name, "__poolConfigure" | "__poolCreate") {
+                let Type::Record(id) = args[0].ty.unwrap() else { unreachable!() };
+                let fields = &self.program.records[id].fields;
+                let workers = fields.iter().position(|field| field.name.text == "workers").unwrap();
+                let capacity = fields.iter().position(|field| field.name.text == "capacity").unwrap();
+                format!("{{let options={};tsrust_native_threads::{}(options.field{workers},options.field{capacity})}}", self.expr(fun, &args[0], Mode::Read), if binding.name == "__poolCreate" { "create_pool" } else { "configure_pool" })
+            } else if binding.name == "__ownedPoolShutdown" { format!("({}).shutdown()", self.expr(fun, &args[0], Mode::Read)) } else { "tsrust_native_threads::shutdown_pool()".into() };
             format!("match {call}{{Ok(value)=>{ok_value},Err(error)=>{failed}}}")
         } else if matches!(binding.name, "spawn" | "spawnScoped" | "__poolTask" | "__ownedPoolTask") {
             let Type::Closure(origin) = args[callback_index].ty.unwrap() else { unreachable!() };

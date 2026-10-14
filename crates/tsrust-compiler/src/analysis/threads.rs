@@ -24,7 +24,7 @@ impl Analyzer {
         self.threads_enabled = true;
         let span = expression.span;
         let owned = binding.name.starts_with("__ownedPool");
-        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" | "__ownedPoolTask" => "pool.task", "__poolCreate" => "pool.create", "__poolConfigure" => "pool.configure", "__poolStats" | "__ownedPoolStats" => "pool.stats", "__poolShutdown" | "__ownedPoolShutdown" => "pool.shutdown", name => name }, binding.parameters.len() - usize::from(owned)), span)); }
+        if !binding.accepts_arity(arguments.len()) { return Err(Diagnostic::new("arity", format!("{} expects {} arguments.", match binding.name { "__poolTask" | "__ownedPoolTask" => "pool.task", "__poolCreate" => "new Pool", "__poolConfigure" => "pool.configure", "__poolStats" | "__ownedPoolStats" => "pool.stats", "__poolShutdown" | "__ownedPoolShutdown" => "pool.shutdown", name => name }, binding.parameters.len() - usize::from(owned)), span)); }
         let mut active = loans.clone();
         if owned {
             let receiver = self.expression(context, &mut arguments[0], Mode::Read, loans, None)?;
@@ -35,7 +35,18 @@ impl Analyzer {
         let result = if matches!(binding.name, "__poolStats" | "__ownedPoolStats") { Type::Record(self.schema_native_dependency(NativeTypeId::PoolStats, span)?)
         } else if binding.name == "cancellationRequested" { Type::Boolean
         } else if matches!(binding.name, "__poolConfigure" | "__poolShutdown" | "__poolCreate" | "__ownedPoolShutdown") {
-            for argument in arguments.iter_mut().skip(usize::from(owned)) { let actual = self.expression(context, argument, Mode::Copy, loans, Some(Type::Int))?; self.require(actual, Some(Type::Int), argument.span)?; }
+            if !matches!(binding.name, "__poolShutdown" | "__ownedPoolShutdown") {
+                let options = Type::Record(self.schema_native_dependency(NativeTypeId::PoolOptions, span)?);
+                let actual = self.expression(context, &mut arguments[0], Mode::Read, loans, Some(options))?;
+                let valid = match actual {
+                    Type::Record(id) => {
+                        let fields = &self.program.records[id].fields;
+                        fields.len() == 2 && ["workers", "capacity"].into_iter().all(|name| fields.iter().any(|field| field.name.text == name && !field.optional && field.ty == Some(Type::Int)))
+                    },
+                    _ => false,
+                };
+                if !valid { return Err(Diagnostic::new("pool-options", "Pool options must contain exactly workers: int and capacity: int.", arguments[0].span)); }
+            }
             let failure = Type::Record(self.schema_native_dependency(NativeTypeId::SpawnError, span)?);
             let output = if binding.name == "__poolCreate" { Type::Record(self.schema_native_dependency(NativeTypeId::Pool, span)?) } else { Type::Void };
             self.thread_result(output, failure, span)?

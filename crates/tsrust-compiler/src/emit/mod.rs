@@ -2342,7 +2342,6 @@ impl Emitter<'_> {
             output.push_str(include_str!("../stdlib/schema/runtime/export_runtime.rs").trim_start_matches("//! Shared JSON Schema assembly. Generated visitors borrow plans and own output.\n"));
             output.push_str("\n}\n");
         }
-        if self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread))) { output.push_str(crate::stdlib::threads::RUNTIME); }
         let mut record_support_cache=scoped_record_support_emit::SupportCache::default();
         for (index, record) in self.program.records.iter().enumerate() {
             if self.thread_record(&mut output, index) { continue; }
@@ -2970,6 +2969,10 @@ impl Emitter<'_> {
             || output.contains("tsr_array_join(")
         {
             output.push_str(crate::runtime::STRINGS);
+        }
+        if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
+            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::Pool))) {
+            output.push_str(crate::stdlib::threads::RUNTIME);
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id]
