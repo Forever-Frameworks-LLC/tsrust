@@ -136,6 +136,47 @@ Preserve existing editor fixes and unrelated changes. If those files change duri
 
 IntelliSense documentation must focus on purpose, observable behavior, arguments, defaults, errors and useful examples. Keep runtime reference versions, test baselines, benchmark/checkpoint details and implementation provenance in developer evidence, not hover or parameter help. Describe relevant limitations directly without a runtime comparison narrative.
 
+## Editor agreement with the compiler
+
+The editor is how a person or an agent learns what the language accepts. An
+empty completion list or a missing hover reads as "this is not valid". Treat
+every place where the editor is silent, or offers unrelated names, while the
+compiler has an answer as a correctness defect.
+
+A language feature is not accepted until these `tsrust-lsp` suites pass. They
+are affected suites for any change to the checker's member rules, the built-in
+catalog, the standard library, completion, hover or request routing.
+
+- `completion_matrix`: one row per receiver kind and syntactic position. Each
+  row runs against the real server typed without a pause, typed at 80 ms per
+  key, settled, and settled with a syntax error elsewhere. The answers must be
+  equal. A new receiver kind, position or `std:` module needs a row; the suite
+  fails without one.
+- `checker_agreement`: for each receiver type, completion offers exactly the
+  fields the compiler accepts, shows the compiler's type for each, and offers
+  no method the compiler rejects. Add a receiver type with each new built-in
+  or record-like type. An exception needs a written reason and fails when it
+  no longer applies.
+- `editor_consistency`: completion is not empty where hover reports a type;
+  every documented member is reachable; typing a project document leaves the
+  server counters `staleAnswers`, `emptyKnownReceiver` and
+  `nonMemberAfterSeparator` at zero.
+
+Rules for editor code:
+
+- Derive members and types from the compiler: its checked facts, its native
+  type declarations, or a check of a repaired document. Do not add a table of
+  what a type offers. Where the compiler has no query yet, add the agreement
+  row first and request the query.
+- A request is answered from an analysis of the current text. A document with
+  imports waits for its project analysis; it is not answered from the
+  single-document index.
+- After a member separator, offer members or nothing. Never fall back to
+  names of the enclosing scope.
+- When a receiver has a known type and no member, hover says why and
+  completion offers the action that narrows it.
+- Before you infer a language rule from editor output, compile a witness.
+
 ## Compiler recursion and stack usage
 
 Keep shared recursive dispatch small. Built-in analysis, branch joins and assignment selection should own their temporary state in dedicated helpers so ordinary calls and blocks do not retain unrelated state on the stack. Preserve the existing source-depth diagnostics and normal test-worker stack; increasing the worker stack is not an acceptance fix. When a depth witness aborts, identify its failing phase and inspect actual compiled frames before changing the implementation. Resume the failed checks once the narrow witness passes.
