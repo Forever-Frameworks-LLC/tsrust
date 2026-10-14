@@ -4,6 +4,7 @@ use super::super::*;
 pub(super) struct BlockFrame {
     pub(super) result_type: Type,
     keep_names: bool,
+    outer_result_type: Type,
     first_local: usize,
     entry_loans: crate::capture_loan_identity::Boundary,
     shadowed: Vec<(String, usize)>,
@@ -114,10 +115,11 @@ impl Analyzer {
         let control_boundary = context.loops.len();
         let first_local = context.bindings.len();
         let entry_loans = crate::capture_loan_identity::Boundary::capture(&context.capture_loans);
+        let outer_result_type = std::mem::replace(&mut context.block_result_type, result_type);
         let exited = false;
         let (nested_stores, whole_stores) = nullable_record_fields::control_stores(body);
         let declared = first_local;
-        Ok(Box::new(BlockFrame { result_type, keep_names, first_local, entry_loans,
+        Ok(Box::new(BlockFrame { result_type, outer_result_type, keep_names, first_local, entry_loans,
             shadowed, native_shadow_boundary, control_boundary, exited, nested_stores, whole_stores, declared, next: 0 }))
     }
 
@@ -137,6 +139,7 @@ impl Analyzer {
     /// Failed function bodies must not keep their partial declaration visibility.
     pub(super) fn leave_block(&mut self, context: &mut Context, frame: Box<BlockFrame>, failed: bool) {
         let BlockFrame { keep_names, first_local, entry_loans, shadowed, native_shadow_boundary, control_boundary, .. } = *frame;
+        context.block_result_type = frame.outer_result_type;
         let keep_names = keep_names && !failed;
         while context.loops.len() > control_boundary {
             let abandoned = context.loops.pop().expect("nested control frame");

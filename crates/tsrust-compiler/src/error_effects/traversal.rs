@@ -19,7 +19,7 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                 results.push(own);
             }
             Work::Visit(value) => {
-                let own = own_expression_effect(value, effects);
+                let own = if let ExprKind::Match { body, .. } = &mut value.kind { body_effect(body, effects) } else { own_expression_effect(value, effects) };
                 value.own_may_fail = own.may_fail();
                 value.effects_checked = true;
                 let reverse = matches!(&value.kind, ExprKind::SpreadCall(_) | ExprKind::Array(_) | ExprKind::ArrayOf(..) | ExprKind::SetConstructor(..) | ExprKind::MapConstructor(..) | ExprKind::NativeConstructor(..) | ExprKind::Template(_) | ExprKind::Sequence(_) | ExprKind::Record(_));
@@ -39,7 +39,7 @@ pub(super) fn expression_effect(root: &mut Expr, effects: &ErrorEffects) -> Fail
                     ExprKind::Array(values) | ExprKind::ArrayOf(values, _) | ExprKind::SetConstructor(values, _) | ExprKind::MapConstructor(values, _) | ExprKind::NativeConstructor(values, _) | ExprKind::Template(values) | ExprKind::Sequence(values) => pending.extend(values.iter_mut().map(Work::Visit)),
                     ExprKind::Record(fields) => pending.extend(fields.iter_mut().map(|(_, value)| Work::Visit(value))),
                     // Creating a closure does not execute its source body.
-                    ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {}
+                    ExprKind::Match { .. } | ExprKind::Closure { .. } | ExprKind::SpreadValue(_) | ExprKind::Selected { .. } | ExprKind::Name(_) | ExprKind::String(_) | ExprKind::Integer(_) | ExprKind::EnumMember { .. } | ExprKind::Number(_) | ExprKind::Boolean(_) | ExprKind::Null | ExprKind::Undefined => {}
                 }
                 pending[children..].reverse();
             }

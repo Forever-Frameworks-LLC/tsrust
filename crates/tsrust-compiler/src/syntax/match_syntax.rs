@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Pattern {
+    Literal(Span),
     Wildcard(Span),
     Variant { name: Span, binding: Option<Span> },
 }
@@ -33,11 +34,13 @@ pub(super) struct ParsedMatch {
 pub(super) struct ParsedArm {
     pub(super) pattern: ParsedPattern,
     pub(super) body: Vec<Stmt>,
+    pub(super) value: Option<Expr>,
     pub(super) body_span: Span,
     pub(super) span: Span,
 }
 
 pub(super) enum ParsedPattern {
+    Literal(Expr),
     Wildcard(Span),
     Variant { name: Token, binding: Option<Token> },
 }
@@ -52,11 +55,12 @@ pub fn parse(source: &str) -> Result<MatchSyntax, Diagnostic> {
     }
     let ParsedMatch { scrutinee, arms, span } = value;
     let arms = arms.into_iter().map(|arm| {
-        let ParsedArm { pattern, body, body_span, span } = arm;
+        let ParsedArm { pattern, body, body_span, span, .. } = arm;
         // Inspection validates the body with the ordinary parser but does not
         // expose an unchecked compiler AST through the public interface.
         drop(body);
         let pattern = match pattern {
+            ParsedPattern::Literal(value) => Pattern::Literal(value.span),
             ParsedPattern::Wildcard(span) => Pattern::Wildcard(span),
             ParsedPattern::Variant { name, binding } => Pattern::Variant { name: name.span, binding: binding.map(|value| value.span) },
         };
@@ -96,7 +100,12 @@ impl Parser<'_> {
         let mut coverage = intrinsic("@match:coverage", None, span);
         if let ExprKind::Call(_, arguments) = &mut coverage.kind {
             for arm in &arms {
+                if let ParsedPattern::Literal(value) = &arm.pattern {
+                    arguments.push(Expr::new(ExprKind::String(literal_label(value)), value.span));
+                    continue;
+                }
                 let (name, at) = match &arm.pattern {
+                    ParsedPattern::Literal(_) => unreachable!(),
                     ParsedPattern::Wildcard(at) => ("_", *at),
                     ParsedPattern::Variant { name, .. } => (name.text.as_str(), name.span),
                 };
@@ -106,25 +115,23 @@ impl Parser<'_> {
         let mut tail = Vec::new();
         for arm in arms.into_iter().rev() {
             let mut body = arm.body;
+            if let Some(value) = arm.value { body.push(statement(StmtKind::Expr(value), arm.span)); }
             let tag = match arm.pattern {
                 ParsedPattern::Wildcard(_) => None,
+                ParsedPattern::Literal(value) => Some(Expr::new(ExprKind::Binary { op: BinaryOp::Equal, operator: value.span, left: Box::new(Expr::new(ExprKind::Name(holder.text.clone()), span)), right: Box::new(value) }, arm.span)),
                 ParsedPattern::Variant { name, binding } => {
                     if let Some(binding) = binding {
                         let value = intrinsic("@match:payload", Some((&name.text, name.span)), binding.span);
-                        let mut temporary = self.pattern_holder();
-                        temporary.span = Span::new(binding.span.start, binding.span.start);
-                        let field = Expr::new(ExprKind::Field(Box::new(Expr::new(ExprKind::Name(temporary.text.clone()), binding.span)), "payload".into()), binding.span);
-                        body.insert(0, statement(StmtKind::Let { rebindable: false, name: binding, annotation: None, value: field, binding: None }, arm.span));
-                        body.insert(0, statement(StmtKind::Let { rebindable: false, name: temporary, annotation: None, value, binding: None }, arm.span));
+                        body.insert(0, statement(StmtKind::Let { rebindable: false, name: binding, annotation: None, value, binding: None }, arm.span));
                     }
-                    Some(name)
+                    Some(intrinsic("@match:variant", Some((&name.text, name.span)), arm.span))
                 }
             };
             // Coverage checking precedes the chain and proves the final arm is
             // the remainder. This lets existing return/loan joins remain exact.
             if tail.is_empty() { tail.push(statement(StmtKind::Block(body), arm.span)); }
             else {
-                let condition = tag.map(|name| intrinsic("@match:variant", Some((&name.text, name.span)), arm.span)).unwrap_or_else(|| Expr::new(ExprKind::Boolean(true), arm.span));
+                let condition = tag.unwrap_or_else(|| Expr::new(ExprKind::Boolean(true), arm.span));
                 tail = vec![statement(StmtKind::If { condition, then_body: body, else_body: tail }, arm.span)];
             }
         }
@@ -133,12 +140,56 @@ impl Parser<'_> {
         statement(StmtKind::Block(body), span)
     }
 
+    pub(super) fn lower_match_value(&mut self, holder: Token, mut parsed: ParsedMatch) -> Result<Expr, Diagnostic> {
+        let id = parsed.span.start;
+        for arm in &mut parsed.arms {
+            if arm.value.is_none() && !crate::completion::definitely_abrupt(&arm.body) {
+                return Err(Diagnostic::new("match-value", "A value arm uses => expression; a block arm must exit with return, throw, break, or continue.", arm.body_span));
+            }
+            if let Some(value) = arm.value.take() {
+                let span = value.span;
+                let callee = Expr::new(ExprKind::Name("@match:yield".into()), span);
+                arm.value = Some(Expr::new(ExprKind::Call(Box::new(callee), vec![value]), span));
+            }
+        }
+        let span = parsed.span;
+        let lowered = self.lower_match_statement(holder, parsed);
+        let StmtKind::Block(body) = lowered.into_kind() else { unreachable!() };
+        Ok(Expr::new(ExprKind::Match { id, body }, span))
+    }
+
     pub(super) fn match_pattern(&mut self) -> Result<ParsedPattern, Diagnostic> {
+        if matches!(self.peek().kind, TokenKind::String | TokenKind::Integer | TokenKind::Number)
+            || matches!(self.peek().text.as_str(), "true" | "false" | "null" | "undefined" | "-") {
+            let negative_number = self.is("-") && self.tokens.get(self.i + 1).is_some_and(|token| token.kind == TokenKind::Number);
+            let value = if negative_number {
+                let start = self.take().span.start;
+                let mut value = self.atom()?;
+                if let ExprKind::Number(number) = &mut value.kind { *number = -*number; }
+                value.span.start = start;
+                value
+            } else if self.is("undefined") {
+                let token = self.take(); Expr::new(ExprKind::Undefined, token.span)
+            } else { self.atom()? };
+            return Ok(ParsedPattern::Literal(value));
+        }
         let name = self.name()?;
         if name.text == "_" { return Ok(ParsedPattern::Wildcard(name.span)); }
         self.expect("(")?;
         let binding = self.name()?;
         self.expect(")")?;
         Ok(ParsedPattern::Variant { name, binding: (binding.text != "_").then_some(binding) })
+    }
+}
+
+fn literal_label(value: &Expr) -> String {
+    match &value.kind {
+        ExprKind::String(value) => format!("@string:{value}"),
+        ExprKind::Integer(value) => format!("@int:{value}"),
+        ExprKind::Number(value) => format!("@number:{value}"),
+        ExprKind::Boolean(value) => format!("@boolean:{value}"),
+        ExprKind::Null => "@null:".into(),
+        ExprKind::Undefined => "@undefined:".into(),
+        _ => unreachable!("literal pattern"),
     }
 }

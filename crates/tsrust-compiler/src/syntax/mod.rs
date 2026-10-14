@@ -670,6 +670,7 @@ pub enum CallTarget {
     /// Carries the structured export error record identity.
     SchemaExport(usize),
     ResultUnwrap(Type),
+    MatchYield(usize),
     SchemaAddIssue(usize),
     /// Forward a scalar constraint through an owned diagnostic-message wrapper.
     SchemaConstraint(usize),
@@ -1198,6 +1199,8 @@ impl SpreadSelection {
 
 #[derive(Clone, Debug)]
 pub enum ExprKind {
+    /// A value-producing match executes in the enclosing function and lexical context.
+    Match { id: usize, body: Vec<Stmt> },
     SpreadCall(Box<CheckedSpreadCall>),
     SpreadValue(Box<SpreadSelected>),
     /// One uninterrupted postfix chain. Parentheses close this wrapper.
@@ -1385,7 +1388,7 @@ impl Expr {
                 .chain(plan.callee.iter().map(|callee| callee.value.depth))
                 .chain(std::iter::once(plan.call.depth)).max().unwrap_or(0),
             ExprKind::SpreadValue(_) => 0,
-            ExprKind::Closure { .. } => 0,
+            ExprKind::Closure { .. } | ExprKind::Match { .. } => 0,
             ExprKind::EnumMember { .. } | ExprKind::Name(_)
             | ExprKind::String(_)
             | ExprKind::Integer(_)

@@ -821,6 +821,15 @@ impl Linker<'_> {
     }
     fn expr(&mut self, expr: &mut Expr, locals: &BTreeSet<String>) {
         self.span(&mut expr.span);
+        if let ExprKind::Call(callee, arguments) = &mut expr.kind {
+            if matches!(&callee.kind, ExprKind::Name(name) if matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload")) {
+                for argument in arguments.iter_mut().skip(1) {
+                    if let ExprKind::String(name) = &mut argument.kind {
+                        if let Some(linked) = self.names.get(name) { *name = linked.clone(); }
+                    }
+                }
+            }
+        }
         match &mut expr.kind {
             ExprKind::SpreadCall(plan) => { for value in plan.expressions_mut() { self.expr(value, locals); } }
             ExprKind::SpreadValue(selected) => self.span(&mut selected.source.span),
@@ -829,7 +838,7 @@ impl Linker<'_> {
                     if let Some(linked) = self.names.get(name) {
                         *name = linked.clone();
                     } else if crate::native_bindings::by_symbol(name).is_none()
-                        && !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload")
+                        && !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload" | "@match:yield")
                         && crate::syntax::global_number_member(name, false).is_none()
                         && crate::syntax::global_number_member(name, true).is_none()
                         && !matches!(
@@ -905,7 +914,8 @@ impl Linker<'_> {
                 self.expr(left, locals);
                 self.expr(right, locals);
             }
-            ExprKind::Closure {
+            ExprKind::Match { id, body } => { *id += self.offset; self.body(body, &mut locals.clone()); },
+                    ExprKind::Closure {
                 id,
                 params,
                 result,

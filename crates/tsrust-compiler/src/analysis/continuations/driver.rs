@@ -5,6 +5,7 @@
 //! are migrated; recursive compatibility entry is not stackless acceptance.
 use super::super::*;
 mod tail;
+mod matching;
 mod region;
 mod closure_parameters;
 mod optional;
@@ -113,6 +114,8 @@ struct BlockTask<'a> {
 }
 
 enum ExpressionState {
+    MatchValue(Box<matching::ValueFrame>),
+    MatchYield { id: usize, expected: Option<Type>, returning: bool },
     ArraySpread,
     ObjectSpread,
     CollectionConstructor,
@@ -923,6 +926,8 @@ fn finish_expression<'a>(analyzer: &mut Analyzer, context: &mut Context, mut tas
 
 fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut task: ExpressionTask<'a>, completion: Option<Completion<'a>>) -> Step<'a> {
     match std::mem::replace(&mut task.state, ExpressionState::Start) {
+        ExpressionState::MatchValue(environment) => matching::resume_value(analyzer, contexts.get(task.context), task, environment, completion.expect("match body completed")),
+        ExpressionState::MatchYield { id, expected, returning } => matching::resume_yield(analyzer, contexts.get(task.context), task, id, expected, returning, completion.expect("match arm completed")),
         ExpressionState::ArraySpread | ExpressionState::ObjectSpread | ExpressionState::CollectionConstructor => {
             let Completion::Spread(value,result)=completion.expect("array spread completion") else{unreachable!()};
             *task.expression.value()=*value;
@@ -1328,6 +1333,9 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             debug_assert!(completion.is_none());
             let context = contexts.get(task.context);
             let expr = task.expression.value();
+            if matches!(&expr.kind, ExprKind::Call(callee, _) if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:yield")) {
+                return matching::schedule_yield(analyzer, context, task);
+            }
             let prepared = analyzer.prepare_expression_work(context, expr, task.mode, &task.loans, task.expected, &mut task.completion);
             let frame = match prepared {
                 Ok(PreparedExpression::Adapter(request)) => return adapters::schedule(task, *request),
@@ -1363,6 +1371,7 @@ fn step_expression<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts<'_>, mut
             let expected = frame.expected;
             let mode = frame.mode;
             task.checked = Some(frame);
+            if matches!(expr.kind, ExprKind::Match { .. }) { return matching::schedule_value(analyzer, context, task, expected); }
             match analyzer.prepare_named_adapter(context, expr, mode, expected) {
                 Ok(Some(request)) => return adapters::schedule(task, request),
                 Ok(None) => {},

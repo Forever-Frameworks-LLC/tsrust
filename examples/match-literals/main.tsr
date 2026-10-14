@@ -1,0 +1,17 @@
+function describe(status: int): string {
+  return match (status) {
+    200 => "Ready",
+    404 => "Not found",
+    _ => "Try again",
+  };
+}
+
+function main() {
+  console.log(describe(200), describe(404), describe(503));
+  const enabled = true;
+  const label = match (enabled) {
+    true => "On",
+    false => "Off",
+  };
+  console.log(label);
+}

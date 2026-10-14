@@ -116,6 +116,16 @@ impl SourceIndex {
         open.iter().skip(closing).rev().map(|open| closer(open)).collect()
     }
 
+    /// Keep complete declarations around the cursor when a later declaration is broken.
+    /// Every candidate still needs a full compiler check, including its dependencies.
+    pub(crate) fn declaration_prefix_repairs(&self, offset: usize) -> Vec<Repair> {
+        let Some((separator, _)) = self.member_position(offset) else { return Vec::new(); };
+        let receiver_end = self.tokens[separator - 1].span.end;
+        self.tokens.iter().filter(|token| token.scope == 0 && token.span.start > offset
+            && !token.literal && matches!(token.text.as_str(), "function" | "export" | "type" | "interface" | "enum" | "const" | "let"))
+            .map(|token| Repair { text: self.source[..token.span.start].to_owned(), start: token.span.start, receiver_end }).collect()
+    }
+
     /// Repaired documents to try, most likely first.
     pub(crate) fn member_repairs(&self, offset: usize) -> Vec<Repair> {
         let Some((separator, _)) = self.member_position(offset) else {
@@ -177,7 +187,7 @@ impl SourceIndex {
         let prefix = &self.source[prefix_start..offset];
         let replace = self.range(Span::new(prefix_start, offset));
         let receiver = self.receiver_text(separator);
-        self.member_repairs(offset).into_iter().find_map(|repair| {
+        self.declaration_prefix_repairs(offset).into_iter().chain(self.member_repairs(offset)).find_map(|repair| {
             let repaired = SourceIndex::new(&repair.text);
             repaired.checked().then(|| repaired.members_ending_at(repair.receiver_end, prefix, replace, &receiver, self.text(separator) == "?.")).flatten()
         })

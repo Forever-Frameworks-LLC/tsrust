@@ -3,6 +3,7 @@ use super::*;
 
 pub(super) fn has_value_return(body: &[Stmt]) -> bool {
     let mut pending = body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     while let Some(statement) = pending.pop() {
         match &statement.kind {
             StmtKind::Return(Some(_)) => return true,
@@ -28,6 +29,7 @@ pub(super) fn has_value_return(body: &[Stmt]) -> bool {
 /// Whether a body has an exception region, at any statement depth.
 pub(super) fn has_exception_region(body: &[Stmt]) -> bool {
     let mut pending = body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     while let Some(statement) = pending.pop() {
         match &statement.kind {
             StmtKind::Try(_) => return true,
@@ -111,6 +113,7 @@ impl Analyzer {
     #[inline(never)]
     pub(super) fn inferred_body_result(&self, body: &[Stmt]) -> Result<Type, Diagnostic> {
         let mut pending = body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
         let mut inferred = None;
         while let Some(statement) = pending.pop() {
             match &statement.kind {

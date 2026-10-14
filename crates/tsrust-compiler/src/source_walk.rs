@@ -169,6 +169,7 @@ fn walk(
             Work::Expression(expression) => {
                 expression_visit(expression)?;
                 match &mut expression.kind {
+                    ExprKind::Match { body, .. } => work.extend(body.iter_mut().map(Work::Statement)),
                     ExprKind::SpreadCall(plan) => work.extend(plan.expressions_mut().map(Work::Expression)),
                     ExprKind::SpreadValue(_) => (),
                     ExprKind::Closure {

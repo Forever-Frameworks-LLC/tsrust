@@ -1,0 +1,18 @@
+function displayName(result: Result<string, string>): string {
+  return match (result) {
+    Ok(name) => name,
+    Err(error) => {
+      throw error;
+    },
+  };
+}
+
+function main() {
+  const greet = (name: string): string => `Hello, ${name}!`;
+  try {
+    console.log(greet(displayName(Ok("Ada"))));
+    console.log(displayName(Err("Name unavailable")));
+  } catch (error) {
+    console.log(error);
+  }
+}

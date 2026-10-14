@@ -176,7 +176,7 @@ impl ProjectIndex {
         let prefix = source.get(prefix_start..offset)?;
         let replace = index.source_range(prefix_start, offset);
         let receiver = index.receiver_text(separator);
-        index.member_repairs(offset).into_iter().find_map(|repair| {
+        index.declaration_prefix_repairs(offset).into_iter().chain(index.member_repairs(offset)).find_map(|repair| {
             let mut graph = self.graph.clone();
             let module = graph.modules.get_mut(id)?;
             module.declaration_source = format!("{}{}", module.declaration_source.get(..repair.start)?, &repair.text[repair.start..]);

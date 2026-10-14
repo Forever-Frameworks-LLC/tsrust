@@ -418,6 +418,7 @@ fn plan_temporary_arrays(
                     arrays.insert((base.span.start, base.span.end, scalar), shape);
                 }
                 match &expression.kind {
+                    ExprKind::Match { body, .. } => pending.extend(body.iter().map(|value| (Node::Statement(value), next))),
                     ExprKind::SpreadCall(plan) => pending.extend(plan.expressions().map(|value| (Node::Expression(value), next))),
                     ExprKind::SpreadValue(_) => (),
                     ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value)
@@ -707,6 +708,7 @@ impl<'a> Proof<'a> {
             mode
         };
         let valid = match &expr.kind {
+            ExprKind::Match { body, .. } => self.body(id, body),
             ExprKind::SpreadCall(plan) => {
                 let receiver = plan.callee.as_ref().is_none_or(|callee| self.expr(id, &callee.value, callee.access));
                 // A spread consumer needs addressable homogeneous elements. Scalar
@@ -858,7 +860,7 @@ impl<'a> Proof<'a> {
                 CallTarget::SchemaStrip | CallTarget::SchemaRetain | CallTarget::SchemaPresence => self.expr(id,&args[0],Mode::Consume),
                 CallTarget::SchemaDefault | CallTarget::SchemaChoice(_) | CallTarget::SchemaConstraint(_) | CallTarget::SchemaMessagePolicy(_) => args.iter().all(|argument|self.expr(id,argument,Mode::Consume)),
                 CallTarget::SchemaAddIssue(_) => self.expr(id,&args[0],Mode::Mutate) && self.expr(id,&args[1],Mode::Consume),
-                CallTarget::ResultUnwrap(_) => self.expr(id,&args[0],Mode::Consume),
+                CallTarget::ResultUnwrap(_) | CallTarget::MatchYield(_) => self.expr(id,&args[0],Mode::Consume),
                 CallTarget::SchemaExport(_) => self.expr(id,&args[0],Mode::Read),
                 CallTarget::SchemaValidate => self.expr(id,&args[0],Mode::Read) && self.expr(id,&args[1],Mode::Consume),
                 CallTarget::JsonEncode => args.iter().all(|a| self.expr(id, a, Mode::Consume)),
@@ -1365,6 +1367,7 @@ fn visit_expression(expr: &Expr, visit: &mut impl FnMut(&Expr)) {
     while let Some(expr) = work.pop() {
         visit(expr);
         match &expr.kind {
+            ExprKind::Match { body, .. } => visit_expressions(body, visit),
             ExprKind::SpreadCall(plan) => work.extend(plan.expressions().collect::<Vec<_>>().into_iter().rev()),
             ExprKind::SpreadValue(_) => (),
             ExprKind::TypeAssertion { value, .. } | ExprKind::OptionalChain(value)

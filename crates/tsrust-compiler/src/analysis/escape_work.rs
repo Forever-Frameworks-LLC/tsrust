@@ -116,7 +116,13 @@ fn walk(root: Work<'_>, outer: &Names, escaping: &mut HashSet<usize>) {
                     work.push(Work::Body(body, None));
                     work.extend(params.iter().rev().map(Work::Parameter));
                 },
-                ExprKind::Call(callee, args) => { work.extend(args.iter().rev().map(Work::Expression)); work.push(Work::Expression(callee)); },
+                ExprKind::Match { body, .. } => work.push(Work::Body(body, None)),
+                ExprKind::Call(callee, args) => {
+                    if matches!(&callee.kind, ExprKind::Name(name) if name == "@match:yield") {
+                        for value in args { mark(value, &names, escaping); }
+                    }
+                    work.extend(args.iter().rev().map(Work::Expression)); work.push(Work::Expression(callee));
+                },
                 ExprKind::Project { value, .. } | ExprKind::Inject { value, .. } | ExprKind::Unary { value, .. } | ExprKind::Update { target: value, .. } | ExprKind::Field(value, _) => work.push(Work::Expression(value)),
                 ExprKind::Conditional { predicate, consequent, alternate } => { work.push(Work::Expression(alternate)); work.push(Work::Expression(consequent)); work.push(Work::Expression(predicate)); },
                 ExprKind::Binary { left, right, .. } | ExprKind::CompoundAssign { target: left, value: right, .. } | ExprKind::Assign { target: left, value: right, .. } | ExprKind::CoalesceAssign { target: left, value: right, .. } | ExprKind::LogicalAssign { target: left, value: right, .. } | ExprKind::Index(left, right) => { work.push(Work::Expression(right)); work.push(Work::Expression(left)); },

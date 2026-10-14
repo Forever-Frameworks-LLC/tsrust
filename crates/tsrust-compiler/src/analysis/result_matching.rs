@@ -54,14 +54,23 @@ impl Analyzer {
         if !matches!(name.as_str(), "@match:coverage" | "@match:variant" | "@match:payload") { return Ok(None); }
         let kind = name.clone();
         let ty = self.expression_type_hint(context, &arguments[0]).ok_or_else(|| Diagnostic::new("match-type", "Match needs a known Result<T, E> type.", arguments[0].span))?;
-        let (union, variants) = self.result_variant_records(ty).ok_or_else(|| Diagnostic::new("match-type", "This match requires a Result<T, E>; other pattern families are not implemented yet.", arguments[0].span))?;
+        let result = self.result_variant_records(ty);
+        let members = ty.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![ty]);
+        let variants = if let Some((_, variants)) = result {
+            vec![("Ok".to_string(), variants[0]), ("Err".to_string(), variants[1])]
+        } else {
+            members.iter().filter_map(|member| match member {
+                Type::Record(id) if self.program.records[*id].native_type.is_none() => Some((self.program.records[*id].name.text.clone(), *id)),
+                _ => None,
+            }).collect::<Vec<_>>()
+        };
         if kind == "@match:coverage" {
-            let mut coverage = Coverage::new(2);
+            if variants.len() != members.len() { return self.literal_match_coverage(expression, ty).map(Some); }
+            let mut coverage = Coverage::new(variants.len());
             for argument in &arguments[1..] {
                 let ExprKind::String(label) = &argument.kind else { unreachable!("lowered pattern tag"); };
-                let variant = match label.as_str() {
-                    "Ok" => Some(0), "Err" => Some(1), "_" => None,
-                    _ => return Err(Diagnostic::new("match-pattern", "Result patterns are Ok(payload), Err(error), or _.", argument.span)),
+                let variant = if label == "_" { None } else {
+                    Some(variants.iter().position(|(name, _)| name == label).ok_or_else(|| Diagnostic::new("match-pattern", "This variant is not part of the matched type.", argument.span))?)
                 };
                 if let Err(error) = coverage.add(variant) {
                     let (code, message) = match error {
@@ -73,25 +82,77 @@ impl Analyzer {
             }
             let missing = coverage.missing();
             if !missing.is_empty() {
-                let names = missing.into_iter().map(|index| ["Ok", "Err"][index]).collect::<Vec<_>>().join(", ");
+                let names = missing.into_iter().map(|index| variants[index].0.as_str()).collect::<Vec<_>>().join(", ");
                 return Err(Diagnostic::new("match-exhaustiveness", format!("Non-exhaustive match: add {names} or a final _ arm."), expression.span));
             }
             *expression = Expr::checked(ExprKind::Undefined, expression.span, Some(Type::Undefined));
             return Ok(Some(Type::Undefined));
         }
         let ExprKind::String(label) = &arguments[1].kind else { unreachable!("lowered pattern tag"); };
-        let record = match label.as_str() { "Ok" => variants[0], "Err" => variants[1], _ => unreachable!("coverage validated pattern") };
+        let record = variants.iter().find(|(name, _)| name == label).ok_or_else(|| Diagnostic::new("match-pattern", "This variant is not part of the matched type.", expression.span))?.1;
         let value = arguments[0].clone();
         let mutable = Self::mutable_match_source(context, &value);
+        let borrowed = self.borrowed_place_hint(context, &value);
         if kind == "@match:variant" {
             *expression = Expr::new(ExprKind::Unary { op: UnaryOp::VariantIs(Type::Record(record)), operator: expression.span, value: Box::new(value) }, expression.span);
             return self.expression(context, expression, Mode::Read, loans, Some(Type::Boolean)).map(Some);
         }
-        if self.program.records[record].fields.is_empty() {
+        if result.is_some() && self.program.records[record].fields.is_empty() {
             return Err(Diagnostic::new("match-payload", "A void variant has no payload to bind; use _ inside its pattern.", expression.span));
         }
-        *expression = Expr::checked(ExprKind::Project { value: Box::new(value), union, narrowed: Type::Record(record) }, expression.span, Some(Type::Record(record)));
-        let access = if mutable { Mode::Mutate } else if matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
-        self.expression(context, expression, access, loans, Some(Type::Record(record))).map(Some)
+        let projected = if let Some(union) = ty.union() {
+            Expr::checked(ExprKind::Project { value: Box::new(value), union, narrowed: Type::Record(record) }, expression.span, Some(Type::Record(record)))
+        } else { value };
+        *expression = if result.is_some() { Expr::new(ExprKind::Field(Box::new(projected), "payload".into()), expression.span) } else { projected };
+        let access = if mutable { Mode::Mutate } else if borrowed || matches!(ty, Type::BorrowedUnion(_)) { Mode::Read } else { Mode::Consume };
+        self.expression(context, expression, access, loans, None).map(Some)
+    }
+}
+
+impl Analyzer {
+    fn literal_match_coverage(&mut self, expression: &mut Expr, ty: Type) -> Result<Type, Diagnostic> {
+        use crate::literal_types::LiteralValue;
+        let ExprKind::Call(_, arguments) = &expression.kind else { unreachable!() };
+        let members = ty.union().map(|id| self.unions.members(id)).unwrap_or_else(|| vec![ty]);
+        let mut required = HashSet::new();
+        let mut open = HashSet::new();
+        for member in members {
+            match member {
+                Type::Boolean => { required.insert("@boolean:true".to_string()); required.insert("@boolean:false".to_string()); }
+                Type::Null => { required.insert("@null:".to_string()); }
+                Type::Undefined => { required.insert("@undefined:".to_string()); }
+                Type::String => { open.insert("@string"); }
+                Type::Int => { open.insert("@int"); }
+                Type::Number => { open.insert("@number"); }
+                Type::Literal(id, _) => {
+                    let key = match self.program.records[id].literal_definition.as_ref().expect("literal type") {
+                        LiteralValue::String(value) => format!("@string:{value}"),
+                        LiteralValue::Int(value) => format!("@int:{value}"),
+                        LiteralValue::Number(bits) => format!("@number:{}", f64::from_bits(*bits)),
+                        LiteralValue::Boolean(value) => format!("@boolean:{value}"),
+                    };
+                    required.insert(key);
+                }
+                _ => return Err(Diagnostic::new("match-type", "Match patterns need a scalar type or a union of named records.", arguments[0].span)),
+            }
+        }
+        let mut seen = HashSet::new();
+        let mut complete = false;
+        for argument in &arguments[1..] {
+            let ExprKind::String(label) = &argument.kind else { unreachable!() };
+            let mut label = label.clone();
+            if label.starts_with("@int:") && (open.contains("@number") || !required.contains(&label) && required.iter().any(|key| key.starts_with("@number:"))) {
+                let value = label[5..].parse::<f64>().map_err(|_| Diagnostic::new("match-pattern", "Invalid numeric pattern.", argument.span))?;
+                label = format!("@number:{value}");
+            }
+            if complete || !seen.insert(label.clone()) { return Err(Diagnostic::new("match-unreachable", "This match arm is already covered by earlier arms.", argument.span)); }
+            if label == "_" { complete = true; continue; }
+            let prefix = label.split_once(':').map(|(prefix, _)| prefix).unwrap_or("");
+            if !required.contains(&label) && !open.contains(prefix) { return Err(Diagnostic::new("match-pattern", "This literal is not part of the matched type.", argument.span)); }
+            complete = open.is_empty() && required.iter().all(|key| seen.contains(key));
+        }
+        if !complete { return Err(Diagnostic::new("match-exhaustiveness", "Non-exhaustive match: handle every alternative or add a final _ arm.", expression.span)); }
+        *expression = Expr::checked(ExprKind::Undefined, expression.span, Some(Type::Undefined));
+        Ok(Type::Undefined)
     }
 }

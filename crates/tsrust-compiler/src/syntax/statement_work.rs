@@ -318,16 +318,32 @@ impl Parser<'_> {
                 let pattern = self.match_pattern()?;
                 self.expect("=>")?;
                 let body_start = self.peek().span.start;
-                machine.request(Work::MatchArm { frame, pattern: Box::new(pattern), arm_start, body_start }, Work::Block);
+                if self.is("{") {
+                    machine.request(Work::MatchArm { frame, pattern: Box::new(pattern), arm_start, body_start }, Work::Block);
+                } else {
+                    machine.request(Work::MatchArmValue { frame, pattern: Box::new(pattern), arm_start, body_start }, Work::Parse(0));
+                }
             }
             Work::MatchArm { mut frame, pattern, arm_start, body_start } => {
                 let body = machine.body();
                 let end = self.tokens[self.i - 1].span.end;
-                frame.arms.push(ParsedArm { pattern: *pattern, body, body_span: Span::new(body_start, end), span: Span::new(arm_start, end) });
+                frame.arms.push(ParsedArm { pattern: *pattern, body, value: None, body_span: Span::new(body_start, end), span: Span::new(arm_start, end) });
                 // Rust-style block arms may omit their separator; a trailing comma
                 // is accepted. A doubled comma remains a malformed next pattern.
                 self.accept(",");
                 machine.work.push(Work::MatchNext(frame));
+            }
+            Work::MatchArmValue { mut frame, pattern, arm_start, body_start } => {
+                let value = machine.value();
+                let end = value.span.end;
+                frame.arms.push(ParsedArm { pattern: *pattern, body: Vec::new(), value: Some(value), body_span: Span::new(body_start, end), span: Span::new(arm_start, end) });
+                if !self.is("}") { self.expect(",")?; }
+                machine.work.push(Work::MatchNext(frame));
+            }
+            Work::LowerMatchValue(holder) => {
+                let parsed = machine.matches.pop().expect("completed match expression");
+                machine.values.push(self.lower_match_value(*holder, parsed)?);
+                machine.work.push(Work::Postfix { optional: false });
             }
             Work::LowerMatch(holder) => {
                 let parsed = machine.matches.pop().expect("completed match statement");

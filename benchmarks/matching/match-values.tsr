@@ -1,0 +1,68 @@
+import { monotonicNow } from 'std:time';
+
+type User = {
+  value: int;
+};
+
+type Guest = {
+  value: int;
+};
+
+function result(value: int): Result<int, int> {
+  if (value % 3 === 0) {
+    return Err(value);
+  }
+
+  return Ok(value * 2);
+}
+
+function person(value: int): User | Guest {
+  if (value % 2 === 0) {
+    const user: User = {
+      value: value + 1
+    };
+    return user;
+  }
+
+  const guest: Guest = {
+    value: value + 2
+  };
+  return guest;
+}
+
+function batch(): int {
+  let checksum = 0;
+  for (let i = 0; i < 2048; i += 1) {
+    const value = match (result(i)) {
+      Ok(value) => value,
+      Err(error) => -error,
+    };
+    const weight = match (i % 4) {
+      0 => 1,
+      1 => 3,
+      2 => 5,
+      _ => 7,
+    };
+    const extra = match (person(i)) {
+      User(user) => user.value,
+      Guest(guest) => guest.value,
+    };
+    checksum += value + weight + extra;
+  }
+
+  return checksum;
+}
+
+function main() {
+  for (let warmup = 0; warmup < 8; warmup += 1) {
+    batch();
+  }
+
+  for (let sample = 0; sample < 31; sample += 1) {
+    const start = monotonicNow();
+    const checksum = batch();
+    const elapsed = monotonicNow() - start;
+    console.log(checksum);
+    console.log(elapsed);
+  }
+}

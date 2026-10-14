@@ -512,6 +512,7 @@ impl Context<'_> {
                     StmtKind::Break | StmtKind::Continue | StmtKind::Return(None) => {}
                 },
                 Work::Expression(expression) => match &mut expression.kind {
+                    ExprKind::Match { body, .. } => work.extend(body.iter_mut().map(Work::Statement)),
                     ExprKind::SpreadCall(plan) => work.extend(plan.expressions_mut().map(Work::Expression)),
                     ExprKind::SpreadValue(_) => (),
                     ExprKind::Closure {

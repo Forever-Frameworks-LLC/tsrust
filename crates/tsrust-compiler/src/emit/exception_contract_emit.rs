@@ -357,6 +357,7 @@ impl Drop for CallableScope<'_> {
 pub(crate) fn local_control_targets(body:&[crate::syntax::Stmt])->Vec<crate::syntax::ControlTarget> {
     use crate::syntax::{StmtKind,ControlTarget};
     let mut pending=body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let crate::syntax::ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     let mut targets=vec![];
     while let Some(stmt)=pending.pop() {
         match &stmt.kind {
@@ -383,6 +384,7 @@ pub(crate) fn local_control_targets(body:&[crate::syntax::Stmt])->Vec<crate::syn
 pub(crate) fn has_source_return(body:&[crate::syntax::Stmt])->bool {
     use crate::syntax::StmtKind;
     let mut pending=body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let crate::syntax::ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     while let Some(statement)=pending.pop(){match &statement.kind {
         StmtKind::Return(_)=>return true,
         StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
@@ -398,6 +400,7 @@ pub(crate) fn has_source_return(body:&[crate::syntax::Stmt])->bool {
 pub(crate) fn has_partial_return(fun:&crate::analysis::CheckedFunction,body:&[crate::syntax::Stmt])->bool {
     use crate::syntax::StmtKind;
     let mut pending=body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let crate::syntax::ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     while let Some(statement)=pending.pop(){match &statement.kind {
         StmtKind::Return(Some(value)) if fun.storage_exits.partial_transfer_within((statement.span.start,statement.span.end),value.span)=>return true,
         StmtKind::Block(body)|StmtKind::While{body,..}|StmtKind::ForOf{body,..}=>pending.extend(body),
@@ -411,7 +414,8 @@ pub(crate) fn has_partial_return(fun:&crate::analysis::CheckedFunction,body:&[cr
 /// Only control exits targeting an enclosing construct can escape cleanup.
 pub(crate) fn escaping_controls(body:&[crate::syntax::Stmt])->Vec<(crate::syntax::ControlTarget,bool,crate::Span)> {
     use crate::syntax::StmtKind;
-    let locals=local_control_targets(body);let mut pending=body.iter().collect::<Vec<_>>();let mut exits=vec![];
+    let locals=local_control_targets(body);let mut pending=body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let crate::syntax::ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }let mut exits=vec![];
     while let Some(statement)=pending.pop(){match &statement.kind {
         StmtKind::Break|StmtKind::Continue=>{
             let target=statement.control_target.expect("checked control target");let continuing=matches!(statement.kind,StmtKind::Continue);

@@ -1,0 +1,25 @@
+type User = {
+  name: string;
+};
+
+type Guest = {
+  invitation: string;
+};
+
+function welcome(person: User | Guest): string {
+  return match (person) {
+    User(user) => `Welcome, ${user.name}`,
+    Guest(guest) => `Invitation: ${guest.invitation}`,
+  };
+}
+
+function main() {
+  const user: User = {
+    name: "Ada"
+  };
+  const guest: Guest = {
+    invitation: "Friday dinner"
+  };
+  console.log(welcome(user));
+  console.log(welcome(guest));
+}

@@ -215,6 +215,8 @@ pub(super) enum Work {
     MatchNext(Box<MatchFrame>),
     MatchArm { frame: Box<MatchFrame>, pattern: Box<super::match_syntax::ParsedPattern>, arm_start: usize, body_start: usize },
     LowerMatch(Box<Token>),
+    LowerMatchValue(Box<Token>),
+    MatchArmValue { frame: Box<MatchFrame>, pattern: Box<super::match_syntax::ParsedPattern>, arm_start: usize, body_start: usize },
     // Declarations.
     Declarator(Box<DeclarationFrame>),
     DeclaratorValue { frame: Box<DeclarationFrame>, name: Box<(Token, Option<crate::type_syntax::ValueAnnotation>)> },
@@ -414,6 +416,8 @@ impl Parser<'_> {
             | Work::MatchScrutinee(_)
             | Work::MatchNext(_)
             | Work::MatchArm { .. }
+            | Work::MatchArmValue { .. }
+            | Work::LowerMatchValue(_)
             | Work::LowerMatch(_) => self.statement_step(task, machine),
             Work::Declarator(_)
             | Work::DeclaratorValue { .. }

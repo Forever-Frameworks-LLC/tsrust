@@ -445,6 +445,9 @@ type CallbackMetadata = (Option<Mode>, bool, Option<CallbackKind>);
 
 #[derive(Clone)]
 struct Context {
+    block_result_type: Type,
+    match_values: Vec<(usize, Option<Type>)>,
+    match_loans: Vec<Loans>,
     native_recursive_shapes: Option<std::rc::Rc<native_view_recursive::Shapes>>,
     /// Locals stored inside a branch, loop or exception region, or replaced as
     /// a whole record. Their nullable callback records keep one carrier type
@@ -517,6 +520,9 @@ impl Context {
 
     fn new(function_name: String) -> Self {
         Self {
+            block_result_type: Type::Void,
+            match_values: Vec::new(),
+            match_loans: Vec::new(),
             control_stored: HashSet::new(),
             native_recursive_shapes: None,
             native_view_calls: false,
@@ -577,6 +583,7 @@ use crate::argument_access_loans::Loans;
 /// Inspect statement bodies without adding recursive analyzer frames.
 pub(crate) fn has_exception_syntax(body:&[Stmt])->bool {
     let mut pending=body.iter().collect::<Vec<_>>();
+    for expression in crate::error_effects::body_expressions(body) { if let ExprKind::Match { body, .. } = &expression.kind { pending.extend(body); } }
     while let Some(statement)=pending.pop() {
         match &statement.kind {
             StmtKind::Try(_)|StmtKind::Throw(_)=>return true,
@@ -1038,6 +1045,7 @@ fn callback_calls(
                 StmtKind::Return(None) | StmtKind::Break | StmtKind::Continue => (),
             },
             Node::Expression(expr) => match &expr.kind {
+                ExprKind::Match { body, .. } => nodes.extend(body.iter().map(Node::Statement)),
                 ExprKind::SpreadCall(plan) => nodes.extend(plan.expressions().map(Node::Expression)),
                 ExprKind::SpreadValue(_) => (),
                 ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value) => nodes.push(Node::Expression(value)),
@@ -1382,6 +1390,7 @@ fn remap_function_closures(
                     expr.callable_origin = ids.get(origin).copied().flatten().map(CallableOrigin::Closure);
                 }
                 match &mut expr.kind {
+                    ExprKind::Match { body, .. } => nodes.extend(body.iter_mut().map(Node::Statement)),
                     ExprKind::SpreadCall(plan) => {
                         for segment in &mut plan.segments { remap_closure_type(&mut segment.element, ids)?; }
                         for parameter in &mut plan.parameters { remap_closure_type(&mut parameter.ty, ids)?; }
@@ -4233,9 +4242,8 @@ impl Analyzer {
             }
         }
         binding.used.get_or_insert(span);
-        if !context.effects_only
-            && let Some(active) = loans.get(&index)
-        {
+        for loans in std::iter::once(loans).chain(context.match_loans.iter()) {
+          if !context.effects_only && let Some(active) = loans.get(&index) {
             for (previous, previous_span) in active {
                 if (mode != Mode::Read || *previous != Mode::Read)
                     && loans.overlaps(index, *previous, *previous_span, context.projection.as_ref().filter(|projection| projection.root == binding.name).map(|projection| projection.path.as_slice())) {
@@ -4243,6 +4251,7 @@ impl Analyzer {
                         .related(*previous_span, "Earlier access starts here."));
                 }
             }
+        }
         }
         if binding.parameter && (!binding.ty.is_copy() || mode == Mode::Mutate) {
             // Moving a reusable callback transfers the local &mut reference,
@@ -5090,6 +5099,7 @@ impl Analyzer {
         // Aggregate nesting must not retain the larger general-expression frame.
         let previous_view = expr.ty;
         match &mut expr.kind {
+            ExprKind::Match { .. } => unreachable!("match body is scheduled by the driver"),
             ExprKind::Unary { op: UnaryOp::PatternSelection, .. } => self.pattern_selection(context,expr,mode,loans,expected),
             ExprKind::Unary { op: UnaryOp::NonNull, .. } => self.non_null_assertion(context, expr, mode, loans, expected),
             ExprKind::OptionalChain(_) => self.optional_chain(context, expr, mode, loans, expected),
@@ -6433,7 +6443,7 @@ impl Analyzer {
     fn type_hint_leaf(&self,context:&Context,expr:&Expr)->Option<Type>{
         match &expr.kind{
             ExprKind::EnumMember{enumeration,..}=>self.program.records[*enumeration].enum_definition.as_ref().map(|definition|Type::Enum(*enumeration,definition.kind)),
-            ExprKind::Optional{..}|ExprKind::Selected{..}|ExprKind::SpreadCall(_)|ExprKind::SpreadValue(_)=>expr.ty,
+            ExprKind::Match { .. } | ExprKind::Optional{..}|ExprKind::Selected{..}|ExprKind::SpreadCall(_)|ExprKind::SpreadValue(_)=>expr.ty,
             ExprKind::TypeAssertion{annotation,..}=>self.resolve_value_annotation(annotation,false).ok(),
             ExprKind::Inject{union,..}=>Some(Type::Union(*union)),
             ExprKind::Integer(_) => Some(Type::Int),
@@ -10235,7 +10245,7 @@ self.names_materialized_type(element.with_depth(0).ty())
         let span = expr.span;
         let ty = match &mut expr.kind {
             ExprKind::EnumMember { enumeration, .. } => Type::Enum(*enumeration, self.program.records[*enumeration].enum_definition.as_ref().expect("enum member declaration").kind),
-            ExprKind::TypeAssertion {..}
+            ExprKind::Match { .. } | ExprKind::TypeAssertion {..}
             | ExprKind::SpreadCall(_)
             | ExprKind::SpreadValue(_)
             | ExprKind::OptionalChain(_)

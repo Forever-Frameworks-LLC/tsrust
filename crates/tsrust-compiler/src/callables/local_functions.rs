@@ -115,7 +115,7 @@ fn remove_lifted_placeholders(body: &mut Vec<Stmt>) -> Result<(), Diagnostic> {
     }
     statements(body);
     crate::source_walk::body(body, &mut |_| Ok(()), &mut |expression| {
-        if let ExprKind::Closure { body, .. } = &mut expression.kind {
+        if let ExprKind::Closure { body, .. } | ExprKind::Match { body, .. } = &mut expression.kind {
             statements(body);
         }
         Ok(())

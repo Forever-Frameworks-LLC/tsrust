@@ -93,7 +93,7 @@ impl SourceIndex {
         }).collect::<Vec<_>>()))
     }
 
-    /// Arms of a `match` on a Result that are not written yet.
+    /// Alternatives of a `match` that are not written yet.
     pub(super) fn match_arm_completion(&self, offset: usize, prefix_start: usize) -> Option<Value> {
         let open = self.open_brace(prefix_start)?;
         if open < 3 || self.text(open - 1) != ")" || !self.entry_start(open, prefix_start) {
@@ -103,20 +103,35 @@ impl SourceIndex {
         if call == 0 || self.text(call - 1) != "match" {
             return None;
         }
-        let (ok, error) = self.result_alternatives(&self.expression_type(open - 2))?;
         let end = self.pairs[open].unwrap_or(self.tokens.len());
-        let written = (open + 1..end).filter(|&id| self.open_brace(self.tokens[id].span.start) == Some(open) && matches!(self.text(id), "Ok" | "Err" | "_")).map(|id| self.text(id)).collect::<Vec<_>>();
+        let written = (open + 1..end).filter(|&id| self.open_brace(self.tokens[id].span.start) == Some(open)
+            && (id == open + 1 || self.entry_start(open, self.tokens[id].span.start)))
+            .filter(|&id| self.text(id + 1) == "=>" || self.text(id + 1) == "(" && self.pairs[id + 1].is_some_and(|close| self.text(close + 1) == "=>"))
+            .map(|id| self.text(id)).collect::<Vec<_>>();
+        if written.contains(&"_") { return Some(json!([])); }
+        let receiver = self.expression_type(open - 2);
+        let variants = if let Some((ok, error)) = self.result_alternatives(&receiver) {
+            vec![("Ok".to_string(), ok, "value"), ("Err".to_string(), error, "error")]
+        } else {
+            let expanded = self.type_aliases.get(&receiver).map_or(receiver.as_str(), String::as_str);
+            let parts = expanded.split('|').map(str::trim).collect::<Vec<_>>();
+            if parts.iter().all(|part| self.nominal_definitions.contains_key(*part)) {
+                parts.into_iter().map(|name| (name.to_string(), name.to_string(), "value")).collect()
+            } else if expanded == "boolean" {
+                return Some(json!(["true", "false", "_"].into_iter().filter(|name| name.starts_with(&self.source[prefix_start..offset]) && !written.contains(name)).map(|name| json!({"label":name,"kind":20,"textEdit":{"range":self.range(Span::new(prefix_start,offset)),"newText":format!("{name} => $0")},"insertTextFormat":2})).collect::<Vec<_>>()));
+            } else { return None; }
+        };
         let prefix = &self.source[prefix_start..offset];
         let replace = self.range(Span::new(prefix_start, offset));
         let mut items = Vec::new();
-        for (variant, ty, binding) in [("Ok", ok, "value"), ("Err", error, "error")] {
-            if !variant.starts_with(prefix) || written.contains(&variant) {
+        for (variant, ty, binding) in variants {
+            if !variant.starts_with(prefix) || written.contains(&variant.as_str()) {
                 continue;
             }
             let ty = self.display_type(&ty);
             let (pattern, detail) = if ungroup_callable_type(&ty) == "void" { (format!("{variant}(_)"), format!("{variant}()")) } else { (format!("{variant}(${{1:{binding}}})"), format!("{variant}({binding}: {ty})")) };
             items.push(json!({"label": variant, "kind": 20, "detail": detail, "insertTextFormat": 2,
-                "documentation": {"kind": "markdown", "value": format!("The `{variant}` alternative of this Result.")},
+                "documentation": {"kind": "markdown", "value": format!("Select the `{variant}` alternative and bind its value.")},
                 "textEdit": {"range": replace, "newText": format!("{pattern} => {{\n  $0\n}}")}}));
         }
         Some(json!(items))

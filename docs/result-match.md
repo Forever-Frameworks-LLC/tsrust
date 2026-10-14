@@ -112,10 +112,25 @@ function doubledQuotient(a: int, b: int): Result<int, string> {
 }
 ```
 
-## Implementation status
+## Value matches, literals and named variants
 
-Construction, exhaustive matching, borrowing, editor assistance and cleanup have
-compiler, native, editor and matched benchmark evidence. B10/S06 is accepted at
-gate 186; see [the acceptance record](milestones/186-result-match.md). Match expressions, guards, nested destructuring
-patterns, `?` propagation and general discriminated unions are not implemented.
-Nested match statements are supported.
+A match can produce a value: `const name = match (result) { Ok(value) => value,
+Err(error) => { throw error; }, };`. A concise arm supplies its expression's value.
+A block arm must exit with `return`, `throw`, `break` or `continue`; `return` exits
+the enclosing function. Concise arrow functions likewise return their expression.
+The scrutinee runs once, and only the selected arm runs. Ordinary argument order,
+short-circuiting, lexical cleanup and ownership rules apply.
+
+Literal patterns accept strings, integers, numbers, booleans, null and undefined.
+An open scalar such as `int` needs a final `_` arm. Boolean and finite literal unions
+can enumerate every alternative. Duplicate patterns and arms after complete
+coverage are rejected.
+
+Named record unions support `User(user)` patterns. The binding is the selected
+record, with its original nominal identity. These patterns do not add enum-style
+constructors: construct the existing named record and pass it into the union.
+Result patterns keep their special payload binding behavior.
+
+Readable examples: [values](../examples/match-values/main.tsr),
+[literals](../examples/match-literals/main.tsr), and
+[named variants](../examples/match-variants/main.tsr). Acceptance is pending.

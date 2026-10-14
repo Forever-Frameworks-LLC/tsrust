@@ -43,6 +43,7 @@ impl OperationEffects {
                     let span=match &value.kind {ExprKind::Update{operator,..}|ExprKind::CompoundAssign{operator,..}=>*operator,_=>value.span};
                     output.insert(span,expression_operation_effect(value).map(|(_,effect)|effect));
                     match &value.kind {
+                        ExprKind::Match { body, .. } => pending.extend(body.iter().map(Node::Statement)),
                         ExprKind::SpreadCall(plan)=>pending.extend(plan.expressions().map(Node::Expression)),
                         ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value)|ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::Update{target:value,..}|ExprKind::Field(value,_)=>pending.push(Node::Expression(value)),
                         ExprKind::Optional{base,body,..}=>pending.extend([Node::Expression(base),Node::Expression(body)]),
@@ -517,6 +518,7 @@ fn walk_checked_expressions<'a>(body:&'a [Stmt],initializers:impl Iterator<Item=
                 Node::Expression(value)=>{
                     output.push(value);
                     match &value.kind {
+                        ExprKind::Match { body, .. } => pending.extend(body.iter().map(Node::Statement)),
                         ExprKind::SpreadCall(plan)=>pending.extend(plan.expressions().map(Node::Expression)),
                         ExprKind::TypeAssertion {value,..} | ExprKind::OptionalChain(value)|ExprKind::Unary{value,..}|ExprKind::Inject{value,..}|ExprKind::Project{value,..}|ExprKind::Update{target:value,..}|ExprKind::Field(value,_)=>pending.push(Node::Expression(value)),
                         ExprKind::Optional{base,body,..}=>pending.extend([Node::Expression(base),Node::Expression(body)]),
@@ -784,6 +786,7 @@ fn native_effect(target:CallTarget,value:&Expr,effects:&ErrorEffects)->FailureSe
         }
         StoredCallable(_)|StoredCallableField(_)=>FailureSet::unknown(),
         SchemaConstraint(id)=>effects.function_errors.get(id).cloned().unwrap_or_else(FailureSet::unknown),
+        MatchYield(_)=>FailureSet::default(),
         ResultUnwrap(error)=>FailureSet::thrown(Some(error)),
         SchemaExport(id)=>FailureSet { explicit:vec![Type::Record(id)],runtime:false,opaque:false },
         SchemaValidate=>value.schema_invocations.as_deref().unwrap_or_default().iter().fold(FailureSet::default(),|errors,family|errors|effects.storage_errors.get(family).cloned().unwrap_or_else(FailureSet::unknown)),

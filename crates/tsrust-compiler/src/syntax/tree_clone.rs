@@ -53,6 +53,7 @@ fn children(source: Source<'_>) -> Vec<Source<'_>> {
             ExprKind::CompoundAssign { target, value, .. } | ExprKind::CoalesceAssign { target, value, .. }
             | ExprKind::Assign { target, value, .. } | ExprKind::LogicalAssign { target, value, .. } => out.extend([Source::Expr(target), Source::Expr(value)]),
             ExprKind::Binary { left, right, .. } | ExprKind::Index(left, right) => out.extend([Source::Expr(left), Source::Expr(right)]),
+            ExprKind::Match { body, .. } => out.extend(body.iter().map(Source::Stmt)),
             ExprKind::Closure { params, result, body, .. } => {
                 parameters(params, &mut out); out.push(Source::Result(result)); out.extend(body.iter().map(Source::Stmt));
             }
@@ -91,6 +92,7 @@ fn children(source: Source<'_>) -> Vec<Source<'_>> {
 }
 fn expression_kind(kind: &ExprKind, values: &mut Values<'_>) -> ExprKind {
     match kind {
+        ExprKind::Match { id, body } => ExprKind::Match { id: *id, body: values.stmts(body.len()) },
         ExprKind::SpreadCall(plan) => {
             let callee = plan.callee.as_ref().map(|value| SpreadCallee { value: values.boxed(), access: value.access, selection: value.selection });
             let segments = plan.segments.iter().map(|value| SpreadSegment { value: values.boxed(), spread: value.spread, element: value.element, access: value.access, length: value.length }).collect();

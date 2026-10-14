@@ -35,6 +35,7 @@ pub(super) fn expression_mention(root: &Expr, variable: Variable) -> Option<crat
                 if (named || captured) && found.is_none_or(|span: crate::Span| value.span.start < span.start) { found = Some(value.span); }
                 match &value.kind {
                     ExprKind::SpreadCall(plan) => work.extend(plan.expressions().map(Work::Expression)),
+                    ExprKind::Match { body, .. } => work.extend(body.iter().map(Work::Statement)),
                     ExprKind::Closure { params, body, .. } => {
                         for parameter in params { if let ParameterInitializer::Default { value, .. } = &parameter.initializer { work.push(Work::Expression(value)); } }
                         work.extend(body.iter().map(Work::Statement));

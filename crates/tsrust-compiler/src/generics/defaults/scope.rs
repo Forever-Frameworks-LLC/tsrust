@@ -22,7 +22,8 @@ fn expression<'a>(value: &'a Expr, names: &HashSet<&'a str>) -> Result<(), Diagn
                 ));
             }
         }
-        ExprKind::Closure { params, body, .. } => {
+        ExprKind::Match { body, .. } => statements(body, &mut names.clone())?,
+                    ExprKind::Closure { params, body, .. } => {
             let mut local = names.clone();
             // All parameter names reserve their scope before any initializer.
             for parameter in params {

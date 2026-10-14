@@ -99,6 +99,8 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+        Row { kind: Kind::MatchOkBinding, name: "match expression payload", before: "type User={name:string;};function main(){const result:Result<User,string>=Ok({name:'Ada'});const count=match(result){Ok(user)=>".into(), typed: "user.", after: "name.length,Err(_)=>0,};}", includes: &["name"], excludes: NOT_MEMBERS, silent: None, needs_check: false },
+        Row { kind: Kind::RecordField, name: "match variant payload", before: "type User={name:string;};type Guest={code:int;};function get(value:User|Guest):int{return match(value){User(user)=>".into(), typed: "user.", after: "name.length,Guest(guest)=>guest.code,};}", includes: &["name"], excludes: &["code","function","const"], silent: None, needs_check: false },
         row(Kind::Local, "local prefix", "val", &["values"], &[]),
         row(Kind::Local, "local function prefix", "hel", &["helper"], &[]),
         row(Kind::Keyword, "keyword prefix", "ret", &["return"], &[]),

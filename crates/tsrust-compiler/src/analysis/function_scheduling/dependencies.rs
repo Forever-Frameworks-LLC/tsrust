@@ -80,7 +80,8 @@ pub(super) fn references(function: &Function, names: &HashMap<String, usize>) ->
                         references.push(id);
                     }
                 }
-                ExprKind::Closure { params, body, .. } => {
+                ExprKind::Match { body, .. } => pending.push(Work::Body(body, Vec::new())),
+                    ExprKind::Closure { params, body, .. } => {
                     let locals = params.iter().map(|parameter| parameter.name.text.as_str()).collect::<Vec<_>>();
                     // Defaults have the callable parameter scope, but not body locals.
                     for &name in &locals { *bound.entry(name).or_default() += 1; }

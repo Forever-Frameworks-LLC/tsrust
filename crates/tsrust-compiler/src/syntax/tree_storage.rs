@@ -42,6 +42,7 @@ fn expression(kind: ExprKind, pending: &mut Vec<Owned>) {
         ExprKind::Binary { left, right, .. } | ExprKind::Index(left, right) => {
             pending.push(Owned::Expression(*left)); pending.push(Owned::Expression(*right));
         }
+        ExprKind::Match { body, .. } => pending.extend(body.into_iter().map(Owned::Statement)),
         ExprKind::Closure { params, result, body, .. } => {
             parameters(params, pending); pending.push(Owned::Result(result));
             pending.extend(body.into_iter().map(Owned::Statement));

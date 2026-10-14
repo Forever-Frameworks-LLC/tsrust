@@ -7513,6 +7513,14 @@ impl Emitter<'_> {
             ExprKind::Binary { op, left, right, .. } if matches!(op, BinaryOp::And | BinaryOp::Or)
                 && !(left.ty == Some(Type::Boolean) && right.ty == Some(Type::Boolean)) =>
                 self.logical_value(fun, expr, *op, left, right, mode),
+            ExprKind::Match { id, body } => {
+                let outer_temporaries = std::mem::take(&mut *self.conditional_temporaries.borrow_mut());
+                let mut output = format!("'match_value{id}: {{");
+                self.block(&mut output, fun, body, 0);
+                output.push('}');
+                *self.conditional_temporaries.borrow_mut() = outer_temporaries;
+                match mode { Mode::Read => format!("&({output})"), Mode::Mutate => format!("&mut ({output})"), _ => output }
+            }
             ExprKind::Project {
                 value,
                 union,
@@ -8284,7 +8292,7 @@ impl Emitter<'_> {
 
     fn expr_inner(&self, fun: &CheckedFunction, expr: &Expr, mode: Mode) -> String {
         let code = match &expr.kind {
-            ExprKind::Sequence(_) | ExprKind::SpreadCall(_)
+            ExprKind::Match { .. } | ExprKind::Sequence(_) | ExprKind::SpreadCall(_)
             | ExprKind::SpreadValue(_)
             | ExprKind::OptionalChain(_)
             | ExprKind::Optional { .. }
@@ -8472,6 +8480,7 @@ impl Emitter<'_> {
                     format!("{{let issue_context={};let issue_message={};let start=issue_context.issues.items.len();issue_context.issues.push(&[{path}],tsrust_schema_issues::Code::Refinement,tsrust_schema_issues::Kind::{kind},tsrust_schema_issues::Kind::{kind});if issue_context.issues.items.len()>start{{issue_context.issues.items[start].message=Some(issue_message.into_owned());}}}}",self.expr(fun,&args[0],Mode::Mutate),self.expr(fun,&args[1],Mode::Consume))
                 },
                 CallTarget::SchemaValidate => self.schema_validate(fun,expr,args),
+                CallTarget::MatchYield(id) => format!("break 'match_value{id} {}", self.expr(fun, &args[0], Mode::Consume)),
                 CallTarget::ResultUnwrap(error) => self.result_unwrap(fun, expr, &args[0], error),
                 CallTarget::SchemaExport(failure) => self.schema_export_call(fun,expr,args,failure),
                 CallTarget::JsonEncode => self.json_typed_encode(fun,expr,args),

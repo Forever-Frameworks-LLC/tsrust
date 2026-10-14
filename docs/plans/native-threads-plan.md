@@ -157,3 +157,22 @@ compatible pool reuse. Keep dedicated OS-thread spawning available. The scoped
 cleanup pass does not implement or settle pool sizing, queue admission, nested
 join scheduling or shutdown; those remain required S12 follow-up work. No measured
 pool benefit is claimed before matched workload acceptance.
+
+## Owner API direction (2026-10-14, pending implementation)
+
+Use one public `spawn` with automatic joining when its owned handle leaves scope,
+including return and error exits. Explicit `join` observes the result; `detach`
+opts out of waiting. Remove the need to choose `spawnScoped`. Make `unwrap` a global
+operation like `clone`; preserve typed error propagation and ownership checks.
+
+Prioritize a configurable global default pool. A completed but unjoined task holds
+an outstanding-task slot, not a worker thread. Workers become reusable when work
+finishes. Bound outstanding tasks separately from worker count, report capacity
+exhaustion through `spawn` rather than blocking admission, and expose queued, running
+and completed-but-unjoined task counts. Define detach accounting and shutdown,
+including nested worker joins, before implementation acceptance. Evaluate Rayon
+against these requirements. This is required follow-up, not an accepted API yet.
+
+Current round prioritizes value-producing matches, literal patterns and named
+record variants with ownership, runtime and editor acceptance. Thread API
+simplification follows; pool work remains high priority if it cannot fit this round.

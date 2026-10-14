@@ -26,7 +26,16 @@ impl SourceIndex {
                 let tsrust_compiler::match_syntax::Pattern::Variant { binding: Some(binding), .. } = arm.pattern else { continue; };
                 let span = Span::new(start + binding.start, start + binding.end);
                 let Some(token) = self.tokens.iter().position(|token| token.span == span) else { continue; };
-                let Some(scope) = self.scopes.iter().position(|scope| scope.span.start == start + arm.body.start) else { continue; };
+                let body_span = Span::new(start + arm.body.start, start + arm.body.end);
+                let scope = if let Some(scope) = self.scopes.iter().position(|scope| scope.span == body_span || scope.span.start == body_span.start && self.source.as_bytes().get(body_span.start) == Some(&b'{')) { scope } else {
+                    let parent = self.tokens[token].scope;
+                    let scope = self.scopes.len();
+                    self.scopes.push(Scope { parent: Some(parent), span: body_span });
+                    for item in &mut self.tokens {
+                        if item.span.start >= body_span.start && item.span.end <= body_span.end && item.scope == parent { item.scope = scope; }
+                    }
+                    scope
+                };
                 // Lowered payload extraction shares the exact binding span with
                 // destructuring facts. Never infer a payload from the variant name.
                 self.install_match_binding(token, scope, true);
@@ -53,12 +62,21 @@ impl SourceIndex {
         let Some(scope) = self.scopes.iter().position(|scope| scope.span.start == self.tokens[body].span.start) else { return; };
         let end = self.pairs.get(body).copied().flatten().unwrap_or(self.tokens.len());
         for pattern in body + 1..end {
-            if self.tokens[pattern].scope != scope || !matches!(self.text(pattern), "Ok" | "Err") { continue; }
+            if self.tokens[pattern].scope != scope || !name(self.text(pattern)) { continue; }
             if pattern != body + 1 && !matches!(self.text(pattern - 1), "," | "}") { continue; }
-            if self.text(pattern + 1) != "(" || self.text(pattern + 3) != ")" || self.text(pattern + 4) != "=>" || self.text(pattern + 5) != "{" { continue; }
+            if self.text(pattern + 1) != "(" || self.text(pattern + 3) != ")" || self.text(pattern + 4) != "=>" { continue; }
             let binding = pattern + 2;
             if self.text(binding) == "_" || !name(self.text(binding)) || self.tokens[binding].literal { continue; }
-            let Some(arm_scope) = self.scopes.iter().position(|scope| scope.span.start == self.tokens[pattern + 5].span.start) else { continue; };
+            let Some(first) = self.tokens.get(pattern + 5) else { continue; };
+            let begin = first.span.start;
+            let arm_scope = if let Some(found) = self.scopes.iter().position(|scope| scope.span.start == begin) { found } else {
+                let stop = (pattern + 5..end).find(|&index| self.tokens[index].scope == scope && matches!(self.text(index), "," | "}")).unwrap_or(end);
+                let finish = self.tokens.get(stop).map_or(self.source.len(), |token| token.span.start);
+                let found = self.scopes.len();
+                self.scopes.push(Scope { parent: Some(scope), span: Span::new(begin, finish) });
+                for token in &mut self.tokens[pattern + 5..stop] { if token.scope == scope { token.scope = found; } }
+                found
+            };
             // A repaired-document check may provide authoritative facts for this
             // unchanged header. Without those facts, retain navigation only.
             self.install_match_binding(binding, arm_scope, true);

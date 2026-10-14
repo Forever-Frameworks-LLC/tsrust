@@ -118,7 +118,8 @@ impl Resolver {
                 }
                 _ => {}
             },
-                        ExprKind::Closure { params, body, .. } => {
+                        ExprKind::Match { body, .. } => work.push(Work::Body(body, context, false)),
+                    ExprKind::Closure { params, body, .. } => {
                             work.push(Work::Restore(undo.len()));
                             work.push(Work::Body(body, context, true));
                             for parameter in params.iter_mut().rev() {
@@ -254,7 +255,7 @@ impl Resolver {
         fn extract(function: &mut Function, pending: &mut Vec<Box<Function>>) -> Result<(), Diagnostic> {
             body(&mut function.body, pending);
             crate::source_walk::function_body(function, &mut |_| Ok(()), &mut |expression| {
-                if let ExprKind::Closure { body: nested, .. } = &mut expression.kind { body(nested, pending); }
+                if let ExprKind::Closure { body: nested, .. } | ExprKind::Match { body: nested, .. } = &mut expression.kind { body(nested, pending); }
                 Ok(())
             })
         }

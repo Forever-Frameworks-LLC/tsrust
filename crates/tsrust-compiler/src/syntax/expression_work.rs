@@ -242,7 +242,11 @@ impl Parser<'_> {
 
     fn primary(&mut self, machine: &mut Machine) -> Result<(), Diagnostic> {
         self.typed_arrow_without_parentheses()?;
-        if self.is("(") && !self.closure_header() {
+        if self.match_statement_header() {
+            let mut holder = self.pattern_holder();
+            holder.text = holder.text.replace("pattern#", "match#");
+            machine.request(Work::LowerMatchValue(Box::new(holder)), Work::MatchSyntax);
+        } else if self.is("(") && !self.closure_header() {
             self.take();
             machine.work.push(Work::Postfix { optional: false });
             machine.request_comma(Work::Group);
