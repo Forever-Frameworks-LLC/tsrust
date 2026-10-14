@@ -66,7 +66,7 @@ impl SourceIndex {
     fn schema_path_alternatives(&self, ty: &str) -> Vec<String> {
         self.record_alternatives(ty, true)
     }
-    fn record_alternatives(&self, ty: &str, omit_absent: bool) -> Vec<String> {
+    pub(in crate::intelligence) fn record_alternatives(&self, ty: &str, omit_absent: bool) -> Vec<String> {
         use tsrust_compiler::type_syntax::{ValueAnnotation, ValueAnnotationKind};
         fn flatten(value: &ValueAnnotation, source: &str, output: &mut Vec<String>, omit_absent: bool) {
             match &value.kind {

@@ -81,4 +81,62 @@ impl SourceIndex {
         builtin["signature"] = json!(format!("{name}<{}, {}>({}): Result<{}, {}>", types[0], types[1], parameters.join(", "), types[0], types[1]));
         builtin["parameters"] = json!(parameters);
     }
+
+    /// `Result<T, E>` as its two alternatives, when `ty` is one.
+    pub(super) fn result_alternatives(&self, ty: &str) -> Option<(String, String)> {
+        let ty = self.type_aliases.get(ty).map_or(ty, String::as_str);
+        let mut annotation = parse(ty).ok()?;
+        loop {
+            match annotation.into_kind() {
+                ValueAnnotationKind::Group(inner) => annotation = *inner,
+                ValueAnnotationKind::Applied { name, arguments } if arguments.len() == 2 => {
+                    let wrapper = matches!(name.text.as_str(), "ReadOnly" | "Mutable" | "Owned");
+                    if name.text != "Result" || wrapper { return None; }
+                    let part = |index: usize| ty[arguments[index].span.start..arguments[index].span.end].trim().to_owned();
+                    return Some((part(0), part(1)));
+                }
+                _ => return None,
+            }
+        }
+    }
+
+    /// The field that both alternatives of a Result hold, as the checker
+    /// reads it: `Ok` and `Err` each store one `payload`, and a field that
+    /// every alternative has is readable with the union of its types. A void
+    /// alternative stores nothing, so the Result then has no common field.
+    pub(super) fn result_payload(&self, ty: &str) -> Option<String> {
+        let (ok, error) = self.result_alternatives(ty)?;
+        if ungroup_callable_type(&ok) == "void" || ungroup_callable_type(&error) == "void" { return None; }
+        Some(if ok == error { ok } else { format!("{ok} | {error}") })
+    }
+
+    /// Members of a Result receiver: its common payload field, and the
+    /// `match` that narrows it to one alternative.
+    pub(super) fn result_member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str) -> Vec<Value> {
+        let Some((ok, error)) = self.result_alternatives(ty) else { return Vec::new(); };
+        let mut items = Vec::new();
+        if let Some(payload) = self.result_payload(ty)
+            && "payload".starts_with(prefix)
+        {
+            let payload = self.display_type(&payload);
+            items.push(json!({"label":"payload","kind":5,"detail":format!("payload: {payload}"),
+                "documentation":{"kind":"markdown","value":format!("The value of the active alternative, as `{payload}`. It is `Ok`'s value or `Err`'s error; use `match` to know which.")},
+                "textEdit":{"range":replace,"newText":"payload"}}));
+        }
+        if !receiver.is_empty() && "match".starts_with(prefix) {
+            let binding = |ty: &str, name: &str| if ungroup_callable_type(ty) == "void" { "_".to_owned() } else { name.to_owned() };
+            let text = format!("match ({receiver}) {{\n  Ok({}) => {{\n    $0\n  }}\n  Err({}) => {{\n  }}\n}}", binding(&ok, "value"), binding(&error, "error"));
+            // The edit replaces the whole access, so it starts at the receiver.
+            let mut range = replace;
+            let width = receiver.encode_utf16().count() as u32 + 1 + prefix.encode_utf16().count() as u32;
+            if !receiver.contains('\n') && range.end.character >= width {
+                range.start.character = range.end.character - width;
+                items.push(json!({"label":"match","kind":15,"detail":format!("match ({receiver}) {{ Ok(…) => … Err(…) => … }}"),
+                    "documentation":{"kind":"markdown","value":format!("Handle both alternatives of `{}`. `Ok` holds `{}`; `Err` holds `{}`.", self.display_type(ty), self.display_type(&ok), self.display_type(&error))},
+                    "filterText":format!("{receiver}.match"),"insertTextFormat":2,
+                    "textEdit":{"range":range,"newText":text}}));
+            }
+        }
+        items
+    }
 }

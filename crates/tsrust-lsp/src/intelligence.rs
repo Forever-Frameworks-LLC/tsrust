@@ -17,6 +17,10 @@ mod result_intelligence;
 mod native_type_intelligence;
 #[path = "data_intelligence.rs"]
 mod data_intelligence;
+#[path = "cursor_repair.rs"]
+mod cursor_repair;
+#[path = "position_completion.rs"]
+mod position_completion;
 use crate::LineIndex;
 use lsp_types::{Position, Range};
 use serde_json::{Value, json};
@@ -91,6 +95,8 @@ pub struct SourceIndex {
     /// Commas that separate declarators in a const or let declaration, with
     /// the keyword of that declaration.
     declarator_separators: std::collections::HashMap<usize, &'static str>,
+    /// The checker accepted exactly this text, so its facts describe it.
+    checked: bool,
 }
 fn member_separator(text: &str) -> bool {
     matches!(text, "." | "?.")
@@ -141,6 +147,7 @@ impl SourceIndex {
             checked_optional_receivers: vec![],
             checked_generic_calls: vec![],
             declarator_separators: std::collections::HashMap::new(),
+            checked: false,
         };
         let bytes = source.as_bytes();
         let mut offset = 0;
@@ -333,7 +340,10 @@ impl SourceIndex {
     // Checked views are cached per document revision. Never derive flow facts here.
     fn cache_checked_views(&mut self) {
         let (analysis, inserted) = match tsrust_compiler::check(&self.source) {
-            Ok(analysis) => (analysis, None),
+            Ok(analysis) => {
+                self.checked = true;
+                (analysis, None)
+            }
             Err(_) => {
                 let Some((probe, start, added, original_end)) = self.receiver_probe() else {
                     return;
@@ -2438,12 +2448,28 @@ impl SourceIndex {
         if self.text(dot) == "?." {
             return self.checked_optional_receiver(dot - 1).unwrap_or("").into();
         }
-        if self.json_string_receivers.iter().any(|span|span.start<=self.tokens[dot-1].span.start && span.end==self.tokens[dot-1].span.end){return "__tsrust_json_string_read".into();}
+        self.expression_type(dot - 1)
+    }
+    /// Type of the receiver before the separator `dot`. A built-in namespace
+    /// is its own receiver unless a declaration shadows it.
+    fn member_receiver_type(&self, dot: usize) -> String {
+        if dot > 0
+            && matches!(self.text(dot - 1), "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map" | "JSON")
+            && (dot < 2 || !member_separator(self.text(dot - 2)))
+            && self.resolve_token(dot - 1).is_none()
+        {
+            return self.text(dot - 1).into();
+        }
+        self.receiver_type(dot)
+    }
+    /// Type of the expression that ends at token `end`, as a member receiver.
+    fn expression_type(&self, end: usize) -> String {
+        if self.json_string_receivers.iter().any(|span|span.start<=self.tokens[end].span.start && span.end==self.tokens[end].span.end){return "__tsrust_json_string_read".into();}
         // A successful contiguous hop has its own checked payload view.
-        if let Some(ty) = self.checked_view(dot - 1) {
+        if let Some(ty) = self.checked_view(end) {
             return ty.into();
         }
-        let ty = self.written_type(&self.receiver_type_end(dot - 1, 0));
+        let ty = self.written_type(&self.receiver_type_end(end, 0));
         for wrapper in ["ReadOnly<", "Mutable<", "Owned<"] {
             if let Some(inner) = ty.strip_prefix(wrapper).and_then(|value| value.strip_suffix('>'))
                 && (self.native_type_aliases.contains_key(inner) || self.deque_element(inner).is_some()) {
@@ -2569,6 +2595,11 @@ impl SourceIndex {
             && let Some(s) = self.resolve_token(n)
         {
             return self.symbols[s].ty.clone();
+        }
+        if n > 1 && self.text(n - 1) == "." && self.text(n) == "payload"
+            && let Some(payload) = self.result_payload(&self.receiver_type_end(n - 2, depth + 1))
+        {
+            return payload;
         }
         self.infer(n, self.tokens[n].span.start, depth + 1)
     }
@@ -3051,6 +3082,9 @@ impl SourceIndex {
         if method == "textDocument/completion" && let Some(items) = self.schema_path_completion(offset) {
             return Ok(items);
         }
+        if method == "textDocument/completion" && let Some(items) = self.import_path_completion(offset, uri) {
+            return Ok(items);
+        }
         if method != "textDocument/signatureHelp" && self.excluded(offset) {
             return Ok(if method == "textDocument/completion" {
                 json!([])
@@ -3059,7 +3093,15 @@ impl SourceIndex {
             });
         }
         if method == "textDocument/completion" {
-            return Ok(self.completion(offset));
+            let items = self.completion(offset);
+            // An unfinished member access that this text cannot answer is
+            // answered from the checker's view of the document without it.
+            if !self.checked && items.as_array().is_some_and(Vec::is_empty)
+                && let Some(repaired) = self.repaired_member_completion(offset)
+            {
+                return Ok(repaired);
+            }
+            return Ok(items);
         }
         if method == "textDocument/signatureHelp" {
             return Ok(self.signature_help(offset));
@@ -3092,6 +3134,12 @@ impl SourceIndex {
             );
         }
         let Some(symbol) = self.resolve_token(token) else {
+            if method == "textDocument/hover" && token > 1 && self.text(token - 1) == "." && self.text(token) == "payload"
+                && let Some(payload) = self.result_payload(&self.receiver_type(token - 1))
+            {
+                let payload = self.display_type(&payload);
+                return Ok(json!({"contents":{"kind":"markdown","value":format!("```tsrust\n(property) payload: {payload}\n```\n\nThe value of the active alternative of a Result: `Ok`'s value or `Err`'s error. Use `match` to know which one it is.")},"range":self.range(self.tokens[token].span)}));
+            }
             return Ok(Value::Null);
         };
         let s = &self.symbols[symbol];
@@ -3265,9 +3313,51 @@ impl SourceIndex {
         }
         Some(entry)
     }
+    /// Completion items for the members of a receiver of type `ty`.
+    fn member_items(&self, ty: &str, prefix: &str, replace: Range, receiver: &str) -> Vec<Value> {
+        let mut items=self.receiver_builtins(ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
+        let ty = self.native_owner(ty);
+        let ty = ty.as_str();
+        items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
+        if !self.symbols.iter().any(|symbol|symbol.owner.as_deref()==Some(ty)) {
+            for (name, field_type) in self.common_record_fields(ty, false) {
+                if name.starts_with(prefix) {
+                    items.push(json!({"label":name,"kind":5,"detail":format!("{}: {}",name,self.display_type(&field_type)),"textEdit":{"range":replace,"newText":name}}));
+                }
+            }
+        }
+        items.extend(self.result_member_items(ty, prefix, replace, receiver));
+        if items.is_empty() && prefix.is_empty() && self.single_known_type(ty) {
+            crate::counters::count(&crate::counters::EMPTY_KNOWN_RECEIVER, &format!("no members offered for receiver type {ty}"));
+        }
+        items
+    }
+    /// A native record type written by its public name is declared under the
+    /// name this document imported it as, or under a private name.
+    fn native_owner(&self, ty: &str) -> String {
+        if self.symbols.iter().any(|symbol| symbol.owner.as_deref() == Some(ty)) {
+            return ty.to_owned();
+        }
+        self.native_type_aliases.iter()
+            .find(|(_, id)| tsrust_compiler::native_types::declaration(**id).name == ty)
+            .map_or_else(|| ty.to_owned(), |(name, _)| name.clone())
+    }
+    /// One known data type: a receiver whose members the editor must know.
+    fn single_known_type(&self, ty: &str) -> bool {
+        !ty.is_empty() && !ty.starts_with('@') && !ty.starts_with("__tsrust") && !matches!(ty, "void" | "null" | "undefined" | "unknown")
+            && callable_annotation(ty).is_none() && !ty.contains("=>")
+            && self.record_alternatives(ty, true).len() == 1
+            && self.result_alternatives(ty).is_none()
+    }
     fn completion(&self, offset: usize) -> Value {
         if let Some(items) = self.schema_options_completion(offset) { return items; }
-        let token = self.token_at(offset);
+        // The word before the cursor is the prefix, also when a closing
+        // bracket or another token starts exactly at the cursor.
+        let token = self
+            .tokens
+            .iter()
+            .rposition(|token| token.span.end == offset && name(&token.text) && !token.literal)
+            .or_else(|| self.token_at(offset));
         let prefix_start = token
             .filter(|&id| name(self.text(id)))
             .map_or(offset, |id| self.tokens[id].span.start);
@@ -3301,24 +3391,17 @@ impl SourceIndex {
         }
         if before.is_some_and(|id| member_separator(self.text(id))) {
             let dot = before.unwrap();
-            let ty = if dot > 0
-                && matches!(self.text(dot - 1), "Math" | "Number" | "console" | "Array" | "Object" | "String" | "Map" | "JSON")
-                && (self.text(dot - 1) != "JSON" || self.resolve_token(dot - 1).is_none())
-            {
-                self.text(dot - 1).into()
-            } else {
-                self.receiver_type(dot)
-            };
-            let mut items=self.receiver_builtins(&ty).into_iter().filter(|b|b["name"].as_str().unwrap_or("").starts_with(prefix)).map(|b|json!({"label":b["name"],"kind":if b["parameters"].is_null(){10}else{2},"detail":b["signature"],"documentation":{"kind":"markdown","value":b["documentation"]},"textEdit":{"range":replace,"newText":b["name"]}})).collect::<Vec<_>>();
-            items.extend(self.symbols.iter().filter(|s|s.owner.as_deref()==Some(ty.as_str()) && s.name.starts_with(prefix)).map(|s|json!({"label":s.name,"kind":5,"detail":self.display_type(&s.signature),"documentation":{"kind":"markdown","value":crate::documentation::render(&s.docs)},"textEdit":{"range":replace,"newText":s.name}})));
-            if !self.symbols.iter().any(|symbol|symbol.owner.as_deref()==Some(ty.as_str())) {
-                for (name, field_type) in self.common_record_fields(&ty, false) {
-                    if name.starts_with(prefix) {
-                        items.push(json!({"label":name,"kind":5,"detail":format!("{}: {}",name,self.display_type(&field_type)),"textEdit":{"range":replace,"newText":name}}));
-                    }
-                }
-            }
-            return json!(items);
+            let ty = self.member_receiver_type(dot);
+            // After a member separator only members are offered, never names
+            // of the enclosing scope.
+            return json!(self.member_items(&ty, prefix, replace, &self.receiver_text(dot)));
+        }
+        if before.is_some_and(|id| member_separator(self.text(id))) {
+            crate::counters::count(&crate::counters::NON_MEMBER_AFTER_SEPARATOR, "scope names requested after a member separator");
+            return json!([]);
+        }
+        if let Some(items) = self.match_arm_completion(offset, prefix_start).or_else(|| self.record_literal_completion(offset, prefix_start)) {
+            return items;
         }
         let mut items = vec![];
         let scope = self.scope_at(offset);
@@ -4230,6 +4313,13 @@ fn literal_scalar_family(ty: &str) -> Option<&'static str> {
         LiteralAnnotation::Number(_) => "number", LiteralAnnotation::Boolean(_) => "boolean" })
 }
 
+fn builtin_catalog() -> &'static Value {
+    static DATA: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    DATA.get_or_init(|| {
+        serde_json::from_str(include_str!("builtins.json")).expect("checked built-in catalog")
+    })
+}
+
 fn builtins_for(ty: &str) -> Vec<Value> {
     let ty = literal_scalar_family(ty).unwrap_or(ty);
     let set_key = ty.strip_prefix("Set<").and_then(|text| text.strip_suffix('>'));
@@ -4248,10 +4338,7 @@ fn builtins_for(ty: &str) -> Vec<Value> {
     } else {
         ty
     };
-    static DATA: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
-    let data = DATA.get_or_init(|| {
-        serde_json::from_str(include_str!("builtins.json")).expect("checked built-in catalog")
-    });
+    let data = builtin_catalog();
     let mut entries = data[family].as_array().cloned().unwrap_or_default();
     if let Some((key,value)) = map_types {
         for entry in &mut entries {

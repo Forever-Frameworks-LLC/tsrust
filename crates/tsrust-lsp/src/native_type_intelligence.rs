@@ -226,6 +226,20 @@ impl SourceIndex {
                 parameters: Vec::new(), owner: Some(local.into()),
             });
         }
+        // A field can hold another native record. Declare it too, so its
+        // members are known where the document does not import its name.
+        let mut mentioned = Vec::new();
+        for field in declaration.fields {
+            let _ = field.signature.render(|id| {
+                mentioned.push(id);
+                Some(tsrust_compiler::native_types::declaration(id).name.into())
+            });
+        }
+        for id in mentioned {
+            if id != declaration.id && !self.native_type_aliases.values().any(|known| *known == id) {
+                self.native_type_spelling(id);
+            }
+        }
     }
     /// Native aliases retain declaration identity while navigation stays on the
     /// written alias declaration. Structured aliases are not collapsed to owners.

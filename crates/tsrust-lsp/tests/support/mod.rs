@@ -1,4 +1,5 @@
 //! Catalog excerpts compare canonical layout; native output checks stay separate.
+pub mod session;
 pub fn contains_formatted_snippet(fixture: &str, snippet: &str) -> bool {
     fn canonical(source: &str) -> String {
         tsrust_compiler::format(source)

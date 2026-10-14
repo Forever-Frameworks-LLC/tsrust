@@ -1,5 +1,5 @@
 use crossbeam_channel::{after, bounded, select};
-use lsp_server::{Connection, ErrorCode, Message, Notification, Response};
+use lsp_server::{Connection, ErrorCode, Message, Notification, Request, RequestId, Response};
 use lsp_types::{
     DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
 };
@@ -35,6 +35,45 @@ enum Checked {
     Document(DocumentChecked),
     Workspace(tsrust_lsp::workspace_scan::Checked),
 }
+/// A request that waits for the analysis of the text it was asked about.
+struct Deferred {
+    request: Request,
+    uri: String,
+    since: Instant,
+}
+
+/// The longest a request waits for a current project analysis. After that it
+/// is answered from the document alone and marked incomplete.
+const ANSWER_WITHIN: Duration = Duration::from_secs(3);
+
+fn project_request(method: &str) -> bool {
+    matches!(method, "textDocument/hover" | "textDocument/completion" | "textDocument/signatureHelp" | "textDocument/definition" | "textDocument/references")
+}
+
+/// Answer from the project index of the current text. Without one, answer
+/// from the document alone. `stale` says that a project analysis exists for
+/// this document but not for its current text; the answer then says so.
+fn intelligence(request: Request, projects: &tsrust_lsp::project_session::ProjectSession, documents: &mut Documents, stale: bool) -> Response {
+    let method = request.method.as_str();
+    let uri = request.params.pointer("/textDocument/uri").and_then(Value::as_str);
+    let project = uri.and_then(|uri| projects.request(method, &request.params, uri));
+    let used_project = project.is_some();
+    let answer = project.or_else(|| uri.and_then(|uri| documents.index(uri).map(|index| index.request(method, &request.params, uri))));
+    match answer {
+        Some(Ok(result)) if stale && !used_project => {
+            tsrust_lsp::counters::count(&tsrust_lsp::counters::STALE_ANSWERS, "answered without a current project analysis");
+            Response::new_ok(request.id, if method == "textDocument/completion" && result.is_array() {
+                json!({"isIncomplete": true, "items": result})
+            } else {
+                result
+            })
+        }
+        Some(Ok(result)) => Response::new_ok(request.id, result),
+        Some(Err(error)) => Response::new_err(request.id, ErrorCode::InvalidParams as i32, error),
+        None => Response::new_ok(request.id, Value::Null),
+    }
+}
+
 fn send(connection: &Connection, message: impl Into<Message>) -> Result<(), String> {
     connection
         .sender
@@ -123,6 +162,9 @@ fn run(
     let mut projects = tsrust_lsp::project_session::ProjectSession::default();
     let mut scanner = tsrust_lsp::workspace_scan::Scanner::default();
     let mut busy = false;
+    // The document whose analysis the worker is running.
+    let mut in_flight: Option<String> = None;
+    let mut deferred: Vec<Deferred> = Vec::new();
     let mut initialized = false;
     let mut ready = false;
     let mut shutdown = false;
@@ -134,6 +176,7 @@ fn run(
             && let Some(snapshot) = documents.next(Instant::now())
         {
             let workspace = projects.prepare(&snapshot);
+            in_flight = Some(snapshot.uri.clone());
             jobs.send(Job::Document(DocumentJob {
                 snapshot,
                 workspace,
@@ -146,12 +189,28 @@ fn run(
             jobs.send(Job::Workspace(job)).map_err(|_|"analysis worker stopped")?;
             busy=true;
         }
+        // A deferred request is answered when the analysis of its text
+        // arrives, when no analysis can still produce one, or at its deadline.
+        let now = Instant::now();
+        let mut index = 0;
+        while index < deferred.len() {
+            let uri = deferred[index].uri.as_str();
+            let waiting = !projects.covers(uri) && (documents.pending(uri) || in_flight.as_deref() == Some(uri));
+            let expired = now.duration_since(deferred[index].since) >= ANSWER_WITHIN;
+            if waiting && !expired && !shutdown {
+                index += 1;
+                continue;
+            }
+            let entry = deferred.remove(index);
+            send(&connection, intelligence(entry.request, &projects, &mut documents, waiting))?;
+        }
         let wait = if !busy && ready && !shutdown {
             documents.due_in(Instant::now()).into_iter()
                 .chain(scanner.due_in(Instant::now())).min().unwrap_or(Duration::from_secs(60))
         } else {
             Duration::from_secs(60)
         };
+        let wait = deferred.iter().map(|entry| (entry.since + ANSWER_WITHIN).saturating_duration_since(now)).min().map_or(wait, |deadline| wait.min(deadline));
         select! {
             recv(connection.receiver) -> message => {
                 let Ok(message) = message else { return Ok(if shutdown { 0 } else { 1 }); };
@@ -194,13 +253,24 @@ fn run(
                                     None => Response::new_ok(request.id, json!([])),
                                 }
                             }
+                            "tsrust/counters" if initialized => Response::new_ok(request.id, tsrust_lsp::counters::snapshot()),
                             method if initialized && !shutdown && matches!(method, "textDocument/hover" | "textDocument/completion" | "textDocument/signatureHelp" | "textDocument/definition" | "textDocument/references" | "textDocument/documentHighlight" | "textDocument/documentSymbol" | "textDocument/foldingRange") => {
-                                let uri = request.params.pointer("/textDocument/uri").and_then(Value::as_str);
-                                match uri.and_then(|uri| projects.request(method, &request.params, uri).or_else(|| documents.index(uri).map(|index| index.request(method, &request.params, uri)))) {
-                                    Some(Ok(result)) => Response::new_ok(request.id, result),
-                                    Some(Err(error)) => Response::new_err(request.id, ErrorCode::InvalidParams as i32, error),
-                                    None => Response::new_ok(request.id, Value::Null),
+                                let uri = request.params.pointer("/textDocument/uri").and_then(Value::as_str).map(str::to_owned);
+                                // A document with imports is answered from the project
+                                // analysis of its current text. While that analysis is
+                                // queued or running, the request waits for it; the
+                                // single-document index cannot resolve imports.
+                                if project_request(method)
+                                    && let Some(uri) = uri
+                                    && documents.snapshot(&uri).is_some_and(|snapshot| tsrust_compiler::project_cli::uses_modules(&snapshot.text).unwrap_or(false))
+                                    && !projects.covers(&uri)
+                                    && (documents.pending(&uri) || in_flight.as_deref() == Some(uri.as_str()))
+                                {
+                                    documents.expedite(&uri, Instant::now());
+                                    deferred.push(Deferred { request, uri, since: Instant::now() });
+                                    continue;
                                 }
+                                intelligence(request, &projects, &mut documents, false)
                             }
                             _ if shutdown => Response::new_err(request.id, ErrorCode::InvalidRequest as i32, "Server is shutting down".into()),
                             _ if !initialized => Response::new_err(request.id, ErrorCode::ServerNotInitialized as i32, "Server is not initialized".into()),
@@ -210,6 +280,15 @@ fn run(
                     }
                     Message::Notification(notification) => {
                         if notification.method == "exit" { return Ok(if shutdown { 0 } else { 1 }); }
+                        if notification.method == "$/cancelRequest" {
+                            if let Some(id) = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok())
+                                && let Some(index) = deferred.iter().position(|entry| entry.request.id == id)
+                            {
+                                let entry = deferred.remove(index);
+                                send(&connection, Response::new_err(entry.request.id, ErrorCode::RequestCanceled as i32, "Request was cancelled".into()))?;
+                            }
+                            continue;
+                        }
                         if !initialized || shutdown { continue; }
                         let now = Instant::now();
                         let handled: Result<(), String> = match notification.method.as_str() {
@@ -276,6 +355,7 @@ fn run(
             }
             recv(results) -> result => {
                 busy = false;
+                in_flight = None;
                 let checked = match result.map_err(|_| "analysis worker stopped")? {
                     Checked::Workspace(checked) => {
                         if !shutdown {
@@ -314,6 +394,10 @@ fn run(
                     }
                 } else if !shutdown && documents.current(&checked.snapshot) {
                     documents.reschedule(&checked.snapshot.uri, Instant::now(), debounce);
+                }
+                // A request that waits for this document needs the next analysis now.
+                for entry in &deferred {
+                    documents.expedite(&entry.uri, Instant::now());
                 }
             }
             recv(after(wait)) -> _ => {}

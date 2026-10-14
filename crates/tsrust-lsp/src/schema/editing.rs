@@ -75,6 +75,10 @@ impl SourceIndex {
         let validation=if ty.contains("ValidationError") {
             "\n\nValidationError contains `issues: SchemaIssue[]` and `truncated: boolean`. Each issue includes `code`, `message`, `path`, `pathTruncated`, `expected`, and `observed`. Path segments identify a `field` or an `index`."
         } else {""};
-        format!("\n\nA Result has two alternatives: `Ok(value)` holds the success value; `Err(error)` holds the failure. Match before accessing either payload; it is not a record with `.value` and `.error` properties.\n\n```tsrust\nmatch ({name}) {{\n  Ok(value) => {{ /* use the success value */ }},\n  Err(error) => {{ /* handle the error */ }}\n}}\n```{validation}")
+        // The one field both alternatives share is stated as the checker reads it.
+        let payload=self.result_payload(ty).map_or_else(
+            ||"It has no field: one alternative holds no value.".to_owned(),
+            |payload|format!("Its one field, `{name}.payload`, is the value of whichever alternative is active, typed `{}`.",self.display_type(&payload)));
+        format!("\n\nA Result has two alternatives: `Ok(value)` holds the success value; `Err(error)` holds the failure. {payload} Use `match` to know which alternative it is; there are no `.value`, `.error` or `.ok` properties.\n\n```tsrust\nmatch ({name}) {{\n  Ok(value) => {{ /* use the success value */ }},\n  Err(error) => {{ /* handle the error */ }}\n}}\n```{validation}")
     }
 }
