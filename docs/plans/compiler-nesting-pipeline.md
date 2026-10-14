@@ -1776,3 +1776,44 @@ closure-method specialization, result discovery, other compatibility entries and
 public admission retirement remain required. Installed consumers are unchanged;
 no public API contract changes in this internal section. Full compiler/LSP
 regressions and formal scaling measurements are not claimed.
+
+
+### Named parameter continuations
+
+A separate captured-default-call-chain witness reproduces an analysis overflow at
+32 functions on the preceding checkpoint, despite their bodies already sharing
+the work stack. LLDB shows repeated `function_context`, `check_parameter_default`
+and expression driver entry. This is a chain through defaults among sibling
+captured declarations, not deeply nested source syntax.
+
+Named parameter checking now suspends default expressions and destructuring blocks
+on the existing checker stack. Parameter slots reserve the original ABI before
+locals are created. Names publish in source order after default checking and before
+their own patterns; later parameter defaults see exactly the initialized names.
+Default ownership joins, flow facts, callback families, access annotations, rest
+flags and provisional result publication retain their original order. Drained
+pattern statements restore before success or error propagation. Discovery and
+diagnostic replay use the same parameter driver for their context construction.
+The unused synchronous default adapter is removed. No limit or stack is increased.
+
+Evidence uses `tsrust-nesting-parameter-work-*` in SQLite. All 25 checker-driver
+unit tests pass, including a 512-function default-call chain and a 256-function
+leaf-error witness. All 57 tests in six affected compiler integration suites pass,
+covering captured and owning defaults, optional parameters, destructuring, generic
+scope and rest patterns. Six editor tests pass for optional/rest parameter help,
+project facts and native examples. The new formatted native witness checks omitted,
+explicitly undefined and supplied arguments against independent expected values.
+The unit run precedes removal of the now-unused adapter; the subsequent successful
+build, integration tests and discovery use the final production sources.
+
+Geometric discovery completes the full pipeline at 8, 32, 128, 512 and 2,048
+functions; 8,192 times out during analysis at the 30-second observation budget.
+No post-change case crashes or stack-overflows. Discovery overlaps builds and
+native checks, so these are operational observations, not formal timing samples
+or language ceilings. Whole-project formatting changes zero files and fingerprints.
+
+This accepts named parameter continuation scheduling, not the whole nesting
+architecture. Closure-method specialization, result discovery and compatibility
+entry points still need audits. Public parser admission remains unchanged, and
+formal scaling remains pending. Installed consumers are unchanged because this
+internal section changes no public API contract.

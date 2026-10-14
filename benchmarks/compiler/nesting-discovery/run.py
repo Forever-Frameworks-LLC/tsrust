@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-FAMILIES = ('captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
+FAMILIES = ('captured-default-call-chain', 'captured-local-functions', 'captured-default-functions', 'returned-callback-chain', 'scoped-map-catch', 'scoped-map-catch-cleanup', 'field-return-cleanup', 'field-control-cleanup', 'cleanup-regions', 'catch-regions', 'mixed-exception-regions', 'scoped-map-branches', 'scoped-map-loops', 'scoped-map-cleanup', 'scoped-map-mixed', 'local-functions', 'mixed-local-scopes', 'assertions', 'satisfies', 'rest-arguments', 'array-of', 'mixed-wrappers', 'parentheses', 'blocks', 'binary', 'type-groups', 'arrays', 'generic-explicit', 'generic-inferred', 'closure-bodies', 'declared-arguments', 'bound-arguments', 'inline-arguments', 'field-arguments', 'mixed-literals', 'conditionals', 'mixed-branches', 'coalescing', 'mixed-coalescing', 'logical-values', 'logical-booleans', 'mixed-logical', 'assignment-values', 'compound-values', 'mixed-assignments', 'sequences', 'owned-store-sequences', 'if-statements', 'initializer-bodies', 'mixed-loops')
 
 
 def repeated(seed, size, opening, closing):
@@ -18,6 +18,12 @@ def repeated(seed, size, opening, closing):
 
 
 def source(family, size):
+    if family == 'captured-default-call-chain':
+        functions = []
+        for index in range(size):
+            default = '7' if index + 1 == size else f'step{index+1}()'
+            functions.append(f'function step{index}(value:int={default}):int{{return value+captured;}}')
+        return 'function probe():int{const captured=1;' + ''.join(functions) + 'return step0();}function main(){console.log(probe());}'
     if family in ('captured-local-functions', 'captured-default-functions'):
         parameters = 'value:int=captured' if family == 'captured-default-functions' else ''
         leaf = 'value' if parameters else 'captured'

@@ -66,3 +66,20 @@ fn nested_captured_call_chains_preserve_native_values_and_defaults() {
     support::success(&output);
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn captured_default_call_chain_preserves_omission_and_supplied_arguments() {
+    let mut source = String::from("import {strictEqual} from 'std:testing';function main(){const captured=1;");
+    let count = 64;
+    for index in 0..count {
+        let default = if index + 1 == count { "7".into() } else { format!("step{}()", index + 1) };
+        source.push_str(&format!("function step{index}(value:int={default}):int{{return value+captured;}}"));
+    }
+    source.push_str(&format!("strictEqual(step0(),{});strictEqual(step0(undefined),{});strictEqual(step0(5),6);}}", count + 7, count + 7));
+    let source = support::format_round_trip(&source);
+    let directory = support::TempDirectory::new();
+    let path = directory.source(&source);
+    let output = support::run(support::cli().arg("run").arg(path), 60);
+    support::success(&output);
+    assert!(output.stdout.is_empty());
+}

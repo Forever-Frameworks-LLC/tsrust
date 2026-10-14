@@ -342,3 +342,13 @@ functions enter the same schedule after their owner's finalization. Parameter
 context preparation, closure-method specialization and compatibility dispatch
 still require separate re-entry audits; a suspended body alone does not establish
 that every function-related path is stack independent.
+
+
+`analysis/function_parameters.rs` reserves named parameter slots and owns parameter
+contract finalization. `analysis/continuations/driver/parameters.rs` runs defaults
+and destructuring blocks on the shared checker stack. Keep all ordinary argument
+IDs reserved before defaults create locals; publish each parameter name only after
+its default completes. Pattern statements remain in the function body, are restored
+after checking, and use a scope that retains names for later parameters. Callable
+result discovery and diagnostic replay use this same driver when constructing a
+function context. The obsolete synchronous named-default adapter is removed.

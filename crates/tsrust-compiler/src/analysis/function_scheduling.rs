@@ -205,7 +205,7 @@ impl Analyzer {
         true
     }
 
-    pub(super) fn prepare_function_body(&mut self, index: usize) -> Result<Option<PreparedFunction>, Diagnostic> {
+    pub(super) fn prepare_function_body(&mut self, index: usize) -> Result<Option<(PreparedFunction, super::function_parameters::FunctionParameters)>, Diagnostic> {
         if self.discovering_results {
             return Ok(None);
         }
@@ -258,15 +258,20 @@ impl Analyzer {
         self.visiting[index] = true;
         self.function_stack.push(index);
         self.depth += 1;
-        let mut body = std::mem::take(&mut self.program.functions[index].body);
-        let mut context = self.function_context(index, &mut body)?;
+        let body = std::mem::take(&mut self.program.functions[index].body);
+        let (context, parameters) = self.reserve_function_parameters(index)?;
+        let result_type = self.signatures[index].result;
+        Ok(Some((PreparedFunction { index, body, context, result_type }, parameters)))
+    }
+
+    pub(super) fn complete_named_parameters(&mut self, index: usize, context: &mut Context, body: &[Stmt]) -> Type {
         for (position, access) in self.program.functions[index].parameter_access.iter().enumerate() {
             if matches!(access, Some((Mode::Read, _))) && !context.bindings[position].ty.is_copy() {
                 context.readonly_parameters.insert(position);
             }
         }
         if self.signatures[index].inferred_result && !self.provisional_results.contains_key(&index)
-            && let Some(provisional) = self.provisional_result(&context, &body)
+            && let Some(provisional) = self.provisional_result(context, body)
         {
             // Type hints inside the body read the signature before the
             // recursive call is checked, so publish the result now.
@@ -276,7 +281,7 @@ impl Analyzer {
         // Move the body into analysis rather than clone the syntax tree.
         let result_type = self.signatures[index].result;
         context.inferred_body_result = self.signatures[index].inferred_result;
-        Ok(Some(PreparedFunction { index, body, context, result_type }))
+        result_type
     }
 
     pub(super) fn finish_function_body(&mut self, prepared: PreparedFunction, returned: Result<bool, Diagnostic>) -> Result<Vec<usize>, Diagnostic> {

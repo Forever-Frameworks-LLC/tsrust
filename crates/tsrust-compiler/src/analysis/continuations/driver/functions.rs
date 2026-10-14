@@ -3,9 +3,11 @@
 use super::*;
 use super::super::super::function_scheduling::{PreparedFunction, Schedule};
 
+enum Active { Parameters { index: usize, child: ContextId }, Body { index: usize, child: ContextId, result_type: Type } }
+
 pub(super) struct FunctionTask {
     schedule: Schedule,
-    active: Option<(usize, ContextId, Type)>,
+    active: Option<Active>,
 }
 
 impl FunctionTask {
@@ -16,28 +18,42 @@ impl FunctionTask {
 
 pub(super) fn step<'a>(analyzer: &mut Analyzer, contexts: &mut Contexts, mut task: Box<FunctionTask>, completion: Option<Completion<'a>>) -> Step<'a> {
     let next = (|| {
-        if let Some((index, child, result_type)) = task.active.take() {
-            let Completion::Block(body, returned) = completion.expect("named function body") else { unreachable!("named function completion") };
-            let mut context = *contexts.take(child);
-            let returned = returned.and_then(|returned| { analyzer.validate_native_returns(&mut context)?; Ok(returned) });
-            let uncalled = analyzer.finish_function_body(PreparedFunction { index, body: body.into_child(), context, result_type }, returned)?;
-            task.schedule.extend(uncalled);
+        if let Some(active) = task.active.take() {
+            match (active, completion.expect("named function child")) {
+                (Active::Body { index, child, result_type }, Completion::Block(body, returned)) => {
+                    let mut context = *contexts.take(child);
+                    let returned = returned.and_then(|returned| { analyzer.validate_native_returns(&mut context)?; Ok(returned) });
+                    let uncalled = analyzer.finish_function_body(PreparedFunction { index, body: body.into_child(), context, result_type }, returned)?;
+                    task.schedule.extend(uncalled);
+                }
+                (Active::Parameters { index, child }, Completion::Parameters(mut body, result)) => {
+                    if let Err(error) = result { contexts.take(child); return Err(error); }
+                    let context = contexts.get(child);
+                    let result_type = analyzer.complete_named_parameters(index, context, &body);
+                    if let Err(error) = analyzer.enter_source_callable_body(context) {
+                        let error = analyzer.filter_ownership_fixes(context, error);
+                        contexts.take(child);
+                        return Err(error);
+                    }
+                    let start = body.len() - Analyzer::uninitialized_body(&mut body).len();
+                    let exceptions = has_exception_syntax(&body[start..]);
+                    task.active = Some(Active::Body { index, child, result_type });
+                    let body = Body::Child { body, start };
+                    let child = if exceptions {
+                        Task::Callable(Box::new(CallableTask { body: Some(body), context: child, result_type, boundary: None }))
+                    } else {
+                        Task::Block(BlockTask { body, context: child, frame: None, pending: None, result_type, keep_names: false, label_span: None })
+                    };
+                    return Ok(Some(child));
+                }
+                _ => unreachable!("named function completion"),
+            }
         }
         while let Some(index) = task.schedule.next(analyzer)? {
-            let Some(mut prepared) = analyzer.prepare_function_body(index)? else { continue; };
-            analyzer.enter_source_callable_body(&mut prepared.context)
-                .map_err(|error| analyzer.filter_ownership_fixes(&prepared.context, error))?;
-            let start = prepared.body.len() - Analyzer::uninitialized_body(&mut prepared.body).len();
-            let exceptions = has_exception_syntax(&prepared.body[start..]);
+            let Some((prepared, parameters)) = analyzer.prepare_function_body(index)? else { continue; };
             let context = contexts.push(Box::new(prepared.context));
-            task.active = Some((index, context, prepared.result_type));
-            let body = Body::Child { body: prepared.body, start };
-            let child = if exceptions {
-                Task::Callable(Box::new(CallableTask { body: Some(body), context, result_type: prepared.result_type, boundary: None }))
-            } else {
-                Task::Block(BlockTask { body, context, frame: None, pending: None, result_type: prepared.result_type, keep_names: false, label_span: None })
-            };
-            return Ok(Some(child));
+            task.active = Some(Active::Parameters { index, child: context });
+            return Ok(Some(Task::Parameters(Box::new(parameters::ParametersTask::new(parameters, context, prepared.body)))));
         }
         Ok(None)
     })();
@@ -83,4 +99,36 @@ mod tests {
         assert_eq!(error.code, "type");
         assert_eq!(&source[error.span.start..error.span.end], "return");
     }
+    fn default_call_chain(count: usize, leaf: &str) -> String {
+        let mut source = String::from("function probe():int{const captured=1;");
+        for index in 0..count {
+            let default = if index + 1 == count { leaf.into() } else { format!("step{}()", index + 1) };
+            source.push_str(&format!("function step{index}(value:int={default}):int{{return value+captured;}}"));
+        }
+        source.push_str("return step0();}function main(){console.log(probe());}");
+        source
+    }
+
+    #[test]
+    fn captured_default_calls_suspend_before_named_body_entry() {
+        let source = default_call_chain(512, "7");
+        let checked = crate::analysis::analyze(parse(&source)).unwrap();
+        assert_eq!(checked.functions.len(), 514);
+        for function in &checked.functions {
+            if function.parameter_count == 1 {
+                assert!(function.bindings[0].initializer.is_some());
+                assert_eq!(function.bindings[0].omission, crate::ParameterOmission::Defaulted);
+            }
+        }
+        drop(checked);
+    }
+
+    #[test]
+    fn failed_default_call_chain_preserves_leaf_diagnostic() {
+        let source = default_call_chain(256, "missing");
+        let error = crate::analysis::analyze(parse(&source)).err().expect("unknown default");
+        assert_eq!(error.code, "name");
+        assert_eq!(&source[error.span.start..error.span.end], "missing");
+    }
+
 }

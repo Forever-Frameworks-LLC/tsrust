@@ -9,6 +9,7 @@ mod region;
 mod closure_parameters;
 mod optional;
 mod functions;
+mod parameters;
 use super::block::BlockFrame;
 use super::checked_expression::{CheckedExpressionFrame, PreparedExpression};
 use super::returns::ReturnFrame;
@@ -219,8 +220,9 @@ struct CallableTask<'a> {
     boundary: Option<super::exceptions::CallableBoundary>,
 }
 
-enum Task<'a> { Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
+enum Task<'a> { Parameters(Box<parameters::ParametersTask>), Function(Box<functions::FunctionTask>), Optional(Box<optional::OptionalTask<'a>>), Callable(Box<CallableTask<'a>>), Region(Box<region::RegionTask<'a>>), Tail(tail::TailTask), Store(StoreTask<'a>), Sequence(SequenceTask<'a>), Discard(DiscardTask<'a>), Block(BlockTask<'a>), Expression(ExpressionTask<'a>), Assignment(AssignmentTask<'a>) }
 enum Completion<'a> {
+    Parameters(Vec<Stmt>, Result<(), Diagnostic>),
     Function(Result<(), Diagnostic>),
     Region(region::Region<'a>, region::ResultStates),
     Tail(Box<Stmt>, Result<bool, Diagnostic>),
@@ -505,6 +507,7 @@ fn drive<'a>(analyzer: &mut Analyzer, context: &mut Context, root: Task<'a>) -> 
     loop {
         let Some(task) = tasks.pop() else { return completion.expect("root completion") };
         let step = match task {
+            Task::Parameters(task) => parameters::step(analyzer, contexts.get(task.context), task, completion.take()),
             Task::Function(task) => functions::step(analyzer, &mut contexts, task, completion.take()),
             Task::Optional(task)=>optional::step(analyzer,contexts.get(task.context),task,completion.take()),
             Task::Callable(task) => step_callable(analyzer, contexts.get(task.context), task, completion.take()),
@@ -1509,6 +1512,13 @@ fn start_declared_call<'a>(analyzer: &mut Analyzer, context: &mut Context, mut t
         }
         Err(error) => finish_expression(analyzer, context, task, Err(error)),
     }
+}
+
+pub(in crate::analysis) fn check_function_parameters(analyzer: &mut Analyzer, context: &mut Context, body: &mut Vec<Stmt>, parameters: crate::analysis::function_parameters::FunctionParameters) -> Result<(), Diagnostic> {
+    let task = Task::Parameters(Box::new(parameters::ParametersTask::new(parameters, ContextId(0), std::mem::take(body))));
+    let Completion::Parameters(checked, result) = drive(analyzer, context, task) else { unreachable!("named parameter result") };
+    *body = checked;
+    result
 }
 
 pub(in crate::analysis) fn check_function(analyzer: &mut Analyzer, index: usize) -> Result<(), Diagnostic> {
