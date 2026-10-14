@@ -10,24 +10,28 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (schema.safeParse([2, 3])) {
-      Ok(value) => {
+    {
+      const outcome0 = schema.safeParse([2, 3]);
+      if (outcome0.success) {
+        const value = outcome0.data;
         if (value !== 4) {
           throw 'Wrong transformed value';
         }
 
         checksum += value;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected success';
       }
     }
 
-    match (schema.safeParse([])) {
-      Ok(value) => {
+    {
+      const outcome1 = schema.safeParse([]);
+      if (outcome1.success) {
+        const value = outcome1.data;
         throw 'Expected rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Wrong issue count';
         }
@@ -42,15 +46,17 @@ function workload(n: int, seed: int, input: string): int {
       }
     }
 
-    match (retry.safeParse(JSON.parse('[2,3]'))) {
-      Ok(value) => {
+    {
+      const outcome2 = retry.safeParse(JSON.parse('[2,3]'));
+      if (outcome2.success) {
+        const value = outcome2.data;
         if (value !== 2) {
           throw 'Wrong rollback';
         }
 
         checksum += value;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome2.error;
         throw 'Expected rollback success';
       }
     }

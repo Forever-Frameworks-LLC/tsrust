@@ -372,7 +372,7 @@ fn schema_string_constructor_executes_natively() {
 #[test]
 fn schema_safe_parse_consumes_input_and_reuses_schema() {
     let directory = support::TempDirectory::new();
-    let source = support::format_round_trip("import {s} from 'std:schema'; function main(){const schema=s.string();const input=JSON.parse('\"hello\"');match(schema.safeParse(input)){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length);}}match(schema.safeParse(JSON.parse('42'))){Ok(text)=>{console.log(text);},Err(error)=>{console.log(error.issues.length,error.truncated);for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}}");
+    let source = support::format_round_trip("import {s} from 'std:schema'; function main(){const schema=s.string();const input=JSON.parse('\"hello\"');{const outcome0=schema.safeParse(input);if(outcome0.success){const text=outcome0.data;console.log(text);}else{const error=outcome0.error;console.log(error.issues.length);}}{const outcome1=schema.safeParse(JSON.parse('42'));if(outcome1.success){const text=outcome1.data;console.log(text);}else{const error=outcome1.error;console.log(error.issues.length,error.truncated);for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}}");
     let path = directory.source(&source);
     let output = support::run(support::cli().arg("run").arg(path), 60);
     support::success(&output);
@@ -425,7 +425,7 @@ fn schema_input_boundaries_reject_reuse_and_allow_explicit_clone() {
 
 #[test]
 fn schema_owned_string_validation_avoids_json_and_preserves_clone_choice() {
-    let source="import {s} from 'std:schema';function main(){const schema=s.string();const text='hello'.repeat(2);match(schema.safeParse(clone(text))){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}console.log(text);match(schema.safeParse(text)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}}";
+    let source="import {s} from 'std:schema';function main(){const schema=s.string();const text='hello'.repeat(2);{const outcome2=schema.safeParse(clone(text));if(outcome2.success){const value=outcome2.data;console.log(value);}else{const error=outcome2.error;throw 'unexpected';}}console.log(text);{const outcome3=schema.safeParse(text);if(outcome3.success){const value=outcome3.data;console.log(value);}else{const error=outcome3.error;throw 'unexpected';}}}";
     let checked=checked_source(source).unwrap();
     let (rust,features)=checked.emit_rust_with_native_features();
     assert!(!features.contains(&"json") && !rust.contains("tsrust_native_json"));
@@ -446,7 +446,7 @@ fn schema_validation_cannot_consume_a_borrowed_string() {
 
 #[test]
 fn schema_boolean_infers_and_validates_without_truthiness() {
-    let source="import {s,Schema} from 'std:schema';function make():Schema<boolean>{return s.boolean();}function main(){const schema=make();const input=false;match(schema.safeParse(input)){Ok(value)=>{console.log(value,input);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse(JSON.parse('true'))){Ok(value)=>{console.log(value);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse(JSON.parse('0'))){Ok(value)=>{throw 'coerced';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}}";
+    let source="import {s,Schema} from 'std:schema';function make():Schema<boolean>{return s.boolean();}function main(){const schema=make();const input=false;{const outcome4=schema.safeParse(input);if(outcome4.success){const value=outcome4.data;console.log(value,input);}else{const error=outcome4.error;throw 'unexpected';}}{const outcome5=schema.safeParse(JSON.parse('true'));if(outcome5.success){const value=outcome5.data;console.log(value);}else{const error=outcome5.error;throw 'unexpected';}}{const outcome6=schema.safeParse(JSON.parse('0'));if(outcome6.success){const value=outcome6.data;throw 'coerced';}else{const error=outcome6.error;for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}}";
     let directory=support::TempDirectory::new();
     let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
@@ -461,11 +461,11 @@ import {strictEqual} from 'std:testing';
 function make():Schema<int>{return s.int();}
 function main(){
  const schema=make();
- match(schema.safeParse(JSON.parse('9223372036854775807'))){Ok(value)=>{strictEqual(value,9223372036854775807);},Err(error)=>{throw 'exact integer rejected';}}
+ {const outcome7=schema.safeParse(JSON.parse('9223372036854775807'));if(outcome7.success){const value=outcome7.data;strictEqual(value,9223372036854775807);}else{const error=outcome7.error;throw 'exact integer rejected';}}
  const input=42;
- match(schema.safeParse(input)){Ok(value)=>{strictEqual(value,input);},Err(error)=>{throw 'integer rejected';}}
+ {const outcome8=schema.safeParse(input);if(outcome8.success){const value=outcome8.data;strictEqual(value,input);}else{const error=outcome8.error;throw 'integer rejected';}}
  for(const text of ['1.5','18446744073709551615','true']){
- match(schema.safeParse(JSON.parse(text))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}
+ {const outcome9=schema.safeParse(JSON.parse(text));if(outcome9.success){const value=outcome9.data;throw 'invalid accepted';}else{const error=outcome9.error;for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed);}}}
  }
 }"#;
     let directory=support::TempDirectory::new();
@@ -483,10 +483,10 @@ fn schema_number_checks_precision_finiteness_and_negative_zero() {
     let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
 function make():Schema<number>{return s.number();}
 function main(){const schema=make();
- match(schema.safeParse(-0.0)){Ok(value)=>{strictEqual(1.0/value,Number.NEGATIVE_INFINITY);},Err(error)=>{throw 'zero rejected';}}
- match(schema.safeParse(JSON.parse('1.5'))){Ok(value)=>{strictEqual(value,1.5);},Err(error)=>{throw 'fraction rejected';}}
- match(schema.safeParse(JSON.parse('9007199254740993'))){Ok(value)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
- for(const input of [Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){match(schema.safeParse(input)){Ok(value)=>{throw 'nonfinite accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-nonfinite');strictEqual(issue.expected,'number');strictEqual(issue.observed,'number');}}}}
+ {const outcome10=schema.safeParse(-0.0);if(outcome10.success){const value=outcome10.data;strictEqual(1.0/value,Number.NEGATIVE_INFINITY);}else{const error=outcome10.error;throw 'zero rejected';}}
+ {const outcome11=schema.safeParse(JSON.parse('1.5'));if(outcome11.success){const value=outcome11.data;strictEqual(value,1.5);}else{const error=outcome11.error;throw 'fraction rejected';}}
+ {const outcome12=schema.safeParse(JSON.parse('9007199254740993'));if(outcome12.success){const value=outcome12.data;throw 'precision lost';}else{const error=outcome12.error;for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
+ for(const input of [Number.NaN,Number.POSITIVE_INFINITY,Number.NEGATIVE_INFINITY]){{const outcome13=schema.safeParse(input);if(outcome13.success){const value=outcome13.data;throw 'nonfinite accepted';}else{const error=outcome13.error;for(const issue of error.issues){strictEqual(issue.code,'number-nonfinite');strictEqual(issue.expected,'number');strictEqual(issue.observed,'number');}}}}
 }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -499,11 +499,11 @@ fn schema_number_accepts_only_exact_native_integer_conversions() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
 function main(){const schema=s.number();
  for(const input of [0,42,9007199254740992,9007199254740994,-9223372036854775808]){
- match(schema.safeParse(input)){Ok(value)=>{strictEqual(value,Number(input));},Err(error)=>{throw 'exact integer rejected';}}
+ {const outcome14=schema.safeParse(input);if(outcome14.success){const value=outcome14.data;strictEqual(value,Number(input));}else{const error=outcome14.error;throw 'exact integer rejected';}}
  strictEqual(input===input,true);
  }
  for(const input of [9007199254740993,-9007199254740993,9223372036854775807]){
- match(schema.safeParse(input)){Ok(value)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');strictEqual(issue.expected,'number');strictEqual(issue.observed,'integer');strictEqual(issue.path.length,0);strictEqual(issue.pathTruncated,false);}strictEqual(error.truncated,false);}}
+ {const outcome15=schema.safeParse(input);if(outcome15.success){const value=outcome15.data;throw 'rounded';}else{const error=outcome15.error;for(const issue of error.issues){strictEqual(issue.code,'number-precision');strictEqual(issue.expected,'number');strictEqual(issue.observed,'integer');strictEqual(issue.path.length,0);strictEqual(issue.pathTruncated,false);}strictEqual(error.truncated,false);}}
  }
 }"#;
     let checked=checked_source(source).unwrap();
@@ -517,9 +517,9 @@ fn schema_null_distinguishes_null_from_missing_and_other_values() {
     let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
 function make():Schema<null>{return s.null();}
 function main(){const schema=make();
- match(schema.safeParse(null)){Ok(value)=>{strictEqual(value,null);},Err(error)=>{throw 'null rejected';}}
- match(schema.safeParse(JSON.parse('null'))){Ok(value)=>{strictEqual(value,null);},Err(error)=>{throw 'JSON null rejected';}}
- for(const text of ['false','0','""','[]','{}']){match(schema.safeParse(JSON.parse(text))){Ok(value)=>{throw 'wrong kind accepted';},Err(error)=>{strictEqual(error.issues.length,1);for(const issue of error.issues){strictEqual(issue.code,'type-mismatch');strictEqual(issue.expected,'null');}}}}
+ {const outcome16=schema.safeParse(null);if(outcome16.success){const value=outcome16.data;strictEqual(value,null);}else{const error=outcome16.error;throw 'null rejected';}}
+ {const outcome17=schema.safeParse(JSON.parse('null'));if(outcome17.success){const value=outcome17.data;strictEqual(value,null);}else{const error=outcome17.error;throw 'JSON null rejected';}}
+ for(const text of ['false','0','""','[]','{}']){{const outcome18=schema.safeParse(JSON.parse(text));if(outcome18.success){const value=outcome18.data;throw 'wrong kind accepted';}else{const error=outcome18.error;strictEqual(error.issues.length,1);for(const issue of error.issues){strictEqual(issue.code,'type-mismatch');strictEqual(issue.expected,'null');}}}}
 }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -531,7 +531,7 @@ function main(){const schema=make();
 #[test]
 fn schema_generated_string_plan_enforces_stored_bounds() {
     // Backend injection only: public consuming builders are not implemented yet.
-    let calls=["a","😀a","abcd"].map(|input|format!("match(schema.safeParse('{input}')){{Ok(value)=>{{console.log(value);}},Err(error)=>{{for(const issue of error.issues){{console.log(issue.code);}}}}}}" )).join("");
+    let calls=["a","😀a","abcd"].map(|input|format!("{{const result=schema.safeParse('{input}');if(result.success){{console.log(result.data);}}else{{for(const issue of result.error.issues){{console.log(issue.code);}}}}}}" )).join("");
     let source=format!("import {{s}} from 'std:schema';function main(){{const schema=s.string();{calls}}}");
     let checked=checked_source(&source).unwrap();let (rust,features)=checked.emit_rust_with_native_features();
     assert!(features.is_empty());
@@ -549,8 +549,8 @@ fn schema_generated_string_plan_enforces_stored_bounds() {
 fn schema_string_builders_consume_and_throw_structured_errors() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
 function main(){const schema=s.string().min(2).max(3);
- match(schema.safeParse('😀a')){Ok(value)=>{strictEqual(value,'😀a');},Err(error)=>{throw 'valid rejected';}}
- match(schema.safeParse(JSON.parse('"abcd"'))){Ok(value)=>{throw 'long accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ {const outcome19=schema.safeParse('😀a');if(outcome19.success){const value=outcome19.data;strictEqual(value,'😀a');}else{const error=outcome19.error;throw 'valid rejected';}}
+ {const outcome20=schema.safeParse(JSON.parse('"abcd"'));if(outcome20.success){const value=outcome20.data;throw 'long accepted';}else{const error=outcome20.error;for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
  let caught=false;try{s.string().min(-1);}catch(error){caught=true;strictEqual(error.code,'negative-length');strictEqual(error.operation,'min');strictEqual(error.limit,-1);}strictEqual(caught,true);
  caught=false;try{s.string().max(1).min(2);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'min');strictEqual(error.limit,2);}strictEqual(caught,true);
 }"#;
@@ -564,10 +564,10 @@ function main(){const schema=s.string().min(2).max(3);
 fn schema_integer_bounds_preserve_endpoints_and_reject_contradictions() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
 function main(){const schema=s.int().min(9223372036854775806).max(9223372036854775807);
- match(schema.safeParse(9223372036854775807)){Ok(value)=>{strictEqual(value,9223372036854775807);},Err(error)=>{throw 'endpoint rejected';}}
- match(schema.safeParse(JSON.parse('9223372036854775805'))){Ok(value)=>{throw 'small accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
+ {const outcome21=schema.safeParse(9223372036854775807);if(outcome21.success){const value=outcome21.data;strictEqual(value,9223372036854775807);}else{const error=outcome21.error;throw 'endpoint rejected';}}
+ {const outcome22=schema.safeParse(JSON.parse('9223372036854775805'));if(outcome22.success){const value=outcome22.data;throw 'small accepted';}else{const error=outcome22.error;for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
  const low=s.int().min(-9223372036854775808).max(-9223372036854775807);
- match(low.safeParse(-9223372036854775808)){Ok(value)=>{strictEqual(value,-9223372036854775808);},Err(error)=>{throw 'low endpoint rejected';}}
+ {const outcome23=low.safeParse(-9223372036854775808);if(outcome23.success){const value=outcome23.data;strictEqual(value,-9223372036854775808);}else{const error=outcome23.error;throw 'low endpoint rejected';}}
  let caught=false;try{s.int().max(-2).min(-1);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.limit,-1);}strictEqual(caught,true);
 }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -581,7 +581,7 @@ fn schema_generated_exclusive_integer_plan_preserves_exact_limits() {
     let source=r#"import {s} from 'std:schema';
 function main(){const schema=s.int();
  for(const input of [9007199254740992,9007199254740993,9007199254740994]){
-  match(schema.safeParse(input)){Ok(value)=>{console.log(value);},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+  {const outcome24=schema.safeParse(input);if(outcome24.success){const value=outcome24.data;console.log(value);}else{const error=outcome24.error;for(const issue of error.issues){console.log(issue.code);}}}
  }
 }"#;
     let source=support::format_round_trip(source);
@@ -601,8 +601,8 @@ function main(){const schema=s.int();
 fn schema_exclusive_integer_builders_consume_and_throw() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
 function main(){const schema=s.int().gt(9007199254740992).lt(9007199254740994);
- match(schema.safeParse(9007199254740993)){Ok(value)=>{strictEqual(value,9007199254740993);},Err(error)=>{throw 'exact rejected';}}
- match(schema.safeParse(JSON.parse('9007199254740994'))){Ok(value)=>{throw 'endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ {const outcome25=schema.safeParse(9007199254740993);if(outcome25.success){const value=outcome25.data;strictEqual(value,9007199254740993);}else{const error=outcome25.error;throw 'exact rejected';}}
+ {const outcome26=schema.safeParse(JSON.parse('9007199254740994'));if(outcome26.success){const value=outcome26.data;throw 'endpoint accepted';}else{const error=outcome26.error;for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
  let caught=false;try{s.int().gt(9223372036854775807);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'gt');strictEqual(error.limit,9223372036854775807);}strictEqual(caught,true);
  caught=false;try{s.int().lt(-9223372036854775808);}catch(error){caught=true;strictEqual(error.operation,'lt');strictEqual(error.limit,-9223372036854775808);}strictEqual(caught,true);
  caught=false;try{s.int().gt(2).lt(3);}catch(error){caught=true;strictEqual(error.operation,'lt');strictEqual(error.limit,3);}strictEqual(caught,true);
@@ -619,9 +619,9 @@ function main(){const schema=s.int().gt(9007199254740992).lt(9007199254740994);
 #[test]
 fn schema_generated_number_bounds_check_direct_and_integer_input() {
     let source=r#"import {s} from 'std:schema';function main(){const schema=s.number();
- for(const input of [1.0,1.5,2.0]){match(schema.safeParse(input)){Ok(value)=>{console.log(value);},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}}
- match(schema.safeParse(1)){Ok(value)=>{throw 'integer bound bypass';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);console.log(issue.observed);}}}
- match(schema.safeParse(9007199254740993)){Ok(value)=>{throw 'precision bypass';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+ for(const input of [1.0,1.5,2.0]){{const outcome27=schema.safeParse(input);if(outcome27.success){const value=outcome27.data;console.log(value);}else{const error=outcome27.error;for(const issue of error.issues){console.log(issue.code);}}}}
+ {const outcome28=schema.safeParse(1);if(outcome28.success){const value=outcome28.data;throw 'integer bound bypass';}else{const error=outcome28.error;for(const issue of error.issues){console.log(issue.code);console.log(issue.observed);}}}
+ {const outcome29=schema.safeParse(9007199254740993);if(outcome29.success){const value=outcome29.data;throw 'precision bypass';}else{const error=outcome29.error;for(const issue of error.issues){console.log(issue.code);}}}
 }"#;
     let checked=checked_source(&support::format_round_trip(source)).unwrap();
     let (rust,features)=checked.emit_rust_with_native_features();assert!(features.is_empty());
@@ -652,9 +652,9 @@ function main(){
 fn schema_floating_builders_validate_and_throw_typed_limits() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
 function main(){const schema=s.number().min(0.0).max(3.0).gt(1.0).lt(2.0);
- match(schema.safeParse(1.5)){Ok(value)=>{strictEqual(value,1.5);},Err(error)=>{throw 'fraction rejected';}}
- match(schema.safeParse(JSON.parse('2.0'))){Ok(value)=>{throw 'endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
- match(schema.safeParse(1)){Ok(value)=>{throw 'integer endpoint accepted';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
+ {const outcome30=schema.safeParse(1.5);if(outcome30.success){const value=outcome30.data;strictEqual(value,1.5);}else{const error=outcome30.error;throw 'fraction rejected';}}
+ {const outcome31=schema.safeParse(JSON.parse('2.0'));if(outcome31.success){const value=outcome31.data;throw 'endpoint accepted';}else{const error=outcome31.error;for(const issue of error.issues){strictEqual(issue.code,'too-large');}}}
+ {const outcome32=schema.safeParse(1);if(outcome32.success){const value=outcome32.data;throw 'integer endpoint accepted';}else{const error=outcome32.error;for(const issue of error.issues){strictEqual(issue.code,'too-small');}}}
  let caught=false;try{s.number().min(2.5).max(1.5);}catch(error){caught=true;strictEqual(error.code,'contradictory-bounds');strictEqual(error.operation,'max');strictEqual(error.limit,1.5);}strictEqual(caught,true);
  caught=false;try{s.number().gt(1.0/0.0);}catch(error){caught=true;strictEqual(error.code,'nonfinite-limit');strictEqual(error.operation,'gt');}strictEqual(caught,true);
 }"#;
@@ -714,7 +714,7 @@ fn main(){
 
 #[test]
 fn schema_owned_array_validation_reuses_plan_and_consumes_input() {
-    let source="import {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));const input=[2,3];match(schema.safeParse(input)){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}match(schema.safeParse([1,0])){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues.length);for(const issue of error.issues){console.log(issue.code);}}}}";
+    let source="import {s} from 'std:schema';function main(){const schema=s.array(s.int().min(2));const input=[2,3];{const outcome33=schema.safeParse(input);if(outcome33.success){const value=outcome33.data;console.log(value.length);}else{const error=outcome33.error;throw 'unexpected';}}{const outcome34=schema.safeParse([1,0]);if(outcome34.success){const value=outcome34.data;throw 'unexpected';}else{const error=outcome34.error;console.log(error.issues.length);for(const issue of error.issues){console.log(issue.code);}}}}";
     let directory=support::TempDirectory::new();
     let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
@@ -726,16 +726,16 @@ fn schema_owned_array_validation_reuses_plan_and_consumes_input() {
 #[test]
 fn schema_owned_array_validation_handles_nested_and_scalar_storage() {
     let source=r#"import {s} from 'std:schema';function main(){
-      match(s.array(s.int()).safeParse([5])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      {const outcome35=s.array(s.int()).safeParse([5]);if(outcome35.success){const value=outcome35.data;console.log(value.length);}else{const error=outcome35.error;throw 'unexpected';}}
       const rows=s.array(s.array(s.string().min(2)));
-      match(rows.safeParse([['hello','😀a']])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
-      match(rows.safeParse([['x']])){Ok(value)=>{throw 'unexpected';},Err(error)=>{for(const issue of error.issues){console.log(issue.path.length,issue.code);}}}
-      const flags=s.array(s.boolean());match(flags.safeParse([true,false])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
-      const numbers=s.array(s.number().gt(0.0));match(numbers.safeParse([1.5,2.5])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
-      const nulls=s.array(s.null());match(nulls.safeParse([null,null])){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      {const outcome36=rows.safeParse([['hello','😀a']]);if(outcome36.success){const value=outcome36.data;console.log(value.length);}else{const error=outcome36.error;throw 'unexpected';}}
+      {const outcome37=rows.safeParse([['x']]);if(outcome37.success){const value=outcome37.data;throw 'unexpected';}else{const error=outcome37.error;for(const issue of error.issues){console.log(issue.path.length,issue.code);}}}
+      const flags=s.array(s.boolean());{const outcome38=flags.safeParse([true,false]);if(outcome38.success){const value=outcome38.data;console.log(value.length);}else{const error=outcome38.error;throw 'unexpected';}}
+      const numbers=s.array(s.number().gt(0.0));{const outcome39=numbers.safeParse([1.5,2.5]);if(outcome39.success){const value=outcome39.data;console.log(value.length);}else{const error=outcome39.error;throw 'unexpected';}}
+      const nulls=s.array(s.null());{const outcome40=nulls.safeParse([null,null]);if(outcome40.success){const value=outcome40.data;console.log(value.length);}else{const error=outcome40.error;throw 'unexpected';}}
       const positive=s.array(s.int().min(1));let invalid:int[]=[];let i=0;while(i<65){invalid.push(0);i++;}
-      match(positive.safeParse(invalid)){Ok(value)=>{throw 'unexpected';},Err(error)=>{console.log(error.issues.length,error.truncated);}}
-      const empty:int[]=[];match(positive.safeParse(empty)){Ok(value)=>{console.log(value.length);},Err(error)=>{throw 'unexpected';}}
+      {const outcome41=positive.safeParse(invalid);if(outcome41.success){const value=outcome41.data;throw 'unexpected';}else{const error=outcome41.error;console.log(error.issues.length,error.truncated);}}
+      const empty:int[]=[];{const outcome42=positive.safeParse(empty);if(outcome42.success){const value=outcome42.data;console.log(value.length);}else{const error=outcome42.error;throw 'unexpected';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
@@ -745,19 +745,19 @@ fn schema_owned_array_validation_handles_nested_and_scalar_storage() {
 #[test]
 fn schema_json_arrays_preserve_exact_values_and_indexed_failures() {
     let source=r#"import {s} from 'std:schema';function main(){
-      const flags=s.array(s.boolean());match(flags.safeParse(JSON.parse('[true,false]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'boolean failure';}}
-      const nulls=s.array(s.null());match(nulls.safeParse(JSON.parse('[null]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'null failure';}}
-      const texts=s.array(s.string());match(texts.safeParse(JSON.parse('["hello","😀"]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'string failure';}}
-      const fractions=s.array(s.number().min(1.0));match(fractions.safeParse(JSON.parse('[1.5]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'number failure';}}
+      const flags=s.array(s.boolean());{const outcome43=flags.safeParse(JSON.parse('[true,false]'));if(outcome43.success){const values=outcome43.data;console.log(values.length);}else{const error=outcome43.error;throw 'boolean failure';}}
+      const nulls=s.array(s.null());{const outcome44=nulls.safeParse(JSON.parse('[null]'));if(outcome44.success){const values=outcome44.data;console.log(values.length);}else{const error=outcome44.error;throw 'null failure';}}
+      const texts=s.array(s.string());{const outcome45=texts.safeParse(JSON.parse('["hello","😀"]'));if(outcome45.success){const values=outcome45.data;for(const value of values){console.log(value);}}else{const error=outcome45.error;throw 'string failure';}}
+      const fractions=s.array(s.number().min(1.0));{const outcome46=fractions.safeParse(JSON.parse('[1.5]'));if(outcome46.success){const values=outcome46.data;for(const value of values){console.log(value);}}else{const error=outcome46.error;throw 'number failure';}}
       const integers=s.array(s.int());
-      match(integers.safeParse(JSON.parse('[9223372036854775807,-9223372036854775808]'))){Ok(values)=>{for(const value of values){console.log(value);}},Err(error)=>{throw 'integer range';}}
-      match(integers.safeParse(JSON.parse('[1.5,18446744073709551615,true]'))){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+      {const outcome47=integers.safeParse(JSON.parse('[9223372036854775807,-9223372036854775808]'));if(outcome47.success){const values=outcome47.data;for(const value of values){console.log(value);}}else{const error=outcome47.error;throw 'integer range';}}
+      {const outcome48=integers.safeParse(JSON.parse('[1.5,18446744073709551615,true]'));if(outcome48.success){const values=outcome48.data;throw 'invalid accepted';}else{const error=outcome48.error;for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
       const rows=s.array(s.array(s.string().min(2)));
-      match(rows.safeParse(JSON.parse('[["yes"]]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'nested success';}}
-      match(rows.safeParse(JSON.parse('[["hello"],["x",true],null]'))){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}
+      {const outcome49=rows.safeParse(JSON.parse('[["yes"]]'));if(outcome49.success){const values=outcome49.data;console.log(values.length);}else{const error=outcome49.error;throw 'nested success';}}
+      {const outcome50=rows.safeParse(JSON.parse('[["hello"],["x",true],null]'));if(outcome50.success){const values=outcome50.data;throw 'invalid accepted';}else{const error=outcome50.error;for(const issue of error.issues){console.log(issue.code,issue.expected,issue.observed,issue.path.length);}}}
       const numbers=s.array(s.number());
-      match(numbers.safeParse(JSON.parse('[9007199254740993]'))){Ok(values)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
-      match(integers.safeParse(JSON.parse('{}'))){Ok(values)=>{throw 'object accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.expected,issue.observed,issue.path.length);}}}
+      {const outcome51=numbers.safeParse(JSON.parse('[9007199254740993]'));if(outcome51.success){const values=outcome51.data;throw 'precision lost';}else{const error=outcome51.error;for(const issue of error.issues){console.log(issue.code);}}}
+      {const outcome52=integers.safeParse(JSON.parse('{}'));if(outcome52.success){const values=outcome52.data;throw 'object accepted';}else{const error=outcome52.error;for(const issue of error.issues){console.log(issue.expected,issue.observed,issue.path.length);}}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
@@ -771,13 +771,13 @@ fn schema_json_arrays_preserve_exact_values_and_indexed_failures() {
 fn schema_number_arrays_check_integer_precision_before_bounds() {
     let source=r#"import {s} from 'std:schema';function main(){
       const schema=s.array(s.number());
-      match(schema.safeParse([9007199254740993])){Ok(values)=>{throw 'literal rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}}
+      {const outcome53=schema.safeParse([9007199254740993]);if(outcome53.success){const values=outcome53.data;throw 'literal rounded';}else{const error=outcome53.error;for(const issue of error.issues){console.log(issue.code);}}}
       const exact:int[]=[42,-9223372036854775808];
-      match(schema.safeParse(exact)){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'exact rejected';}}
+      {const outcome54=schema.safeParse(exact);if(outcome54.success){const values=outcome54.data;console.log(values.length);}else{const error=outcome54.error;throw 'exact rejected';}}
       const invalid:int[]=[9007199254740993,9223372036854775807];
-      match(schema.safeParse(invalid)){Ok(values)=>{throw 'rounded';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+      {const outcome55=schema.safeParse(invalid);if(outcome55.success){const values=outcome55.data;throw 'rounded';}else{const error=outcome55.error;for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
       const nested=s.array(s.array(s.number().max(10.0)));const input:int[][]=[[42,9007199254740993]];
-      match(nested.safeParse(input)){Ok(values)=>{throw 'invalid accepted';},Err(error)=>{for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
+      {const outcome56=nested.safeParse(input);if(outcome56.success){const values=outcome56.data;throw 'invalid accepted';}else{const error=outcome56.error;for(const issue of error.issues){console.log(issue.code,issue.observed,issue.path.length);}}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("run").arg(path),60);support::success(&output);
@@ -792,11 +792,11 @@ fn schema_object_infers_owned_fields_and_rejects_unknown_json() {
     function main(){
       const name=s.string().min(2);
       const schema=s.object({name:name,age:s.int().min(1),tags:s.array(s.string())});
-      match(schema.safeParse(JSON.parse('{"name":"Ada","age":37,"tags":["native"]}'))){Ok(value)=>{strictEqual(value.name,'Ada');strictEqual(value.age,37);strictEqual(value.tags.length,1);},Err(error)=>{throw 'valid rejected';}}
-      match(schema.safeParse({name:'Al',age:2,tags:['owned']})){Ok(value)=>{strictEqual(value.name,'Al');},Err(error)=>{throw 'owned rejected';}}
-      match(schema.safeParse(JSON.parse('{"name":"A","extra":true}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{strictEqual(error.issues.length,4);strictEqual(error.truncated,false);let missing=0;let unknown=0;for(const issue of error.issues){strictEqual(issue.path.length,1);if(issue.code==='missing-field'){missing++;}if(issue.code==='unknown-field'){unknown++;}}strictEqual(missing,2);strictEqual(unknown,1);}}
+      {const outcome57=schema.safeParse(JSON.parse('{"name":"Ada","age":37,"tags":["native"]}'));if(outcome57.success){const value=outcome57.data;strictEqual(value.name,'Ada');strictEqual(value.age,37);strictEqual(value.tags.length,1);}else{const error=outcome57.error;throw 'valid rejected';}}
+      {const outcome58=schema.safeParse({name:'Al',age:2,tags:['owned']});if(outcome58.success){const value=outcome58.data;strictEqual(value.name,'Al');}else{const error=outcome58.error;throw 'owned rejected';}}
+      {const outcome59=schema.safeParse(JSON.parse('{"name":"A","extra":true}'));if(outcome59.success){const value=outcome59.data;throw 'invalid accepted';}else{const error=outcome59.error;strictEqual(error.issues.length,4);strictEqual(error.truncated,false);let missing=0;let unknown=0;for(const issue of error.issues){strictEqual(issue.path.length,1);if(issue.code==='missing-field'){missing++;}if(issue.code==='unknown-field'){unknown++;}}strictEqual(missing,2);strictEqual(unknown,1);}}
       const nested=s.array(s.object({child:s.object({flag:s.boolean()})}));
-      match(nested.safeParse(JSON.parse('[{"child":{"flag":true}}]'))){Ok(value)=>{strictEqual(value.length,1);},Err(error)=>{throw 'nested rejected';}}
+      {const outcome60=nested.safeParse(JSON.parse('[{"child":{"flag":true}}]'));if(outcome60.success){const value=outcome60.data;strictEqual(value.length,1);}else{const error=outcome60.error;throw 'nested rejected';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -811,10 +811,10 @@ fn schema_objects_support_named_empty_and_nested_error_paths() {
     function main(){
       const schema:Schema<Person>=s.object({age:s.int(),name:s.string()});
       const input:Person={name:'Ada',age:37};
-      match(schema.safeParse(input)){Ok(value)=>{strictEqual(value.name,'Ada');strictEqual(value.age,37);},Err(error)=>{throw 'named failed';}}
-      const empty=s.object({});match(empty.safeParse(JSON.parse('{}'))){Ok(value)=>{},Err(error)=>{throw 'empty failed';}}
+      {const outcome61=schema.safeParse(input);if(outcome61.success){const value=outcome61.data;strictEqual(value.name,'Ada');strictEqual(value.age,37);}else{const error=outcome61.error;throw 'named failed';}}
+      const empty=s.object({});{const outcome62=empty.safeParse(JSON.parse('{}'));if(outcome62.success){const value=outcome62.data;}else{const error=outcome62.error;throw 'empty failed';}}
       const nested=s.object({rows:s.array(s.object({label:s.string().min(2)}))});
-      match(nested.safeParse(JSON.parse('{"rows":[{"label":"x"}]}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{
+      {const outcome63=nested.safeParse(JSON.parse('{"rows":[{"label":"x"}]}'));if(outcome63.success){const value=outcome63.data;throw 'invalid accepted';}else{const error=outcome63.error;
         strictEqual(error.issues.length,1);for(const issue of error.issues){strictEqual(issue.path.length,3);for(const part of issue.path){if(part.field!==undefined){console.log(part.field);}else{console.log(part.index);}}}
       }}
     }"#;
@@ -833,10 +833,10 @@ fn schema_object_strip_is_explicit_consuming_and_reusable() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function main(){
       const original=s.object({name:s.string()});const schema=original.strip();
-      match(schema.safeParse(JSON.parse('{"name":"Ada","extra":true}'))){Ok(value)=>{strictEqual(value.name,'Ada');},Err(error)=>{throw 'strip rejected extras';}}
-      match(schema.safeParse(JSON.parse('{"name":"Al","other":null}'))){Ok(value)=>{strictEqual(value.name,'Al');},Err(error)=>{throw 'reuse failed';}}
-      match(s.object({name:s.string()}).safeParse(JSON.parse('{"name":"Ada","extra":true}'))){Ok(value)=>{throw 'default changed';},Err(error)=>{strictEqual(error.issues.length,1);}}
-      match(s.object({}).strip().safeParse(JSON.parse('{"any":1}'))){Ok(value)=>{},Err(error)=>{throw 'empty strip failed';}}
+      {const outcome64=schema.safeParse(JSON.parse('{"name":"Ada","extra":true}'));if(outcome64.success){const value=outcome64.data;strictEqual(value.name,'Ada');}else{const error=outcome64.error;throw 'strip rejected extras';}}
+      {const outcome65=schema.safeParse(JSON.parse('{"name":"Al","other":null}'));if(outcome65.success){const value=outcome65.data;strictEqual(value.name,'Al');}else{const error=outcome65.error;throw 'reuse failed';}}
+      {const outcome66=s.object({name:s.string()}).safeParse(JSON.parse('{"name":"Ada","extra":true}'));if(outcome66.success){const value=outcome66.data;throw 'default changed';}else{const error=outcome66.error;strictEqual(error.issues.length,1);}}
+      {const outcome67=s.object({}).strip().safeParse(JSON.parse('{"any":1}'));if(outcome67.success){const value=outcome67.data;}else{const error=outcome67.error;throw 'empty strip failed';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -849,16 +849,16 @@ fn schema_object_retains_extras_without_field_collisions() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function main(){
       const schema=s.object({name:s.string()}).retain();
-      match(schema.safeParse(JSON.parse('{"name":"Ada","value":true,"extra":null,"get":7}'))){Ok(output)=>{
+      {const outcome68=schema.safeParse(JSON.parse('{"name":"Ada","value":true,"extra":null,"get":7}'));if(outcome68.success){const output=outcome68.data;
         strictEqual(output.value.name,'Ada');strictEqual(output.extra.size,3);
         strictEqual(output.extra.has('name'),false);strictEqual(output.extra.has('get'),true);
         const extra=output.extra.get('get');if(extra!==undefined){strictEqual(JSON.stringify(extra),'7');}else{throw 'lost extra';}
-      },Err(error)=>{throw 'retention failed';}}
-      match(schema.safeParse({name:'Owned'})){Ok(output)=>{strictEqual(output.value.name,'Owned');strictEqual(output.extra.size,0);},Err(error)=>{throw 'owned retain failed';}}
+      }else{const error=outcome68.error;throw 'retention failed';}}
+      {const outcome69=schema.safeParse({name:'Owned'});if(outcome69.success){const output=outcome69.data;strictEqual(output.value.name,'Owned');strictEqual(output.extra.size,0);}else{const error=outcome69.error;throw 'owned retain failed';}}
       const nested=s.array(s.object({name:s.string()}).retain());
-      match(nested.safeParse(JSON.parse('[{"name":"Nested","other":true}]'))){Ok(outputs)=>{match(nested.safeParse(outputs)){Ok(again)=>{for(const output of again){strictEqual(output.value.name,'Nested');strictEqual(output.extra.size,1);}},Err(error)=>{throw 'owned nested retain failed';}}},Err(error)=>{throw 'nested retain failed';}}
-      match(schema.safeParse(JSON.parse('{"name":"Al"}'))){Ok(output)=>{strictEqual(output.extra.size,0);},Err(error)=>{throw 'reuse failed';}}
-      match(schema.safeParse(JSON.parse('{"other":true}'))){Ok(output)=>{throw 'missing accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      {const outcome70=nested.safeParse(JSON.parse('[{"name":"Nested","other":true}]'));if(outcome70.success){const outputs=outcome70.data;{const outcome0=nested.safeParse(outputs);if(outcome0.success){const again=outcome0.data;for(const output of again){strictEqual(output.value.name,'Nested');strictEqual(output.extra.size,1);}}else{const error=outcome0.error;throw 'owned nested retain failed';}}}else{const error=outcome70.error;throw 'nested retain failed';}}
+      {const outcome71=schema.safeParse(JSON.parse('{"name":"Al"}'));if(outcome71.success){const output=outcome71.data;strictEqual(output.extra.size,0);}else{const error=outcome71.error;throw 'reuse failed';}}
+      {const outcome72=schema.safeParse(JSON.parse('{"other":true}'));if(outcome72.success){const output=outcome72.data;throw 'missing accepted';}else{const error=outcome72.error;strictEqual(error.issues.length,1);}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -869,20 +869,20 @@ fn schema_optional_and_nullable_fields_keep_missing_and_null_distinct() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function main(){
       const schema=s.object({nickname:s.string().min(2).optional(),note:s.string().nullable()});
-      match(schema.safeParse(JSON.parse('{"note":null}'))){Ok(value)=>{strictEqual(value.nickname===undefined,true);strictEqual(value.note===null,true);},Err(error)=>{throw 'presence failed';}}
-      match(schema.safeParse(JSON.parse('{"nickname":"Ada","note":"ready"}'))){Ok(value)=>{if(value.nickname!==undefined){strictEqual(value.nickname,'Ada');}if(value.note!==null){strictEqual(value.note,'ready');}},Err(error)=>{throw 'values failed';}}
-      match(schema.safeParse(JSON.parse('{"nickname":null}'))){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{strictEqual(error.issues.length,2);}}
-      match(schema.safeParse({note:null})){Ok(value)=>{strictEqual(value.nickname===undefined,true);},Err(error)=>{throw 'owned optional failed';}}
-      const numeric=s.number().optional();match(numeric.safeParse(9007199254740993)){Ok(value)=>{throw 'precision lost';},Err(error)=>{for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
-      match(numeric.safeParse(42)){Ok(value)=>{if(value!==undefined){strictEqual(value,42.0);}},Err(error)=>{throw 'exact conversion failed';}}
-      const nulls=s.null().optional();match(nulls.safeParse(JSON.parse('null'))){Ok(value)=>{strictEqual(value===null,true);},Err(error)=>{throw 'null presence failed';}}
-      const root=s.int().optional();match(root.safeParse(undefined)){Ok(value)=>{strictEqual(value===undefined,true);},Err(error)=>{throw 'root missing failed';}}
-      match(root.safeParse(7)){Ok(value)=>{if(value!==undefined){strictEqual(value,7);}},Err(error)=>{throw 'root value failed';}}
-      const nullable=s.array(s.string().nullable());match(nullable.safeParse(JSON.parse('["ok",null]'))){Ok(values)=>{strictEqual(values.length,2);},Err(error)=>{throw 'nullable array failed';}}
-      const optional=s.array(s.string().optional());match(optional.safeParse(['ok',undefined])){Ok(values)=>{strictEqual(values.length,2);},Err(error)=>{throw 'optional array failed';}}
+      {const outcome73=schema.safeParse(JSON.parse('{"note":null}'));if(outcome73.success){const value=outcome73.data;strictEqual(value.nickname===undefined,true);strictEqual(value.note===null,true);}else{const error=outcome73.error;throw 'presence failed';}}
+      {const outcome74=schema.safeParse(JSON.parse('{"nickname":"Ada","note":"ready"}'));if(outcome74.success){const value=outcome74.data;if(value.nickname!==undefined){strictEqual(value.nickname,'Ada');}if(value.note!==null){strictEqual(value.note,'ready');}}else{const error=outcome74.error;throw 'values failed';}}
+      {const outcome75=schema.safeParse(JSON.parse('{"nickname":null}'));if(outcome75.success){const value=outcome75.data;throw 'invalid accepted';}else{const error=outcome75.error;strictEqual(error.issues.length,2);}}
+      {const outcome76=schema.safeParse({note:null});if(outcome76.success){const value=outcome76.data;strictEqual(value.nickname===undefined,true);}else{const error=outcome76.error;throw 'owned optional failed';}}
+      const numeric=s.number().optional();{const outcome77=numeric.safeParse(9007199254740993);if(outcome77.success){const value=outcome77.data;throw 'precision lost';}else{const error=outcome77.error;for(const issue of error.issues){strictEqual(issue.code,'number-precision');}}}
+      {const outcome78=numeric.safeParse(42);if(outcome78.success){const value=outcome78.data;if(value!==undefined){strictEqual(value,42.0);}}else{const error=outcome78.error;throw 'exact conversion failed';}}
+      const nulls=s.null().optional();{const outcome79=nulls.safeParse(JSON.parse('null'));if(outcome79.success){const value=outcome79.data;strictEqual(value===null,true);}else{const error=outcome79.error;throw 'null presence failed';}}
+      const root=s.int().optional();{const outcome80=root.safeParse(undefined);if(outcome80.success){const value=outcome80.data;strictEqual(value===undefined,true);}else{const error=outcome80.error;throw 'root missing failed';}}
+      {const outcome81=root.safeParse(7);if(outcome81.success){const value=outcome81.data;if(value!==undefined){strictEqual(value,7);}}else{const error=outcome81.error;throw 'root value failed';}}
+      const nullable=s.array(s.string().nullable());{const outcome82=nullable.safeParse(JSON.parse('["ok",null]'));if(outcome82.success){const values=outcome82.data;strictEqual(values.length,2);}else{const error=outcome82.error;throw 'nullable array failed';}}
+      const optional=s.array(s.string().optional());{const outcome83=optional.safeParse(['ok',undefined]);if(outcome83.success){const values=outcome83.data;strictEqual(values.length,2);}else{const error=outcome83.error;throw 'optional array failed';}}
       const both=s.object({value:s.int().optional().nullable()});
-      match(both.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.value===undefined,true);},Err(error)=>{throw 'combined missing failed';}}
-      match(both.safeParse(JSON.parse('{"value":null}'))){Ok(value)=>{strictEqual(value.value===null,true);},Err(error)=>{throw 'combined null failed';}}
+      {const outcome84=both.safeParse(JSON.parse('{}'));if(outcome84.success){const value=outcome84.data;strictEqual(value.value===undefined,true);}else{const error=outcome84.error;throw 'combined missing failed';}}
+      {const outcome85=both.safeParse(JSON.parse('{"value":null}'));if(outcome85.success){const value=outcome85.data;strictEqual(value.value===null,true);}else{const error=outcome85.error;throw 'combined null failed';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -898,20 +898,20 @@ fn schema_defaults_validate_fresh_factory_results_only_for_missing_fields() {
     function fresh(): string[] { return ['fresh']; }
     function main(){
       const schema=s.object({items:s.array(s.string()).default(fresh)});
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{value.items.push('changed');strictEqual(value.items.length,2);},Err(error)=>{throw 'missing default failed';}}
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.items.length,1);},Err(error)=>{throw 'fresh default failed';}}
-      match(schema.safeParse(JSON.parse('{"items":[]}'))){Ok(value)=>{strictEqual(value.items.length,0);},Err(error)=>{throw 'supplied value failed';}}
-      match(schema.safeParse(JSON.parse('{"items":null}'))){Ok(value)=>{throw 'null accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      {const outcome86=schema.safeParse(JSON.parse('{}'));if(outcome86.success){const value=outcome86.data;value.items.push('changed');strictEqual(value.items.length,2);}else{const error=outcome86.error;throw 'missing default failed';}}
+      {const outcome87=schema.safeParse(JSON.parse('{}'));if(outcome87.success){const value=outcome87.data;strictEqual(value.items.length,1);}else{const error=outcome87.error;throw 'fresh default failed';}}
+      {const outcome88=schema.safeParse(JSON.parse('{"items":[]}'));if(outcome88.success){const value=outcome88.data;strictEqual(value.items.length,0);}else{const error=outcome88.error;throw 'supplied value failed';}}
+      {const outcome89=schema.safeParse(JSON.parse('{"items":null}'));if(outcome89.success){const value=outcome89.data;throw 'null accepted';}else{const error=outcome89.error;strictEqual(error.issues.length,1);}}
       const captured=[1,2,3];
       const reusable=s.object({count:s.int().default(()=>captured.length)});
-      match(reusable.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'captured default failed';}}
-      match(reusable.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'reused capture failed';}}
+      {const outcome90=reusable.safeParse(JSON.parse('{}'));if(outcome90.success){const value=outcome90.data;strictEqual(value.count,3);}else{const error=outcome90.error;throw 'captured default failed';}}
+      {const outcome91=reusable.safeParse(JSON.parse('{}'));if(outcome91.success){const value=outcome91.data;strictEqual(value.count,3);}else{const error=outcome91.error;throw 'reused capture failed';}}
       const required=s.object({count:s.int()});
-      match(required.safeParse(JSON.parse('{}'))){Ok(value)=>{throw 'default leaked between plans';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      {const outcome92=required.safeParse(JSON.parse('{}'));if(outcome92.success){const value=outcome92.data;throw 'default leaked between plans';}else{const error=outcome92.error;strictEqual(error.issues.length,1);}}
       const presence=s.object({flag:s.boolean().default(()=>true),nothing:s.null().default(()=>null),note:s.string().nullable().default(()=>null)});
-      match(presence.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.flag,true);strictEqual(value.nothing===null,true);strictEqual(value.note===null,true);},Err(error)=>{throw 'presence defaults failed';}}
+      {const outcome93=presence.safeParse(JSON.parse('{}'));if(outcome93.success){const value=outcome93.data;strictEqual(value.flag,true);strictEqual(value.nothing===null,true);strictEqual(value.note===null,true);}else{const error=outcome93.error;throw 'presence defaults failed';}}
       const invalid=s.object({count:s.int().min(1).default(()=>0)});
-      match(invalid.safeParse(JSON.parse('{}'))){Ok(value)=>{throw 'invalid factory accepted';},Err(error)=>{strictEqual(error.issues.length,1);}}
+      {const outcome94=invalid.safeParse(JSON.parse('{}'));if(outcome94.success){const value=outcome94.data;throw 'invalid factory accepted';}else{const error=outcome94.error;strictEqual(error.issues.length,1);}}
     }"#;
     let directory=support::TempDirectory::new();
     let path=directory.source(&support::format_round_trip(source));
@@ -944,7 +944,7 @@ fn schema_default_factory_exceptions_propagate_without_becoming_validation_issue
 
 #[test]
 fn schema_default_owned_record_omission_builds_required_output() {
-    let source="import {s} from 'std:schema';import {strictEqual} from 'std:testing';function main(){const schema=s.object({value:s.int().default(()=>7)});match(schema.safeParse({})){Ok(value)=>{strictEqual(value.value,7);},Err(error)=>{throw 'owned omission failed';}}}";
+    let source="import {s} from 'std:schema';import {strictEqual} from 'std:testing';function main(){const schema=s.object({value:s.int().default(()=>7)});{const outcome95=schema.safeParse({});if(outcome95.success){const value=outcome95.data;strictEqual(value.value,7);}else{const error=outcome95.error;throw 'owned omission failed';}}}";
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
 }
@@ -965,7 +965,7 @@ fn schema_default_late_factory_error_widening_rechecks_catch_calls() {
 fn schema_default_forwarded_plan_refreshes_factory_exception_effects() {
     let source=r#"import {s,Schema} from 'std:schema';import {JsonValue} from 'std:json';import {strictEqual} from 'std:testing';
     type Payload={value:int;};type ForwardError={code:string;};
-    function forward(schema:ReadOnly<Schema<Payload>>,input:JsonValue):int{match(schema.safeParse(input)){Ok(value)=>{return value.value;},Err(error)=>{throw 'invalid';}}}
+    function forward(schema:ReadOnly<Schema<Payload>>,input:JsonValue):int{{const outcome96=schema.safeParse(input);if(outcome96.success){const value=outcome96.data;return value.value;}else{const error=outcome96.error;throw 'invalid';}}}
     function failing():int{const error:ForwardError={code:'factory failed'};throw error;}
     function main(){const schema:Schema<Payload>=s.object({value:s.int().default(failing)});const input=JSON.parse('{}');try{forward(schema,input);throw 'missing failure';}catch(error){if(typeof error==='string'){throw error;}strictEqual(error.code,'factory failed');}}
     "#;
@@ -978,8 +978,8 @@ fn schema_defaults_preserve_factories_through_presence_and_constraints() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function main(){
       const schema=s.object({count:s.int().default(()=>7).min(5),note:s.string().default(()=>'ready').optional(),other:s.string().default(()=>'ok').nullable()});
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,7);if(value.note===undefined){throw 'optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'nullable erased default';}strictEqual(value.other,'ok');},Err(error)=>{throw 'composed defaults failed';}}
-      match(schema.safeParse({})){Ok(value)=>{strictEqual(value.count,7);if(value.note===undefined){throw 'owned optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'owned nullable erased default';}strictEqual(value.other,'ok');},Err(error)=>{throw 'owned composed defaults failed';}}
+      {const outcome97=schema.safeParse(JSON.parse('{}'));if(outcome97.success){const value=outcome97.data;strictEqual(value.count,7);if(value.note===undefined){throw 'optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'nullable erased default';}strictEqual(value.other,'ok');}else{const error=outcome97.error;throw 'composed defaults failed';}}
+      {const outcome98=schema.safeParse({});if(outcome98.success){const value=outcome98.data;strictEqual(value.count,7);if(value.note===undefined){throw 'owned optional erased default';}strictEqual(value.note,'ready');if(value.other===null){throw 'owned nullable erased default';}strictEqual(value.other,'ok');}else{const error=outcome98.error;throw 'owned composed defaults failed';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -990,7 +990,7 @@ fn schema_defaults_validate_distinct_owned_input_shapes_for_same_output() {
     let source=r#"import {s,Schema} from 'std:schema';import {strictEqual} from 'std:testing';
     type Item={value:int;};
     function main(){const left:Schema<Item>=s.object({value:s.int().default(()=>7)});const right:Schema<Item>=s.object({value:s.int().default(()=>9)});const schema=s.object({left:left,right:right});
-      match(schema.safeParse({left:{},right:{value:11}})){Ok(value)=>{strictEqual(value.left.value,7);strictEqual(value.right.value,11);},Err(error)=>{throw 'owned shapes failed';}}
+      {const outcome99=schema.safeParse({left:{},right:{value:11}});if(outcome99.success){const value=outcome99.data;strictEqual(value.left.value,7);strictEqual(value.right.value,11);}else{const error=outcome99.error;throw 'owned shapes failed';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -1000,7 +1000,7 @@ fn schema_defaults_validate_distinct_owned_input_shapes_for_same_output() {
 fn schema_default_chains_reject_incompatible_input_and_unnarrowed_output() {
     for source in [
       "import {s} from 'std:schema';function main(){const schema=s.int().default(()=>7).min(5);schema.safeParse('seven');}",
-      "import {s} from 'std:schema';function main(){const schema=s.string().default(()=>'ready').optional();match(schema.safeParse(undefined)){Ok(value)=>{const size=value.length;},Err(error)=>{}}}",
+      "import {s} from 'std:schema';function main(){const schema=s.string().default(()=>'ready').optional();{const outcome100=schema.safeParse(undefined);if(outcome100.success){const value=outcome100.data;const size=value.length;}else{const error=outcome100.error;}}}",
       "import {s} from 'std:schema';function main(){const schema=s.int().default(()=>'wrong').min(5);}",
     ] {assert!(checked_source(source).is_err(),"accepted incompatible chain: {source}");}
 }
@@ -1011,7 +1011,7 @@ fn schema_defaults_survive_presence_widening_without_copying_factories() {
     function fail():int|undefined{throw 'widened factory error';}
     function main(){
       const schema=s.object({left:s.string().optional().default(()=>'left').nullable(),right:s.string().nullable().default(()=>'right').optional()});
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{if(value.left===null||value.left===undefined){throw 'left default lost';}if(value.right===null||value.right===undefined){throw 'right default lost';}strictEqual(value.left,'left');strictEqual(value.right,'right');},Err(error)=>{throw 'widening failed';}}
+      {const outcome101=schema.safeParse(JSON.parse('{}'));if(outcome101.success){const value=outcome101.data;if(value.left===null||value.left===undefined){throw 'left default lost';}if(value.right===null||value.right===undefined){throw 'right default lost';}strictEqual(value.left,'left');strictEqual(value.right,'right');}else{const error=outcome101.error;throw 'widening failed';}}
       const throwing=s.object({value:s.int().optional().default(fail).nullable()});const input=JSON.parse('{}');try{throwing.safeParse(input);throw 'missing exception';}catch(error){strictEqual(error,'widened factory error');}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -1022,7 +1022,7 @@ fn schema_defaults_survive_presence_widening_without_copying_factories() {
 fn schema_default_accepts_owned_runtime_factory_with_readonly_captures() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function make():Function<int>{const values=[1,2,3];return ()=>values.length;}
-    function main(){const factory=make();const schema=s.object({count:s.int().default(factory)});match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'runtime factory failed';}}match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.count,3);},Err(error)=>{throw 'runtime reuse failed';}}}
+    function main(){const factory=make();const schema=s.object({count:s.int().default(factory)});{const outcome102=schema.safeParse(JSON.parse('{}'));if(outcome102.success){const value=outcome102.data;strictEqual(value.count,3);}else{const error=outcome102.error;throw 'runtime factory failed';}}{const outcome103=schema.safeParse(JSON.parse('{}'));if(outcome103.success){const value=outcome103.data;strictEqual(value.count,3);}else{const error=outcome103.error;throw 'runtime reuse failed';}}}
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));
@@ -1032,7 +1032,7 @@ fn schema_default_accepts_owned_runtime_factory_with_readonly_captures() {
 fn schema_default_object_factory_survives_retention_and_stripping() {
     let source=r#"import {s} from 'std:schema';import {strictEqual} from 'std:testing';
     function main(){const schema=s.object({retained:s.object({count:s.int()}).default(()=>({count:7})).retain(),stripped:s.object({count:s.int()}).default(()=>({count:9})).strip()});
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{strictEqual(value.retained.value.count,7);strictEqual(value.retained.extra.size,0);strictEqual(value.stripped.count,9);},Err(error)=>{throw 'policy default failed';}}
+      {const outcome104=schema.safeParse(JSON.parse('{}'));if(outcome104.success){const value=outcome104.data;strictEqual(value.retained.value.count,7);strictEqual(value.retained.extra.size,0);strictEqual(value.stripped.count,9);}else{const error=outcome104.error;throw 'policy default failed';}}
     }"#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     support::success(&support::run(support::cli().arg("run").arg(path),60));

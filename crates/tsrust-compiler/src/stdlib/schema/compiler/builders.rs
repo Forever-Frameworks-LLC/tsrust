@@ -43,13 +43,37 @@ mod tests {
 
 /// Unwrap a checked validation Result through normal typed exception machinery.
 pub(crate) fn parse_adapter(program: &Program) -> Result<Function, Diagnostic> {
-    let mut function = crate::syntax::parse("function adapter<R>(result:R){match(result){Ok(value)=>{return value;},Err(error)=>{throw error;}}}")?.functions.remove(0);
+    source_adapter(program, "@schema:parseResult", crate::syntax::parse("function adapter<R>(result:R){match(result){Ok(value)=>{return value;},Err(error)=>{throw error;}}}")?.functions.remove(0))
+}
+
+/// Public names of the schema outcome alternatives.
+pub(crate) const SUCCESS: &str = "SafeParseSuccess";
+pub(crate) const FAILURE: &str = "SafeParseError";
+
+/// Present a checked validation Result as a success-discriminated outcome.
+/// The match moves the validated output or error once; nothing is copied.
+/// The alternatives are generic records with boolean literal discriminants.
+pub(crate) fn safe_parse_adapter(program: &mut Program) -> Result<(), Diagnostic> {
+    let source = "type SafeParseSuccess<T>={success:true;data:T;};type SafeParseError<E>={success:false;error:E;};function adapter<R,T,E>(result:R):SafeParseSuccess<T>|SafeParseError<E>{match(result){Ok(value)=>{return {success:true,data:value};},Err(error)=>{return {success:false,error:error};}}}";
+    let mut parsed = crate::syntax::parse(source)?;
+    let function = source_adapter(program, "@schema:safeParseOutcome", parsed.functions.remove(0))?;
+    // A program declaring these names keeps its own types; the adapter fails clearly then.
+    if program.records.iter().any(|record| record.name.text == SUCCESS || record.name.text == FAILURE) {
+        return Err(Diagnostic::new("schema-type", "SafeParseSuccess and SafeParseError are reserved by std:schema safeParse results.", function.name.span));
+    }
+    program.records.extend(parsed.records.drain(..).filter(|record| record.name.text == SUCCESS || record.name.text == FAILURE));
+    program.functions.push(function);
+    Ok(())
+}
+
+fn source_adapter(program: &Program, name: &str, mut function: Function) -> Result<Function, Diagnostic> {
     let offset = program.functions.iter().map(|function| function.scope_span.end.max(crate::source_walk::body_end(&function.body))).max().unwrap_or(0) + 1;
     let shift = |span: &mut Span| { span.start += offset; span.end += offset; };
-    function.name.text = "@schema:parseResult".into();
+    function.name.text = name.into();
     shift(&mut function.name.span);
     shift(&mut function.scope_span);
     for (name, _, _) in &mut function.params { shift(&mut name.span); }
+    crate::source_walk::function_annotations(&mut function, &mut |annotation| { shift(&mut annotation.span); Ok(()) })?;
     crate::source_walk::function_body(&mut function, &mut |_| Ok(()), &mut |expression| {
         shift(&mut expression.span);
         Ok(())

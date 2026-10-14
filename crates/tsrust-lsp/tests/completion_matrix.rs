@@ -93,7 +93,7 @@ const SHAPES: &str = "export type Point = { x: int; y: int; };\nexport function 
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
 const FILES: [(&str, &str); 2] = [("shapes.tsr", SHAPES), ("greeting.tsr", GREETING)];
 
-const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { Point, origin, scale } from './shapes.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction helper(count: int): int { return count; }\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const start = origin();\n  const parsed = schema.safeParse(greeting());\n  ";
+const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { Point, origin, scale } from './shapes.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction helper(count: int): int { return count; }\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const start = origin();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
 
 fn rows() -> Vec<Row> {
@@ -111,13 +111,17 @@ fn rows() -> Vec<Row> {
         row(Kind::StringMember, "string member", "text.", &["length", "trim", "toUpperCase"], NOT_MEMBERS),
         row(Kind::MapMember, "map member", "lookup.", &["get", "set", "size"], NOT_MEMBERS),
         row(Kind::SetMember, "set member", "seen.", &["add", "has", "size"], NOT_MEMBERS),
-        row(Kind::ResultMember, "result member", "parsed.", &["payload"], NOT_MEMBERS),
-        row(Kind::MemberPrefix, "result member prefix in a call", "console.log(parsed.pa", &["payload"], NOT_MEMBERS),
+        row(Kind::ResultMember, "result member", "loaded.", &["payload"], NOT_MEMBERS),
+        row(Kind::MemberPrefix, "result member prefix in a call", "console.log(loaded.pa", &["payload"], NOT_MEMBERS),
+        row(Kind::ResultMember, "schema outcome member", "parsed.", &["success"], NOT_MEMBERS),
+        row(Kind::ResultMember, "narrowed schema success", "if (parsed.success) { parsed.", &["data"], NOT_MEMBERS),
+        row(Kind::ResultMember, "narrowed schema data member", "if (parsed.success) { parsed.data.", &["length", "trim"], NOT_MEMBERS),
+        row(Kind::ResultMember, "narrowed schema failure", "if (!parsed.success) { parsed.error.", &["issues", "truncated"], NOT_MEMBERS),
+        row(Kind::IndexedElement, "indexed schema issue", "if (!parsed.success) { parsed.error.issues[0].", &["code", "message", "path"], NOT_MEMBERS),
         row(Kind::MemberPrefix, "array member prefix", "const n = values.ma", &["map"], NOT_MEMBERS),
-        row(Kind::MatchOkBinding, "ok binding member", "match (parsed) { Ok(value) => { value.", &["length", "trim"], NOT_MEMBERS),
-        row(Kind::MatchErrBinding, "err binding member", "match (parsed) { Ok(value) => { } Err(error) => { error.", &["issues", "truncated"], NOT_MEMBERS),
-        row(Kind::MatchArms, "match arms", "match (parsed) { ", &["Ok", "Err"], NOT_MEMBERS),
-        row(Kind::IndexedElement, "indexed record element", "match (parsed) { Ok(value) => { } Err(error) => { error.issues[0].", &["code", "message", "path"], NOT_MEMBERS),
+        row(Kind::MatchOkBinding, "ok binding member", "match (loaded) { Ok(value) => { value.", &["length", "trim"], NOT_MEMBERS),
+        row(Kind::MatchErrBinding, "err binding member", "match (loaded) { Ok(value) => { } Err(error) => { error.", &["toString"], NOT_MEMBERS),
+        row(Kind::MatchArms, "match arms", "match (loaded) { ", &["Ok", "Err"], NOT_MEMBERS),
         row(Kind::IndexedElement, "indexed scalar element", "values[0].", &["toString"], NOT_MEMBERS),
         Row { needs_check: true, ..row(Kind::CallbackParameter, "callback parameter in an open closure", "values.forEach((entry) => { entry.", &["toString"], NOT_MEMBERS) },
         row(Kind::CallResult, "chained call result", "values.filter((v) => v > 1).", &["length", "map"], NOT_MEMBERS),

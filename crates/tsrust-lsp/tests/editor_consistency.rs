@@ -7,7 +7,7 @@ use std::time::Duration;
 use support::session::Session;
 
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
-const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  ";
+const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
 
 /// A receiver whose type hover reports. `silent` is the reviewed reason why
@@ -25,7 +25,8 @@ const RECEIVERS: &[Receiver] = &[
     Receiver { name: "lookup", hover: "Map<string, int>", silent: None },
     Receiver { name: "seen", hover: "Set<int>", silent: None },
     Receiver { name: "schema", hover: "Schema<string>", silent: None },
-    Receiver { name: "parsed", hover: "Result<string, ValidationError>", silent: None },
+    Receiver { name: "parsed", hover: "SafeParseSuccess<string> | SafeParseError<ValidationError>", silent: None },
+    Receiver { name: "loaded", hover: "Result<string, int>", silent: None },
 ];
 
 fn compact(text: &str) -> String {
@@ -53,31 +54,31 @@ fn completion_is_not_empty_where_hover_reports_a_type() {
 }
 
 #[test]
-fn result_hover_and_completion_state_the_payload_field_and_the_match() {
+fn general_result_hover_and_completion_state_the_payload_field_and_the_match() {
     let mut session = Session::start(&[("greeting.tsr", GREETING)]);
-    let text = format!("{HEAD}console.log(parsed.payload);{TAIL}");
+    let text = format!("{HEAD}console.log(loaded.payload);{TAIL}");
     session.open("main.tsr", &text);
     session.settle();
     let value = session.hover("main.tsr", &text, HEAD.len() + "console.log(pa".len()).unwrap();
-    assert!(value.contains("parsed.payload") && value.contains("match (parsed)"), "{value}");
+    assert!(value.contains("loaded.payload") && value.contains("match (loaded)"), "{value}");
     assert!(!value.contains("Match before accessing either payload"), "the hover must not deny the field: {value}");
-    let field = session.hover("main.tsr", &text, HEAD.len() + "console.log(parsed.pay".len()).unwrap();
+    let field = session.hover("main.tsr", &text, HEAD.len() + "console.log(loaded.pay".len()).unwrap();
     let field = compact(&field);
-    assert!(field.contains("payload:") && field.contains("string") && field.contains("ValidationError"), "{field}");
-    let before = format!("{HEAD}parsed.");
+    assert!(field.contains("payload:") && field.contains("string") && field.contains("int"), "{field}");
+    let before = format!("{HEAD}loaded.");
     let typed = format!("{before}{TAIL}");
     session.change("main.tsr", &typed);
     let reply = session.completion_items("main.tsr", &typed, before.len());
     let items = if reply.is_array() { reply } else { reply["items"].clone() };
     let items = items.as_array().unwrap();
     let payload = items.iter().find(|item| item["label"] == "payload").expect("payload field");
-    assert!(payload["detail"].as_str().unwrap().contains("ValidationError"));
+    assert!(payload["detail"].as_str().unwrap().contains("int"));
     let narrowing = items.iter().find(|item| item["label"] == "match").expect("match skeleton");
     let edit = narrowing["textEdit"]["newText"].as_str().unwrap();
-    assert!(edit.starts_with("match (parsed) {") && edit.contains("Ok(value)") && edit.contains("Err(error)"), "{edit}");
+    assert!(edit.starts_with("match (loaded) {") && edit.contains("Ok(value)") && edit.contains("Err(error)"), "{edit}");
     // The skeleton replaces the whole access, from the receiver to the cursor.
     assert_eq!(narrowing["textEdit"]["range"]["start"]["character"], 2);
-    assert_eq!(narrowing["filterText"], "parsed.match");
+    assert_eq!(narrowing["filterText"], "loaded.match");
 }
 
 #[test]
@@ -111,7 +112,7 @@ fn typing_a_project_document_produces_no_misleading_answer() {
     session.open("main.tsr", &format!("{HEAD}{TAIL}"));
     session.settle();
     let before = session.request("tsrust/counters", Value::Null);
-    for typed in ["parsed.", "const next = greeting();\n  next.", "console.log(parsed.pa", "values.ma", "match (parsed) { Ok(value) => { value.", "item."] {
+    for typed in ["parsed.", "const next = greeting();\n  next.", "console.log(parsed.su", "values.ma", "match (loaded) { Ok(value) => { value.", "if (parsed.success) { parsed.", "item."] {
         session.type_text("main.tsr", HEAD, typed, TAIL, Duration::ZERO);
         let text = format!("{HEAD}{typed}{TAIL}");
         let labels = session.completion("main.tsr", &text, HEAD.len() + typed.len()).unwrap();

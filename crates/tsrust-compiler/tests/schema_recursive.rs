@@ -8,20 +8,14 @@ import {s} from 'std:schema';
 import {strictEqual} from 'std:testing';
 const tree=s.recursive(self=>s.object({value:s.int(),children:s.array(self)}));
 function main(){
-  match(tree.safeParseJson('{"value":1,"children":[{"value":2,"children":[]}]}')){
-    Ok(value)=>{strictEqual(value.value,1);strictEqual(value.children[0].value,2);},
-    Err(error)=>{throw 'Valid recursive data rejected';}
-  }
-  match(tree.safeParseJson('{"value":1,"children":[{"value":"bad","children":[]}]}')){
-    Ok(value)=>{throw 'Invalid nested value accepted';},
-    Err(error)=>{
+  {const outcome0=tree.safeParseJson('{"value":1,"children":[{"value":2,"children":[]}]}');if(outcome0.success){const value=outcome0.data;strictEqual(value.value,1);strictEqual(value.children[0].value,2);}else{const error=outcome0.error;throw 'Valid recursive data rejected';}}
+  {const outcome1=tree.safeParseJson('{"value":1,"children":[{"value":"bad","children":[]}]}');if(outcome1.success){const value=outcome1.data;throw 'Invalid nested value accepted';}else{const error=outcome1.error;
       if(error.kind==='validation'){
         strictEqual(error.error.issues[0].path[0].field,'children');
         strictEqual(error.error.issues[0].path[1].index,0);
         strictEqual(error.error.issues[0].path[2].field,'value');
       }else{throw 'Unexpected JSON error';}
-    }
-  }
+    }}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -37,21 +31,15 @@ import {strictEqual} from 'std:testing';
 type Tree={right:Tree|null;value:int;left:Tree|null;};
 const tree=builders.recursive<Tree>(self=>builders.object({value:builders.int(),left:self.nullable(),right:self.nullable()}));
 function main(){
-  match(tree.safeParseJson('{"value":7,"left":null,"right":null}')){
-    Ok(value)=>{
+  {const outcome2=tree.safeParseJson('{"value":7,"left":null,"right":null}');if(outcome2.success){const value=outcome2.data;
       const named:Tree=value;
       strictEqual(named.value,7);strictEqual(named.left,null);strictEqual(named.right,null);
       strictEqual(Object.keys(named).join(','),'value,left,right');
-    },
-    Err(error)=>{throw 'Valid explicit recursive data rejected';}
-  }
-  match(tree.safeParseJson('{"value":7,"left":{"value":9,"left":null,"right":null},"right":null}')){
-    Ok(value)=>{
+    }else{const error=outcome2.error;throw 'Valid explicit recursive data rejected';}}
+  {const outcome3=tree.safeParseJson('{"value":7,"left":{"value":9,"left":null,"right":null},"right":null}');if(outcome3.success){const value=outcome3.data;
       const named:Tree=value;
       if(named.left!==null){strictEqual(named.left.value,9);}else{throw 'Lost recursive child';}
-    },
-    Err(error)=>{throw 'Explicit recursive child rejected';}
-  }
+    }else{const error=outcome3.error;throw 'Explicit recursive child rejected';}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -73,14 +61,8 @@ const tree=s.recursive(self=>{
 function main(){
   strictEqual(builds,1);
   const first:OwnedTree={value:3,children:[{value:4,children:[]}]};
-  match(tree.safeParse(first)){
-    Ok(value)=>{strictEqual(value.children[0].value,4);},
-    Err(error)=>{throw 'Owned recursive input rejected';}
-  }
-  match(tree.safeParseJson('{"value":5,"children":[]}')){
-    Ok(value)=>{strictEqual(value.value,5);},
-    Err(error)=>{throw 'Reusable recursive plan rejected';}
-  }
+  {const outcome4=tree.safeParse(first);if(outcome4.success){const value=outcome4.data;strictEqual(value.children[0].value,4);}else{const error=outcome4.error;throw 'Owned recursive input rejected';}}
+  {const outcome5=tree.safeParseJson('{"value":5,"children":[]}');if(outcome5.success){const value=outcome5.data;strictEqual(value.value,5);}else{const error=outcome5.error;throw 'Reusable recursive plan rejected';}}
   strictEqual(builds,1);
 }
 "#;
@@ -97,24 +79,15 @@ import {strictEqual} from 'std:testing';
 const arrays=s.recursive(self=>s.array(self));
 const nested=s.recursive(self=>s.union([s.int(),s.array(self)]));
 function main(){
-  match(arrays.safeParseJson('[[],[[]]]')){
-    Ok(value)=>{
+  {const outcome6=arrays.safeParseJson('[[],[[]]]');if(outcome6.success){const value=outcome6.data;
       strictEqual(value.length,2);
       strictEqual(value[1][0].length,0);
       const copied=clone(value);
       strictEqual(copied[1][0].length,0);
       strictEqual(value.length,2);
-    },
-    Err(error)=>{throw 'Recursive array root rejected';}
-  }
-  match(nested.safeParseJson('[1,[2,[]]]')){
-    Ok(value)=>{},
-    Err(error)=>{throw 'Recursive union root rejected';}
-  }
-  match(nested.safeParseJson('[1,["bad"]]')){
-    Ok(value)=>{throw 'Invalid recursive union accepted';},
-    Err(error)=>{}
-  }
+    }else{const error=outcome6.error;throw 'Recursive array root rejected';}}
+  {const outcome7=nested.safeParseJson('[1,[2,[]]]');if(outcome7.success){const value=outcome7.data;}else{const error=outcome7.error;throw 'Recursive union root rejected';}}
+  {const outcome8=nested.safeParseJson('[1,["bad"]]');if(outcome8.success){const value=outcome8.data;throw 'Invalid recursive union accepted';}else{const error=outcome8.error;}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -155,14 +128,8 @@ const tree=s.recursive(self=>s.object({
 }));
 function main(){
   const input:InputTree={value:'root',children:[{value:'kid',children:[]}]};
-  match(tree.safeParse(input)){
-    Ok(value)=>{strictEqual(value.value,4);strictEqual(value.children[0].value,3);},
-    Err(error)=>{throw 'Recursive transform rejected owned input';}
-  }
-  match(tree.safeParseJson('{"value":"root","children":[{"value":"kid","children":[]}]}')){
-    Ok(value)=>{strictEqual(value.value,4);strictEqual(value.children[0].value,3);},
-    Err(error)=>{throw 'Recursive transform rejected JSON input';}
-  }
+  {const outcome9=tree.safeParse(input);if(outcome9.success){const value=outcome9.data;strictEqual(value.value,4);strictEqual(value.children[0].value,3);}else{const error=outcome9.error;throw 'Recursive transform rejected owned input';}}
+  {const outcome10=tree.safeParseJson('{"value":"root","children":[{"value":"kid","children":[]}]}');if(outcome10.success){const value=outcome10.data;strictEqual(value.value,4);strictEqual(value.children[0].value,3);}else{const error=outcome10.error;throw 'Recursive transform rejected JSON input';}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -196,20 +163,14 @@ import {s} from 'std:schema';
 import {strictEqual} from 'std:testing';
 const tree=s.recursive(self=>s.object({value:s.int(),children:s.record(self)}));
 function main(){
-  match(tree.safeParseJson('{"value":1,"children":{"leaf":{"value":2,"children":{}}}}')){
-    Ok(value)=>{strictEqual(value.value,1);strictEqual(value.children.size,1);},
-    Err(error)=>{throw 'Recursive record collection rejected';}
-  }
-  match(tree.safeParseJson('{"value":1,"children":{"leaf":{"value":"bad","children":{}}}}')){
-    Ok(value)=>{throw 'Invalid recursive record collection accepted';},
-    Err(error)=>{
+  {const outcome11=tree.safeParseJson('{"value":1,"children":{"leaf":{"value":2,"children":{}}}}');if(outcome11.success){const value=outcome11.data;strictEqual(value.value,1);strictEqual(value.children.size,1);}else{const error=outcome11.error;throw 'Recursive record collection rejected';}}
+  {const outcome12=tree.safeParseJson('{"value":1,"children":{"leaf":{"value":"bad","children":{}}}}');if(outcome12.success){const value=outcome12.data;throw 'Invalid recursive record collection accepted';}else{const error=outcome12.error;
       if(error.kind==='validation'){
         strictEqual(error.error.issues[0].path[0].field,'children');
         strictEqual(error.error.issues[0].path[1].field,'leaf');
         strictEqual(error.error.issues[0].path[2].field,'value');
       }else{throw 'Unexpected JSON error';}
-    }
-  }
+    }}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -228,22 +189,13 @@ type Branch={children:Map<string,Leaf>;};
 const bag=s.recursive<Branch>(self=>s.object({children:s.record(s.object({count:s.int()}))}));
 const schema=s.recursive<Tree>(self=>s.object({children:s.record(self),value:s.int()}));
 function main(){
-  match(bag.safeParseJson('{"children":{"leaf":{"count":4}}}')){
-    Ok(value)=>{const named:Branch=value;strictEqual(named.children.size,1);},
-    Err(error)=>{throw 'Nested named Map output rejected';}
-  }
+  {const outcome13=bag.safeParseJson('{"children":{"leaf":{"count":4}}}');if(outcome13.success){const value=outcome13.data;const named:Branch=value;strictEqual(named.children.size,1);}else{const error=outcome13.error;throw 'Nested named Map output rejected';}}
   const leaf:Tree={value:2,children:new Map<string,Tree>()};
   let children=new Map<string,Tree>();
   children.set('leaf',leaf);
   const input:Tree={value:1,children:children};
-  match(schema.safeParse(input)){
-    Ok(value)=>{const named:Tree=value;strictEqual(named.value,1);strictEqual(named.children.size,1);},
-    Err(error)=>{throw 'Owned recursive collection rejected';}
-  }
-  match(schema.safeParseJson('{"value":3,"children":{}}')){
-    Ok(value)=>{const named:Tree=value;strictEqual(named.value,3);strictEqual(named.children.size,0);},
-    Err(error)=>{throw 'Named recursive collection rejected';}
-  }
+  {const outcome14=schema.safeParse(input);if(outcome14.success){const value=outcome14.data;const named:Tree=value;strictEqual(named.value,1);strictEqual(named.children.size,1);}else{const error=outcome14.error;throw 'Owned recursive collection rejected';}}
+  {const outcome15=schema.safeParseJson('{"value":3,"children":{}}');if(outcome15.success){const value=outcome15.data;const named:Tree=value;strictEqual(named.value,3);strictEqual(named.children.size,0);}else{const error=outcome15.error;throw 'Named recursive collection rejected';}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -263,14 +215,8 @@ function main(){
   })).superRefine((value,ctx)=>{
     if(value.value<0){ctx.addIssue({path:['value'],message:'Negative root'});}
   });
-  match(schema.safeParseJson('{"value":2,"children":[],"metadata":{"label":"root","children":[{"label":"child","children":[]}]}}')){
-    Ok(value)=>{strictEqual(value.metadata.children[0].label,'child');},
-    Err(error)=>{throw 'Nested definition rejected';}
-  }
-  match(schema.safeParseJson('{"value":-1,"children":[],"metadata":{"label":"root","children":[]}}')){
-    Ok(value)=>{throw 'Refinement bypassed';},
-    Err(error)=>{if(error.kind==='validation'){strictEqual(error.error.issues[0].message,'Negative root');strictEqual(error.error.issues[0].path[0].field,'value');}else{throw 'Wrong error';}}
-  }
+  {const outcome16=schema.safeParseJson('{"value":2,"children":[],"metadata":{"label":"root","children":[{"label":"child","children":[]}]}}');if(outcome16.success){const value=outcome16.data;strictEqual(value.metadata.children[0].label,'child');}else{const error=outcome16.error;throw 'Nested definition rejected';}}
+  {const outcome17=schema.safeParseJson('{"value":-1,"children":[],"metadata":{"label":"root","children":[]}}');if(outcome17.success){const value=outcome17.data;throw 'Refinement bypassed';}else{const error=outcome17.error;if(error.kind==='validation'){strictEqual(error.error.issues[0].message,'Negative root');strictEqual(error.error.issues[0].path[0].field,'value');}else{throw 'Wrong error';}}}
 }
 "#;
     let directory=support::TempDirectory::new();

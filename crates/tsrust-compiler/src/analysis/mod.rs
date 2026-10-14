@@ -748,6 +748,8 @@ struct Analyzer {
     builtin_literals: bool,
     /// Receivers of builtin chain links checked on the shared stack, by address.
     prechecked_receivers: Vec<(usize, Result<Type, Diagnostic>)>,
+    /// Schema validations checked for their internal Result inside parse/safeParse adapters.
+    raw_schema_results: HashSet<Span>,
     module_literal_scope: Option<Span>,
     observing_values: bool,
     recursive_callbacks: HashSet<usize>,
@@ -1574,6 +1576,7 @@ impl Analyzer {
             speculative_access_run: false,
             builtin_literals: false,
             prechecked_receivers: Vec::new(),
+            raw_schema_results: HashSet::new(),
             module_literal_scope: None,
             observing_values: false,
             recursive_callbacks: HashSet::new(),
@@ -2347,10 +2350,14 @@ impl Analyzer {
     }
 
     /// A native type shows the name that its module exports, not its linked identity.
-    fn declaration_name(&self, id: usize) -> &str {
-        match self.program.records[id].native_type {
-            Some(native) => crate::native_types::declaration(native).name,
-            None => &self.program.records[id].name.text,
+    /// A generic application spells its checked arguments the same way.
+    fn declaration_name(&self, id: usize) -> std::borrow::Cow<'_, str> {
+        let record = &self.program.records[id];
+        if let Some(native) = record.native_type { return crate::native_types::declaration(native).name.into(); }
+        match &record.application {
+            Some(application) if !application.resolved_arguments.is_empty() => format!("{}<{}>", application.declaration.text,
+                application.resolved_arguments.iter().map(|argument| self.type_name(*argument).into_owned()).collect::<Vec<_>>().join(", ")).into(),
+            _ => record.name.text.as_str().into(),
         }
     }
 
@@ -2368,7 +2375,7 @@ impl Analyzer {
             Type::Closure(_) | Type::Callable(_) | Type::Callback(_) | Type::StoredCallable(_) | Type::BorrowedCallable(_) => {
                 "closure"
             }
-            Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => self.declaration_name(i),
+            Type::Record(i) | Type::Enum(i, _) | Type::Set(i) | Type::Map(i) => return self.declaration_name(i),
             Type::Union(id) | Type::BorrowedUnion(id) => {
                 return self
                     .unions
@@ -2388,7 +2395,9 @@ impl Analyzer {
                     ArrayElement::Null(_) => "null",
                     ArrayElement::Undefined(_) => "undefined",
                     ArrayElement::String(_) => "string",
-                    ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => self.declaration_name(id),
+                    ArrayElement::Record(id, _) | ArrayElement::Enum(id, _, _) | ArrayElement::Set(id, _) | ArrayElement::Map(id, _) => {
+                        return format!("{}{}", self.declaration_name(id), "[]".repeat(usize::from(element.depth()) + 1)).into();
+                    }
                     ArrayElement::StoredCallable(_, _) => "closure",
                     ArrayElement::Union(id, _) => {
                         return format!(
@@ -8883,6 +8892,7 @@ self.names_materialized_type(element.with_depth(0).ty())
     // Schema dispatch temporaries must not stay live across ordinary nested calls.
     #[inline(never)]
     fn schema_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        if let Some(ty)=self.schema_safe_parse_outcome(context, expr, loans, expected)? {return Ok(Some(ty));}
         if let Some(ty)=self.schema_context_issue(context,expr,loans,expected)? {return Ok(Some(ty));}
         if let Some(ty)=self.schema_recursive_constructor(context,expr,loans,expected)? {return Ok(Some(ty));}
         if let Some(ty)=self.schema_text_decode(context,expr,loans,expected)? {return Ok(Some(ty));}
@@ -11563,10 +11573,30 @@ impl Analyzer {
     /// variable or field the test is written as presence checks followed by
     /// the truth of the value, so the branch sees the value as present.
     #[inline(never)]
+    /// A fixed field path whose every record alternative declares a boolean literal.
+    fn boolean_discriminant(&self,context:&Context,value:&Expr)->bool{
+        fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
+        let ExprKind::Field(base,name)=&value.kind else{return false};
+        if !fixed_path(base){return false;}
+        let Some(union)=self.expression_type_hint(context,base).and_then(Type::union) else{return false};
+        let members=self.unions.members(union);
+        members.len()>1 && members.iter().all(|member|matches!(member,Type::Record(id)
+            if matches!(self.fields.get(*id).and_then(|fields|fields.get(name)),Some(Type::Literal(_,crate::literal_types::LiteralKind::Boolean)))))
+    }
+
     fn truthy_condition(&self,context:&Context,condition:&mut Expr){
         fn fixed_path(target:&Expr)->bool{match &target.kind{ExprKind::Name(_)=>true,ExprKind::Field(base,_)=>fixed_path(base),_=>false}}
         let span=condition.span;
         let not=|value:Expr|Expr::new(ExprKind::Unary{op:UnaryOp::Not,operator:span,value:Box::new(value)},span);
+        // A boolean literal discriminant narrows like TypeScript: `if(result.success)`
+        // means `=== true` and `if(!result.success)` means `=== false`.
+        let negated=matches!(&condition.kind,ExprKind::Unary{op:UnaryOp::Not,value,..} if self.boolean_discriminant(context,value));
+        if negated || self.boolean_discriminant(context,condition){
+            let place=std::mem::replace(condition,Expr::new(ExprKind::Null,span));
+            let place=if negated{let ExprKind::Unary{value,..}=place.into_kind() else{unreachable!("negated discriminant")};*value}else{place};
+            *condition=Expr::new(ExprKind::Binary{op:BinaryOp::Equal,operator:span,left:Box::new(place),right:Box::new(Expr::new(ExprKind::Boolean(!negated),span))},span);
+            return;
+        }
         // `!value` converts its own operand when it is checked.
         if matches!(condition.kind,ExprKind::Unary{op:UnaryOp::Not,..}){return;}
         // Each side of `&&` and `||` is a condition. The right side is typed

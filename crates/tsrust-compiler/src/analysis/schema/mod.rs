@@ -1,15 +1,11 @@
 //! Schema method lowering preserves ordinary native argument ownership checks.
 use super::*;
 impl Analyzer {
-    /// Keep input consumption, callback effects and validation identical to safeParse.
-    pub(in crate::analysis) fn schema_parse_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
-        let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
-        let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
-        if method != "parse" { return Ok(None); }
+    fn schema_receiver(&self, context: &Context, base: &Expr) -> bool {
         let known = matches!(self.expression_type_hint(context, base), Some(Type::Record(id))
             if self.program.records[id].native_type == Some(crate::native_signatures::NativeTypeId::Schema)
                 || self.schema_pipelines.types(id).is_some());
-        let mut root = &**base;
+        let mut root = base;
         while let ExprKind::Call(callee, _) = &root.kind {
             match &callee.kind {
                 ExprKind::Field(receiver, _) => root = receiver,
@@ -18,14 +14,52 @@ impl Analyzer {
         }
         let constructing = matches!(&root.kind, ExprKind::Name(name)
             if name.starts_with("@schema:") || name.starts_with("@native:std:schema#"));
-        if !known && !constructing { return Ok(None); }
+        known || constructing
+    }
+
+    /// safeParse and safeParseJson present `{ success, data }` or `{ success, error }`.
+    /// The internal Result is checked once, then moved through an ordinary adapter.
+    pub(in crate::analysis) fn schema_safe_parse_outcome(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
+        let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
+        if !matches!(method.as_str(), "safeParse" | "safeParseJson") || self.raw_schema_results.contains(&expr.span) { return Ok(None); }
+        if !self.schema_receiver(context, base) { return Ok(None); }
+        let mut validation = expr.clone();
+        self.raw_schema_results.insert(expr.span);
+        let result = self.expression(context, &mut validation, Mode::Consume, loans, None);
+        self.raw_schema_results.remove(&expr.span);
+        let result = result?;
+        let Some((_, [ok, err])) = self.result_variant_records(result) else {
+            return Err(Diagnostic::new("schema-type", "Schema validation did not produce a checked result.", expr.span));
+        };
+        let payload = |record: usize| self.program.records[record].fields.first().and_then(|field| field.ty).unwrap_or(Type::Void);
+        let (data, error) = (payload(ok), payload(err));
+        let arguments = vec![self.checked_value_annotation(result, expr.span)?, self.checked_value_annotation(data, expr.span)?, self.checked_value_annotation(error, expr.span)?];
+        let name = self.generic_functions.request_explicit_value("@schema:safeParseOutcome", arguments, Vec::new(), expr.span, self.function_stack.len())?;
+        let name = self.publish_generic_call(context, name)?;
+        expr.kind = ExprKind::Call(Box::new(Expr::new(ExprKind::Name(name), expr.span)), vec![validation]);
+        let (index, captures, params) = self.declared_call_contract(context, expr)?;
+        self.require(result, Some(params[0].ty), expr.span)?;
+        let output = self.finish_declared_call(context, expr, index, &captures, &params, loans)?;
+        self.require(output, expected, expr.span)?;
+        Ok(Some(output))
+    }
+
+    /// Keep input consumption, callback effects and validation identical to safeParse.
+    pub(in crate::analysis) fn schema_parse_call(&mut self, context: &mut Context, expr: &mut Expr, loans: &Loans, expected: Option<Type>) -> Result<Option<Type>, Diagnostic> {
+        let ExprKind::Call(callee, _) = &expr.kind else { return Ok(None); };
+        let ExprKind::Field(base, method) = &callee.kind else { return Ok(None); };
+        if method != "parse" || !self.schema_receiver(context, base) { return Ok(None); }
         let mut validation = expr.clone();
         let ExprKind::Call(callee, args) = &mut validation.kind else { unreachable!() };
         if args.len() != 1 { return Err(Diagnostic::new("arity", "parse expects one input value.", expr.span)); }
         let ExprKind::Field(_, method) = &mut callee.kind else { unreachable!() };
         *method = "safeParse".into();
         // Check the original receiver and input exactly once, including effects.
-        let result = self.expression(context, &mut validation, Mode::Consume, loans, None)?;
+        self.raw_schema_results.insert(expr.span);
+        let result = self.expression(context, &mut validation, Mode::Consume, loans, None);
+        self.raw_schema_results.remove(&expr.span);
+        let result = result?;
         let arguments = vec![self.checked_value_annotation(result, expr.span)?];
         let name = self.generic_functions.request_explicit_value("@schema:parseResult", arguments, Vec::new(), expr.span, self.function_stack.len())?;
         let name = self.publish_generic_call(context, name)?;

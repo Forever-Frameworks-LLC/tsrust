@@ -10,11 +10,13 @@ function main() {
   const copy = clone(settings);
   copy.retries = 9;
   strictEqual(settings.retries, 5);
-  match (person.safeParseJson('{"name":"Ada","age":30}')) {
-    Ok(value) => {
+  {
+    const outcome0 = person.safeParseJson('{"name":"Ada","age":30}');
+    if (outcome0.success) {
+      const value = outcome0.data;
       strictEqual(value.name, 'Ada');
-    },
-    Err(error) => {
+    } else {
+      const error = outcome0.error;
       throw 'Expected valid person';
     }
   }

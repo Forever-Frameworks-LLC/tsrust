@@ -12,9 +12,7 @@ const person=s.object({password:s.string(),confirm:s.string(),age:s.int()}).supe
   if(value.age<18){ctx.addIssue({path:['age'],message:'Must be an adult'});}
 });
 const people=s.array(person);
-  match(people.safeParseJson('[{"password":"a","confirm":"b","age":12}]')){
-    Ok(value)=>{throw 'Invalid person accepted';},
-    Err(error)=>{
+  {const outcome0=people.safeParseJson('[{"password":"a","confirm":"b","age":12}]');if(outcome0.success){const value=outcome0.data;throw 'Invalid person accepted';}else{const error=outcome0.error;
       if(error.kind==='validation'){
         strictEqual(error.error.issues.length,2);
         strictEqual(error.error.issues[0].message,'Passwords differ');
@@ -23,12 +21,8 @@ const people=s.array(person);
         strictEqual(error.error.issues[1].message,'Must be an adult');
         strictEqual(error.error.issues[1].path[1].field,'age');
       }else{throw 'Unexpected JSON error';}
-    }
-  }
-  match(people.safeParseJson('[{"password":"a","confirm":"a","age":20}]')){
-    Ok(value)=>{strictEqual(value[0].age,20);},
-    Err(error)=>{throw 'Valid person rejected';}
-  }
+    }}
+  {const outcome1=people.safeParseJson('[{"password":"a","confirm":"a","age":20}]');if(outcome1.success){const value=outcome1.data;strictEqual(value[0].age,20);}else{const error=outcome1.error;throw 'Valid person rejected';}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -46,10 +40,7 @@ const schema=s.int().superRefine((value,ctx)=>{
   while(i<100){ctx.addIssue({message:'Rejected'});i++;}
 });
 function main(){
-  match(schema.safeParse(1)){
-    Ok(value)=>{throw 'Rejected value accepted';},
-    Err(error)=>{strictEqual(error.issues.length,64);strictEqual(error.truncated,true);}
-  }
+  {const outcome2=schema.safeParse(1);if(outcome2.success){const value=outcome2.data;throw 'Rejected value accepted';}else{const error=outcome2.error;strictEqual(error.issues.length,64);strictEqual(error.truncated,true);}}
 }
 "#;
     let directory=support::TempDirectory::new();
@@ -82,9 +73,7 @@ function main(){
     s.array(s.int()).superRefine((value,ctx)=>{ctx.addIssue({message:'Try next branch'});}),
     s.array(s.int())
   ]);
-  match(schema.safeParse([1,2])){
-    Ok(value)=>{strictEqual(value.length,2);},Err(error)=>{throw 'Fallback rejected';}
-  }
+  {const outcome3=schema.safeParse([1,2]);if(outcome3.success){const value=outcome3.data;strictEqual(value.length,2);}else{const error=outcome3.error;throw 'Fallback rejected';}}
   const throwing=s.int().superRefine((value,ctx)=>{throw 'Callback failed';});
   try {throwing.safeParse(1);throw 'Missing exception';}
   catch(error){if(error!=='Callback failed'){throw 'Wrong exception';}}

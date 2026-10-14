@@ -5,20 +5,24 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (schema.safeParse(JSON.parse(input))) {
-      Ok(text) => {
+    {
+      const outcome0 = schema.safeParse(JSON.parse(input));
+      if (outcome0.success) {
+        const text = outcome0.data;
         checksum += text.length;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected string success';
       }
     }
 
-    match (schema.safeParse(JSON.parse('42'))) {
-      Ok(text) => {
+    {
+      const outcome1 = schema.safeParse(JSON.parse('42'));
+      if (outcome1.success) {
+        const text = outcome1.data;
         throw 'Expected number rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Invalid error count';
         }

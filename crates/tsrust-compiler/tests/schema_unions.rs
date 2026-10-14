@@ -11,10 +11,7 @@ fn union_outer_constraints_validate_selected_defaults_without_rerunning_factorie
         s.string().default(()=>{console.log('second');return 'long';})
       ]);
       const schema=s.object({value:alternatives.min(3)});
-      match(schema.safeParse(JSON.parse('{}'))){
-        Ok(value)=>{throw 'Invalid default escaped outer constraint';},
-        Err(error)=>{for(const issue of error.issues){console.log(issue.code);}}
-      }
+      {const outcome0=schema.safeParse(JSON.parse('{}'));if(outcome0.success){const value=outcome0.data;throw 'Invalid default escaped outer constraint';}else{const error=outcome0.error;for(const issue of error.issues){console.log(issue.code);}}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -32,18 +29,12 @@ fn discriminator_access_preserves_mixed_scalar_and_nominal_enum_alternatives() {
         s.object({kind:s.literal('text'),text:s.string()}),
         s.object({kind:s.literal(7),count:s.int()})
       ]);
-      match(mixed.safeParse(JSON.parse('{"kind":7,"count":11}'))){
-        Ok(value)=>{if(value.kind===7){console.log(value.count);}else{console.log(value.text);}},
-        Err(error)=>{throw 'Mixed discriminator rejected';}
-      }
+      {const outcome1=mixed.safeParse(JSON.parse('{"kind":7,"count":11}'));if(outcome1.success){const value=outcome1.data;if(value.kind===7){console.log(value.count);}else{console.log(value.text);}}else{const error=outcome1.error;throw 'Mixed discriminator rejected';}}
       const enums=s.discriminatedUnion('kind',[
         s.object({kind:s.enum(First),first:s.int()}),
         s.object({kind:s.enum(Second),second:s.string()})
       ]);
-      match(enums.safeParse(JSON.parse('{"kind":"done","second":"nominal"}'))){
-        Ok(value)=>{if(value.kind===Second.Done){console.log(value.second);}else{console.log(value.first);}},
-        Err(error)=>{throw 'Enum discriminator rejected';}
-      }
+      {const outcome2=enums.safeParse(JSON.parse('{"kind":"done","second":"nominal"}'));if(outcome2.success){const value=outcome2.data;if(value.kind===Second.Done){console.log(value.second);}else{console.log(value.first);}}else{const error=outcome2.error;throw 'Enum discriminator rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -75,10 +66,7 @@ fn discriminated_integer_tags_keep_exact_values_above_float_precision() {
         s.object({kind:s.literal(9007199254740992),first:s.int()}),
         s.object({kind:s.literal(9007199254740993),second:s.string()})
       ]);
-      match(schema.safeParse(JSON.parse('{"kind":9007199254740993,"second":"exact"}'))){
-        Ok(value)=>{if(value.kind===9007199254740993){console.log(value.second);}else{console.log(value.first);}},
-        Err(error)=>{throw 'Exact discriminator rejected';}
-      }
+      {const outcome3=schema.safeParse(JSON.parse('{"kind":9007199254740993,"second":"exact"}'));if(outcome3.success){const value=outcome3.data;if(value.kind===9007199254740993){console.log(value.second);}else{console.log(value.first);}}else{const error=outcome3.error;throw 'Exact discriminator rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -109,10 +97,7 @@ fn common_record_union_fields_borrow_nested_records_and_arrays() {
         s.object({kind:s.literal('a'),details:s.object({count:s.int()}),items:s.array(s.int())}),
         s.object({kind:s.literal('b'),details:s.object({count:s.int()}),items:s.array(s.int())})
       ]);
-      match(schema.safeParse(JSON.parse('{"kind":"b","details":{"count":7},"items":[11]}'))){
-        Ok(value)=>{console.log(value.details.count,value.items[0],value.items.length);if(value.kind==='b'){console.log(value.details.count);}},
-        Err(error)=>{throw 'Common field input rejected';}
-      }
+      {const outcome4=schema.safeParse(JSON.parse('{"kind":"b","details":{"count":7},"items":[11]}'));if(outcome4.success){const value=outcome4.data;console.log(value.details.count,value.items[0],value.items.length);if(value.kind==='b'){console.log(value.details.count);}}else{const error=outcome4.error;throw 'Common field input rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -126,17 +111,11 @@ fn same_output_union_preserves_branch_policies_and_outer_strip_override() {
     import {s} from 'std:schema';
     function main(){
       const strict=s.union([s.object({value:s.int().min(5)}),s.object({value:s.int()})]);
-      match(strict.safeParse(JSON.parse('{"value":2,"extra":"kept until selected"}'))){
-        Ok(value)=>{throw 'unknown field accepted';},Err(error)=>{console.log('rejected');}
-      }
+      {const outcome5=strict.safeParse(JSON.parse('{"value":2,"extra":"kept until selected"}'));if(outcome5.success){const value=outcome5.data;throw 'unknown field accepted';}else{const error=outcome5.error;console.log('rejected');}}
       const local=s.union([s.object({value:s.int().min(5)}),s.object({value:s.int()}).strip()]);
-      match(local.safeParse(JSON.parse('{"value":2,"extra":"discarded"}'))){
-        Ok(value)=>{console.log(value.value);},Err(error)=>{throw 'branch policy lost';}
-      }
+      {const outcome6=local.safeParse(JSON.parse('{"value":2,"extra":"discarded"}'));if(outcome6.success){const value=outcome6.data;console.log(value.value);}else{const error=outcome6.error;throw 'branch policy lost';}}
       const outer=s.union([s.object({value:s.int().min(5)}),s.object({value:s.int()})]).strip();
-      match(outer.safeParse(JSON.parse('{"value":7,"extra":"discarded"}'))){
-        Ok(value)=>{console.log(value.value);},Err(error)=>{throw 'outer policy lost';}
-      }
+      {const outcome7=outer.safeParse(JSON.parse('{"value":7,"extra":"discarded"}'));if(outcome7.success){const value=outcome7.data;console.log(value.value);}else{const error=outcome7.error;throw 'outer policy lost';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -155,16 +134,16 @@ fn ordered_unions_preserve_runtime_branches_output_types_and_owned_inputs() {
     function scalar(value:string|int):string{return String(value);}
     function main(){
       const choice=s.union([s.string().min(3),s.int().min(2)]);
-      match(choice.safeParse(JSON.parse('"ready"'))){Ok(value)=>{console.log(scalar(value));},Err(error)=>{throw 'string rejected';}}
-      match(choice.safeParse(JSON.parse('7'))){Ok(value)=>{console.log(scalar(value));},Err(error)=>{throw 'integer rejected';}}
+      {const outcome8=choice.safeParse(JSON.parse('"ready"'));if(outcome8.success){const value=outcome8.data;console.log(scalar(value));}else{const error=outcome8.error;throw 'string rejected';}}
+      {const outcome9=choice.safeParse(JSON.parse('7'));if(outcome9.success){const value=outcome9.data;console.log(scalar(value));}else{const error=outcome9.error;throw 'integer rejected';}}
       const owned='owned'.repeat(2);
-      match(choice.safeParse(owned)){Ok(value)=>{console.log(scalar(value));},Err(error)=>{throw 'owned rejected';}}
+      {const outcome10=choice.safeParse(owned);if(outcome10.success){const value=outcome10.data;console.log(scalar(value));}else{const error=outcome10.error;throw 'owned rejected';}}
       const repeated=stringChoice(false);
-      match(repeated.safeParse('aa')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'second branch rejected';}}
-      match(repeated.safeParse('abc')){Ok(value)=>{throw 'invalid accepted';},Err(error)=>{console.log(error.issues.length>0);}}
-      match(stringChoice(true).safeParse('abcdef')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'reversed rejected';}}
+      {const outcome11=repeated.safeParse('aa');if(outcome11.success){const value=outcome11.data;console.log(value);}else{const error=outcome11.error;throw 'second branch rejected';}}
+      {const outcome12=repeated.safeParse('abc');if(outcome12.success){const value=outcome12.data;throw 'invalid accepted';}else{const error=outcome12.error;console.log(error.issues.length>0);}}
+      {const outcome13=stringChoice(true).safeParse('abcdef');if(outcome13.success){const value=outcome13.data;console.log(value);}else{const error=outcome13.error;throw 'reversed rejected';}}
       const nested=s.array(s.union([s.literal('ready'),s.literal(7)]).optional());
-      match(nested.safeParse(JSON.parse('["ready",7]'))){Ok(values)=>{console.log(values.length);},Err(error)=>{throw 'nested rejected';}}
+      {const outcome14=nested.safeParse(JSON.parse('["ready",7]'));if(outcome14.success){const values=outcome14.data;console.log(values.length);}else{const error=outcome14.error;throw 'nested rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -183,14 +162,8 @@ fn ordered_object_branches_prepare_defaults_once_and_keep_original_fields() {
         s.object({value:s.int().min(5),tag:s.literal('first').default(first)}),
         s.object({value:s.int(),tag:s.literal('second').default(second)})
       ]);
-      match(schema.safeParse(JSON.parse('{"value":2}'))){
-        Ok(value)=>{if(value.tag==='second'){console.log(value.value);}else{throw 'wrong branch';}},
-        Err(error)=>{throw 'fallback lost input';}
-      }
-      match(schema.safeParse(JSON.parse('{"value":7}'))){
-        Ok(value)=>{if(value.tag==='first'){console.log(value.value);}else{throw 'wrong order';}},
-        Err(error)=>{throw 'first branch rejected';}
-      }
+      {const outcome15=schema.safeParse(JSON.parse('{"value":2}'));if(outcome15.success){const value=outcome15.data;if(value.tag==='second'){console.log(value.value);}else{throw 'wrong branch';}}else{const error=outcome15.error;throw 'fallback lost input';}}
+      {const outcome16=schema.safeParse(JSON.parse('{"value":7}'));if(outcome16.success){const value=outcome16.data;if(value.tag==='first'){console.log(value.value);}else{throw 'wrong order';}}else{const error=outcome16.error;throw 'first branch rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -208,16 +181,10 @@ fn discriminated_unions_select_one_branch_and_narrow_its_typed_fields() {
         s.object({kind:s.literal('text'),text:s.string().default(fallback)}),
         s.object({kind:s.literal('count'),count:s.int()})
       ]);
-      match(schema.safeParse(JSON.parse('{"kind":"count","count":7}'))){
-        Ok(value)=>{if(value.kind==='count'){const count:int=value.count;console.log(count);}else{console.log(value.text);}},
-        Err(error)=>{throw 'count rejected';}
-      }
-      match(schema.safeParse(JSON.parse('{"kind":"text"}'))){
-        Ok(value)=>{if(value.kind==='text'){const selected=value;const text:string=selected.text;console.log(text);}else{throw 'wrong tag';}},
-        Err(error)=>{throw 'text rejected';}
-      }
-      match(schema.safeParse(JSON.parse('{"kind":"unknown"}'))){Ok(value)=>{throw 'unknown accepted';},Err(error)=>{console.log(error.issues.length>0);}}
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{throw 'missing accepted';},Err(error)=>{console.log(error.issues.length>0);}}
+      {const outcome17=schema.safeParse(JSON.parse('{"kind":"count","count":7}'));if(outcome17.success){const value=outcome17.data;if(value.kind==='count'){const count:int=value.count;console.log(count);}else{console.log(value.text);}}else{const error=outcome17.error;throw 'count rejected';}}
+      {const outcome18=schema.safeParse(JSON.parse('{"kind":"text"}'));if(outcome18.success){const value=outcome18.data;if(value.kind==='text'){const selected=value;const text:string=selected.text;console.log(text);}else{throw 'wrong tag';}}else{const error=outcome18.error;throw 'text rejected';}}
+      {const outcome19=schema.safeParse(JSON.parse('{"kind":"unknown"}'));if(outcome19.success){const value=outcome19.data;throw 'unknown accepted';}else{const error=outcome19.error;console.log(error.issues.length>0);}}
+      {const outcome20=schema.safeParse(JSON.parse('{}'));if(outcome20.success){const value=outcome20.data;throw 'missing accepted';}else{const error=outcome20.error;console.log(error.issues.length>0);}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -248,12 +215,12 @@ fn direct_union_constraint_chains_preserve_equal_scalar_outputs_and_single_evalu
     function limit():int{console.log('limit');return 2;}
     function main(){
       const text=s.union([branch(),s.string()]).min(limit()).max(4);
-      match(text.safeParseJson('"yes"')){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Valid string rejected';}}
-      match(text.safeParse('x')){Ok(value)=>{throw 'Minimum ignored';},Err(error)=>{console.log(error.issues.length);}}
+      {const outcome21=text.safeParseJson('"yes"');if(outcome21.success){const value=outcome21.data;console.log(value);}else{const error=outcome21.error;throw 'Valid string rejected';}}
+      {const outcome22=text.safeParse('x');if(outcome22.success){const value=outcome22.data;throw 'Minimum ignored';}else{const error=outcome22.error;console.log(error.issues.length);}}
       const integer=s.union([s.int(),s.int()]).gt(1).lt(4);
-      match(integer.safeParse(2)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Integer rejected';}}
+      {const outcome23=integer.safeParse(2);if(outcome23.success){const value=outcome23.data;console.log(value);}else{const error=outcome23.error;throw 'Integer rejected';}}
       const number=s.union([s.number(),s.number()]).min(1.5).max(2.5);
-      match(number.safeParse(2.0)){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Number rejected';}}
+      {const outcome24=number.safeParse(2.0);if(outcome24.success){const value=outcome24.data;console.log(value);}else{const error=outcome24.error;throw 'Number rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));

@@ -5,24 +5,28 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (schema.safeParse(42)) {
-      Ok(text) => {
+    {
+      const outcome0 = schema.safeParse(42);
+      if (outcome0.success) {
+        const text = outcome0.data;
         if (text !== 42.0) {
           throw 'Expected exact integer';
         }
 
         checksum += 1;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected number success';
       }
     }
 
-    match (schema.safeParse(9007199254740993)) {
-      Ok(text) => {
+    {
+      const outcome1 = schema.safeParse(9007199254740993);
+      if (outcome1.success) {
+        const text = outcome1.data;
         throw 'Expected precision rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Invalid error count';
         }

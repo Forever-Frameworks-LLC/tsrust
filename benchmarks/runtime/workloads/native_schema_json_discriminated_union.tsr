@@ -9,8 +9,10 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (schema.safeParse(JSON.parse(input))) {
-      Ok(value) => {
+    {
+      const outcome0 = schema.safeParse(JSON.parse(input));
+      if (outcome0.success) {
+        const value = outcome0.data;
         if (value.kind === 'count') {
           if (value.count !== 4) {
             throw 'Wrong count';
@@ -20,17 +22,19 @@ function workload(n: int, seed: int, input: string): int {
         } else {
           throw 'Wrong branch';
         }
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected success';
       }
     }
 
-    match (schema.safeParse(JSON.parse('{"kind":"unknown"}'))) {
-      Ok(value) => {
+    {
+      const outcome1 = schema.safeParse(JSON.parse('{"kind":"unknown"}'));
+      if (outcome1.success) {
+        const value = outcome1.data;
         throw 'Expected rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Wrong issues';
         }

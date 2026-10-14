@@ -7,20 +7,24 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (schema.safeParse(JSON.parse(input))) {
-      Ok(value) => {
+    {
+      const outcome0 = schema.safeParse(JSON.parse(input));
+      if (outcome0.success) {
+        const value = outcome0.data;
         checksum += value.value + value.children[0].value;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected tree success';
       }
     }
 
-    match (schema.safeParse(JSON.parse('{"value":1,"children":[{"value":"bad","children":[]}]}'))) {
-      Ok(value) => {
+    {
+      const outcome1 = schema.safeParse(JSON.parse('{"value":1,"children":[{"value":"bad","children":[]}]}'));
+      if (outcome1.success) {
+        const value = outcome1.data;
         throw 'Expected nested rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Invalid error count';
         }

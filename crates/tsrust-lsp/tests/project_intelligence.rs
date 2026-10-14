@@ -42,7 +42,7 @@ fn file_api_hover_and_signature_help_preserve_consuming_close() {
 
 #[test]
 fn imported_result_matches_keep_nominal_payload_help_and_pattern_navigation() {
-    let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();match(result){Ok(user)=>{console.log(user.name.toUpperCase());},Err(error)=>{console.log(error.length);}}}").unwrap();
+    let entry = tsrust_compiler::format("import { User as Person, make } from './dep.tsr';function main(){const result=make();{if(result.success){const user=result.data;console.log(user.name.toUpperCase());}else{const error=result.error;console.log(error.length);}}}").unwrap();
     let dependency = tsrust_compiler::format("export type User={name:string;};export function make():Result<User,string>{return Ok({name:'Pat'});}").unwrap();
     for source in [&entry, &dependency] { assert_eq!(tsrust_compiler::format(source).unwrap(), *source); }
     let uri = "file:///tsrust-intelligence/main.tsr";
@@ -1984,7 +1984,7 @@ fn imported_documentation_preserves_multiline_tags_and_parameter_help() {
 
 #[test]
 fn jsonl_editor_contract_exposes_ownership_limits_and_error_locations() {
- let entry="import {openJsonl as open,JsonlReader,readJsonl,closeJsonl} from 'std:json';function main(){const result=open('records.jsonl');match(result){Ok(reader)=>{closeJsonl(reader);},Err(error)=>{console.log(error.line);}}}";
+ let entry="import {openJsonl as open,JsonlReader,readJsonl,closeJsonl} from 'std:json';function main(){const result=open('records.jsonl');{if(result.success){const reader=result.data;closeJsonl(reader);}else{const error=result.error;console.log(error.line);}}}";
  let uri="file:///tsrust-intelligence/main.tsr";let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.into());
  let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
  let hover=ask(&index,entry,"open('records","textDocument/hover");let docs=hover["contents"]["value"].as_str().unwrap();
@@ -2579,7 +2579,7 @@ fn schema_number_array_signature_includes_checked_integer_input() {
 
 #[test]
 fn schema_object_constructor_exposes_inferred_fields() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string(),age:s.int()});const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"age\":37}'));match(result){Ok(value)=>{console.log(value.name);},Err(error)=>{console.log(error.truncated);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string(),age:s.int()});const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"age\":37}'));{if(result.success){const value=result.data;console.log(value.name);}else{const error=result.error;console.log(error.truncated);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2603,7 +2603,7 @@ fn schema_object_strip_documents_policy_and_keeps_inference() {
 
 #[test]
 fn schema_object_retained_output_exposes_typed_value_and_map() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string()}).retain();const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'));match(result){Ok(output)=>{console.log(output.value.name,output.extra.size);},Err(error)=>{console.log(error.truncated);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const person=s.object({name:s.string()}).retain();const result=person.safeParse(JSON.parse('{\"name\":\"Ada\",\"get\":true}'));{if(result.success){const output=result.data;console.log(output.value.name,output.extra.size);}else{const error=result.error;console.log(error.truncated);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2734,7 +2734,7 @@ fn schema_union_chains_keep_all_output_alternatives_in_editor_help() {
 
 #[test]
 fn schema_discriminator_narrowing_exposes_selected_field_types() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":4}'))){Ok(value)=>{if(value.kind==='count'){console.log(value.count);}else{console.log(value.text);}},Err(error)=>{console.log(error.issues.length);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.literal('count'),count:s.int()}),s.object({kind:s.literal('text'),text:s.string()})]);{const outcome4=schema.safeParse(JSON.parse('{\"kind\":\"count\",\"count\":4}'));if(outcome4.success){const value=outcome4.data;if(value.kind==='count'){console.log(value.count);}else{console.log(value.text);}}else{const error=outcome4.error;console.log(error.issues.length);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);
@@ -2745,7 +2745,7 @@ fn schema_discriminator_narrowing_exposes_selected_field_types() {
 
 #[test]
 fn schema_enum_discriminator_narrowing_keeps_nominal_field_help() {
-    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum A{First='first'}enum B{Second='second'}function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.enum(A),first:s.int()}),s.object({kind:s.enum(B),second:s.string()})]);match(schema.safeParse(JSON.parse('{\"kind\":\"second\",\"second\":\"value\"}'))){Ok(value)=>{if(value.kind===B.Second){console.log(value.second);}else{console.log(value.first);}},Err(error)=>{console.log(error.issues.length);}}}").unwrap();
+    let entry=tsrust_compiler::format("import {s} from 'std:schema';enum A{First='first'}enum B{Second='second'}function main(){const schema=s.discriminatedUnion('kind',[s.object({kind:s.enum(A),first:s.int()}),s.object({kind:s.enum(B),second:s.string()})]);{const outcome5=schema.safeParse(JSON.parse('{\"kind\":\"second\",\"second\":\"value\"}'));if(outcome5.success){const value=outcome5.data;if(value.kind===B.Second){console.log(value.second);}else{console.log(value.first);}}else{const error=outcome5.error;console.log(error.issues.length);}}}").unwrap();
     let uri="file:///tsrust-intelligence/main.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,entry.clone());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();let index=ProjectIndex::checked(&checked);

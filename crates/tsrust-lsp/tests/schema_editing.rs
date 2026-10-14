@@ -40,7 +40,7 @@ fn native_recovery_respects_aliases_and_local_shadowing() {
 }
 #[test]
 fn chained_global_schema_keeps_completion_with_options_and_constraints() {
-    let source="import {s} from 'std:schema';const greeting=s.string({message:'Expected a greeting'}).min(1);function main(){\ngreeting.\nmatch(greeting.safeParse('Hello')){Ok(value)=>{console.log(value);},Err(error)=>{console.log(error.issues);}}}";
+    let source="import {s} from 'std:schema';const greeting=s.string({message:'Expected a greeting'}).min(1);function main(){\ngreeting.\nconst result=greeting.safeParse('Hello');if(result.success){console.log(result.data);}else{console.log(result.error.issues);}}";
     let result=request(source,"\ngreeting.","textDocument/completion");
     assert!(result.as_array().unwrap().iter().any(|item|item["label"]=="safeParse"),"{result}");
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
@@ -108,7 +108,7 @@ fn recursive_builder_completes_with_aliases_and_explains_self() {
 #[test]
 fn recursive_checked_outputs_keep_nested_members_and_bounded_hover() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
-    let source="import {s} from 'std:schema';const tree=s.recursive(self=>s.object({value:s.int(),children:s.array(self)}));function main(){match(tree.safeParseJson('{\"value\":1,\"children\":[]}')){Ok(value)=>{console.log(value.children[0].value);},Err(error)=>{console.log('invalid');}}}";
+    let source="import {s} from 'std:schema';const tree=s.recursive(self=>s.object({value:s.int(),children:s.array(self)}));function main(){{const outcome0=tree.safeParseJson('{\"value\":1,\"children\":[]}');if(outcome0.success){const value=outcome0.data;console.log(value.children[0].value);}else{const error=outcome0.error;console.log('invalid');}}}";
     let uri="file:///recursive-schema-editing.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();
@@ -131,9 +131,9 @@ fn recursive_named_and_array_outputs_keep_member_completion() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
     for (definition, body, needle, expected) in [
         ("type Tree={value:int;children:Tree[];};const schema=s.recursive<Tree>(self=>s.object({value:s.int(),children:s.array(self)}));",
-         "match(schema.safeParseJson('{\"value\":1,\"children\":[]}')){Ok(value)=>{console.log(value.children[0].value);},Err(error)=>{}}", "value.children[0].", "value"),
+         "{const outcome1=schema.safeParseJson('{\"value\":1,\"children\":[]}');if(outcome1.success){const value=outcome1.data;console.log(value.children[0].value);}else{const error=outcome1.error;}}", "value.children[0].", "value"),
         ("const schema=s.recursive(self=>s.array(self));",
-         "match(schema.safeParseJson('[[]]')){Ok(value)=>{console.log(value[0].length);},Err(error)=>{}}", "value[0].", "length"),
+         "{const outcome2=schema.safeParseJson('[[]]');if(outcome2.success){const value=outcome2.data;console.log(value[0].length);}else{const error=outcome2.error;}}", "value[0].", "length"),
     ] {
         let source=format!("import {{s}} from 'std:schema';{definition}function main(){{{body}}}");
         let uri="file:///recursive-output-editing.tsr";
@@ -168,7 +168,7 @@ fn recursive_schema_completion_recovers_before_following_statement() {
 #[test]
 fn recursive_union_root_keeps_common_fields_and_finite_hover() {
     use tsrust_lsp::{workspace::Workspace,project_diagnostics::source_id,project_intelligence::ProjectIndex};
-    let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){match(schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}')){Ok(value)=>{console.log(value.kind);},Err(error)=>{}}}";
+    let source="import {s} from 'std:schema';const schema=s.recursive(self=>s.union([s.object({kind:s.literal('leaf'),value:s.int()}),s.object({kind:s.literal('branch'),children:s.array(self)})]));function main(){{const outcome3=schema.safeParseJson('{\"kind\":\"leaf\",\"value\":1}');if(outcome3.success){const value=outcome3.data;console.log(value.kind);}else{const error=outcome3.error;}}}";
     let uri="file:///recursive-union-editing.tsr";
     let mut workspace=Workspace::default();workspace.open(source_id(uri).unwrap(),1,source.into());
     let checked=workspace.snapshot().check(&source_id(uri).unwrap()).unwrap();

@@ -23,14 +23,8 @@ function main() {
   const copy = clone(settings);
   copy.retries = 9;
   strictEqual(settings.retries, 5);
-  match (person.safeParseJson('{"name":"Sean","age":30}')) {
-    Ok(value) => { strictEqual(value.name, 'Sean'); },
-    Err(error) => { throw 'Global schema rejected valid input'; }
-  }
-  match (person.safeParseJson('{"name":"Again","age":31}')) {
-    Ok(value) => { strictEqual(value.name, 'Again'); },
-    Err(error) => { throw 'Global schema was not reusable'; }
-  }
+  {const outcome0=person.safeParseJson('{"name":"Sean","age":30}');if(outcome0.success){const value=outcome0.data; strictEqual(value.name, 'Sean'); }else{const error=outcome0.error; throw 'Global schema rejected valid input'; }}
+  {const outcome1=person.safeParseJson('{"name":"Again","age":31}');if(outcome1.success){const value=outcome1.data; strictEqual(value.name, 'Again'); }else{const error=outcome1.error; throw 'Global schema was not reusable'; }}
 }
 "#;
     let file = dir.0.join("main.tsr");

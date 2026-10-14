@@ -6,8 +6,10 @@ function workload(n: int, seed: int, input: string): int {
   let i = 0;
   while (i < n) {
     const exact: int[] = [42];
-    match (schema.safeParse(exact)) {
-      Ok(values) => {
+    {
+      const outcome0 = schema.safeParse(exact);
+      if (outcome0.success) {
+        const values = outcome0.data;
         for (const value of values) {
           if (value !== 42.0) {
             throw 'Expected exact conversion';
@@ -15,18 +17,20 @@ function workload(n: int, seed: int, input: string): int {
 
           checksum += 1;
         }
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Expected success';
       }
     }
 
     const lossy: int[] = [9007199254740993];
-    match (schema.safeParse(lossy)) {
-      Ok(values) => {
+    {
+      const outcome1 = schema.safeParse(lossy);
+      if (outcome1.success) {
+        const values = outcome1.data;
         throw 'Expected rejection';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         if (error.truncated || error.issues.length !== 1) {
           throw 'Invalid count';
         }

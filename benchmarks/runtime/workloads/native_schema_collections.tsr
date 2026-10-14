@@ -9,45 +9,51 @@ function workload(n: int, seed: int, input: string): int {
   let checksum = seed;
   let i = 0;
   while (i < n) {
-    match (record.safeParseJson(input)) {
-      Ok(value) => {
+    {
+      const outcome0 = record.safeParseJson(input);
+      if (outcome0.success) {
+        const value = outcome0.data;
         if (value.size !== 1 || value.get('x') !== 2) {
           throw 'Wrong record';
         }
 
         checksum += 2;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome0.error;
         throw 'Record rejected';
       }
     }
 
     const entries = new Map<string, int>();
     entries.set('x', 3);
-    match (map.safeParse(entries)) {
-      Ok(value) => {
+    {
+      const outcome1 = map.safeParse(entries);
+      if (outcome1.success) {
+        const value = outcome1.data;
         if (value.size !== 1 || value.get('x') !== 3) {
           throw 'Wrong map';
         }
 
         checksum += 3;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome1.error;
         throw 'Map rejected';
       }
     }
 
     const elements = new Set<string>();
     elements.add('ready');
-    match (set.safeParse(elements)) {
-      Ok(value) => {
+    {
+      const outcome2 = set.safeParse(elements);
+      if (outcome2.success) {
+        const value = outcome2.data;
         if (value.size !== 1 || !value.has('ready')) {
           throw 'Wrong set';
         }
 
         checksum += 1;
-      },
-      Err(error) => {
+      } else {
+        const error = outcome2.error;
         throw 'Set rejected';
       }
     }
@@ -55,11 +61,13 @@ function workload(n: int, seed: int, input: string): int {
     const keys = new Map<string, int>();
     keys.set('A', 1);
     keys.set('a', 2);
-    match (collisionMap.safeParse(keys)) {
-      Ok(value) => {
+    {
+      const outcome3 = collisionMap.safeParse(keys);
+      if (outcome3.success) {
+        const value = outcome3.data;
         throw 'Map collision accepted';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome3.error;
         if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
           throw 'Wrong collision';
         }
@@ -71,11 +79,13 @@ function workload(n: int, seed: int, input: string): int {
     const tags = new Set<string>();
     tags.add('A');
     tags.add('a');
-    match (collisionSet.safeParse(tags)) {
-      Ok(value) => {
+    {
+      const outcome4 = collisionSet.safeParse(tags);
+      if (outcome4.success) {
+        const value = outcome4.data;
         throw 'Set collision accepted';
-      },
-      Err(error) => {
+      } else {
+        const error = outcome4.error;
         if (error.truncated || error.issues.length !== 1 || error.issues[0].code !== 'collection-collision') {
           throw 'Wrong collision';
         }

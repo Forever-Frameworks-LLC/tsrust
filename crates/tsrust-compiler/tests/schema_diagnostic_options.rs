@@ -8,43 +8,31 @@ import { s } from 'std:schema';
 import { strictEqual } from 'std:testing';
 function main() {
   const integer = s.int({ message: 'Expected a whole count' });
-  match (integer.safeParse(JSON.parse('"wrong"'))) {
-    Ok(value) => { throw 'Invalid integer accepted'; },
-    Err(error) => { strictEqual(error.issues[0].message, 'Expected a whole count'); }
-  }
-  match (integer.safeParseJson('1.5')) {
-    Ok(value) => { throw 'Fraction accepted'; },
-    Err(failure) => {
+  {const outcome0=integer.safeParse(JSON.parse('"wrong"'));if(outcome0.success){const value=outcome0.data; throw 'Invalid integer accepted'; }else{const error=outcome0.error; strictEqual(error.issues[0].message, 'Expected a whole count'); }}
+  {const outcome1=integer.safeParseJson('1.5');if(outcome1.success){const value=outcome1.data; throw 'Fraction accepted'; }else{const failure=outcome1.error;
       if (failure.kind === 'validation') {
         strictEqual(failure.error.issues[0].message, 'Expected a whole count');
       } else { throw 'Wrong error kind'; }
-    }
-  }
+    }}
   const account = s.object({ password: s.string(), confirm: s.string() })
     .refine(value => value.password === value.confirm, {
       path: ['confirm'], message: 'Passwords must match'
     });
   const form = s.object({ account });
-  match (form.safeParseJson('{"account":{"password":"secret","confirm":"different"}}')) {
-    Ok(value) => { throw 'Mismatch accepted'; },
-    Err(failure) => {
+  {const outcome2=form.safeParseJson('{"account":{"password":"secret","confirm":"different"}}');if(outcome2.success){const value=outcome2.data; throw 'Mismatch accepted'; }else{const failure=outcome2.error;
       if (failure.kind === 'validation') {
         strictEqual(failure.error.issues[0].path[0].field, 'account');
         strictEqual(failure.error.issues[0].path[1].field, 'confirm');
         strictEqual(failure.error.issues[0].message, 'Passwords must match');
         strictEqual(failure.error.issues[0].code, 'refinement-failed');
       } else { throw 'Wrong error kind'; }
-    }
-  }
+    }}
   const object = s.object({ count: s.int() }, { message: 'Expected a count object' });
-  match (object.safeParseJson('null')) {
-    Ok(value) => { throw 'Null object accepted'; },
-    Err(failure) => {
+  {const outcome3=object.safeParseJson('null');if(outcome3.success){const value=outcome3.data; throw 'Null object accepted'; }else{const failure=outcome3.error;
       if (failure.kind === 'validation') {
         strictEqual(failure.error.issues[0].message, 'Expected a count object');
       } else { throw 'Wrong error kind'; }
-    }
-  }
+    }}
 }
 "#;
     let directory = support::TempDirectory::new();
@@ -71,26 +59,17 @@ import { s } from 'std:schema';
 import { strictEqual } from 'std:testing';
 function main() {
   const count = s.int({ message: 'Invalid count' }).min(2).max(4);
-  match (count.safeParse(1)) {
-    Ok(value) => { throw 'Lower bound ignored'; },
-    Err(error) => { strictEqual(error.issues[0].message, 'Invalid count'); }
-  }
-  match (count.safeParse(3)) {
-    Ok(value) => { strictEqual(value, 3); },
-    Err(error) => { throw 'Valid count rejected'; }
-  }
+  {const outcome4=count.safeParse(1);if(outcome4.success){const value=outcome4.data; throw 'Lower bound ignored'; }else{const error=outcome4.error; strictEqual(error.issues[0].message, 'Invalid count'); }}
+  {const outcome5=count.safeParse(3);if(outcome5.success){const value=outcome5.data; strictEqual(value, 3); }else{const error=outcome5.error; throw 'Valid count rejected'; }}
   const form = s.object({ count: s.int({ message: 'Invalid child' }) }, {
     message: 'Invalid form'
   });
-  match (form.safeParseJson('{"count":"wrong"}')) {
-    Ok(value) => { throw 'Invalid child accepted'; },
-    Err(failure) => {
+  {const outcome6=form.safeParseJson('{"count":"wrong"}');if(outcome6.success){const value=outcome6.data; throw 'Invalid child accepted'; }else{const failure=outcome6.error;
       if (failure.kind === 'validation') {
         strictEqual(failure.error.issues[0].message, 'Invalid child');
         strictEqual(failure.error.issues[0].path[0].field, 'count');
       } else { throw 'Wrong failure kind'; }
-    }
-  }
+    }}
 }
 "#;
     let directory = support::TempDirectory::new();
@@ -122,23 +101,14 @@ import { s } from 'std:schema';
 import { strictEqual } from 'std:testing';
 function main() {
   const stripped = s.object({count:s.int()}, {message:'Invalid object'}).strip();
-  match (stripped.safeParseJson('{"count":3,"extra":4}')) {
-    Ok(value) => { strictEqual(value.count, 3); },
-    Err(error) => { throw 'Strip failed'; }
-  }
+  {const outcome7=stripped.safeParseJson('{"count":3,"extra":4}');if(outcome7.success){const value=outcome7.data; strictEqual(value.count, 3); }else{const error=outcome7.error; throw 'Strip failed'; }}
   const retained = s.object({count:s.int({message:'Invalid count'})}, {message:'Invalid object'}).retain();
-  match (retained.safeParseJson('{"count":3,"extra":4}')) {
-    Ok(value) => { strictEqual(value.value.count, 3); strictEqual(value.extra.size, 1); },
-    Err(error) => { throw 'Retain failed'; }
-  }
-  match (retained.safeParseJson('null')) {
-    Ok(value) => { throw 'Null accepted'; },
-    Err(error) => {
+  {const outcome8=retained.safeParseJson('{"count":3,"extra":4}');if(outcome8.success){const value=outcome8.data; strictEqual(value.value.count, 3); strictEqual(value.extra.size, 1); }else{const error=outcome8.error; throw 'Retain failed'; }}
+  {const outcome9=retained.safeParseJson('null');if(outcome9.success){const value=outcome9.data; throw 'Null accepted'; }else{const error=outcome9.error;
       if (error.kind === 'validation') {
         strictEqual(error.error.issues[0].message, 'Invalid object');
       } else { throw 'Wrong error kind'; }
-    }
-  }
+    }}
 }
 "#;
     let directory = support::TempDirectory::new();
@@ -234,31 +204,13 @@ function input(reverse: boolean): Input {
 }
 function main() {
   const retained = s.object({ a: s.int() }).retain();
-  match (retained.safeParse({ a: 1 })) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
-  match (retained.safeParse(JSON.parse('{"a":1,"extra":true}'))) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
-  match (retained.safeParseJson('{"a":1,"extra":true}')) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
+  {const outcome10=retained.safeParse({ a: 1 });if(outcome10.success){const value=outcome10.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome10.error; throw 'Retained validation failed'; }}
+  {const outcome11=retained.safeParse(JSON.parse('{"a":1,"extra":true}'));if(outcome11.success){const value=outcome11.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome11.error; throw 'Retained validation failed'; }}
+  {const outcome12=retained.safeParseJson('{"a":1,"extra":true}');if(outcome12.success){const value=outcome12.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome12.error; throw 'Retained validation failed'; }}
   const pipeline = s.object({ a: s.int().refine(value => value > 0) }).retain();
-  match (pipeline.safeParse({ a: 1 })) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
-  match (pipeline.safeParse(JSON.parse('{"a":1,"extra":true}'))) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
-  match (pipeline.safeParseJson('{"a":1,"extra":true}')) {
-    Ok(value) => { strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); },
-    Err(error) => { throw 'Retained validation failed'; }
-  }
+  {const outcome13=pipeline.safeParse({ a: 1 });if(outcome13.success){const value=outcome13.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome13.error; throw 'Retained validation failed'; }}
+  {const outcome14=pipeline.safeParse(JSON.parse('{"a":1,"extra":true}'));if(outcome14.success){const value=outcome14.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome14.error; throw 'Retained validation failed'; }}
+  {const outcome15=pipeline.safeParseJson('{"a":1,"extra":true}');if(outcome15.success){const value=outcome15.data; strictEqual(Object.keys(value).join(','), 'value,extra'); console.log(value.value); }else{const error=outcome15.error; throw 'Retained validation failed'; }}
   const projected = s.union([
     s.object({ a: s.int(), b: s.int() }).refine(value => false),
     s.object({ a: s.int(), b: s.int() }).coerce((value: Input) => {
@@ -266,10 +218,7 @@ function main() {
       return value;
     })
   ]);
-  match (projected.safeParse(input(true))) {
-    Ok(value) => { console.log(value); },
-    Err(error) => { throw 'Projection retry failed'; }
-  }
+  {const outcome16=projected.safeParse(input(true));if(outcome16.success){const value=outcome16.data; console.log(value); }else{const error=outcome16.error; throw 'Projection retry failed'; }}
   const choices = s.union([
     s.object({ a: s.int().refine(value => true), b: s.int().refine(value => false) }),
     s.object({ a: s.int(), b: s.int() }).coerce((value: Input) => {
@@ -277,10 +226,7 @@ function main() {
       return value;
     })
   ]);
-  match (choices.safeParse(input(true))) {
-    Ok(value) => { console.log(value); strictEqual(value.a, 1); strictEqual(value.b, 2); },
-    Err(error) => { throw 'Union retry failed'; }
-  }
+  {const outcome17=choices.safeParse(input(true));if(outcome17.success){const value=outcome17.data; console.log(value); strictEqual(value.a, 1); strictEqual(value.b, 2); }else{const error=outcome17.error; throw 'Union retry failed'; }}
 }
 "#;
     let directory = support::TempDirectory::new();
@@ -297,14 +243,8 @@ function main() {
   const schema = s.string({ message: 'Expected text' })
     .min(1, { message: 'Must be at least 1 character' })
     .max(3, { message: 'Must be at most 3 characters' });
-  match (schema.safeParse('')) {
-    Ok(value) => { throw 'Minimum ignored'; },
-    Err(error) => { strictEqual(error.issues[0].message, 'Must be at least 1 character'); }
-  }
-  match (schema.safeParse('long')) {
-    Ok(value) => { throw 'Maximum ignored'; },
-    Err(error) => { strictEqual(error.issues[0].message, 'Must be at most 3 characters'); }
-  }
+  {const outcome18=schema.safeParse('');if(outcome18.success){const value=outcome18.data; throw 'Minimum ignored'; }else{const error=outcome18.error; strictEqual(error.issues[0].message, 'Must be at least 1 character'); }}
+  {const outcome19=schema.safeParse('long');if(outcome19.success){const value=outcome19.data; throw 'Maximum ignored'; }else{const error=outcome19.error; strictEqual(error.issues[0].message, 'Must be at most 3 characters'); }}
   strictEqual(schema.parse('ok'), 'ok');
   const mixed = s.string().min(1, { message: 'Required' }).max(3);
   strictEqual(mixed.parse('ok'), 'ok');
@@ -327,14 +267,11 @@ function main() {
   strictEqual(constructionFailed, true);
 
 
-  match (schema.safeParseJson('42')) {
-    Ok(value) => { throw 'Type mismatch ignored'; },
-    Err(failure) => {
+  {const outcome20=schema.safeParseJson('42');if(outcome20.success){const value=outcome20.data; throw 'Type mismatch ignored'; }else{const failure=outcome20.error;
       if (failure.kind === 'validation') {
         strictEqual(failure.error.issues[0].message, 'Expected text');
       } else { throw 'Wrong error kind'; }
-    }
-  }
+    }}
   try { schema.parse(''); }
   catch (error) { strictEqual(error.issues[0].message, 'Must be at least 1 character'); }
 }

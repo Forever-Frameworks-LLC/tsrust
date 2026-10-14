@@ -16,7 +16,7 @@ import {s} from 'std:schema';
 function build(limit:int){
   const schema=s.object({name:s.string().min(limit),age:s.int().min(0),note:s.string().optional()});
   console.log(JSON.stringify(schema.toJsonSchema()));
-  match(schema.safeParseJson('{"name":"Ada","age":4}')){Ok(value)=>{},Err(error)=>{throw 'Export consumed schema';}}
+  {const outcome0=schema.safeParseJson('{"name":"Ada","age":4}');if(outcome0.success){const value=outcome0.data;}else{const error=outcome0.error;throw 'Export consumed schema';}}
 }
 function main(){build(2);}
 "#);
@@ -38,14 +38,8 @@ import {s} from 'std:schema';
 function main(){
   const schema=s.object({decimal:s.number().min(0.5).max(12.25),exact:s.int()});
   const number=s.number();
-  match(number.safeParseJson('9007199254740993')){
-    Ok(value)=>{throw 'Export must not relax native precision checks';},
-    Err(error)=>{}
-  }
-  match(number.safeParseJson('9007199254740992')){
-    Ok(value)=>{},
-    Err(error)=>{throw 'Exactly representable integer rejected';}
-  }
+  {const outcome1=number.safeParseJson('9007199254740993');if(outcome1.success){const value=outcome1.data;throw 'Export must not relax native precision checks';}else{const error=outcome1.error;}}
+  {const outcome2=number.safeParseJson('9007199254740992');if(outcome2.success){const value=outcome2.data;}else{const error=outcome2.error;throw 'Exactly representable integer rejected';}}
   console.log(JSON.stringify(schema.toJsonSchema()));
 }
 "#);

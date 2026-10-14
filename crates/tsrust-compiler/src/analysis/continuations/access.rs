@@ -265,6 +265,17 @@ impl Analyzer {
                                     span,
                                 ));
                             }
+                            // Moving an owned field out of a narrowed local alternative
+                            // moves that whole local, as destructuring does.
+                            ExprKind::Project {
+                                narrowed: Type::Record(_),
+                                value,
+                                ..
+                            } if matches!(value.kind, ExprKind::Name(_)) && std::ptr::eq(parent, base) => {
+                                let root = Self::root_binding(value).expect("narrowed local root");
+                                Self::access(context, root, Mode::Consume, span, loans)?;
+                                return Ok(field_type);
+                            }
                             ExprKind::Project {
                                 narrowed: Type::Record(_),
                                 ..

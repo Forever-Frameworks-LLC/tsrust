@@ -155,10 +155,7 @@ fn typed_json_encodes_public_error_records_literals_and_nominal_enums(){
       const literal:'fixed'='fixed';console.log(JSON.stringify(literal));
       console.log(JSON.stringify(Text.Ready));console.log(JSON.stringify(NumberTag.One));
       const schema=s.object({count:s.int()});
-      match(schema.safeParse(JSON.parse('{"count":"bad"}'))){
-        Ok(value)=>{throw 'Invalid value accepted';},
-        Err(error)=>{console.log(JSON.stringify(error));console.log(error.issues.length);}
-      }
+      {const outcome0=schema.safeParse(JSON.parse('{"count":"bad"}'));if(outcome0.success){const value=outcome0.data;throw 'Invalid value accepted';}else{const error=outcome0.error;console.log(JSON.stringify(error));console.log(error.issues.length);}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));

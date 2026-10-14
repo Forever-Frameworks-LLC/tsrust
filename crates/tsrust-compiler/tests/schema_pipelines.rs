@@ -15,10 +15,7 @@ fn coercion_exceptions_propagate_and_skip_later_stages() {
       } catch(error) {
         if(error!=='conversion failed'){throw 'Wrong callback exception';}
       }
-      match(schema.safeParse([4])){
-        Ok(value)=>{if(value!==1){throw 'Wrong reusable output';}},
-        Err(error)=>{throw 'Reusable callback rejected';}
-      }
+      {const outcome0=schema.safeParse([4]);if(outcome0.success){const value=outcome0.data;if(value!==1){throw 'Wrong reusable output';}}else{const error=outcome0.error;throw 'Reusable callback rejected';}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -40,18 +37,9 @@ fn coercion_consumes_raw_input_before_validation_and_preserves_chain_types() {
       const output=checked.transform(count=>{
         if(count===3){return 'three';}return 'unexpected';
       });
-      match(output.safeParse([1,2])){
-        Ok(value)=>{const text:string=value;if(text!=='three'){throw 'Wrong output';}},
-        Err(error)=>{throw 'Valid conversion rejected';}
-      }
-      match(output.safeParse([])){
-        Ok(value)=>{throw 'Converted value bypassed minimum';},
-        Err(error)=>{if(error.issues.length===0){throw 'Missing validation issue';}}
-      }
-      match(output.safeParse([4,5])){
-        Ok(value)=>{if(value!=='three'){throw 'Reusable plan changed';}},
-        Err(error)=>{throw 'Reusable plan rejected';}
-      }
+      {const outcome1=output.safeParse([1,2]);if(outcome1.success){const value=outcome1.data;const text:string=value;if(text!=='three'){throw 'Wrong output';}}else{const error=outcome1.error;throw 'Valid conversion rejected';}}
+      {const outcome2=output.safeParse([]);if(outcome2.success){const value=outcome2.data;throw 'Converted value bypassed minimum';}else{const error=outcome2.error;if(error.issues.length===0){throw 'Missing validation issue';}}}
+      {const outcome3=output.safeParse([4,5]);if(outcome3.success){const value=outcome3.data;if(value!=='three'){throw 'Reusable plan changed';}}else{const error=outcome3.error;throw 'Reusable plan rejected';}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -73,10 +61,7 @@ fn consuming_coercion_commits_union_before_converted_value_validation() {
           console.log('wrong retry');return values.length;
         })
       ]);
-      match(schema.safeParse([1])){
-        Ok(value)=>{throw 'Invalid converted value accepted';},
-        Err(error)=>{if(error.issues.length===0){throw 'Missing issue';}}
-      }
+      {const outcome4=schema.safeParse([1]);if(outcome4.success){const value=outcome4.data;throw 'Invalid converted value accepted';}else{const error=outcome4.error;if(error.issues.length===0){throw 'Missing issue';}}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -94,13 +79,8 @@ fn schema_pipeline_tracks_changed_output_and_mutates_only_owned_input() {
       const input=s.array(s.int()).refine((values:int[]):boolean=>values.length>0);
       const transformed=input.transform((values:int[]):int=>{values.push(7);return values.length;});
       const checked=transformed.refine((count:int):boolean=>count===3);
-      match(checked.safeParse([1,2])){
-        Ok(value)=>{const count:int=value;console.log(count);},
-        Err(error)=>{throw 'Owned pipeline rejected';}
-      }
-      match(checked.safeParse(JSON.parse('[3,4]'))){
-        Ok(value)=>{console.log(value);},Err(error)=>{throw 'JSON pipeline rejected';}
-      }
+      {const outcome5=checked.safeParse([1,2]);if(outcome5.success){const value=outcome5.data;const count:int=value;console.log(count);}else{const error=outcome5.error;throw 'Owned pipeline rejected';}}
+      {const outcome6=checked.safeParse(JSON.parse('[3,4]'));if(outcome6.success){const value=outcome6.data;console.log(value);}else{const error=outcome6.error;throw 'JSON pipeline rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -117,7 +97,7 @@ fn union_pipeline_does_not_retry_after_a_consuming_transform() {
         s.array(s.int()).transform((values:int[]):string=>{values.push(7);console.log('committed');return 'first';}).refine((value:string):boolean=>false),
         s.array(s.int()).transform((values:int[]):string=>{console.log('wrong retry');return 'second';})
       ]);
-      match(schema.safeParse([1,2])){Ok(value)=>{throw 'Failed refinement accepted';},Err(error)=>{console.log(error.issues.length>0);}}
+      {const outcome7=schema.safeParse([1,2]);if(outcome7.success){const value=outcome7.data;throw 'Failed refinement accepted';}else{const error=outcome7.error;console.log(error.issues.length>0);}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -134,7 +114,7 @@ fn failed_pretransform_refinement_skips_callbacks_and_allows_next_union_branch()
         s.array(s.int()).refine((values:int[]):boolean=>values.length>3).transform((values:int[]):int=>{console.log('wrong transform');return values.length;}),
         s.array(s.int()).transform((values:int[]):int=>{console.log('selected');return values.length;})
       ]);
-      match(schema.safeParse([1,2])){Ok(value)=>{console.log(value);},Err(error)=>{throw 'Fallback rejected';}}
+      {const outcome8=schema.safeParse([1,2]);if(outcome8.success){const value=outcome8.data;console.log(value);}else{const error=outcome8.error;throw 'Fallback rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
@@ -164,19 +144,10 @@ fn array_schema_retains_each_child_pipeline_input_and_output() {
     import {s} from 'std:schema';
     function main(){
       const schema=s.array(s.string().transform(value=>value.length));
-      match(schema.safeParse(['a','three'])){
-        Ok(value)=>{const sizes:int[]=value;if(sizes.length!==2||sizes[0]!==1||sizes[1]!==5){throw 'Wrong owned array output';}},
-        Err(error)=>{throw 'Owned array rejected';}
-      }
-      match(schema.safeParse(JSON.parse('["hi","four"]'))){
-        Ok(value)=>{if(value[0]!==2||value[1]!==4){throw 'Wrong JSON array output';}},
-        Err(error)=>{throw 'JSON array rejected';}
-      }
+      {const outcome9=schema.safeParse(['a','three']);if(outcome9.success){const value=outcome9.data;const sizes:int[]=value;if(sizes.length!==2||sizes[0]!==1||sizes[1]!==5){throw 'Wrong owned array output';}}else{const error=outcome9.error;throw 'Owned array rejected';}}
+      {const outcome10=schema.safeParse(JSON.parse('["hi","four"]'));if(outcome10.success){const value=outcome10.data;if(value[0]!==2||value[1]!==4){throw 'Wrong JSON array output';}}else{const error=outcome10.error;throw 'JSON array rejected';}}
       const nested=s.array(s.array(s.int().transform(value=>value>0)));
-      match(nested.safeParse([[1,0]])){
-        Ok(value)=>{const flags:boolean[][]=value;if(flags.length!==1){throw 'Wrong nested output';}},
-        Err(error)=>{throw 'Nested array rejected';}
-      }
+      {const outcome11=nested.safeParse([[1,0]]);if(outcome11.success){const value=outcome11.data;const flags:boolean[][]=value;if(flags.length!==1){throw 'Wrong nested output';}}else{const error=outcome11.error;throw 'Nested array rejected';}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -194,18 +165,9 @@ fn object_schema_keeps_transformed_fields_defaults_and_unknown_field_rejection()
         size:s.string().default(()=>'ready').transform(value=>value.length),
         flags:s.array(s.int().transform(value=>value>0))
       });
-      match(schema.safeParse({size:'abc',flags:[1,0]})){
-        Ok(value)=>{const size:int=value.size;if(size!==3||value.flags.length!==2){throw 'Wrong owned fields';}},
-        Err(error)=>{throw 'Owned object rejected';}
-      }
-      match(schema.safeParse(JSON.parse('{"flags":[1,0]}'))){
-        Ok(value)=>{if(value.size!==5){throw 'Default not transformed';}},
-        Err(error)=>{throw 'Missing default rejected';}
-      }
-      match(schema.safeParse(JSON.parse('{"size":"abc","flags":[],"extra":true}'))){
-        Ok(value)=>{throw 'Unknown field accepted';},
-        Err(error)=>{if(error.issues.length===0){throw 'Missing unknown field issue';}}
-      }
+      {const outcome12=schema.safeParse({size:'abc',flags:[1,0]});if(outcome12.success){const value=outcome12.data;const size:int=value.size;if(size!==3||value.flags.length!==2){throw 'Wrong owned fields';}}else{const error=outcome12.error;throw 'Owned object rejected';}}
+      {const outcome13=schema.safeParse(JSON.parse('{"flags":[1,0]}'));if(outcome13.success){const value=outcome13.data;if(value.size!==5){throw 'Default not transformed';}}else{const error=outcome13.error;throw 'Missing default rejected';}}
+      {const outcome14=schema.safeParse(JSON.parse('{"size":"abc","flags":[],"extra":true}'));if(outcome14.success){const value=outcome14.data;throw 'Unknown field accepted';}else{const error=outcome14.error;if(error.issues.length===0){throw 'Missing unknown field issue';}}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -220,15 +182,9 @@ fn transformed_object_policies_strip_or_retain_unknown_json_data() {
     import {s} from 'std:schema';
     function main(){
       const stripped=s.object({size:s.string().transform(text=>text.length)}).strip();
-      match(stripped.safeParse(JSON.parse('{"size":"abc","other":7}'))){
-        Ok(value)=>{if(value.size!==3){throw 'Wrong stripped value';}},
-        Err(error)=>{throw 'Strip rejected extra data';}
-      }
+      {const outcome15=stripped.safeParse(JSON.parse('{"size":"abc","other":7}'));if(outcome15.success){const value=outcome15.data;if(value.size!==3){throw 'Wrong stripped value';}}else{const error=outcome15.error;throw 'Strip rejected extra data';}}
       const retained=s.object({size:s.string().transform(text=>text.length)}).retain();
-      match(retained.safeParse(JSON.parse('{"size":"four","other":7}'))){
-        Ok(value)=>{if(value.value.size!==4||!value.extra.has('other')||value.extra.has('size')){throw 'Wrong retained fields';}},
-        Err(error)=>{throw 'Retain rejected extra data';}
-      }
+      {const outcome16=retained.safeParse(JSON.parse('{"size":"four","other":7}'));if(outcome16.success){const value=outcome16.data;if(value.value.size!==4||!value.extra.has('other')||value.extra.has('size')){throw 'Wrong retained fields';}}else{const error=outcome16.error;throw 'Retain rejected extra data';}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -254,10 +210,7 @@ fn rejected_json_projection_preserves_unknown_fields_missing_fields_and_exact_in
           return 1;
         })
       ]);
-      match(schema.safeParse(JSON.parse('{"exact":9223372036854775807,"other":["preserved"]}'))){
-        Ok(value)=>{if(value!==1){throw 'Wrong branch';}},
-        Err(error)=>{throw 'Restored alternative rejected';}
-      }
+      {const outcome17=schema.safeParse(JSON.parse('{"exact":9223372036854775807,"other":["preserved"]}'));if(outcome17.success){const value=outcome17.data;if(value!==1){throw 'Wrong branch';}}else{const error=outcome17.error;throw 'Restored alternative rejected';}}
     }
     "#;
     let directory = support::TempDirectory::new();
@@ -276,14 +229,8 @@ fn discriminated_pipeline_selects_input_tags_before_transforming_to_scalar() {
         s.object({kind:s.literal('text'),text:s.string()}).transform(value=>value.text.length),
         s.object({kind:s.literal('count'),count:s.int()}).transform(value=>value.count)
       ]);
-      match(schema.safeParse(JSON.parse('{"kind":"text","text":"hello"}'))){
-        Ok(value)=>{const count:int=value;if(count!==5){throw 'Wrong transformed text';}},
-        Err(error)=>{throw 'Discriminated transformed branch rejected';}
-      }
-      match(schema.safeParse(JSON.parse('{"kind":"count","count":7}'))){
-        Ok(value)=>{if(value!==7){throw 'Wrong transformed count';}},
-        Err(error)=>{throw 'Discriminated count rejected';}
-      }
+      {const outcome18=schema.safeParse(JSON.parse('{"kind":"text","text":"hello"}'));if(outcome18.success){const value=outcome18.data;const count:int=value;if(count!==5){throw 'Wrong transformed text';}}else{const error=outcome18.error;throw 'Discriminated transformed branch rejected';}}
+      {const outcome19=schema.safeParse(JSON.parse('{"kind":"count","count":7}'));if(outcome19.success){const value=outcome19.data;if(value!==7){throw 'Wrong transformed count';}}else{const error=outcome19.error;throw 'Discriminated count rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();
@@ -300,10 +247,7 @@ fn nested_readonly_array_pipeline_restores_json_before_union_fallback() {
         s.array(s.string().refine(value=>value.length>2)).transform(values=>{console.log('wrong transform');return 0;}),
         s.array(s.string()).transform(values=>{return values.length;})
       ]);
-      match(schema.safeParse(JSON.parse('["first","x","last"]'))){
-        Ok(value)=>{if(value!==3){throw 'Array fallback lost elements';}},
-        Err(error)=>{throw 'Array fallback rejected';}
-      }
+      {const outcome20=schema.safeParse(JSON.parse('["first","x","last"]'));if(outcome20.success){const value=outcome20.data;if(value!==3){throw 'Array fallback lost elements';}}else{const error=outcome20.error;throw 'Array fallback rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();
@@ -327,10 +271,7 @@ fn nested_object_pipeline_restores_prior_fields_and_unknown_data() {
           return 1;
         })
       ]);
-      match(schema.safeParse(JSON.parse('{"first":"original","second":9223372036854775807,"extra":[1,2]}'))){
-        Ok(value)=>{if(value!==1){throw 'Wrong branch output';}},
-        Err(error)=>{throw 'Object fallback rejected';}
-      }
+      {const outcome21=schema.safeParse(JSON.parse('{"first":"original","second":9223372036854775807,"extra":[1,2]}'));if(outcome21.success){const value=outcome21.data;if(value!==1){throw 'Wrong branch output';}}else{const error=outcome21.error;throw 'Object fallback rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();
@@ -348,14 +289,14 @@ fn pipeline_defaults_validate_raw_input_preserve_omission_and_do_not_hide_failur
       const schema=s.object({count:s.string().min(2).transform(value=>value.length).default(()=>{
         console.log('factory');return 'hello';
       }).optional()});
-      match(schema.safeParse({})){Ok(value)=>{console.log(value.count);},Err(error)=>{throw 'Owned omission rejected';}}
-      match(schema.safeParse(JSON.parse('{}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{throw 'JSON omission rejected';}}
-      match(schema.safeParse(JSON.parse('{"count":"supplied"}'))){Ok(value)=>{console.log(value.count);},Err(error)=>{throw 'Supplied input rejected';}}
-      match(schema.safeParse(JSON.parse('{"count":null}'))){Ok(value)=>{throw 'Null invoked default';},Err(error)=>{console.log('null rejected');}}
+      {const outcome22=schema.safeParse({});if(outcome22.success){const value=outcome22.data;console.log(value.count);}else{const error=outcome22.error;throw 'Owned omission rejected';}}
+      {const outcome23=schema.safeParse(JSON.parse('{}'));if(outcome23.success){const value=outcome23.data;console.log(value.count);}else{const error=outcome23.error;throw 'JSON omission rejected';}}
+      {const outcome24=schema.safeParse(JSON.parse('{"count":"supplied"}'));if(outcome24.success){const value=outcome24.data;console.log(value.count);}else{const error=outcome24.error;throw 'Supplied input rejected';}}
+      {const outcome25=schema.safeParse(JSON.parse('{"count":null}'));if(outcome25.success){const value=outcome25.data;throw 'Null invoked default';}else{const error=outcome25.error;console.log('null rejected');}}
       const invalid=s.object({count:s.string().min(2).transform(value=>value.length).default(()=> 'x').optional()});
-      match(invalid.safeParse({})){Ok(value)=>{throw 'Optional hid invalid default';},Err(error)=>{console.log('invalid default');}}
+      {const outcome26=invalid.safeParse({});if(outcome26.success){const value=outcome26.data;throw 'Optional hid invalid default';}else{const error=outcome26.error;console.log('invalid default');}}
       const absent=s.object({count:s.string().transform(value=>value.length).optional()});
-      match(absent.safeParse({})){Ok(value)=>{console.log(value.count);},Err(error)=>{throw 'Optional omission rejected';}}
+      {const outcome27=absent.safeParse({});if(outcome27.success){const value=outcome27.data;console.log(value.count);}else{const error=outcome27.error;throw 'Optional omission rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();
@@ -396,10 +337,7 @@ fn owned_record_rollback_restores_preconversion_fields_and_drops_synthetic_defau
         })
       ]);
       const raw:Input={text:'original'.repeat(1),count:9007199254740992};
-      match(schema.safeParse(raw)){
-        Ok(value)=>{strictEqual(value,1);},
-        Err(error)=>{throw 'Owned rollback rejected';}
-      }
+      {const outcome28=schema.safeParse(raw);if(outcome28.success){const value=outcome28.data;strictEqual(value,1);}else{const error=outcome28.error;throw 'Owned rollback rejected';}}
     }
     "#;
     let directory=support::TempDirectory::new();
@@ -419,15 +357,9 @@ fn runtime_validation_error_is_public_and_distinct_from_construction_error() {
     }
     function main(){
       const scalar=s.int().min(3);
-      match(scalar.safeParse(1)){
-        Ok(value)=>{throw 'Invalid value accepted';},
-        Err(error)=>{if(report(error)!==1){throw 'Wrong issue count';}}
-      }
+      {const outcome29=scalar.safeParse(1);if(outcome29.success){const value=outcome29.data;throw 'Invalid value accepted';}else{const error=outcome29.error;if(report(error)!==1){throw 'Wrong issue count';}}}
       const pipeline=s.string().transform(text=>text.length).refine(length=>length>2);
-      match(pipeline.safeParse('x')){
-        Ok(value)=>{throw 'Invalid transformed value accepted';},
-        Err(error)=>{if(report(error)!==1){throw 'Wrong pipeline error';}}
-      }
+      {const outcome30=pipeline.safeParse('x');if(outcome30.success){const value=outcome30.data;throw 'Invalid transformed value accepted';}else{const error=outcome30.error;if(report(error)!==1){throw 'Wrong pipeline error';}}}
       const definition:SchemaConstructionError={code:'contradictory-bounds',operation:'min',limit:3};
       if(definition.operation!=='min'){throw 'Construction error changed';}
     }
