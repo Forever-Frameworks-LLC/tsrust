@@ -216,6 +216,14 @@ impl Owner {
             return;
         }
         self.nodes.get_mut(&id).unwrap().live = false;
+        // Live list membership ends now; resources wait for the active callback.
+        if let Some(parent) = self.nodes[&id].parent {
+            self.nodes
+                .get_mut(&parent)
+                .unwrap()
+                .order
+                .retain(|child| *child != id);
+        }
         let children = self.nodes[&id].children.clone();
         for child in children {
             self.retire(child);
@@ -240,7 +248,6 @@ impl Owner {
             if let Some(node) = self.nodes.remove(&id) {
                 if let Some(parent) = node.parent.and_then(|id| self.nodes.get_mut(&id)) {
                     parent.children.retain(|child| *child != id);
-                    parent.order.retain(|child| *child != id);
                 }
                 drop(node);
             }
@@ -551,6 +558,90 @@ mod tests {
                 "-state:0".into()
             ]
         );
+        assert_eq!(balance(&audit), 0);
+    }
+    #[test]
+    fn l11_callback_removal_updates_list_reads_immediately() {
+        let (mut o, root, audit) = setup();
+        let list = o.counter(&root, "list", 0).unwrap();
+        o.counter(&list, "1", 10).unwrap();
+        let two = o.counter(&list, "2", 20).unwrap();
+        o.counter(&list, "4", 40).unwrap();
+        let observed = audit.clone();
+        let action = o
+            .mount(&root, "action", 0, move |_, o, _, _| {
+                o.remove(&two).unwrap();
+                assert_eq!(
+                    o.values(&list),
+                    Ok(vec![("1".into(), 10), ("4".into(), 40)])
+                );
+                assert_eq!(o.read(&two), Err(Error::Stale));
+                assert!(
+                    drops(&observed).is_empty(),
+                    "resource cleanup remains deferred"
+                );
+            })
+            .unwrap();
+        send(&mut o, &action, 1);
+        assert_eq!(drops(&audit), vec!["-state:3"]);
+        o.remove(&root).unwrap();
+        assert_eq!(balance(&audit), 0);
+    }
+    #[test]
+    fn l11_callback_removal_allows_reordering_survivors() {
+        let (mut o, root, audit) = setup();
+        let list = o.counter(&root, "list", 0).unwrap();
+        o.counter(&list, "1", 10).unwrap();
+        let two = o.counter(&list, "2", 20).unwrap();
+        o.counter(&list, "4", 40).unwrap();
+        let parent = list.clone();
+        let action = o
+            .mount(&root, "action", 0, move |_, o, _, _| {
+                o.remove(&two).unwrap();
+                assert_eq!(o.reorder(&parent, &["4", "1"]), Ok(()));
+                assert_eq!(
+                    o.values(&parent),
+                    Ok(vec![("4".into(), 40), ("1".into(), 10)])
+                );
+                assert_eq!(
+                    o.reorder(&parent, &["4", "2", "1"]),
+                    Err(Error::InvalidOrder)
+                );
+            })
+            .unwrap();
+        send(&mut o, &action, 1);
+        assert_eq!(
+            o.values(&list),
+            Ok(vec![("4".into(), 40), ("1".into(), 10)])
+        );
+        o.remove(&root).unwrap();
+        assert_eq!(balance(&audit), 0);
+    }
+    #[test]
+    fn l11_callback_reinsertion_exposes_only_fresh_instance() {
+        let (mut o, root, audit) = setup();
+        let list = o.counter(&root, "list", 0).unwrap();
+        let two = o.counter(&list, "2", 20).unwrap();
+        let old = two.clone();
+        let parent = list.clone();
+        let action = o
+            .mount(&root, "action", 0, move |_, o, _, _| {
+                o.remove(&old).unwrap();
+                let fresh = o.counter(&parent, "2", 99).unwrap();
+                assert_ne!(old.id, fresh.id);
+                assert_eq!(o.values(&parent), Ok(vec![("2".into(), 99)]));
+                assert_eq!(o.reorder(&parent, &["2"]), Ok(()));
+                assert_eq!(o.enqueue(&old, 50), Err(Error::Stale));
+                assert_eq!(o.counter(&parent, "2", 0).unwrap_err(), Error::InvalidKey);
+                o.enqueue(&fresh, 1).unwrap();
+            })
+            .unwrap();
+        o.enqueue(&action, 1).unwrap();
+        o.enqueue(&two, 50).unwrap();
+        assert_eq!(o.drain(), Ok(vec![Ok(()), Err(Error::Stale), Ok(())]));
+        assert_eq!(o.values(&list), Ok(vec![("2".into(), 100)]));
+        assert_eq!(o.read(&two), Err(Error::Stale));
+        o.remove(&root).unwrap();
         assert_eq!(balance(&audit), 0);
     }
     #[test]

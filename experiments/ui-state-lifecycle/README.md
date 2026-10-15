@@ -23,13 +23,13 @@ A private handle contains a weak owner identity and an instance ID. Handles and 
 
 Each node retains insertion order for disposal and independent display order for list reordering. Empty or duplicate sibling keys are rejected before mutation. Reordering requires exactly the current keys, with no omissions, duplicates or unknowns. Keys are opaque strings. Removing a child preserves its parent and siblings.
 
-Delivery uses a manually drained FIFO. The callback receives exclusive state access plus the owner for queuing or removal. Nested drain and independent read of the currently borrowed state return `Reentrant`. Newly queued events run after already pending events. Removal invalidates handles immediately. During delivery, retired resources remain until that callback returns; cleanup then releases children before parents. Sibling insertion order is retained for one subtree disposal, regardless of display reorder. Separate explicit removals follow their invocation order. Repeated removal is a no-op; foreign-owner operations are rejected.
+Delivery uses a manually drained FIFO. The callback receives exclusive state access plus the owner for queuing or removal. Nested drain and independent read of the currently borrowed state return `Reentrant`. Newly queued events run after already pending events. Removal invalidates handles and removes live list membership immediately. List reads and reorders during the same callback see only surviving or newly inserted instances. During delivery, retired resources remain until that callback returns; cleanup then releases children before parents. Sibling insertion order is retained for one subtree disposal, regardless of display reorder. Separate explicit removals follow their invocation order. Repeated removal is a no-op; foreign-owner operations are rejected.
 
 Stale events report `Stale` without invoking the old handler. Their payloads release when drained, cleared or when the owner drops. Disposed state and handler captures do not wait for queued payloads or retained handles. Weak identity metadata can outlive the owner, but component state cannot. Dropping the owner performs subtree and queue cleanup without requiring explicit disposal.
 
 ## Acceptance matrix and proof levels
 
-All 18 plan rows are accounted for. The Rust harness has 17 tests: L11 has two; L15/L16 are compiler tests in Node. The Node suite has three tests, including harness failure checks. No tests are silently skipped. The model rows pass in Rust; they are not all implemented in Tsrust.
+All 18 plan rows are accounted for. The Rust harness has 20 tests: L11 has five; L15/L16 are compiler tests in Node. The Node suite has three tests, including harness failure checks. No tests are silently skipped. The model rows pass in Rust; they are not all implemented in Tsrust.
 
 | Row | Named witness | Rust model | Tsrust analysis / native execution |
 |---|---|---|---|
@@ -43,7 +43,7 @@ All 18 plan rows are accounted for. The Rust harness has 17 tests: L11 has two; 
 | L08 | `l08_child_first_idempotent_disposal` | Pass: child-first, stable sibling order, exact drop trace | Not implemented |
 | L09 | `l09_fifo_and_completed_mutations` | Pass: exact trace 1,3,6 | Not implemented |
 | L10 | `l10_recursive_drain_rejected` | Pass: rejection preserves later deliveries | Not implemented |
-| L11 | `l11_self_and_sibling_removal`, `l11_active_child_disposes_root_child_first` | Pass: active access finishes, later work stale, safe cleanup | Not implemented |
+| L11 | `l11_self_and_sibling_removal`, `l11_active_child_disposes_root_child_first`, and three callback list regressions | Pass: immediate list reads/reorders/reinsertion, active access finishes, later work stale, safe cleanup | Not implemented |
 | L12 | `l12_disposed_resources_do_not_wait_for_handles_or_payloads` | Pass: only queued payload remains until drain/clear | Not implemented |
 | L13 | `l13_owner_drop_releases_queue_and_captures` | Pass: drop releases resources; weak identity expires | Not implemented |
 | L14 | `l14_thousand_cycles_return_to_baseline` | Pass: 1,000 cycles; one root remains per cycle, final zero | Not implemented |

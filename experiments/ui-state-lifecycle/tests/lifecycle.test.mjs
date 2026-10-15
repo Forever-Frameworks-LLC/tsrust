@@ -39,7 +39,7 @@ test('L01-L14,L17-L18: Rust ownership model and exact demo', () => temporary(dir
   const binary = path.join(dir, 'tests');
   rust(path.join(root, 'lifecycle.rs'), binary, true);
   const result = run(binary, ['--test-threads=1']);
-  assert.match(result.stdout, /17 passed; 0 failed/);
+  assert.match(result.stdout, /20 passed; 0 failed/);
   console.log(result.stdout.trim());
 }));
 test('L15-L16: verified compiler, formatted positives and strict ownership rejections', () => temporary(dir => {
