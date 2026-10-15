@@ -222,3 +222,23 @@ body-chunk copy without redesigning scheduling. Exact evidence remains in SQLite
 S16 TLS listener configuration and certificate fixtures are next. Shared handler
 state/providers, producer streams, WebSocket/SSE and UI runtime integration remain
 separate. Preserve explicit ownership, cooperative cancellation and cleanup limits.
+
+
+## S16 TLS completion — 2026-10-15
+
+S16 is accepted: `app.listen(address, { cert, key })`, `new Client({ ca })`,
+mandatory certificate/hostname/time verification and shared HTTP/TLS cleanup.
+Zero-argument Client and cleartext listeners retain their behavior. Source
+checkpoints are `b0656298` and `7510b254`; see [TLS acceptance](../plans/tls-acceptance.md).
+All 59 affected compiler/runtime/export tests and 15 editor tests pass. HTTPS
+measures 5.98 ms native versus 6.78 ms Node per 128 requests over HTTP/2 reuse.
+Installed CLI/LSP consumers are refreshed; VS Code shows current TLS help and no
+problems. SQLite holds original logs, failed attempts, hashes and all 186 timing
+samples. No full unrelated regression matrix was repeated after S15.
+
+The B4 repair agent has the exclusive validation window for
+`/private/tmp/tsrust-gate100-editor-target`: `CARGO_INCREMENTAL=0`,
+`CARGO_BUILD_JOBS=1`, Node v24.11.1 first on PATH, loopback escalation when needed.
+TLS has no remaining builds, timings or consumer refreshes. Preserve the active
+shared target until B4 finishes. The UI briefs remain owner work. S17 SQLite is
+the next standard-library roadmap item; no work on it started in this pass.
