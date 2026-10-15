@@ -1,9 +1,10 @@
 {
   "blockers": {
     "B1": {
-      "witness": "witnesses/domain-collision.tsr",
-      "kind": "library identity scope / contract decision",
-      "detail": "Independent Domain counters can issue the same owner and instance IDs; a handle reads the wrong owner across Domains. A single allocator scope works, but that narrower boundary needs review. No claim that new compiler support is necessary. runtime-boundary.tsr hides the allocator in an owned closure but still reproduces cross-runtime read/mutate/enqueue/remove/reorder and teardown/recreation aliasing."
+      "witness": "witnesses/identity.tsr",
+      "kind": "runtime identity enforcement",
+      "detail": "Private program-owned monotonic runtime scalar plus closure-owned private owner counter; runtime/owner/instance checked on all supported operations. Historical counterexamples remain at baseline b255009e and execute from Git. See IDENTITY.md and I01-I20; structural tampering and separate code copies are excluded.",
+      "status": "resolved by enforced source API"
     },
     "B2": {
       "witness": "witnesses/scope-exit.tsr",
@@ -25,7 +26,7 @@
       "control": "witnesses/factory-self-replacement.tsr",
       "kind": "compiler analysis panic",
       "status": "resolved by compiler repair",
-      "detail": "Historical check/emit index panic preserved in SQLite. prepare_specialization now admits access-summary coordinates when synthesizing the callable. Original named and factory sources check, emit and execute unchanged; see B4-REPAIR.md.",
+      "detail": "Historical check/emit index panic preserved in SQLite. prepare_specialization now admits access-summary coordinates when synthesizing the callable. Original named and factory sources check, emit and execute unchanged; see B4-REPAIR.md. Original committed sources/module execute from Git; current equivalent witnesses use runtime().",
       "dependentRows": [
         "H13",
         "H19",
@@ -38,12 +39,12 @@
     {
       "id": "H01",
       "status": "executed",
-      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
+      "evidence": "Verified dependency compiler 66dd80d8; explicitly reserved SQLite quiet window; provenance.json and IDENTITY-DEPENDENCY.md."
     },
     {
       "id": "H02",
-      "status": "blocked",
-      "evidence": "Within one Domain, wrong-owner access/submission fails. Independent Domains collide: B1."
+      "status": "executed",
+      "evidence": "identity.tsr rejects all cross-runtime and wrong-owner paths; identity-exhaustion.tsr and teardown/recreation pass. B1 resolved within documented source API."
     },
     {
       "id": "H03",
@@ -113,7 +114,7 @@
     {
       "id": "H16",
       "status": "blocked",
-      "evidence": "1000 logical cleanup cycles and checked identity exhaustion execute; resource baseline unproven: B2."
+      "evidence": "1000 logical cycles and normal instance ceiling execute in cycles.tsr; same runtime/owner/instance allocation algorithm at reduced ceiling executes in identity-exhaustion.tsr. Physical resource baseline remains B2."
     },
     {
       "id": "H17",
@@ -128,7 +129,7 @@
     {
       "id": "H19",
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2 remain open, B3 adopted, B4 repaired; exit 2."
+      "evidence": "Native demo exits2 for B2 only. B1 enforced, B3 adopted, B4 repaired; original collision/B4 programs execute separately from Git."
     }
   ]
 }

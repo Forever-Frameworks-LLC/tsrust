@@ -1,14 +1,14 @@
 {
   "contract": "blocked",
   "decisions": {
-    "identity": "one library-controlled allocator per runtime; enforcement unproven",
+    "identity": "library-controlled private runtime allocator; source API enforcement proven in I01-I20",
     "B3": "adopted"
   },
   "rows": [
     {
       "id": "R01",
       "status": "executed",
-      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
+      "evidence": "Verified dependency compiler 66dd80d8; explicitly reserved SQLite quiet window; provenance.json and IDENTITY-DEPENDENCY.md."
     },
     {
       "id": "R02",
@@ -18,23 +18,17 @@
     {
       "id": "R03",
       "status": "executed",
-      "evidence": "runtime-boundary.tsr closure-owned allocator issues 1 then 2; owners-lists.tsr verifies scoped independent owners and wrong-owner rejection."
+      "evidence": "owner.runtime() owns a private Domain; identity.tsr validates distinct runtimes and owners with colliding local counters. Historical hidden-reset allocator remains a separately executed counterexample."
     },
     {
       "id": "R04",
-      "status": "blocked",
-      "evidence": "runtime-boundary.tsr reproduces cross-runtime read/mutate/enqueue/remove/reorder aliasing despite hidden allocator.",
-      "blockers": [
-        "B1"
-      ]
+      "status": "executed",
+      "evidence": "identity.tsr verifies all foreign-operation rejection conventions and unchanged local state; B1 enforced."
     },
     {
       "id": "R05",
-      "status": "blocked",
-      "evidence": "cycles.tsr tests last valid IDs and preserved live state at exhaustion; runtime-boundary.tsr proves escaped identity aliases after teardown/recreation.",
-      "blockers": [
-        "B1"
-      ]
+      "status": "executed",
+      "evidence": "identity.tsr proves same-callsite teardown/recreation cannot reuse identity; identity-exhaustion.tsr uses the same allocation algorithm with reduced ceiling; cycles.tsr also exercises the normal instance ceiling."
     },
     {
       "id": "R06",
@@ -121,14 +115,13 @@
     {
       "id": "R18",
       "status": "executed",
-      "evidence": "H01-H19 reconciliation complete, B3 decision distinct from proof; B1/B2 remain open."
+      "evidence": "Every H/R row reconciled with current execution: B1 enforced, B2 open, B3 adopted, B4 repaired. Historical failures remain attributed."
     },
     {
       "id": "R19",
       "status": "blocked",
-      "evidence": "Native supported witnesses, named and factory controls execute; demo exits 2 solely for B1/B2. B3 adopted; B4 resolved.",
+      "evidence": "Supported native cases and current/original B4 controls execute. Demo exits2 for B2 only; identity separately reported as enforced.",
       "blockers": [
-        "B1",
         "B2"
       ]
     }
@@ -136,11 +129,11 @@
   "reconciliation": {
     "H01": {
       "status": "executed",
-      "evidence": "Verified B4 candidate on baseline 7510b254; TLS explicitly released shared build window; provenance.json and B4-REPAIR.md."
+      "evidence": "Verified dependency compiler 66dd80d8; explicitly reserved SQLite quiet window; provenance.json and IDENTITY-DEPENDENCY.md."
     },
     "H02": {
-      "status": "blocked",
-      "evidence": "Within one Domain, wrong-owner access/submission fails. Independent Domains collide: B1."
+      "status": "executed",
+      "evidence": "identity.tsr rejects all cross-runtime and wrong-owner paths; identity-exhaustion.tsr and teardown/recreation pass. B1 resolved within documented source API."
     },
     "H03": {
       "status": "executed",
@@ -196,7 +189,7 @@
     },
     "H16": {
       "status": "blocked",
-      "evidence": "1000 logical cleanup cycles and checked identity exhaustion execute; resource baseline unproven: B2."
+      "evidence": "1000 logical cycles and normal instance ceiling execute in cycles.tsr; same runtime/owner/instance allocation algorithm at reduced ceiling executes in identity-exhaustion.tsr. Physical resource baseline remains B2."
     },
     "H17": {
       "status": "expected rejection",
@@ -208,7 +201,7 @@
     },
     "H19": {
       "status": "blocked",
-      "evidence": "Native partial demo and H/R matrices execute; B1/B2 remain open, B3 adopted, B4 repaired; exit 2."
+      "evidence": "Native demo exits2 for B2 only. B1 enforced, B3 adopted, B4 repaired; original collision/B4 programs execute separately from Git."
     }
   }
 }

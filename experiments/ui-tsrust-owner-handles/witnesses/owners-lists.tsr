@@ -1,5 +1,5 @@
 import { strictEqual } from 'std:testing';
-import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+import { Owner, Handle, runtime, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
 
 function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
   return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
@@ -8,11 +8,9 @@ function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>,
 }
 
 function owners(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const a = create(domain);
-  const b = create(domain);
+  const domain = runtime();
+  const a = domain();
+  const b = domain();
   const ar = root(a);
   const br = root(b);
   const x = mount(a, ar, 'same', 0, increment(2));
@@ -34,10 +32,8 @@ function owners(): void {
 }
 
 function lists(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const owner = create(domain);
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   const one = mount(owner, parent, '1', 10, increment(1));
   const two = mount(owner, parent, '2', 20, increment(1));
@@ -76,10 +72,8 @@ function lists(): void {
 }
 
 function queued(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const owner = create(domain);
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   const action = mount(owner, parent, 'counter', 0, (state: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
     add(state, handle, delta); strictEqual(drain(state), 'reentrant'); if (delta === 1) {

@@ -1,5 +1,5 @@
 import { strictEqual } from 'std:testing';
-import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
+import { Owner, Handle, runtime, root, mount, add, read, enqueue, drain, remove, values, reorder, valid } from './owner.tsr';
 
 function increment(step: int): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
   return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
@@ -20,10 +20,8 @@ function removeAll(parent: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Han
 }
 
 function disposal(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const owner = create(domain);
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   const group = mount(owner, parent, 'group', 0, increment(1));
   const action = mount(owner, group, 'action', 0, removeAll(clone(group)));
@@ -55,10 +53,8 @@ function removeSelfAndSibling(sibling: Handle): (owner: Mutable<Owner>, handle: 
 }
 
 function selfRemoval(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const owner = create(domain);
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   const sibling = mount(owner, parent, 'sibling', 0, increment(1));
   const action = mount(owner, parent, 'action', 0, removeSelfAndSibling(clone(sibling)));
@@ -71,10 +67,8 @@ function selfRemoval(): void {
 }
 
 function rootRemoval(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const owner = create(domain);
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   const action = mount(owner, parent, 'action', 0, removeAll(clone(parent)));
   const sibling = mount(owner, parent, 'sibling', 0, increment(1));

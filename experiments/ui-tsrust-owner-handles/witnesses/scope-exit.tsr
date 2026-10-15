@@ -1,8 +1,9 @@
 import { strictEqual } from 'std:testing';
-import { Domain, Owner, Handle, create, root, mount, add } from './owner.tsr';
+import { Owner, Handle, runtime, root, mount, add } from './owner.tsr';
 
-function orphan(domain: Mutable<Domain>): Handle {
-  const owner = create(domain);
+function orphan(): Handle {
+  const domain = runtime();
+  const owner = domain();
   const parent = root(owner);
   return mount(owner, parent, 'item', 0, (state: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
     add(state, handle, delta);
@@ -10,10 +11,7 @@ function orphan(domain: Mutable<Domain>): Handle {
 }
 
 function main(): void {
-  const domain: Domain = {
-    next: 1
-  };
-  const handle = orphan(domain);
+  const handle = orphan();
   strictEqual(handle.owner, 1);
   strictEqual(handle.instance, 1);
   // This proves handle escape, not observable state/capture destruction.

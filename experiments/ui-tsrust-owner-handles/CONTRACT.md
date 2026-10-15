@@ -4,15 +4,19 @@ The user dispatched the lifetime-contract assignment on 2026-10-15 using its rec
 
 ## Identity decision and B1
 
-A UI runtime should control one allocator. Owners allocated through that runtime receive independent monotonic identities; instances are monotonic within an owner, with zero reserved for its structural root. Handles contain identity only and must not be serialized, persisted or transported between runtimes. Checked exhaustion must reject before wrap or reuse.
+A UI runtime should control one allocator. Owners allocated through that runtime receive independent monotonic identities; instances are monotonic within an owner, with zero reserved for its structural root. Handles contain identity only; foreign-runtime operations reject. Handles must not be serialized or persisted. Checked exhaustion must reject before wrap or reuse.
 
 Supported operations must prevent or reject cross-runtime misuse. Trusted callers are not assumed to forge internal fields, but ordinary construction of two runtimes must be safe. Documentation alone is insufficient.
 
-The one boundary candidate in `runtime-boundary.tsr` hides a Domain in an owned retained closure. Callers cannot select its starting counter through `runtime()`. Repeated calls allocate owners 1 and 2, but a second runtime starts at 1. The native assertions reproduce wrong-runtime read, mutation, enqueue, removal and root-based reorder. They also demonstrate a handle escaping owner/allocator teardown and reading a fresh runtime's replacement state. The assertions deliberately confirm unsafe behavior; they are counterexamples, not acceptance tests for a safe API.
+The historical closure-hidden allocator reset local counters and permitted cross-runtime
+aliasing. The identity follow-up now enforces runtime/owner/instance identity through
+a private monotonic module scalar and a closure-owned private Domain. See
+[identity contract and evidence](IDENTITY.md). Original counterexamples remain in Git
+and execute against their original module in disposable directories.
 
-B1 remains blocked. Hiding the allocator solves caller-selected IDs within one scope but does not attach an enforceable runtime brand to the handle. No alternate representation was pursued: without an additional checked brand or stable identity primitive, rearranging these scalar fields cannot distinguish the counterexample. This is a bounded design finding, not a proof that ordinary Tsrust can never solve it.
-
-A separate identity task should choose an enforceable runtime boundary: a statically scoped brand with no escaping mutable loan, or a verified runtime identity facility. It must reject every applicable cross-runtime access path, escaped handles after teardown/recreation, repeated initialization and exhaustion without mutation. Do not relax ownership rules, use user labels as identity, or adopt a global registry merely to pass this example.
+B1 is resolved within the documented source API. Deliberate fabrication or mutation
+of internal structural fields is outside this contract; handles are not security
+capabilities. Exact resource destruction remains unobserved under B2.
 
 ## H10 decision: B3 resolved by adopted semantics
 
@@ -43,7 +47,7 @@ A separately assigned test-only native resource observer could expose an owned t
 
 Before using it for UI acceptance, calibrate no release while live, one event on explicit and automatic destruction, no second event on duplicate cleanup, and failure under deliberately wrong expected counts/order. Then place resources separately in actual state, captures and queued payloads; test callback-safe release, nested child-before-parent order, successful/stale delivery, owner scope exit and 1,000-cycle balance. Validate that audit handles do not extend resource lifetime. Keep those future native/compiler/editor changes separately owned and reviewed; this task implements none of them.
 
-B2 is an observation gap, not a demonstrated leak or proof that a general destruction language feature is needed. Full feasibility remains blocked by B1 and B2. B4 is resolved by the bounded compiler repair.
+B2 is an observation gap, not a demonstrated leak or proof that a general destruction language feature is needed. Full feasibility remains blocked by B2. B4 is resolved by the bounded compiler repair.
 
 ## B4: named-handler compiler defect repaired
 
@@ -51,4 +55,4 @@ The historical S15 and pre-repair TLS compilers panic during strict check and em
 
 The repair admits those coordinates when the specialization is created, using the existing recursive inference lattice. Both original named and factory witnesses now check, emit and execute their unchanged assertions. H13/R08 no longer carry the B4 limitation. The harness requires successful native execution and fails on any panic, rejection, timeout or signal. See [repair acceptance and provenance](B4-REPAIR.md).
 
-B1/B2 remain open; B3's adopted semantics are unchanged. Compiler repair establishes no resource destruction proof or runtime identity enforcement.
+B4 repair alone established no identity or resource destruction proof. B1 is now resolved by the separate identity candidate; B2 remains open and B3's adopted semantics are unchanged.

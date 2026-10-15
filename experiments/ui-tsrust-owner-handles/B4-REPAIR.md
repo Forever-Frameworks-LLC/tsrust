@@ -1,5 +1,8 @@
 # B4 compiler repair
 
+Historical repair report. Current identity status is in [IDENTITY.md](IDENTITY.md);
+the original B4 evidence and acceptance results below remain unchanged.
+
 Baseline: `7510b2542929c094338ce13edbc95692db8ae387`. Branch: `codex/ui-b4-repair`. This bounded repair changes callable analysis, two focused test targets and this experiment. It does not implement identity enforcement or resource observation. B1/B2 remain open; B3 remains adopted.
 
 ## Cause and repair

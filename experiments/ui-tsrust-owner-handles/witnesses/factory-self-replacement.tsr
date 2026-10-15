@@ -1,5 +1,5 @@
 import { strictEqual } from 'std:testing';
-import { Domain, Owner, Handle, create, root, mount, add, read, enqueue, drain, remove, values, reorder } from './owner.tsr';
+import { Owner, Handle, runtime, root, mount, add, read, enqueue, drain, remove, values, reorder } from './owner.tsr';
 
 function increment(owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void {
   add(owner, handle, delta);
@@ -26,10 +26,8 @@ function replace(parent: Handle): (owner: Mutable<Owner>, handle: ReadOnly<Handl
 }
 
 function main(): void {
-  const d: Domain = {
-    next: 1
-  };
-  const o = create(d);
+  const d = runtime();
+  const o = d();
   const r = root(o);
   const a = mount(o, r, 'active', 0, replace(clone(r)));
   const b = mount(o, r, 'sibling', 7, increment);
