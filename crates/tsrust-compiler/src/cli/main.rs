@@ -245,6 +245,17 @@ fn run() -> Result<u8, String> {
             return Ok(1);
         }
     };
+    if matches!(command.as_str(), "build" | "run" | "test") {
+        for warning in analysis.warnings() {
+            let (text, span) = match &warning {
+                tsrust_compiler::project_cli::InputDiagnostic::Single(diagnostic) => (source.clone(), diagnostic.span),
+                tsrust_compiler::project_cli::InputDiagnostic::Project(diagnostic) => (fs::read_to_string(&diagnostic.location.source.0).unwrap_or_default(), diagnostic.location.span),
+            };
+            if !tsrust_compiler::DiagnosticSuppressions::new(&text).suppresses(span) {
+                eprint!("{}", warning.render(&display_path, &source, color));
+            }
+        }
+    }
     if let Some(output) = &output
         && let tsrust_compiler::project_cli::CheckedInput::Project(project) = &analysis
         && let Ok(output) = fs::canonicalize(output)

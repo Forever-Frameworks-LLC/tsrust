@@ -110,6 +110,7 @@ fn unused_task_cli_warning_does_not_fail_and_suppression_only_hides_warning() {
     let source="async function one():Task<int>{return 1;}async function main():Task<void>{one();}";
     let directory=support::TempDirectory::new();let path=directory.source(&support::format_round_trip(source));
     let output=support::run(support::cli().arg("check").arg(&path),30);support::success(&output);assert!(String::from_utf8_lossy(&output.stderr).contains("warning[unused-task]"));
+    let output=support::run(support::cli().arg("run").arg(&path),30);support::success(&output);assert!(String::from_utf8_lossy(&output.stderr).contains("warning[unused-task]"));assert!(output.stdout.is_empty());
     let invalid="async function one():Task<int>{return 1;}async function main():Task<void>{const task=one();await task;\n// @tsrust ignore - intentional ownership rejection\nawait task;}";
     assert!(check(invalid).is_err());
 }

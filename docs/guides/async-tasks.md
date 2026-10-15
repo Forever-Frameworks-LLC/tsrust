@@ -20,7 +20,8 @@ async function main(): Task<void> {
 This prints `created`, then `Hello, Ada`. Ordinary calls do not start the body.
 Tasks cannot be cloned, called like functions, or awaited twice. Moving a task or
 returning it transfers responsibility. Never-started tasks discarded on reachable
-paths produce warnings. Warnings include creation and abandonment locations.
+paths produce warnings in check, build, run and the editor. Warnings include
+creation and abandonment locations.
 
 Body errors reach the await site through ordinary try/catch. Argument and default
 errors occur when constructing the task. Normal completion, return and throwing

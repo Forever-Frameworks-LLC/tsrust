@@ -15,7 +15,8 @@ generics, named/default imports, Task parameters, record fields, arrays, nested
 tasks, conditional tasks, error transport, finally, single-use rejection and
 unused-path warnings. Warning paths include implicit call failure and finally
 handling. Independent tasks abandoned at one location retain separate creation
-locations in CLI diagnostics. Suppression does not authorize invalid codegen.
+locations in CLI diagnostics. Build/run/test also render warnings, without
+changing emit output. Suppression does not authorize invalid codegen.
 
 The generated-future witness forces real Pending/Ready transitions, retains the
 owned string allocation and verifies exactly one disposal before first poll,
