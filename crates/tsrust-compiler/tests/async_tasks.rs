@@ -191,3 +191,13 @@ fn task_match_results_and_discarded_sequence_operands_keep_responsibility() {
     assert!(check(&support::format_round_trip(&source)).unwrap().warnings().is_empty());
     support::execute(&format!("{prefix}async function main():Task<void>{{const task=match(true){{true=>one(),false=>one()}};console.log(await task);}}"),"1\n",None);
 }
+
+#[test]
+fn async_emission_preserves_strings_that_look_like_generated_methods() {
+    support::execute("async function text():Task<string>{return 'fn call OnceCallback< fn invoke_once self.call() }';}async function main():Task<void>{console.log(await text());}","fn call OnceCallback< fn invoke_once self.call() }\n",None);
+}
+
+#[test]
+fn task_parameter_contract_compiles_without_a_concrete_async_declaration() {
+    support::execute("function accept(task:Task<int>):void{}function main(){}","",None);
+}

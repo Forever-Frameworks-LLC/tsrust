@@ -2035,12 +2035,16 @@ impl Emitter<'_> {
                 ("Callback","invoke","&mut self",closure.invocation!=Mode::Consume),
             ] {
                 if !allowed || self.program.task_origins.contains(&index) && trait_name!="OnceCallback" {continue;}
-                let body=convert(format!("self.call({forwarded})"));
+                let task=self.program.task_origins.contains(&index);
+                let asynchronous=if task{"async "}else{""};
+                let task_await=if task{".await"}else{""};
+                let trait_name=if task{"TaskCallback"}else{trait_name};
+                let body=convert(format!("self.call({forwarded}){task_await}"));
                 let counted=if self.counted_calls {
-                    let body=convert(format!("self.call_with_count(count, {forwarded})"));
-                    format!("    fn {method}_with_count({receiver}, args:{arguments}, count:usize)->{result}{{{body}}}\n")
+                    let body=convert(format!("self.call_with_count(count, {forwarded}){task_await}"));
+                    format!("    {asynchronous}fn {method}_with_count({receiver}, args:{arguments}, count:usize)->{result}{{{body}}}\n")
                 }else{String::new()};
-                let _=writeln!(output,"impl{impl_lifetimes} {trait_name}<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where}{{\n    fn {method}({receiver},args:{arguments})->{result}{{{body}}}\n{counted}}}\n");
+                let _=writeln!(output,"impl{impl_lifetimes} {trait_name}<{arguments},{result}> for Closure{index}{lifetime}{forwarded_where}{{\n    {asynchronous}fn {method}({receiver},args:{arguments})->{result}{{{body}}}\n{counted}}}\n");
             }
         }
     }
@@ -2340,7 +2344,7 @@ impl Emitter<'_> {
         }
         let has_heap=self.program.records.iter().any(|record|matches!(record.native_type,Some(crate::native_signatures::NativeTypeId::Heap | crate::native_signatures::NativeTypeId::OrderedSet | crate::native_signatures::NativeTypeId::OrderedMap)));
         if has_heap { output.push_str(include_str!("../stdlib/collections/ordered_runtime.rs")); output.push_str(include_str!("../stdlib/collections/ordered_key_runtime.rs")); }
-        if !self.program.task_origins.is_empty() { output.push_str(include_str!("async_runtime.rs")); }
+        if !self.program.task_origins.is_empty() || self.program.callback_contracts.iter().any(|contract|contract.kind==CallbackKind::Task) { output.push_str(include_str!("async_runtime.rs")); }
         self.set_types(&mut output);
         self.map_types(&mut output);
         if self.program.records.iter().any(|record|record.native_type==Some(crate::native_signatures::NativeTypeId::Schema)) {
@@ -2481,7 +2485,8 @@ impl Emitter<'_> {
             }
         }
         for (index, closure) in self.program.closures.iter().enumerate() {
-            let task_output_start=output.len();
+            let asynchronous=if self.program.task_origins.contains(&index){"async "}else{""};
+            let task_await=if asynchronous.is_empty(){""}else{".await"};
             if closure.function.template {
                 continue;
             }
@@ -2573,7 +2578,7 @@ impl Emitter<'_> {
             });
             let _ = writeln!(
                 output,
-                "    fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
+                "    {asynchronous}fn call{call_generics}({receiver}{parameters}) -> {}{replacement_where} {{",
                 native_result.clone()
             );
             self.test_program_capture_bindings(&mut output, closure);
@@ -2668,7 +2673,7 @@ impl Emitter<'_> {
             }
             output.push_str("    }\n");
             if self.counted_calls {
-                let _ = writeln!(output, "    fn call_with_count{call_generics}({receiver}, supplied_count: usize{parameters}) -> {}{replacement_where} {{", native_result.clone());
+                let _ = writeln!(output, "    {asynchronous}fn call_with_count{call_generics}({receiver}, supplied_count: usize{parameters}) -> {}{replacement_where} {{", native_result.clone());
                 if closure.program_scoped { self.test_program_capture_bindings(&mut output, closure); }
                 self.counted_closure_body(&mut output, closure);
                 output.push_str("    }\n");
@@ -2738,10 +2743,11 @@ impl Emitter<'_> {
             }
             if self.callback_traits || self.program.task_origins.contains(&index) {
                 let result = native_result.clone();
-                let counted_method = if self.counted_calls { format!("    fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}) }}\n") } else { String::new() };
+                let task_trait=if asynchronous.is_empty(){"OnceCallback"}else{"TaskCallback"};
+                let counted_method = if self.counted_calls { format!("    {asynchronous}fn invoke_once_with_count(mut self, args: {arguments}, count: usize) -> {result} {{ self.call_with_count(count, {forwarded}){task_await} }}\n") } else { String::new() };
                 let _ = writeln!(
                     output,
-                    "impl{impl_lifetimes} OnceCallback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke_once(mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
+                    "impl{impl_lifetimes} {task_trait}<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    {asynchronous}fn invoke_once(mut self, args: {arguments}) -> {result} {{ self.call({forwarded}){task_await} }}\n{counted_method}}}\n"
                 );
             }
             if self.callback_traits && !self.program.task_origins.contains(&index) && closure.invocation == Mode::Read {
@@ -2760,12 +2766,7 @@ impl Emitter<'_> {
                     "impl{impl_lifetimes} Callback<{arguments}, {result}> for Closure{index}{lifetime}{forwarded_trait_where} {{\n    fn invoke(&mut self, args: {arguments}) -> {result} {{ self.call({forwarded}) }}\n{counted_method}}}\n"
                 );
             }
-            self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);            if self.program.task_origins.contains(&index) {
-                let text=output.split_off(task_output_start).replace("fn call", "async fn call").replace("OnceCallback<", "TaskCallback<").replace("fn invoke_once", "async fn invoke_once");
-                // Direct adapters have the same zero-argument task contract.
-                let text=text.replace(&format!("self.call({forwarded})"), &format!("self.call({forwarded}).await")).replace(&format!("self.call_with_count(count, {forwarded})"), &format!("self.call_with_count(count, {forwarded}).await"));
-                output.push_str(&text);
-            }
+            self.callback_result_adapters(&mut output,index,&params,&arguments,&forwarded,&impl_lifetimes,&lifetime,&native_result);
         }
         let declared_families = crate::callable_layout::declared_storage_families(self.program,|record,position|self.scoped_record_native_field(record,position,self.program.records[record].fields[position].ty.expect("checked field")));
         if self.program.stored_contracts.families().any(|(_, declaration, _)| self.program.callback_contracts[declaration].kind == crate::syntax::CallbackKind::SharedRead) {
