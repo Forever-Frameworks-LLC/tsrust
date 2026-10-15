@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {releaseDemo} from './release.mjs';
 import path from 'node:path';
 import {readFileSync} from 'node:fs';
 import {root, temporary, execute, formattedWitnesses, reducedIdentityLimit} from './harness.mjs';
@@ -13,6 +14,8 @@ if (process.argv.length !== 3 || process.argv[2] !== 'demo') {
     }
     reducedIdentityLimit(dir);
     process.stdout.write(execute(path.join(dir, 'identity-exhaustion.tsr'), dir));
+    const release = releaseDemo();
+    console.log(JSON.stringify({release}, null, 2));
     const matrix = JSON.parse(readFileSync(path.join(root, 'matrix.json'), 'utf8'));
     const followup = JSON.parse(readFileSync(path.join(root, 'resource-matrix.json'), 'utf8'));
     const identity = JSON.parse(readFileSync(path.join(root, 'identity-matrix.json'), 'utf8'));

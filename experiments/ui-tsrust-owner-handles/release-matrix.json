@@ -1,0 +1,835 @@
+{
+  "investigation": "complete bounded blocker report",
+  "observerCalibration": "native-only; checked Tsrust boundary blocked",
+  "synchronousB2": "blocked",
+  "asyncWorkerReadiness": "unproved; required future direction",
+  "blockers": {
+    "B2-bridge": {
+      "diagnostic": "Boundary data cannot implement Drop; keep resource owners private to the Rust adapter.",
+      "witness": "release/blocked.ts",
+      "control": "release/control.tsr",
+      "coordination": "S18 worker recommends blocker handoff; no shared opaque-resource changes approved."
+    }
+  },
+  "rows": [
+    {
+      "id": "L01",
+      "title": "Baseline, ownership and tools",
+      "status": "executed",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "Identity repairs present; exact pin; acknowledged S18 window; owned files and unchanged shared consumers recorded.",
+      "observed": "Baseline49704b4f; compiler pin preserved; validation requires acknowledged S18 quiet window.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L02",
+      "title": "Async/worker compatibility",
+      "status": "analysis/emission only",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "All seven architectural boundaries assessed; current scalar identity concurrency limitation explicit; no synchronous-only production requirement adopted.",
+      "observed": "Seven compatibility boundaries documented; async/worker direction retained, concurrent scalar allocator and automatic finalization remain unresolved.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L03",
+      "title": "Observer boundary",
+      "status": "analysis/emission only",
+      "witness": "release/tracked.rs",
+      "expected": "Actual native release path, audit ownership graph, event meanings and checked adapter boundary identified; source markers cannot synthesize release.",
+      "observed": "Native actual Drop audit inspected; checked import rejects. Opaque native storage is not preserved by projected-data bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L04",
+      "title": "Live/move calibration",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Zero premature releases through function, record, array and retained-closure moves; replacement/removal release only the displaced resource.",
+      "observed": "Native calibration has a separately executed control; required checked UI/source resource branch remains blocked by B2-bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "native-only calibration",
+          "status": "executed",
+          "witness": "release/native-calibration.rs",
+          "limitation": "No Tsrust resource ownership or UI owner proof."
+        },
+        {
+          "scope": "checked Tsrust/UI resource path",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "Exact-once calibration",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Explicit close and automatic scope exit each release once; duplicate logical cleanup adds no event; consumed-resource reuse rejects with a passing control.",
+      "observed": "Native calibration has a separately executed control; required checked UI/source resource branch remains blocked by B2-bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "native-only calibration",
+          "status": "executed",
+          "witness": "release/native-calibration.rs",
+          "limitation": "No Tsrust resource ownership or UI owner proof."
+        },
+        {
+          "scope": "checked Tsrust/UI resource path",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L06",
+      "title": "Non-retaining audit",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Audit survives resource release without retaining resource/owner; resource can outlive an audit handle; audit storage teardown is safe.",
+      "observed": "Native calibration has a separately executed control; required checked UI/source resource branch remains blocked by B2-bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "native-only calibration",
+          "status": "executed",
+          "witness": "release/native-calibration.rs",
+          "limitation": "Process audit and copied snapshots retain no resource. No separate owned audit-handle API is claimed."
+        },
+        {
+          "scope": "checked Tsrust/UI resource path",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L07",
+      "title": "Assertion sensitivity",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Wrong count, ID, missing/premature event and reversed dependency order fail; corresponding correct expectations pass.",
+      "observed": "Native calibration has a separately executed control; required checked UI/source resource branch remains blocked by B2-bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "native-only calibration",
+          "status": "executed",
+          "witness": "release/native-calibration.rs",
+          "limitation": "No Tsrust resource ownership or UI owner proof."
+        },
+        {
+          "scope": "checked Tsrust/UI resource path",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L08",
+      "title": "Resource-bearing state",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Real node state owns tracked resources; source storage/access/moves work; no scalar-only proxy claim.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L09",
+      "title": "Retained captures",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Actual stored named/factory callbacks retain captures through repeated delivery; capture releases exactly once when registration is destroyed.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L10",
+      "title": "Removal outside delivery",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Leaf/subtree/root removal completes applicable cleanup before return; stale same-owner repeated removal adds no release.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L11",
+      "title": "Active self retirement",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Access ends immediately; active state/capture remains unreleased inside callback; releases after return, exactly once.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L12",
+      "title": "Active ancestor/root retirement",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Active child removes ancestor/root; all retired resources remain safe through callback; descendants precede ancestors at cleanup.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L13",
+      "title": "Sibling and repeated retirement",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Sibling removal preserves active access; repeated/overlapping retirements cannot double-release; multiple retirement requests preserve dependency order.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L14",
+      "title": "Nested order",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Depth-three tree with siblings; independently expected descendant-before-ancestor constraints for state and captures; incidental sibling order not asserted.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L15",
+      "title": "Same-key replacement",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Old resources release once; replacement remains live and fresh; stale queued work cannot invoke or release replacement.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L16",
+      "title": "Successful queued payload",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Real resource payload follows checked ownership into FIFO delivery; no premature release; release after its documented last use.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L17",
+      "title": "Rejected/stale payload",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Foreign/rejected enqueue respects documented transfer behavior and unchanged owner state; stale drain releases payload once without callback. Queue-clear subcase explicitly not applicable.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "resource-bearing rejected/stale payload",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        },
+        {
+          "scope": "queue clear",
+          "status": "not applicable with reason",
+          "reason": "No queue-clear API exists; none added."
+        }
+      ]
+    },
+    {
+      "id": "L18",
+      "title": "Automatic owner destruction",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "No explicit cleanup call; live state/captures/queued payloads release once; required descendant ordering measured independently, including a nontrivial tree.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L19",
+      "title": "Non-retaining identities",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "Escaped handles and surviving allocator do not retain dead-owner resources; independent live owners remain intact.",
+      "observed": "Checked resource boundary rejects Drop; this required Tsrust owner behavior cannot be measured. Native-only controls do not discharge it.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23"
+    },
+    {
+      "id": "L20",
+      "title": "Repeated balance",
+      "status": "blocked",
+      "witness": "release/blocked.ts",
+      "expected": "At least1,000 native create/deliver/remove/drop cycles; all allocated IDs release exactly once and return to resource baseline; audit growth managed without hiding live resources.",
+      "observed": "Native calibration has a separately executed control; required checked UI/source resource branch remains blocked by B2-bridge.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md",
+      "blockers": [
+        "B2-bridge"
+      ],
+      "upstream": "L23",
+      "subcases": [
+        {
+          "scope": "native-only calibration",
+          "status": "executed",
+          "witness": "release/native-calibration.rs",
+          "limitation": "No Tsrust resource ownership or UI owner proof."
+        },
+        {
+          "scope": "checked Tsrust/UI resource path",
+          "status": "blocked",
+          "blockers": [
+            "B2-bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "L21",
+      "title": "Existing behavior and negatives",
+      "status": "executed",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "Complete I/H/R logical regressions including original/current B4, reentrant drain, live-list edits, fresh identity and strict ownership rejections remain valid.",
+      "observed": "Complete existing identity and logical lifetime suite rerun; owner source unchanged.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L22",
+      "title": "Formatting and source fidelity",
+      "status": "executed",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "Whole-project checkpoint formatting; token preservation/idempotence; checked/emitted execution of formatted witnesses; emitted Rust unmodified.",
+      "observed": "Whole-project format plus token/idempotence checks and formatted native controls.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L23",
+      "title": "Dependency or defect",
+      "status": "expected rejection",
+      "witness": "release/blocked.ts",
+      "expected": "Minimal failing case plus passing control; precise compiler/lifecycle/observer limit; approved fixes include regression evidence; no unexplained panic/timeout counted as expected blocker.",
+      "observed": "Strict check and emit reject exported Drop with rust-bridge diagnostic; plain owned data checks/emits/executes. Compiler worker recommends blocker handoff, no shared opaque bridge during S18.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L24",
+      "title": "Matrix reconciliation",
+      "status": "executed",
+      "witness": "release-matrix.json",
+      "expected": "Every H01\u2013H19, R01\u2013R19 and I01\u2013I20 row mapped to current or explicitly historical evidence; B1/B3/B4 preserved; B2 only closed for proved synchronous contract.",
+      "observed": "Every H/R/I row reconciled; B1 enforced, B3 adopted, B4 repaired; B2 still open.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L25",
+      "title": "Suite and demo",
+      "status": "executed",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "All applicable rows dispositioned without silent skips; actual native demo; exit0 only for adopted synchronous contract fully proved, exit2 for evidenced remaining blocker, exit1 for unexpected error or invalid invocation.",
+      "observed": "Focused suite accounts for all rows; demo executes supported behavior and exits2 for evidenced B2 bridge blocker.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    },
+    {
+      "id": "L26",
+      "title": "Handoff and isolation",
+      "status": "executed",
+      "witness": "RESOURCE-RELEASE.md",
+      "expected": "Commit(s), exact commands/results, adapter contract, compatibility table, remaining dependencies and isolated SQLite supplied; shared window released; no unauthorized merge/refresh/new milestone.",
+      "observed": "Experiment-only source checkpoint and isolated evidence; no shared source edits, merge or refresh.",
+      "compiler_sha256": "12f069627c4e253b6656028edf384d99c9fcba8eb956c45364e401318fd7cc89",
+      "commands": [
+        "TSRUST=<pinned> node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs",
+        "TSRUST=<pinned> node experiments/ui-tsrust-owner-handles/cli.mjs demo"
+      ],
+      "evidence": "evidence.sqlite: resource-release/; RESOURCE-RELEASE.md"
+    }
+  ],
+  "reconciliation": {
+    "H": {
+      "H01": {
+        "status": "executed",
+        "evidence": "Verified dependency compiler 66dd80d8; explicitly reserved SQLite quiet window; provenance.json and IDENTITY-DEPENDENCY.md.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H02": {
+        "status": "executed",
+        "evidence": "identity.tsr rejects all cross-runtime and wrong-owner paths; identity-exhaustion.tsr and teardown/recreation pass. B1 resolved within documented source API.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H03": {
+        "status": "executed",
+        "evidence": "retained-registry and extracted-dispatch: distinct owned capture environments, repeated native calls.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H04": {
+        "status": "executed",
+        "evidence": "Integer-only handles permit independent owner operations; no retained loan or state clone.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H05": {
+        "status": "executed",
+        "evidence": "owners-lists.lists: stale submission/read and queued delivery; siblings unaffected.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H06": {
+        "status": "executed",
+        "evidence": "owners-lists.lists: same key receives fresh identity; old queued delivery stale.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H07": {
+        "status": "executed",
+        "evidence": "owners-lists.lists: edited values follow keys; invalid order and duplicate key reject.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H08": {
+        "status": "executed",
+        "evidence": "owners-lists.queued: real callbacks observe FIFO values 1,3,6.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H09": {
+        "status": "executed",
+        "evidence": "Recursive drain returns reentrant; direct-dispatch rejects overlapping mutable access.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H10": {
+        "status": "blocked",
+        "evidence": "B3 resolved by adopted immediate-loss contract and self/ancestor/root/sibling regressions. Exact child-before-parent resource destruction remains unproven: B2.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H11": {
+        "status": "executed",
+        "evidence": "callback-lists.duringCallback(11): removal then immediate surviving-list read.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H12": {
+        "status": "executed",
+        "evidence": "callback-lists.duringCallback(12): removal then reorder survivors within callback.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H13": {
+        "status": "executed",
+        "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs. Named and factory self-replacement controls both execute; B4 resolved.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H14": {
+        "status": "blocked",
+        "evidence": "Registrations become empty after disposal, but exact captured-resource destruction is unobserved: B2.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H15": {
+        "status": "blocked",
+        "evidence": "scope-exit returns a handle without its owner; actual automatic destruction unobserved: B2.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H16": {
+        "status": "blocked",
+        "evidence": "1000 logical cycles and normal instance ceiling execute in cycles.tsr; same runtime/owner/instance allocation algorithm at reduced ceiling executes in identity-exhaustion.tsr. Physical resource baseline remains B2.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H17": {
+        "status": "expected rejection",
+        "evidence": "Existing escaped-loan, overlapping-access, consumed-owner witnesses reject strictly; no ownership relaxation.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H18": {
+        "status": "executed",
+        "evidence": "Token preservation, format idempotence, checked/emitted native assertions and mutation control.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "H19": {
+        "status": "blocked",
+        "evidence": "Native demo exits2 for B2 only. B1 enforced, B3 adopted, B4 repaired; original collision/B4 programs execute separately from Git.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      }
+    },
+    "R": {
+      "R01": {
+        "status": "executed",
+        "evidence": "Verified dependency compiler 66dd80d8; explicitly reserved SQLite quiet window; provenance.json and IDENTITY-DEPENDENCY.md.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R02": {
+        "status": "analysis/emission only",
+        "evidence": "CONTRACT.md records adopted runtime-local identity and immediate state-access retirement. Decision is not resource proof.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R03": {
+        "status": "executed",
+        "evidence": "owner.runtime() owns a private Domain; identity.tsr validates distinct runtimes and owners with colliding local counters. Historical hidden-reset allocator remains a separately executed counterexample.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R04": {
+        "status": "executed",
+        "evidence": "identity.tsr verifies all foreign-operation rejection conventions and unchanged local state; B1 enforced.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R05": {
+        "status": "executed",
+        "evidence": "identity.tsr proves same-callsite teardown/recreation cannot reuse identity; identity-exhaustion.tsr uses the same allocation algorithm with reduced ceiling; cycles.tsr also exercises the normal instance ceiling.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R06": {
+        "status": "executed",
+        "evidence": "disposal.tsr asserts self/ancestor/root stale read/add/enqueue after removal while callback continues and queued events become stale.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R07": {
+        "status": "executed",
+        "evidence": "disposal.tsr sibling-only control permits active read/add; owners-lists.tsr preserves independent FIFO work.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R08": {
+        "status": "executed",
+        "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists assertions retained. Named and factory self-replacement both check, emit and execute; B4 repaired.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R09": {
+        "status": "blocked",
+        "evidence": "resource-capture.tsr executes live File capture twice; CONTRACT.md inspects testing hooks and File release API. No release-count/order observer to calibrate.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R10": {
+        "status": "blocked",
+        "evidence": "resource-capture.tsr removes actual File registration; registry emptiness is not exact-once release. State remains integer-only.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R11": {
+        "status": "blocked",
+        "evidence": "disposal.tsr proves logical retirement; no calibrated observer distinguishes callback-time release from safe-point release.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R12": {
+        "status": "blocked",
+        "evidence": "Source retire/cleanup traversal is child-first analysis only; actual capture/state destruction ordering unobserved.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R13": {
+        "status": "blocked",
+        "evidence": "Event.delta is integer-only. No resource-bearing payload path or observer established; clear API absent and that subcase is not applicable.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R14": {
+        "status": "blocked",
+        "evidence": "scope-exit.tsr returns an identity-only handle; automatic resource release remains unobserved.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R15": {
+        "status": "blocked",
+        "evidence": "cycles.tsr executes 1000 logical cycles; no actual resource-baseline observer. Handles/events do not establish drop counts.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R16": {
+        "status": "expected rejection",
+        "evidence": "Strict escaped-loan/overlap/consumed-owner checks and emission rerun under verified B4 candidate without suppressions.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R17": {
+        "status": "executed",
+        "evidence": "Whole-project formatting, native source assertions and wrong-value failure control. Resource-expectation control cannot run without R09 observer; no resource proof claimed.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R18": {
+        "status": "executed",
+        "evidence": "Every H/R row reconciled with current execution: B1 enforced, B2 open, B3 adopted, B4 repaired. Historical failures remain attributed.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "R19": {
+        "status": "blocked",
+        "evidence": "Supported native cases and current/original B4 controls execute. Demo exits2 for B2 only; identity separately reported as enforced.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      }
+    },
+    "I": {
+      "I01": {
+        "status": "executed",
+        "evidence": "Baseline b255009e contains B4; coordinated compiler dependency66dd80d8 merged separately as d6e747f1. Stable candidate hash pinned, window explicitly reserved; consumers unchanged.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I02": {
+        "status": "executed",
+        "evidence": "Original domain-collision/runtime-boundary source and owner retrieved from Git b255009e; native assertions reproduce historical aliases including teardown/recreation.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I03": {
+        "status": "executed",
+        "evidence": "One primary candidate: private monotonic module runtime counter and private closure-owned Domain. Required existing-language compiler defect repaired with coordination; no alternate/native primitive.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I04": {
+        "status": "executed",
+        "evidence": "Two same-runtime owners and a separate runtime work with equal keys and colliding local owner/instance IDs.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I05": {
+        "status": "executed",
+        "evidence": "Wrong-owner and cross-runtime valid/read/add/remove reject in both directions with local values unchanged.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I06": {
+        "status": "executed",
+        "evidence": "Foreign root and component parents reject mount/values/reorder/remove; root and stale-removal shortcuts preserve identity checks; local controls succeed.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I07": {
+        "status": "executed",
+        "evidence": "Foreign enqueue leaves queue/registration counts and values unchanged; native local callbacks, FIFO/stale delivery and stored runtime identity verified.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I08": {
+        "status": "executed",
+        "evidence": "Fresh same-key identity, stale queued delivery, unaffected siblings and reordering execute in identity/owners-lists/callback-lists and named/factory replacement cases.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I09": {
+        "status": "executed",
+        "evidence": "Escaped handle cannot address repeated replacement runtimes from the same callsite; recreated same-runtime owners also reject retired root/item handles. Logical proof only.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I10": {
+        "status": "executed",
+        "evidence": "All three exact allocation algorithms use ceiling3 in a disposable copy; last valid 2 and repeated failures preserve live state and queues. Source guards precede counter updates; cycles also tests normal instance ceiling.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I11": {
+        "status": "executed",
+        "evidence": "Checked allocator owns only local Domain; emitted Handle has three scalar i64 fields. Handle escape/clone and independent mutations execute. No resource destruction claim.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I12": {
+        "status": "executed",
+        "evidence": "All construction paths audited; private create/Domain imports, allocator cloning and owner cloning reject; allocator move/use-after-transfer checks plus positive move/handle-copy and canonical/diamond imports execute.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I13": {
+        "status": "executed",
+        "evidence": "Existing retained captures, dispatch, retirement/list edits, duplicate keys, reentrancy and 1,000 logical cycles retain native assertions.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I14": {
+        "status": "executed",
+        "evidence": "Strict ownership negatives check/emit; current and Git-original B4 named/factory controls execute. Approved compiler fixture caller migration retains reordered-declaration coverage.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I15": {
+        "status": "executed",
+        "evidence": "Wrong expected successful value fails natively with AssertionError. Negative construction cases require specific diagnostics and positive native controls.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I16": {
+        "status": "executed",
+        "evidence": "Whole-project format and repeat pass; focused harness asserts token preservation/idempotence, then executes formatted source. Outside-owned files unchanged apart from approved compiler test call site.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I17": {
+        "status": "not applicable with reason",
+        "evidence": "The initial missing behavior was repaired under explicit compiler-agent confirmation and merged independently. Existing facilities now enforce B1; no remaining identity primitive blocker or alternative candidate.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I18": {
+        "status": "executed",
+        "evidence": "H01-H19 and R01-R19 all reconciled. B1 resolves within documented boundary; B2 remains open, B3 adopted, B4 resolved. Historical sources and pins retained.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I19": {
+        "status": "executed",
+        "evidence": "Complete focused tests pass without skips. Demo runs native cases and reports identity separately; exit 2 for B2, usage/unexpected failures exit 1.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      },
+      "I20": {
+        "status": "executed",
+        "evidence": "Isolated UI commit and restorable local SQLite; coordinated dependency already merged separately. No UI merge, consumer refresh, main evidence import, resource observer or next milestone.",
+        "resource_followup": "L23: checked resource bridge blocked; existing logical/identity evidence unchanged."
+      }
+    }
+  }
+}

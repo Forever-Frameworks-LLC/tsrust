@@ -1,6 +1,9 @@
 # Modules, native standard library and async roadmap
 
 Current continuation: [compiler foundations through S12–S21](handoffs/compiler-to-roadmap-continuation.md).
+Current owner priority (2026-10-15): finish the active S18 work at a safe checkpoint, then prioritize
+[checked resource lifetimes for UI](#owner-priority-compiler-dependency-checked-resource-lifetimes-for-ui).
+UI implementation pauses until that dependency is ready; older priority statements below are historical.
 S01–S11 are accepted within their documented boundaries. The owner's 2026-10-14
 priority is a bounded practical-performance review, then product feature work.
 Extreme-nesting optimizations and exhaustive architecture audits are deferred
@@ -17,6 +20,57 @@ unchanged. Continue the remaining S10 work.
 Status: S01–S03 module loading/checking/native CLI accepted with focused evidence; S04 project editing is accepted at gate 185; S05 primitive native bindings/build is accepted on macOS with focused evidence; S06 type foundations are accepted at gate 186; S07 is accepted on macOS after gates 187–190 native bytes, views and file resources; S08 collections is accepted on macOS; S09 synchronous host foundations are accepted on macOS; S10 JSON is accepted; S11 schemas are accepted on macOS and S12–S21 remain pending. Project-wide multiple-error diagnostics is accepted on macOS; see the [diagnostics acceptance](plans/project-diagnostics-plan.md). User-approved direction: bundled standard library, Rust package backends, Tokio-backed explicit async/await and native threads. No custom goroutine scheduler. This file is the progress ledger and compiler/editor handoff contract. See [module loader acceptance](milestones/modules-01-project-loader.md) and [module checking acceptance](milestones/modules-02-project-linking.md).
 
 [Researched Node and ecosystem coverage inventory](standard-library-coverage.md) maps every pinned Node API family, representative Node/Rust packages, application witnesses and supplemental H-series gates. Its per-export inventory and popularity measurements remain explicit follow-up requirements before broad parity or ranking claims.
+
+## Owner-priority compiler dependency: checked resource lifetimes for UI
+
+Priority recorded2026-10-15 after review of the B2 investigation. UI implementation
+is paused until the compiler dependency below is accepted and available to validate.
+Schedule this as the next compiler priority at a coordinated safe checkpoint with
+active S18 work; do not race its shared native-type, ownership or emission edits.
+This entry records priority and acceptance, not completion or permission to interrupt
+an active validation run.
+
+The current external Rust bridge projects public records field by field and rejects
+exported types implementing `Drop`. That rejection is intentional. Removing it can
+release a native resource during conversion or produce invalid partial moves.
+S18 compiler-owned SQL handles do not establish a general external-resource bridge.
+See the [B2 report](../experiments/ui-tsrust-owner-handles/RESOURCE-RELEASE.md),
+[26-row matrix](../experiments/ui-tsrust-owner-handles/release-matrix.json) and
+[review](../experiments/ui-tsrust-owner-handles/RESOURCE-RELEASE-REVIEW.md).
+
+Deliver the smallest checked owned-resource facility that can carry a real tracked
+native resource through Tsrust state, retained callbacks and queued payloads without
+losing its native identity or destructor. Evaluate a narrow test-resource facility
+before committing to a general public opaque adapter API. A source-side cleanup
+counter, manually released integer registry, patched emitted Rust, or relaxed Drop
+rejection does not satisfy this dependency.
+
+Required compiler acceptance:
+
+- Preserve ownership and actual destruction through construction, move, record/array
+  storage, replacement/removal, callback retention, explicit close and automatic scope
+  exit. Reject use after transfer and unsupported clone/field projection.
+- Expose an independent non-retaining release audit. Calibrate live-versus-released,
+  exact-once and ordering assertions with deliberately wrong expectations and positive
+  controls. Distinguish wrapper destruction from underlying backend cleanup completion.
+- Define borrowed inspection, returned-resource lifetime relationships and error paths.
+  Prove compiler/native behavior and editor diagnostics, completion, hover and parameter
+  help agree. Any new built-in receives complete IntelliSense documentation.
+- Preserve the intended async/worker UI architecture: specify transfer eligibility,
+  thread affinity, active-use ownership across suspension, cancellation versus cleanup
+  completion, and the owner executor's mutation authority. Do not infer thread safety
+  from a structural record or assume dropping a future completes backend cleanup.
+  Document and test supported contracts; explicitly reject unsupported transport.
+- Keep plain-data bridge behavior and S18 transaction/pool borrowing intact. Use focused
+  cross-feature regressions for shared surfaces and separately coordinated build windows.
+
+UI resumes with the existing B2 matrix once the checked resource path and observer
+are validated. B2 is not closed by implementing the compiler primitive alone: test
+state, captures and payloads separately, callback-safe release, automatic owner drop,
+descendant-before-ancestor order and repeated resource balance. Automatic cleanup
+may reveal an owner representation/finalization dependency. Concurrent runtime identity
+allocation, late async completion rejection, cancellation and thread-affine cleanup
+remain explicit follow-up obligations; synchronous success is not worker readiness.
 
 ## Product contract
 
