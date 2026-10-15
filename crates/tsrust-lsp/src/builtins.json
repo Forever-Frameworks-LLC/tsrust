@@ -85,7 +85,7 @@
         },
         {
           "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
-          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
       "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst rows = await db.query('SELECT id, name FROM people');\n```\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
@@ -106,7 +106,7 @@
         },
         {
           "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
-          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
       "documentation": "Returns the affected row count; returned result columns are discarded. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. \n\n```tsrust\nconst removed = await db.execute('DELETE FROM people WHERE id = ?', [1]); // 1 if found\n```\n\nOwnership: borrows the pool for reading until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
@@ -153,7 +153,7 @@
         },
         {
           "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
-          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
       "documentation": "Returns all result rows as owned values. All rows are materialized; there is no streaming cursor. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst rows = await transaction.query('SELECT id, name FROM people');\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nSQL may perform writes using a returning clause.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",
@@ -174,7 +174,7 @@
         },
         {
           "label": "parameters?: (int | number | boolean | string | null | Bytes)[]",
-          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. Use driver-compatible column types and explicit SQL casts where needed."
+          "documentation": "Positional values, default []. int is signed 64-bit; number must be finite; Bytes binds a blob. When driver metadata requests binary32 REAL, narrowing rejects precision loss with precision and overflow with range. Server-side implicit casts can still round; use std:numeric.toFloat32 before binding to a binary32 column when metadata does not expose its width. Use driver-compatible column types and explicit SQL casts where needed."
         }
       ],
       "documentation": "Returns the affected row count; returned result columns are discarded. Uses one prepared SQL statement and positional parameter binding. Missing/extra parameters and database failures throw SqlError at await. SQL text remains driver-specific. No string escaping or identifier sanitization is performed. Transaction DDL and raw transaction/session commands are rejected. \n\n```tsrust\nconst removed = await transaction.execute('DELETE FROM people WHERE id = ?', [1]); // 1 if found\n```\n\nA database/parameter failure or cancellation schedules rollback and makes the transaction inactive. Cleanup may wait for an in-flight statement.\n\nOwnership: borrows the transaction exclusively until the operation finishes or is dropped. Arguments evaluate when the Task is created. Owned SQL text and parameter arrays move into it; use clone when reuse is needed.",

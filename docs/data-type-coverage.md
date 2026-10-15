@@ -105,7 +105,7 @@ rounded `number` cannot recover its original integer. Use the exact helpers at
 boundaries before any widening or arithmetic that may round.
 
 The matched conversion workload is registered in `benchmarks/numeric` and remains
-unmeasured. SQL REAL narrowing is still pending; this section does not change SQL.
+unmeasured. SQL REAL narrowing passes explicit three-driver acceptance.
 
 Acceptance: native fixture and seven executable catalog examples pass; backend
 edge-case tests cover syntax, fraction, range, precision, negative zero and width
@@ -116,3 +116,33 @@ fixture passes. Original failure evidence is retained. JSON hover prose now agre
 with the existing integer-range rejection contract; parser behavior is unchanged.
 The native/Node untimed workload matches its independent checksum and mutation
 guards pass. Closed evidence is stored as `tsrust-numeric-*` in SQLite.
+
+## SQL floating boundaries
+
+Binding to driver-declared REAL now rejects finite binary64 values that would
+round or underflow in binary32 with `SqlError.code == "precision"`. Overflow and
+nonfinite inputs report `range`. Exactly representable values and signed zero
+retain their value. The check applies before both pool and transaction execution.
+
+Driver metadata does not universally describe destination column types. Database
+implicit casts and SQL expressions remain database behavior; the adapter cannot
+promise lossless storage for arbitrary SQL. Validate a binary32 boundary with
+`unwrap(toFloat32(value))` before binding when the driver does not expose it.
+SQLite REAL is binary64. Decimal/date/time domain mappings remain a separate gap.
+
+A failed transaction operation retains the established automatic-rollback contract:
+a precision error makes the transaction inactive. A subsequent commit or rollback
+reports `transaction`; scope cleanup still releases it. Acceptance explicitly
+checks this behavior instead of changing lifecycle semantics for conversion errors.
+The three-driver runner can resume after retained passing groups with
+`--resume-from=postgres` or `--resume-from=mysql`; this skips the already-passed
+backend group and preceding generated-driver groups, and still runs the examples.
+
+SQL acceptance (2026-10-15): three focused backend tests pass; the explicit
+three-driver backend group passes; generated SQLite passes before the fixture
+repair, then resumed PostgreSQL/MySQL and all three examples pass. Default SQL
+checks pass three tests while database integration remains ignored. Focused editor
+parameter help passes. Original failure and resumed evidence are retained as
+`tsrust-sql-precision-*`. The first failure was a test attempting a second rollback
+after automatic rollback; runtime lifecycle behavior was preserved. The runner
+removed its containers, and Docker was stopped after confirming none remained.

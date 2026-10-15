@@ -181,3 +181,12 @@ fn numeric_module_help_preserves_exact_contract(){
  let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!signature["signatures"].as_array().unwrap().is_empty(),"{signature}");
  }
 }
+
+#[test]
+fn sql_parameter_help_explains_precision_and_driver_limits(){
+ let text="import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);await db.query('SELECT ?',[1.25]);await db.close();}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ let offset=text.find("[1.25]").unwrap();
+ let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset}}));
+ let help=signature.to_string();assert!(help.contains("precision loss")&&help.contains("Server-side implicit casts can still round"),"{signature}");
+}

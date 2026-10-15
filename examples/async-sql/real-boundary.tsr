@@ -1,0 +1,21 @@
+import { connect } from 'std:sql';
+import { toFloat32 } from 'std:numeric';
+
+async function main(): Task<void> {
+  // Validate the intended binary32 boundary before binding, even when the driver
+  // does not report a destination width. SQLite itself stores binary64 REAL.
+  const value = unwrap(toFloat32(1.25));
+  const db = await connect('sqlite::memory:', 1);
+  const rows = await db.query('SELECT ? AS value', [value]);
+  console.log(unwrap(rows[0].number('value')));
+  match (toFloat32(0.1)) {
+    Ok(_) => {
+      throw 'unexpected exact binary32 value';
+    },
+    Err(error) => {
+      console.log(error.code);
+    },
+  }
+
+  await db.close();
+}

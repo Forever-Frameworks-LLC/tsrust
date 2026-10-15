@@ -25,7 +25,7 @@ fn sql_ownership_and_async_errors_are_checked_without_a_database() {
 
 #[test]
 fn sql_examples_check_and_format_without_a_database(){
-    for source in [include_str!("../../../examples/async-sql/people.tsr"),include_str!("../../../examples/async-sql/rollback.tsr")]{
+    for source in [include_str!("../../../examples/async-sql/real-boundary.tsr"),include_str!("../../../examples/async-sql/people.tsr"),include_str!("../../../examples/async-sql/rollback.tsr")]{
         let source=support::format_round_trip(source);let dir=support::TempDirectory::new();
         support::success(&support::run(support::cli().arg("check").arg(dir.source(&source)),30));
     }
@@ -38,7 +38,11 @@ fn all_sqlx_drivers_execute_with_rollback_and_cleanup(){
     let mysql=std::env::var("TSRUST_TEST_MYSQL_URL").expect("set TSRUST_TEST_MYSQL_URL or use tools/check-async-sql.mjs --docker");
     let sqlite_dir=support::TempDirectory::new();
     let sqlite_url=format!("sqlite://{}?mode=rwc",sqlite_dir.0.join("acceptance.sqlite").display());
+    let resume=std::env::var("TSRUST_TEST_SQL_RESUME").unwrap_or_default();
+    assert!(matches!(resume.as_str(),""|"postgres"|"mysql"),"unknown SQL resume driver");
     for (driver,url) in [("sqlite",sqlite_url.as_str()),("postgres",postgres.as_str()),("mysql",mysql.as_str())]{
+        if (resume=="postgres" && driver=="sqlite") || (resume=="mysql" && driver!="mysql"){eprintln!("Reusing previously passed {driver} evidence");continue;}
+
         eprintln!("Checking {driver}: bindings, rollback, cancellation, timeout and cleanup");
         let bind=if driver=="postgres"{"$1, $2"}else{"?, ?"};
         let slow_sql=match driver {"postgres"=>"SELECT 1 AS marker FROM pg_sleep(0.25)","mysql"=>"SELECT SLEEP(0.25) AS marker",_=>"WITH RECURSIVE counter(value) AS (SELECT 1 UNION ALL SELECT value+1 FROM counter WHERE value<2000000) SELECT COUNT(*) AS marker FROM counter"};
@@ -46,6 +50,12 @@ fn all_sqlx_drivers_execute_with_rollback_and_cleanup(){
         let flag_type=if driver=="postgres"{"BOOLEAN"}else{"BIGINT"};
         let values=if driver=="postgres"{"$1,$2,$3,$4,$5,$6"}else{"?,?,?,?,?,?"};
         let flag_check=if driver=="postgres"{"strictEqual(unwrap(typed[0].boolean('flag')),true);"}else{"strictEqual(unwrap(typed[0].int('flag')),1);"};
+        let real_check=if driver=="postgres" {r#"
+ let precision=false;try{await db.query('SELECT CAST($1 AS REAL) AS value',[0.1]);}catch(error){strictEqual(error.code,'precision');precision=true;}strictEqual(precision,true);
+ let underflow=false;try{await db.query('SELECT CAST($1 AS REAL) AS value',[1e-300]);}catch(error){strictEqual(error.code,'precision');underflow=true;}strictEqual(underflow,true);
+ const exact=await db.query('SELECT CAST($1 AS REAL) AS value',[1.25]);strictEqual(unwrap(exact[0].number('value')),1.25);
+ {const tx=await db.begin();let rejected=false;try{await tx.query('SELECT CAST($1 AS REAL) AS value',[0.1]);}catch(error){strictEqual(error.code,'precision');rejected=true;}strictEqual(rejected,true);let inactive=false;try{await tx.commit();}catch(error){strictEqual(error.code,'transaction');inactive=true;}strictEqual(inactive,true);}
+"#}else{""};
         let source=format!(r#"
 import {{ connect }} from 'std:sql';
 import {{ strictEqual }} from 'std:testing';
@@ -62,6 +72,7 @@ async function cancelledWrite(url:string,ready:Sender<int>):Task<void>{{
 }}
 async function main():Task<void>{{
  const db=await connect({url},1,2000);
+ {real_check}
  await db.execute('DROP TABLE IF EXISTS tsrust_s18_values');
  await db.execute('CREATE TABLE tsrust_s18_values(i BIGINT,r DOUBLE PRECISION,t VARCHAR(100),b {blob_type},n VARCHAR(100),flag {flag_type})');
  const blob=unwrap(fromArray([0,255]));
@@ -103,7 +114,7 @@ async function main():Task<void>{{
         assert!(output.status.success(),"{driver}: {}",String::from_utf8_lossy(&output.stderr));
         eprintln!("Passed {driver}");
     }
-    for (source,expected) in [(include_str!("../../../examples/async-sql/people.tsr"),"1: Ada\n2: Grace\n"),(include_str!("../../../examples/async-sql/rollback.tsr"),"Transfer rolled back\n0\n")]{let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&support::format_round_trip(source))),600);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}
+    for (source,expected) in [(include_str!("../../../examples/async-sql/real-boundary.tsr"),"1.25\nPrecision\n"),(include_str!("../../../examples/async-sql/people.tsr"),"1: Ada\n2: Grace\n"),(include_str!("../../../examples/async-sql/rollback.tsr"),"Transfer rolled back\n0\n")]{let dir=support::TempDirectory::new();let output=support::run(support::cli().arg("run").arg(dir.source(&support::format_round_trip(source))),600);support::success(&output);assert_eq!(output.stdout,expected.as_bytes());}
 }
 
 #[test]

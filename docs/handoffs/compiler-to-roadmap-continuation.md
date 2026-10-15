@@ -3,13 +3,14 @@
 
 ## Current acceptance and continuation — 2026-10-15
 
-The first data-type section, `std:numeric`, now passes focused compiler/runtime,
+The first data-type section, `std:numeric` (`4760e58d`), now passes focused compiler/runtime,
 editor and matched-workload acceptance. It preserves original int/number union
 inputs and rejects loss for toInt/toNumber/toFloat32, validates signed/unsigned
 8/16/32/64-bit ranges within int storage, and parses strict exact decimal integers.
 Full u64 above i64::MAX and 128-bit values remain explicitly unsupported. See
-`docs/data-type-coverage.md`; workload timing remains unmeasured. Continue the
-SQL REAL precision repair, then decimal/calendar/time-zone/duration/UUID and
+`docs/data-type-coverage.md`; workload timing remains unmeasured. SQL REAL precision repair also passes explicit three-driver acceptance, including
+precision/underflow rejection and unchanged automatic rollback. Continue
+decimal/calendar/time-zone/duration/UUID and
 remaining boundary work before S19–S21. No new go-ahead is required.
 
 
@@ -35,11 +36,16 @@ resource example and workspace Problems panel report no problems. Installed CLI
 execution and installed LSP resource hover/signature help pass independently.
 The user's rust-analyzer workspace extension remains disabled.
 
-Current numeric CLI SHA-256: `6513cb306e73eb2cac7784ade9189a9689910f131e6659b0623f56f395ea9a20`.
-Current numeric LSP SHA-256: `69004935e926ccf23348b903c59635dcefe3263016e7cb70b513ed2ab4b918b5`.
+Current SQL CLI SHA-256: `296f5d1ba4c6ac93a49925d7ba97870b2d36179e8dd9e1241dd47d74d984c19e`.
+Current SQL LSP SHA-256: `0baff0f427cd8ded84a895851b5880ba3bf6a0216cedb1afc2f54a012c2c26f4`.
 Both consumers were refreshed again for numeric acceptance. The active editor
 server was stopped when inspected, then restarted through its status item.
-Both already-open numeric fixtures now report no workspace problems.
+Both already-open numeric fixtures initially reported no workspace problems.
+Subsequent consumer inspection found repeated background-thread stack overflows
+in the active editor (SIGABRT at 19:20:25, 19:31:47 and 19:35:36). Focused LSP
+requests pass, but sustained real-workspace editor acceptance needs this repair
+before adding more types. Do not describe the active editor as healthy until
+that failure is reproduced and fixed.
 Reuse `/private/tmp/tsrust-gate100-editor-target`, `CARGO_INCREMENTAL=0` and
 `CARGO_BUILD_JOBS=1`. The restart made the initial build cold; no separate target
 was introduced. Closed diagnostic records are byte-verified in
@@ -53,9 +59,9 @@ bounded standalone rust-analyzer 0.3.3081 run; the latter shuts down after probi
 and does not re-enable the editor extension. The Tsrust inventory handles native
 aliases and explicitly identifies the internal non-importable TestRegistry.
 Required domain/width gaps remain implementation work, not accepted coverage.
-A concrete existing defect is SQL REAL narrowing: finite f64 values can round to
-f32 without a precision error. Repair it with checked conversions and rerun the
-explicit three-driver runner when the SQL section is complete.
+SQL REAL narrowing is now checked: finite values that round or underflow reject
+with precision. All three drivers passed with retained/resumed evidence; no need
+to repeat this suite until subsequent SQL or task-lifecycle changes require it.
 
 One writer/build owner remains in this tree. Preserve the owner's six unrelated
 untracked UI plan files. The UI review chat may review readiness read-only until

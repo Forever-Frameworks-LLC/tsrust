@@ -12,6 +12,13 @@ mod tsrust_native_sql {
         let message=if let sqlx::Error::Database(db)=&error {format!("{}: {}",db.code().unwrap_or_default(),db.message())}else{error.to_string()};
         self::error(code,message)
     }
+    pub(super) fn exact_real(value:f64)->Result<f32,Error>{
+        if !value.is_finite(){return Err(error("range","SQL numbers must be finite"));}
+        let narrowed=value as f32;
+        if !narrowed.is_finite(){return Err(error("range","Value exceeds REAL"));}
+        if f64::from(narrowed)!=value{return Err(error("precision","Value is not exactly representable as REAL"));}
+        Ok(narrowed)
+    }
     pub enum Parameter { Integer(i64), Real(f64), Boolean(bool), Text(String), Blob(Vec<u8>), Null }
     async fn arguments(connection:&mut sqlx::AnyConnection,sql:&str,parameters:&[Parameter])->Result<AnyArguments,Error>{
         let statement=connection.prepare(sqlx::AssertSqlSafe(sql).into_sql_str()).await.map_err(database)?;
@@ -26,7 +33,7 @@ mod tsrust_native_sql {
                     Some(AnyTypeInfoKind::Integer)=>args.add(i32::try_from(*value).map_err(|_|error("range","Value exceeds INTEGER"))?),
                     _=>args.add(*value),
                 },
-                Parameter::Real(value)=>{if !value.is_finite(){return Err(error("range","SQL numbers must be finite"));}if kind==Some(AnyTypeInfoKind::Real){let value=*value as f32;if !value.is_finite(){return Err(error("range","Value exceeds REAL"));}args.add(value)}else{args.add(*value)}},
+                Parameter::Real(value)=>{if !value.is_finite(){return Err(error("range","SQL numbers must be finite"));}if kind==Some(AnyTypeInfoKind::Real){args.add(exact_real(*value)?)}else{args.add(*value)}},
                 Parameter::Boolean(value)=>args.add(*value),Parameter::Text(value)=>args.add(value.clone()),Parameter::Blob(value)=>args.add(value.clone()),
                 Parameter::Null=>match kind{
                     Some(AnyTypeInfoKind::Text)=>args.add(Option::<String>::None),Some(AnyTypeInfoKind::Blob)=>args.add(Option::<Vec<u8>>::None),

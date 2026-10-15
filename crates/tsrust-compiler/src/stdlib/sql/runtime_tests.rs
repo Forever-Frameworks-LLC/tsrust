@@ -1,4 +1,12 @@
 #[test]
+fn sql_real_conversion_rejects_rounding_and_underflow(){
+ use tsrust_native_sql::exact_real;
+ assert_eq!(exact_real(1.25).unwrap(),1.25_f32);
+ assert!(exact_real(-0.0).unwrap().is_sign_negative());
+ for value in [0.1,16777217.0,1e-300,-1e-300]{assert_eq!(exact_real(value).unwrap_err().code,"precision");}
+ for value in [f64::MAX,f64::NAN,f64::INFINITY]{assert_eq!(exact_real(value).unwrap_err().code,"range");}
+}
+#[test]
 fn sql_lifecycle_commands_and_batches_are_rejected(){
  use tsrust_native_sql::*;
  for sql in ["COMMIT","ROLLBACK","BEGIN","START TRANSACTION","SAVEPOINT x","RELEASE x","SET autocommit=1","SELECT 1; COMMIT","/*! COMMIT */", "/* outer /* nested */ */ ROLLBACK"]{assert!(validate_statement(sql,false).is_err(),"{sql}");}
@@ -22,6 +30,10 @@ fn sql_drivers_bind_scalars_and_release_transactions(){
   tsrust_native_futures::block_on(async {
    let pool=Pool::connect(url,Some(1),Some(5000)).await.unwrap_or_else(|error|panic!("{driver} connect: {error:?}"));
    if driver=="postgres" {
+    for (value,code) in [(0.1,"precision"),(1e-300,"precision"),(f64::MAX,"range")]{
+     let failure=pool.query("SELECT CAST($1 AS REAL) AS value",&[Parameter::Real(value)]).await.err().expect("lossy REAL must reject");assert_eq!(failure.code,code);
+    }
+
     let values=pool.query("SELECT CAST($1 AS REAL) AS r,CAST($2 AS SMALLINT) AS s,CAST($3 AS INTEGER) AS i",&[Parameter::Real(1.25),Parameter::Integer(32767),Parameter::Integer(2147483647)]).await.unwrap();
     assert_eq!(values[0].number("r").unwrap(),1.25);assert_eq!(values[0].int("s").unwrap(),32767);assert_eq!(values[0].int("i").unwrap(),2147483647);
    }
