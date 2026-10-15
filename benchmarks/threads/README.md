@@ -63,3 +63,15 @@ construction is excluded. Node uses worker messages; native uses owned channel
 transfers. A separate BigInt oracle verifies every checksum. Compare within-engine
 serial/parallel ratios to assess multicore scaling; cross-engine ratios also
 include arithmetic and message-transport implementation differences.
+
+Accepted channel measurement: `channel-throughput-2026-10-15T00-24-43-676Z.json`
+in SQLite, with 93 samples per variant/engine and checksum 4791373295 throughout.
+On Apple M3, native medians are 3.511500/1.735416/1.052875 ms for serial/two/four
+workers (2.02x/3.34x speedups). Node-after-tsc medians are
+27.922833/14.795958/7.765750 ms (1.89x/3.60x). These are workload-specific results.
+
+The unchanged tiny-task pool sources were remeasured after channel/cancellation
+integration: `pool-join-2026-10-15T00-25-18-930Z.json`. Native/Node medians are
+0.015458/0.099500 ms. Native increased 3.9%; the unchanged Node reference increased
+44.6%. This does not isolate a compiler regression; no optimization was made from
+that signal alone. Prior measurements remain immutable.

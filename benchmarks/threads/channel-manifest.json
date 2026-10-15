@@ -1,7 +1,7 @@
 {
   "id": "channel-throughput",
-  "implementationAccepted": false,
-  "measurementStatus": "pending",
+  "implementationAccepted": true,
+  "measurementStatus": "measured",
   "workerCounts": [
     0,
     2,
@@ -12,5 +12,8 @@
   "source": "channel-throughput.tsr",
   "counterpart": "channel-throughput.ts",
   "sourceSha256": "8f4fd05f3f0128fdd3319eac3430ab846b425403e3b348e5c1d7e459caef8192",
-  "counterpartSha256": "f854422fc590e30d85eeb68f99ec7287c15a11f89cfcd5950c4fb3622fabaa29"
+  "counterpartSha256": "f854422fc590e30d85eeb68f99ec7287c15a11f89cfcd5950c4fb3622fabaa29",
+  "sourceCommit": "8c40ffb5",
+  "verificationRecord": "benchmarks/threads/channel-throughput-2026-10-14T23-45-56-957Z-verify.json",
+  "measurementRecord": "benchmarks/threads/channel-throughput-2026-10-15T00-24-43-676Z.json"
 }
