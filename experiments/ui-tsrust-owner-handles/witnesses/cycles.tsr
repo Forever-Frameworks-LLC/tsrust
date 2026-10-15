@@ -27,7 +27,10 @@ function cycles(): void {
     strictEqual(owner.retired.length, 0);
   }
 
-  owner.next = 2147483647;
+  owner.next = 2147483646;
+  const last = mount(owner, parent, 'last', 7, increment(1));
+  strictEqual(last.instance, 2147483646);
+  strictEqual(owner.next, 2147483647);
   let exhausted = false;
   try {
     mount(owner, parent, 'overflow', 0, increment(1));
@@ -36,8 +39,12 @@ function cycles(): void {
   }
 
   strictEqual(exhausted, true);
-  strictEqual(owner.nodes.length, 0);
-  domain.next = 2147483647;
+  strictEqual(owner.nodes.length, 1);
+  strictEqual(read(owner, last), 7);
+  domain.next = 2147483646;
+  const lastOwner = create(domain);
+  strictEqual(lastOwner.id, 2147483646);
+  strictEqual(domain.next, 2147483647);
   exhausted = false;
   try {
     create(domain);

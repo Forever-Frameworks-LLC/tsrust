@@ -1,0 +1,213 @@
+{
+  "contract": "blocked",
+  "decisions": {
+    "identity": "one library-controlled allocator per runtime; enforcement unproven",
+    "B3": "adopted"
+  },
+  "rows": [
+    {
+      "id": "R01",
+      "status": "executed",
+      "evidence": "Verified compiler and committed S15 completion; provenance.json and isolated command records."
+    },
+    {
+      "id": "R02",
+      "status": "analysis/emission only",
+      "evidence": "CONTRACT.md records adopted runtime-local identity and immediate state-access retirement. Decision is not resource proof."
+    },
+    {
+      "id": "R03",
+      "status": "executed",
+      "evidence": "runtime-boundary.tsr closure-owned allocator issues 1 then 2; owners-lists.tsr verifies scoped independent owners and wrong-owner rejection."
+    },
+    {
+      "id": "R04",
+      "status": "blocked",
+      "evidence": "runtime-boundary.tsr reproduces cross-runtime read/mutate/enqueue/remove/reorder aliasing despite hidden allocator.",
+      "blockers": [
+        "B1"
+      ]
+    },
+    {
+      "id": "R05",
+      "status": "blocked",
+      "evidence": "cycles.tsr tests last valid IDs and preserved live state at exhaustion; runtime-boundary.tsr proves escaped identity aliases after teardown/recreation.",
+      "blockers": [
+        "B1"
+      ]
+    },
+    {
+      "id": "R06",
+      "status": "executed",
+      "evidence": "disposal.tsr asserts self/ancestor/root stale read/add/enqueue after removal while callback continues and queued events become stale."
+    },
+    {
+      "id": "R07",
+      "status": "executed",
+      "evidence": "disposal.tsr sibling-only control permits active read/add; owners-lists.tsr preserves independent FIFO work."
+    },
+    {
+      "id": "R08",
+      "status": "executed",
+      "evidence": "Existing retained-registry, extracted-dispatch, owners-lists and callback-lists native assertions retained."
+    },
+    {
+      "id": "R09",
+      "status": "blocked",
+      "evidence": "resource-capture.tsr executes live File capture twice; CONTRACT.md inspects testing hooks and File release API. No release-count/order observer to calibrate.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R10",
+      "status": "blocked",
+      "evidence": "resource-capture.tsr removes actual File registration; registry emptiness is not exact-once release. State remains integer-only.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R11",
+      "status": "blocked",
+      "evidence": "disposal.tsr proves logical retirement; no calibrated observer distinguishes callback-time release from safe-point release.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R12",
+      "status": "blocked",
+      "evidence": "Source retire/cleanup traversal is child-first analysis only; actual capture/state destruction ordering unobserved.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R13",
+      "status": "blocked",
+      "evidence": "Event.delta is integer-only. No resource-bearing payload path or observer established; clear API absent and that subcase is not applicable.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R14",
+      "status": "blocked",
+      "evidence": "scope-exit.tsr returns an identity-only handle; automatic resource release remains unobserved.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R15",
+      "status": "blocked",
+      "evidence": "cycles.tsr executes 1000 logical cycles; no actual resource-baseline observer. Handles/events do not establish drop counts.",
+      "blockers": [
+        "B2"
+      ]
+    },
+    {
+      "id": "R16",
+      "status": "expected rejection",
+      "evidence": "Strict escaped-loan/overlap/consumed-owner checks and emission rerun under verified S15 without suppressions."
+    },
+    {
+      "id": "R17",
+      "status": "executed",
+      "evidence": "Whole-project formatting, native source assertions and wrong-value failure control. Resource-expectation control cannot run without R09 observer; no resource proof claimed."
+    },
+    {
+      "id": "R18",
+      "status": "executed",
+      "evidence": "H01-H19 reconciliation complete, B3 decision distinct from proof; B1/B2 remain open."
+    },
+    {
+      "id": "R19",
+      "status": "blocked",
+      "evidence": "Native demo executes supported witnesses then emits both matrices and exit 2; full adopted contract remains blocked.",
+      "blockers": [
+        "B1",
+        "B2"
+      ]
+    }
+  ],
+  "reconciliation": {
+    "H01": {
+      "status": "executed",
+      "evidence": "Verified S15 release compiler (57fd08aa...), source af0cbba8; checkout 24e8d38e; S15 timing complete; isolated commands."
+    },
+    "H02": {
+      "status": "blocked",
+      "evidence": "Within one Domain, wrong-owner access/submission fails. Independent Domains collide: B1."
+    },
+    "H03": {
+      "status": "executed",
+      "evidence": "retained-registry and extracted-dispatch: distinct owned capture environments, repeated native calls."
+    },
+    "H04": {
+      "status": "executed",
+      "evidence": "Integer-only handles permit independent owner operations; no retained loan or state clone."
+    },
+    "H05": {
+      "status": "executed",
+      "evidence": "owners-lists.lists: stale submission/read and queued delivery; siblings unaffected."
+    },
+    "H06": {
+      "status": "executed",
+      "evidence": "owners-lists.lists: same key receives fresh identity; old queued delivery stale."
+    },
+    "H07": {
+      "status": "executed",
+      "evidence": "owners-lists.lists: edited values follow keys; invalid order and duplicate key reject."
+    },
+    "H08": {
+      "status": "executed",
+      "evidence": "owners-lists.queued: real callbacks observe FIFO values 1,3,6."
+    },
+    "H09": {
+      "status": "executed",
+      "evidence": "Recursive drain returns reentrant; direct-dispatch rejects overlapping mutable access."
+    },
+    "H10": {
+      "status": "blocked",
+      "evidence": "B3 resolved by adopted immediate-loss contract and self/ancestor/root/sibling regressions. Exact child-before-parent resource destruction remains unproven: B2."
+    },
+    "H11": {
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(11): removal then immediate surviving-list read."
+    },
+    "H12": {
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(12): removal then reorder survivors within callback."
+    },
+    "H13": {
+      "status": "executed",
+      "evidence": "callback-lists.duringCallback(13): same-key reinsertion, current read/order, old event stale, fresh event runs."
+    },
+    "H14": {
+      "status": "blocked",
+      "evidence": "Registrations become empty after disposal, but exact captured-resource destruction is unobserved: B2."
+    },
+    "H15": {
+      "status": "blocked",
+      "evidence": "scope-exit returns a handle without its owner; actual automatic destruction unobserved: B2."
+    },
+    "H16": {
+      "status": "blocked",
+      "evidence": "1000 logical cleanup cycles and checked identity exhaustion execute; resource baseline unproven: B2."
+    },
+    "H17": {
+      "status": "expected rejection",
+      "evidence": "Existing escaped-loan, overlapping-access, consumed-owner witnesses reject strictly; no ownership relaxation."
+    },
+    "H18": {
+      "status": "executed",
+      "evidence": "Token preservation, format idempotence, checked/emitted native assertions and mutation control."
+    },
+    "H19": {
+      "status": "blocked",
+      "evidence": "Native partial demo and H/R matrices execute; B1/B2 retained, B3 explicitly adopted; exit 2."
+    }
+  }
+}

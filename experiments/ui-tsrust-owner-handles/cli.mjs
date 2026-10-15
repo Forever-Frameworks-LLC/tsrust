@@ -6,11 +6,12 @@ if (process.argv.length !== 3 || process.argv[2] !== 'demo') {
   process.exitCode = 1;
 } else {
   temporary(dir => {
-    for (const file of ['owners-lists.tsr', 'disposal.tsr', 'callback-lists.tsr', 'cycles.tsr', 'domain-collision.tsr', 'scope-exit.tsr']) {
+    for (const file of ['owners-lists.tsr', 'disposal.tsr', 'callback-lists.tsr', 'cycles.tsr', 'domain-collision.tsr', 'scope-exit.tsr', 'runtime-boundary.tsr', 'resource-capture.tsr']) {
       process.stdout.write(execute(path.join(root, 'witnesses', file), dir));
     }
     const matrix = JSON.parse(readFileSync(path.join(root, 'matrix.json'), 'utf8'));
-    console.log(JSON.stringify({investigation: 'complete', contract: 'blocked', blockers: matrix.blockers, rows: matrix.rows}, null, 2));
+    const followup = JSON.parse(readFileSync(path.join(root, 'resource-matrix.json'), 'utf8'));
+    console.log(JSON.stringify({followup, investigation: 'complete', contract: 'blocked', blockers: matrix.blockers, rows: matrix.rows}, null, 2));
     process.exitCode = 2;
   });
 }

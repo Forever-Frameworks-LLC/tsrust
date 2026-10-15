@@ -1,0 +1,15 @@
+{
+  "baseline": "24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb",
+  "compiler_source": "af0cbba8",
+  "compiler_version": "tsrust 0.1.0",
+  "compiler_sha256": "57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3",
+  "prior_compiler_source": "6fce2b90",
+  "prior_compiler_sha256": "cae21ac7d026d98f879656cc0776cb5080a46a681251ec7e3e9160bbc0b20c6d",
+  "verification": "Committed docs/plans/http-acceptance.md records completed measurements and release consumers. SHA checked before probes; no S15 measurement remains active under this recorded status.",
+  "s15_status_sha256": "b1be5e3a0bd535c9d6f789d5dc5c6e3843ebd65411d22e8b181d6d5323f80ad0",
+  "assignment_sha256": "21de3bd4832e70ec5865d38886b161cd3d821fcbe33cad84a69acf0fcf12a968",
+  "node": "v26.3.0",
+  "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "historical_source": "8ec68bf097e7a3f2da207b59394d259da7caee70",
+  "historical_evidence": "Main SQLite runtime/diagnostics/ui-tsrust-owner-handles/8ec68bf097e7a3f2da207b59394d259da7caee70/ (read-only reference); new evidence stays local."
+}

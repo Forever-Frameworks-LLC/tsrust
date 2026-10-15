@@ -1,8 +1,8 @@
 # Tsrust owner/handle feasibility
 
-Investigation complete; the full owner/handle contract remains **blocked**. Ordinary Tsrust can express considerably more of the lifecycle model than the earlier counter witness established. This directory is experimental source and evidence, not a production runtime or public API.
+Lifetime-contract follow-up complete; the adopted owner/handle contract remains **blocked by B1/B2**. B3 is resolved by explicit adoption of immediate state-access retirement. See [contract decisions and observation limits](CONTRACT.md), [R01–R19 matrix](resource-matrix.json), and [tool provenance](provenance.json). Ordinary Tsrust can express considerably more of the lifecycle model than the earlier counter witness established. This directory is experimental source and evidence, not a production runtime or public API.
 
-Baseline: `5ff76855b9f2445a6c6b9bd26a369686b8dd16ec`. The task brief was supplied from `docs/plans/ui-tsrust-owner-handles-first-task.md` in main; it is not part of that baseline. S15 code in the checkout is not treated as accepted or used by these programs.
+Original baseline: `5ff76855b9f2445a6c6b9bd26a369686b8dd16ec`. Follow-up baseline: `24e8d38e0b8dd0d3713c4064a7e430e6f75b3ceb`, containing the merged prototype and completed S15 acceptance. The task brief was supplied from `docs/plans/ui-tsrust-owner-handles-first-task.md` in main; it is not part of that baseline. The follow-up uses the verified S15 release after its completed timing window; no HTTP integration is introduced.
 
 ## Commands and outcomes
 
@@ -11,9 +11,9 @@ node --test experiments/ui-tsrust-owner-handles/tests/*.test.mjs
 node experiments/ui-tsrust-owner-handles/cli.mjs demo
 ```
 
-The focused suite validates native source witnesses, strict rejection controls, formatting and the 19-row matrix. A passing suite means the investigation is reproducible; it does not make blocked rows supported. The demo executes the real Tsrust programs, then prints the blocker matrix and exits **2** deliberately. Exit 1 indicates usage, tool or unexpected validation failure. There is no Rust owner implementation or canned successful demo transcript behind the CLI.
+The focused suite validates native source witnesses, strict rejection controls, formatting and the H01–H19 and R01–R19 matrices. A passing suite means the investigation is reproducible; it does not make blocked rows supported. The demo executes the real Tsrust programs, then prints the blocker matrix and exits **2** deliberately. Exit 1 indicates usage, tool or unexpected validation failure. There is no Rust owner implementation or canned successful demo transcript behind the CLI.
 
-Tools: installed Node, rustc and the verified S14 Tsrust compiler from `6fce2b90`, SHA-256 `cae21ac7d026d98f879656cc0776cb5080a46a681251ec7e3e9160bbc0b20c6d`. The hash is checked before and after native execution. A changed compiler requires provenance review, not a silent pin update. Check/emit use the module path; native code is compiled directly with rustc in disposable directories. No Cargo, downloads, package installation, compiler build, consumer replacement or shared build output is involved. `UI_EVIDENCE_LOG` optionally retains exact subprocess records for SQLite import.
+Tools: installed Node, rustc and the verified S15 release compiler from `af0cbba8`, SHA-256 `57fd08aad9358fa367434bb5f5f036885b0148a7c0994939addea8f230aceca3`. The hash is checked before and after native execution. A changed compiler requires provenance review, not a silent pin update. Check/emit use the module path; native code is compiled directly with rustc in disposable directories. No Cargo, downloads, package installation, compiler build, consumer replacement or shared build output is involved. `UI_EVIDENCE_LOG` optionally retains exact subprocess records for SQLite import.
 
 ## Tested representation
 
@@ -38,7 +38,7 @@ The machine-readable [matrix](matrix.json) is the authoritative disposition list
 | H03–H04 | Executed | Retained registry, extracted dispatch, independent owner mutation and integer-only handles |
 | H05–H07 | Executed | Queued stale delivery, replacement identity, preserved keyed edits, duplicate/invalid-order rejection |
 | H08–H09 | Executed | Callback FIFO observations 1,3,6; reentrant drain rejection; strict direct-dispatch rejection |
-| H10 | Blocked on resource destruction and active-state semantics (B2/B3) | `disposal.tsr` asserts stale active access after self/ancestor/root removal, continued access after sibling-only removal, and stale queued deliveries; registry emptiness is not destructor evidence |
+| H10 | Blocked on resource destruction (B2); B3 contract adopted | `disposal.tsr` asserts stale active access after self/ancestor/root removal, continued access after sibling-only removal, and stale queued deliveries; registry emptiness is not destructor evidence |
 | H11–H13 | Executed | `callback-lists.tsr` runs all three callback-removal regressions, including fresh delivery and duplicate replacement rejection |
 | H14–H15 | Blocked on resource observation | Explicit logical cleanup and `scope-exit.tsr` run; exact release and automatic destructor observations are absent |
 | H16 | Blocked on resource baseline; logical cycles execute | 1,000 mount/deliver/remove cycles leave no registry entries; checked owner/instance exhaustion rejects; no allocator/drop claim |
@@ -58,9 +58,9 @@ One possible narrower contract is a single library-controlled allocator per UI r
 
 The standard testing surface and native type declarations inspected here did not establish a source-level resource-drop observer suitable for these witnesses. The next dependency should be an agreed observation method or a narrowly scoped resource contract, rather than claiming a leak or adding a generic destruction API without evidence. Scope changes, observation mechanisms and any compiler work require a separate task.
 
-**B3: active callback state access.** The narrower experimental contract permits callback code to continue after self, ancestor or root removal, but its handle-mediated state access ends immediately: `read` returns `undefined`, `add` returns `false`, and event submission fails. Removing only a sibling preserves the active callback's state access. `disposal.tsr` asserts these cases after removal, as well as the stale queued deliveries and final logical cleanup.
+**B3: resolved by adopted contract.** Dispatching the follow-up adopted immediate loss of handle-mediated state access after self/ancestor/root removal. Sibling-only removal preserves active access. Regressions characterize this narrower contract; they do not implement the Rust reference's surviving state loan. H10 still requires resource proof under B2. See CONTRACT.md for the decision and its unchanged guarantees.
 
-The Rust reference passes a separate current-state loan that remains usable until callback return even after retirement. This source representation passes only owner and handle, so it has no equivalent surviving state access. H10 remains blocked by this semantic difference independently of B2; H19 therefore remains a blocked report. These regressions characterize the narrower behavior, not acceptance of reference parity. Reviewing this narrower contract or restoring the reference behavior requires a separately authorized change; the counterexample does not establish a compiler defect or a need for new ownership machinery.
+The new `runtime-boundary.tsr` counterexample hides the allocator in a retained closure yet still aliases independent/recreated runtimes. B1 remains open. `resource-capture.tsr` executes a real File capture through the owner registry; it does not observe actual release count or order. Inspection of testing hooks and File resource facilities establishes no calibrated observer. R09–R15 remain blocked rather than manufacturing resource evidence.
 
 Read-only compiler inspection leads:
 
@@ -70,7 +70,7 @@ Read-only compiler inspection leads:
 - `native/types.rs`, `native/bindings.rs`, `native/signatures.rs`: possible explicit identity/resource declarations; these are not approved edits.
 - `error_effects/mod.rs`: the unresolved typed catch observation is separate from the successful catch-without-binding witness. No error payload inspection is required by this task.
 
-Recommendation: review allocator scope and select a resource-lifetime observation strategy before promoting this library model. Existing owned callable storage already supports the tested dispatch mechanism. Do not start a broad compiler owner/handle feature merely because the Rust prototype used `Weak`. Actual shared compiler work still waits for S15 acceptance and a separate assignment.
+Recommendation: separately scope enforceable runtime identity and a test-only resource-lifetime observation mechanism before promoting this library model. Existing owned callable storage already supports the tested dispatch mechanism. Do not start a broad compiler owner/handle feature merely because the Rust prototype used `Weak`. S15 is now accepted; any compiler/native support still requires a separate assignment.
 
 ## Isolation, evidence and limits
 
@@ -78,6 +78,6 @@ Only `experiments/ui-tsrust-owner-handles/` is owned. The prior prototype and it
 
 Whole-project formatting is required before the source checkpoint. The existing formatter's TypeScript dependency may be resolved read-only from main, with the exact helper and dependency identities recorded. This does not add a dependency to the prototype. The small Node token checker intentionally supports only the lexical subset used by these witnesses and rejects unsupported input; it is not a new application parser.
 
-Closed records live in ignored `evidence.sqlite`, using `benchmarks/storage/store.py` and verified byte-exact restoration. Original timeouts, failed probes, corrected harness expectations, final checks and demo output are retained. Loose verified records and task-created executables are removed. Evidence remains isolated for owner-authorized serial integration.
+Closed records live in ignored `evidence.sqlite`, using `benchmarks/storage/store.py` and verified byte-exact restoration. Original timeouts, failed probes, corrected harness expectations, final checks and demo output are retained. Loose verified records and task-created executables are removed. New follow-up evidence remains isolated for owner-authorized serial integration; earlier merged evidence is already canonical in main SQLite.
 
 Callbacks in the executed slice complete normally. Exception/panic recovery, cancellation, multithreading, untrusted internal-field mutation, cross-Domain transport, rendering and performance are not accepted. Physical allocation counts and drop order remain unmeasured. Do not call the blocked contract production-ready or merge without review. Stop after this task.
