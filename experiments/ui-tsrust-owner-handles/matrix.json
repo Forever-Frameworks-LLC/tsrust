@@ -9,6 +9,15 @@
       "witness": "witnesses/scope-exit.tsr",
       "kind": "resource lifetime observation gap",
       "detail": "Source assertions observe handles and registry membership, not destruction of state, closures or event payloads. No supported drop observer was established. No generated Rust instrumentation or invented destructor API."
+    },
+    "B3": {
+      "witness": "witnesses/disposal.tsr",
+      "kind": "active callback state access / narrower contract",
+      "detail": "After self, ancestor or root retirement, the active callback can continue executing but read returns undefined and add returns false. Sibling-only removal preserves active access. Unlike the Rust reference, no separate current-state loan survives retirement. This is an explicit blocker to H10 parity, not a proven compiler limitation.",
+      "dependentRows": [
+        "H10",
+        "H19"
+      ]
     }
   },
   "rows": [
@@ -60,7 +69,7 @@
     {
       "id": "H10",
       "status": "blocked",
-      "evidence": "Self/sibling/ancestor invalidation executes; actual child-before-parent destruction unproven: B2."
+      "evidence": "Self/sibling/ancestor/root invalidation executes; child-before-parent destruction unproven: B2. Active state access ends at retirement instead of surviving through callback completion: B3; disposal.tsr asserts both stale access and the sibling-only control."
     },
     {
       "id": "H11",
@@ -105,7 +114,7 @@
     {
       "id": "H19",
       "status": "blocked",
-      "evidence": "Actual native partial demo runs; blocker report exits 2; full contract is not accepted."
+      "evidence": "Actual native partial demo runs; blocker report includes B1/B2/B3 and exits 2; full contract is not accepted."
     }
   ]
 }

@@ -38,7 +38,7 @@ The machine-readable [matrix](matrix.json) is the authoritative disposition list
 | H03–H04 | Executed | Retained registry, extracted dispatch, independent owner mutation and integer-only handles |
 | H05–H07 | Executed | Queued stale delivery, replacement identity, preserved keyed edits, duplicate/invalid-order rejection |
 | H08–H09 | Executed | Callback FIFO observations 1,3,6; reentrant drain rejection; strict direct-dispatch rejection |
-| H10 | Blocked on actual resource destruction | `disposal.tsr` executes self/sibling/ancestor invalidation and stale deliveries; registry emptiness is not destructor evidence |
+| H10 | Blocked on resource destruction and active-state semantics (B2/B3) | `disposal.tsr` asserts stale active access after self/ancestor/root removal, continued access after sibling-only removal, and stale queued deliveries; registry emptiness is not destructor evidence |
 | H11–H13 | Executed | `callback-lists.tsr` runs all three callback-removal regressions, including fresh delivery and duplicate replacement rejection |
 | H14–H15 | Blocked on resource observation | Explicit logical cleanup and `scope-exit.tsr` run; exact release and automatic destructor observations are absent |
 | H16 | Blocked on resource baseline; logical cycles execute | 1,000 mount/deliver/remove cycles leave no registry entries; checked owner/instance exhaustion rejects; no allocator/drop claim |
@@ -57,6 +57,10 @@ One possible narrower contract is a single library-controlled allocator per UI r
 **B2: destruction observability.** Existing source assertions establish state values, callback invocation, stale results and logical registry removal. They do not establish when captured resources or event payloads actually drop, or prove exact-once child-before-parent destruction. A surviving integer handle after `scope-exit.tsr` returns is not evidence that an owning resource was released. No generated Rust was patched or instrumented to invent this proof.
 
 The standard testing surface and native type declarations inspected here did not establish a source-level resource-drop observer suitable for these witnesses. The next dependency should be an agreed observation method or a narrowly scoped resource contract, rather than claiming a leak or adding a generic destruction API without evidence. Scope changes, observation mechanisms and any compiler work require a separate task.
+
+**B3: active callback state access.** The narrower experimental contract permits callback code to continue after self, ancestor or root removal, but its handle-mediated state access ends immediately: `read` returns `undefined`, `add` returns `false`, and event submission fails. Removing only a sibling preserves the active callback's state access. `disposal.tsr` asserts these cases after removal, as well as the stale queued deliveries and final logical cleanup.
+
+The Rust reference passes a separate current-state loan that remains usable until callback return even after retirement. This source representation passes only owner and handle, so it has no equivalent surviving state access. H10 remains blocked by this semantic difference independently of B2; H19 therefore remains a blocked report. These regressions characterize the narrower behavior, not acceptance of reference parity. Reviewing this narrower contract or restoring the reference behavior requires a separately authorized change; the counterexample does not establish a compiler defect or a need for new ownership machinery.
 
 Read-only compiler inspection leads:
 

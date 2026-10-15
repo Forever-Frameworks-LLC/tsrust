@@ -22,7 +22,7 @@ test('H02-H13,H16,H18: formatted source model executes natively; scopes and drop
     'H02-H04 scoped owners, retained registry and non-owning handles: executed',
     'H05-H07 queued stale events, fresh identities and keyed lists: executed',
     'H08-H09 FIFO and recursive drain rejection: executed',
-    'H10 invalidation and empty registrations: executed; actual resource drop order unproven',
+    'H10 self/ancestor/root removal ends active state access; sibling-only removal preserves it: executed; contract blocked by B2/B3',
     'H11 callback removal regression: executed', 'H12 callback removal regression: executed',
     'H13 callback removal regression: executed',
     'H16 1000 logical cleanup cycles and checked exhaustion: executed; resource drops unproven',
@@ -61,6 +61,10 @@ test('H01-H19: every row is dispositioned; incomplete contract is explicitly blo
   const statuses = ['executed', 'analysis/emission only', 'expected rejection', 'blocked', 'not applicable with reason'];
   for (const row of matrix.rows) { assert.ok(statuses.includes(row.status)); assert.ok(row.evidence.length); }
   assert.equal(matrix.rows.at(-1).status, 'blocked');
+  const h10 = matrix.rows.find(row => row.id === 'H10');
+  assert.equal(h10.status, 'blocked');
+  assert.match(h10.evidence, /B2.*B3/);
+  assert.deepEqual(matrix.blockers.B3.dependentRows, ['H10', 'H19']);
   for (const blocker of Object.values(matrix.blockers)) assert.ok(readFileSync(path.join(root, blocker.witness)).length);
   console.log(JSON.stringify({contract: 'blocked', rows: matrix.rows}, null, 2));
 });
