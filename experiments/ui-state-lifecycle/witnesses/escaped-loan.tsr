@@ -1,0 +1,11 @@
+function bad(text: string): () => string {
+  const inner = (): string => {
+    return text.trim();
+  };
+  // @tsrust ignore - Intentional escaped callback loan; strict emission must reject.
+  return (): string => {
+    return inner();
+  };
+}
+
+function main(): void {}

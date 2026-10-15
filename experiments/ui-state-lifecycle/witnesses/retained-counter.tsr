@@ -1,0 +1,24 @@
+import { strictEqual } from 'std:testing';
+
+type State = {
+  value: int;
+};
+
+function make(state: State): () => int {
+  return (): int => {
+    state.value = state.value + 1;
+    return state.value;
+  };
+}
+
+function main(): void {
+  const first = make({
+    value: 0
+  });
+  const second = make({
+    value: 0
+  });
+  strictEqual(first(), 1);
+  strictEqual(first(), 2);
+  strictEqual(second(), 1);
+}
