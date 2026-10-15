@@ -167,7 +167,7 @@ export function matchRoute(manifest, url, method = 'GET') {
 export function buildPath(manifest, segmentId, params = {}) {
   const segment = manifest.segments.find(s => s.id === segmentId && s.endpoints.length);
   if (!segment) throw new Error('Unknown endpoint segment');
-  if (!record(params) || Object.keys(params).sort().join('\0') !== [...segment.params].sort().join('\0')) throw new Error('Missing or extra path parameters');
+  if (!record(params) || Object.keys(params).length !== segment.params.length || Object.keys(params).some(key => !segment.params.includes(key))) throw new Error('Missing or extra path parameters');
   const values = segment.parts.map(p => p.parameter ? params[p.parameter] : p.literal);
   if (!values.every(validValue)) throw new Error('Invalid path parameter');
   if (selectSegment(manifest, values)?.id !== segment.id) throw new Error('Path is shadowed by a more specific route');

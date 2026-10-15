@@ -210,3 +210,27 @@ test('empty unsupported directories are diagnosed; filesystem order and root do 
   assert.equal(result.manifest, null);
   assert.ok(result.diagnostics.some(d => d.code === 'unsupported-segment' && d.sources[0] === 'app/[...slug]'));
 });
+
+
+test('root and literal path builders reject every extra parameter key', () => {
+  const manifest = good([...base, 'app/page.tsrx', 'app/about/page.tsrx'], {});
+  for (const [segmentId, expected] of [['app', '/'], ['app/about', '/about']]) {
+    assert.equal(buildPath(manifest, segmentId), expected);
+    assert.equal(buildPath(manifest, segmentId, {}), expected);
+    for (const params of [{'': 'unexpected'}, {extra: 'unexpected'}]) {
+      assert.throws(() => buildPath(manifest, segmentId, params), {
+        message: 'Missing or extra path parameters',
+      });
+    }
+  }
+});
+
+test('parameter keys require exact membership, independent of insertion order', () => {
+  const manifest = good([...base, 'app/[tenant]/[id]/page.tsrx'], {});
+  assert.equal(buildPath(manifest, 'app/[tenant]/[id]', {id: '2', tenant: 'one'}), '/one/2');
+  for (const params of [{tenant: 'one', other: '2'}, {tenant: 'one'}, {tenant: 'one', id: '2', '': 'extra'}]) {
+    assert.throws(() => buildPath(manifest, 'app/[tenant]/[id]', params), {
+      message: 'Missing or extra path parameters',
+    });
+  }
+});
