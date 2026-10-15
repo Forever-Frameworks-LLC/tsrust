@@ -75,11 +75,14 @@ pub fn check_test_input(path: &Path) -> Result<CheckedInput, InputDiagnostic> {
 }
 /// Load selected test entries once and execute all registrations in one native registry.
 pub fn check_test_inputs(paths: &[std::path::PathBuf]) -> Result<CheckedInput, InputDiagnostic> {
+    check_test_inputs_with_provider(paths,&FileSourceProvider)
+}
+pub fn check_test_inputs_with_provider(paths:&[std::path::PathBuf],provider:&impl SourceProvider)->Result<CheckedInput,InputDiagnostic>{
     let mut graph: Option<crate::project::ProjectGraph> = None;
     let mut entries = Vec::new();
     for path in paths {
         let path = path.to_str().ok_or_else(|| InputDiagnostic::Single(Diagnostic::new("module-path", "Source path must be valid UTF-8.", Span::default())))?;
-        let loaded = crate::project::load_project_headers(&FileSourceProvider, path).map_err(InputDiagnostic::Project)?;
+        let loaded = crate::project::load_project_headers(provider, path).map_err(InputDiagnostic::Project)?;
         if entries.contains(&loaded.entry) { continue; }
         entries.push(loaded.entry.clone());
         if let Some(graph) = &mut graph {
@@ -99,6 +102,7 @@ pub fn check_test_inputs(paths: &[std::path::PathBuf]) -> Result<CheckedInput, I
 pub fn discover_test_inputs(paths: &[std::path::PathBuf]) -> Result<Vec<std::path::PathBuf>, String> {
     crate::stdlib::testing::discovery::select(paths)
 }
+pub fn discover_test_inputs_optional(paths:&[std::path::PathBuf])->Result<Vec<std::path::PathBuf>,String>{crate::stdlib::testing::discovery::select_optional(paths)}
 impl CheckedInput {
     pub fn emit_rust(&self) -> String {
         match self {

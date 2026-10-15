@@ -1,6 +1,8 @@
 mod dev_cli;
 mod runtime_build;
 mod rust_bindings;
+mod package_cli;
+mod package_validation;
 mod rust_binding_packages;
 mod package_export;
 mod native_dependency_bundle;
@@ -28,6 +30,11 @@ const USAGE: &str = "tsrust — native TypeScript-style programs
 
 Usage:
   tsrust <command> [input.tsr] [options]
+  tsrust add <crate[@version]> [--project directory] [--features feature,...]
+  tsrust update <crate> [--to version] [--dry-run]
+  tsrust features <crate> [--enable feature,... | --disable feature,... | --features feature,...]
+  tsrust packages [--project directory]
+  tsrust remove <crate> [--dry-run]
   tsrust bindings resolve <file.bindings.json> [--offline]
   tsrust new <name-or-path>
   tsrust dev [--release] [--verbose] [--color auto|always|never] [-- program-arguments]
@@ -36,6 +43,11 @@ Usage:
   tsrust check [files/directories] [--json]
 
 Commands:
+  add      Add a Cargo crate; validate adapters, callers and tests before applying
+  update   Validate a compatible upgrade, or an explicit --to version
+  features Inspect or change Cargo features; --features replaces the explicit set
+  packages Show resolved versions, effective features and available bindings
+  remove   Validate dependency removal without rewriting adapters
   bindings Resolve and vendor declared Rust dependencies
   dev      Watch, rebuild and restart a configured native program
   new      Create a project with source, tests and configuration
@@ -128,6 +140,7 @@ fn run() -> Result<u8, String> {
         return Ok(0);
     }
     if command == "--version" || command == "-V" { println!("tsrust {}", env!("CARGO_PKG_VERSION")); return Ok(0); }
+    if matches!(command.as_str(),"add"|"update"|"features"|"remove"|"packages") {return package_cli::run(&command,args);}
     if command=="bindings" {return rust_bindings::resolve(args);}
     if command=="dev" {return dev_cli::run(args);}
     if command=="new" {return new_cli::run(args);}

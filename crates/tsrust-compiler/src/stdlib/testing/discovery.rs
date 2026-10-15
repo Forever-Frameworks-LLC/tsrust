@@ -2,6 +2,11 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 pub(crate) fn select(paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
+    let selected=select_optional(paths)?;
+    if selected.is_empty(){return Err("No test files found (.test.tsr or .spec.tsr).".into());}
+    Ok(selected)
+}
+pub(crate) fn select_optional(paths:&[PathBuf])->Result<Vec<PathBuf>,String>{
     let defaults = [PathBuf::from(".")];
     let paths = if paths.is_empty() { &defaults[..] } else { paths };
     let mut selected = Vec::new();
@@ -19,7 +24,6 @@ pub(crate) fn select(paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
             add(path, &mut seen, &mut selected)?;
         }
     }
-    if selected.is_empty() { return Err("No test files found (.test.tsr or .spec.tsr).".into()); }
     Ok(selected)
 }
 fn add(path: &Path, seen: &mut BTreeSet<PathBuf>, selected: &mut Vec<PathBuf>) -> Result<(), String> {

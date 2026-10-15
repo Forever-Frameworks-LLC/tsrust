@@ -1,0 +1,20 @@
+import { test, strictEqual } from 'std:testing';
+import { Search, SearchResultFound, SearchResultMissing, search } from './regex.bindings.json';
+
+test('find the first number', () => {
+  const request: Search = {
+    pattern: '[0-9]+', text: 'Order 314 ready'
+  }; const description = match (unwrap(search(request))) {
+    SearchResultFound(found) => `Found ${found.value.text} at byte ${found.value.start}`,
+    SearchResultMissing(_) => 'No match',
+  }; strictEqual(description, 'Found 314 at byte 6');
+});
+
+test('reject invalid patterns', () => {
+  const request: Search = {
+    pattern: '[', text: 'hello'
+  }; const rejected = match (search(request)) {
+    Ok(_) => false,
+    Err(_) => true,
+  }; strictEqual(rejected, true);
+});

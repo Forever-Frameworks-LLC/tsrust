@@ -3,7 +3,7 @@ use serde::{Deserialize,Serialize};
 use std::{collections::BTreeMap,path::{Path,PathBuf}};
 #[derive(Clone,Debug,Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
-pub struct Bindings {pub schema_version:u32,pub source:String,pub dependencies:BTreeMap<String,Dependency>}
+pub struct Bindings {pub schema_version:u32,pub source:String,pub dependencies:BTreeMap<String,Dependency>,#[serde(default,skip_serializing_if="Option::is_none")]pub lockfile:Option<String>}
 #[derive(Clone,Debug,Deserialize,Serialize)]
 #[serde(deny_unknown_fields,rename_all="camelCase")]
 pub struct Dependency {pub version:String,#[serde(default)]pub features:Vec<String>,#[serde(default="enabled")]pub default_features:bool}

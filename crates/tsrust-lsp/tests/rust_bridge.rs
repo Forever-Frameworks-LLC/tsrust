@@ -42,3 +42,18 @@ fn binding_manifest_exposes_owned_data_and_tracks_rust_edits(){
  workspace.open(rust,2,"pub struct Request{pub number:i64}pub fn read(value:Request)->Request{value}".into());
  assert!(session.check(&workspace.snapshot(),&entry.0).is_err());
 }
+#[test]
+fn rust_record_hover_uses_readable_source_without_empty_doc_comments(){
+ let entry=SourceId("/pretty-rust/main.tsr".into());let source="import {Search} from './api.rs';function main(){const value:Search={pattern:'x',text:'text'};console.log(value.text);}";
+ let mut workspace=Workspace::default();workspace.open(entry.clone(),1,source.into());workspace.open(SourceId("/pretty-rust/api.rs".into()),1,"pub struct Search{pub pattern:String,pub text:String}".into());
+ let checked=workspace.snapshot().check(&entry).unwrap();let index=ProjectIndex::checked(&checked);
+ let hover=index.request("textDocument/hover",&json!({"position":{"line":0,"character":source.find("Search={").unwrap()}}),"file:///pretty-rust/main.tsr").unwrap().unwrap().to_string();
+ assert!(!hover.contains("/** */"),"{hover}");assert!(hover.contains("pattern: string;")&&hover.contains("text: string;"),"{hover}");
+}
+#[test]
+fn managed_embedded_lock_changes_recheck_through_the_manifest(){
+ let entry=SourceId("/managed-rust/main.tsr".into());let manifest=SourceId("/managed-rust/api.bindings.json".into());let native=SourceId("/managed-rust/api.rs".into());
+ let mut workspace=Workspace::default();workspace.open(entry.clone(),1,"import {answer} from './api.bindings.json';function main(){console.log(answer());}".into());workspace.open(native,1,"pub fn answer()->i64{42}".into());
+ let config=|version:&str|serde_json::json!({"schemaVersion":1,"source":"./api.rs","dependencies":{},"lockfile":version}).to_string();workspace.open(manifest.clone(),1,config("version = 4"));
+ let mut session=tsrust_compiler::project::session::ProjectSession::default();session.check(&workspace.snapshot(),&entry.0).unwrap();workspace.open(manifest,2,config("version = 4\n# updated"));session.check(&workspace.snapshot(),&entry.0).unwrap();assert!(session.stats().parsed>0);
+}

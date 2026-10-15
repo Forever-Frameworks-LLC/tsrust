@@ -14,7 +14,7 @@ impl Type {
             Self::Named(name)=>name.clone(),
             Self::Array(value)=>format!("{}[]",value.source()),
             Self::Borrow(value,mutable)=>format!("{}<{}>",if *mutable {"Mutable"}else{"ReadOnly"},value.source()),
-            Self::Result(ok,err)=>format!("Result<{},{}>",ok.source(),err.source()),
+            Self::Result(ok,err)=>format!("Result<{}, {}>",ok.source(),err.source()),
         }
     }
     fn seed(&self)->String {match self {Self::Int|Self::Number=>"0".into(),Self::Boolean=>"false".into(),Self::String=>"''".into(),Self::Array(_)=>"[]".into(),Self::Named(name)=>format!("rustSeed{name}()"),Self::Void=>"undefined".into(),Self::Result(ok,err)=>format!("Ok<{},{}>({})",ok.source(),err.source(),if matches!(ok.as_ref(),Self::Void){String::new()}else{ok.seed()}),_=>unreachable!()}}
@@ -97,7 +97,7 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
             let syn::Pat::Ident(pattern)=input.pat.as_ref() else{return Err(fail(input.span(),"Export parameters require simple names.".into()));};
             let ty=if let syn::Type::Reference(reference)=input.ty.as_ref() {if reference.mutability.is_none() && reference.lifetime.is_none() && matches!(reference.elem.as_ref(),syn::Type::Path(path) if path.path.is_ident("TaskContext")){context=true;Type::Borrow(Box::new(Type::Context),false)}else{shape(&input.ty,false).map_err(|message|fail(input.ty.span(),message))?}}else{shape(&input.ty,false).map_err(|message|fail(input.ty.span(),message))?};
             if matches!(ty,Type::Void){return Err(fail(input.span(),"Unit is supported only as a return type.".into()));}
-            let label=pattern.ident.to_string();if label.starts_with("r#"){return Err(fail(pattern.ident.span(),"Raw Rust parameter identifiers are unsupported at the boundary.".into()));}labels.push(format!("{label}:{}",if ty.owned(){format!("Owned<{}>",ty.source())}else{ty.source()}));
+            let label=pattern.ident.to_string();if label.starts_with("r#"){return Err(fail(pattern.ident.span(),"Raw Rust parameter identifiers are unsupported at the boundary.".into()));}labels.push(format!("{label}: {}",if ty.owned(){format!("Owned<{}>",ty.source())}else{ty.source()}));
             if ty.owned(){
                 let mut local=format!("rustInput{index}");
                 while sig.inputs.iter().any(|input|matches!(input,syn::FnArg::Typed(input) if matches!(input.pat.as_ref(),syn::Pat::Ident(pattern) if pattern.ident==local))){local.push('_');}
@@ -109,7 +109,7 @@ pub(super) fn module(source:SourceFile)->Result<ModuleSource,ProjectDiagnostic>{
         for ty in parameters.iter().chain(std::iter::once(&result)){data::validate(ty,&types,&mut BTreeSet::new()).map_err(|message|fail(sig.span(),message))?;}
         let docs=documentation(&function.attrs);
         let start=declarations.len();
-        declarations.push_str(&format!("/** {docs}\nLocal Rust export. Direct calls run on the caller. Owned inputs move; borrowed inputs remain borrowed. Rust panics are reported by worker joins. */\nexport function {name}({}):{}{{{consume}{} }}\n",labels.join(","),result.source(),if matches!(result,Type::Void){String::new()}else{format!("return {};",result.seed())}));
+        declarations.push_str(&format!("/** {docs}\nLocal Rust export. Direct calls run on the caller. Owned inputs move; borrowed inputs remain borrowed. Rust panics are reported by worker joins. */\nexport function {name}({}): {} {{{consume}{} }}\n",labels.join(", "),result.source(),if matches!(result,Type::Void){String::new()}else{format!("return {};",result.seed())}));
         let name_start=start+declarations[start..].rfind(&format!("function {name}")).unwrap()+9;
         exports.push(Export{name,parameters,result,declaration:Span::new(name_start,name_start+sig.ident.to_string().len()),native:range(&source.text,sig.ident.span())});
     }
@@ -145,13 +145,15 @@ pub(super) fn bindings(provider:&impl SourceProvider,source:SourceFile)->Result<
  let binding=dependencies::Bindings::parse(&source.text).map_err(fail)?;
  let id=provider.resolve(Some(&source.id),&binding.source).map_err(fail)?;
  let native=SourceFile{text:provider.read(&id).map_err(fail)?,id};
- let lock_path=dependencies::Bindings::lock_path(Path::new(&source.id.0));
- let lock_id=provider.resolve(Some(&source.id),&format!("./{}",lock_path.file_name().and_then(|name|name.to_str()).ok_or_else(||fail("Lock path must be UTF-8.".into()))?)).map_err(|_|fail(format!("Missing binding lock; run tsrust bindings resolve {}.",source.id.0)))?;
- let lock=SourceFile{text:provider.read(&lock_id).map_err(fail)?,id:lock_id};
- let mut module=module(native.clone())?;
- module.rust.as_mut().unwrap().package=Some(binding.package(Path::new(&source.id.0),lock.text.clone()));
+ let (lock,mut inputs)=if let Some(lock)=&binding.lockfile {(lock.clone(),vec![native.clone()])}else{
+  let lock_path=dependencies::Bindings::lock_path(Path::new(&source.id.0));
+  let lock_id=provider.resolve(Some(&source.id),&format!("./{}",lock_path.file_name().and_then(|name|name.to_str()).ok_or_else(||fail("Lock path must be UTF-8.".into()))?)).map_err(|_|fail(format!("Missing binding lock; run tsrust bindings resolve {}.",source.id.0)))?;
+  let lock=SourceFile{text:provider.read(&lock_id).map_err(fail)?,id:lock_id};(lock.text.clone(),vec![native.clone(),lock])
+ };
+ let mut module=module(native)?;
+ module.rust.as_mut().unwrap().package=Some(binding.package(Path::new(&source.id.0),lock));
  module.source=source;
- Ok((module,vec![native,lock]))
+ Ok((module,std::mem::take(&mut inputs)))
 }
 
 fn documentation(attrs:&[syn::Attribute])->String {

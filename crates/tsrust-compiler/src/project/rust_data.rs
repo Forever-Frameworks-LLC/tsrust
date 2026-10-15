@@ -70,14 +70,14 @@ pub(super) fn declarations(types:&BTreeMap<String,Data>,file:&syn::File)->String
   syn::Item::Enum(item)=>{docs.insert(item.ident.to_string(),documentation(&item.attrs));for variant in &item.variants{docs.insert(format!("{}{}",item.ident,variant.ident),documentation(&variant.attrs));}},_=>{}
  }}
  let record=|source:&mut String,name:&str,fields:&[(String,Type)]| {
-  source.push_str(&format!("/** {}\nOwned Rust data. Fields move across the binding boundary. */\nexport type {name}={{ {} }};\n",docs.get(name).map(String::as_str).unwrap_or(""),fields.iter().map(|(field,ty)|format!("/** {} */ {field}:{};",field_docs.get(&(name.to_owned(),field.clone())).map(String::as_str).unwrap_or(""),ty.source())).collect::<String>()));
+  source.push_str(&format!("/** {}\nOwned Rust data. Fields move across the binding boundary. */\nexport type {name} = {{\n{}}};\n",docs.get(name).map(String::as_str).unwrap_or(""),fields.iter().map(|(field,ty)|{let docs=field_docs.get(&(name.to_owned(),field.clone())).map(String::as_str).unwrap_or("");format!("{}  {field}: {};\n",if docs.is_empty(){String::new()}else{format!("  /** {docs} */\n")},ty.source())}).collect::<String>()));
  };
  for (name,data) in types {
   let (seed_name,fields)=match data {
    Data::Struct(fields)=>{record(&mut source,name,fields);(name.clone(),fields)},
    Data::Enum(variants)=> {
     for variant in variants{record(&mut source,&format!("{name}{}",variant.name),&variant.fields);}
-    source.push_str(&format!("/** {} */\nexport type {name}={};\n",docs.get(name).map(String::as_str).unwrap_or(""),variants.iter().map(|variant|format!("{name}{}",variant.name)).collect::<Vec<_>>().join("|")));
+    source.push_str(&format!("/** {} */\nexport type {name} = {};\n",docs.get(name).map(String::as_str).unwrap_or(""),variants.iter().map(|variant|format!("{name}{}",variant.name)).collect::<Vec<_>>().join(" | ")));
     (format!("{name}{}",variants[0].name),&variants[0].fields)
    }
   };

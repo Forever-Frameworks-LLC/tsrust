@@ -21,8 +21,13 @@ impl Emitter<'_> {
         let graph=self.source_graph?;let function=&self.program.functions[index];
         for (module,id) in graph.order.iter().enumerate(){
             let Some(rust)=&graph.modules[id].rust else{continue};
-            let prefix=format!("__tsrust_module_{module}_");let Some(name)=function.name.strip_prefix(&prefix) else{continue};
+            let prefix=format!("__tsrust_module_{module}_");let Some(name)=function.name.strip_prefix("local#").and_then(|name|name.split_once('#').map(|(_,name)|name)).unwrap_or(&function.name).strip_prefix(&prefix) else{continue};
             let export=rust.exports.iter().find(|export|export.name==name)?;
+            // Test registration lifts declarations; retain the native declaration identity.
+            if let Some(local)=self.program.local_declarations.iter().find(|local|local.emitted_name==function.name) {
+                let (_,offset,_)=self.source_segments.iter().find(|(source,_,_)|source==id)?;
+                if local.source_name.span!=crate::Span::new(offset+export.declaration.start,offset+export.declaration.end){continue;}
+            }
             let arguments=export.parameters.iter().enumerate().map(|(index,ty)|{
                 let value=format!("value{index}");
                 match ty {

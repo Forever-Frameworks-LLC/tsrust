@@ -13,7 +13,8 @@ pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
  fs::create_dir(root.join("src")).map_err(|error|error.to_string())?;
  fs::write(root.join("src/lib.rs"),"").map_err(|error|error.to_string())?;
  fs::write(root.join("Cargo.toml"),binding.manifest()).map_err(|error|error.to_string())?;
- let mut command=crate::backend_cargo_command();command.current_dir(root).args(["generate-lockfile","--manifest-path"]).arg(root.join("Cargo.toml"));
+ if let Some(lock)=&binding.lockfile{fs::write(root.join("Cargo.lock"),lock).map_err(|error|error.to_string())?;}
+ let mut command=crate::backend_cargo_command();command.current_dir(root).args(if binding.lockfile.is_some(){vec!["metadata","--format-version","1","--locked","--manifest-path"]}else{vec!["generate-lockfile","--manifest-path"]}).arg(root.join("Cargo.toml")).stdout(Stdio::null());
  if offline{command.arg("--offline");}
  if !command.status().map_err(|error|error.to_string())?.success(){return Err("Cargo dependency resolution failed; existing lock retained.".into());}
  let lock=fs::read_to_string(root.join("Cargo.lock")).map_err(|error|error.to_string())?;
@@ -31,6 +32,6 @@ pub(crate) fn resolve(mut args:impl Iterator<Item=String>)->Result<u8,String>{
  if package.vendor.exists(){fs::remove_dir_all(&package.vendor).map_err(|error|error.to_string())?;}
  fs::rename(&staged_vendor,&package.vendor).map_err(|error|error.to_string())?;
  let destination=Bindings::lock_path(&path);let staged=destination.with_extension("lock.tmp");
- fs::write(&staged,lock).and_then(|_|fs::rename(&staged,&destination)).map_err(|error|error.to_string())?;
+ if binding.lockfile.is_none(){fs::write(&staged,lock).and_then(|_|fs::rename(&staged,&destination)).map_err(|error|error.to_string())?;}
  println!("Resolved {}",destination.display());Ok(0)
 }

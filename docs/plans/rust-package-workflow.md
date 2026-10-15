@@ -1,6 +1,7 @@
 # Rust package workflow requirements
 
-This is a design requirement, not an implemented CLI. The accepted bridge provides
+The package-management CLI implements the workflow described in
+[package commands](../guides/rust-packages.md). The accepted bridge provides
 explicit Rust declarations, dependency resolution and owned data adapters. Its JSON
 manifest is dependency configuration, not a second handwritten signature language.
 
@@ -30,8 +31,9 @@ must never be overwritten by package operations.
 - Remove an unused dependency; report remaining binding references instead of deleting
   user code. Support reproducible offline installs from the lockfile and warm sources.
 
-CLI spelling should follow Cargo conventions where semantics match. Final names and
-flags are not accepted yet; do not publish illustrative commands as working features.
+The public commands are add, update, features, packages and remove. Modifying
+commands always validate; --dry-run previews without publication. --features replaces
+the explicit set, while --enable/--disable modify it. Default features are separate.
 
 ## Validation before publication
 
