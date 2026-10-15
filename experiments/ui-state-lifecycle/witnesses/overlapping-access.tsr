@@ -1,0 +1,10 @@
+type State = {
+  value: int;
+};
+
+function bad(action: (a: ReadOnly<State>, b: Mutable<State>) => void, state: State): void {
+  // @tsrust ignore - Intentional overlapping mutable access; strict emission must reject.
+  action(state, state);
+}
+
+function main(): void {}

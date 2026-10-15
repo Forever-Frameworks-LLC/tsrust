@@ -1,0 +1,15 @@
+type State = {
+  value: int;
+};
+
+function main(): void {
+  const state: State = {
+    value: 0
+  };
+  const update = (): void => {
+    state.value = state.value + 1;
+  };
+  // @tsrust ignore - Retained mutable capture prevents independent owner access; strict emission must reject.
+  console.log(state.value);
+  update();
+}

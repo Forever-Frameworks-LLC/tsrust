@@ -1,0 +1,16 @@
+type State = {
+  value: int;
+};
+
+function main(): void {
+  const state: State = {
+    value: 0
+  };
+  const take = (): State => {
+    return state;
+  };
+  // @tsrust ignore - Intentional access after ownership transfer; strict emission must reject.
+  console.log(state.value);
+  const saved = take();
+  console.log(saved.value);
+}
