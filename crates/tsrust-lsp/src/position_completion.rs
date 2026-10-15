@@ -193,7 +193,7 @@ fn sibling_modules(uri: &str) -> Vec<String> {
                 if depth < 3 {
                     pending.push((entry_path, format!("{prefix}{name}/"), depth + 1));
                 }
-            } else if name.ends_with(".tsr") && entry_path != path {
+            } else if (name.ends_with(".tsr") || name.ends_with(".rs")) && entry_path != path {
                 found.push(format!("{prefix}{name}"));
             }
         }

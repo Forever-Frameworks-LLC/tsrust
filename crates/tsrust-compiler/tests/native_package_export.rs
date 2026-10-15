@@ -7,11 +7,14 @@ fn emitted_dependency_packages_build_offline_after_relocation_without_source_or_
   (include_str!("../../../examples/scoped-pools/main.tsr"), "42\nindependent\n0\n7\n"),
   (include_str!("../../../examples/channel-worker/main.tsr"), "hello\ngoodbye\n"),
   (include_str!("../../../examples/channel-batch/main.tsr"), "204\n"),
+  (include_str!("../../../examples/rust-rayon/main.tsr"), "55\ncancelled\n"),
  ] {
  let dir=support::TempDirectory::new();let input=dir.0.join("main.tsr");let package=dir.0.join("package");
  std::fs::write(&input,support::format_round_trip(source)).unwrap();
+ if source.contains("./compute.rs") {std::fs::write(dir.0.join("compute.rs"),include_str!("../../../examples/rust-rayon/compute.rs")).unwrap();}
  support::success(&support::run(support::cli().arg("emit").arg(&input).arg("--package").arg("-o").arg(&package),30));
- std::fs::remove_file(&input).unwrap();let relocated=dir.0.join("relocated");std::fs::rename(&package,&relocated).unwrap();
+ std::fs::remove_file(&input).unwrap();
+ if dir.0.join("compute.rs").exists(){std::fs::remove_file(dir.0.join("compute.rs")).unwrap();}let relocated=dir.0.join("relocated");std::fs::rename(&package,&relocated).unwrap();
  let home=dir.0.join("empty-cargo-home");std::fs::create_dir(&home).unwrap();let target=dir.0.join("native-target");
  for release in [false,true] {
   let mut command=std::process::Command::new("rustup");command.args(["run",tsrust_compiler::RUST_BACKEND_VERSION,"cargo","build","--offline","--locked"]).current_dir(&relocated).env("CARGO_HOME",&home).env("CARGO_INCREMENTAL","0").env("CARGO_TARGET_DIR",&target);

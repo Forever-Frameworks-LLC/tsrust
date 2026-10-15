@@ -7,6 +7,7 @@ mod expression_work;
 mod program_testing;
 mod threads;
 mod channels;
+mod rust_bridge;
 mod results;
 mod schema;
 mod json_encoding;
@@ -2303,6 +2304,7 @@ impl Emitter<'_> {
                 let _ = writeln!(output, "static TSR_DATA{index}: std::sync::LazyLock<{ty}> = std::sync::LazyLock::new(function{index});");
             }
         }
+        self.rust_modules(&mut output);
         self.emit_owner_markers(&mut output);
         self.emit_nullable_types(&mut output);
         self.emit_generic_storage(&mut output);
@@ -2859,7 +2861,9 @@ impl Emitter<'_> {
             if name == "main" {
                 output.push_str(self.entry_setup);
             }
-            if let Some((_,error_name))=&result_target {
+            if let Some(body)=self.rust_function_body(index,&plan.parameters) {
+                let _=writeln!(output,"    {body}");
+            } else if let Some((_,error_name))=&result_target {
                 let runtime=self.program.records.iter().position(|record|record.name.text=="#RuntimeError" && record.name.kind==crate::syntax::TokenKind::Symbol).map(Type::Record);
                 let id=self.completion_next.get();
                 let body=self.callable_result_body(fun,&fun.body,id,error_name,self.program.error_effects.function_errors[index].clone(),runtime);
@@ -2972,7 +2976,7 @@ impl Emitter<'_> {
             output.push_str(crate::runtime::STRINGS);
         }
         if self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].module == "std:threads")
-            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender))) {
+            || self.program.records.iter().any(|record| matches!(record.native_type, Some(crate::native_signatures::NativeTypeId::Thread | crate::native_signatures::NativeTypeId::ScopedThread | crate::native_signatures::NativeTypeId::ThreadPool | crate::native_signatures::NativeTypeId::Channel | crate::native_signatures::NativeTypeId::Sender | crate::native_signatures::NativeTypeId::TaskContext))) {
             output.push_str(crate::stdlib::threads::RUNTIME);
         }
         if self.native_bindings.borrow().iter().any(|&id| {

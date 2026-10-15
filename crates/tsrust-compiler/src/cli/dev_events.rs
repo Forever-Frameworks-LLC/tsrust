@@ -9,7 +9,7 @@ fn walk(root:&Path,visit:&mut impl FnMut(&Path,&fs::Metadata)->io::Result<()>)->
    let entry=entry?;let kind=entry.file_type()?;let path=entry.path();
    if kind.is_symlink(){continue;}
    if kind.is_dir() && !matches!(entry.file_name().to_str(),Some(".git"|"node_modules"|"target")) {walk(&path,visit)?;}
-   else if kind.is_file() && (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"json"|"jsonc")))) {visit(&path,&entry.metadata()?)?;}
+   else if kind.is_file() && (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"rs"|"json"|"jsonc")))) {visit(&path,&entry.metadata()?)?;}
   }
  }
  Ok(())
@@ -112,11 +112,11 @@ mod tests {
   panic!("missing filesystem notification");
  }
  #[test]
- fn native_events_cover_json_and_jsonc_content_edits() {
+ fn native_events_cover_json_jsonc_and_rust_content_edits() {
   let temp=crate::TempDirectory::new().unwrap();let root=&temp.0;
-  for name in ["data.json","data.jsonc"] {fs::write(root.join(name),"{}").unwrap();}
+  for name in ["data.json","data.jsonc","compute.rs"] {fs::write(root.join(name),"{}").unwrap();}
   let mut events=Events::new(root).unwrap();assert!(!events.changed().unwrap());
-  for name in ["data.json","data.jsonc"] {fs::write(root.join(name),"{\"value\":1}").unwrap();changed(&mut events);events.refresh(root).unwrap();}
+  for name in ["data.json","data.jsonc","compute.rs"] {fs::write(root.join(name),"{\"value\":1}").unwrap();changed(&mut events);events.refresh(root).unwrap();}
  }
  #[test]
  fn native_events_cover_atomic_saves_new_directories_and_idle() {

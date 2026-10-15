@@ -4,7 +4,7 @@
 
 ## Workstream scope
 
-**Status:** Unresolved design/research. The grouping and phase below are proposed planning aids, not approved language semantics.
+**Status:** Restricted local Rust bridges are implemented; broader package, FFI and secondary-target designs remain proposals. See the current bridge contract below.
 
 **Proposed phase:** Backend proof; later targets.
 
@@ -66,6 +66,20 @@ Potential uses:
 * browser compute modules
 * sandboxed extensions
 Determine whether language semantics translate cleanly to WASM without creating a second runtime model.
+
+## Current local Rust bridge
+
+Local `.rs` imports derive source signatures from safe public free functions.
+The supported scalar, owned-buffer, borrowed-slice, Result and TaskContext boundary
+is documented in [Rust/Rayon bridges](plans/rust-rayon-bridges.md). Direct calls run
+on the caller; explicit `spawn` and owned `ThreadPool.task` retain their existing
+ownership, cancellation and cleanup contracts. Nested Rayon work inside a pool
+task uses the selected pool. The later removal of the global pool supersedes the
+older automatic-default-pool proposal below.
+
+Example: [owned Rust/Rayon work](../examples/rust-rayon/main.tsr).
+Arbitrary Rust packages, record/trait/lifetime mapping and asynchronous exports
+remain outside the restricted boundary.
 
 ## Local Rust modules and native workers: owner discussion
 

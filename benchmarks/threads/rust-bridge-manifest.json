@@ -1,0 +1,11 @@
+{
+  "id": "rust-bridge-throughput",
+  "implementationAccepted": false,
+  "measurementStatus": "pending",
+  "source": "rust-bridge-throughput.tsr",
+  "sourceSha256": "38857a4f062c1c5f9c384b5665921ada47fcc54084eeb1a0d6a3b6ce0f69855f",
+  "counterpart": "rust-bridge-throughput.ts",
+  "counterpartSha256": "f854422fc590e30d85eeb68f99ec7287c15a11f89cfcd5950c4fb3622fabaa29",
+  "rust": "rust-bridge-compute.rs",
+  "rustSha256": "62c1a0c2a4b50b56772b7cfa1851a836060135f658a2dab8531d1028625eaa1a"
+}

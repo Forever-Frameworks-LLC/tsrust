@@ -405,7 +405,7 @@ fn run(
     }
 }
 fn auxiliary_uri(uri:&str)->bool {
-    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).extension().and_then(|value|value.to_str()).is_some_and(|extension|matches!(extension,"json"|"jsonc")))
+    tsrust_lsp::project_diagnostics::source_path_id(uri).is_ok_and(|id|std::path::Path::new(&id.0).extension().and_then(|value|value.to_str()).is_some_and(|extension|matches!(extension,"json"|"jsonc"|"rs")))
 }
 fn publish_project(
     connection: &Connection,
@@ -595,6 +595,28 @@ mod project_protocol_tests {
         notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":2},"contentChanges":[{"text":"{\"host\":42}"}]}));
         until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
         notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":3},"contentChanges":[{"text":"{\"host\":\"restored\"}"}]}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        notify(&client,"textDocument/didClose",json!({"textDocument":{"uri":data}}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        client.sender.send(Message::Request(Request{id:9.into(),method:"shutdown".into(),params:json!(null)})).unwrap();
+        loop { if matches!(client.receiver.recv_timeout(Duration::from_secs(5)).unwrap(),Message::Response(response) if response.id==RequestId::from(9)) {break;} }
+        notify(&client,"exit",json!(null)); assert_eq!(worker.join().unwrap().unwrap(),0);
+    }
+    #[test]
+    fn live_rust_signature_edits_recheck_dependents_and_clear_diagnostics() {
+        let (server, client) = Connection::memory();
+        let worker = std::thread::spawn(move || run(server, diagnostics));
+        client.sender.send(Message::Request(Request { id: 1.into(), method: "initialize".into(), params: json!({"initializationOptions":{"debounceMs":0}}) })).unwrap();
+        assert!(matches!(client.receiver.recv_timeout(Duration::from_secs(5)).unwrap(), Message::Response(_)));
+        notify(&client,"initialized",json!({}));
+        let root="file:///tsrust-live-rust/main.tsr";
+        let data="file:///tsrust-live-rust/compute.rs";
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":data,"languageId":"rust","version":1,"text":"pub fn host()->String{\"local\".into()}"}}));
+        notify(&client,"textDocument/didOpen",json!({"textDocument":{"uri":root,"languageId":"tsrust","version":1,"text":"import {host} from './compute.rs'; function main(){console.log(host().toUpperCase());}"}}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(Vec::is_empty));
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":2},"contentChanges":[{"text":"pub fn host()->i64{42}"}]}));
+        until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));
+        notify(&client,"textDocument/didChange",json!({"textDocument":{"uri":data,"version":3},"contentChanges":[{"text":"pub fn host()->String{\"restored\".into()}"}]}));
         until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(Vec::is_empty));
         notify(&client,"textDocument/didClose",json!({"textDocument":{"uri":data}}));
         until(&client,|p|p["uri"]==root && p["diagnostics"].as_array().is_some_and(|items|!items.is_empty()));

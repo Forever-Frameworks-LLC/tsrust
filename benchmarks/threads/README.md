@@ -75,3 +75,11 @@ integration: `pool-join-2026-10-15T00-25-18-930Z.json`. Native/Node medians are
 0.015458/0.099500 ms. Native increased 3.9%; the unchanged Node reference increased
 44.6%. This does not isolate a compiler regression; no optimization was made from
 that signal alone. Prior measurements remain immutable.
+
+Use `--bridge --verify` for the matched Rust recurrence wrapper workload. Omit
+`--verify` for the unchanged serial/two/four worker measurement protocol. The
+harness copies and fingerprints the complete local Rust implementation, derives
+its checked signature, and retains the independent BigInt oracle. This measures
+ordinary scalar bridge calls and pool dispatch; heap-buffer transfer is separately
+verified by native pointer-identity assertions. `rust-bridge-manifest.json` tracks
+acceptance and `rust-bridge-registration.test.mjs` guards exact inputs and protocol.

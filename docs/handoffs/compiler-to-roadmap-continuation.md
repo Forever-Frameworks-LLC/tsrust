@@ -89,8 +89,10 @@ suites require pinned Node v24.11.1 first on PATH.
 The owned `spawn`/consuming `join`/explicit `detach` slice is implemented across
 compiler, runtime, editor and benchmark support. See [scope and acceptance](../plans/owned-thread-acceptance.md)
 for the direct-handle lifecycle boundary and evidence. Broader S12 remains open:
-bounded channels, multicore throughput, and local Rust/pool integration are separate
-work. Do not repeat public spawn/join groundwork or treat untimed checks as timings.
+Bounded channels and multicore throughput are accepted; restricted local
+Rust/pool integration is implemented. See [bridge acceptance](../plans/rust-rayon-bridges.md)
+for its supported boundary and current checks. Broader Rust package mapping remains
+separate work. Do not repeat public spawn/join groundwork or treat untimed checks as timings.
 
 Preserve already settled decisions:
 

@@ -1,4 +1,5 @@
 //! Source-indexed module graph loading. This does not type-check or emit a project.
+pub mod rust;
 pub use crate::project_link::{ProjectAnalysis, check_graph};
 pub use crate::project_facts::{ProjectLocalFunctionInfo, ProjectCheckedTypeFacts, ProjectExpressionTypeInfo, ProjectGenericCallInfo, ProjectGenericParameterCallInfo, ProjectParameterInfo, ProjectType};
 use crate::syntax::{self, TokenKind};
@@ -189,6 +190,7 @@ impl DataModule {
 }
 #[derive(Clone, Debug)]
 pub struct ModuleSource {
+    pub rust: Option<rust::Module>,
     pub data: Option<DataModule>,
     pub source: SourceFile,
     pub imports: Vec<ModuleImport>,
@@ -265,6 +267,7 @@ pub(crate) fn lex_tolerant(text: &str) -> Result<Vec<syntax::Token>, Diagnostic>
     }
 }
 fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, ProjectDiagnostic> {
+    if Path::new(&source.id.0).extension().is_some_and(|value| value == "rs") { return rust::module(source); }
     if let Some(extension) = Path::new(&source.id.0).extension().and_then(|value| value.to_str())
         && matches!(extension, "json" | "jsonc")
     {
@@ -276,6 +279,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         })?;
         crate::data_shape::infer(&value).map_err(|failure| error(&source.id, "data-type", failure.message, failure.span))?;
         return Ok(ModuleSource {
+            rust: None,
             exports: BTreeMap::from([("default".into(), value.span)]),
             default_export: Some(syntax::Token { text: crate::data_lowering::OWNER.into(), span: value.span, kind: TokenKind::Symbol }),
             data: Some(DataModule { value }), source, imports: vec![],
@@ -393,7 +397,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
             let span = tokens[i].span;
             if crate::stdlib::source(&path).is_none() && !path.starts_with("std:")
                 && (path.is_empty() || path.starts_with('/')
-                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "json" | "jsonc")))
+                    || Path::new(&path).extension().is_some_and(|extension|!matches!(extension.to_str(), Some("tsr" | "rs" | "json" | "jsonc")))
                     || path.contains(['\\', '\0', '\n', '\r']))
             {
                 return Err(error(
@@ -563,6 +567,7 @@ fn parse_module(source: SourceFile, declarations: bool) -> Result<ModuleSource, 
         }
     }
     Ok(ModuleSource {
+        rust: None,
         data: None,
         source,
         imports,

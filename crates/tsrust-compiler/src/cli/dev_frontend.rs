@@ -13,7 +13,7 @@ impl Snapshot {
   normalized
  }
  fn captured(&self,path:&std::path::Path)->bool {
-  (path.extension().is_some_and(|ext|ext=="tsr")||path.file_name().is_some_and(|name|name=="tsrust.config.json"))&&path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))
+  (path.extension().is_some_and(|ext|matches!(ext.to_str(),Some("tsr"|"rs")))||path.file_name().is_some_and(|name|name=="tsrust.config.json"))&&path.strip_prefix(&self.root).is_ok_and(|relative|!relative.components().any(|part|matches!(part.as_os_str().to_str(),Some(".git"|"node_modules"|"target"))))
  }
 }
 impl SourceProvider for Snapshot {
@@ -143,4 +143,19 @@ mod tests {
   write(&dep,"export function value():int{return 99;}");
   let error=compile(&mut session,&entry,&invalid).err().unwrap();assert!(error.contains("snapshot-error"),"{error}");assert!(!error.contains("return 99"),"{error}");
  }
+ #[test]
+ fn rust_body_edits_refresh_captured_dev_output() {
+  let dir=crate::TempDirectory::new().unwrap();let root=dir.0.canonicalize().unwrap();let entry=root.join("main.tsr");
+  std::fs::write(root.join("tsrust.config.json"),r#"{"schemaVersion":1,"name":"app","build":{"entry":"main.tsr","output":"app"}}"#).unwrap();
+  write(&entry,"import {value} from './compute.rs';function main(){console.log(value());}");
+  let dep=root.join("compute.rs");std::fs::write(&dep,"pub fn value()->i64{1}").unwrap();
+  let mut watcher=crate::dev_watch::Watcher::default();let mut session=ProjectSession::default();
+  let before=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  let first=compile(&mut session,&entry,&before).unwrap();assert!(first.rust.contains("pub fn value()->i64{1}"));
+  std::fs::write(&dep,"pub fn value()->i64{2}").unwrap();
+  let after=Snapshot{root:root.clone(),files:watcher.snapshot(&root).unwrap()};
+  let next=compile(&mut session,&entry,&after).unwrap();assert!(next.rust.contains("pub fn value()->i64{2}"));assert_ne!(next.identity,first.identity);
+  assert!(compile(&mut session,&entry,&before).unwrap().rust.contains("pub fn value()->i64{1}"));
+ }
+
 }

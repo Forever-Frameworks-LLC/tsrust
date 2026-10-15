@@ -7,8 +7,9 @@ import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'../..');
 const verify=process.argv.includes('--verify');
-const throughput=process.argv.includes('--throughput');
-const workload=throughput?'channel-throughput':process.argv.includes('--pool')?'pool-join':process.argv.includes('--scoped')?'scoped-join':'spawn-join';
+const throughput=process.argv.includes('--throughput')||process.argv.includes('--bridge');
+const bridge=process.argv.includes('--bridge');
+const workload=bridge?'rust-bridge-throughput':throughput?'channel-throughput':process.argv.includes('--pool')?'pool-join':process.argv.includes('--scoped')?'scoped-join':'spawn-join';
 const compiler=process.env.TSRUST;
 if(!compiler) throw new Error('Set TSRUST to the current verified compiler.');
 if(process.version!=='v24.11.1') throw new Error('Node v24.11.1 is required.');
@@ -23,6 +24,8 @@ try{
  const native=fs.readFileSync(path.join(here,`${workload}.tsr`),'utf8');
  const node=fs.readFileSync(path.join(here,`${workload}.ts`),'utf8');
  const probe=source=>verify?source.replace(/for\s*\(let warmup\s*=\s*0;\s*warmup\s*<\s*8;/g,'for(let warmup=0;warmup<0;').replace(/sample\s*<\s*31/g,'sample<1'):source;
+ const rust=bridge?fs.readFileSync(path.join(here,'rust-bridge-compute.rs'),'utf8'):null;
+ if(rust)fs.writeFileSync(path.join(build,'compute.rs'),rust);
  const input=path.join(build,'native.tsr');fs.writeFileSync(input,probe(native));
  const ts=path.join(build,'node.ts');fs.writeFileSync(ts,probe(node));
  run(compiler,['format',input,'--write']);const once=fs.readFileSync(input);run(compiler,['format',input,'--write']);if(!once.equals(fs.readFileSync(input)))throw new Error('Formatting is not idempotent');
@@ -45,7 +48,7 @@ try{
   observations.push({engine,processIndex,checksums:values.filter((_,index)=>index%2===0)});
   if(!verify)execution.push({engine,processIndex,durations:values.filter((_,index)=>index%2===1)});
  }
- const result={kind:`owned-thread-${workload}`,verifiedOnly:verify,timestamp:new Date().toISOString(),sourceCommit:run('git',['rev-parse','HEAD']),sourceTreeDirty:run('git',['status','--porcelain']).length>0,sourceSha256:hash(native),counterpartSha256:hash(node),compilerSha256:hash(fs.readFileSync(compiler)),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']),typescript:run(process.execPath,[tsc,'--version'])},machine:{cpu:os.cpus()[0].model,logicalCpus:os.cpus().length,availableParallelism:os.availableParallelism(),platform:os.platform(),release:os.release()},protocol:{processes:verify?1:3,warmups:verify?0:8,samples:verify?1:31,workersPerBatch:throughput?4:8,workerCounts:throughput?[0,2,4]:undefined,durationUnit:'milliseconds'},expectedChecksum,observations,execution};
+ const result={kind:`owned-thread-${workload}`,verifiedOnly:verify,timestamp:new Date().toISOString(),sourceCommit:run('git',['rev-parse','HEAD']),sourceTreeDirty:run('git',['status','--porcelain']).length>0,sourceSha256:hash(native),counterpartSha256:hash(node),rustSha256:rust?hash(rust):undefined,compilerSha256:hash(fs.readFileSync(compiler)),harnessSha256:hash(fs.readFileSync(fileURLToPath(import.meta.url))),versions:{node:process.version,rust:run('rustup',['run','1.96.1','rustc','--version']),typescript:run(process.execPath,[tsc,'--version'])},machine:{cpu:os.cpus()[0].model,logicalCpus:os.cpus().length,availableParallelism:os.availableParallelism(),platform:os.platform(),release:os.release()},protocol:{processes:verify?1:3,warmups:verify?0:8,samples:verify?1:31,workersPerBatch:throughput?4:8,workerCounts:throughput?[0,2,4]:undefined,durationUnit:'milliseconds'},expectedChecksum,observations,execution};
  const output=path.join(here,`${workload}-${result.timestamp.replace(/[:.]/g,'-')}${verify?'-verify':''}.json`);
  fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(output);
 }finally{fs.rmSync(build,{recursive:true,force:true});}

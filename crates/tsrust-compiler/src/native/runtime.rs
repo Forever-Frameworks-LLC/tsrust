@@ -32,8 +32,9 @@ pub fn json_module_with_writer(writer:bool)->String {
 /// in the application crate. Extract only selected self-contained support modules.
 pub fn separate(source:&str)->Units {
     let mut application=source.to_owned();let mut runtime=String::new();
+    if source.contains("use rayon as tsr_rayon;") {application=application.replace("use rayon as tsr_rayon;","use tsrust_runtime::rayon as tsr_rayon;");runtime.push_str("pub use rayon;\n");}
     let json=[true,false].into_iter().map(json_module_with_writer).find(|module|source.contains(module));
-    let dependencies=json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::threads::RUNTIME);
+    let dependencies=json.as_ref().is_some_and(|module|source.contains(module)) || source.contains(crate::stdlib::threads::RUNTIME) || source.contains("mod tsr_rust");
     let mut extract=|name:&str,module:String| {
         if application.contains(&module) {
             application=application.replace(&module,&format!("use tsrust_runtime::{name};\n"));

@@ -42,7 +42,7 @@ impl ProjectIndex {
         for id in &graph.order {
             let module = &graph.modules[id];
             let mut declaration = SourceIndex::with_entry_help(&module.declaration_source, false);
-            let mut index = SourceIndex::with_entry_help(&module.source.text, id == &graph.entry);
+            let mut index = SourceIndex::with_entry_help(if module.rust.is_some(){&module.declaration_source}else{&module.source.text}, id == &graph.entry);
             if let Some(data) = &module.data {
                 let schema = data.schema();
                 declaration = SourceIndex::with_entry_help(&module.source.text, false);
@@ -131,6 +131,7 @@ impl ProjectIndex {
         uri: &str,
     ) -> Option<Result<Value, String>> {
         let id = source_id(uri).ok()?;
+        if self.graph.modules.get(&id).is_some_and(|module|module.rust.is_some()){return None;}
         if method == "textDocument/references" {
             let index = self.indices.get(&id)?;
             let canonical_uri = file_uri(&id).ok()?;
@@ -142,7 +143,7 @@ impl ProjectIndex {
                             .pointer("/context/includeDeclaration")
                             .and_then(Value::as_bool)
                             .unwrap_or(true);
-                        serde_json::json!(
+                        let mut locations=serde_json::json!(
                             self.references
                                 .get(&definition.to_string())
                                 .into_iter()
@@ -150,7 +151,8 @@ impl ProjectIndex {
                                 .filter(|(_, declaration)| include || !declaration)
                                 .map(|(location, _)| location.clone())
                                 .collect::<Vec<_>>()
-                        )
+                        );
+                        self.rust_locations(&mut locations);locations
                     }),
             );
         }
@@ -163,7 +165,24 @@ impl ProjectIndex {
         {
             return Some(Ok(items));
         }
-        Some(answer)
+        Some(answer.map(|mut answer| { self.rust_locations(&mut answer); answer }))
+    }
+
+    fn rust_locations(&self, value: &mut Value) {
+        if let Some(uri)=value.get("uri").and_then(Value::as_str)
+            && let Ok(id)=source_id(uri)
+            && let Some(module)=self.graph.modules.get(&id)
+            && let Some(rust)=&module.rust {
+            let position=|text:&str,offset:usize| {
+                let prefix=&text[..offset];serde_json::json!({"line":prefix.bytes().filter(|&byte|byte==b'\n').count(),"character":prefix.rsplit('\n').next().unwrap_or("").encode_utf16().count()})
+            };
+            for export in &rust.exports {
+                if value.pointer("/range/start")==Some(&position(&module.declaration_source,export.declaration.start)) {
+                    value["range"]=serde_json::json!({"start":position(&module.source.text,export.native.start),"end":position(&module.source.text,export.native.end)});return;
+                }
+            }
+        }
+        match value {Value::Array(values)=>for value in values{self.rust_locations(value)},Value::Object(values)=>for value in values.values_mut(){self.rust_locations(value)},_=>{}}
     }
 
     /// Answer an unfinished member access from a project check of the module

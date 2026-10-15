@@ -91,7 +91,7 @@ const NOT_MEMBERS: &[&str] = &["function", "const", "main", "greeting"];
 
 const SHAPES: &str = "export type Point = { x: int; y: int; };\nexport function origin(): Point { return { x: 0, y: 0 }; }\nexport function scale(point: ReadOnly<Point>, factor: int): Point { return { x: point.x * factor, y: point.y * factor }; }\n";
 const GREETING: &str = "export function greeting(): string { return \"hi\"; }\n";
-const FILES: [(&str, &str); 2] = [("shapes.tsr", SHAPES), ("greeting.tsr", GREETING)];
+const FILES: [(&str, &str); 3] = [("shapes.tsr", SHAPES), ("greeting.tsr", GREETING), ("compute.rs", "pub fn echo(value:String)->String{value}")];
 
 const HEAD: &str = "import { greeting } from './greeting.tsr';\nimport { Point, origin, scale } from './shapes.tsr';\nimport { s } from 'std:schema';\n\ntype Item = { id: int; name: string; };\nconst schema = s.string();\n\nfunction helper(count: int): int { return count; }\n\nfunction main() {\n  const values: int[] = [1, 2, 3];\n  const item: Item = { id: 1, name: \"a\" };\n  const text = \"abc\";\n  const lookup = new Map<string, int>();\n  const seen = new Set<int>();\n  const start = origin();\n  const parsed = schema.safeParse(greeting());\n  const loaded: Result<string, int> = Ok(greeting());\n  ";
 const TAIL: &str = "\n}\n";
@@ -99,6 +99,7 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+        Row {kind:Kind::ImportedMember,name:"Rust bridge result",before:"import {echo} from './compute.rs';function main(){const message=echo('hello');".into(),typed:"message.",after:"toUpperCase();}",includes:&["length","toUpperCase"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row { kind: Kind::MatchOkBinding, name: "match expression payload", before: "type User={name:string;};function main(){const result:Result<User,string>=Ok({name:'Ada'});const count=match(result){Ok(user)=>".into(), typed: "user.", after: "name.length,Err(_)=>0,};}", includes: &["name"], excludes: NOT_MEMBERS, silent: None, needs_check: false },
         Row { kind: Kind::RecordField, name: "match variant payload", before: "type User={name:string;};type Guest={code:int;};function get(value:User|Guest):int{return match(value){User(user)=>".into(), typed: "user.", after: "name.length,Guest(guest)=>guest.code,};}", includes: &["name"], excludes: &["code","function","const"], silent: None, needs_check: false },
         row(Kind::Local, "local prefix", "val", &["values"], &[]),

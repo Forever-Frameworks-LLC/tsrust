@@ -1,0 +1,20 @@
+import { sum_squares, listen } from './compute.rs';
+import { ThreadPool, spawn } from 'std:threads';
+
+function main() {
+  const pool = new ThreadPool({
+    workers: 2, capacity: 2
+  });
+  const values = [1, 2, 3, 4, 5];
+  const result = unwrap(pool.task((): int => sum_squares(values)));
+  console.log(unwrap(result.join()));
+
+  const listener = unwrap(spawn((task): void => listen(task)));
+  listener.cancel();
+  match (listener.join()) {
+    Ok(_) => {},
+    Err(error) => console.log(error.code),
+  }
+}
+// 55
+// cancelled

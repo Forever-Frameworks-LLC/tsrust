@@ -37,7 +37,7 @@ fn discover_inner(inputs:&[PathBuf],include_configs:bool)->Result<Vec<PathBuf>,S
                     && (include_configs && entry.file_name()=="tsrust.config.json" || entry
                         .path()
                         .extension()
-                        .is_some_and(|extension| extension == "tsr"))
+                        .is_some_and(|extension| extension == "tsr" || include_configs && extension == "rs"))
                 {
                     files.push(entry.path());
                 }

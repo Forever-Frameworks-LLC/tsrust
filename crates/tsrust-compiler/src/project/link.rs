@@ -211,8 +211,9 @@ fn check_graph_entry(graph: ProjectGraph, entries: &[SourceId], diagnostics: Opt
     let mut module_records: BTreeMap<SourceId, crate::type_aliases::ImportedRecords> = BTreeMap::new();
     for (module, id) in graph.order.iter().enumerate() {
         let source = &graph.modules[id];
-        segments.push((id.clone(), offset, source.source.text.len()));
-        offset += source.source.text.len() + 1;
+        let length = source.source.text.len().max(source.declaration_source.len());
+        segments.push((id.clone(), offset, length));
+        offset += length + 1;
         let mut imported = crate::type_aliases::Aliases::new();
         for import in &source.imports {
             let Some(target) = import.target.as_ref().and_then(|target| module_aliases.get(target)) else { continue };

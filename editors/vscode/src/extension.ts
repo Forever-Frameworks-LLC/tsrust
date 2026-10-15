@@ -12,7 +12,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   disposed = false;
   const output = vscode.window.createOutputChannel('Tsrust');
   const sourceWatcher = vscode.workspace.createFileSystemWatcher('**/*.tsr');
-  const dataWatcher = vscode.workspace.createFileSystemWatcher('**/*.{json,jsonc}');
+  const dataWatcher = vscode.workspace.createFileSystemWatcher('**/*.{json,jsonc,rs}');
   context.subscriptions.push(sourceWatcher, dataWatcher);
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.command = 'tsrust.restartServer';
@@ -109,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const next = new LanguageClient('tsrust', 'Tsrust', {
       command: path, args: [], transport: TransportKind.stdio,
     }, {
-      documentSelector: [{ language: 'tsrust', scheme: 'file' }, { language: 'tsrust', scheme: 'untitled' }, { scheme: 'file', pattern: '**/*.json' }, { scheme: 'file', pattern: '**/*.jsonc' }],
+      documentSelector: [{ language: 'tsrust', scheme: 'file' }, { language: 'tsrust', scheme: 'untitled' }, { scheme: 'file', pattern: '**/*.json' }, { scheme: 'file', pattern: '**/*.jsonc' }, { scheme: 'file', pattern: '**/*.rs' }],
       outputChannel: output,
       synchronize: { fileEvents: [sourceWatcher, dataWatcher] },
       initializationOptions: { debounceMs: settings.get<number>('analysis.debounceMs', 200) },
