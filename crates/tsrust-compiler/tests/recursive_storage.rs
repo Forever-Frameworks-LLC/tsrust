@@ -35,8 +35,8 @@ function main() {
 
 #[test]
 fn shallow_and_deep_clone_chunks_keep_every_value_and_independent_storage() {
-    let source = include_str!("../../../benchmarks/runtime/workloads/recursive_clone.tsr")
-        .replace("function main() {\n}", "function main() { const rows = workload(5, 7); for (const row of rows) { console.log(row.length); for (const value of row) { console.log(value); } } }");
+    let source = support::format_round_trip(include_str!("../../../benchmarks/runtime/workloads/recursive_clone.tsr"))
+        .replace(support::format_round_trip("function main() {}").trim(), "function main() { const rows = workload(5, 7); for (const row of rows) { console.log(row.length); for (const value of row) { console.log(value); } } }");
     assert!(source.contains("const rows = workload(5, 7);"), "workload entry point changed");
     execute(
         &source,
