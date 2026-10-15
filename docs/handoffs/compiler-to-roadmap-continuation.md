@@ -1,6 +1,64 @@
 # Compiler continuation: UI resource lifetimes, data types, then S19–S21
 
 
+## Restart checkpoint — 2026-10-15, resource observer implementation
+
+The owner requested a restart-safe stopping point during resource acceptance.
+Resume the priority order below; no data-type, S19, S20 or S21 implementation has
+started in this pass. The practical-service requirements below are durable.
+
+Implemented `TrackedResource`, `trackedResource()`, `resourceId()`,
+`closeResource()`, `releaseCount()`, `releaseOrder()` and `liveCount()` in
+**std:testing**, as requested by the owner. Native bindings remain private in
+std:testing-runtime; do not restore the temporary std:testing-resources namespace.
+See [resource contracts](../guides/resource-lifetimes.md) and
+`examples/resource-lifetimes`. Native Drop releases an allocation before recording
+its integer identity; the observer never retains a resource. Record replacement,
+array removal, callback capture, explicit close, local async suspension, failure
+unwinding and abandoned lazy-task cleanup pass. Worker, channel and started-task
+transport reject explicitly. External Rust projected-data Drop rejection remains.
+
+Focused results: 6 tracked-resource tests, 6 Rust-bridge tests and 3 native-resource
+lifecycle tests pass. Final focused editor completion (four typing modes) and
+hover/signature-help tests pass. The full checker-agreement suite passed against
+the earlier temporary namespace; the final std:testing full editor pass was stopped
+at the owner's restart request. Do not claim final full editor acceptance. Resume
+checker_agreement, completion_matrix and editor_consistency on the final source;
+retain completed evidence. A mistaken direct invocation selected an older editor
+test binary and ran zero tests; the correct newest binary then ran and passed the
+new help test. This is recorded rather than counted as acceptance.
+
+**Demonstrated UI blocker:**
+`experiments/ui-tsrust-owner-handles/witnesses/tracked-release.tsr` passes active
+callback self-removal and exact-once release, then fails the assertion
+`automatic child release must precede parent`. Owner scope destruction bypasses
+its explicit child-first cleanup; current registration insertion order destroys
+parent captures first. No owner representation repair has been applied. The UI
+review chat confirmed that reversing handlers alone is insufficient because drain
+removes/re-appends entries. Group component state and captures into a lifetime unit,
+with an extractable callback slot if state must remain accessible during dispatch;
+maintain descendant-first destruction independently of display order and FIFO.
+Monotonic descending component IDs are a candidate only while reparenting is absent.
+Add post-delivery, nested-mount, same-key replacement and sibling-reorder cases.
+Resource-bearing state and queued payload acceptance remains pending; define rejected
+enqueue ownership and stale/consumed/owner-drop payload cleanup explicitly. Do not
+claim B2 or async UI readiness from the primitive. Preserve existing identity rules.
+
+This is a source checkpoint, **not a completed resource acceptance gate**. Remaining:
+final editor suites, testing-library/error-effect cross-checks, full resource/UI
+acceptance, benchmark applicability review, and consumer refresh after acceptance.
+No timed workloads or S18 three-driver suites were rerun. The changed shared error
+metadata is limited to new private testing functions; SQL/task lifecycle is unchanged.
+Installed CLI/LSP and configured editor consumers remain at the prior accepted
+checkpoint. Shared debug binaries contain this work; rebuild from Git if needed.
+
+Original logs are byte-verified in `benchmarks/records.sqlite` under
+`tsrust-resource-*.log`; interrupted passes and original failures are preserved.
+Whole-project formatting passed, then changed zero files/fingerprints on repetition.
+Six unrelated untracked owner plans are preserved. Active test processes were stopped
+for restart. Reuse the shared Cargo target with incremental compilation disabled;
+removed test artifacts may need rebuilding. Do not launch a full historical pass.
+
 ## Current handoff — 2026-10-15, after S18 acceptance
 
 This section supersedes all historical “next”, “pending”, consumer-version and build-window
@@ -19,6 +77,17 @@ statements below. Follow the [current roadmap priorities](../standard-library-ro
    Record unsupported cases honestly; do not expand into an unlimited type-system audit.
 3. Continue S19 caches, S20 queues and S21 integrated acceptance autonomously after the
    priority work. The owner explicitly authorized continuation, not another planning stop.
+
+S21 now requires practical service readiness, not a minimal demo. Follow the
+[service requirements and coverage methodology](../standard-library-roadmap.md#practical-service-readiness-and-coverage-methodology):
+authentication, safe shared state, versioned migrations/recovery, redacted
+observability, scoped HTTP/security contracts and actual Linux/container/offline/
+signal/shutdown acceptance. Defer the polished MVP/demo, not executable witnesses.
+Calendar/date/time coverage is a first-class prerequisite; monotonic clocks are
+not calendar support. Compare pinned TypeScript and Rust language-tool inventories
+with Tsrust and prove behavior through native/compiler/editor witnesses. Implement
+in coherent sections and retain accepted evidence. The same roadmap section orders
+post-S21 follow-up and names deferred scope.
 
 ### Completed work: reuse evidence, do not restart
 

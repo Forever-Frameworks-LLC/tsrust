@@ -1,0 +1,51 @@
+import { strictEqual, ok, TrackedResource, trackedResource, resourceId, releaseCount, releaseOrder, liveCount } from 'std:testing';
+import { Owner, Handle, runtime, root, mount, remove, enqueue, drain } from './owner.tsr';
+
+function retained(resource: Owned<TrackedResource>): (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int) => void {
+  return (owner: Mutable<Owner>, handle: ReadOnly<Handle>, delta: int): void => {
+    const key = resourceId(resource);
+    strictEqual(releaseCount(key), 0);
+    remove(owner, handle);
+    strictEqual(releaseCount(key), 0);
+  };
+}
+
+function main() {
+  const baseline = liveCount();
+  const domain = runtime();
+  {
+    const owner = domain();
+    const parent = root(owner);
+    const resource = trackedResource();
+    const key = resourceId(resource);
+    const item = mount(owner, parent, 'active', 0, retained(resource));
+    enqueue(owner, item, 1);
+    enqueue(owner, item, 1);
+    strictEqual(drain(owner), 'ok;stale;');
+    strictEqual(releaseCount(key), 1);
+    remove(owner, item);
+    strictEqual(releaseCount(key), 1);
+  }
+
+  strictEqual(liveCount(), baseline);
+  let parentKey = 0;
+  let childKey = 0;
+  {
+    const owner = domain();
+    const rootHandle = root(owner);
+    const parentResource = trackedResource();
+    parentKey = resourceId(parentResource);
+    const parent = mount(owner, rootHandle, 'parent', 0, retained(parentResource));
+    const childResource = trackedResource();
+    childKey = resourceId(childResource);
+    mount(owner, parent, 'child', 0, retained(childResource));
+    strictEqual(releaseCount(parentKey), 0);
+    strictEqual(releaseCount(childKey), 0);
+  }
+
+  strictEqual(releaseCount(parentKey), 1);
+  strictEqual(releaseCount(childKey), 1);
+  ok(releaseOrder(childKey) < releaseOrder(parentKey), 'automatic child release must precede parent');
+  strictEqual(liveCount(), baseline);
+  console.log('UI retained resources released');
+}

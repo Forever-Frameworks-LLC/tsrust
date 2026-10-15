@@ -10195,7 +10195,7 @@ self.names_materialized_type(element.with_depth(0).ty())
             }
             return Err(Diagnostic::new(
                 "clone-type",
-                "Values containing callable environments cannot be cloned.",
+                "Values containing non-clonable resources or callable environments cannot be cloned.",
                 span,
             ));
         }

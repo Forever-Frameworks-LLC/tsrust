@@ -1,0 +1,22 @@
+import { trackedResource, resourceId, closeResource, releaseCount, liveCount, TrackedResource } from "std:testing";
+import { strictEqual } from "std:testing";
+import { yield } from "std:futures";
+async function inspect(resource: Owned<TrackedResource>): Task<int> {
+  const key = resourceId(resource);
+  await yield();
+  strictEqual(releaseCount(key), 0);
+  closeResource(resource);
+  return key;
+}
+
+async function main(): Task<void> {
+  const baseline = liveCount();
+  const resource = trackedResource();
+  const key = resourceId(resource);
+  const pending = inspect(resource);
+  strictEqual(releaseCount(key), 0);
+  strictEqual(await pending, key);
+  strictEqual(releaseCount(key), 1);
+  strictEqual(liveCount(), baseline);
+  console.log("local async release settled");
+}

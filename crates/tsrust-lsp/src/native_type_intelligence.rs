@@ -214,7 +214,8 @@ impl SourceIndex {
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpApp { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpTlsOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::HttpClient { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::HttpClientOptions); }
         if declaration.id == tsrust_compiler::native_signatures::NativeTypeId::ThreadPool { self.native_type_spelling(tsrust_compiler::native_signatures::NativeTypeId::ThreadPoolOptions); }
-        let Some(catalog) = builtins_for(declaration.module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
+        let catalog_module = if declaration.module == "std:testing-runtime" { "std:testing" } else { declaration.module };
+        let Some(catalog) = builtins_for(catalog_module).into_iter().find(|entry| entry["name"] == declaration.name) else { return; };
         self.native_type_aliases.insert(local.into(), declaration.id);
         if !declaration.type_parameters.is_empty() {
             self.generic_parameters.insert(local.into(), declaration.type_parameters.iter().map(|name| (*name).to_owned()).collect());

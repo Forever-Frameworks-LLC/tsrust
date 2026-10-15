@@ -158,3 +158,16 @@ fn every_sqlite_member_is_reachable(){
   for entry in catalog[family].as_array().unwrap(){let name=entry["name"].as_str().unwrap();assert!(offered.iter().any(|label|label==name),"{family}.{name}: {offered:?}");}
  }
 }
+
+#[test]
+fn tracked_resource_module_help_agrees_with_checked_ownership() {
+    let text="import {trackedResource,resourceId,closeResource,releaseCount} from 'std:testing';function main(){const r=trackedResource();const key=resourceId(r);closeResource(r);releaseCount(key);}";
+    let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+    for (call,expected) in [("trackedResource();","synthetic"),("resourceId(r)","identity"),("closeResource(r)","Consumes"),("releaseCount(key)","destructions")] {
+        let offset=text.rfind(call).unwrap();
+        let hover=session.hover("main.tsr",text,offset+1).unwrap_or_default();
+        assert!(hover.contains(expected),"{call}: {hover}");
+        let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));
+        assert!(!signature["signatures"].as_array().unwrap().is_empty(),"{signature}");
+    }
+}

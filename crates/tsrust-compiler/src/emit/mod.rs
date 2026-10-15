@@ -2432,6 +2432,10 @@ impl Emitter<'_> {
                 let _=writeln!(output,"struct Record{index} {{ handle: tsrust_native_files::buffered_fs::{backend} }}");
                 continue;
             }
+            if record.native_type == Some(crate::native_signatures::NativeTypeId::TrackedResource) {
+                let _ = writeln!(output, "type Record{index} = TsrTrackedResource;");
+                continue;
+            }
             if record.native_type == Some(crate::native_signatures::NativeTypeId::File) {
                 let _ = writeln!(output, "struct Record{index} {{ handle: tsrust_native_files::fs::FileHandle }}");
                 continue;
@@ -3039,6 +3043,9 @@ impl Emitter<'_> {
         }
         if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:path" && crate::native_bindings::BINDINGS[id].name=="join") {
             output.push_str("fn tsrust_std_path_join(paths: &[&str]) -> String { String::Owned(tsrust_native_path::join(paths, cfg!(windows))) }\n");
+        }
+        if self.program.records.iter().any(|record| record.native_type == Some(crate::native_signatures::NativeTypeId::TrackedResource)) || self.native_bindings.borrow().iter().any(|&id| crate::native_bindings::BINDINGS[id].features.contains(&"testing-resources")) {
+            output.push_str(include_str!("../stdlib/testing/runtime/resources.rs"));
         }
         if self.native_bindings.borrow().iter().any(|&id| {
             crate::native_bindings::BINDINGS[id].features.contains(&"testing")

@@ -1,0 +1,64 @@
+import { trackedResource, resourceId, closeResource, releaseCount, releaseOrder, liveCount, TrackedResource } from "std:testing";
+import { strictEqual, ok } from "std:testing";
+
+type State = {
+  resource: TrackedResource;
+};
+
+function returned(): TrackedResource {
+  return trackedResource();
+}
+
+function main() {
+  const baseline = liveCount();
+  let first = 0;
+  let second = 0;
+  {
+    let state: State = {
+      resource: returned()
+    };
+    first = resourceId(state.resource);
+    strictEqual(releaseCount(first), 0);
+    state = {
+      resource: trackedResource()
+    };
+    second = resourceId(state.resource);
+    strictEqual(releaseCount(first), 1);
+    strictEqual(releaseCount(second), 0);
+  }
+
+  strictEqual(releaseCount(second), 1);
+  ok(releaseOrder(first) < releaseOrder(second));
+  let captured = 0;
+  {
+    const resource = trackedResource();
+    captured = resourceId(resource);
+    const callback = (): int => {
+      return resourceId(resource);
+    };
+    strictEqual(callback(), captured);
+    strictEqual(callback(), captured);
+    strictEqual(releaseCount(captured), 0);
+  }
+
+  strictEqual(releaseCount(captured), 1);
+  let removed = 0;
+  {
+    const items: TrackedResource[] = [];
+    const item = trackedResource();
+    removed = resourceId(item);
+    items.push(item);
+    strictEqual(releaseCount(removed), 0);
+    const extracted = items.remove(0);
+    strictEqual(releaseCount(removed), 0);
+    closeResource(extracted);
+  }
+
+  strictEqual(releaseCount(removed), 1);
+  const resource = trackedResource();
+  const identity = resourceId(resource);
+  closeResource(resource);
+  strictEqual(releaseCount(identity), 1);
+  strictEqual(liveCount(), baseline);
+  console.log("resources released once");
+}

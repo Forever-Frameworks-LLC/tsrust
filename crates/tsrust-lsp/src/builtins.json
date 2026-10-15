@@ -5730,6 +5730,103 @@
   ],
   "std:testing": [
     {
+      "name": "TrackedResource",
+      "signature": "type TrackedResource",
+      "documentation": "An opaque, uniquely owned synthetic native resource for testing destruction. Construct with trackedResource(); inspect its identity with resourceId(resource); consume it with closeResource(resource). It exposes no fields or receiver methods. Scope exit and replacement destroy native storage automatically. releaseCount and releaseOrder observe destruction without retaining the resource. Cloning, field projection, worker transfer and started-task transport are rejected. Direct local async ownership is supported. This instrument does not represent asynchronous backend cleanup.\n\nOwnership: moves transfer the resource; ReadOnly inspection borrows it. Its identity is a copied integer, not a resource handle."
+    },
+    {
+      "name": "trackedResource",
+      "signature": "trackedResource(): TrackedResource",
+      "parameters": [],
+      "documentation": "Creates a unique synthetic native resource with a positive process-local identity and real destructor. Takes no arguments. Returns an owned opaque resource. Identity exhaustion terminates native execution before reuse. Scope exit, replacement and consuming closeResource release its native allocation. This test instrument is not a file, database or UI backend.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
+      "name": "resourceId",
+      "signature": "resourceId(resource: ReadOnly<TrackedResource>): int",
+      "parameters": [
+        {
+          "label": "resource: ReadOnly<TrackedResource>",
+          "documentation": "Live resource to inspect without transferring ownership."
+        }
+      ],
+      "documentation": "Returns the positive identity of a live resource. Takes one borrowed resource and does not change or release it. The returned integer does not retain the resource.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
+      "name": "closeResource",
+      "signature": "closeResource(resource: Owned<TrackedResource>): void",
+      "parameters": [
+        {
+          "label": "resource: Owned<TrackedResource>",
+          "documentation": "Resource transferred for immediate destruction."
+        }
+      ],
+      "documentation": "Consumes one resource and releases its native allocation before recording destruction. Returns void. Repeated closeResource or later use of the consumed value is a compile-time error. Automatic scope cleanup uses the same destructor.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
+      "name": "releaseCount",
+      "signature": "releaseCount(id: int): int",
+      "parameters": [
+        {
+          "label": "id: int",
+          "documentation": "Process-local identity; unknown, zero and negative IDs return zero."
+        }
+      ],
+      "documentation": "Returns the number of observed destructions for one identity, normally zero while live and exactly one after release. Takes an int of any value. Unknown IDs return zero. Does not retain resources or reset the audit.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
+      "name": "releaseOrder",
+      "signature": "releaseOrder(id: int): int",
+      "parameters": [
+        {
+          "label": "id: int",
+          "documentation": "Process-local identity; unknown, zero and negative IDs return zero."
+        }
+      ],
+      "documentation": "Returns the one-based destruction position for one identity, or zero if no destruction was observed. Takes an int of any value. Unknown IDs return zero. Order compares synchronous destruction events, not asynchronous backend completion.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
+      "name": "liveCount",
+      "signature": "liveCount(): int",
+      "parameters": [],
+      "documentation": "Returns created resources minus observed destructions in the current process. Takes no arguments. Does not change or retain resources. Audit storage contains only integer identities and lasts until process exit; use bounded test processes.\n\nThe resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.\n\n```tsrust\nconst r = trackedResource();\nconst key = resourceId(r);\ncloseResource(r);\nstrictEqual(releaseCount(key), 1);\n```\n\nOwnership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.",
+      "examples": [
+        {
+          "source": "import {trackedResource,resourceId,closeResource,releaseCount,releaseOrder,liveCount,TrackedResource} from \"std:testing\";\nimport {strictEqual,ok} from \"std:testing\";\ntype State = {resource: TrackedResource;};\nfunction returned():TrackedResource {return trackedResource();}\nfunction main(){\n const baseline=liveCount();\n let first=0;\n let second=0;\n {\n  let state:State={resource:returned()};\n  first=resourceId(state.resource);\n  strictEqual(releaseCount(first),0);\n  state={resource:trackedResource()};\n  second=resourceId(state.resource);\n  strictEqual(releaseCount(first),1);\n  strictEqual(releaseCount(second),0);\n }\n strictEqual(releaseCount(second),1);\n ok(releaseOrder(first)<releaseOrder(second));\n let captured=0;\n {\n  const resource=trackedResource();\n  captured=resourceId(resource);\n  const callback=():int=>{return resourceId(resource);};\n  strictEqual(callback(),captured);\n  strictEqual(callback(),captured);\n  strictEqual(releaseCount(captured),0);\n }\n strictEqual(releaseCount(captured),1);\n let removed=0;\n {\n  const items:TrackedResource[]=[];\n  const item=trackedResource();\n  removed=resourceId(item);\n  items.push(item);\n  strictEqual(releaseCount(removed),0);\n  const extracted=items.remove(0);\n  strictEqual(releaseCount(removed),0);\n  closeResource(extracted);\n }\n strictEqual(releaseCount(removed),1);\n const resource=trackedResource();\n const identity=resourceId(resource);\n closeResource(resource);\n strictEqual(releaseCount(identity),1);\n strictEqual(liveCount(),baseline);\n console.log(\"resources released once\");\n}\n",
+          "output": "resources released once\n"
+        }
+      ]
+    },
+    {
       "name": "ok",
       "signature": "ok<T>(value: T, message: string = \"Expected a truthy value\"): void",
       "parameters": [

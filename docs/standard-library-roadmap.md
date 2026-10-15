@@ -161,9 +161,61 @@ S01–S18 have accepted capabilities within their documented platform and featur
 | S18: async SQL | S11, S14, S17 | SQLx-backed SQLite/Postgres/MySQL; bounded pools, typed binding/rows, transactions and timeout/cancellation; each driver accepted separately | core accepted; migration orchestration deferred; [evidence](plans/async-sql-acceptance.md) |
 | S19: caches | S08, S09 | Owned bounded LRU/TTL cache, eviction/expiration contracts and fake-clock tests; concurrent cache/loading and stampede policy follow S14 | owned LRU storage and bounded monotonic deadline index pass collision/recency/expiry/drop tests; public TTL contract and source API pending; see [cache plan](plans/cache-plan.md) |
 | S20: queues | S08, S14 | Bounded in-memory work queue, producer/consumer ownership, backpressure, close/drain, cancellation and worker shutdown; durable/distributed adapters are separate gates | pending |
-| S21: integrated release | S04, S15–S20 | Validated HTTP service using database, cache and queue; graceful shutdown, overload, leak checks, complete IntelliSense and reproducible toolchain distribution | pending |
+| S21: practical service readiness | S04, S15–S20, data coverage | Authenticated deployable service, shared handler state, migrations/recovery, observability, HTTP/security contracts and Linux/container/offline/signal acceptance; see requirements below | pending; polished MVP/demo deferred |
 
 S17 can proceed before async once S07/S10 land. S08/S09 and thread research can proceed independently after shared prerequisites. S01–S05 are the immediate concurrent track alongside built-in methods. Compiler integration is coordinated work in shared files, not safe unlimited concurrent edits.
+
+## Practical service readiness and coverage methodology
+
+S21 must close on an authenticated, deployable service acceptance witness, not a
+minimal demo. Defer the separately polished MVP/demo application until after this
+acceptance. Executable service witnesses remain required throughout implementation.
+Complete these requirements in coherent, independently accepted sections:
+
+- Safe shared handler state for database pools, cache and configuration.
+- Versioned migrations with failure, recovery and schema-drift checks.
+- Structured redacted logging, request/task correlation, useful source errors and
+  basic metrics/tracing.
+- Configurable HTTP limits and timeouts, with required forms, multipart, cookies,
+  CORS, rate limiting and static-serving contracts scoped to the concrete service.
+- Maintained-library security primitives and session or token integration.
+- Actual Linux/container, offline-build, signal and graceful-shutdown acceptance.
+- Overload, ownership, cancellation, leak checks, editor agreement and repeatable
+  toolchain distribution, preserving the existing acceptance requirements.
+
+Calendar dates are a first-class prerequisite. Inventory calendar dates, time of
+day, UTC instants/timestamps, offsets/time zones, durations versus monotonic clocks,
+parsing, formatting, arithmetic, comparison, invalid dates and DST ambiguity,
+serialization and each SQL driver mapping. `monotonicNow` alone does not establish
+calendar-date support. Include numeric widths/signedness, exact decimals, UUIDs,
+JSON, binary and nullable values alongside language/container/resource types.
+Reuse suitable maintained backends and require explicit checked conversions.
+
+Compare pinned TypeScript language-service/tsserver declarations and rust-analyzer
+results on representative projects against Tsrust compiler/LSP results. Record
+standard library/crate versions, features and targets. Inventory constructors,
+methods, properties, overloads, generics and errors; classify each as supported,
+partial, intentionally different, missing or deferred. Rust has no universal crate
+API set: pin the selected crates. TypeScript declarations describe types rather
+than establish runtime behavior. Completion, hover and signature comparisons find
+gaps; declaration inventories and positive/negative compiler/native witnesses prove
+behavior and ownership. This methodology is required work, not a claim that the
+comparison tooling or runtime parity already exists. Do not pursue arbitrary npm
+or Rust-crate compatibility.
+
+After S21, order non-UI follow-up as follows, promoting only concrete service needs:
+
+1. Remaining database cursor and application-produced streaming/backpressure.
+2. Durable jobs with acknowledgement, retries, idempotency, recovery and explicit
+   delivery guarantees.
+3. External cache/Redis and WebSocket/SSE as application demand requires.
+4. Broader host/subprocess/filesystem-watch/compression/URL-form utilities, curated
+   bindings and source debugging.
+
+Query builders and compile-time SQL checks are optional after migrations. Full
+ORMs, universal Rust/npm compatibility, distributed queue platforms and extreme
+nesting optimizations remain deferred. Reconcile these items against actual code
+before adding duplicate work.
 
 ## Module decisions for S01
 

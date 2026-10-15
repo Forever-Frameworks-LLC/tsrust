@@ -2,6 +2,111 @@
 // These declarations are parsed by the compiler; native execution uses Rust backends.
 pub(crate) const SOURCE: &str = r####"import { assertionDetails, checkAssertion, shareCallback, numericValue, lengthValue, hasLength } from "std:testing-runtime";
 
+import { TrackedResource as NativeTrackedResource, trackedResource as nativeTrackedResource, resourceId as nativeResourceId, closeResource as nativeCloseResource, releaseCount as nativeReleaseCount, releaseOrder as nativeReleaseOrder, liveCount as nativeLiveCount } from "std:testing-runtime";
+/**
+An opaque, uniquely owned synthetic native resource for testing destruction. Construct with trackedResource(); inspect its identity with resourceId(resource); consume it with closeResource(resource). It exposes no fields or receiver methods. Scope exit and replacement destroy native storage automatically. releaseCount and releaseOrder observe destruction without retaining the resource. Cloning, field projection, worker transfer and started-task transport are rejected. Direct local async ownership is supported. This instrument does not represent asynchronous backend cleanup.
+
+Ownership: moves transfer the resource; ReadOnly inspection borrows it. Its identity is a copied integer, not a resource handle.
+*/
+export type TrackedResource = NativeTrackedResource;
+
+/**
+Creates a unique synthetic native resource with a positive process-local identity and real destructor. Takes no arguments. Returns an owned opaque resource. Identity exhaustion terminates native execution before reuse. Scope exit, replacement and consuming closeResource release its native allocation. This test instrument is not a file, database or UI backend.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function trackedResource():TrackedResource {return nativeTrackedResource();}
+
+/**
+Returns the positive identity of a live resource. Takes one borrowed resource and does not change or release it. The returned integer does not retain the resource.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function resourceId(resource:ReadOnly<TrackedResource>):int {return nativeResourceId(resource);}
+
+/**
+Consumes one resource and releases its native allocation before recording destruction. Returns void. Repeated closeResource calls or later use of the consumed value is a compile-time error. Automatic scope cleanup uses the same destructor.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function closeResource(resource:Owned<TrackedResource>):void {nativeCloseResource(resource);}
+
+/**
+Returns the number of observed destructions for one identity, normally zero while live and exactly one after release. Takes an int of any value. Unknown IDs return zero. Does not retain resources or reset the audit.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function releaseCount(id:int):int {return nativeReleaseCount(id);}
+
+/**
+Returns the one-based destruction position for one identity, or zero if no destruction was observed. Takes an int of any value. Unknown IDs return zero. Order compares synchronous destruction events, not asynchronous backend completion.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function releaseOrder(id:int):int {return nativeReleaseOrder(id);}
+
+/**
+Returns created resources minus observed destructions in the current process. Takes no arguments. Does not change or retain resources. Audit storage contains only integer identities and lasts until process exit; use bounded test processes.
+
+The resource cannot be cloned, projected or transferred to worker threads or started tasks. Direct local ownership and borrowing apply. No asynchronous cleanup completion is implied.
+
+```tsrust
+const r = trackedResource();
+const key = resourceId(r);
+closeResource(r);
+strictEqual(releaseCount(key), 1);
+```
+
+Ownership: resource operations use checked borrowing or consumption; audit integers copy without retaining resources.
+*/
+export function liveCount():int {return nativeLiveCount();}
+
+
 /**
 Fails when value is falsy. Accepts a supported source value and an optional string message. False, numeric zero, NaN, empty strings, null and undefined are falsy; arrays and records are truthy, including empty containers. Returns void on success. Failure stops the current test body; outside a running test it stops native execution with AssertionError followed by the message. No receiver is changed. The default message is "Expected a truthy value". Wrong arity or a non-string message is a compile-time error.
 

@@ -4,3 +4,4 @@ pub(crate) mod bindings;
 pub(crate) use api::SOURCE;
 
 pub(crate) mod program;
+pub(crate) mod resources;
