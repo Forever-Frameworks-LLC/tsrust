@@ -173,3 +173,19 @@ fingerprints. Installed release formatting is idempotent and its native probe
 prints `0`. The primary editor server was restarted with checking enabled.
 Evidence is stored under `tsrust-empty-delimiters-*.log` in SQLite. Unrelated full
 regressions were not repeated.
+
+## S13 async ownership continuation — 2026-10-15
+
+S13 compiler/editor support is accepted: lazy `Task<T>`, consuming `await`, eager
+argument/default evaluation, retained ReadOnly/Mutable loans, generic transfers,
+source errors and normal finally handling. Readable examples live in
+`examples/async-tasks`. Full regression evidence and the matched lazy-task
+measurement are in [async acceptance](../plans/async-tasks-acceptance.md).
+
+The next async section is S14 Tokio scheduling/I/O and started-task lifecycle.
+S13's local future driver supplies no scheduling, timer or cancellation API.
+Dropping a future releases owned resources without promising source finally
+execution. Returning a child task retaining borrowed data is currently rejected
+with an actionable source diagnostic; await it and return its value instead.
+Nested owned tasks remain supported. Preserve these boundaries and the existing
+thread ownership/cancellation rules when integrating Tokio.

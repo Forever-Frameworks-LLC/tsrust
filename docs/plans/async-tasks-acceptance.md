@@ -74,3 +74,26 @@ in SQLite. Remaining compiler integration evidence:
 Final affected checks: `tsrust-s13-final-generic-checks.log`,
 `tsrust-s13-final-editor-generics.log`, `tsrust-s13-final-callback-checks.log`.
 These focused repairs do not restart the completed full-family regression.
+
+Final release source checkpoint: `fe90dc36`. Release examples and the borrowed
+record/view fixture execute successfully. Installed CLI SHA-256:
+`62a57e2273f7eeec13b6788d242b87b0bd33a7bd443668f094509b941f70ace5`.
+Installed global and configured editor server SHA-256:
+`7020c26136d8012f45ad0f9e88902879e58e0370404683d18c8ad46596093463`.
+The primary VS Code language server was restarted and reports no problems.
+
+Final matched measurement: 93 samples per engine; median batch 0.009208 ms native
+and 0.130958 ms Node after tsc. All checksums are 16777216. SQLite records:
+`benchmarks/async/lazy-await-2026-10-15T13-25-32.690Z-verify.json` and
+`benchmarks/async/lazy-await-2026-10-15T13-25-46.524Z.json`. Source hashes, compiler
+hash, versions and the unchanged protocol are retained in each record. The tree
+dirty flag reflects pending handoff documentation and the loose verification
+record; the compiler source checkpoint is recorded above.
+
+Final release/install evidence: `tsrust-s13-final-release.log`,
+`tsrust-s13-installed-final.log`, `tsrust-s13-final-example-main.log`,
+`tsrust-s13-final-example-borrow.log`, `tsrust-s13-final-benchmark-verify.log` and
+`tsrust-s13-final-benchmark-timed.log`. Whole-project formatting preserves tokens
+and the repeat changes zero files/fingerprints. Closed records were imported,
+read back byte-for-byte and removed; SQLite quick_check passes. Retired test
+executables were pruned (13.8 GiB); verified executable consumers remain.
