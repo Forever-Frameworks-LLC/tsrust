@@ -3376,7 +3376,7 @@
           "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 throw invalid-limits."
         }
       ],
-      "documentation": "Parses one strict JSON document and returns an independent JsonValue or throws a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Catch errors with try/catch; JsonError retains code, message and byte offset. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\nWith an explicit type argument, parse<T> validates and directly constructs T. Supports owned scalar values, records, tuples, arrays and recursive records with nullable or optional links. Required fields must exist; omitted optional fields become undefined. Unknown fields are skipped but still count against every input limit. Each occurrence of a known field must match its type; valid duplicate fields keep the last value. A shape mismatch produces shape-mismatch. int accepts integral values within signed 64-bit range; number rejects signed or unsigned 64-bit integer payloads that would lose precision. Larger integer tokens follow the finite floating-point parsing rules. Numeric failures use integer-range, integer-fractional or number-precision. Multiple non-null union alternatives, native resources and borrowed views other than JsonRaw are not typed decoding targets. Omitting <T> retains the JsonValue return contract. This is checked decoding, not a type assertion.\n\n```tsrust\nfunction main(){try{JSON.parse(\"null secret\");}catch(error){console.log(error.code,error.offset);}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; results without JsonRaw own independent storage and can outlive the input. JsonRaw fields retain a borrow of text.\n\nRaw fields: Explicit JsonRaw fields preserve the selected value's source tokens without constructing a dynamic subtree. Their source text must outlive every use; containing values cannot be cloned. Raw fields work in strict JSON typed decoding, including arrays and optional fields; JSONC and JSONL typed decoding still require owned fields. JSON.stringify and JSON.tryStringify preserve raw source text exactly; enclosing depth and output byte limits still apply.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
+      "documentation": "Parses one strict JSON document and returns an independent JsonValue or throws a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, integer tokens outside those ranges reject with integer-range, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Catch errors with try/catch; JsonError retains code, message and byte offset. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\nWith an explicit type argument, parse<T> validates and directly constructs T. Supports owned scalar values, records, tuples, arrays and recursive records with nullable or optional links. Required fields must exist; omitted optional fields become undefined. Unknown fields are skipped but still count against every input limit. Each occurrence of a known field must match its type; valid duplicate fields keep the last value. A shape mismatch produces shape-mismatch. int accepts integral values within signed 64-bit range; number rejects signed or unsigned 64-bit integer payloads that would lose precision. Integer tokens outside signed/unsigned 64-bit storage reject with integer-range; decimal and exponent forms use finite floating-point parsing. Numeric failures use integer-range, integer-fractional or number-precision. Multiple non-null union alternatives, native resources and borrowed views other than JsonRaw are not typed decoding targets. Omitting <T> retains the JsonValue return contract. This is checked decoding, not a type assertion.\n\n```tsrust\nfunction main(){try{JSON.parse(\"null secret\");}catch(error){console.log(error.code,error.offset);}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; results without JsonRaw own independent storage and can outlive the input. JsonRaw fields retain a borrow of text.\n\nRaw fields: Explicit JsonRaw fields preserve the selected value's source tokens without constructing a dynamic subtree. Their source text must outlive every use; containing values cannot be cloned. Raw fields work in strict JSON typed decoding, including arrays and optional fields; JSONC and JSONL typed decoding still require owned fields. JSON.stringify and JSON.tryStringify preserve raw source text exactly; enclosing depth and output byte limits still apply.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
       "examples": [
       {
         "source": "function main(){try{JSON.parse(\"null secret\");}catch(error){console.log(error.code,error.offset);}}",
@@ -3406,7 +3406,7 @@
           "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 return invalid-limits."
         }
       ],
-      "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\nWith an explicit type argument, tryParse<T> validates and directly constructs T. Supports owned scalar values, records, tuples, arrays and recursive records with nullable or optional links. Required fields must exist; omitted optional fields become undefined. Unknown fields are skipped but still count against every input limit. Each occurrence of a known field must match its type; valid duplicate fields keep the last value. A shape mismatch produces shape-mismatch. int accepts integral values within signed 64-bit range; number rejects signed or unsigned 64-bit integer payloads that would lose precision. Larger integer tokens follow the finite floating-point parsing rules. Numeric failures use integer-range, integer-fractional or number-precision. Multiple non-null union alternatives, native resources and borrowed views other than JsonRaw are not typed decoding targets. Omitting <T> retains the JsonValue return contract. This is checked decoding, not a type assertion.\n\n```tsrust\nfunction main(){match(JSON.tryParse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; results without JsonRaw own independent storage and can outlive the input. JsonRaw fields retain a borrow of text.\n\nRaw fields: Explicit JsonRaw fields preserve the selected value's source tokens without constructing a dynamic subtree. Their source text must outlive every use; containing values cannot be cloned. Raw fields work in strict JSON typed decoding, including arrays and optional fields; JSONC and JSONL typed decoding still require owned fields. JSON.stringify and JSON.tryStringify preserve raw source text exactly; enclosing depth and output byte limits still apply.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
+      "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, integer tokens outside those ranges reject with integer-range, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes. Inspect the Result with match; malformed input or invalid limits do not throw JsonError. Uses checked JsonValue rather than dynamically typed objects. No reviver or replacer callback is supported.\n\nWith an explicit type argument, tryParse<T> validates and directly constructs T. Supports owned scalar values, records, tuples, arrays and recursive records with nullable or optional links. Required fields must exist; omitted optional fields become undefined. Unknown fields are skipped but still count against every input limit. Each occurrence of a known field must match its type; valid duplicate fields keep the last value. A shape mismatch produces shape-mismatch. int accepts integral values within signed 64-bit range; number rejects signed or unsigned 64-bit integer payloads that would lose precision. Integer tokens outside signed/unsigned 64-bit storage reject with integer-range; decimal and exponent forms use finite floating-point parsing. Numeric failures use integer-range, integer-fractional or number-precision. Multiple non-null union alternatives, native resources and borrowed views other than JsonRaw are not typed decoding targets. Omitting <T> retains the JsonValue return contract. This is checked decoding, not a type assertion.\n\n```tsrust\nfunction main(){match(JSON.tryParse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}\n```\n\nExpected output: trailing-data 5. Ownership: borrows text and limits; results without JsonRaw own independent storage and can outlive the input. JsonRaw fields retain a borrow of text.\n\nRaw fields: Explicit JsonRaw fields preserve the selected value's source tokens without constructing a dynamic subtree. Their source text must outlive every use; containing values cannot be cloned. Raw fields work in strict JSON typed decoding, including arrays and optional fields; JSONC and JSONL typed decoding still require owned fields. JSON.stringify and JSON.tryStringify preserve raw source text exactly; enclosing depth and output byte limits still apply.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
       "examples": [
       {
         "source": "function main(){match(JSON.tryParse(\"null secret\")){Ok(_)=>{throw \"unexpected success\";},Err(error)=>{console.log(error.code,error.offset);}}}",
@@ -8194,7 +8194,7 @@
         "documentation": "Optional complete limits record. Omission uses the documented defaults; negative limits or maxDepth above 64 return invalid-limits."
       }
     ],
-    "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, larger integers may round to finite floating point, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes.\n\n```tsrust\nimport {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: null. Ownership: borrows both arguments; the result owns all parsed storage and can outlive the input.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
+    "documentation": "Parses one strict JSON document and returns Ok with an independent JsonValue or Err with a structured JsonError. text is UTF-8; leading and trailing JSON whitespace is allowed. Trailing non-whitespace, malformed syntax, invalid escapes, lone surrogates and nonfinite numbers reject. Duplicate object keys keep the last value and count toward maxEntries. Keys are sorted, integers within signed/unsigned 64-bit ranges remain exact, integer tokens outside those ranges reject with integer-range, and negative zero survives. Optional limits default to 16777216 bytes, 64 container levels, 1000000 entries per collection and 1000000 values. Budget failures have distinct codes; offset counts bytes, not characters. Neither argument changes.\n\n```tsrust\nimport {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}\n```\n\nExpected output: null. Ownership: borrows both arguments; the result owns all parsed storage and can outlive the input.\n\nInteger tokens without a decimal point or exponent are preserved exactly within signed 64-bit or unsigned 64-bit JSON storage. Tokens outside that storage range are rejected instead of rounded; integer-range reports storage overflow, while invalid or nonfinite JSON can fail earlier. Extracting int still requires the signed 64-bit range. Decimal and exponent forms use floating-point JSON semantics.",
     "examples": [
       {
         "source": "import {parse,kind} from \"std:json\"; function main(){match(parse(\"null\")){Ok(value)=>{console.log(kind(value));},Err(error)=>{throw error.message;}}}",
@@ -11275,4 +11275,129 @@
       "inferredSignature": "function run(input: Request): Task<Response>"
     }
   ]
+,
+  "std:numeric": [
+  {
+    "name": "toInt",
+    "signature": "toInt(value: int | number): Result<int, NumericError>",
+    "parameters": [
+      {
+        "label": "value: int | number",
+        "documentation": "Original int or number; no implicit conversion before validation."
+      }
+    ],
+    "documentation": "Returns the same int, or converts a finite, whole number within [-2^63, 2^63) to int. Rejects NonFinite, Fraction or Range. Integer inputs retain all 64 bits. A number already rounded before this call cannot be recovered. Negative zero becomes integer zero. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {toInt as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(42.0)));}\n```\n\nExpected output: 42. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {toInt as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(42.0)));}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "toNumber",
+    "signature": "toNumber(value: int): Result<number, NumericError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Signed 64-bit integer to convert exactly."
+      }
+    ],
+    "documentation": "Converts an int to number only when binary64 represents it exactly. Returns Precision otherwise, including 9007199254740993 and the maximum int. Exact integers beyond the safe-integer interval are permitted. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {toNumber as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(42)));}\n```\n\nExpected output: 42. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {toNumber as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(42)));}",
+        "output": "42\n"
+      }
+    ]
+  },
+  {
+    "name": "toFloat32",
+    "signature": "toFloat32(value: int | number): Result<number, NumericError>",
+    "parameters": [
+      {
+        "label": "value: int | number",
+        "documentation": "Original integer or finite floating value; must be exactly representable in binary32."
+      }
+    ],
+    "documentation": "Checks exact representability in binary32 and returns that value as number. Rejects NonFinite, Range for floating overflow, or Precision for rounding and nonzero underflow. Integer inputs are checked before any binary64 conversion. Negative floating zero is preserved. No rounding mode is offered. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {toFloat32 as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(1.5)));}\n```\n\nExpected output: 1.5. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {toFloat32 as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(1.5)));}",
+        "output": "1.5\n"
+      }
+    ]
+  },
+  {
+    "name": "checkSigned",
+    "signature": "checkSigned(value: int, bits: int): Result<int, NumericError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Signed 64-bit integer to range-check."
+      },
+      {
+        "label": "bits: int",
+        "documentation": "Required width: 8, 16, 32 or 64 bits. No default."
+      }
+    ],
+    "documentation": "Checks the signed range for bits equal to 8, 16, 32 or 64, then returns the unchanged int. Returns Width for another width or Range for an out-of-range value. This validates a boundary; it does not introduce a narrower language type. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {checkSigned as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(127, 8)));}\n```\n\nExpected output: 127. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {checkSigned as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(127, 8)));}",
+        "output": "127\n"
+      }
+    ]
+  },
+  {
+    "name": "checkUnsigned",
+    "signature": "checkUnsigned(value: int, bits: int): Result<int, NumericError>",
+    "parameters": [
+      {
+        "label": "value: int",
+        "documentation": "Nonnegative int to range-check; full unsigned 64-bit values are not representable."
+      },
+      {
+        "label": "bits: int",
+        "documentation": "Required width: 8, 16, 32 or 64 bits. No default."
+      }
+    ],
+    "documentation": "Checks the unsigned range for bits equal to 8, 16, 32 or 64, then returns the unchanged int. Returns Width for another width or Range for a negative or out-of-range value. The input and result remain signed 64-bit int: values above 2^63-1 are unsupported even with bits=64. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {checkUnsigned as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(255, 8)));}\n```\n\nExpected output: 255. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {checkUnsigned as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(255, 8)));}",
+        "output": "255\n"
+      }
+    ]
+  },
+  {
+    "name": "parseInt",
+    "signature": "parseInt(text: string): Result<int, NumericError>",
+    "parameters": [
+      {
+        "label": "text: string",
+        "documentation": "Entire decimal string; optional leading sign, then at least one ASCII digit."
+      }
+    ],
+    "documentation": "Parses the entire string as an exact signed 64-bit decimal integer. An optional + or - sign and leading zeroes are accepted. Whitespace, fractions, exponents, separators, radix prefixes and trailing characters return Syntax. Overflow returns Range. Unlike the global parseInt, this returns Result<int, NumericError> and never accepts a numeric prefix. No receiver is mutated. All arguments are required.\n\n```tsrust\nimport {parseInt as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(\"9223372036854775807\")));}\n```\n\nExpected output: 9223372036854775807. Ownership: scalar values copy; parseInt borrows its string. Results own their data.",
+    "examples": [
+      {
+        "source": "import {parseInt as convert} from \"std:numeric\"; function main(){console.log(unwrap(convert(\"9223372036854775807\")));}",
+        "output": "9223372036854775807\n"
+      }
+    ]
+  },
+  {
+    "name": "NumericError",
+    "signature": "type NumericError",
+    "parameters": [],
+    "documentation": "Describes a rejected exact numeric conversion. code is Syntax, Width, NonFinite, Fraction, Range or Precision; message explains the failure. Conversion functions return Err with this record and never round to claim success.\n\n```tsrust\nimport {NumericError} from \"std:numeric\"; function describe(error:ReadOnly<NumericError>):string{return error.code+\": \"+error.message;} function main(){}\n```\n\nExpected output: none. Ownership: independent record with string fields; no resource cleanup.",
+    "examples": [
+      {
+        "source": "import {NumericError} from \"std:numeric\"; function describe(error:ReadOnly<NumericError>):string{return error.code+\": \"+error.message;} function main(){}",
+        "output": ""
+      }
+    ]
+  }
+]
 }

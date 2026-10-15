@@ -3,6 +3,16 @@
 
 ## Current acceptance and continuation — 2026-10-15
 
+The first data-type section, `std:numeric`, now passes focused compiler/runtime,
+editor and matched-workload acceptance. It preserves original int/number union
+inputs and rejects loss for toInt/toNumber/toFloat32, validates signed/unsigned
+8/16/32/64-bit ranges within int storage, and parses strict exact decimal integers.
+Full u64 above i64::MAX and 128-bit values remain explicitly unsupported. See
+`docs/data-type-coverage.md`; workload timing remains unmeasured. Continue the
+SQL REAL precision repair, then decimal/calendar/time-zone/duration/UUID and
+remaining boundary work before S19–S21. No new go-ahead is required.
+
+
 The checked `std:testing` resource facility and synchronous UI lifetime contract
 are accepted on macOS arm64. Compiler source is `3c23f7b8`; the UI representation
 repair is `5540a836`. See [the current L01–L26 mapping](../../experiments/ui-tsrust-owner-handles/CHECKED-RESOURCES.md)
@@ -25,8 +35,11 @@ resource example and workspace Problems panel report no problems. Installed CLI
 execution and installed LSP resource hover/signature help pass independently.
 The user's rust-analyzer workspace extension remains disabled.
 
-CLI SHA-256: `3155aef0f9ffa39eee8535848aa4d4fa43a6cc2d988449f9764a6a0554ef6dce`.
-LSP SHA-256: `739aa17c55276b6fe70d9b894dd98812afe601a8f95adb48173d9727a846daa1`.
+Current numeric CLI SHA-256: `6513cb306e73eb2cac7784ade9189a9689910f131e6659b0623f56f395ea9a20`.
+Current numeric LSP SHA-256: `69004935e926ccf23348b903c59635dcefe3263016e7cb70b513ed2ab4b918b5`.
+Both consumers were refreshed again for numeric acceptance. The active editor
+server was stopped when inspected, then restarted through its status item.
+Both already-open numeric fixtures now report no workspace problems.
 Reuse `/private/tmp/tsrust-gate100-editor-target`, `CARGO_INCREMENTAL=0` and
 `CARGO_BUILD_JOBS=1`. The restart made the initial build cold; no separate target
 was introduced. Closed diagnostic records are byte-verified in

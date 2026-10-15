@@ -11,6 +11,7 @@ use support::session::Session;
 /// `every_kind_and_std_module_has_a_row` fails otherwise.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Kind {
+    Numeric,
     TrackedResource,
     Sqlite,
     Sql,
@@ -47,7 +48,8 @@ enum Kind {
     MemberPrefix,
 }
 
-const KINDS: [Kind; 34] = [
+const KINDS: [Kind; 35] = [
+    Kind::Numeric,
     Kind::TrackedResource,
     Kind::Sqlite,
     Kind::Sql,
@@ -115,6 +117,8 @@ const TAIL: &str = "\n}\n";
 fn rows() -> Vec<Row> {
     let row = |kind, name, typed, includes, excludes| Row { kind, name, before: HEAD.into(), typed, after: TAIL, includes, excludes, silent: None, needs_check: false };
     let mut rows = vec![
+        Row {kind:Kind::Numeric,name:"numeric exact module",before:"import { ".into(),typed:"",after:" } from 'std:numeric';function main(){}",includes:&["toInt","toNumber","toFloat32","checkSigned","checkUnsigned","parseInt"],excludes:&["round"],silent:None,needs_check:false},
+        Row {kind:Kind::Numeric,name:"numeric error fields",before:"import {NumericError} from 'std:numeric';function probe(error:ReadOnly<NumericError>){".into(),typed:"error.",after:"code;}function main(){}",includes:&["code","message"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::TrackedResource,name:"tracked resource opaque receiver",before:"import {trackedResource} from 'std:testing';function main(){const resource=trackedResource();".into(),typed:"resource.",after:";}",includes:&[],excludes:NOT_MEMBERS,silent:Some("Opaque resources expose borrowed inspection through module functions, not fields."),needs_check:true},
         Row {kind:Kind::Task,name:"lazy task scheduling",before:"async function answer():Task<int>{return 42;}async function main():Task<void>{const task=answer();".into(),typed:"task.",after:";await task;}",includes:&["start","timeout"],excludes:NOT_MEMBERS,silent:None,needs_check:true},
         Row {kind:Kind::Sql,name:"SQL pool",before:"import {connect} from 'std:sql';async function main():Task<void>{const db=await connect('sqlite::memory:',1);".into(),typed:"db.",after:";}",includes:&["query","execute","begin","close"],excludes:NOT_MEMBERS,silent:None,needs_check:true},

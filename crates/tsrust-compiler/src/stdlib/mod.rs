@@ -8,6 +8,7 @@ pub(crate) fn source(module: &str) -> Option<&'static str> {
     match module { "std:testing" => Some(testing::SOURCE), _ => None }
 }
 
+pub(crate) mod numeric;
 pub(crate) mod env;
 pub(crate) mod time;
 

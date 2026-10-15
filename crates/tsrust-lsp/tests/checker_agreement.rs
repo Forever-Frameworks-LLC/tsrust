@@ -28,6 +28,7 @@ struct Receiver {
 }
 
 const RECEIVERS: &[Receiver] = &[
+Receiver {ty:"NumericError",parameter:"x: ReadOnly<NumericError>"},
 Receiver {ty:"TrackedResource",parameter:"x: ReadOnly<TrackedResource>"},
 Receiver {ty:"SqlPool",parameter:"x: SqlPool"},
 Receiver {ty:"SqlTransaction",parameter:"x: SqlTransaction"},
@@ -102,7 +103,8 @@ const ABSENT: &str = "zzqqabsent";
 fn prelude(parameter: &str) -> String {
     // Only the resource row needs the bundled testing implementation in every probe.
     let testing = if parameter.contains("TrackedResource") { "import {TrackedResource} from 'std:testing';\n" } else { "" };
-    format!("{testing}{PRELUDE}")
+    let numeric=if parameter.contains("NumericError"){ "import {NumericError} from 'std:numeric';\n" }else{""};
+    format!("{numeric}{testing}{PRELUDE}")
 }
 
 fn diagnostic(body: &str, parameter: &str) -> Option<(String, String)> {

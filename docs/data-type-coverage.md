@@ -2,7 +2,7 @@
 
 This inventory starts from the implemented compiler declarations, native bindings,
 editor catalog and accepted fixtures. It is discovery, not new acceptance. Resource
-acceptance is being completed first; implementation of the gaps below follows it.
+acceptance is complete; implementation of the gaps below follows it.
 S18 driver evidence is retained. New SQL conversions will require the explicit
 three-driver runner.
 
@@ -92,3 +92,27 @@ Per-type native witnesses and the required-gap table remain the acceptance crite
 Exact raw discovery and comparison records use `tsrust-data-types-*-reference.*`
 and `tsrust-data-types-comparison-final.json` in the canonical SQLite store after import.
 No runtime or performance parity is inferred from these declaration records.
+
+## Checked numeric conversion section (accepted 2026-10-15)
+
+`std:numeric` adds `toInt`, `toNumber`, `toFloat32`, `checkSigned`,
+`checkUnsigned` and strict decimal `parseInt`. All return `Result` with
+`NumericError`; no operation rounds to claim success. See
+`examples/numeric-boundaries/checked.tsr`. Width checks keep `int` storage;
+full unsigned 64-bit and 128-bit values remain unsupported. Existing implicit
+numeric expressions retain their language semantics: converting an already
+rounded `number` cannot recover its original integer. Use the exact helpers at
+boundaries before any widening or arithmetic that may round.
+
+The matched conversion workload is registered in `benchmarks/numeric` and remains
+unmeasured. SQL REAL narrowing is still pending; this section does not change SQL.
+
+Acceptance: native fixture and seven executable catalog examples pass; backend
+edge-case tests cover syntax, fraction, range, precision, negative zero and width
+errors. NumericError checker agreement, all four completion delivery modes,
+module import discovery, hover and signature help pass. The initial completion
+fixture incorrectly used unsupported namespace imports; the repaired named-import
+fixture passes. Original failure evidence is retained. JSON hover prose now agrees
+with the existing integer-range rejection contract; parser behavior is unchanged.
+The native/Node untimed workload matches its independent checksum and mutation
+guards pass. Closed evidence is stored as `tsrust-numeric-*` in SQLite.

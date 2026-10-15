@@ -171,3 +171,13 @@ fn tracked_resource_module_help_agrees_with_checked_ownership() {
         assert!(!signature["signatures"].as_array().unwrap().is_empty(),"{signature}");
     }
 }
+
+#[test]
+fn numeric_module_help_preserves_exact_contract(){
+ let text="import {toInt,toNumber,toFloat32,checkSigned,checkUnsigned,parseInt as exactInt} from 'std:numeric';function main(){toInt(1);toNumber(1);toFloat32(1);checkSigned(1,8);checkUnsigned(1,8);exactInt('1');}";
+ let mut session=Session::start(&[]);session.open("main.tsr",text);session.settle();
+ for (call,expected) in [("toInt(1)","64 bits"),("toNumber(1)","exactly"),("toFloat32(1)","binary32"),("checkSigned(1,8)","Width"),("checkUnsigned(1,8)","unsupported"),("exactInt('1')","entire string")]{
+ let offset=text.rfind(call).unwrap();let hover=session.hover("main.tsr",text,offset+1).unwrap_or_default();assert!(hover.contains(expected),"{call}: {hover}");
+ let signature=session.request("textDocument/signatureHelp",serde_json::json!({"textDocument":{"uri":session.uri("main.tsr")},"position":{"line":0,"character":offset+call.find('(').unwrap()+1}}));assert!(!signature["signatures"].as_array().unwrap().is_empty(),"{signature}");
+ }
+}

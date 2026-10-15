@@ -3063,8 +3063,10 @@ impl Emitter<'_> {
                 output.push_str(include_str!("../stdlib/testing/runtime/registration.rs"));
             }
         }
+        if self.native_bindings.borrow().iter().any(|&id|crate::native_bindings::BINDINGS[id].module=="std:numeric"){output.push_str(&format!("mod tsrust_numeric {{ {} }}",crate::stdlib::numeric::emit::RUNTIME));}
         for &id in self.native_bindings.borrow().iter() {
             let binding = &crate::native_bindings::BINDINGS[id];
+            if binding.module == "std:numeric" { output.push_str(&crate::stdlib::numeric::emit::bridge(self.program,binding)); }
             if binding.module == "std:env" { output.push_str(&crate::stdlib::env::emit::bridge(self.program,binding)); }
             if binding.module == "std:time" { output.push_str(crate::stdlib::time::RUNTIME); }
             if binding.module == "std:os" {

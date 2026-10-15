@@ -1,0 +1,53 @@
+import { toInt, toNumber, toFloat32, checkSigned, checkUnsigned, parseInt as exactInt, NumericError } from "std:numeric";
+import { strictEqual } from "std:testing";
+
+function rejected(value: Result<int, NumericError>, code: string) {
+  match (value) {
+    Ok(_) => {
+      throw "expected rejection";
+    },
+    Err(error) => {
+      strictEqual(error.code, code);
+    }
+  }
+}
+
+function rejectedNumber(value: Result<number, NumericError>, code: string) {
+  match (value) {
+    Ok(_) => {
+      throw "expected rejection";
+    },
+    Err(error) => {
+      strictEqual(error.code, code);
+    }
+  }
+}
+
+function main() {
+  const maximum = unwrap(exactInt("9223372036854775807"));
+  strictEqual(maximum, 9223372036854775807);
+  strictEqual(unwrap(toInt(maximum)), maximum);
+  strictEqual(unwrap(toInt(42.0)), 42);
+  rejected(toInt(1.5), "Fraction");
+  rejected(toInt(9223372036854775808.0), "Range");
+  rejected(toInt(NaN), "NonFinite");
+  rejectedNumber(toNumber(maximum), "Precision");
+  rejectedNumber(toNumber(9007199254740993), "Precision");
+  strictEqual(unwrap(toNumber(9007199254740992)), 9007199254740992.0);
+  strictEqual(unwrap(toFloat32(1.5)), 1.5);
+  rejectedNumber(toFloat32(0.1), "Precision");
+  rejectedNumber(toFloat32(16777217), "Precision");
+  rejectedNumber(toFloat32(maximum), "Precision");
+  rejectedNumber(toFloat32(1e300), "Range");
+  rejectedNumber(toFloat32(1e-300), "Precision");
+  strictEqual(unwrap(checkSigned(-128, 8)), -128);
+  rejected(checkSigned(128, 8), "Range");
+  strictEqual(unwrap(checkUnsigned(255, 8)), 255);
+  rejected(checkUnsigned(256, 8), "Range");
+  rejected(checkUnsigned(-1, 64), "Range");
+  rejected(checkSigned(0, 7), "Width");
+  rejected(exactInt("1.0"), "Syntax");
+  rejected(exactInt(" 1"), "Syntax");
+  rejected(exactInt("9223372036854775808"), "Range");
+  console.log("numeric boundaries exact");
+}

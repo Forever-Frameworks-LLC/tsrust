@@ -1,0 +1,10 @@
+{
+  "id": "numeric-boundaries",
+  "implementationAccepted": true,
+  "measurementStatus": "unmeasured",
+  "iterationsPerBatch": 2048,
+  "source": "numeric-boundaries.tsr",
+  "counterpart": "numeric-boundaries.ts",
+  "sourceSha256": "c09e2554d38ae28b4f6757aeb80a8857e1e29be27735b3ef7a2253faef0abff3",
+  "counterpartSha256": "d859f036e031efd8de1cf3998d73584f6ee352150739ea6f216d9f12af7791ab"
+}
